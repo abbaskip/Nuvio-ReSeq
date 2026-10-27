@@ -7,6 +7,7 @@ import com.nuvio.tv.core.network.NetworkConnectionKind
 import com.nuvio.tv.core.network.NetworkTransport
 import com.nuvio.tv.core.network.networkConnectionKind
 import com.nuvio.tv.ui.theme.NuvioTheme
+import com.nuvio.tv.ui.util.keepLtr
 
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -900,7 +901,7 @@ private fun NetworkMetricCard(
         Text(
             text = when {
                 loading -> "..."
-                value != null -> value
+                value != null -> value.keepLtr()
                 else -> "–"
             },
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
@@ -928,7 +929,7 @@ private fun StreamTestResultRow(
         Text(
             text = when {
                 isRunning -> stringResource(R.string.stream_test_btn_running)
-                speed != null -> "%.1f Mbps".format(speed)
+                speed != null -> "%.1f Mbps".format(speed).keepLtr()
                 else -> "---"
             },
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),

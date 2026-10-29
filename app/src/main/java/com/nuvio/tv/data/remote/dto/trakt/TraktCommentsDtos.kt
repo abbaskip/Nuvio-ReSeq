@@ -39,5 +39,6 @@ data class TraktSearchResultDto(
     @Json(name = "score") val score: Double? = null,
     @Json(name = "movie") val movie: TraktMovieDto? = null,
     @Json(name = "show") val show: TraktShowDto? = null,
-    @Json(name = "list") val list: TraktListSummaryDto? = null
+    @Json(name = "list") val list: TraktListSummaryDto? = null,
+    @Json(name = "episode") val episode: TraktEpisodeDto? = null
 )

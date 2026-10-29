@@ -102,7 +102,7 @@ class TrackingSourceController @Inject constructor(
         val provider = source.providerId?.let(progressProviders::provider)
         if (provider != null) {
             if (provider.clearsLocalProgressOnSelection) {
-                watchProgressPreferences.clearAllPreservingNonTraktIds(profileId) { contentId ->
+                watchProgressPreferences.clearAllPreservingNonTraktIds(profileId, preserveTvdbProgress = true) { contentId ->
                     provider.retainsLocalProgress(contentId)
                 }
             }

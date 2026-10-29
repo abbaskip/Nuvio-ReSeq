@@ -48,14 +48,16 @@ class TraktTrackingHistoryWriter @Inject constructor(
                 media.episode?.season?.let { season -> season to media.episode.number }
             }
             if (episodes.size == group.size && episodes.size > 1) {
-                service.removeSeasonFromHistoryBatch(first.contentId(), episodes)
+                service.removeSeasonFromHistoryBatch(first.contentId(), episodes,
+                    mappingResolved = group.all { it.episode?.numberingProvider == "trakt" })
             } else {
                 group.forEach { media ->
                     service.removeFromHistory(
                         contentId = media.contentId(),
                         videoId = media.catalog?.videoId,
                         season = media.episode?.season,
-                        episode = media.episode?.number
+                        episode = media.episode?.number,
+                        mappingResolved = media.episode?.numberingProvider == "trakt"
                     )
                 }
             }
@@ -83,7 +85,8 @@ class TraktTrackingHistoryWriter @Inject constructor(
             position = 1L,
             duration = 1L,
             lastWatched = watchedAtEpochMs ?: System.currentTimeMillis(),
-            progressPercent = 100f
+            progressPercent = 100f,
+            traktEpisodeId = episode?.traktId
         )
     }
 

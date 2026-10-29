@@ -1,0 +1,1956 @@
+[
+  {
+    "title": "Kitchen Nightmares",
+    "year": 2023,
+    "ids": {
+      "imdb": "tt32436778",
+      "plex": {
+        "guid": "651484a6f37aa77d01c2f6eb",
+        "slug": "kitchen-nightmares"
+      },
+      "slug": "kitchen-nightmares-2023",
+      "tmdb": 235884,
+      "tvdb": null,
+      "trakt": 210181
+    },
+    "seasons": [
+      {
+        "number": 1,
+        "episodes": [
+          {
+            "title": "Bel Aire",
+            "season": 1,
+            "number": 1,
+            "ids": {
+              "imdb": "tt27759481",
+              "plex": {
+                "guid": "64adeb0fb65e071f6eaf4fe5"
+              },
+              "tmdb": 4763028,
+              "tvdb": 9893344,
+              "trakt": 10918421
+            },
+            "first_aired": "2023-09-26T00:00:00.000Z"
+          },
+          {
+            "title": "Bask 46",
+            "season": 1,
+            "number": 2,
+            "ids": {
+              "imdb": "tt29320829",
+              "plex": {
+                "guid": "65142c558213f1103f12f1b8"
+              },
+              "tmdb": 4763029,
+              "tvdb": 10053323,
+              "trakt": 10918422
+            },
+            "first_aired": "2023-10-03T00:00:00.000Z"
+          },
+          {
+            "title": "In the Drink",
+            "season": 1,
+            "number": 3,
+            "ids": {
+              "imdb": "tt29418072",
+              "plex": {
+                "guid": "651b6096c85858308766e5ac"
+              },
+              "tmdb": 4782185,
+              "tvdb": 10066046,
+              "trakt": 10933090
+            },
+            "first_aired": "2023-10-10T00:00:00.000Z"
+          },
+          {
+            "title": "Da Mimmo",
+            "season": 1,
+            "number": 4,
+            "ids": {
+              "imdb": "tt29437700",
+              "plex": {
+                "guid": "65245fa718fed16e413e64cb"
+              },
+              "tmdb": 4801230,
+              "tvdb": 10066047,
+              "trakt": 10946803
+            },
+            "first_aired": "2023-10-17T00:00:00.000Z"
+          },
+          {
+            "title": "Juicy Box",
+            "season": 1,
+            "number": 5,
+            "ids": {
+              "imdb": "tt29456454",
+              "plex": {
+                "guid": "6526e24f86d06f4a06260a0c"
+              },
+              "tmdb": 4807354,
+              "tvdb": 10066048,
+              "trakt": 10957270
+            },
+            "first_aired": "2023-11-07T01:00:00.000Z"
+          },
+          {
+            "title": "Love Bites",
+            "season": 1,
+            "number": 6,
+            "ids": {
+              "imdb": "tt29930949",
+              "plex": {
+                "guid": "652dabded78e86404c8f99b0"
+              },
+              "tmdb": 4819762,
+              "tvdb": 10066049,
+              "trakt": 10984737
+            },
+            "first_aired": "2023-11-14T01:00:00.000Z"
+          },
+          {
+            "title": "El Cantito",
+            "season": 1,
+            "number": 7,
+            "ids": {
+              "imdb": "tt29930961",
+              "plex": {
+                "guid": "651b6097c85858308766e5b0"
+              },
+              "tmdb": 4819764,
+              "tvdb": 10066050,
+              "trakt": 10984738
+            },
+            "first_aired": "2023-11-21T01:00:00.000Z"
+          },
+          {
+            "title": "South Brooklyn",
+            "season": 1,
+            "number": 8,
+            "ids": {
+              "imdb": "tt30093627",
+              "plex": {
+                "guid": "651b6097c85858308766e5b1"
+              },
+              "tmdb": 4819765,
+              "tvdb": 10066051,
+              "trakt": 10984739
+            },
+            "first_aired": "2023-11-28T01:00:00.000Z"
+          },
+          {
+            "title": "Max's Bar & Grill",
+            "season": 1,
+            "number": 9,
+            "ids": {
+              "imdb": "tt30292648",
+              "plex": {
+                "guid": "651b6098c85858308766e5b2"
+              },
+              "tmdb": 4819768,
+              "tvdb": 10066052,
+              "trakt": 10984740
+            },
+            "first_aired": "2023-12-05T01:00:00.000Z"
+          },
+          {
+            "title": "Diwan",
+            "season": 1,
+            "number": 10,
+            "ids": {
+              "imdb": "tt30292653",
+              "plex": {
+                "guid": "651b6098c85858308766e5b3"
+              },
+              "tmdb": 4819769,
+              "tvdb": 10066053,
+              "trakt": 10984741
+            },
+            "first_aired": "2023-12-05T01:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "number": 2,
+        "episodes": [
+          {
+            "title": "Iberville (1)",
+            "season": 2,
+            "number": 1,
+            "ids": {
+              "imdb": "tt34384857",
+              "plex": {
+                "guid": "673cfd44712dd71cd69e13fe"
+              },
+              "tmdb": 5767857,
+              "tvdb": 10893125,
+              "trakt": 12510244
+            },
+            "first_aired": "2025-01-08T01:00:00.000Z"
+          },
+          {
+            "title": "Iberville (2)",
+            "season": 2,
+            "number": 2,
+            "ids": {
+              "imdb": "tt35303653",
+              "plex": {
+                "guid": "677e6cdb58fab29426e953c6"
+              },
+              "tmdb": 5884642,
+              "tvdb": 10895755,
+              "trakt": 12694059
+            },
+            "first_aired": "2025-01-15T01:00:00.000Z"
+          },
+          {
+            "title": "Voleos",
+            "season": 2,
+            "number": 3,
+            "ids": {
+              "imdb": "tt35303657",
+              "plex": {
+                "guid": "6785213c78e358a06265a49a"
+              },
+              "tmdb": 5896393,
+              "tvdb": 10906646,
+              "trakt": 12706438
+            },
+            "first_aired": "2025-01-22T01:00:00.000Z"
+          },
+          {
+            "title": "Kindred",
+            "season": 2,
+            "number": 4,
+            "ids": {
+              "imdb": "tt35527170",
+              "plex": {
+                "guid": "678ba4607d8d22327327002d"
+              },
+              "tmdb": 5917531,
+              "tvdb": 10921716,
+              "trakt": 12733267
+            },
+            "first_aired": "2025-01-29T01:00:00.000Z"
+          },
+          {
+            "title": "Three Southern Girls",
+            "season": 2,
+            "number": 5,
+            "ids": {
+              "imdb": "tt35635308",
+              "plex": {
+                "guid": "678ba4607d8d22327327002b"
+              },
+              "tmdb": 5917532,
+              "tvdb": 10921717,
+              "trakt": 12733268
+            },
+            "first_aired": "2025-02-05T01:00:00.000Z"
+          },
+          {
+            "title": "Kings Blu Jam",
+            "season": 2,
+            "number": 6,
+            "ids": {
+              "imdb": "tt35660631",
+              "plex": {
+                "guid": "67a3e0110c0b5bf93ca7da29"
+              },
+              "tmdb": 5940349,
+              "tvdb": 10946495,
+              "trakt": 12767908
+            },
+            "first_aired": "2025-02-12T01:00:00.000Z"
+          },
+          {
+            "title": "Verdict",
+            "season": 2,
+            "number": 7,
+            "ids": {
+              "imdb": "tt35679676",
+              "plex": {
+                "guid": "67ae6d5dfe0d75e6638d7615"
+              },
+              "tmdb": 5970218,
+              "tvdb": 10958834,
+              "trakt": 12806865
+            },
+            "first_aired": "2025-02-19T01:00:00.000Z"
+          },
+          {
+            "title": "Grumpy George",
+            "season": 2,
+            "number": 8,
+            "ids": {
+              "imdb": "tt35791537",
+              "plex": {
+                "guid": "67b708762de13bb9b19fc41e"
+              },
+              "tmdb": 5978900,
+              "tvdb": 10971688,
+              "trakt": 12816830
+            },
+            "first_aired": "2025-02-26T01:00:00.000Z"
+          },
+          {
+            "title": "Leo's Italian Grill",
+            "season": 2,
+            "number": 9,
+            "ids": {
+              "imdb": "tt35887006",
+              "plex": {
+                "guid": "67bac0d613c4b0adf3f0d014"
+              },
+              "tmdb": 5998406,
+              "tvdb": 10983273,
+              "trakt": 12845406
+            },
+            "first_aired": "2025-03-05T01:00:00.000Z"
+          },
+          {
+            "title": "Blake\u2019s Place",
+            "season": 2,
+            "number": 10,
+            "ids": {
+              "imdb": "tt36019895",
+              "plex": {
+                "guid": "67c5aea583e4341711122132"
+              },
+              "tmdb": 6018220,
+              "tvdb": 11004510,
+              "trakt": 12869855
+            },
+            "first_aired": "2025-03-12T00:00:00.000Z"
+          },
+          {
+            "title": "Simmer Down",
+            "season": 2,
+            "number": 11,
+            "ids": {
+              "imdb": "tt36019934",
+              "plex": {
+                "guid": "67c8426e295672b77731a876"
+              },
+              "tmdb": 6024260,
+              "tvdb": 11004511,
+              "trakt": 12877358
+            },
+            "first_aired": "2025-03-19T00:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "number": 3,
+        "episodes": [
+          {
+            "title": "Freddy's Steak House",
+            "season": 3,
+            "number": 1,
+            "ids": {
+              "imdb": "tt38723138",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7421584,
+              "tvdb": null,
+              "trakt": 14267862
+            },
+            "first_aired": "2026-07-22T00:00:00.000Z"
+          },
+          {
+            "title": "The Four-Star Diner",
+            "season": 3,
+            "number": 2,
+            "ids": {
+              "imdb": "tt43700606",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7421585,
+              "tvdb": null,
+              "trakt": 14267863
+            },
+            "first_aired": "2026-07-22T00:00:00.000Z"
+          },
+          {
+            "title": "Love on the Blu",
+            "season": 3,
+            "number": 3,
+            "ids": {
+              "imdb": "tt43700608",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7421586,
+              "tvdb": null,
+              "trakt": 14267864
+            },
+            "first_aired": "2026-07-29T00:00:00.000Z"
+          },
+          {
+            "title": "Borelli's Pizzeria",
+            "season": 3,
+            "number": 4,
+            "ids": {
+              "imdb": "tt43700614",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7510659,
+              "tvdb": null,
+              "trakt": 14308484
+            },
+            "first_aired": "2026-08-05T00:00:00.000Z"
+          },
+          {
+            "title": "Renate's German Restaurant",
+            "season": 3,
+            "number": 5,
+            "ids": {
+              "imdb": "tt43730639",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7572952,
+              "tvdb": null,
+              "trakt": 14332147
+            },
+            "first_aired": "2026-08-12T00:00:00.000Z"
+          },
+          {
+            "title": "Boodles Restaurant",
+            "season": 3,
+            "number": 6,
+            "ids": {
+              "imdb": "tt43730653",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7616826,
+              "tvdb": null,
+              "trakt": 14353636
+            },
+            "first_aired": "2026-08-19T00:00:00.000Z"
+          },
+          {
+            "title": "Caf\u00e9 Notte",
+            "season": 3,
+            "number": 7,
+            "ids": {
+              "imdb": "tt44042519",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7671099,
+              "tvdb": null,
+              "trakt": 14398958
+            },
+            "first_aired": "2026-08-26T00:00:00.000Z"
+          },
+          {
+            "title": "Golden Girls",
+            "season": 3,
+            "number": 8,
+            "ids": {
+              "imdb": "tt44466510",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7718341,
+              "tvdb": null,
+              "trakt": 14398959
+            },
+            "first_aired": "2026-09-02T00:00:00.000Z"
+          },
+          {
+            "title": "Lyla's Family Restaurant (1)",
+            "season": 3,
+            "number": 9,
+            "ids": {
+              "imdb": "tt44912582",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7745266,
+              "tvdb": null,
+              "trakt": 14422657
+            },
+            "first_aired": "2026-09-09T00:00:00.000Z"
+          },
+          {
+            "title": "Lyla's Family Restaurant (2)",
+            "season": 3,
+            "number": 10,
+            "ids": {
+              "imdb": "tt44912606",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7745267,
+              "tvdb": null,
+              "trakt": 14422658
+            },
+            "first_aired": "2026-09-09T00:00:00.000Z"
+          },
+          {
+            "title": "Wick 'n Ore Kitchen & Tap",
+            "season": 3,
+            "number": 11,
+            "ids": {
+              "imdb": "tt45921787",
+              "plex": {
+                "guid": null
+              },
+              "tmdb": 7768565,
+              "tvdb": null,
+              "trakt": 14475340
+            },
+            "first_aired": "2026-09-16T00:00:00.000Z"
+          },
+          {
+            "title": "Firenze Restaurant & Pizzaria",
+            "season": 3,
+            "number": 12,
+            "ids": {
+              "imdb": "tt45921877",
+              "plex": {
+                "guid": "6a9af0a0692855f106263d8a"
+              },
+              "tmdb": 7768568,
+              "tvdb": null,
+              "trakt": 14475341
+            },
+            "first_aired": "2026-09-16T00:00:00.000Z"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Kitchen Nightmares",
+    "year": 2007,
+    "ids": {
+      "imdb": "tt0983514",
+      "plex": {
+        "guid": "5d9c07ff2192ba001f3045c2",
+        "slug": "kitchen-nightmares-us"
+      },
+      "slug": "kitchen-nightmares",
+      "tmdb": 11294,
+      "tvdb": 80552,
+      "trakt": 11242
+    },
+    "seasons": [
+      {
+        "number": 1,
+        "episodes": [
+          {
+            "title": "Peter's",
+            "season": 1,
+            "number": 1,
+            "ids": {
+              "imdb": "tt1001913",
+              "plex": {
+                "guid": "65dde22565d56f054285728e"
+              },
+              "tmdb": 449032,
+              "tvdb": 335862,
+              "trakt": 457325
+            },
+            "first_aired": "2007-09-20T00:00:00.000Z"
+          },
+          {
+            "title": "Dillon's",
+            "season": 1,
+            "number": 2,
+            "ids": {
+              "imdb": "tt1055693",
+              "plex": {
+                "guid": "65dde22565d56f0542857287"
+              },
+              "tmdb": 449031,
+              "tvdb": 336481,
+              "trakt": 457326
+            },
+            "first_aired": "2007-09-27T00:00:00.000Z"
+          },
+          {
+            "title": "The Mixing Bowl",
+            "season": 1,
+            "number": 3,
+            "ids": {
+              "imdb": "tt1055694",
+              "plex": {
+                "guid": "65dde22565d56f0542857281"
+              },
+              "tmdb": 449033,
+              "tvdb": 337177,
+              "trakt": 457327
+            },
+            "first_aired": "2007-10-04T00:00:00.000Z"
+          },
+          {
+            "title": "Seascape",
+            "season": 1,
+            "number": 4,
+            "ids": {
+              "imdb": "tt1055695",
+              "plex": {
+                "guid": "65dde22565d56f054285727c"
+              },
+              "tmdb": 449030,
+              "tvdb": 337979,
+              "trakt": 457328
+            },
+            "first_aired": "2007-10-11T00:00:00.000Z"
+          },
+          {
+            "title": "Olde Stone Mill",
+            "season": 1,
+            "number": 5,
+            "ids": {
+              "imdb": "tt1044440",
+              "plex": {
+                "guid": "65dde22565d56f0542857277"
+              },
+              "tmdb": 449034,
+              "tvdb": 338732,
+              "trakt": 457329
+            },
+            "first_aired": "2007-10-18T00:00:00.000Z"
+          },
+          {
+            "title": "Sebastian's",
+            "season": 1,
+            "number": 6,
+            "ids": {
+              "imdb": "tt1109160",
+              "plex": {
+                "guid": "65dde22565d56f0542857272"
+              },
+              "tmdb": 449035,
+              "tvdb": 341450,
+              "trakt": 457330
+            },
+            "first_aired": "2007-11-08T01:00:00.000Z"
+          },
+          {
+            "title": "Finn McCool's",
+            "season": 1,
+            "number": 7,
+            "ids": {
+              "imdb": "tt1109161",
+              "plex": {
+                "guid": "65dde22465d56f054285726d"
+              },
+              "tmdb": 449037,
+              "tvdb": 341451,
+              "trakt": 457331
+            },
+            "first_aired": "2007-11-15T01:00:00.000Z"
+          },
+          {
+            "title": "Lela's",
+            "season": 1,
+            "number": 8,
+            "ids": {
+              "imdb": "tt1109162",
+              "plex": {
+                "guid": "65dde22465d56f0542857268"
+              },
+              "tmdb": 449036,
+              "tvdb": 341452,
+              "trakt": 457332
+            },
+            "first_aired": "2007-11-22T01:00:00.000Z"
+          },
+          {
+            "title": "Campania",
+            "season": 1,
+            "number": 9,
+            "ids": {
+              "imdb": "tt1109163",
+              "plex": {
+                "guid": "65dde22465d56f0542857263"
+              },
+              "tmdb": 449038,
+              "tvdb": 341453,
+              "trakt": 457333
+            },
+            "first_aired": "2007-11-29T01:00:00.000Z"
+          },
+          {
+            "title": "Secret Garden",
+            "season": 1,
+            "number": 10,
+            "ids": {
+              "imdb": "tt1109159",
+              "plex": {
+                "guid": "65dde22465d56f054285725e"
+              },
+              "tmdb": 449039,
+              "tvdb": 345076,
+              "trakt": 457334
+            },
+            "first_aired": "2007-12-13T01:00:00.000Z"
+          },
+          {
+            "title": "Revisited: Gordon Returns",
+            "season": 1,
+            "number": 11,
+            "ids": {
+              "imdb": "tt1248608",
+              "plex": {
+                "guid": "65dde22465d56f0542857258"
+              },
+              "tmdb": 449040,
+              "tvdb": 385522,
+              "trakt": 457335
+            },
+            "first_aired": "2008-09-05T00:00:00.000Z"
+          },
+          {
+            "title": "Handlebar",
+            "season": 1,
+            "number": 12,
+            "ids": {
+              "imdb": "tt1248613",
+              "plex": {
+                "guid": "65dde22465d56f0542857253"
+              },
+              "tmdb": 449050,
+              "tvdb": 386278,
+              "trakt": 457336
+            },
+            "first_aired": "2008-09-12T00:00:00.000Z"
+          },
+          {
+            "title": "Giuseppi's",
+            "season": 1,
+            "number": 13,
+            "ids": {
+              "imdb": "tt1248614",
+              "plex": {
+                "guid": "65dde22465d56f054285724e"
+              },
+              "tmdb": 1782582,
+              "tvdb": 388861,
+              "trakt": 1418745
+            },
+            "first_aired": "2008-09-19T00:00:00.000Z"
+          },
+          {
+            "title": "Trobiano's",
+            "season": 1,
+            "number": 14,
+            "ids": {
+              "imdb": "tt1248615",
+              "plex": {
+                "guid": "65dde22365d56f0542857249"
+              },
+              "tmdb": 449041,
+              "tvdb": 390353,
+              "trakt": 457337
+            },
+            "first_aired": "2008-09-26T00:00:00.000Z"
+          },
+          {
+            "title": "Black Pearl",
+            "season": 1,
+            "number": 15,
+            "ids": {
+              "imdb": "tt1248616",
+              "plex": {
+                "guid": "65dde22365d56f0542857244"
+              },
+              "tmdb": 449042,
+              "tvdb": 390354,
+              "trakt": 457338
+            },
+            "first_aired": "2008-09-26T00:00:00.000Z"
+          },
+          {
+            "title": "J Willy's",
+            "season": 1,
+            "number": 16,
+            "ids": {
+              "imdb": "tt1248617",
+              "plex": {
+                "guid": "65dde22365d56f054285723e"
+              },
+              "tmdb": 449043,
+              "tvdb": 402203,
+              "trakt": 457339
+            },
+            "first_aired": "2008-10-31T00:00:00.000Z"
+          },
+          {
+            "title": "Hannah & Mason's",
+            "season": 1,
+            "number": 17,
+            "ids": {
+              "imdb": "tt1248618",
+              "plex": {
+                "guid": "65dde22365d56f0542857239"
+              },
+              "tmdb": 449045,
+              "tvdb": 402204,
+              "trakt": 457340
+            },
+            "first_aired": "2008-11-07T01:00:00.000Z"
+          },
+          {
+            "title": "Jack's Waterfront",
+            "season": 1,
+            "number": 18,
+            "ids": {
+              "imdb": "tt1248619",
+              "plex": {
+                "guid": "65dde22365d56f0542857234"
+              },
+              "tmdb": 449044,
+              "tvdb": 402205,
+              "trakt": 457341
+            },
+            "first_aired": "2008-11-07T01:00:00.000Z"
+          },
+          {
+            "title": "Sabatiello's",
+            "season": 1,
+            "number": 19,
+            "ids": {
+              "imdb": "tt1248620",
+              "plex": {
+                "guid": "65dde22365d56f054285722f"
+              },
+              "tmdb": 449046,
+              "tvdb": 403823,
+              "trakt": 457342
+            },
+            "first_aired": "2008-11-14T01:00:00.000Z"
+          },
+          {
+            "title": "Fiesta Sunrise",
+            "season": 1,
+            "number": 20,
+            "ids": {
+              "imdb": "tt1248609",
+              "plex": {
+                "guid": "65dde22365d56f054285722a"
+              },
+              "tmdb": 449047,
+              "tvdb": 403824,
+              "trakt": 457343
+            },
+            "first_aired": "2008-11-14T01:00:00.000Z"
+          },
+          {
+            "title": "Sante La Brea",
+            "season": 1,
+            "number": 21,
+            "ids": {
+              "imdb": "tt1331207",
+              "plex": {
+                "guid": "65dde22265d56f0542857224"
+              },
+              "tmdb": 449049,
+              "tvdb": 403825,
+              "trakt": 457344
+            },
+            "first_aired": "2008-11-21T01:00:00.000Z"
+          },
+          {
+            "title": "Cafe 36",
+            "season": 1,
+            "number": 22,
+            "ids": {
+              "imdb": "tt1248611",
+              "plex": {
+                "guid": "65dde22265d56f054285721f"
+              },
+              "tmdb": 449048,
+              "tvdb": 424956,
+              "trakt": 1418746
+            },
+            "first_aired": "2009-01-16T01:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "number": 2,
+        "episodes": [
+          {
+            "title": "Hot Potato Caf\u00e9",
+            "season": 2,
+            "number": 1,
+            "ids": {
+              "imdb": "tt1248612",
+              "plex": {
+                "guid": "5d9c0c5d705e7a001e70df6d"
+              },
+              "tmdb": 449051,
+              "tvdb": 1630601,
+              "trakt": 457345
+            },
+            "first_aired": "2010-01-30T01:00:00.000Z"
+          },
+          {
+            "title": "Flamangos",
+            "season": 2,
+            "number": 2,
+            "ids": {
+              "imdb": "tt1585355",
+              "plex": {
+                "guid": "5d9c0c5d705e7a001e70df78"
+              },
+              "tmdb": 449058,
+              "tvdb": 1630611,
+              "trakt": 457346
+            },
+            "first_aired": "2010-02-03T01:00:00.000Z"
+          },
+          {
+            "title": "Bazzini",
+            "season": 2,
+            "number": 3,
+            "ids": {
+              "imdb": "tt1588045",
+              "plex": {
+                "guid": "5d9c0c5d705e7a001e70df65"
+              },
+              "tmdb": 449052,
+              "tvdb": 1630621,
+              "trakt": 457347
+            },
+            "first_aired": "2010-02-06T01:00:00.000Z"
+          },
+          {
+            "title": "Mojitos",
+            "season": 2,
+            "number": 4,
+            "ids": {
+              "imdb": "tt1603629",
+              "plex": {
+                "guid": "65dde22265d56f054285720b"
+              },
+              "tmdb": 449062,
+              "tvdb": 1788701,
+              "trakt": 457348
+            },
+            "first_aired": "2010-02-26T01:00:00.000Z"
+          },
+          {
+            "title": "Lido di Manhattan Beach",
+            "season": 2,
+            "number": 5,
+            "ids": {
+              "imdb": "tt1605280",
+              "plex": {
+                "guid": "65dde22265d56f0542857205"
+              },
+              "tmdb": 449059,
+              "tvdb": 1788771,
+              "trakt": 457349
+            },
+            "first_aired": "2010-03-05T01:00:00.000Z"
+          },
+          {
+            "title": "Le Bistro",
+            "season": 2,
+            "number": 6,
+            "ids": {
+              "imdb": "tt1609319",
+              "plex": {
+                "guid": "65dde22265d56f0542857200"
+              },
+              "tmdb": 449060,
+              "tvdb": 1824111,
+              "trakt": 457350
+            },
+            "first_aired": "2010-03-12T01:00:00.000Z"
+          },
+          {
+            "title": "Casa Roma",
+            "season": 2,
+            "number": 7,
+            "ids": {
+              "imdb": "tt1609320",
+              "plex": {
+                "guid": "65dde22165d56f05428571fb"
+              },
+              "tmdb": 449063,
+              "tvdb": 1776981,
+              "trakt": 457351
+            },
+            "first_aired": "2010-03-13T01:00:00.000Z"
+          },
+          {
+            "title": "Mama Rita's",
+            "season": 2,
+            "number": 8,
+            "ids": {
+              "imdb": "tt1613554",
+              "plex": {
+                "guid": "65dde22165d56f05428571f6"
+              },
+              "tmdb": 449053,
+              "tvdb": 1855471,
+              "trakt": 457352
+            },
+            "first_aired": "2010-03-20T00:00:00.000Z"
+          },
+          {
+            "title": "Anna Vincenzo's",
+            "season": 2,
+            "number": 9,
+            "ids": {
+              "imdb": "tt1617421",
+              "plex": {
+                "guid": "65dde22165d56f05428571f1"
+              },
+              "tmdb": 449061,
+              "tvdb": 1855481,
+              "trakt": 457353
+            },
+            "first_aired": "2010-03-27T00:00:00.000Z"
+          },
+          {
+            "title": "Revisited #2",
+            "season": 2,
+            "number": 10,
+            "ids": {
+              "imdb": "tt1629036",
+              "plex": {
+                "guid": "65dde22165d56f05428571ec"
+              },
+              "tmdb": 449056,
+              "tvdb": 2048641,
+              "trakt": 457354
+            },
+            "first_aired": "2010-04-10T00:00:00.000Z"
+          },
+          {
+            "title": "Fleming",
+            "season": 2,
+            "number": 11,
+            "ids": {
+              "imdb": "tt1644785",
+              "plex": {
+                "guid": "65dde22165d56f05428571e7"
+              },
+              "tmdb": 449057,
+              "tvdb": 2158371,
+              "trakt": 457355
+            },
+            "first_aired": "2010-05-08T00:00:00.000Z"
+          },
+          {
+            "title": "Sushi Ko",
+            "season": 2,
+            "number": 12,
+            "ids": {
+              "imdb": "tt1648551",
+              "plex": {
+                "guid": "65dde22165d56f05428571e2"
+              },
+              "tmdb": 449054,
+              "tvdb": 2188021,
+              "trakt": 457356
+            },
+            "first_aired": "2010-05-15T00:00:00.000Z"
+          },
+          {
+            "title": "Revisited #1",
+            "season": 2,
+            "number": 13,
+            "ids": {
+              "imdb": "tt1652161",
+              "plex": {
+                "guid": "65dde22065d56f05428571de"
+              },
+              "tmdb": 449055,
+              "tvdb": 2031751,
+              "trakt": 457357
+            },
+            "first_aired": "2010-05-22T00:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "number": 3,
+        "episodes": [
+          {
+            "title": "Spanish Pavillion",
+            "season": 3,
+            "number": 1,
+            "ids": {
+              "imdb": "tt1816224",
+              "plex": {
+                "guid": "65dde22065d56f05428571d9"
+              },
+              "tmdb": 449069,
+              "tvdb": 3484931,
+              "trakt": 457358
+            },
+            "first_aired": "2011-01-22T01:00:00.000Z"
+          },
+          {
+            "title": "Classic American",
+            "season": 3,
+            "number": 2,
+            "ids": {
+              "imdb": "tt1818852",
+              "plex": {
+                "guid": "65dde22065d56f05428571d4"
+              },
+              "tmdb": 449074,
+              "tvdb": 3484941,
+              "trakt": 457359
+            },
+            "first_aired": "2011-01-29T01:00:00.000Z"
+          },
+          {
+            "title": "PJ's Steakhouse",
+            "season": 3,
+            "number": 3,
+            "ids": {
+              "imdb": "tt1823928",
+              "plex": {
+                "guid": "65dde22065d56f05428571cf"
+              },
+              "tmdb": 449070,
+              "tvdb": 3484951,
+              "trakt": 457360
+            },
+            "first_aired": "2011-02-05T01:00:00.000Z"
+          },
+          {
+            "title": "Revisited #1",
+            "season": 3,
+            "number": 4,
+            "ids": {
+              "imdb": "tt1831144",
+              "plex": {
+                "guid": "65dde22065d56f05428571ca"
+              },
+              "tmdb": 449073,
+              "tvdb": 3574831,
+              "trakt": 457361
+            },
+            "first_aired": "2011-02-12T01:00:00.000Z"
+          },
+          {
+            "title": "Grasshopper Also",
+            "season": 3,
+            "number": 5,
+            "ids": {
+              "imdb": "tt1835281",
+              "plex": {
+                "guid": "65dde22065d56f05428571c5"
+              },
+              "tmdb": 449075,
+              "tvdb": 3574841,
+              "trakt": 457362
+            },
+            "first_aired": "2011-02-19T01:00:00.000Z"
+          },
+          {
+            "title": "Davide",
+            "season": 3,
+            "number": 6,
+            "ids": {
+              "imdb": "tt1835280",
+              "plex": {
+                "guid": "65dde22065d56f05428571c0"
+              },
+              "tmdb": 449077,
+              "tvdb": 3681571,
+              "trakt": 457363
+            },
+            "first_aired": "2011-02-26T01:00:00.000Z"
+          },
+          {
+            "title": "Downcity",
+            "season": 3,
+            "number": 7,
+            "ids": {
+              "imdb": "tt1850097",
+              "plex": {
+                "guid": "65dde22065d56f05428571bb"
+              },
+              "tmdb": 449072,
+              "tvdb": 3733171,
+              "trakt": 457364
+            },
+            "first_aired": "2011-03-12T01:00:00.000Z"
+          },
+          {
+            "title": "Revisited #2",
+            "season": 3,
+            "number": 8,
+            "ids": {
+              "imdb": "tt1857142",
+              "plex": {
+                "guid": "65dde21f65d56f05428571b6"
+              },
+              "tmdb": 449071,
+              "tvdb": 3891251,
+              "trakt": 457365
+            },
+            "first_aired": "2011-03-19T00:00:00.000Z"
+          },
+          {
+            "title": "Caf\u00e9 Tavolini",
+            "season": 3,
+            "number": 9,
+            "ids": {
+              "imdb": "tt1863777",
+              "plex": {
+                "guid": "65dde21f65d56f05428571b1"
+              },
+              "tmdb": 449076,
+              "tvdb": 3942351,
+              "trakt": 457366
+            },
+            "first_aired": "2011-03-26T00:00:00.000Z"
+          },
+          {
+            "title": "Kingston Cafe",
+            "season": 3,
+            "number": 10,
+            "ids": {
+              "imdb": "tt1888188",
+              "plex": {
+                "guid": "65dde21f65d56f05428571ab"
+              },
+              "tmdb": 449064,
+              "tvdb": 4012131,
+              "trakt": 457367
+            },
+            "first_aired": "2011-04-16T00:00:00.000Z"
+          },
+          {
+            "title": "La Frite",
+            "season": 3,
+            "number": 11,
+            "ids": {
+              "imdb": "tt1908095",
+              "plex": {
+                "guid": "65dde21f65d56f05428571a6"
+              },
+              "tmdb": 449065,
+              "tvdb": 4085118,
+              "trakt": 457368
+            },
+            "first_aired": "2011-04-30T00:00:00.000Z"
+          },
+          {
+            "title": "Capri",
+            "season": 3,
+            "number": 12,
+            "ids": {
+              "imdb": "tt1913693",
+              "plex": {
+                "guid": "65dde21f65d56f05428571a1"
+              },
+              "tmdb": 449066,
+              "tvdb": 4086930,
+              "trakt": 457369
+            },
+            "first_aired": "2011-05-07T00:00:00.000Z"
+          },
+          {
+            "title": "Zeke's",
+            "season": 3,
+            "number": 13,
+            "ids": {
+              "imdb": "tt1920026",
+              "plex": {
+                "guid": "65dde21f65d56f054285719c"
+              },
+              "tmdb": 449067,
+              "tvdb": 4099227,
+              "trakt": 457370
+            },
+            "first_aired": "2011-05-14T00:00:00.000Z"
+          },
+          {
+            "title": "Oceana",
+            "season": 3,
+            "number": 14,
+            "ids": {
+              "imdb": "tt1936472",
+              "plex": {
+                "guid": "65dde21f65d56f0542857197"
+              },
+              "tmdb": 449068,
+              "tvdb": 4103030,
+              "trakt": 457371
+            },
+            "first_aired": "2011-05-21T00:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "number": 4,
+        "episodes": [
+          {
+            "title": "Blackberry's",
+            "season": 4,
+            "number": 1,
+            "ids": {
+              "imdb": "tt2051341",
+              "plex": {
+                "guid": "65dde21e65d56f0542857192"
+              },
+              "tmdb": 449079,
+              "tvdb": 4169798,
+              "trakt": 457372
+            },
+            "first_aired": "2011-09-24T00:00:00.000Z"
+          },
+          {
+            "title": "Leone's",
+            "season": 4,
+            "number": 2,
+            "ids": {
+              "imdb": "tt2059846",
+              "plex": {
+                "guid": "65dde21e65d56f054285718d"
+              },
+              "tmdb": 449082,
+              "tvdb": 4169799,
+              "trakt": 457373
+            },
+            "first_aired": "2011-10-01T00:00:00.000Z"
+          },
+          {
+            "title": "Mike and Nellie's",
+            "season": 4,
+            "number": 3,
+            "ids": {
+              "imdb": "tt2071821",
+              "plex": {
+                "guid": "65dde21e65d56f0542857188"
+              },
+              "tmdb": 449081,
+              "tvdb": 4179791,
+              "trakt": 457374
+            },
+            "first_aired": "2011-10-08T00:00:00.000Z"
+          },
+          {
+            "title": "Luigi's",
+            "season": 4,
+            "number": 4,
+            "ids": {
+              "imdb": "tt2079901",
+              "plex": {
+                "guid": "65dde21e65d56f0542857183"
+              },
+              "tmdb": 449080,
+              "tvdb": 4184712,
+              "trakt": 457375
+            },
+            "first_aired": "2011-10-15T00:00:00.000Z"
+          },
+          {
+            "title": "Revisited #1",
+            "season": 4,
+            "number": 5,
+            "ids": {
+              "imdb": "tt2087275",
+              "plex": {
+                "guid": "65dde21e65d56f054285717e"
+              },
+              "tmdb": 449078,
+              "tvdb": 4184774,
+              "trakt": 457376
+            },
+            "first_aired": "2011-10-22T00:00:00.000Z"
+          },
+          {
+            "title": "Burger Kitchen (1)",
+            "season": 4,
+            "number": 6,
+            "ids": {
+              "imdb": "tt2097547",
+              "plex": {
+                "guid": "65dde21e65d56f0542857179"
+              },
+              "tmdb": 449084,
+              "tvdb": 4195327,
+              "trakt": 457377
+            },
+            "first_aired": "2011-11-05T00:00:00.000Z"
+          },
+          {
+            "title": "Burger Kitchen (2)",
+            "season": 4,
+            "number": 7,
+            "ids": {
+              "imdb": "tt2105536",
+              "plex": {
+                "guid": "65dde21e65d56f0542857174"
+              },
+              "tmdb": 449083,
+              "tvdb": 4198218,
+              "trakt": 457378
+            },
+            "first_aired": "2011-11-12T01:00:00.000Z"
+          },
+          {
+            "title": "Greek at the Harbor",
+            "season": 4,
+            "number": 8,
+            "ids": {
+              "imdb": "tt2092178",
+              "plex": {
+                "guid": "65dde21e65d56f054285716a"
+              },
+              "tmdb": 449086,
+              "tvdb": 4188756,
+              "trakt": 457379
+            },
+            "first_aired": "2011-11-19T01:00:00.000Z"
+          },
+          {
+            "title": "Michon\u2019s",
+            "season": 4,
+            "number": 9,
+            "ids": {
+              "imdb": "tt2157535",
+              "plex": {
+                "guid": "65dde21d65d56f0542857165"
+              },
+              "tmdb": 449085,
+              "tvdb": 4240970,
+              "trakt": 457380
+            },
+            "first_aired": "2012-01-14T01:00:00.000Z"
+          },
+          {
+            "title": "El Greco",
+            "season": 4,
+            "number": 10,
+            "ids": {
+              "imdb": "tt2173375",
+              "plex": {
+                "guid": "65dde21d65d56f0542857160"
+              },
+              "tmdb": 449087,
+              "tvdb": 4240971,
+              "trakt": 457381
+            },
+            "first_aired": "2012-01-21T01:00:00.000Z"
+          },
+          {
+            "title": "Revisited 2",
+            "season": 4,
+            "number": 11,
+            "ids": {
+              "imdb": "tt2203081",
+              "plex": {
+                "guid": "65dde21d65d56f054285715b"
+              },
+              "tmdb": 449094,
+              "tvdb": 4245229,
+              "trakt": 457382
+            },
+            "first_aired": "2012-01-28T01:00:00.000Z"
+          },
+          {
+            "title": "Park's Edge",
+            "season": 4,
+            "number": 12,
+            "ids": {
+              "imdb": "tt2206385",
+              "plex": {
+                "guid": "65dde21d65d56f0542857156"
+              },
+              "tmdb": 449088,
+              "tvdb": 4251283,
+              "trakt": 457383
+            },
+            "first_aired": "2012-02-04T01:00:00.000Z"
+          },
+          {
+            "title": "Spin a Yarn",
+            "season": 4,
+            "number": 13,
+            "ids": {
+              "imdb": "tt2222475",
+              "plex": {
+                "guid": "65dde21d65d56f0542857151"
+              },
+              "tmdb": 449089,
+              "tvdb": 4254011,
+              "trakt": 457384
+            },
+            "first_aired": "2012-02-11T01:00:00.000Z"
+          },
+          {
+            "title": "Charlie's",
+            "season": 4,
+            "number": 14,
+            "ids": {
+              "imdb": "tt2239727",
+              "plex": {
+                "guid": "65dde21d65d56f054285714c"
+              },
+              "tmdb": 449090,
+              "tvdb": 4259955,
+              "trakt": 457385
+            },
+            "first_aired": "2012-02-18T01:00:00.000Z"
+          },
+          {
+            "title": "Caf\u00e9 Hon",
+            "season": 4,
+            "number": 15,
+            "ids": {
+              "imdb": "tt2256383",
+              "plex": {
+                "guid": "65dde21d65d56f0542857147"
+              },
+              "tmdb": 449091,
+              "tvdb": 4263960,
+              "trakt": 457386
+            },
+            "first_aired": "2012-02-25T01:00:00.000Z"
+          },
+          {
+            "title": "Chiarella's",
+            "season": 4,
+            "number": 16,
+            "ids": {
+              "imdb": "tt2311763",
+              "plex": {
+                "guid": "65dde21c65d56f0542857142"
+              },
+              "tmdb": 449092,
+              "tvdb": 4292381,
+              "trakt": 457387
+            },
+            "first_aired": "2012-03-24T00:00:00.000Z"
+          },
+          {
+            "title": "Zocalo",
+            "season": 4,
+            "number": 17,
+            "ids": {
+              "imdb": "tt2323029",
+              "plex": {
+                "guid": "5d9c0c5dec357c001f9ba86e"
+              },
+              "tmdb": 449093,
+              "tvdb": 4292382,
+              "trakt": 457388
+            },
+            "first_aired": "2012-03-31T00:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "number": 5,
+        "episodes": [
+          {
+            "title": "La Galleria 33, Part One",
+            "season": 5,
+            "number": 1,
+            "ids": {
+              "imdb": "tt2457102",
+              "plex": {
+                "guid": "65dde21c65d56f0542857138"
+              },
+              "tmdb": 449098,
+              "tvdb": 4430264,
+              "trakt": 457392
+            },
+            "first_aired": "2012-10-27T00:00:00.000Z"
+          },
+          {
+            "title": "La Galleria 33, Part Two",
+            "season": 5,
+            "number": 2,
+            "ids": {
+              "imdb": "tt2481302",
+              "plex": {
+                "guid": "65dde21c65d56f0542857133"
+              },
+              "tmdb": 449099,
+              "tvdb": 4430265,
+              "trakt": 457393
+            },
+            "first_aired": "2012-11-03T00:00:00.000Z"
+          },
+          {
+            "title": "Mama Maria's",
+            "season": 5,
+            "number": 3,
+            "ids": {
+              "imdb": "tt2507942",
+              "plex": {
+                "guid": "65dde21c65d56f054285712e"
+              },
+              "tmdb": 449100,
+              "tvdb": 4430266,
+              "trakt": 457394
+            },
+            "first_aired": "2012-11-10T01:00:00.000Z"
+          },
+          {
+            "title": "Ms. Jean's Southern Cuisine",
+            "season": 5,
+            "number": 4,
+            "ids": {
+              "imdb": "tt2516258",
+              "plex": {
+                "guid": "65dde21c65d56f0542857129"
+              },
+              "tmdb": 449101,
+              "tvdb": 4686198,
+              "trakt": 457395
+            },
+            "first_aired": "2012-11-17T01:00:00.000Z"
+          },
+          {
+            "title": "Barefoot Bob's",
+            "season": 5,
+            "number": 5,
+            "ids": {
+              "imdb": "tt2548688",
+              "plex": {
+                "guid": "65dde21c65d56f0542857124"
+              },
+              "tmdb": 449103,
+              "tvdb": 4686199,
+              "trakt": 457396
+            },
+            "first_aired": "2012-12-08T01:00:00.000Z"
+          },
+          {
+            "title": "Revisited No. 1",
+            "season": 5,
+            "number": 6,
+            "ids": {
+              "imdb": "tt2568762",
+              "plex": {
+                "guid": "65dde21b65d56f054285711f"
+              },
+              "tmdb": 449102,
+              "tvdb": 4686200,
+              "trakt": 457397
+            },
+            "first_aired": "2012-12-15T01:00:00.000Z"
+          },
+          {
+            "title": "Olde Hitching Post",
+            "season": 5,
+            "number": 7,
+            "ids": {
+              "imdb": "tt2625260",
+              "plex": {
+                "guid": "65dde21b65d56f054285711a"
+              },
+              "tmdb": 449112,
+              "tvdb": 4686201,
+              "trakt": 457398
+            },
+            "first_aired": "2013-01-26T01:00:00.000Z"
+          },
+          {
+            "title": "Levanti's Italian Restaurant",
+            "season": 5,
+            "number": 8,
+            "ids": {
+              "imdb": "tt2646060",
+              "plex": {
+                "guid": "65dde21b65d56f0542857115"
+              },
+              "tmdb": 449113,
+              "tvdb": 4686202,
+              "trakt": 457399
+            },
+            "first_aired": "2013-02-02T01:00:00.000Z"
+          },
+          {
+            "title": "Sam's Mediterranean Kabob Room",
+            "season": 5,
+            "number": 9,
+            "ids": {
+              "imdb": "tt2699570",
+              "plex": {
+                "guid": "65dde21b65d56f054285710f"
+              },
+              "tmdb": 449104,
+              "tvdb": 4686203,
+              "trakt": 457400
+            },
+            "first_aired": "2013-02-16T01:00:00.000Z"
+          },
+          {
+            "title": "Nino's Italian Restaurant",
+            "season": 5,
+            "number": 10,
+            "ids": {
+              "imdb": "tt2712392",
+              "plex": {
+                "guid": "65dde21b65d56f054285710a"
+              },
+              "tmdb": 449105,
+              "tvdb": 4686204,
+              "trakt": 457401
+            },
+            "first_aired": "2013-02-23T01:00:00.000Z"
+          },
+          {
+            "title": "Mill Street Bistro, Part 1",
+            "season": 5,
+            "number": 11,
+            "ids": {
+              "imdb": "tt2713482",
+              "plex": {
+                "guid": "65dde21b65d56f0542857105"
+              },
+              "tmdb": 449106,
+              "tvdb": 4686205,
+              "trakt": 457402
+            },
+            "first_aired": "2013-03-02T01:00:00.000Z"
+          },
+          {
+            "title": "Mill Street Bistro, Part 2",
+            "season": 5,
+            "number": 12,
+            "ids": {
+              "imdb": "tt2713486",
+              "plex": {
+                "guid": "65dde21b65d56f05428570ff"
+              },
+              "tmdb": 449107,
+              "tvdb": 4686206,
+              "trakt": 457403
+            },
+            "first_aired": "2013-03-09T01:00:00.000Z"
+          },
+          {
+            "title": "Yanni's",
+            "season": 5,
+            "number": 13,
+            "ids": {
+              "imdb": "tt2762570",
+              "plex": {
+                "guid": "65dde21a65d56f05428570f9"
+              },
+              "tmdb": 449108,
+              "tvdb": 4686207,
+              "trakt": 457404
+            },
+            "first_aired": "2013-03-16T00:00:00.000Z"
+          },
+          {
+            "title": "Prohibition Grille",
+            "season": 5,
+            "number": 14,
+            "ids": {
+              "imdb": "tt2855054",
+              "plex": {
+                "guid": "65dde21a65d56f05428570ee"
+              },
+              "tmdb": 449109,
+              "tvdb": 4686208,
+              "trakt": 457405
+            },
+            "first_aired": "2013-04-27T00:00:00.000Z"
+          },
+          {
+            "title": "Chappy's",
+            "season": 5,
+            "number": 15,
+            "ids": {
+              "imdb": "tt2876868",
+              "plex": {
+                "guid": "65dde21a65d56f05428570e9"
+              },
+              "tmdb": 449110,
+              "tvdb": 4686209,
+              "trakt": 457406
+            },
+            "first_aired": "2013-05-04T00:00:00.000Z"
+          },
+          {
+            "title": "Amy's Baking Company",
+            "season": 5,
+            "number": 16,
+            "ids": {
+              "imdb": "tt2876872",
+              "plex": {
+                "guid": "65dde21a65d56f05428570de"
+              },
+              "tmdb": 449111,
+              "tvdb": 4686210,
+              "trakt": 457407
+            },
+            "first_aired": "2013-05-11T00:00:00.000Z"
+          }
+        ]
+      },
+      {
+        "number": 6,
+        "episodes": [
+          {
+            "title": "Return to Amy's Baking Company",
+            "season": 6,
+            "number": 1,
+            "ids": {
+              "imdb": "tt3506022",
+              "plex": {
+                "guid": "65dde21a65d56f05428570d3"
+              },
+              "tmdb": 967021,
+              "tvdb": 4847822,
+              "trakt": 457408
+            },
+            "first_aired": "2014-04-12T00:00:00.000Z"
+          },
+          {
+            "title": "Pantaleone's",
+            "season": 6,
+            "number": 2,
+            "ids": {
+              "imdb": "tt3570222",
+              "plex": {
+                "guid": "65dde21a65d56f05428570cd"
+              },
+              "tmdb": 967022,
+              "tvdb": 4847823,
+              "trakt": 457409
+            },
+            "first_aired": "2014-04-12T00:00:00.000Z"
+          },
+          {
+            "title": "Old Neighborhood",
+            "season": 6,
+            "number": 3,
+            "ids": {
+              "imdb": "tt3570220",
+              "plex": {
+                "guid": "65dde21a65d56f05428570c7"
+              },
+              "tmdb": 974379,
+              "tvdb": 4847824,
+              "trakt": 457410
+            },
+            "first_aired": "2014-04-19T00:00:00.000Z"
+          },
+          {
+            "title": "Kati Allo",
+            "season": 6,
+            "number": 4,
+            "ids": {
+              "imdb": "tt3570218",
+              "plex": {
+                "guid": "65dde21a65d56f05428570c1"
+              },
+              "tmdb": 979927,
+              "tvdb": 4847825,
+              "trakt": 457411
+            },
+            "first_aired": "2014-04-19T00:00:00.000Z"
+          },
+          {
+            "title": "Mangia Mangia, Pt 1",
+            "season": 6,
+            "number": 5,
+            "ids": {
+              "imdb": "tt3570224",
+              "plex": {
+                "guid": "65dde21965d56f05428570bb"
+              },
+              "tmdb": 974671,
+              "tvdb": 4853735,
+              "trakt": 457412
+            },
+            "first_aired": "2014-04-26T00:00:00.000Z"
+          },
+          {
+            "title": "Mangia Mangia, Pt 2",
+            "season": 6,
+            "number": 6,
+            "ids": {
+              "imdb": "tt3663420",
+              "plex": {
+                "guid": "65dde21965d56f05428570b5"
+              },
+              "tmdb": 975320,
+              "tvdb": 4853736,
+              "trakt": 457413
+            },
+            "first_aired": "2014-04-26T00:00:00.000Z"
+          },
+          {
+            "title": "Zayna Flaming Grill, Pt 1",
+            "season": 6,
+            "number": 7,
+            "ids": {
+              "imdb": "tt3675242",
+              "plex": {
+                "guid": "65dde21965d56f05428570af"
+              },
+              "tmdb": 967023,
+              "tvdb": 4867838,
+              "trakt": 457414
+            },
+            "first_aired": "2014-05-03T00:00:00.000Z"
+          },
+          {
+            "title": "Zayna Flaming Grill, Pt 2",
+            "season": 6,
+            "number": 8,
+            "ids": {
+              "imdb": "tt3675246",
+              "plex": {
+                "guid": "65dde21965d56f05428570a9"
+              },
+              "tmdb": 1017477,
+              "tvdb": 4867839,
+              "trakt": 1386658
+            },
+            "first_aired": "2014-05-03T00:00:00.000Z"
+          },
+          {
+            "title": "Bella Luna",
+            "season": 6,
+            "number": 9,
+            "ids": {
+              "imdb": "tt3716138",
+              "plex": {
+                "guid": "65dde21965d56f05428570a3"
+              },
+              "tmdb": 975960,
+              "tvdb": 4885174,
+              "trakt": 457415
+            },
+            "first_aired": "2014-05-17T00:00:00.000Z"
+          },
+          {
+            "title": "Revisited",
+            "season": 6,
+            "number": 10,
+            "ids": {
+              "imdb": "tt4034350",
+              "plex": {
+                "guid": "65dde21965d56f054285709e"
+              },
+              "tmdb": 1006035,
+              "tvdb": 4981877,
+              "trakt": 457416
+            },
+            "first_aired": "2014-09-13T00:00:00.000Z"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,5 +1,9 @@
 package com.nuvio.tv.ui.screens.player
 
+import com.nuvio.tv.domain.model.displaySeason
+import com.nuvio.tv.domain.model.episodeSequenceComparator
+import com.nuvio.tv.domain.model.hasResolvedSource
+
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -121,7 +125,7 @@ internal fun PlayerRuntimeController.showEpisodesPanel() {
         )
     }
 
-    val desiredSeason = currentSeason ?: _uiState.value.episodesSelectedSeason
+    val desiredSeason = _uiState.value.displaySeason ?: _uiState.value.episodesSelectedSeason
     if (_uiState.value.episodesAll.isNotEmpty() && desiredSeason != null) {
         selectEpisodesSeason(desiredSeason)
     } else {
@@ -1062,8 +1066,8 @@ internal fun PlayerRuntimeController.selectEpisodesSeason(season: Int) {
     if (seasons.isNotEmpty() && season !in seasons) return
 
     val episodesForSeason = all
-        .filter { (it.season ?: -1) == season }
-        .sortedWith(compareBy<Video> { it.episode ?: Int.MAX_VALUE }.thenBy { it.title })
+        .filter { (it.displaySeason ?: -1) == season }
+        .sortedWith(episodeSequenceComparator.thenBy { it.title })
 
     _uiState.update {
         it.copy(
@@ -1154,29 +1158,25 @@ internal fun PlayerRuntimeController.loadEpisodesIfNeeded() {
         ) {
             is NetworkResult.Success -> {
                 val allEpisodes = result.data.videos
-                    .sortedWith(
-                        compareBy<Video> { it.season ?: Int.MAX_VALUE }
-                            .thenBy { it.episode ?: Int.MAX_VALUE }
-                            .thenBy { it.title }
-                    )
+                    .sortedWith(episodeSequenceComparator.thenBy { it.title })
 
                 applyMetaDetails(result.data)
 
                 val seasons = allEpisodes
-                    .mapNotNull { it.season }
+                    .mapNotNull { it.displaySeason }
                     .distinct()
                     .sorted()
 
                 val preferredSeason = when {
-                    currentSeason != null && seasons.contains(currentSeason) -> currentSeason
+                    _uiState.value.displaySeason != null && seasons.contains(_uiState.value.displaySeason) -> _uiState.value.displaySeason
                     initialSeason != null && seasons.contains(initialSeason) -> initialSeason
                     else -> seasons.firstOrNull { it > 0 } ?: seasons.firstOrNull() ?: 1
                 }
 
                 val selectedSeason = preferredSeason ?: 1
                 val episodesForSeason = allEpisodes
-                    .filter { (it.season ?: -1) == selectedSeason }
-                    .sortedWith(compareBy<Video> { it.episode ?: Int.MAX_VALUE }.thenBy { it.title })
+                    .filter { (it.displaySeason ?: -1) == selectedSeason }
+                    .sortedWith(episodeSequenceComparator.thenBy { it.title })
 
                 _uiState.update {
                     it.copy(
@@ -1209,6 +1209,10 @@ internal fun PlayerRuntimeController.buildEpisodeRequestKey(type: String, video:
 }
 
 internal fun PlayerRuntimeController.loadStreamsForEpisode(video: Video, forceRefresh: Boolean) {
+    if (!video.hasResolvedSource) {
+        android.widget.Toast.makeText(context, "This TVDB episode could not be safely matched to a playback source.", android.widget.Toast.LENGTH_LONG).show()
+        return
+    }
     streamRepository.setLocalPluginSearchPaused(false)
     val type = contentType
     if (type.isNullOrBlank()) {
@@ -1760,7 +1764,7 @@ internal fun PlayerRuntimeController.showEpisodeStreamPicker(video: Video, force
             showSubtitleTimingDialog = false,
             showSpeedDialog = false,
             showMoreDialog = false,
-            episodesSelectedSeason = video.season ?: it.episodesSelectedSeason
+            episodesSelectedSeason = video.displaySeason ?: it.episodesSelectedSeason
         )
     }
     loadEpisodesIfNeeded()

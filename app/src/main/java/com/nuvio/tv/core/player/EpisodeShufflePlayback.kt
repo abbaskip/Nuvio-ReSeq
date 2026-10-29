@@ -54,14 +54,17 @@ class EpisodeShufflePlayback @Inject constructor(
             shuffle.clearSelection(profileId, contentId, ShuffleSurface.PLAYBACK)
             return PlayerNextEpisodeRules.resolveNextEpisode(videos, season, episode)
         }
-        val remoteWatched = if (!state.settings.includeWatched && profileManager.activeProfileId.value == profileId) {
+        val native = videos.any { it.episodeIdentity != null }
+        val progress = com.nuvio.tv.data.tvdb.reconcileTvdbVideoProgress(videos, state.progress)
+        val watched = if (native) progress.filterValues { it.isCompleted() }.keys else state.watched
+        val remoteWatched = if (!native && !state.settings.includeWatched && profileManager.activeProfileId.value == profileId) {
             videos.filter { video ->
                 video.episode?.let { progressRepository.isWatchedByVideoId(video.id, it) } == true
             }.mapNotNull { video -> video.season?.let { it to video.episode!! } }.toSet()
         } else emptySet()
         return shuffle.select(
             profileId, contentId, videos, state.settings.includeWatched,
-            state.watched + remoteWatched, state.progress, ShuffleSurface.PLAYBACK,
+            watched + remoteWatched, progress, ShuffleSurface.PLAYBACK,
             current = season?.let { it to episode }, preferredVideoId = preferredVideoId
         )
     }

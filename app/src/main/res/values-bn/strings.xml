@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">দেখা চালিয়ে যান</string>
     <string name="type_movie">মুভি</string>
     <string name="type_movies">সিনেমা</string>
@@ -347,13 +347,13 @@
     <string name="appearance_settings_style">সেটিংস স্টাইল</string>
     <string name="appearance_settings_style_subtitle">সেটিংস স্ক্রিনগুলো কীভাবে দেখানো হবে তা বেছে নিন</string>
     <string name="appearance_launcher_artwork">লঞ্চার আর্টওয়ার্ক</string>
-    <string name="appearance_launcher_artwork_subtitle">টিভির হোম স্ক্রিনে Nuvio কীভাবে দেখাবে তা বেছে নিন</string>
+    <string name="appearance_launcher_artwork_subtitle">টিভির হোম স্ক্রিনে Nuvio ReSeq কীভাবে দেখাবে তা বেছে নিন</string>
     <string name="appearance_app_icon_and_banner">অ্যাপ আইকন এবং ব্যানার</string>
     <string name="appearance_app_icon_and_banner_subtitle">অ্যাপ আইকন এবং ব্যানার পরিবর্তন করুন</string>
     <string name="appearance_app_icon_picker_title">অ্যাপ আইকন এবং ব্যানার বেছে নিন</string>
     <string name="appearance_app_icon_picker_subtitle">প্রতিটি স্টাইলের সাথে একটি মানানসই স্কয়ার আইকন এবং টিভি ব্যানার রয়েছে</string>
     <string name="appearance_app_icon_confirmation_title">অ্যাপ আইকন পরিবর্তন করবেন?</string>
-    <string name="appearance_app_icon_confirmation_message">%1$s-এ পরিবর্তন করলে Nuvio বন্ধ হয়ে যাবে। টিভি ব্যানার আপডেট হওয়ার আগে ডিভাইসটি রিস্টার্ট করার প্রয়োজন হতে পারে। চালিয়ে যেতে OK সিলেক্ট করুন।</string>
+    <string name="appearance_app_icon_confirmation_message">%1$s-এ পরিবর্তন করলে Nuvio ReSeq বন্ধ হয়ে যাবে। টিভি ব্যানার আপডেট হওয়ার আগে ডিভাইসটি রিস্টার্ট করার প্রয়োজন হতে পারে। চালিয়ে যেতে OK সিলেক্ট করুন।</string>
     <string name="appearance_app_icon_change_failed">আইকন এবং ব্যানার পরিবর্তন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।</string>
     <string name="appearance_app_icon_original">অরিজিনাল</string>
     <string name="appearance_app_icon_arctic_blue">আর্কটিক ব্লু</string>
@@ -372,7 +372,7 @@
     <string name="cd_selected">নির্বাচিত</string>
     <string name="about_title">সম্পর্কে</string>
     <string name="about_subtitle">অ্যাপের তথ্য, আপডেট এবং লিগ্যাল লিংক</string>
-    <string name="about_made_with_love">Tapframe এবং বন্ধুদের দ্বারা ❤️ দিয়ে তৈরি</string>
+    <string name="about_made_with_love">Nuvio ReSeq by abbaskip · Based on Nuvio by Tapframe and contributors</string>
     <string name="about_version">সংস্করণ %1$s</string>
     <string name="about_update_banner_title">অটোমেটিক আপডেট ব্যানার</string>
     <string name="about_update_banner_subtitle">নতুন ভার্সন এলে একটি ব্যানার দেখান</string>
@@ -393,7 +393,7 @@
     <string name="about_licenses_attributions">লাইসেন্স এবং অ্যাট্রিবিউশন</string>
     <string name="about_licenses_attributions_subtitle">ডেটা সোর্স, স্বীকৃতি, এবং প্ল্যাটফর্ম লাইসেন্স</string>
     <string name="licenses_attributions_title">লাইসেন্স এবং অ্যাট্রিবিউশন</string>
-    <string name="licenses_attributions_subtitle">Nuvio TV-র ব্যবহৃত ডেটা প্রোভাইডার, সার্ভিস ক্রেডিট এবং Android প্লেব্যাক লাইসেন্স।</string>
+    <string name="licenses_attributions_subtitle">Nuvio ReSeq-র ব্যবহৃত ডেটা প্রোভাইডার, সার্ভিস ক্রেডিট এবং Android প্লেব্যাক লাইসেন্স।</string>
     <string name="licenses_attributions_section_app">অ্যাপ লাইসেন্স</string>
     <string name="licenses_attributions_section_data">ডেটা এবং পরিষেবা</string>
     <string name="licenses_attributions_section_playback">ANDROID PLAYBACK LICENSES</string>
@@ -403,21 +403,21 @@
     <string name="licenses_attributions_nuvio_title">Nuvio TV</string>
     <string name="licenses_attributions_nuvio_body">প্রজেক্ট রিপোজিটরিতে সোর্স কোড এবং লাইসেন্সের শর্তাবলী পাওয়া যাবে। GNU General Public License v3.0-এর অধীনে লাইসেন্সকৃত।</string>
     <string name="licenses_attributions_tmdb_title">The Movie Database (TMDB)</string>
-    <string name="licenses_attributions_tmdb_body">Nuvio মুভি এবং টিভি মেটাডেটা, আর্টওয়ার্ক, ট্রেলার, কাস্ট, প্রোডাকশন বিবরণ, কালেকশন এবং সুপারিশের জন্য TMDB API ব্যবহার করে। এই পণ্যটি TMDB API ব্যবহার করে কিন্তু TMDB দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
+    <string name="licenses_attributions_tmdb_body">Nuvio ReSeq মুভি এবং টিভি মেটাডেটা, আর্টওয়ার্ক, ট্রেলার, কাস্ট, প্রোডাকশন বিবরণ, কালেকশন এবং সুপারিশের জন্য TMDB API ব্যবহার করে। এই পণ্যটি TMDB API ব্যবহার করে কিন্তু TMDB দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
     <string name="licenses_attributions_trakt_title">Trakt</string>
-    <string name="licenses_attributions_trakt_body">Nuvio অ্যাকাউন্ট প্রমাণীকরণ, দেখার হিস্ট্রি, অগ্রগতি সিঙ্ক, লাইব্রেরি ডেটা, রেটিং, তালিকা এবং মন্তব্যের জন্য Trakt-এর সাথে সংযোগ করে। Nuvio Trakt দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
+    <string name="licenses_attributions_trakt_body">Nuvio ReSeq অ্যাকাউন্ট প্রমাণীকরণ, দেখার হিস্ট্রি, অগ্রগতি সিঙ্ক, লাইব্রেরি ডেটা, রেটিং, তালিকা এবং মন্তব্যের জন্য Trakt-এর সাথে সংযোগ করে। Nuvio ReSeq Trakt দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
     <string name="licenses_attributions_simkl_title">Simkl</string>
-    <string name="licenses_attributions_simkl_body">Nuvio অ্যাকাউন্ট প্রমাণীকরণ, ওয়াচলিস্ট, দেখার হিস্ট্রি, প্লেব্যাক অগ্রগতি এবং স্ক্রবব্লিংয়ের জন্য Simkl-এর সাথে সংযোগ করে। সিনেমা, টিভি এবং অ্যানিমে ট্র্যাকিং ডেটা Simkl সরবরাহ করে। Nuvio Simkl দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
+    <string name="licenses_attributions_simkl_body">Nuvio ReSeq অ্যাকাউন্ট প্রমাণীকরণ, ওয়াচলিস্ট, দেখার হিস্ট্রি, প্লেব্যাক অগ্রগতি এবং স্ক্রবব্লিংয়ের জন্য Simkl-এর সাথে সংযোগ করে। সিনেমা, টিভি এবং অ্যানিমে ট্র্যাকিং ডেটা Simkl সরবরাহ করে। Nuvio ReSeq Simkl দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
     <string name="licenses_attributions_premiumize_title">Premiumize</string>
-    <string name="licenses_attributions_premiumize_body">Nuvio অ্যাকাউন্ট প্রমাণীকরণ, ক্লাউড লাইব্রেরি অ্যাক্সেস, ক্যাশে চেক এবং ক্লাউড প্লেব্যাক ফিচারের জন্য Premiumize-এর সাথে সংযোগ করে। Nuvio Premiumize দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
+    <string name="licenses_attributions_premiumize_body">Nuvio ReSeq অ্যাকাউন্ট প্রমাণীকরণ, ক্লাউড লাইব্রেরি অ্যাক্সেস, ক্যাশে চেক এবং ক্লাউড প্লেব্যাক ফিচারের জন্য Premiumize-এর সাথে সংযোগ করে। Nuvio ReSeq Premiumize দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
     <string name="licenses_attributions_torbox_title">TorBox</string>
-    <string name="licenses_attributions_torbox_body">Nuvio অ্যাকাউন্ট প্রমাণীকরণ, ক্লাউড লাইব্রেরি অ্যাক্সেস, ক্যাশে চেক এবং ক্লাউড প্লেব্যাক ফিচারের জন্য TorBox-এর সাথে সংযোগ করে। Nuvio TorBox দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
+    <string name="licenses_attributions_torbox_body">Nuvio ReSeq অ্যাকাউন্ট প্রমাণীকরণ, ক্লাউড লাইব্রেরি অ্যাক্সেস, ক্যাশে চেক এবং ক্লাউড প্লেব্যাক ফিচারের জন্য TorBox-এর সাথে সংযোগ করে। Nuvio ReSeq TorBox দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
     <string name="licenses_attributions_mdblist_title">MDBList</string>
-    <string name="licenses_attributions_mdblist_body">Nuvio রেটিং, দেখার হিস্ট্রি এবং প্লেব্যাক ট্র্যাকিংয়ের জন্য MDBList ব্যবহার করে। Nuvio MDBList দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
+    <string name="licenses_attributions_mdblist_body">Nuvio ReSeq রেটিং, দেখার হিস্ট্রি এবং প্লেব্যাক ট্র্যাকিংয়ের জন্য MDBList ব্যবহার করে। Nuvio ReSeq MDBList দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
     <string name="licenses_attributions_introdb_title">IntroDB</string>
-    <string name="licenses_attributions_introdb_body">Nuvio স্কিপ কন্ট্রোলের মাধ্যমে ইন্ট্রো, রিক্যাপ, ক্রেডিট এবং প্রিভিউ টাইমস্ট্যাম্পের জন্য IntroDB API ব্যবহার করে। Nuvio IntroDB দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
+    <string name="licenses_attributions_introdb_body">Nuvio ReSeq স্কিপ কন্ট্রোলের মাধ্যমে ইন্ট্রো, রিক্যাপ, ক্রেডিট এবং প্রিভিউ টাইমস্ট্যাম্পের জন্য IntroDB API ব্যবহার করে। Nuvio ReSeq IntroDB দ্বারা অনুমোদিত বা প্রত্যয়িত নয়।</string>
     <string name="licenses_attributions_imdb_title">IMDb অ-বাণিজ্যিক ডেটাসেট</string>
-    <string name="licenses_attributions_imdb_body">Nuvio IMDb রেটিং এবং ভোট কাউন্টের জন্য title.ratings.tsv.gz-সহ IMDb নন-কমার্শিয়াল ডেটাসেট ব্যবহার করে। তথ্যগুলো IMDb (https://www.imdb.com)-এর সৌজন্যে প্রাপ্ত। অনুমতিক্রমে ব্যবহৃত। IMDb-র শর্ত অনুযায়ী IMDb-র ডেটা ব্যক্তিগত এবং নন-কমার্শিয়াল ব্যবহারের জন্য।</string>
+    <string name="licenses_attributions_imdb_body">Nuvio ReSeq IMDb রেটিং এবং ভোট কাউন্টের জন্য title.ratings.tsv.gz-সহ IMDb নন-কমার্শিয়াল ডেটাসেট ব্যবহার করে। তথ্যগুলো IMDb (https://www.imdb.com)-এর সৌজন্যে প্রাপ্ত। অনুমতিক্রমে ব্যবহৃত। IMDb-র শর্ত অনুযায়ী IMDb-র ডেটা ব্যক্তিগত এবং নন-কমার্শিয়াল ব্যবহারের জন্য।</string>
     <string name="licenses_attributions_exoplayer_title">AndroidX Media3 ExoPlayer 1.8.0</string>
     <string name="licenses_attributions_exoplayer_body">Android প্লেব্যাক ইঞ্জিন হিসেবে ব্যবহৃত হয়। Apache License, Version 2.0-এর অধীনে লাইসেন্সকৃত।</string>
     <string name="licenses_attributions_libmpv_title">libmpv / libmpv-android</string>
@@ -440,7 +440,7 @@
     <string name="tracking_accounts_title">অ্যাকাউন্ট</string>
     <string name="tracking_accounts_subtitle">ট্র্যাকিং সার্ভিস কানেক্ট এবং ম্যানেজ করুন</string>
     <string name="tracking_sources_title">সোর্স</string>
-    <string name="tracking_sources_subtitle">Nuvio কোথা থেকে আপনার লাইব্রেরি এবং দেখার প্রোগ্রেস পড়বে তা বেছে নিন। কানেক্ট করা প্রতিটি সার্ভিসে প্লেব্যাক স্ক্রোবল করা হয়।</string>
+    <string name="tracking_sources_subtitle">Nuvio ReSeq কোথা থেকে আপনার লাইব্রেরি এবং দেখার প্রোগ্রেস পড়বে তা বেছে নিন। কানেক্ট করা প্রতিটি সার্ভিসে প্লেব্যাক স্ক্রোবল করা হয়।</string>
     <string name="tracking_trakt_features_title">Trakt ফিচার</string>
     <string name="tracking_trakt_features_subtitle">Trakt-এর নির্দিষ্ট হিস্ট্রি, রিভিউ এবং রিকমেন্ডেশন</string>
     <string name="tracking_simkl_features_title">Simkl ফিচার</string>
@@ -458,7 +458,7 @@
     <string name="tracking_finish_connection">সংযোগ অনুমোদন শেষ করুন</string>
     <string name="tracking_connecting_provider">%1$s কানেকশন শুরু করা হচ্ছে…</string>
     <string name="tracking_watch_progress_dialog_subtitle">পুনরায় প্লেব্যাক ও দেখা চালিয়ে যাওয়ার জন্য কোনো সার্ভিস ব্যবহার করা হবে তা বাছুন। প্রতিটি সংযুক্ত সার্ভিসের জন্য স্ক্রবলিং সক্রিয় থাকবে।</string>
-    <string name="tracking_library_source_dialog_subtitle">লাইব্রেরির জন্য Nuvio কোনো সার্ভিস ব্যবহার করবে তা বাছুন। প্রতিটি সংযুক্ত সার্ভিসে প্লেব্যাক স্ক্রবল হবে।</string>
+    <string name="tracking_library_source_dialog_subtitle">লাইব্রেরির জন্য Nuvio ReSeq কোনো সার্ভিস ব্যবহার করবে তা বাছুন। প্রতিটি সংযুক্ত সার্ভিসে প্লেব্যাক স্ক্রবল হবে।</string>
     <string name="tracking_trakt_progress_required">Trakt যখন ওয়াচ প্রগ্রেস সোর্স হয় তখন পাওয়া যায়</string>
     <string name="trakt_name">Trakt</string>
     <string name="simkl_name">Simkl</string>
@@ -468,7 +468,7 @@
     <string name="settings_advanced_subtitle">পারফরম্যান্স, নেভিগেশন, ক্যাশে এবং ডায়াগনস্টিকস</string>
     <string name="experience_mode_essential">এসেনশিয়াল</string>
     <string name="experience_mode_advanced">উন্নত</string>
-    <string name="experience_mode_choose_title">আপনার Nuvio এক্সপেরিয়েন্স বেছে নিন</string>
+    <string name="experience_mode_choose_title">আপনার Nuvio ReSeq এক্সপেরিয়েন্স বেছে নিন</string>
     <string name="experience_mode_choose_subtitle">সহজভাবে শুরু করুন বা প্রতিটি কাস্টমাইজেশন আনলক করুন। আপনি যেকোনো সময় সুইচ করতে পারবেন।</string>
     <string name="experience_mode_essential_card_subtitle">ফোকাসড সেটআপ, অ্যাডন, প্লেব্যাক বেসিক, Trakt এবং অ্যাকাউন্ট সেটিংস।</string>
     <string name="experience_mode_advanced_card_subtitle">সম্পূর্ণ সেটিংস, লেআউট কন্ট্রোল, ক্যাটালগ অর্ডার, কালেকশন, প্লাগইন এবং ডায়াগনস্টিকস।</string>
@@ -577,8 +577,8 @@
     <string name="buffer_safe_status">নিরাপদ: আপনার ডিভাইসের জন্য রিকমেন্ডেড লিমিটের মধ্যে আছে।</string>
     <string name="buffer_unsafe_warning">সতর্কীকরণ: আপনার %2$s ডিভাইসের জন্য রিকমেন্ডেড সেফ লিমিট (%1$d MB) ছাড়িয়ে গেছে। অ্যাপ ক্র্যাশ করতে পারে।</string>
     <string name="buffer_auto_limit_active">অটো-স্কেলড সেফ লিমিট: %d MB</string>
-    <string name="advanced_nuvio_focus_scroll">Nuvio ফোকাস স্ক্রোলিং</string>
-    <string name="advanced_nuvio_focus_scroll_subtitle">Nuvio-এর কাস্টম গ্লোবাল ফোকাস স্ক্রোল অ্যানিমেশন এবং পজিশনিং ব্যবহার করুন।</string>
+    <string name="advanced_nuvio_focus_scroll">Nuvio ReSeq ফোকাস স্ক্রোলিং</string>
+    <string name="advanced_nuvio_focus_scroll_subtitle">Nuvio ReSeq-এর কাস্টম গ্লোবাল ফোকাস স্ক্রোল অ্যানিমেশন এবং পজিশনিং ব্যবহার করুন।</string>
     <string name="advanced_rgb565">RGB565 ইমেজ ডিকোডিং</string>
     <string name="advanced_rgb565_subtitle">উপযুক্ত ওপেক ইমেজের জন্য লোয়ার-মেমোরি ১৬-বিট কালার ব্যবহার করুন। এটি পরিবর্তন করলে অ্যাপটি রিস্টার্ট হবে।</string>
     <string name="advanced_memory_only_vertical_scroll">মেমোরি-অনলি ভার্টিকাল স্ক্রোলিং</string>
@@ -755,8 +755,8 @@
     <string name="playback_player_ask_desc">প্রতিবার প্লেয়ার বেছে নিন</string>
     <string name="playback_player_auto">অটো (কন্টেন্টের জন্য সেরা)</string>
     <string name="playback_player_auto_desc">মুভি এবং টিভি শোর জন্য ExoPlayer · অ্যানিমের জন্য MPV</string>
-    <string name="playback_engine_exoplayer_desc">বর্তমান Nuvio ফিচারের সাথে সেরা কম্প্যাটিবিলিটি।</string>
-    <string name="playback_engine_mvplayer_desc">Nuvio OSD কন্ট্রোলের সাথে libmpv ব্যবহার করে। পরীক্ষামূলক।</string>
+    <string name="playback_engine_exoplayer_desc">বর্তমান Nuvio ReSeq ফিচারের সাথে সেরা কম্প্যাটিবিলিটি।</string>
+    <string name="playback_engine_mvplayer_desc">Nuvio ReSeq OSD কন্ট্রোলের সাথে libmpv ব্যবহার করে। পরীক্ষামূলক।</string>
     <string name="video_section">ভিডিও</string>
     <string name="playback_true_black_letterbox">ট্রু ব্ল্যাক বার</string>
     <string name="playback_true_black_letterbox_sub">ছবির চারপাশের বারগুলোকে আনপেইন্টেড রাখুন যাতে HDR ট্রু ব্ল্যাক থাকে। যদি বারগুলোতে একটি উজ্জ্বল রেখা দেখা যায় তবে এটি বন্ধ রাখুন।</string>
@@ -1219,7 +1219,7 @@
     <string name="debrid_disconnect">সংযোগ বিচ্ছিন্ন করুন</string>
     <string name="debrid_device_auth_connected">%1$s এই ডিভাইসে সংযুক্ত আছে।</string>
     <string name="debrid_device_auth_starting">নিরাপদ সাইন ইন শুরু হচ্ছে…</string>
-    <string name="debrid_device_auth_instructions">Nuvio-কে অনুমোদন দিতে কিউআর স্ক্যান করুন এবং এই কোডটি লিখুন।</string>
+    <string name="debrid_device_auth_instructions">Nuvio ReSeq-কে অনুমোদন দিতে কিউআর স্ক্যান করুন এবং এই কোডটি লিখুন।</string>
     <string name="debrid_device_auth_code_copied">কোড কপি করা হয়েছে।</string>
     <string name="debrid_device_auth_waiting">অনুমোদনের অপেক্ষায়…</string>
     <string name="debrid_device_auth_failed">সাইন ইন শুরু করা যায়নি।</string>
@@ -1401,17 +1401,17 @@
     <string name="trakt_watch_progress_title">ওয়াচ প্রগ্রেস</string>
     <string name="trakt_watch_progress_subtitle">কোন প্রগ্রেস সোর্স \'রিজিউম\' এবং \'Continue Watching\' পরিচালনা করবে তা বাছুন</string>
     <string name="trakt_watch_progress_dialog_title">ওয়াচ প্রগ্রেস</string>
-    <string name="trakt_watch_progress_dialog_subtitle">পুনরায় প্লেব্যাক ও দেখা চালিয়ে যাওয়ার জন্য Trakt নাকি Nuvio সিঙ্ক ব্যবহার করা হবে তা বাছুন (Trakt স্ক্রবলিং সক্রিয় থাকবে)।</string>
+    <string name="trakt_watch_progress_dialog_subtitle">পুনরায় প্লেব্যাক ও দেখা চালিয়ে যাওয়ার জন্য Trakt নাকি Nuvio ReSeq সিঙ্ক ব্যবহার করা হবে তা বাছুন (Trakt স্ক্রবলিং সক্রিয় থাকবে)।</string>
     <string name="trakt_watch_progress_source_trakt">Trakt</string>
-    <string name="trakt_watch_progress_source_nuvio">Nuvio সিঙ্ক</string>
+    <string name="trakt_watch_progress_source_nuvio">Nuvio ReSeq সিঙ্ক</string>
     <string name="trakt_library_source_title">লাইব্রেরি সোর্স</string>
-    <string name="trakt_library_source_subtitle">Nuvio আপনার লাইব্রেরির জন্য কোনো সোর্সটি পড়বে তা বাছুন</string>
+    <string name="trakt_library_source_subtitle">Nuvio ReSeq আপনার লাইব্রেরির জন্য কোনো সোর্সটি পড়বে তা বাছুন</string>
     <string name="trakt_library_source_dialog_title">লাইব্রেরি সোর্স</string>
-    <string name="trakt_library_source_dialog_subtitle">লাইব্রেরির জন্য Nuvio কোনো সার্ভিস ব্যবহার করবে তা বাছুন। প্রতিটি সংযুক্ত সার্ভিসে প্লেব্যাক স্ক্রবল হবে</string>
+    <string name="trakt_library_source_dialog_subtitle">লাইব্রেরির জন্য Nuvio ReSeq কোনো সার্ভিস ব্যবহার করবে তা বাছুন। প্রতিটি সংযুক্ত সার্ভিসে প্লেব্যাক স্ক্রবল হবে</string>
     <string name="trakt_library_source_trakt">Trakt</string>
-    <string name="trakt_library_source_nuvio">Nuvio লাইব্রেরি</string>
+    <string name="trakt_library_source_nuvio">Nuvio ReSeq লাইব্রেরি</string>
     <string name="trakt_library_source_trakt_selected">Trakt লাইব্রেরি নির্বাচিত</string>
-    <string name="trakt_library_source_nuvio_selected">Nuvio লাইব্রেরি নির্বাচিত</string>
+    <string name="trakt_library_source_nuvio_selected">Nuvio ReSeq লাইব্রেরি নির্বাচিত</string>
     <string name="trakt_setting_on">চালু</string>
     <string name="trakt_setting_off">বন্ধ</string>
     <string name="trakt_watch_progress_trakt_selected">ওয়াচ প্রগ্রেস সোর্স Trakt-এ সেট করা হয়েছে</string>
@@ -1444,7 +1444,7 @@
     <string name="trakt_stat_watched_hours">দেখার সময় (ঘণ্টা)</string>
     <string name="trakt_disconnect">সংযোগ বিচ্ছিন্ন করুন</string>
     <string name="trakt_disconnect_title">Trakt ডিসকানেক্ট করবেন?</string>
-    <string name="trakt_disconnect_subtitle">এটি Nuvio থেকে আপনার Trakt অ্যাকাউন্ট সংযোগ বিচ্ছিন্ন করবে।</string>
+    <string name="trakt_disconnect_subtitle">এটি Nuvio ReSeq থেকে আপনার Trakt অ্যাকাউন্ট সংযোগ বিচ্ছিন্ন করবে।</string>
     <string name="trakt_login">লগইন</string>
     <string name="trakt_retry">আবার চেষ্টা করুন</string>
     <string name="trakt_back">পিছনে</string>
@@ -1521,11 +1521,11 @@
     <string name="profile_addons">অ্যাডন</string>
     <string name="profile_plugins">প্লাগিন</string>
     <string name="profile_choose_avatar">একটি অবতার বাছুন</string>
-    <string name="profile_custom_avatar_web_panel_note">Nuvio ওয়েব প্যানেল থেকে কাস্টম অ্যাভাটার ইউআরএল কনফিগার করা যাবে।</string>
+    <string name="profile_custom_avatar_web_panel_note">Nuvio ReSeq ওয়েব প্যানেল থেকে কাস্টম অ্যাভাটার ইউআরএল কনফিগার করা যাবে।</string>
     <string name="profile_editor_tab_avatar">অ্যাভাটার</string>
     <string name="profile_editor_tab_background">ব্যাকগ্রাউন্ড</string>
     <string name="profile_choose_background">প্রোফাইল ব্যাকগ্রাউন্ড বাছুন</string>
-    <string name="profile_background_member_note">কাস্টম ব্যাকগ্রাউন্ড ইউআরএল Nuvio ওয়েব প্যানেল থেকে কনফিগার করা যেতে পারে।</string>
+    <string name="profile_background_member_note">কাস্টম ব্যাকগ্রাউন্ড ইউআরএল Nuvio ReSeq ওয়েব প্যানেল থেকে কনফিগার করা যেতে পারে।</string>
     <string name="profile_background_normal">স্বাভাবিক</string>
     <string name="profile_background_custom">কাস্টম</string>
     <string name="profile_avatar_none_selected">কোনো অ্যাভাটার নির্বাচন করা হয়নি</string>
@@ -1593,7 +1593,7 @@
     <string name="profile_pin_overlay_set_support">এই প্রোফাইল খোলার আগে এই পিনটি প্রয়োজন হবে।</string>
     <string name="profile_pin_overlay_confirm_support">সেটআপ শেষ করতে একই ৪-ডিজিট পুনরায় লিখুন।</string>
     <string name="profile_pin_overlay_mismatch">পিন মেলেনি। আবার নতুন পিন লিখুন।</string>
-    <string name="profile_pin_overlay_forgot_hint">পিন ভুলে গেছেন? nuvio ওয়েবসাইট থেকে আপনার Nuvio অ্যাকাউন্ট থেকে এটি রিসেট করুন।</string>
+    <string name="profile_pin_overlay_forgot_hint">পিন ভুলে গেছেন? nuvio ওয়েবসাইট থেকে আপনার Nuvio ReSeq অ্যাকাউন্ট থেকে এটি রিসেট করুন।</string>
     <string name="profile_pin_overlay_back_hint">বাতিল করতে back-এ চাপ দিন</string>
     <string name="essential_addon_setup_title">অ্যাডন সেটআপ করুন</string>
     <string name="essential_addon_setup_subtitle">স্ট্রিমিং শুরু করতে একটি অ্যাডন ইনস্টল করুন। আপনি পরবর্তীতে Addons থেকে আরও যোগ করতে পারবেন।</string>
@@ -1673,8 +1673,8 @@
 • আপনার IP অ্যাড্রেস নেটওয়ার্কের অন্যান্য পিয়ারদের কাছে দৃশ্যমান হবে
 • আপনি যে কন্টেন্ট অ্যাক্সেস করছেন তার জন্য আপনি সম্পূর্ণভাবে দায়ী
 • আপনার অঞ্চলে এই কন্টেন্ট স্ট্রিম করার আইনগত অধিকার আপনার রয়েছে
-• Nuvio কোনো P2P কন্টেন্ট হোস্ট, বিতরণ বা নিয়ন্ত্রণ করে না
-• P2P স্ট্রিমিং ব্যবহারের ফলে সৃষ্ট কোনো আইনি পরিণতির দায় Nuvio বহন করে না
+• Nuvio ReSeq কোনো P2P কন্টেন্ট হোস্ট, বিতরণ বা নিয়ন্ত্রণ করে না
+• P2P স্ট্রিমিং ব্যবহারের ফলে সৃষ্ট কোনো আইনি পরিণতির দায় Nuvio ReSeq বহন করে না
 
 আপনি সম্পূর্ণ নিজ ঝুঁকিতে এই ফিচারটি ব্যবহার করছেন। সেটিংস থেকে যেকোনো সময় P2P বন্ধ করা যাবে।</string>
     <string name="p2p_consent_enable">P2P চালু করুন</string>
@@ -2227,7 +2227,7 @@
     <string name="catalog_see_all_from">%1$s থেকে</string>
     <string name="catalog_see_all_empty_title">কোনো আইটেম উপলব্ধ নেই</string>
     <string name="catalog_see_all_empty_subtitle">ভিন্ন একটি ক্যাটালগ চেষ্টা করুন বা পরে আবার দেখুন</string>
-    <string name="layout_selection_welcome">Nuvio-তে স্বাগতম</string>
+    <string name="layout_selection_welcome">Nuvio ReSeq-তে স্বাগতম</string>
     <string name="layout_selection_subtitle">আপনার হোম স্ক্রিন লেআউট বেছে নিন</string>
     <string name="layout_selection_continue">চালিয়ে যান</string>
     <string name="update_title">অ্যাপ আপডেট</string>
@@ -2361,7 +2361,7 @@
     <string name="cd_preview">পূর্বরূপ</string>
     <string name="cd_test">টেস্ট</string>
     <string name="cd_unlink">আনলিংক করুন</string>
-    <string name="cd_nuvio_logo">NuvioTV</string>
+    <string name="cd_nuvio_logo">Nuvio ReSeq</string>
     <string name="cd_trakt_logo">Trakt লোগো</string>
     <string name="cd_trakt_qr">Trakt অ্যাক্টিভেশন QR</string>
     <string name="cd_imdb">IMDb</string>
@@ -2373,7 +2373,7 @@
     <string name="cd_expand">%1$s সম্প্রসারিত করুন</string>
     <string name="cd_collapse">%1$s কোল্যাপ্স করুন</string>
     <string name="cd_qr_login">QR লগইন কোড</string>
-    <string name="cd_nuvio">Nuvio</string>
+    <string name="cd_nuvio">Nuvio ReSeq</string>
     <string name="debug_signin_success">সফলভাবে সাইন ইন হয়েছে</string>
     <string name="debug_generate_description">ডিবাগ-জেনারেটেড %1$s আইটেম #%2$d</string>
     <string name="debug_generate_result_failed">ব্যর্থ: %1$s</string>
@@ -2511,7 +2511,7 @@
     <string name="collections_editor_tmdb_list_helper">উদাহরণ: https://www.themoviedb.org/list/8504994 বা 8504994।</string>
     <string name="collections_editor_tmdb_person_id">ব্যক্তি আইডি</string>
     <string name="collections_editor_tmdb_person_helper">উদাহরণ: https://www.themoviedb.org/person/31-tom-hanks অথবা 31।</string>
-    <string name="collections_editor_tmdb_title_helper">সারি/ট্যাবের নাম হিসেবে দেখানো হয়। ফাঁকা থাকলে, Nuvio সোর্স থেকে একটি তৈরি করে।</string>
+    <string name="collections_editor_tmdb_title_helper">সারি/ট্যাবের নাম হিসেবে দেখানো হয়। ফাঁকা থাকলে, Nuvio ReSeq সোর্স থেকে একটি তৈরি করে।</string>
     <string name="collections_editor_tmdb_quick_genres">কুইক জনরা</string>
     <string name="collections_editor_tmdb_quick_languages">কুইক ভাষা</string>
     <string name="collections_editor_tmdb_quick_countries">কুইক দেশ</string>
@@ -2685,7 +2685,7 @@
     <string name="autoplay_regex_preset_english">ইংরেজি</string>
     <string name="autoplay_regex_preset_no_cam_ts">CAM/TS নেই</string>
     <string name="autoplay_regex_preset_no_remux_hdr">REMUX/HDR নেই</string>
-    <string name="playback_player_internal_desc">NuvioTV-এর বিল্ট-ইন প্লেয়ার ব্যবহার করুন</string>
+    <string name="playback_player_internal_desc">Nuvio ReSeq-এর বিল্ট-ইন প্লেয়ার ব্যবহার করুন</string>
     <string name="player_torrent_peer_info">%1$d সিডস · %2$d পিয়ার্স</string>
     <string name="player_torrent_buffered_status">%1$s বাফার করা হয়েছে · %2$s · %3$s</string>
     <string name="player_torrent_status">%1$s · %2$s</string>
@@ -2778,9 +2778,9 @@
     <string name="simkl_visit">Simkl দেখুন</string>
     <string name="simkl_sync_info_action">কিভাবে সিঙ্কিং কাজ করে</string>
     <string name="simkl_sync_info_title">কিভাবে Simkl সিঙ্কিং কাজ করে</string>
-    <string name="simkl_sync_info_description">Nuvio স্বয়ংক্রিয়ভাবে প্রতি %1$d মিনিটে একবার Simkl চেক করে। অন্য অ্যাপ বা Simkl ওয়েবসাইটের মাধ্যমে করা পরিবর্তনগুলো প্রদর্শিত হতে অনেক সময় নিতে পারে।</string>
+    <string name="simkl_sync_info_description">Nuvio ReSeq স্বয়ংক্রিয়ভাবে প্রতি %1$d মিনিটে একবার Simkl চেক করে। অন্য অ্যাপ বা Simkl ওয়েবসাইটের মাধ্যমে করা পরিবর্তনগুলো প্রদর্শিত হতে অনেক সময় নিতে পারে।</string>
     <string name="simkl_sync_info_activity">প্রতিটি রিফ্রেশ প্রথমে পরীক্ষা করে যে Simkl কোনো পরিবর্তনের রিপোর্ট করে কিনা এবং শুধুমাত্র আপডেটগুলি ডাউনলোড করে। এটি Simkl-এর API নিয়মগুলি অনুসরণ করে, অপ্রয়োজনীয় ডেটা ব্যবহার হ্রাস করে এবং পরিষেবাটিকে স্থিতিশীল রাখতে সহায়তা করে।</string>
-    <string name="simkl_sync_info_manual">Nuvio-তে করা পরিবর্তনগুলো অবিলম্বে Simkl-এ পাঠানো হয়। যখনই আপনি চান Nuvio রিমোট চেঞ্জগুলো দ্রুত চেক করুক, তখনই \'এখন সিঙ্ক করুন\' ব্যবহার করুন।</string>
+    <string name="simkl_sync_info_manual">Nuvio ReSeq-তে করা পরিবর্তনগুলো অবিলম্বে Simkl-এ পাঠানো হয়। যখনই আপনি চান Nuvio ReSeq রিমোট চেঞ্জগুলো দ্রুত চেক করুক, তখনই \'এখন সিঙ্ক করুন\' ব্যবহার করুন।</string>
     <string name="simkl_sync_info_library_statuses">Simkl-এর \'On Hold\' বা \'Dropped\' লিস্টে রাখা শোগুলো \'Continue Watching\' থেকে হাইড করা থাকে। ওই লিস্টগুলোর যেকোনো একটিতে থাকা পর্যন্ত এগুলো হাইড করা থাকবে।</string>
     <string name="simkl_sync_info_docs">Simkl সিঙ্ক গাইড পড়ুন</string>
     <string name="error_open_browser_failed">ব্রাউজার খুলতে ব্যর্থ</string>

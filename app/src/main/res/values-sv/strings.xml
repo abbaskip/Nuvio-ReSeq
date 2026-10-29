@@ -181,7 +181,7 @@
     <!-- AboutScreen -->
     <string name="about_title">Om appen</string>
     <string name="about_subtitle">Appinformation, uppdateringar, och rättsliga dokument</string>
-    <string name="about_made_with_love">Tillverkad med ❤️ av Tapframe och vänner</string>
+    <string name="about_made_with_love">Nuvio ReSeq by abbaskip · Based on Nuvio by Tapframe and contributors</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_check_updates">Sök efter uppdateringar</string>
     <string name="about_check_updates_subtitle">Ladda ner senaste versionen</string>
@@ -562,7 +562,7 @@
     <string name="trakt_stat_watched_hours">Tittade timmar</string>
     <string name="trakt_disconnect">Koppla från</string>
     <string name="trakt_disconnect_title">Koppla från Trakt?</string>
-    <string name="trakt_disconnect_subtitle">Detta kopplar från ditt Trakt-konto från Nuvio.</string>
+    <string name="trakt_disconnect_subtitle">Detta kopplar från ditt Trakt-konto från Nuvio ReSeq.</string>
     <string name="trakt_login">Logga in</string>
     <string name="trakt_retry">Försök igen</string>
     <string name="trakt_back">Tillbaka</string>
@@ -975,7 +975,7 @@
     <string name="catalog_see_all_empty_subtitle">Prova en annan katalog eller kom tillbaka senare</string>
 
     <!-- LayoutSelectionScreen -->
-    <string name="layout_selection_welcome">Välkommen till Nuvio</string>
+    <string name="layout_selection_welcome">Välkommen till Nuvio ReSeq</string>
     <string name="layout_selection_subtitle">Välj din hemskärmslayout</string>
     <string name="layout_selection_continue">Fortsätt</string>
 
@@ -1176,7 +1176,7 @@
     <string name="profile_pin_overlay_set_support">Denna PIN krävs innan denna profil öppnas.</string>
     <string name="profile_pin_overlay_confirm_support">Ange samma 4 siffror igen för att slutföra.</string>
     <string name="profile_pin_overlay_mismatch">PIN-koderna matchade inte. Ange en ny PIN igen.</string>
-    <string name="profile_pin_overlay_forgot_hint">Glömt PIN? Återställ den från ditt Nuvio-konto på Nuvios webbplats.</string>
+    <string name="profile_pin_overlay_forgot_hint">Glömt PIN? Återställ den från ditt Nuvio ReSeq-konto på Nuvios webbplats.</string>
     <string name="profile_pin_overlay_back_hint">Tryck tillbaka för att avbryta</string>
 
     <!-- Missing: Debug library -->
@@ -1200,7 +1200,7 @@
     <string name="playback_player_auto_desc">ExoPlayer för filmer och serier · MPV för anime</string>
 
     <!-- App name -->
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">Nuvio ReSeq</string>
 
     <!-- WebConfigServers -->
     <string name="web_manage_addons_title">Hantera tillägg</string>
@@ -1292,7 +1292,7 @@
     <string name="playback_afr_capability_disable_button">Inaktivera AFR</string>
     <string name="playback_afr_capability_disable_resolution_button">Inaktivera upplösningsmatchning</string>
     <string name="playback_afr_capability_disable_both_button">Inaktivera båda</string>
-    <string name="playback_engine_exoplayer_desc">Bästa kompatibilitet med nuvarande Nuvio-funktioner.</string>
+    <string name="playback_engine_exoplayer_desc">Bästa kompatibilitet med nuvarande Nuvio ReSeq-funktioner.</string>
     <string name="playback_engine_mvplayer_desc">Använder libmpv med Nuvios OSD-kontroller. Experimentellt.</string>
 
     <!-- PlaybackAudioSettings -->
@@ -1332,9 +1332,9 @@
     <string name="trakt_library_source_dialog_title">Bibliotekskälla</string>
     <string name="trakt_library_source_dialog_subtitle">Välj var du vill spara och hantera dina biblioteksobjekt</string>
     <string name="trakt_library_source_trakt">Trakt</string>
-    <string name="trakt_library_source_nuvio">Nuvio-bibliotek</string>
+    <string name="trakt_library_source_nuvio">Nuvio ReSeq-bibliotek</string>
     <string name="trakt_library_source_trakt_selected">Trakt-bibliotek valt</string>
-    <string name="trakt_library_source_nuvio_selected">Nuvio-bibliotek valt</string>
+    <string name="trakt_library_source_nuvio_selected">Nuvio ReSeq-bibliotek valt</string>
 
     <!-- ProfileSettingsContent -->
     <string name="profile_edit_header">Redigera profil</string>
@@ -1345,7 +1345,7 @@
 
     <!-- StreamScreen / P2P -->
     <string name="p2p_consent_title">P2P-streaming</string>
-    <string name="p2p_consent_body">Denna ström använder peer-to-peer (P2P)-teknik. Genom att aktivera P2P bekräftar och godkänner du att:\n\n• Din IP-adress kommer att vara synlig för andra peers i nätverket\n• Du är ensam ansvarig för det innehåll du ser\n• Du bekräftar att du har laglig rätt att se detta innehåll i din jurisdiktion\n• Nuvio är inte värd för, distribuerar eller kontrollerar något P2P-innehåll\n• Nuvio bär inget ansvar för rättsliga konsekvenser som uppstår vid din användning av P2P-streaming\n\nDu använder denna funktion helt på egen risk. P2P kan inaktiveras när som helst i Inställningar.</string>
+    <string name="p2p_consent_body">Denna ström använder peer-to-peer (P2P)-teknik. Genom att aktivera P2P bekräftar och godkänner du att:\n\n• Din IP-adress kommer att vara synlig för andra peers i nätverket\n• Du är ensam ansvarig för det innehåll du ser\n• Du bekräftar att du har laglig rätt att se detta innehåll i din jurisdiktion\n• Nuvio ReSeq är inte värd för, distribuerar eller kontrollerar något P2P-innehåll\n• Nuvio ReSeq bär inget ansvar för rättsliga konsekvenser som uppstår vid din användning av P2P-streaming\n\nDu använder denna funktion helt på egen risk. P2P kan inaktiveras när som helst i Inställningar.</string>
     <string name="p2p_consent_enable">Aktivera P2P</string>
     <string name="p2p_consent_cancel">Avbryt</string>
     <string name="settings_p2p_title">P2P-streaming</string>
@@ -1506,7 +1506,7 @@
     <string name="cd_preview">Förhandsvisning</string>
     <string name="cd_test">Testa</string>
     <string name="cd_unlink">Avlänka</string>
-    <string name="cd_nuvio_logo">NuvioTV</string>
+    <string name="cd_nuvio_logo">Nuvio ReSeq</string>
     <string name="cd_trakt_logo">Trakt-logotyp</string>
     <string name="cd_trakt_qr">Trakt-aktiverings-QR</string>
     <string name="cd_imdb">IMDb</string>
@@ -1517,7 +1517,7 @@
     <string name="cd_expand">Expandera %1$s</string>
     <string name="cd_collapse">Fäll ihop %1$s</string>
     <string name="cd_qr_login">QR-inloggningskod</string>
-    <string name="cd_nuvio">Nuvio</string>
+    <string name="cd_nuvio">Nuvio ReSeq</string>
 
     <!-- Debug -->
     <string name="debug_signin_success">Inloggad</string>

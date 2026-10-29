@@ -36,9 +36,12 @@ data class StreamScreenUiState(
     val autoPlayStream: Stream? = null,
     val autoPlayPlaybackInfo: StreamPlaybackInfo? = null,
     val error: String? = null,
-    val playbackErrorMessage: String? = null
+    val playbackErrorMessage: String? = null,
+    val tvdbEpisodeIdentity: com.nuvio.tv.domain.model.EpisodeIdentity? = null
 ) {
     val isEpisode: Boolean get() = season != null && episode != null
+    val displaySeason: Int? get() = tvdbEpisodeIdentity?.displayed?.season ?: season
+    val displayEpisode: Int? get() = tvdbEpisodeIdentity?.displayed?.episode ?: episode
 }
 
 sealed class StreamScreenEvent {

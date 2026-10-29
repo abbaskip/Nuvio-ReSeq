@@ -11,6 +11,10 @@ import com.nuvio.tv.data.mediaserver.ServerItemRef
 import com.nuvio.tv.data.remote.supabase.SupabaseWatchProgress
 import com.nuvio.tv.data.remote.supabase.SupabaseWatchProgressEvent
 import com.nuvio.tv.domain.model.WatchProgress
+import com.nuvio.tv.domain.model.TvdbPlaybackContext
+import com.nuvio.tv.data.tvdb.forNuvioCloud
+import com.nuvio.tv.data.tvdb.TVDB_NATIVE_CLOUD_PROGRESS_FROM
+import com.nuvio.tv.domain.model.storageKey
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -51,6 +55,18 @@ class WatchProgressSyncService @Inject constructor(
 ) {
     private val deltaSyncMutex = Mutex()
     private val outboundSyncMutexes = ConcurrentHashMap<Int, Mutex>()
+
+    private val tvdbResumeMutex = Mutex()
+    @Volatile private var cachedTvdbResume: Triple<Int, Long, List<WatchProgress>>? = null
+
+    suspend fun readTvdbResume(profileId: Int): List<WatchProgress> = tvdbResumeMutex.withLock {
+        val now = android.os.SystemClock.elapsedRealtime()
+        cachedTvdbResume?.takeIf { it.first == profileId && now - it.second in 0..10_000L }?.let { return@withLock it.third }
+        val entries = pullFromRemote(profileId, forTvdbResume = true).getOrThrow().map { it.second }
+            .filter { it.lastWatched >= TVDB_NATIVE_CLOUD_PROGRESS_FROM }
+        cachedTvdbResume = Triple(profileId, now, entries)
+        entries
+    }
 
     private fun outboundSyncMutex(profileId: Int): Mutex =
         outboundSyncMutexes.computeIfAbsent(profileId) { Mutex() }
@@ -162,7 +178,7 @@ class WatchProgressSyncService @Inject constructor(
                 deleteFromRemoteLocked(pendingDeletes, profileId).getOrElse { throw it }
             }
             val rawEntries = mutationStore.pendingProgressUpserts(profileId)
-            val entries = canonicalizeForRemote(rawEntries).filterValues { progress ->
+            val entries = canonicalizeForRemote(rawEntries, completedCloudContent(rawEntries.values, profileId)).filterValues { progress ->
                 !(progress.position <= 1L && progress.duration <= 1L && progress.duration > 0L) &&
                     !ServerItemRef.isServerId(progress.contentId)
             }
@@ -196,6 +212,7 @@ class WatchProgressSyncService @Inject constructor(
                 }
             }
 
+            cachedTvdbResume = null
             mutationStore.acknowledgeProgressUpserts(rawEntries, profileId)
             Log.d(TAG, "Pushed ${entries.size} watch progress entries to remote for profile $profileId")
             if (pendingDeletes.isNotEmpty() || rawEntries.isNotEmpty()) {
@@ -231,20 +248,26 @@ class WatchProgressSyncService @Inject constructor(
         profileId: Int
     ): Result<Unit> {
         if (ServerItemRef.isServerId(progress.contentId)) return Result.success(Unit)
+        val remote = progress.forNuvioCloud(completedCloudContent(listOf(progress), profileId))
+        if (remote.isEmpty()) {
+            Log.d(TAG, "Keeping unresolved TVDB resume local for profile $profileId")
+            mutationStore.acknowledgeProgressUpserts(mapOf(key to progress), profileId)
+            return Result.success(Unit)
+        }
         return try {
             val params = buildJsonObject {
                 put("p_entries", buildJsonArray {
-                    addJsonObject {
-                        put("content_id", progress.contentId)
-                        put("content_type", progress.contentType)
-                        put("video_id", progress.videoId)
-                        progress.season?.let { put("season", it) }
-                        progress.episode?.let { put("episode", it) }
-                        put("position", progress.position)
-                        put("duration", progress.duration)
-                        put("last_watched", progress.lastWatched)
-                        put("progress_key", key)
-                    }
+                    remote.forEach { entry -> addJsonObject {
+                        put("content_id", entry.contentId)
+                        put("content_type", entry.contentType)
+                        put("video_id", entry.videoId)
+                        entry.season?.let { put("season", it) }
+                        entry.episode?.let { put("episode", it) }
+                        put("position", entry.position)
+                        put("duration", entry.duration)
+                        put("last_watched", entry.lastWatched)
+                        put("progress_key", if (progress.tvdbContext == null) key else entry.storageKey)
+                    } }
                 })
                 put("p_profile_id", profileId)
                 putSyncOriginClientId(syncClientIdentity)
@@ -253,8 +276,9 @@ class WatchProgressSyncService @Inject constructor(
                 postgrest.rpc("sync_push_watch_progress", params)
             }
 
+            cachedTvdbResume = null
             mutationStore.acknowledgeProgressUpserts(mapOf(key to progress), profileId)
-            Log.d(TAG, "Pushed single watch progress entry to remote for profile $profileId (key=$key)")
+            Log.d(TAG, "Pushed single watch progress entry to remote for profile $profileId (localKey=$key nativeEntries=${remote.size})")
             // Deliberately does not move the sync point. One entry reaching remote says
             // nothing about the rest, and advancing it here would mark every other local
             // entry as synced, so the next pull would drop the ones that never made it.
@@ -278,10 +302,11 @@ class WatchProgressSyncService @Inject constructor(
     suspend fun pullFromRemote(
         profileId: Int = profileManager.activeProfileId.value,
         sinceLastWatched: Long? = null,
-        limit: Int? = null
+        limit: Int? = null,
+        forTvdbResume: Boolean = false
     ): Result<List<Pair<String, WatchProgress>>> = withContext(Dispatchers.IO) {
         try {
-            if (!shouldUseSupabaseWatchProgressSync(profileId)) {
+            if (!forTvdbResume && !shouldUseSupabaseWatchProgressSync(profileId)) {
                 Log.d(TAG, "Using tracking provider watch progress, skipping watch progress pull")
                 return@withContext Result.success(emptyList())
             }
@@ -306,6 +331,7 @@ class WatchProgressSyncService @Inject constructor(
             }
 
             val pulled = remote.map { entry ->
+                val context = TvdbPlaybackContext.fromStorageKey(entry.contentId, entry.progressKey, entry.videoId)
                 entry.progressKey to WatchProgress(
                     contentId = entry.contentId,
                     contentType = entry.contentType,
@@ -320,7 +346,9 @@ class WatchProgressSyncService @Inject constructor(
                     position = entry.position,
                     duration = entry.duration,
                     lastWatched = entry.lastWatched,
-                    source = WatchProgress.SOURCE_LOCAL
+                    source = WatchProgress.SOURCE_LOCAL,
+                    tvdbContext = context,
+                    tvdbCoverageVerified = context?.permitsTracking(entry.duration)
                 )
             }
 
@@ -517,13 +545,30 @@ class WatchProgressSyncService @Inject constructor(
         )
     }
 
+    private suspend fun completedCloudContent(entries: Collection<WatchProgress>, profileId: Int): Set<Long> {
+        val needsOtherParts = entries.any { entry -> entry.tvdbContext?.let { context ->
+            context.providerSources.orEmpty().any { !context.episodeIds.containsAll(it.episodeIds) }
+        } == true }
+        return if (needsOtherParts) watchProgressPreferences.getAllRawEntries(profileId).values
+            .flatMap { it.tvdbWatchedIds }.toSet() else emptySet()
+    }
+
     private fun canonicalizeForRemote(
-        rawEntries: Map<String, WatchProgress>
+        rawEntries: Map<String, WatchProgress>,
+        completedIds: Set<Long>
     ): Map<String, WatchProgress> {
         if (rawEntries.isEmpty()) return rawEntries
 
-        val canonical = rawEntries.toMutableMap()
+        val canonical = linkedMapOf<String, WatchProgress>()
         rawEntries.forEach { (key, progress) ->
+            progress.forNuvioCloud(completedIds).forEach { remote ->
+                val remoteKey = if (progress.tvdbContext == null) key else remote.storageKey
+                val previous = canonical[remoteKey]
+                if (previous == null || remote.lastWatched >= previous.lastWatched) canonical[remoteKey] = remote
+            }
+        }
+        val projected = canonical.toMap()
+        projected.forEach { (key, progress) ->
             val isSeriesMirrorKey = key == progress.contentId &&
                 isSeriesType(progress.contentType) &&
                 progress.season != null &&
@@ -537,7 +582,7 @@ class WatchProgressSyncService @Inject constructor(
                 season = season,
                 episode = episode
             )
-            val episodeProgress = rawEntries[episodeKey] ?: return@forEach
+            val episodeProgress = projected[episodeKey] ?: return@forEach
 
             val exactMirror = progress.position == episodeProgress.position &&
                 progress.duration == episodeProgress.duration &&
@@ -570,6 +615,7 @@ class WatchProgressSyncService @Inject constructor(
             .asSequence()
             .mapNotNull { (key, progress) ->
                 if (isSeriesType(progress.contentType) &&
+                    progress.tvdbContext == null &&
                     progress.season != null &&
                     progress.episode != null &&
                     key != progress.contentId
@@ -608,6 +654,7 @@ class WatchProgressSyncService @Inject constructor(
     }
 
     private fun SupabaseWatchProgressEvent.toWatchProgress(): WatchProgress {
+        val context = TvdbPlaybackContext.fromStorageKey(contentId, progressKey, videoId)
         return WatchProgress(
             contentId = contentId,
             contentType = contentType,
@@ -622,7 +669,9 @@ class WatchProgressSyncService @Inject constructor(
             position = position,
             duration = duration,
             lastWatched = lastWatched,
-            source = WatchProgress.SOURCE_LOCAL
+            source = WatchProgress.SOURCE_LOCAL,
+            tvdbContext = context,
+            tvdbCoverageVerified = context?.permitsTracking(duration)
         )
     }
 }

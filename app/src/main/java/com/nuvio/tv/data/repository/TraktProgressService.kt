@@ -77,7 +77,7 @@ class TraktProgressService @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val traktApi: TraktApi,
     private val traktAuthService: TraktAuthService,
-    private val metaRepository: MetaRepository,
+    @com.nuvio.tv.core.di.ProviderMetadata private val metaRepository: MetaRepository,
     private val tmdbService: com.nuvio.tv.core.tmdb.TmdbService,
     private val traktSettingsDataStore: TraktSettingsDataStore,
     private val layoutPreferenceDataStore: com.nuvio.tv.data.local.LayoutPreferenceDataStore,
@@ -117,13 +117,15 @@ class TraktProgressService @Inject constructor(
         val airedEpisodes: List<Pair<Int, Int>>,
         val updatedAtMs: Long,
         val activityVersion: Long,
-        val hasCompletedSnapshot: Boolean
+        val hasCompletedSnapshot: Boolean,
+        val canonicalProgress: Map<Pair<Int, Int>, WatchProgress> = emptyMap()
     )
 
     private data class EpisodeProgressFetchResult(
         val progress: Map<Pair<Int, Int>, WatchProgress>,
         val airedEpisodes: List<Pair<Int, Int>>,
-        val hasCompletedSnapshot: Boolean
+        val hasCompletedSnapshot: Boolean,
+        val canonicalProgress: Map<Pair<Int, Int>, WatchProgress> = emptyMap()
     )
 
     private data class EpisodeHistoryAddAttempt(
@@ -609,6 +611,17 @@ class TraktProgressService @Inject constructor(
             .distinctUntilChanged()
     }
 
+    /** Original Trakt coordinates from the same snapshot, before addon remapping.
+     * TVDB translation needs these to preserve distinct parts when an addon combines them. */
+    fun observeCanonicalEpisodeProgress(contentId: String): Flow<Map<Pair<Int, Int>, WatchProgress>> {
+        val key = canonicalLookupKey(contentId)
+        // Absence means not loaded, not "no watched episodes". In particular,
+        // a CW first() consumer must not conclude the show ended before this fetch.
+        return episodeProgressState.map { it[key]?.canonicalProgress }.filterNotNull()
+            .onStart { scope.launch { ensureEpisodeProgressSnapshot(key, forceRefresh = false) } }
+            .distinctUntilChanged()
+    }
+
     fun observeAiredEpisodes(contentId: String): Flow<List<Pair<Int, Int>>> {
         val cacheKey = canonicalLookupKey(contentId)
         return episodeProgressState
@@ -903,7 +916,7 @@ class TraktProgressService @Inject constructor(
         refreshNow()
     }
 
-    suspend fun removeFromHistory(contentId: String, videoId: String? = null, season: Int?, episode: Int?) {
+    suspend fun removeFromHistory(contentId: String, videoId: String? = null, season: Int?, episode: Int?, mappingResolved: Boolean = false) {
         Log.d(TAG, "removeFromHistory: contentId=$contentId videoId=$videoId season=$season episode=$episode")
         applyOptimisticRemoval(contentId, season, episode)
 
@@ -952,7 +965,7 @@ class TraktProgressService @Inject constructor(
         // If Trakt didn't delete anything for a series episode, retry with remapped
         // numbering (anime where addon S3E12 maps to a different Trakt numbering).
         val responseBody = response?.body()
-        if (likelySeries && season != null && episode != null &&
+        if (!mappingResolved && likelySeries && season != null && episode != null &&
             (responseBody?.deleted?.episodes ?: 0) == 0
         ) {
             val remapped = traktEpisodeMappingService.resolveEpisodeMapping(
@@ -1249,7 +1262,8 @@ class TraktProgressService @Inject constructor(
                         airedEpisodes = result.airedEpisodes,
                         updatedAtMs = fetchedAt,
                         activityVersion = activityVersion,
-                        hasCompletedSnapshot = result.hasCompletedSnapshot
+                        hasCompletedSnapshot = result.hasCompletedSnapshot,
+                        canonicalProgress = result.canonicalProgress
                     )
                 )
             }
@@ -2124,6 +2138,7 @@ class TraktProgressService @Inject constructor(
             progressPercent = 100f,
             source = WatchProgress.SOURCE_TRAKT_HISTORY,
             traktShowId = show.ids?.trakt,
+            tvdbEpisodeId = episode.ids?.tvdb?.toLong(),
             traktEpisodeId = episode.ids?.trakt
         )
     }
@@ -2133,6 +2148,7 @@ class TraktProgressService @Inject constructor(
     ): EpisodeProgressFetchResult {
         val pathId = resolveToTraktAcceptedId(contentId)
         val completed = mutableMapOf<Pair<Int, Int>, WatchProgress>()
+        val canonicalProgress = mutableMapOf<Pair<Int, Int>, WatchProgress>()
         var airedEpisodes = emptyList<Pair<Int, Int>>()
         var hasCompletedSnapshot = false
 
@@ -2161,7 +2177,15 @@ class TraktProgressService @Inject constructor(
                 }
                 .toList()
             for (season in seasons) {
-                mapSeasonProgress(contentId, season).forEach { progress ->
+                val mapped = mapSeasonProgress(contentId, season)
+                val raw = season.episodes.orEmpty().filter { it.completed == true && it.number != null }
+                raw.zip(mapped).forEach { (episode, progress) ->
+                    season.number?.let { s -> episode.number?.let { e ->
+                        canonicalProgress[s to e] = progress.copy(videoId = "$contentId:$s:$e", season = s, episode = e,
+                            episodeTitle = null, tvdbEpisodeId = null)
+                    } }
+                }
+                mapped.forEach { progress ->
                     val seasonNum = progress.season ?: return@forEach
                     val episodeNum = progress.episode ?: return@forEach
                     completed[seasonNum to episodeNum] = progress
@@ -2169,10 +2193,11 @@ class TraktProgressService @Inject constructor(
             }
         }
 
-        val inProgress = getPlayback(
-            type = "episodes"
-        )
-            .orEmpty()
+        val playbackItems = getPlayback(type = "episodes").orEmpty()
+        playbackItems.mapNotNull { mapPlaybackEpisode(it, applyAddonRemap = false) }
+            .filter { it.contentId == contentId && it.season != null && it.episode != null }
+            .forEach { canonicalProgress[it.season!! to it.episode!!] = it }
+        val inProgress = playbackItems
             .mapNotNull { mapPlaybackEpisode(it, applyAddonRemap = true) }
             .filter { it.contentId == contentId }
 
@@ -2185,7 +2210,8 @@ class TraktProgressService @Inject constructor(
         return EpisodeProgressFetchResult(
             progress = completed,
             airedEpisodes = airedEpisodes,
-            hasCompletedSnapshot = hasCompletedSnapshot
+            hasCompletedSnapshot = hasCompletedSnapshot,
+            canonicalProgress = canonicalProgress
         )
     }
 
@@ -2304,6 +2330,7 @@ class TraktProgressService @Inject constructor(
             source = WatchProgress.SOURCE_TRAKT_PLAYBACK,
             traktPlaybackId = item.id,
             traktShowId = show.ids?.trakt,
+            tvdbEpisodeId = episode.ids?.tvdb?.toLong(),
             traktEpisodeId = episode.ids?.trakt
         )
     }
@@ -2466,6 +2493,7 @@ class TraktProgressService @Inject constructor(
         val nothingAdded = addedEpisodes == 0 && progressList.isNotEmpty()
         if (hasNotFound || nothingAdded) {
             val remappedList = progressList.mapNotNull { progress ->
+                if (progress.traktEpisodeId != null) return@mapNotNull null
                 val season = progress.season ?: return@mapNotNull null
                 val episode = progress.episode ?: return@mapNotNull null
                 val remapped = traktEpisodeMappingService.resolveEpisodeMapping(
@@ -2517,7 +2545,8 @@ class TraktProgressService @Inject constructor(
      */
     suspend fun removeSeasonFromHistoryBatch(
         contentId: String,
-        episodes: List<Pair<Int, Int>>
+        episodes: List<Pair<Int, Int>>,
+        mappingResolved: Boolean = false
     ) {
         if (episodes.isEmpty()) return
         val ids = toTraktIds(parseContentIds(contentId))
@@ -2547,7 +2576,7 @@ class TraktProgressService @Inject constructor(
         val deleted = response?.body()?.deleted?.episodes ?: 0
 
         // If nothing was deleted, retry with remapped numbering (anime case)
-        if (deleted == 0 && episodes.isNotEmpty()) {
+        if (!mappingResolved && deleted == 0 && episodes.isNotEmpty()) {
             val remappedEpisodes = episodes.mapNotNull { (season, episode) ->
                 val remapped = traktEpisodeMappingService.resolveEpisodeMapping(
                     contentId = contentId,
@@ -2725,6 +2754,7 @@ class TraktProgressService @Inject constructor(
     private suspend fun resolveCanonicalEpisodeMapping(
         progress: WatchProgress
     ): EpisodeMappingEntry? {
+        if (progress.traktEpisodeId != null) return null
         return traktEpisodeMappingService.resolveEpisodeMapping(
             contentId = progress.contentId,
             contentType = progress.contentType,

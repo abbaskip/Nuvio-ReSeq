@@ -1,0 +1,33 @@
+[
+  {
+    "show": {
+      "title": "Kitchen Nightmares",
+      "year": 2023,
+      "ids": {
+        "imdb": "tt32436778",
+        "plex": {
+          "guid": "651484a6f37aa77d01c2f6eb",
+          "slug": "kitchen-nightmares"
+        },
+        "slug": "kitchen-nightmares-2023",
+        "tmdb": 235884,
+        "tvdb": null,
+        "trakt": 210181
+      }
+    },
+    "episode": {
+      "title": "Bel Aire",
+      "season": 1,
+      "number": 1,
+      "ids": {
+        "imdb": "tt27759481",
+        "plex": {
+          "guid": "64adeb0fb65e071f6eaf4fe5"
+        },
+        "tmdb": 4763028,
+        "tvdb": 9893344,
+        "trakt": 10918421
+      }
+    }
+  }
+]

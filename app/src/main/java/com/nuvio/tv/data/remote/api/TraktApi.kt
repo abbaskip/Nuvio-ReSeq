@@ -91,6 +91,12 @@ interface TraktApi {
         @Body body: TraktScrobbleRequestDto
     ): Response<TraktScrobbleResponseDto>
 
+    @POST("scrobble/pause")
+    suspend fun scrobblePause(
+        @Header("Authorization") authorization: String,
+        @Body body: TraktScrobbleRequestDto
+    ): Response<TraktScrobbleResponseDto>
+
     @GET("sync/last_activities")
     suspend fun getLastActivities(
         @Header("Authorization") authorization: String
@@ -220,7 +226,8 @@ interface TraktApi {
         @Header("Authorization") authorization: String,
         @Path("id_type") idType: String,
         @Path("id") id: String,
-        @Query("type") type: String
+        @Query("type") type: String,
+        @Query("extended") extended: String? = null
     ): Response<List<TraktSearchResultDto>>
 
     @GET("search/list")

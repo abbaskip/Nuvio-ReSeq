@@ -120,7 +120,7 @@ fun AboutSettingsContent(
                             Spacer(modifier = Modifier.height(NuvioTheme.spacing.xs))
 
                             MemberBrandWordmark(
-                                height = 40.dp,
+                                height = 64.dp,
                                 contentDescription = stringResource(R.string.cd_nuvio_logo)
                             )
 
@@ -140,22 +140,14 @@ fun AboutSettingsContent(
 
                             Spacer(modifier = Modifier.height(NuvioTheme.spacing.xxs))
 
-                            if (AppFeaturePolicy.inAppUpdatesEnabled) {
-                                UpdateChannelSettings(initialFocusRequester, modifier = firstRowModifier)
-                            }
-
                             SettingsActionRow(
                                 title = stringResource(R.string.about_privacy_policy),
                                 subtitle = stringResource(R.string.about_privacy_policy_subtitle),
                                 trailingIcon = Icons.Default.OpenInNew,
-                                modifier = if (!AppFeaturePolicy.inAppUpdatesEnabled) {
-                                    firstRowModifier.then(
-                                        if (initialFocusRequester != null) Modifier.focusRequester(initialFocusRequester)
-                                        else Modifier
-                                    )
-                                } else {
-                                    Modifier
-                                },
+                                modifier = firstRowModifier.then(
+                                    if (initialFocusRequester != null) Modifier.focusRequester(initialFocusRequester)
+                                    else Modifier
+                                ),
                                 onClick = {
                                     val intent = Intent(
                                         Intent.ACTION_VIEW,

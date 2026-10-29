@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">Megtekintés folytatása</string>
     <string name="type_movie">Film</string>
     <string name="type_movies">Filmek</string>
@@ -368,7 +368,7 @@
     <string name="appearance_settings_style">Beállítások stílusa</string>
     <string name="appearance_settings_style_subtitle">Válaszd ki, hogyan jelenjenek meg a beállítási képernyők</string>
     <string name="appearance_launcher_artwork">Megjelenés a TV kezdőképernyőjén</string>
-    <string name="appearance_launcher_artwork_subtitle">Válaszd ki, hogyan jelenjen meg a Nuvio a TV kezdőképernyőjén</string>
+    <string name="appearance_launcher_artwork_subtitle">Válaszd ki, hogyan jelenjen meg a Nuvio ReSeq a TV kezdőképernyőjén</string>
     <string name="ambient_mode_title">Ambient mód</string>
     <string name="ambient_mode_subtitle">Borítóképek megjelenítése a katalógusaidból, amíg a TV tétlen</string>
     <string name="ambient_mode_enabled_subtitle">Háttérképek töltik ki a képernyőt, ha egy ideig nem használod a távirányítót</string>
@@ -388,7 +388,7 @@
     <string name="appearance_app_icon_picker_title">Alkalmazásikon és banner kiválasztása</string>
     <string name="appearance_app_icon_picker_subtitle">Minden stílushoz illő négyzetes ikon és TV-banner tartozik</string>
     <string name="appearance_app_icon_confirmation_title">Módosítod az alkalmazásikont?</string>
-    <string name="appearance_app_icon_confirmation_message">Az új ikon (%1$s) kiválasztásakor a Nuvio bezárul. A TV-banner frissítéséhez szükség lehet az eszköz újraindítására. A folytatáshoz válaszd az OK gombot.</string>
+    <string name="appearance_app_icon_confirmation_message">Az új ikon (%1$s) kiválasztásakor a Nuvio ReSeq bezárul. A TV-banner frissítéséhez szükség lehet az eszköz újraindítására. A folytatáshoz válaszd az OK gombot.</string>
     <string name="appearance_app_icon_change_failed">Nem sikerült módosítani az ikont és a bannert. Próbáld újra.</string>
     <string name="appearance_app_icon_original">Eredeti</string>
     <string name="appearance_app_icon_arctic_blue">Jégkék</string>
@@ -408,7 +408,7 @@
 
     <string name="about_title">Névjegy</string>
     <string name="about_subtitle">Információk, frissítések és jogi nyilatkozatok</string>
-    <string name="about_made_with_love">Szeretettel (❤️) készítette a Tapframe és barátai</string>
+    <string name="about_made_with_love">Nuvio ReSeq by abbaskip · Based on Nuvio by Tapframe and contributors</string>
     <string name="about_version">Verzió: %1$s</string>
     <string name="about_update_banner_title">Automatikus frissítési sáv</string>
     <string name="about_update_banner_subtitle">Sáv megjelenítése, ha új verzió elérhető</string>
@@ -433,7 +433,7 @@
     <string name="about_licenses_attributions">Licencek és forrásmegjelölések</string>
     <string name="about_licenses_attributions_subtitle">Adatforrások, köszönetnyilvánítások és Android licencek</string>
     <string name="licenses_attributions_title">Licencek és forrásmegjelölések</string>
-    <string name="licenses_attributions_subtitle">A Nuvio TV által használt adatszolgáltatók, szolgáltatási köszönetnyilvánítások és Android lejátszási licencek.</string>
+    <string name="licenses_attributions_subtitle">A Nuvio ReSeq által használt adatszolgáltatók, szolgáltatási köszönetnyilvánítások és Android lejátszási licencek.</string>
     <string name="licenses_attributions_section_app">AZ ALKALMAZÁS LICENCE</string>
     <string name="licenses_attributions_section_data">ADATOK ÉS SZOLGÁLTATÁSOK</string>
     <string name="licenses_attributions_section_playback">ANDROID LEJÁTSZÁSI LICENCEK</string>
@@ -443,21 +443,21 @@
     <string name="licenses_attributions_nuvio_title">Nuvio TV</string>
     <string name="licenses_attributions_nuvio_body">A forráskód és a licencfeltételek elérhetők a projekt tárolójában. Licenc: GNU General Public License v3.0.</string>
     <string name="licenses_attributions_tmdb_title">The Movie Database (TMDB)</string>
-    <string name="licenses_attributions_tmdb_body">A Nuvio a TMDB API-t használja a filmek és tévéműsorok metaadataihoz, borítóképekhez, előzetesekhez, stáblistákhoz, gyártási adatokhoz, gyűjteményekhez és ajánlásokhoz. Ez a termék a TMDB API-t használja, de a TMDB nem támogatja és nem hagyta jóvá.</string>
+    <string name="licenses_attributions_tmdb_body">A Nuvio ReSeq a TMDB API-t használja a filmek és tévéműsorok metaadataihoz, borítóképekhez, előzetesekhez, stáblistákhoz, gyártási adatokhoz, gyűjteményekhez és ajánlásokhoz. Ez a termék a TMDB API-t használja, de a TMDB nem támogatja és nem hagyta jóvá.</string>
     <string name="licenses_attributions_trakt_title">Trakt</string>
-    <string name="licenses_attributions_trakt_body">A Nuvio a Trakthoz kapcsolódik fiókhitelesítéshez, a megtekintési előzmények és a megtekintési állapot szinkronizálásához, valamint a könyvtár, az értékelések, a listák és a vélemények kezeléséhez. A Nuvio nem áll kapcsolatban a Trakttal, és a Trakt nem támogatja.</string>
+    <string name="licenses_attributions_trakt_body">A Nuvio ReSeq a Trakthoz kapcsolódik fiókhitelesítéshez, a megtekintési előzmények és a megtekintési állapot szinkronizálásához, valamint a könyvtár, az értékelések, a listák és a vélemények kezeléséhez. A Nuvio ReSeq nem áll kapcsolatban a Trakttal, és a Trakt nem támogatja.</string>
     <string name="licenses_attributions_simkl_title">Simkl</string>
-    <string name="licenses_attributions_simkl_body">A Nuvio a Simklhez kapcsolódik fiókhitelesítéshez, a várólisták, a megtekintési előzmények és a lejátszási állapot szinkronizálásához, valamint a lejátszási adatok automatikus küldéséhez. A filmek, sorozatok és animék követési adatait a Simkl szolgáltatja. A Nuvio nem áll kapcsolatban a Simkllel, és a Simkl nem támogatja.</string>
+    <string name="licenses_attributions_simkl_body">A Nuvio ReSeq a Simklhez kapcsolódik fiókhitelesítéshez, a várólisták, a megtekintési előzmények és a lejátszási állapot szinkronizálásához, valamint a lejátszási adatok automatikus küldéséhez. A filmek, sorozatok és animék követési adatait a Simkl szolgáltatja. A Nuvio ReSeq nem áll kapcsolatban a Simkllel, és a Simkl nem támogatja.</string>
     <string name="licenses_attributions_premiumize_title">Premiumize</string>
-    <string name="licenses_attributions_premiumize_body">A Nuvio a Premiumize-hoz kapcsolódik fiókhitelesítéshez, felhőkönyvtár-eléréshez, gyorsítótár-ellenőrzésekhez és felhős lejátszási funkciókhoz. A Nuvio nem áll kapcsolatban a Premiumize-zal, és a Premiumize nem támogatja.</string>
+    <string name="licenses_attributions_premiumize_body">A Nuvio ReSeq a Premiumize-hoz kapcsolódik fiókhitelesítéshez, felhőkönyvtár-eléréshez, gyorsítótár-ellenőrzésekhez és felhős lejátszási funkciókhoz. A Nuvio ReSeq nem áll kapcsolatban a Premiumize-zal, és a Premiumize nem támogatja.</string>
     <string name="licenses_attributions_torbox_title">TorBox</string>
-    <string name="licenses_attributions_torbox_body">A Nuvio a TorBox-hoz kapcsolódik fiókhitelesítéshez, felhőkönyvtár-eléréshez, gyorsítótár-ellenőrzésekhez és felhős lejátszási funkciókhoz. A Nuvio nem áll kapcsolatban a TorBox-szal, és a TorBox nem támogatja.</string>
+    <string name="licenses_attributions_torbox_body">A Nuvio ReSeq a TorBox-hoz kapcsolódik fiókhitelesítéshez, felhőkönyvtár-eléréshez, gyorsítótár-ellenőrzésekhez és felhős lejátszási funkciókhoz. A Nuvio ReSeq nem áll kapcsolatban a TorBox-szal, és a TorBox nem támogatja.</string>
     <string name="licenses_attributions_mdblist_title">MDBList</string>
-    <string name="licenses_attributions_mdblist_body">A Nuvio az MDBList szolgáltatását használja az értékelésekhez, a megtekintési előzményekhez és a lejátszás követéséhez. A Nuvio nem áll kapcsolatban az MDBListtel, és az MDBList nem támogatja.</string>
+    <string name="licenses_attributions_mdblist_body">A Nuvio ReSeq az MDBList szolgáltatását használja az értékelésekhez, a megtekintési előzményekhez és a lejátszás követéséhez. A Nuvio ReSeq nem áll kapcsolatban az MDBListtel, és az MDBList nem támogatja.</string>
     <string name="licenses_attributions_introdb_title">IntroDB</string>
-    <string name="licenses_attributions_introdb_body">A Nuvio az IntroDB API-t használja a közösség által biztosított intro, összefoglaló, stáblista és előzetes időbélyegekhez, amelyeket az átugrási vezérlők használnak. A Nuvio nem áll kapcsolatban az IntroDB-vel, és az nem hagyta jóvá.</string>
+    <string name="licenses_attributions_introdb_body">A Nuvio ReSeq az IntroDB API-t használja a közösség által biztosított intro, összefoglaló, stáblista és előzetes időbélyegekhez, amelyeket az átugrási vezérlők használnak. A Nuvio ReSeq nem áll kapcsolatban az IntroDB-vel, és az nem hagyta jóvá.</string>
     <string name="licenses_attributions_imdb_title">IMDb nem kereskedelmi adatkészletek</string>
-    <string name="licenses_attributions_imdb_body">A Nuvio az IMDb nem kereskedelmi adatkészleteit, beleértve a title.ratings.tsv.gz fájlt, az IMDb értékelésekhez és szavazatszámokhoz használja. Az információk az IMDb (https://www.imdb.com) jóvoltából származnak. Engedéllyel felhasználva. Az IMDb adatai személyes és nem kereskedelmi célokra használhatók az IMDb feltételei alapján.</string>
+    <string name="licenses_attributions_imdb_body">A Nuvio ReSeq az IMDb nem kereskedelmi adatkészleteit, beleértve a title.ratings.tsv.gz fájlt, az IMDb értékelésekhez és szavazatszámokhoz használja. Az információk az IMDb (https://www.imdb.com) jóvoltából származnak. Engedéllyel felhasználva. Az IMDb adatai személyes és nem kereskedelmi célokra használhatók az IMDb feltételei alapján.</string>
     <string name="licenses_attributions_exoplayer_title">AndroidX Media3 ExoPlayer 1.8.0</string>
     <string name="licenses_attributions_exoplayer_body">Android lejátszó motorként használva. Licenc: Apache License, 2.0-s verzió.</string>
     <string name="licenses_attributions_libmpv_title">libmpv / libmpv-android</string>
@@ -482,7 +482,7 @@
     <string name="tracking_accounts_title">Fiókok</string>
     <string name="tracking_accounts_subtitle">Követési szolgáltatások csatlakoztatása és kezelése</string>
     <string name="tracking_sources_title">Források</string>
-    <string name="tracking_sources_subtitle">Válaszd ki, honnan töltse be a Nuvio a könyvtáradat és a megtekintési állapotot. A lejátszási adatokat minden csatlakoztatott szolgáltatásnak elküldi.</string>
+    <string name="tracking_sources_subtitle">Válaszd ki, honnan töltse be a Nuvio ReSeq a könyvtáradat és a megtekintési állapotot. A lejátszási adatokat minden csatlakoztatott szolgáltatásnak elküldi.</string>
     <string name="tracking_trakt_features_title">Trakt funkciók</string>
     <string name="tracking_trakt_features_subtitle">Trakt-előzmények, vélemények és ajánlások</string>
     <string name="tracking_simkl_features_title">Simkl funkciók</string>
@@ -510,7 +510,7 @@
     <string name="settings_advanced_subtitle">Teljesítmény, navigáció, gyorsítótár és diagnosztika</string>
     <string name="experience_mode_essential">Alapvető</string>
     <string name="experience_mode_advanced">Haladó</string>
-    <string name="experience_mode_choose_title">Válaszd ki a Nuvio használati módját</string>
+    <string name="experience_mode_choose_title">Válaszd ki a Nuvio ReSeq használati módját</string>
     <string name="experience_mode_choose_subtitle">Kezdj az alapbeállításokkal, vagy tedd elérhetővé az összes testreszabási lehetőséget. Bármikor válthatsz.</string>
     <string name="experience_mode_essential_card_subtitle">Egyszerű beállítások, bővítmények, alapvető lejátszási funkciók, Trakt és fiókbeállítások.</string>
     <string name="experience_mode_advanced_card_subtitle">Minden beállítás, elrendezés, katalógussorrend, gyűjtemények, beépülő modulok és diagnosztika.</string>
@@ -620,8 +620,8 @@
     <string name="buffer_safe_status">Biztonságos: az eszközödhöz ajánlott határon belül.</string>
     <string name="buffer_unsafe_warning">Figyelem: a puffer túllépi az eszközhöz (%2$s) ajánlott biztonságos határt (%1$d MB). Az alkalmazás összeomolhat.</string>
     <string name="buffer_auto_limit_active">Automatikusan skálázott biztonságos határ: %d MB</string>
-    <string name="advanced_nuvio_focus_scroll">Nuvio fókuszkövető görgetés</string>
-    <string name="advanced_nuvio_focus_scroll_subtitle">A Nuvio saját görgetési animációját és pozicionálását használja a kijelölt elem követéséhez az egész alkalmazásban.</string>
+    <string name="advanced_nuvio_focus_scroll">Nuvio ReSeq fókuszkövető görgetés</string>
+    <string name="advanced_nuvio_focus_scroll_subtitle">A Nuvio ReSeq saját görgetési animációját és pozicionálását használja a kijelölt elem követéséhez az egész alkalmazásban.</string>
     <string name="advanced_rgb565">Képek dekódolása RGB565 formátumban</string>
     <string name="advanced_rgb565_subtitle">Az arra alkalmas, átlátszatlan képeket 16 bites színmélységgel tölti be, így kevesebb memóriát használ. A beállítás módosítása újraindítja az alkalmazást.</string>
     <string name="advanced_memory_only_vertical_scroll">Görgetés új képek betöltése nélkül</string>
@@ -801,8 +801,8 @@
     <string name="playback_player_ask_desc">Lejátszó kiválasztása minden alkalommal.</string>
     <string name="playback_player_auto">Automatikus (A tartalomhoz legjobb)</string>
     <string name="playback_player_auto_desc">ExoPlayer filmekhez és sorozatokhoz · MPV animékhez</string>
-    <string name="playback_engine_exoplayer_desc">Legjobb kompatibilitás a jelenlegi Nuvio funkciókkal.</string>
-    <string name="playback_engine_mvplayer_desc">Libmpv-t használ a Nuvio OSD vezérlőivel. Kísérleti funkció.</string>
+    <string name="playback_engine_exoplayer_desc">Legjobb kompatibilitás a jelenlegi Nuvio ReSeq funkciókkal.</string>
+    <string name="playback_engine_mvplayer_desc">Libmpv-t használ a Nuvio ReSeq OSD vezérlőivel. Kísérleti funkció.</string>
 
     <string name="video_section">Videó</string>
     <string name="playback_true_black_letterbox">Valódi fekete sávok</string>
@@ -1298,7 +1298,7 @@
     <string name="debrid_disconnect">Leválasztás</string>
     <string name="debrid_device_auth_connected">A %1$s csatlakoztatva van ezen az eszközön.</string>
     <string name="debrid_device_auth_starting">Biztonságos bejelentkezés indítása...</string>
-    <string name="debrid_device_auth_instructions">Olvasd be a QR-kódot, és írd be ezt a kódot a Nuvio jóváhagyásához.</string>
+    <string name="debrid_device_auth_instructions">Olvasd be a QR-kódot, és írd be ezt a kódot a Nuvio ReSeq jóváhagyásához.</string>
     <string name="debrid_device_auth_code_copied">Kód másolva.</string>
     <string name="debrid_device_auth_waiting">Várakozás a jóváhagyásra...</string>
     <string name="debrid_device_auth_failed">Nem sikerült elindítani a bejelentkezést.</string>
@@ -1493,17 +1493,17 @@
     <string name="trakt_watch_progress_title">Megtekintési állapot</string>
     <string name="trakt_watch_progress_subtitle">Válaszd ki a lejátszás folytatásához és a Megtekintés folytatása sorhoz használt adatforrást</string>
     <string name="trakt_watch_progress_dialog_title">Megtekintési állapot</string>
-    <string name="trakt_watch_progress_dialog_subtitle">Válaszd ki, hogy a lejátszás folytatásához és a Megtekintés folytatása sorhoz a Trakt vagy a Nuvio Sync adatait használja-e a Nuvio. A lejátszási adatokat továbbra is elküldi a Traktnak.</string>
+    <string name="trakt_watch_progress_dialog_subtitle">Válaszd ki, hogy a lejátszás folytatásához és a Megtekintés folytatása sorhoz a Trakt vagy a Nuvio Sync adatait használja-e a Nuvio ReSeq. A lejátszási adatokat továbbra is elküldi a Traktnak.</string>
     <string name="trakt_watch_progress_source_trakt">Trakt</string>
     <string name="trakt_watch_progress_source_nuvio">Nuvio Sync</string>
     <string name="trakt_library_source_title">Könyvtár forrása</string>
-    <string name="trakt_library_source_subtitle">Válaszd ki, honnan töltse be a Nuvio a Könyvtár adatait</string>
+    <string name="trakt_library_source_subtitle">Válaszd ki, honnan töltse be a Nuvio ReSeq a Könyvtár adatait</string>
     <string name="trakt_library_source_dialog_title">Könyvtár forrása</string>
     <string name="trakt_library_source_dialog_subtitle">Válaszd ki, hol szeretnéd menteni és kezelni a könyvtárelemeidet</string>
     <string name="trakt_library_source_trakt">Trakt</string>
-    <string name="trakt_library_source_nuvio">Nuvio Könyvtár</string>
+    <string name="trakt_library_source_nuvio">Nuvio ReSeq Könyvtár</string>
     <string name="trakt_library_source_trakt_selected">Trakt könyvtár kiválasztva</string>
-    <string name="trakt_library_source_nuvio_selected">Nuvio könyvtár kiválasztva</string>
+    <string name="trakt_library_source_nuvio_selected">Nuvio ReSeq könyvtár kiválasztva</string>
     <string name="trakt_setting_on">Be</string>
     <string name="trakt_setting_off">Ki</string>
     <string name="trakt_watch_progress_trakt_selected">Megtekintési állapot forrása: Trakt</string>
@@ -1536,7 +1536,7 @@
     <string name="trakt_stat_watched_hours">Megtekintési idő (óra)</string>
     <string name="trakt_disconnect">Leválasztás</string>
     <string name="trakt_disconnect_title">Lecsatlakozol a Traktról?</string>
-    <string name="trakt_disconnect_subtitle">Ez megszünteti a kapcsolatot a Trakt fiókod és a Nuvio között.</string>
+    <string name="trakt_disconnect_subtitle">Ez megszünteti a kapcsolatot a Trakt fiókod és a Nuvio ReSeq között.</string>
     <string name="trakt_login">Bejelentkezés</string>
     <string name="trakt_retry">Újra</string>
     <string name="trakt_back">Vissza</string>
@@ -1613,11 +1613,11 @@
     <string name="profile_addons">bővítmények</string>
     <string name="profile_plugins">beépülő modulok</string>
     <string name="profile_choose_avatar">Avatar választása</string>
-    <string name="profile_custom_avatar_web_panel_note">Az egyedi avatar URL-ek a Nuvio webes felületén konfigurálhatók.</string>
+    <string name="profile_custom_avatar_web_panel_note">Az egyedi avatar URL-ek a Nuvio ReSeq webes felületén konfigurálhatók.</string>
     <string name="profile_editor_tab_avatar">Avatar</string>
     <string name="profile_editor_tab_background">Háttér</string>
     <string name="profile_choose_background">Profil hátterének választása</string>
-    <string name="profile_background_member_note">Az egyedi háttér URL-ek a Nuvio webes felületén konfigurálhatók.</string>
+    <string name="profile_background_member_note">Az egyedi háttér URL-ek a Nuvio ReSeq webes felületén konfigurálhatók.</string>
     <string name="profile_background_normal">Normál</string>
     <string name="profile_background_custom">Egyedi</string>
     <string name="profile_avatar_none_selected">Nincs avatar kiválasztva</string>
@@ -1685,7 +1685,7 @@
     <string name="profile_pin_overlay_set_support">Ez a PIN szükséges lesz a profil megnyitása előtt.</string>
     <string name="profile_pin_overlay_confirm_support">Írd be újra ugyanazt a 4 számjegyet a beállítás befejezéséhez.</string>
     <string name="profile_pin_overlay_mismatch">A PIN-kódok nem egyeznek. Add meg újra az új PIN-t.</string>
-    <string name="profile_pin_overlay_forgot_hint">Elfelejtetted a PIN-t? Állítsd alaphelyzetbe a Nuvio fiókodból a weboldalon.</string>
+    <string name="profile_pin_overlay_forgot_hint">Elfelejtetted a PIN-t? Állítsd alaphelyzetbe a Nuvio ReSeq fiókodból a weboldalon.</string>
     <string name="profile_pin_overlay_back_hint">A megszakításhoz nyomd meg a Vissza gombot</string>
 
 
@@ -1768,7 +1768,7 @@
     <string name="stream_type_torrent">Torrent</string>
     <string name="stream_type_youtube">YouTube</string>
     <string name="p2p_consent_title">P2P Streamelés</string>
-    <string name="p2p_consent_body">Ez a stream peer-to-peer (P2P) technológiát használ. A P2P engedélyezésével tudomásul veszed és elfogadod, hogy:\n\n\u2022 Az IP címed látható lesz a hálózat más résztvevői számára\n\u2022 Kizárólag te vagy a felelős a megtekintett tartalomért\n\u2022 Megerősíted, hogy jogod van streamelni ezt a tartalmat a te joghatóságodban\n\u2022 A Nuvio nem tárol, terjeszt és nem is felügyel semmilyen P2P tartalmat\n\u2022 A Nuvio nem vállal felelősséget a P2P streamelésből eredő jogi következményekért\n\nEzt a funkciót kizárólag a saját felelősségedre használod. A P2P bármikor kikapcsolható a Beállításokban.</string>
+    <string name="p2p_consent_body">Ez a stream peer-to-peer (P2P) technológiát használ. A P2P engedélyezésével tudomásul veszed és elfogadod, hogy:\n\n\u2022 Az IP címed látható lesz a hálózat más résztvevői számára\n\u2022 Kizárólag te vagy a felelős a megtekintett tartalomért\n\u2022 Megerősíted, hogy jogod van streamelni ezt a tartalmat a te joghatóságodban\n\u2022 A Nuvio ReSeq nem tárol, terjeszt és nem is felügyel semmilyen P2P tartalmat\n\u2022 A Nuvio ReSeq nem vállal felelősséget a P2P streamelésből eredő jogi következményekért\n\nEzt a funkciót kizárólag a saját felelősségedre használod. A P2P bármikor kikapcsolható a Beállításokban.</string>
     <string name="p2p_consent_enable">P2P engedélyezése</string>
     <string name="p2p_consent_cancel">Mégse</string>
     <string name="settings_p2p_title">P2P Streamelés</string>
@@ -2359,7 +2359,7 @@
     <string name="catalog_see_all_empty_title">Nincsenek elérhető tételek</string>
     <string name="catalog_see_all_empty_subtitle">Próbálkozz másik katalógussal, vagy térj vissza később</string>
 
-    <string name="layout_selection_welcome">Üdvözöl a Nuvio</string>
+    <string name="layout_selection_welcome">Üdvözöl a Nuvio ReSeq</string>
     <string name="layout_selection_subtitle">Válaszd ki a kezdőképernyő elrendezését</string>
     <string name="layout_selection_continue">Folytatás</string>
 
@@ -2548,7 +2548,7 @@
     <string name="cd_preview">Előnézet</string>
     <string name="cd_test">Tesztelés</string>
     <string name="cd_unlink">Leválasztás</string>
-    <string name="cd_nuvio_logo">NuvioTV</string>
+    <string name="cd_nuvio_logo">Nuvio ReSeq</string>
     <string name="cd_trakt_logo">Trakt logó</string>
     <string name="cd_trakt_qr">Trakt aktivációs QR-kód</string>
     <string name="cd_imdb">IMDb</string>
@@ -2560,7 +2560,7 @@
     <string name="cd_expand">Kibontás: %1$s</string>
     <string name="cd_collapse">Összecsukás: %1$s</string>
     <string name="cd_qr_login">QR-kód a bejelentkezéshez</string>
-    <string name="cd_nuvio">Nuvio</string>
+    <string name="cd_nuvio">Nuvio ReSeq</string>
 
     <string name="debug_signin_success">Sikeres bejelentkezés</string>
     <string name="debug_generate_description">Debug-generált %1$s elem #%2$d</string>
@@ -2703,7 +2703,7 @@
     <string name="collections_editor_tmdb_list_helper">Példa: https://www.themoviedb.org/list/8504994 vagy 8504994.</string>
     <string name="collections_editor_tmdb_person_id">Személy azonosítója</string>
     <string name="collections_editor_tmdb_person_helper">Példa: https://www.themoviedb.org/person/31-tom-hanks vagy 31.</string>
-    <string name="collections_editor_tmdb_title_helper">A sor/fül neveként jelenik meg. Ha üres, a Nuvio létrehoz egyet a forrásból.</string>
+    <string name="collections_editor_tmdb_title_helper">A sor/fül neveként jelenik meg. Ha üres, a Nuvio ReSeq létrehoz egyet a forrásból.</string>
     <string name="collections_editor_tmdb_quick_genres">Műfaj gyors kiválasztása</string>
     <string name="collections_editor_tmdb_quick_languages">Nyelv gyors kiválasztása</string>
     <string name="collections_editor_tmdb_quick_countries">Ország gyors kiválasztása</string>
@@ -2885,7 +2885,7 @@
     <string name="autoplay_regex_preset_no_remux_hdr">REMUX/HDR kizárása</string>
 
     <!-- Playback settings sections -->
-    <string name="playback_player_internal_desc">A NuvioTV beépített lejátszójának használata</string>
+    <string name="playback_player_internal_desc">A Nuvio ReSeq beépített lejátszójának használata</string>
 
     <!-- Player runtime: torrent overlay + tracks -->
     <string name="player_torrent_peer_info">%1$d seed · %2$d peer</string>
@@ -2990,9 +2990,9 @@
     <string name="simkl_visit">Simkl megnyitása</string>
     <string name="simkl_sync_info_action">Hogyan működik a szinkronizálás</string>
     <string name="simkl_sync_info_title">Hogyan működik a Simkl szinkronizálás</string>
-    <string name="simkl_sync_info_description">A Nuvio legfeljebb %1$d percenként egyszer ellenőrzi a Simklt. A másik alkalmazásban vagy a Simkl weboldalán végzett módosítások megjelenése ennyi ideig tarthat.</string>
+    <string name="simkl_sync_info_description">A Nuvio ReSeq legfeljebb %1$d percenként egyszer ellenőrzi a Simklt. A másik alkalmazásban vagy a Simkl weboldalán végzett módosítások megjelenése ennyi ideig tarthat.</string>
     <string name="simkl_sync_info_activity">Minden frissítés először azt ellenőrzi, hogy a Simkl jelez-e változást, és csak a módosításokat tölti le. Ez követi a Simkl API szabályait, csökkenti a felesleges adatforgalmat, és segít a szolgáltatás stabilan tartásában.</string>
-    <string name="simkl_sync_info_manual">A Nuvióban végzett módosítások azonnal átkerülnek a Simklre. Használd a Szinkronizálás most funkciót, ha hamarabb szeretnéd, hogy a Nuvio ellenőrizze a távoli változásokat.</string>
+    <string name="simkl_sync_info_manual">A Nuvióban végzett módosítások azonnal átkerülnek a Simklre. Használd a Szinkronizálás most funkciót, ha hamarabb szeretnéd, hogy a Nuvio ReSeq ellenőrizze a távoli változásokat.</string>
     <string name="simkl_sync_info_library_statuses">A Simkl Félretéve (On Hold) vagy Abbahagyott (Dropped) listájára helyezett sorozatok nem jelennek meg a Megtekintés folytatása sorban. Addig maradnak elrejtve, amíg valamelyik listán szerepelnek.</string>
     <string name="simkl_sync_info_docs">Olvasd el a Simkl szinkronizálási útmutatót</string>
     <string name="error_open_browser_failed">A böngésző megnyitása nem sikerült</string>

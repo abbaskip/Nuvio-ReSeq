@@ -26,7 +26,8 @@ class TraktTrackingScrobbler @Inject constructor(
         val item = event.media.toTraktScrobbleItem() ?: return
         when (action) {
             TrackingScrobbleAction.START -> service.scrobbleStart(item, event.progressPercent.toFloat())
-            TrackingScrobbleAction.PAUSE -> service.scrobbleStop(item, event.progressPercent.toFloat())
+            TrackingScrobbleAction.PAUSE -> if (event.allowCompletion) service.scrobbleStop(item, event.progressPercent.toFloat())
+                else service.scrobblePause(item, event.progressPercent.toFloat())
             TrackingScrobbleAction.STOP -> service.scrobbleStop(item, event.progressPercent.toFloat())
         }
     }
@@ -46,7 +47,7 @@ class TraktTrackingScrobbler @Inject constructor(
         val episodeReference = episode ?: return null
         val season = episodeReference.season ?: return null
         val contentId = catalog?.contentId ?: ids.imdb ?: ids.tmdb?.let { "tmdb:$it" }
-        val mapped = episodeMappingService.resolveEpisodeMapping(
+        val mapped = if (episodeReference.numberingProvider == "trakt") null else episodeMappingService.resolveEpisodeMapping(
             contentId = contentId,
             contentType = catalog?.contentType ?: "series",
             videoId = catalog?.videoId,

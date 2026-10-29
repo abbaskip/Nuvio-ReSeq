@@ -160,9 +160,15 @@ fun HomeScreen(
     }
 
     val onNavigateToDetailStable = remember(onNavigateToDetail) { onNavigateToDetail }
-    val onContinueWatchingClickStable = remember(onContinueWatchingClick) { onContinueWatchingClick }
-    val onContinueWatchingStartFromBeginningStable = remember(onContinueWatchingStartFromBeginning) { onContinueWatchingStartFromBeginning }
-    val onContinueWatchingPlayManuallyStable = remember(onContinueWatchingPlayManually) { onContinueWatchingPlayManually }
+    val onContinueWatchingClickStable = remember(viewModel, onContinueWatchingClick) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingClick) }
+    }
+    val onContinueWatchingStartFromBeginningStable = remember(viewModel, onContinueWatchingStartFromBeginning) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingStartFromBeginning) }
+    }
+    val onContinueWatchingPlayManuallyStable = remember(viewModel, onContinueWatchingPlayManually) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingPlayManually) }
+    }
     val onNavigateToCatalogSeeAllStable = remember(onNavigateToCatalogSeeAll) { onNavigateToCatalogSeeAll }
     val onNavigateToFolderDetailStable = remember(onNavigateToFolderDetail) { onNavigateToFolderDetail }
     val onRemoveContinueWatchingStable = remember(viewModel) {

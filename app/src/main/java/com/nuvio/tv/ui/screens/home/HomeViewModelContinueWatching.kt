@@ -12,6 +12,11 @@ import com.nuvio.tv.domain.model.ContinueWatchingSortMode
 import com.nuvio.tv.domain.model.ContentType
 import com.nuvio.tv.domain.model.Meta
 import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.tvdbPlaybackContext
+import com.nuvio.tv.domain.model.displaySeason
+import com.nuvio.tv.domain.model.displayEpisode
+import com.nuvio.tv.domain.model.episodeListKey
+import com.nuvio.tv.domain.model.watchableEpisodes
 import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.domain.model.normalizeLanguageCode
 import com.nuvio.tv.domain.model.countryToLanguageCode
@@ -91,9 +96,14 @@ internal data class CwMetaSummary(
     val imdbRating: Float?,
     val language: String?,
     val country: String?,
-    val videos: List<CwVideoSummary>
+    val videos: List<CwVideoSummary>,
+    val tvdbOrder: Boolean = false
 ) {
     fun watchableEpisodes(): List<CwVideoSummary> {
+        if (tvdbOrder) {
+            val allowed = videos.map { it.asTvdbVideo() }.watchableEpisodes().mapTo(mutableSetOf()) { it.episodeListKey }
+            return videos.filter { it.asTvdbVideo().episodeListKey in allowed }
+        }
         val candidates = videos.filter { it.season != null && it.episode != null && (it.season ?: 0) > 0 }
         fun isFutureRelease(raw: String?): Boolean = isEpisodeReleaseAired(raw) == false
         val unavailableSeasons = candidates.groupBy { it.season }
@@ -163,7 +173,8 @@ internal data class CwVideoSummary(
     val episode: Int?,
     val overview: String?,
     val available: Boolean? = null,
-    val rating: Double? = null
+    val rating: Double? = null,
+    val episodeIdentity: com.nuvio.tv.domain.model.EpisodeIdentity? = null
 )
 
 private fun Meta.toCwSummary(): CwMetaSummary = CwMetaSummary(
@@ -188,9 +199,11 @@ private fun Meta.toCwSummary(): CwMetaSummary = CwMetaSummary(
             episode = v.episode,
             overview = v.overview,
             available = v.available,
-            rating = v.rating
+            rating = v.rating,
+            episodeIdentity = v.episodeIdentity
         )
-    }
+    },
+    tvdbOrder = episodeOrder?.effectiveType != null
 )
 
 private data class NextUpTmdbData(
@@ -420,7 +433,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                             isReleaseAlert = cached.isReleaseAlert,
                             isNewSeasonRelease = cached.isNewSeasonRelease,
                             seedSeason = cached.seedSeason,
-                            seedEpisode = cached.seedEpisode,
+                            seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId,
                             contentLanguage = cached.contentLanguage
                         )
                     }
@@ -484,7 +497,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                         position = cached.position,
                                         duration = cached.duration,
                                         lastWatched = cached.lastWatched,
-                                        progressPercent = cached.progressPercent
+                                        progressPercent = cached.progressPercent, tvdbContext = cached.tvdbContext
                                     ),
                                     episodeThumbnail = cached.episodeThumbnail,
                                     episodeDescription = cached.episodeDescription,
@@ -556,7 +569,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                             isReleaseAlert = freshIsReleaseAlert,
                             isNewSeasonRelease = freshIsNewSeasonRelease,
                             seedSeason = cached.seedSeason,
-                            seedEpisode = cached.seedEpisode,
+                            seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId,
                             contentLanguage = cached.contentLanguage
                         )
                     )
@@ -596,7 +609,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                     contentId = item.progress.contentId, contentType = item.progress.contentType,
                                     name = item.progress.name, poster = item.progress.poster,
                                     backdrop = item.progress.backdrop, logo = item.progress.logo,
-                                    videoId = item.progress.videoId, season = item.progress.season,
+                                    videoId = item.progress.videoId, tvdbContext = item.progress.tvdbContext, season = item.progress.season,
                                     episode = item.progress.episode, episodeTitle = item.progress.episodeTitle,
                                     position = item.progress.position, duration = item.progress.duration,
                                     lastWatched = item.progress.lastWatched, progressPercent = item.progress.progressPercent,
@@ -853,9 +866,11 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                         kotlinx.coroutines.yield()
                                         continue
                                     }
+                                    var identityPending = false
                                     val item = buildNextUpItem(
                                         progress = seed,
-                                        showUnairedNextUp = showUnairedNextUp
+                                        showUnairedNextUp = showUnairedNextUp,
+                                        onPendingIdentity = { identityPending = true }
                                     ).also { resolved ->
                                         logSimklAsyncNextUpResolution(
                                             seed = seed,
@@ -910,6 +925,10 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                             }
                                         }
                                     } else {
+                                        if (identityPending) {
+                                            cwProcessedOlderSeedContentIds.remove(seed.contentId)
+                                            continue
+                                        }
                                         val seedKey = "${seed.contentId}|${seed.season ?: 1}|${seed.episode ?: 1}"
                                         synchronized(cwNextUpResolutionCache) {
                                             cwNextUpResolutionCache[seedKey] = null
@@ -1022,7 +1041,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                 isReleaseAlert = freshIsReleaseAlert,
                                 isNewSeasonRelease = freshIsNewSeasonRelease,
                                 seedSeason = cached.seedSeason,
-                                seedEpisode = cached.seedEpisode,
+                                seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId,
                                 contentLanguage = cached.contentLanguage
                             )
                         )
@@ -1149,7 +1168,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                         com.nuvio.tv.data.local.CachedNextUpItem(
                             contentId = info.contentId, contentType = info.contentType, name = info.name,
                             poster = info.poster, backdrop = info.backdrop, logo = info.logo,
-                            videoId = info.videoId, season = info.season, episode = info.episode,
+                            videoId = info.videoId, tvdbEpisodeId = info.tvdbEpisodeId, season = info.season, episode = info.episode,
                             episodeTitle = info.episodeTitle, episodeDescription = info.episodeDescription,
                             thumbnail = info.thumbnail?.takeIf { it !in brokenUrls },
                             released = info.released, hasAired = info.hasAired, airDateLabel = info.airDateLabel,
@@ -1168,7 +1187,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                         com.nuvio.tv.data.local.CachedInProgressItem(
                             contentId = p.contentId, contentType = p.contentType, name = p.name,
                             poster = p.poster, backdrop = p.backdrop, logo = p.logo,
-                            videoId = p.videoId, season = p.season, episode = p.episode,
+                            videoId = p.videoId, tvdbContext = p.tvdbContext, season = p.season, episode = p.episode,
                             episodeTitle = p.episodeTitle, position = p.position, duration = p.duration,
                             lastWatched = p.lastWatched, progressPercent = p.progressPercent,
                             episodeThumbnail = ip.episodeThumbnail?.takeIf { it !in brokenUrls },
@@ -1250,7 +1269,7 @@ private fun HomeViewModel.shouldTreatAsActiveInProgressForNextUpSuppression(
 }
 
 private fun logNextUpDecision(message: String) {
-    Unit
+    if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.d("ContinueWatchingNextUp", message)
 }
 
 private fun shouldTraceNextUpSeries(progress: WatchProgress): Boolean = false
@@ -1355,6 +1374,10 @@ private suspend fun HomeViewModel.resolveCurrentEpisodeDescription(
 
 private fun resolveVideoForProgress(progress: WatchProgress, meta: CwMetaSummary): CwVideoSummary? {
     if (!isSeriesTypeCW(progress.contentType)) return null
+    if (meta.tvdbOrder) {
+        val resolved = com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(meta.videos.map { it.asTvdbVideo() }, progress) ?: return null
+        return meta.videos.singleOrNull { it.episodeIdentity?.tvdbEpisodeId == resolved.episodeIdentity?.tvdbEpisodeId }
+    }
     val videos = meta.videos.filter { it.season != null && it.episode != null && it.season != 0 }
     if (videos.isEmpty()) return null
 
@@ -1370,9 +1393,9 @@ private fun resolveVideoForProgress(progress: WatchProgress, meta: CwMetaSummary
         // Fallback: if not found by season+episode (anime with absolute numbering
         // on Trakt vs multi-season on addon), try global index matching.
         val addonSeasons = videos.mapTo(mutableSetOf()) { it.season }
-        if (season == 1 && addonSeasons.size > 1 && episode > 0) {
+        if (!meta.tvdbOrder && season == 1 && addonSeasons.size > 1 && episode > 0) {
             val sorted = videos.sortedWith(
-                compareBy<CwVideoSummary>({ it.season ?: Int.MAX_VALUE }, { it.episode ?: Int.MAX_VALUE })
+                compareBy<CwVideoSummary>({ it.episodeIdentity?.displayed?.season ?: it.season ?: Int.MAX_VALUE }, { it.episodeIdentity?.displayed?.episode ?: it.episode ?: Int.MAX_VALUE })
             )
             val globalIndex = episode - 1
             if (globalIndex in sorted.indices) {
@@ -1394,6 +1417,7 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
     debug: CwDebugSession? = null,
     onPartialUpdate: suspend (List<ContinueWatchingItem.NextUp>) -> Unit = {}
 ): List<ContinueWatchingItem.NextUp> = coroutineScope {
+    val pipelineProfileId = profileManager.activeProfileId.value
     // Move seed filtering/grouping/sorting off the main thread.
     val (latestCompletedBySeries, inProgressIds) = withContext(Dispatchers.Default) {
         val latestCompletedByContent = allProgress
@@ -1496,10 +1520,12 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
                 // Remap seed from Trakt numbering to addon numbering (for anime).
                 // Done here (after filters) so only ~5-10 seeds are remapped, not all 189.
                 val remappedProgress = watchProgressRepository.prepareNextUpSeed(progress)
+                var identityPending = false
                 val nextUp = buildNextUpItem(
                     progress = remappedProgress,
                     showUnairedNextUp = showUnairedNextUp,
-                    debug = debug
+                    debug = debug,
+                    onPendingIdentity = { identityPending = true }
                 ) ?: run {
                     // If meta was not available (network error, addon timeout),
                     // remove from processedContentIds so this series is NOT
@@ -1510,7 +1536,7 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
                             ?: cwMetaCache["series:${progress.contentId}"]
                             ?: cwMetaCache["tv:${progress.contentId}"]
                     } != null
-                    if (!metaResolved) {
+                    if (!metaResolved || identityPending) {
                         processedContentIds.remove(progress.contentId)
                     }
                     logNextUpDecision("drop contentId=${progress.contentId} name=${progress.name} reason=buildNextUpItem-null metaResolved=$metaResolved")
@@ -1536,6 +1562,18 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
                             // Unaired countdown / new-season window: badge stays, item stays.
                         }
                     }
+                }
+                // A verified TVDB result can replace its stale card independently
+                // of unrelated progress loading and the full-list publish batch.
+                if (nextUp.info.tvdbEpisodeId != null && profileManager.activeProfileId.value == pipelineProfileId) {
+                    applyConclusiveOlderNextUpResults(
+                        resolvedItems = listOf(nextUp),
+                        conclusivelyProcessedContentIds = setOf(progress.contentId),
+                        dismissedNextUpKeys = dismissedNextUp,
+                        sortMode = layoutPreferenceDataStore.continueWatchingSortMode.first(),
+                        pipelineProfileId = pipelineProfileId,
+                        persistSnapshot = true
+                    )
                 }
                 val shouldPublish: Boolean
                 val partialItems = mergeMutex.withLock {
@@ -1822,8 +1860,10 @@ internal fun splitUpcomingItems(
 private suspend fun HomeViewModel.buildNextUpItem(
     progress: WatchProgress,
     showUnairedNextUp: Boolean,
-    debug: CwDebugSession? = null
+    debug: CwDebugSession? = null,
+    onPendingIdentity: () -> Unit = {}
 ): ContinueWatchingItem.NextUp? {
+    val progress = selectedOrderSeed(progress) ?: run { onPendingIdentity(); return null }
     debug?.recordNextUpAttempt(progress)
     if (shouldTraceNextUpSeries(progress)) {
         logNextUpDecision(
@@ -1896,6 +1936,7 @@ private suspend fun HomeViewModel.buildNextUpItem(
         backdrop = progress.backdrop.normalizeImageUrl() ?: seedMeta?.backdropUrl.normalizeImageUrl(),
         logo = progress.logo.normalizeImageUrl() ?: seedMeta?.logo.normalizeImageUrl(),
         videoId = nextUp.videoId,
+        tvdbEpisodeId = nextUpVideo?.episodeIdentity?.trackingEpisodeId,
         season = nextUp.season,
         episode = nextUp.episode,
         episodeTitle = nextUp.episodeTitle ?: nextUpVideo?.title,
@@ -1923,6 +1964,31 @@ private suspend fun HomeViewModel.buildNextUpItem(
     return ContinueWatchingItem.NextUp(info)
 }
 
+internal suspend fun HomeViewModel.selectedOrderSeed(seed: WatchProgress): WatchProgress? {
+    if (tvdbOrderStore?.selected(profileManager.activeProfileId.value, listOf(seed.contentId)) == null) return seed
+    val meta = resolveMetaForProgress(seed, cwMetaCache) ?: return null
+    if (!meta.tvdbOrder) return null
+    val videos = meta.videos.map { it.asTvdbVideo() }
+    val snapshot = withTimeoutOrNull(8_000L) {
+        watchProgressRepository.getAllEpisodeProgress(seed.contentId).first()
+    } ?: return null
+    val completed = snapshot.values.filter { it.isCompleted() } + seed
+    val resolved = completed.mapNotNull { entry ->
+        com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(videos, entry)
+            ?.takeIf { (it.displaySeason ?: 0) > 0 }?.let { it to entry }
+    }
+    val furthest = layoutPreferenceDataStore.nextUpFromFurthestEpisode.first()
+    val sequence = compareBy<Pair<Video, WatchProgress>>(
+        { it.first.displaySeason }, { it.first.displayEpisode })
+    val selected = resolved.maxWithOrNull(if (furthest) sequence.thenBy { it.second.lastWatched }
+        else compareBy<Pair<Video, WatchProgress>> { it.second.lastWatched }.then(sequence)) ?: return null
+    logNextUpDecision("tvdb-seed contentId=${seed.contentId} furthest=$furthest candidates=${resolved.size} " +
+        "selected=${selected.first.displaySeason}x${selected.first.displayEpisode} identity=${selected.first.episodeIdentity?.tvdbEpisodeId}")
+    return selected.second.copy(name = seed.name, videoId = selected.first.id, season = selected.first.season,
+        episode = selected.first.episode, tvdbEpisodeId = selected.first.episodeIdentity?.trackingEpisodeId,
+        tvdbEpisodeIds = selected.first.episodeIdentity?.trackingEpisodeIds, tvdbContext = selected.first.tvdbPlaybackContext())
+}
+
 private suspend fun HomeViewModel.enrichInProgressItem(
     item: ContinueWatchingItem.InProgress,
     metaCache: MutableMap<String, CwMetaSummary?>,
@@ -1946,7 +2012,7 @@ private suspend fun HomeViewModel.enrichInProgressItem(
     val video = resolveVideoForProgress(item.progress, meta)
     val genres = meta.genres.take(3)
     val releaseInfo = meta.releaseInfo?.takeIf { it.isNotBlank() }
-    val tmdbData = if (shouldEnrichTmdb) {
+    val rawTmdbData = if (shouldEnrichTmdb) {
         // Use early-resolved TMDB ID if available, otherwise fall back to full resolve
         val earlyTmdbId = tmdbIdDeferred?.await()
         if (earlyTmdbId != null) {
@@ -1962,10 +2028,11 @@ private suspend fun HomeViewModel.enrichInProgressItem(
             debug = debug
         )
     } else null
+    val tmdbData = rawTmdbData?.let { if (meta.tvdbOrder) it.copy(thumbnail = null, episodeTitle = null, airDate = null, overview = null) else it }
     val imdbRating = tmdbData?.rating?.toFloat() ?: meta.imdbRating
 
     // Fetch episode rating: external wins over addon (same as detail screen).
-    val episodeRating = if (isSeriesTypeCW(item.progress.contentType) &&
+    val episodeRating = if (!meta.tvdbOrder && isSeriesTypeCW(item.progress.contentType) &&
         item.progress.season != null && item.progress.episode != null
     ) {
         val addonRating = resolveVideoForProgress(item.progress, meta)?.rating?.toFloat()
@@ -2035,9 +2102,12 @@ private suspend fun HomeViewModel.enrichNextUpItem(
     } else null
 
     val meta = resolveMetaForProgress(progressSeed, metaCache, debug) ?: return@coroutineScope item
-    val video = resolveNextUpVideoFromMeta(progressSeed, meta)
+    val video = if (meta.tvdbOrder) meta.videos.singleOrNull {
+        if (item.info.tvdbEpisodeId != null) it.episodeIdentity?.tvdbEpisodeId == item.info.tvdbEpisodeId
+        else it.id == item.info.videoId && it.title == item.info.episodeTitle
+    } else resolveNextUpVideoFromMeta(progressSeed, meta)
 
-    val tmdbData = if (shouldEnrichTmdb) {
+    val rawTmdbData = if (shouldEnrichTmdb) {
         val earlyTmdbId = tmdbIdDeferred?.await()
         if (earlyTmdbId != null) {
             val cacheKey = "${progressSeed.contentType}:${progressSeed.contentId}"
@@ -2053,6 +2123,7 @@ private suspend fun HomeViewModel.enrichNextUpItem(
     } else {
         null
     }
+    val tmdbData = rawTmdbData?.let { if (meta.tvdbOrder) it.copy(thumbnail = null, episodeTitle = null, airDate = null, overview = null) else it }
     val released = selectEpisodeReleaseValue(
         addonReleased = video?.released ?: item.info.released,
         tmdbAirDate = tmdbData?.airDate,
@@ -2069,7 +2140,7 @@ private suspend fun HomeViewModel.enrichNextUpItem(
     )
 
     // Fetch episode rating: external wins over addon (same as detail screen).
-    val episodeRating = run {
+    val episodeRating = if (meta.tvdbOrder) video?.rating?.toFloat() else run {
         val s = video?.season ?: item.info.season
         val e = video?.episode ?: item.info.episode
         val addonRating = video?.rating?.toFloat()
@@ -2095,6 +2166,7 @@ private suspend fun HomeViewModel.enrichNextUpItem(
         season = video?.season ?: item.info.season,
         episode = video?.episode ?: item.info.episode,
         videoId = video?.id?.takeIf { it.isNotBlank() } ?: item.info.videoId,
+        tvdbEpisodeId = video?.episodeIdentity?.tvdbEpisodeId ?: item.info.tvdbEpisodeId,
         episodeTitle = if (settings.useEpisodes) tmdbData?.episodeTitle
             ?: video?.title?.takeIf { it.isNotBlank() }
             ?: item.info.episodeTitle
@@ -2289,9 +2361,9 @@ internal fun resolveNextUpVideoFromMeta(
         .filter { video ->
             val season = video.season
             val episode = video.episode
-            season != null && episode != null && season != 0
+            season != null && episode != null && (video.episodeIdentity?.displayed?.season ?: season) != 0
         }
-        .sortedWith(compareBy<CwVideoSummary>({ it.season ?: Int.MAX_VALUE }, { it.episode ?: Int.MAX_VALUE }))
+        .sortedWith(compareBy<CwVideoSummary>({ it.episodeIdentity?.displayed?.season ?: it.season ?: Int.MAX_VALUE }, { it.episodeIdentity?.displayed?.episode ?: it.episode ?: Int.MAX_VALUE }))
 
     if (episodes.isEmpty()) return null
 
@@ -2299,10 +2371,13 @@ internal fun resolveNextUpVideoFromMeta(
     val seedEpisode = progress.episode
     if (seedSeason == null || seedEpisode == null) return null
 
-    var watchedIndex = episodes.indexOfFirst { it.season == seedSeason && it.episode == seedEpisode }
+    var watchedIndex = if (meta.tvdbOrder) {
+        val resolved = resolveVideoForProgress(progress, meta) ?: return null
+        episodes.indexOfFirst { it.episodeIdentity?.tvdbEpisodeId == resolved.episodeIdentity?.tvdbEpisodeId }
+    } else episodes.indexOfFirst { it.season == seedSeason && it.episode == seedEpisode }
 
     // Fallback: if the seed wasn't found by season+episode
-    if (watchedIndex < 0) {
+    if (watchedIndex < 0 && !meta.tvdbOrder) {
         val videoId = progress.videoId.takeIf { it.isNotBlank() }
         if (videoId != null) {
             watchedIndex = episodes.indexOfFirst { it.id == videoId }
@@ -2310,7 +2385,7 @@ internal fun resolveNextUpVideoFromMeta(
         if (watchedIndex < 0) {
             // Index-based fallback: treat the seed as the Nth episode overall
             val addonSeasons = episodes.mapTo(mutableSetOf()) { it.season }
-            if (seedSeason == 1 && addonSeasons.size > 1 && seedEpisode > 0) {
+            if (!meta.tvdbOrder && seedSeason == 1 && addonSeasons.size > 1 && seedEpisode > 0) {
                 val globalIndex = seedEpisode - 1 // 0-based
                 if (globalIndex in episodes.indices) {
                     watchedIndex = globalIndex
@@ -2609,6 +2684,7 @@ internal fun buildNextUpSeedCacheKey(
         append(progress.episode ?: -1)
         append("|unaired=")
         append(showUnairedNextUp)
+        progress.tvdbContext?.let { append("|tvdb=").append(it.storageKey(progress.contentId)) }
         if (progress.excludedNextUpSeasons.isNotEmpty()) {
             append("|excluded=")
             append(progress.excludedNextUpSeasons.sorted().joinToString(","))
@@ -2645,7 +2721,7 @@ private fun HomeViewModel.persistLocalContinueWatchingMetadata(
                 poster = info.poster,
                 backdrop = info.backdrop,
                 logo = info.logo,
-                videoId = info.videoId,
+                videoId = info.videoId, tvdbEpisodeId = info.tvdbEpisodeId,
                 season = info.season,
                 episode = info.episode,
                 episodeTitle = info.episodeTitle,
@@ -2681,7 +2757,7 @@ private fun HomeViewModel.persistLocalContinueWatchingMetadata(
                 poster = p.poster,
                 backdrop = p.backdrop,
                 logo = p.logo,
-                videoId = p.videoId,
+                videoId = p.videoId, tvdbContext = p.tvdbContext,
                 season = p.season,
                 episode = p.episode,
                 episodeTitle = p.episodeTitle,

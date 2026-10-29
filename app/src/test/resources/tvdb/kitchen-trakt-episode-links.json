@@ -1,0 +1,117 @@
+[
+  {
+    "tvdbEpisodeId": 335862,
+    "hits": [
+      {
+        "show": {
+          "title": "Kitchen Nightmares",
+          "year": 2007,
+          "ids": {
+            "imdb": "tt0983514",
+            "plex": {
+              "guid": "5d9c07ff2192ba001f3045c2",
+              "slug": "kitchen-nightmares-us"
+            },
+            "slug": "kitchen-nightmares",
+            "tmdb": 11294,
+            "tvdb": 80552,
+            "trakt": 11242
+          }
+        },
+        "episode": {
+          "title": "Peter's",
+          "season": 1,
+          "number": 1,
+          "ids": {
+            "imdb": "tt1001913",
+            "plex": {
+              "guid": "65dde22565d56f054285728e"
+            },
+            "tmdb": 449032,
+            "tvdb": 335862,
+            "trakt": 457325
+          },
+          "first_aired": "2007-09-20T00:00:00.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "tvdbEpisodeId": 9893344,
+    "hits": [
+      {
+        "show": {
+          "title": "Kitchen Nightmares",
+          "year": 2023,
+          "ids": {
+            "imdb": "tt32436778",
+            "plex": {
+              "guid": "651484a6f37aa77d01c2f6eb",
+              "slug": "kitchen-nightmares"
+            },
+            "slug": "kitchen-nightmares-2023",
+            "tmdb": 235884,
+            "tvdb": null,
+            "trakt": 210181
+          }
+        },
+        "episode": {
+          "title": "Bel Aire",
+          "season": 1,
+          "number": 1,
+          "ids": {
+            "imdb": "tt27759481",
+            "plex": {
+              "guid": "64adeb0fb65e071f6eaf4fe5"
+            },
+            "tmdb": 4763028,
+            "tvdb": 9893344,
+            "trakt": 10918421
+          },
+          "first_aired": "2023-09-26T00:00:00.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "tvdbEpisodeId": 10893125,
+    "hits": [
+      {
+        "show": {
+          "title": "Kitchen Nightmares",
+          "year": 2023,
+          "ids": {
+            "imdb": "tt32436778",
+            "plex": {
+              "guid": "651484a6f37aa77d01c2f6eb",
+              "slug": "kitchen-nightmares"
+            },
+            "slug": "kitchen-nightmares-2023",
+            "tmdb": 235884,
+            "tvdb": null,
+            "trakt": 210181
+          }
+        },
+        "episode": {
+          "title": "Iberville (1)",
+          "season": 2,
+          "number": 1,
+          "ids": {
+            "imdb": "tt34384857",
+            "plex": {
+              "guid": "673cfd44712dd71cd69e13fe"
+            },
+            "tmdb": 5767857,
+            "tvdb": 10893125,
+            "trakt": 12510244
+          },
+          "first_aired": "2025-01-08T01:00:00.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "tvdbEpisodeId": 11868909,
+    "hits": []
+  }
+]

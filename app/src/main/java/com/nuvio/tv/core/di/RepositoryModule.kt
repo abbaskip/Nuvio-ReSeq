@@ -21,6 +21,11 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import javax.inject.Qualifier
+
+@Qualifier
+@Retention(AnnotationRetention.RUNTIME)
+annotation class ProviderMetadata
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -40,7 +45,11 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindMetaRepository(impl: MetaRepositoryImpl): MetaRepository
+    abstract fun bindMetaRepository(impl: com.nuvio.tv.data.tvdb.TvdbMetaRepository): MetaRepository
+
+    @Binds
+    @ProviderMetadata
+    abstract fun bindProviderMetadata(impl: MetaRepositoryImpl): MetaRepository
 
     @Binds
     @Singleton

@@ -41,7 +41,10 @@ import com.nuvio.tv.domain.model.AddonStreams
 import com.nuvio.tv.domain.model.Meta
 import com.nuvio.tv.domain.model.Stream
 import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.singleEpisodeSource
 import com.nuvio.tv.domain.model.WatchProgress
+import com.nuvio.tv.domain.model.tvdbPlaybackContext
+import kotlinx.coroutines.flow.emitAll
 import com.nuvio.tv.domain.model.StreamDebridCacheState
 import com.nuvio.tv.domain.model.enabledAddons
 import com.nuvio.tv.domain.repository.AddonRepository
@@ -105,7 +108,8 @@ class StreamScreenViewModel @Inject constructor(
     private val serverPlayback: ServerPlayback,
     party: com.nuvio.tv.core.party.PartyRepository,
     profileManager: com.nuvio.tv.core.profile.ProfileManager,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val tvdbOrderStore: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null
 ) : ViewModel() {
     private var autoPlayHandledForSession = false
     private var directAutoPlayModeInitializedForSession = false
@@ -122,6 +126,11 @@ class StreamScreenViewModel @Inject constructor(
     private var streamBadgePresentationRequestId = 0L
     private var badgedAddonNames: Set<String> = emptySet()
     private var playbackMetaVideos: List<Video>? = null
+    private val tvdbContextReady = kotlinx.coroutines.CompletableDeferred<com.nuvio.tv.domain.model.TvdbPlaybackContext?>()
+    private var capturedTvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null
+
+    suspend fun attachTvdbContext(info: StreamPlaybackInfo): StreamPlaybackInfo =
+        info.copy(tvdbContextJson = tvdbContextReady.await()?.encode() ?: "provider")
 
     private val embeddedStreamGroupName: String by lazy {
         context.getString(R.string.stream_embedded_group)
@@ -150,7 +159,13 @@ class StreamScreenViewModel @Inject constructor(
     private val manualSelection: Boolean = savedStateHandle.get<String>("manualSelection")
         ?.toBooleanStrictOrNull()
         ?: false
-    private val streamCacheKey: String = "${contentType.lowercase()}|$videoId"
+    private val streamCacheKeys: List<String> get() = com.nuvio.tv.domain.model.streamLinkCacheKeys(
+        contentType, videoId, capturedTvdbContext, _uiState.value.tvdbEpisodeIdentity)
+
+    private suspend fun saveLastLink(save: suspend (String) -> Unit) {
+        tvdbContextReady.await()
+        streamCacheKeys.forEach { save(it) }
+    }
     private val partyKey: String = com.nuvio.tv.core.party.partyMediaKey(
         metaType = contentType,
         metaId = contentId ?: videoId.substringBefore(":"),
@@ -194,13 +209,15 @@ class StreamScreenViewModel @Inject constructor(
         )
     )
     val uiState: StateFlow<StreamScreenUiState> = _uiState.asStateFlow()
-    val watchProgress = run {
+    val watchProgress = kotlinx.coroutines.flow.flow {
         val id = contentId ?: videoId.substringBefore(":")
-        if (season != null && episode != null) {
-            watchProgressRepository.getEpisodeProgress(id, season, episode, playbackProfileId)
+        val context = tvdbContextReady.await()
+        emitAll(if (context != null) watchProgressRepository.getEpisodeProgress(id, context, playbackProfileId)
+        else if (season != null && episode != null) {
+            watchProgressRepository.getProviderEpisodeProgress(id, season, episode, playbackProfileId)
         } else {
             watchProgressRepository.getProgress(id, playbackProfileId)
-        }
+        })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val streamBadgeSettings = streamBadgeSettingsDataStore.settings
@@ -288,6 +305,31 @@ class StreamScreenViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch {
+            try {
+                val id = contentId ?: return@launch
+                if (contentType !in listOf("series", "tv") || season == null || episode == null) return@launch
+                val encodedContext = savedStateHandle.get<String>("tvdbContext")
+                if (encodedContext == "provider") return@launch
+                val incoming = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(encodedContext)
+                val selected = incoming?.let { com.nuvio.tv.data.tvdb.TvdbOrderPreference(it.seriesId, it.orderType) }
+                    ?: tvdbOrderStore?.selected(playbackProfileId, listOf(id)) ?: return@launch
+                capturedTvdbContext = incoming?.takeIf { it.requestVideoId == videoId && it.season == season && it.episode == episode }
+                    ?: com.nuvio.tv.domain.model.TvdbPlaybackContext(selected.seriesId, selected.orderType,
+                        null, season, episode, emptyList(), videoId)
+                val meta = kotlinx.coroutines.withTimeoutOrNull(22_000L) {
+                    metaRepository.getPlaybackMeta(playbackProfileId, contentType, id, capturedTvdbContext!!)
+                }
+                val candidates = meta?.videos.orEmpty().filter { it.id == videoId &&
+                    it.episodeIdentity?.orderType == selected.orderType && (episodeName == null || it.title == episodeName) }
+                val identity = (candidates.singleOrNull { it.title == episodeName }
+                    ?: candidates.singleEpisodeSource())?.episodeIdentity
+                _uiState.update { it.copy(tvdbEpisodeIdentity = identity) }
+                candidates.singleOrNull()?.let { capturedTvdbContext = it.tvdbPlaybackContext() }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* Sources continue to use the original verified request. */ }
+            finally { tvdbContextReady.complete(capturedTvdbContext) }
+        }
         viewModelScope.launch {
             _uiState
                 .map { state -> state.directAutoPlayMessage to state.directAutoPlayProgress }
@@ -461,10 +503,9 @@ class StreamScreenViewModel @Inject constructor(
             }
 
             if (!autoPlayHandledForSession && playerSettings.streamReuseLastLinkEnabled) {
-                val cached = streamLinkCacheDataStore.getValid(
-                    contentKey = streamCacheKey,
-                    maxAgeMs = playerSettings.streamReuseLastLinkCacheHours * 60L * 60L * 1000L
-                )
+                tvdbContextReady.await()
+                val cached = streamLinkCacheDataStore.getValid(streamCacheKeys,
+                    playerSettings.streamReuseLastLinkCacheHours * 60L * 60L * 1000L, playerSettings.streamReuseLastLinkEnabled)
                 if (cached != null) {
                     autoPlayHandledForSession = true
                     resolvedAutoPlayTarget = true
@@ -1175,11 +1216,12 @@ class StreamScreenViewModel @Inject constructor(
     }
 
     private suspend fun getEmbeddedStreamsFromMeta(): AddonStreams? {
+        if (tvdbContextReady.await() != null) return null
         val metaId = contentId?.takeIf { it.isNotBlank() } ?: return null
         val cached = metaRepository.getCachedMeta(contentType, metaId)
             ?.takeIf { meta -> meta.videos.any { it.id == videoId && it.streams.isNotEmpty() } }
         val meta = cached ?: run {
-            val result = metaRepository.getMetaFromAllAddons(type = contentType, id = metaId)
+            val result = metaRepository.getProviderMeta(type = contentType, id = metaId)
                 .first { it !is NetworkResult.Loading }
             (result as? NetworkResult.Success)?.data
         } ?: return null
@@ -1207,8 +1249,10 @@ class StreamScreenViewModel @Inject constructor(
         if (metaId.isBlank() || contentType.isBlank()) return
 
         viewModelScope.launch {
-            val result = metaRepository.getMetaFromAllAddons(type = contentType, id = metaId)
-                .first { it !is NetworkResult.Loading }
+            val selection = tvdbContextReady.await()
+            val result = if (selection == null) metaRepository.getProviderMeta(type = contentType, id = metaId)
+                .first { it !is NetworkResult.Loading } else metaRepository.getPlaybackMeta(playbackProfileId, contentType, metaId, selection)
+                    ?.let { NetworkResult.Success(it) } ?: return@launch
 
             if (result !is NetworkResult.Success) return@launch
 
@@ -1350,8 +1394,9 @@ class StreamScreenViewModel @Inject constructor(
                 // Save resolved URL to cache for reuse last link
                 if (!result.url.isNullOrBlank()) {
                     pendingCacheSaveJob = viewModelScope.launch {
-                        streamLinkCacheDataStore.save(
-                            contentKey = streamCacheKey,
+                        saveLastLink { cacheKey ->
+                            streamLinkCacheDataStore.save(
+                            contentKey = cacheKey,
                             url = result.url,
                             streamName = resolved.streamName,
                             headers = null,
@@ -1362,6 +1407,7 @@ class StreamScreenViewModel @Inject constructor(
                             contentLanguage = contentLanguage,
                             year = year
                         )
+                        }
                     }
                 }
                 resolved
@@ -1585,20 +1631,22 @@ class StreamScreenViewModel @Inject constructor(
         val url = playbackInfo.url
         if (saveLastLink && !url.isNullOrBlank() && !playbackInfo.isExternal) {
             pendingCacheSaveJob = viewModelScope.launch {
-                streamLinkCacheDataStore.save(
-                    contentKey = streamCacheKey,
-                    url = url,
-                    streamName = playbackInfo.streamName,
-                    headers = playbackInfo.headers,
-                    filename = playbackInfo.filename,
-                    videoHash = playbackInfo.videoHash,
-                    videoSize = playbackInfo.videoSize,
-                    bingeGroup = playbackInfo.bingeGroup,
-                    contentLanguage = contentLanguage,
-                    year = year,
-                    audioDelayMs = playbackInfo.audioDelayMs,
-                    audioDelayLanguage = playbackInfo.audioDelayLanguage
-                )
+                saveLastLink { cacheKey ->
+                    streamLinkCacheDataStore.save(
+                        contentKey = cacheKey,
+                        url = url,
+                        streamName = playbackInfo.streamName,
+                        headers = playbackInfo.headers,
+                        filename = playbackInfo.filename,
+                        videoHash = playbackInfo.videoHash,
+                        videoSize = playbackInfo.videoSize,
+                        bingeGroup = playbackInfo.bingeGroup,
+                        contentLanguage = contentLanguage,
+                        year = year,
+                        audioDelayMs = playbackInfo.audioDelayMs,
+                        audioDelayLanguage = playbackInfo.audioDelayLanguage
+                    )
+                }
             }
         }
         return playbackInfo
@@ -1642,8 +1690,10 @@ class StreamScreenViewModel @Inject constructor(
      */
     suspend fun getResumePositionMs(playbackInfo: StreamPlaybackInfo): Long {
         val contentId = playbackInfo.contentId ?: return 0L
-        val progress = if (playbackInfo.season != null && playbackInfo.episode != null) {
-            watchProgressRepository.getEpisodeProgress(
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(playbackInfo.tvdbContextJson)
+        val progress = if (context != null) watchProgressRepository.getEpisodeProgress(contentId, context, playbackInfo.profileId)
+        else if (playbackInfo.season != null && playbackInfo.episode != null) {
+            watchProgressRepository.getProviderEpisodeProgress(
                 contentId,
                 playbackInfo.season,
                 playbackInfo.episode,
@@ -1655,7 +1705,7 @@ class StreamScreenViewModel @Inject constructor(
         val wp = progress.first() ?: return 0L
         // Don't resume if completed
         if (wp.isCompleted()) return 0L
-        return wp.position
+        return if (context == null) wp.position else wp.resolveResumePosition(wp.duration)
     }
 
     /**
@@ -1674,6 +1724,7 @@ class StreamScreenViewModel @Inject constructor(
         autoLaunch: Boolean = false,
         context: android.content.Context
     ) {
+        val playbackInfo = attachTvdbContext(playbackInfo)
         streamRepository.setLocalPluginSearchPaused(true)
         externalOverlayHideJob?.cancel()
         // Preserve the current message; blanking it made the card's Crossfade flash
@@ -1847,7 +1898,8 @@ class StreamScreenViewModel @Inject constructor(
             episode = playbackInfo.episode,
             episodeTitle = playbackInfo.episodeTitle,
             year = playbackInfo.year,
-            profileId = playbackInfo.profileId
+            profileId = playbackInfo.profileId,
+            tvdbContextJson = playbackInfo.tvdbContextJson
         )
 
         var launched = false
@@ -2020,6 +2072,7 @@ class StreamScreenViewModel @Inject constructor(
         val effectiveDuration = durationMs ?: 0L
 
         viewModelScope.launch {
+            val context = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(playbackInfo.tvdbContextJson)
             val progress = WatchProgress(
                 contentId = contentId,
                 contentType = playbackInfo.contentType ?: "movie",
@@ -2033,7 +2086,10 @@ class StreamScreenViewModel @Inject constructor(
                 episodeTitle = playbackInfo.episodeTitle,
                 position = positionMs,
                 duration = effectiveDuration,
-                lastWatched = System.currentTimeMillis()
+                lastWatched = System.currentTimeMillis(),
+                tvdbContext = context,
+                providerDefaultPlayback = playbackInfo.tvdbContextJson == "provider",
+                tvdbCoverageVerified = context?.permitsTracking(effectiveDuration)
             )
             Log.d(TAG, "Saving external player progress: pos=${positionMs}ms, dur=${effectiveDuration}ms, " +
                 "content=$contentId, video=$videoId")
@@ -2045,7 +2101,8 @@ class StreamScreenViewModel @Inject constructor(
                 0f
             }
             if (progressPercent > 0f) {
-                val scrobbleItem = buildScrobbleItem(playbackInfo)
+                val scrobbleItem = buildScrobbleItem(playbackInfo)?.let { media -> media.copy(catalog = media.catalog?.copy(
+                    tvdbCoverageVerified = progress.tvdbCoverageVerified != false)) }
                 if (scrobbleItem != null) {
                     trackingScrobbleCoordinator.scrobble(
                         TrackingScrobbleAction.START,
@@ -2072,7 +2129,7 @@ class StreamScreenViewModel @Inject constructor(
             episodeNumber = playbackInfo.episode,
             episodeTitle = playbackInfo.episodeTitle
         )
-        return reference.takeIf { media ->
+        return reference.copy(catalog = reference.catalog?.copy(tvdbContext = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(playbackInfo.tvdbContextJson), providerDefault = playbackInfo.tvdbContextJson == "provider")).takeIf { media ->
             media.hasResolvableIdentity &&
                 (media.kind == TrackingMediaKind.MOVIE ||
                     media.kind == TrackingMediaKind.ANIME ||
@@ -2131,7 +2188,8 @@ data class StreamPlaybackInfo(
     val contentLanguage: String? = null,
     val audioDelayMs: Int? = null,
     val audioDelayLanguage: String? = null,
-    val isServerStream: Boolean = false
+    val isServerStream: Boolean = false,
+    val tvdbContextJson: String? = null
 )
 
 private fun playbackUrlFor(playbackInfo: StreamPlaybackInfo): String? =

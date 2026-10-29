@@ -445,8 +445,8 @@ private fun nextEpisodeDisplayLabel(nextEpisode: NextEpisodeInfo): String {
     val context = LocalContext.current
     val code = stringResource(
         R.string.season_episode_format,
-        nextEpisode.season,
-        nextEpisode.episode,
+        nextEpisode.displaySeason ?: nextEpisode.season,
+        nextEpisode.displayEpisode ?: nextEpisode.episode,
     )
     val localizedTitle = nextEpisode.title.localizeEpisodeTitle(context)
     return "$code • $localizedTitle"

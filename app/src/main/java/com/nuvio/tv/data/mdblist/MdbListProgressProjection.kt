@@ -53,7 +53,7 @@ internal class MdbListProgressProjection private constructor(
         }.map { session ->
             progress(
                 session.type, session.media, session.season, session.episode, session.episodeTitle,
-                session.progress, session.updatedAt, session.runtimeMinutes, WatchProgress.SOURCE_REMOTE_PLAYBACK
+                session.progress, session.updatedAt, session.runtimeMinutes, WatchProgress.SOURCE_REMOTE_PLAYBACK, session.episodeTvdbId
             )
         }.groupBy { Triple(it.contentId, it.season, it.episode) }
             .map { (_, entries) -> entries.maxBy(WatchProgress::lastWatched) }
@@ -148,7 +148,7 @@ internal class MdbListProgressProjection private constructor(
             }.map { session ->
                 progress(
                     session.type, session.media, session.season, session.episode, session.episodeTitle,
-                    session.progress, session.updatedAt, session.runtimeMinutes, WatchProgress.SOURCE_REMOTE_PLAYBACK
+                    session.progress, session.updatedAt, session.runtimeMinutes, WatchProgress.SOURCE_REMOTE_PLAYBACK, session.episodeTvdbId
                 )
             }.groupBy { Triple(it.contentId, it.season, it.episode) }
                 .map { (_, entries) -> entries.maxBy(WatchProgress::lastWatched) }
@@ -162,7 +162,7 @@ internal class MdbListProgressProjection private constructor(
             }.map { record ->
                 progress(
                     record.type, record.media, record.season, record.episode, record.episodeTitle,
-                    100f, record.watchedAt, null, WatchProgress.SOURCE_REMOTE_HISTORY
+                    100f, record.watchedAt, null, WatchProgress.SOURCE_REMOTE_HISTORY, record.episodeTvdbId
                 ).copy(excludedNextUpSeasons = droppedById[record.media.ids.contentId].orEmpty().filterNotNull().toSet())
             }
 
@@ -211,8 +211,10 @@ internal class MdbListProgressProjection private constructor(
             percent: Float,
             timestamp: String,
             runtime: Int?,
-            source: String
+            source: String,
+            tvdbEpisodeId: Long? = null
         ) = WatchProgress(
+            tvdbEpisodeId = tvdbEpisodeId,
             contentId = media.ids.contentId,
             contentType = if (type == MdbListItemType.MOVIE) "movie" else "series",
             name = media.title ?: media.ids.contentId,

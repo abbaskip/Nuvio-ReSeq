@@ -24,7 +24,7 @@ import javax.inject.Singleton
 class TraktEpisodeMappingService @Inject constructor(
     private val traktApi: TraktApi,
     private val traktAuthService: TraktAuthService,
-    private val metaRepository: MetaRepository
+    @com.nuvio.tv.core.di.ProviderMetadata private val metaRepository: MetaRepository
 ) {
     companion object {
         private const val TAG = "TraktEpMapSvc"

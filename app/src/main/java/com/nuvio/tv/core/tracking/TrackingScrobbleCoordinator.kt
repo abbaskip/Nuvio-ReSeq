@@ -15,7 +15,8 @@ data class TrackingScrobbleFailure(
 
 @Singleton
 class TrackingScrobbleCoordinator @Inject constructor(
-    private val providerRegistry: TrackingProviderRegistry
+    private val providerRegistry: TrackingProviderRegistry,
+    private val tvdb: com.nuvio.tv.data.tvdb.TvdbTrackingResolver? = null
 ) {
     suspend fun scrobble(
         action: TrackingScrobbleAction,
@@ -51,19 +52,54 @@ class TrackingScrobbleCoordinator @Inject constructor(
         event = event
     )
 
+    /** Called only when the player's existing tick crosses a verified content boundary. */
+    suspend fun scrobbleBoundary(previous: TrackingScrobbleEvent, current: TrackingScrobbleEvent): List<TrackingScrobbleFailure> {
+        val resolver = tvdb ?: return emptyList()
+        val beforeCatalog = previous.media.catalog ?: return emptyList()
+        val afterCatalog = current.media.catalog ?: return emptyList()
+        val context = beforeCatalog.tvdbContext ?: return emptyList()
+        if (afterCatalog.tvdbContext != context || beforeCatalog.contentId != afterCatalog.contentId ||
+            !beforeCatalog.tvdbCoverageVerified || !afterCatalog.tvdbCoverageVerified) return emptyList()
+        return supervisorScope {
+            providerRegistry.connectedScrobblers().map { delegate -> async {
+                try {
+                    val before = resolver.scrobbleEvents(delegate.providerId, TrackingScrobbleAction.PAUSE, previous, progressOnly = true)
+                    val after = resolver.scrobbleEvents(delegate.providerId, TrackingScrobbleAction.START, current, progressOnly = true)
+                    val old = before?.singleOrNull() ?: return@async null
+                    val next = after?.singleOrNull() ?: return@async null
+                    if (old.second.media == next.second.media) return@async null
+                    delegate.scrobble(old.first, old.second)
+                    delegate.scrobble(next.first, next.second)
+                    null
+                } catch (cancelled: CancellationException) { throw cancelled }
+                catch (error: Throwable) { TrackingScrobbleFailure(delegate.providerId, error) }
+            } }.awaitAll().filterNotNull()
+        }
+    }
+
     private suspend fun dispatch(
         scrobblers: Collection<TrackingScrobbler>,
         action: TrackingScrobbleAction,
         event: TrackingScrobbleEvent
-    ): List<TrackingScrobbleFailure> = dispatchTrackingScrobble(scrobblers, action, event)
+    ): List<TrackingScrobbleFailure> = dispatchTrackingScrobble(resolved(scrobblers), action, event)
         .also { failures -> failures.log(action, false) }
 
     private suspend fun dispatchSeek(
         scrobblers: Collection<TrackingScrobbler>,
         action: TrackingScrobbleAction,
         event: TrackingScrobbleEvent
-    ): List<TrackingScrobbleFailure> = dispatchTrackingSeekScrobble(scrobblers, action, event)
+    ): List<TrackingScrobbleFailure> = dispatchTrackingSeekScrobble(resolved(scrobblers), action, event)
         .also { failures -> failures.log(action, true) }
+
+    private fun resolved(scrobblers: Collection<TrackingScrobbler>) = if (tvdb == null) scrobblers else scrobblers.map { delegate ->
+        object : TrackingScrobbler by delegate {
+            override suspend fun scrobble(action: TrackingScrobbleAction, event: TrackingScrobbleEvent) {
+                val events = tvdb.scrobbleEvents(delegate.providerId, action, event)
+                    ?: throw IllegalStateException("TVDB episode mapping unresolved; remote scrobble withheld")
+                events.forEach { (mappedAction, mappedEvent) -> delegate.scrobble(mappedAction, mappedEvent) }
+            }
+        }
+    }
 
     private fun List<TrackingScrobbleFailure>.log(
         action: TrackingScrobbleAction,

@@ -907,7 +907,8 @@ open class MainActivity : ComponentActivity() {
                                     contentId = next.contentId,
                                     contentName = next.contentName,
                                     returnToDetailOnBack = next.contentType.equals("series", ignoreCase = true),
-                                    profileId = next.profileId
+                                    profileId = next.profileId,
+                                    tvdbContext = next.tvdbContextJson
                                 )
                             ) {
                                 // Replace any lingering Stream screen (e.g. the previous

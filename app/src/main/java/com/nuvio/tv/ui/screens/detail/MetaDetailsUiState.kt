@@ -95,7 +95,8 @@ data class MetaDetailsUiState(
     val commentsEpisodeTarget: Video? = null,
     val selectedComment: TraktCommentReview? = null,
     val userMessage: String? = null,
-    val userMessageIsError: Boolean = false
+    val userMessageIsError: Boolean = false,
+    val unverifiedEpisodeProgress: Int = 0
 )
 
 sealed class MetaDetailsEvent {

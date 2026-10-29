@@ -323,8 +323,8 @@ internal fun buildContinueWatchingItem(
     val heroPreview = when (item) {
         is ContinueWatchingItem.InProgress -> {
             val isSeries = isSeriesType(item.progress.contentType)
-            val s = item.progress.season
-            val e = item.progress.episode
+            val s = item.displaySeason ?: item.progress.season
+            val e = item.displayEpisode ?: item.progress.episode
             val episodeCode = if (s != null && e != null) {
                 context.getString(R.string.season_episode_format, s, e)
             } else {
@@ -362,8 +362,8 @@ internal fun buildContinueWatchingItem(
         is ContinueWatchingItem.NextUp -> {
             val episodeCode = context.getString(
                 R.string.season_episode_format,
-                item.info.season,
-                item.info.episode
+                item.info.displaySeason ?: item.info.season,
+                item.info.displayEpisode ?: item.info.episode
             )
             val episodeTitle = item.info.episodeTitle?.takeIf { it.isNotBlank() }?.localizeEpisodeTitle(context)
             val episodeLabel = if (episodeTitle != null) "$episodeCode · $episodeTitle" else episodeCode
@@ -426,8 +426,8 @@ internal fun buildContinueWatchingItem(
         },
         subtitle = when (item) {
             is ContinueWatchingItem.InProgress -> {
-                val ps = item.progress.season
-                val pe = item.progress.episode
+                val ps = item.displaySeason ?: item.progress.season
+                val pe = item.displayEpisode ?: item.progress.episode
                 if (ps != null && pe != null) {
                     context.getString(R.string.season_episode_format, ps, pe)
                 } else {
@@ -437,8 +437,8 @@ internal fun buildContinueWatchingItem(
             is ContinueWatchingItem.NextUp -> {
                 val code = context.getString(
                     R.string.season_episode_format,
-                    item.info.season,
-                    item.info.episode
+                    item.info.displaySeason ?: item.info.season,
+                    item.info.displayEpisode ?: item.info.episode
                 )
                 if (item.info.hasAired) {
                     code

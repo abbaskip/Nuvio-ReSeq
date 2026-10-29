@@ -42,6 +42,12 @@ interface WatchProgressRepository {
         episode: Int,
         profileId: Int
     ): Flow<WatchProgress?> = getEpisodeProgress(contentId, season, episode)
+
+    fun getProviderEpisodeProgress(contentId: String, season: Int, episode: Int, profileId: Int): Flow<WatchProgress?> =
+        getEpisodeProgress(contentId, season, episode, profileId)
+
+    fun getEpisodeProgress(contentId: String, context: com.nuvio.tv.domain.model.TvdbPlaybackContext, profileId: Int): Flow<WatchProgress?> =
+        getEpisodeProgress(contentId, context.season, context.episode, profileId)
     
     /**
      * Get all episode progress for a series as a map of (season, episode) to progress

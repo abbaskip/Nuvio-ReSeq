@@ -144,8 +144,8 @@ private fun nextEpisodeEndPromptLabel(nextEpisode: NextEpisodeInfo): String {
     if (nextEpisode.isOtherType) return nextEpisode.title
     val episodeCode = stringResource(
         R.string.season_episode_format,
-        nextEpisode.season,
-        nextEpisode.episode
+        nextEpisode.displaySeason ?: nextEpisode.season,
+        nextEpisode.displayEpisode ?: nextEpisode.episode
     )
     return "$episodeCode - ${nextEpisode.title}"
 }

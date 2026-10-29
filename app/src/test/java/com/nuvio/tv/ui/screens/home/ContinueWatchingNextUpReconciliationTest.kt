@@ -55,6 +55,20 @@ class ContinueWatchingNextUpReconciliationTest {
     }
 
     @Test
+    fun `verified TVDB history rollback replaces a newer cached card without removing other shows`() {
+        val stale = nextUp("series", season = 5, episode = 17, seedSeason = 5, seedEpisode = 16)
+            .let { it.copy(info = it.info.copy(lastWatched = 3000, tvdbEpisodeId = 103)) }
+        val resolved = nextUp("series", season = 5, episode = 16, seedSeason = 5, seedEpisode = 15)
+            .let { it.copy(info = it.info.copy(lastWatched = 1000, tvdbEpisodeId = 102)) }
+        val unrelated = nextUp("other", season = 1, episode = 2, seedSeason = 1, seedEpisode = 1)
+        val result = reconcileConclusiveNextUpItems(listOf(stale, unrelated), listOf(resolved), setOf("series"), emptySet())
+        assertEquals(listOf(unrelated, resolved), result)
+        val cached = result.toCachedNextUpSnapshot(emptySet())
+        assertEquals(16, cached.single { it.contentId == "series" }.episode)
+        assertEquals(1000L, cached.single { it.contentId == "series" }.lastWatched)
+    }
+
+    @Test
     fun `in progress episode continues to suppress resolved next up`() {
         val inProgress = inProgress("series")
         val resolved = nextUp("series", season = 2, episode = 4, seedSeason = 2, seedEpisode = 3)

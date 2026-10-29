@@ -15,6 +15,7 @@ import com.nuvio.tv.core.tracking.buildTrackingMediaReference
 import com.nuvio.tv.core.tracking.scrobbleDiagnosticIdentity
 import com.nuvio.tv.data.local.InternalPlayerEngine
 import com.nuvio.tv.data.local.SubtitleStyleSettings
+import com.nuvio.tv.data.tvdb.activeProgressPart
 import com.nuvio.tv.data.mediaserver.ServerItemRef
 import com.nuvio.tv.data.repository.PlaybackIssueErrorInput
 import com.nuvio.tv.data.repository.PlaybackIssuePlaybackSettingsInput
@@ -337,6 +338,7 @@ internal fun isShortPlaceholderDuration(duration: Long): Boolean = duration in 1
 internal fun PlayerRuntimeController.startProgressUpdates() {
     progressJob?.cancel()
     progressJob = scope.launch {
+        var previousTvdbEvent: TrackingScrobbleEvent? = null
         while (isActive) {
             if (isUsingMpvEngine()) {
                 val view = mpvView
@@ -436,6 +438,7 @@ internal fun PlayerRuntimeController.startProgressUpdates() {
                         handleNaturalPlaybackEnded()
                     }
                 }
+                previousTvdbEvent = updateTvdbLiveScrobble(previousTvdbEvent)
                 reportServerPlayback()
                 delay(500)
                 continue
@@ -523,6 +526,7 @@ internal fun PlayerRuntimeController.startProgressUpdates() {
                     }
                 }
             }
+            previousTvdbEvent = updateTvdbLiveScrobble(previousTvdbEvent)
             reportServerPlayback()
             delay(500)
         }
@@ -864,21 +868,29 @@ internal fun PlayerRuntimeController.currentWatchProgress(
     position: Long,
     duration: Long,
     lastWatched: Long
-) = WatchProgress(
-    contentId = parentContentId,
-    contentType = parentContentType,
-    name = contentName ?: title,
-    poster = poster,
-    backdrop = backdrop,
-    logo = logo,
-    videoId = currentVideoId ?: parentContentId,
-    season = currentSeason,
-    episode = currentEpisode,
-    episodeTitle = currentEpisodeTitle,
-    position = position,
-    duration = duration,
-    lastWatched = lastWatched
-)
+): WatchProgress {
+    val context = currentTvdbContext()
+    return WatchProgress(
+        contentId = parentContentId,
+        contentType = parentContentType,
+        name = contentName ?: title,
+        poster = poster,
+        backdrop = backdrop,
+        logo = logo,
+        videoId = currentVideoId ?: parentContentId,
+        season = currentSeason,
+        episode = currentEpisode,
+        episodeTitle = currentEpisodeTitle,
+        position = position,
+        duration = duration,
+        lastWatched = lastWatched,
+        tvdbEpisodeIds = context?.episodeIds,
+        tvdbEpisodeId = context?.episodeIds?.firstOrNull(),
+        tvdbContext = context,
+        providerDefaultPlayback = navigationArgs.tvdbContextJson == "provider",
+        tvdbCoverageVerified = context?.permitsTracking(duration)
+    )
+}
 
 internal fun PlayerRuntimeController.saveWatchProgressInternal(position: Long, duration: Long, syncRemote: Boolean = true) {
     if (contentType.equals("cloud", ignoreCase = true)) {
@@ -989,6 +1001,32 @@ internal fun PlayerRuntimeController.buildScrobbleItem(): TrackingMediaReference
     }
 }
 
+private fun PlayerRuntimeController.tvdbScrobbleEvent(item: TrackingMediaReference, percent: Double): TrackingScrobbleEvent {
+    val context = currentTvdbContext() ?: return TrackingScrobbleEvent(
+        item.copy(catalog = item.catalog?.copy(providerDefault = navigationArgs.tvdbContextJson == "provider")), percent)
+    return TrackingScrobbleEvent(item.copy(catalog = item.catalog?.copy(tvdbEpisodeIds = context.episodeIds, tvdbContext = context,
+        tvdbCoverageVerified = context.permitsTracking(currentPlaybackDurationMs().takeIf { it > 0 } ?: lastKnownDuration))), percent)
+}
+
+private fun PlayerRuntimeController.updateTvdbLiveScrobble(previous: TrackingScrobbleEvent?): TrackingScrobbleEvent? {
+    val context = currentTvdbContext()?.takeIf { it.episodeIds.size > 1 } ?: return null
+    if (!hasRenderedFirstFrame || !isPlaybackCurrentlyPlaying() ||
+        !context.permitsTracking(currentPlaybackDurationMs().takeIf { it > 0 } ?: lastKnownDuration)) return null
+    val item = currentScrobbleItem ?: return null
+    val current = tvdbScrobbleEvent(item, currentPlaybackProgressPercent().toDouble())
+    if (!hasRequestedScrobbleStartForCurrentItem) {
+        if (current.progressPercent < WatchProgress.COMPLETED_THRESHOLD * 100) emitScrobbleStart()
+    } else if (!hasSentScrobbleStartForCurrentItem) {
+        return previous ?: current
+    } else if (previous?.media?.catalog?.tvdbContext == context &&
+        context.activeProgressPart(previous.progressPercent) != context.activeProgressPart(current.progressPercent)) {
+        scope.launch {
+            trackingScrobbleCoordinator.scrobbleBoundary(previous, current)
+        }
+    }
+    return current
+}
+
 internal fun PlayerRuntimeController.emitScrobbleStart() {
     logScrobbleDiagnostic("start_evaluated")
     if (isShortPlaceholderStream()) {
@@ -1000,12 +1038,13 @@ internal fun PlayerRuntimeController.emitScrobbleStart() {
         return
     }
 
-    // Don't start a new Trakt scrobble session if playback resumes at ≥80%.
-    // This avoids creating a duplicate history entry when the user continues
-    // watching something already marked as watched. If the user seeks back
-    // below 80%, the next progress update will re-trigger scrobble start.
+    // Preserve the ordinary 80% restart limit. Compound estimates stay below
+    // tracker completion thresholds until verified source completion at 90%.
     val currentProgress = currentPlaybackProgressPercent()
-    if (currentProgress >= 80f) {
+    val context = currentTvdbContext()
+    if (context != null && !context.permitsTracking(currentPlaybackDurationMs().takeIf { it > 0 } ?: lastKnownDuration)) return
+    val startLimit = if ((context?.episodeIds?.size ?: 0) > 1) WatchProgress.COMPLETED_THRESHOLD * 100 else 80f
+    if (currentProgress >= startLimit) {
         logScrobbleDiagnostic("start_skipped", "reason=completion_threshold progress=$currentProgress")
         return
     }
@@ -1031,7 +1070,7 @@ internal fun PlayerRuntimeController.emitScrobbleStart() {
         logScrobbleDiagnostic("start_dispatching", "requestGeneration=$requestGeneration progress=$progressPercent")
         val failures = trackingScrobbleCoordinator.scrobble(
             action = TrackingScrobbleAction.START,
-            event = TrackingScrobbleEvent(item, progressPercent.toDouble())
+            event = tvdbScrobbleEvent(item, progressPercent.toDouble())
         )
         logScrobbleDiagnostic(
             "start_dispatched",
@@ -1066,11 +1105,12 @@ internal fun PlayerRuntimeController.emitScrobbleStop(progressPercent: Float? = 
 
     val percent = provided ?: currentPlaybackProgressPercent()
     logScrobbleDiagnostic("stop_queued", "progress=$percent")
+    val event = tvdbScrobbleEvent(item, percent.toDouble())
     scope.launch(kotlinx.coroutines.NonCancellable) {
         logScrobbleDiagnostic("stop_dispatching", "progress=$percent")
         val failures = trackingScrobbleCoordinator.scrobble(
             action = TrackingScrobbleAction.STOP,
-            event = TrackingScrobbleEvent(item, percent.toDouble())
+            event = event
         )
         logScrobbleDiagnostic("stop_dispatched", "progress=$percent failures=${failures.map { it.providerId.storageId }}")
     }
@@ -1101,11 +1141,12 @@ internal fun PlayerRuntimeController.emitScrobblePause(progressPercent: Float? =
         return
     }
     logScrobbleDiagnostic("pause_queued", "progress=$percent")
+    val event = tvdbScrobbleEvent(item, percent.toDouble())
     scope.launch(kotlinx.coroutines.NonCancellable) {
         logScrobbleDiagnostic("pause_dispatching", "progress=$percent")
         val failures = trackingScrobbleCoordinator.scrobble(
             action = TrackingScrobbleAction.PAUSE,
-            event = TrackingScrobbleEvent(item, percent.toDouble())
+            event = event
         )
         logScrobbleDiagnostic("pause_dispatched", "progress=$percent failures=${failures.map { it.providerId.storageId }}")
     }
@@ -1142,6 +1183,8 @@ internal fun PlayerRuntimeController.emitPauseScrobbleForCurrentProgress() {
 }
 
 internal fun PlayerRuntimeController.emitSeekScrobbleRestart(progressPercent: Float) {
+    // Compound identity transitions are handled once by the existing playback tick.
+    if ((currentTvdbContext()?.episodeIds?.size ?: 0) > 1) return
     if (progressPercent < 1f || progressPercent >= 80f) return
     if (isShortPlaceholderStream()) return
     val item = currentScrobbleItem ?: return
@@ -1149,12 +1192,12 @@ internal fun PlayerRuntimeController.emitSeekScrobbleRestart(progressPercent: Fl
     scope.launch {
         trackingScrobbleCoordinator.scrobbleSeek(
             action = TrackingScrobbleAction.STOP,
-            event = TrackingScrobbleEvent(item, progressPercent.toDouble())
+            event = tvdbScrobbleEvent(item, progressPercent.toDouble())
         )
         if (isPlaybackCurrentlyPlaying()) {
             trackingScrobbleCoordinator.scrobbleSeek(
                 action = TrackingScrobbleAction.START,
-                event = TrackingScrobbleEvent(item, currentPlaybackProgressPercent().toDouble())
+                event = tvdbScrobbleEvent(item, currentPlaybackProgressPercent().toDouble())
             )
         }
     }

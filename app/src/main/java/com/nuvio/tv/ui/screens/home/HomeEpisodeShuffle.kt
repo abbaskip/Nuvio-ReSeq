@@ -31,20 +31,43 @@ internal fun HomeViewModel.createShuffleHomeState(): StateFlow<HomeUiState> {
             } + progress.filter { it.isCompleted() }.mapNotNull { item ->
                 item.season?.let { season -> item.episode?.let { item.contentId to (season to it) } }
             }
-            keys.groupBy({ it.first }, { it.second }).mapValues { it.value.toSet() }
+            keys.groupBy({ it.first }, { it.second }).mapValues { it.value.toSet() } to progress
         }.distinctUntilChanged(),
         shuffleHomeRefresh,
         finished
-    ) { state, profile, watched, refresh, seeds ->
+    ) { state, profile, history, refresh, seeds ->
+        val watched = history.first.toMutableMap()
+        (state.continueWatchingItems + state.upcomingItems).forEach { item ->
+            val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
+            val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
+            cachedCwMeta(type, id)?.takeIf { it.tvdbOrder }?.let { meta ->
+                val videos = meta.videos.map { it.asTvdbVideo() }
+                watched[id] = history.second.filter { it.contentId == id && it.isCompleted() }.mapNotNull { progress ->
+                    com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(videos, progress)?.let { video -> video.season!! to video.episode!! }
+                }.toSet()
+            }
+        }
         val cards = seeds.mapNotNull { seed -> cachedCwMeta(seed.contentType, seed.contentId)?.let(seed::toShuffleCard) }
         applyHomeShuffle(state, profile, watched, episodeShuffle, refresh.visit, continueWatchingSortMode, cards) { id, type ->
             cachedCwMeta(type, id)?.videos?.map { video ->
                 Video(video.id, video.title.orEmpty(), video.released, video.thumbnail,
-                    season = video.season, episode = video.episode, overview = video.overview, available = video.available)
+                    season = video.season, episode = video.episode, overview = video.overview, available = video.available,
+                    episodeIdentity = video.episodeIdentity)
             }
-        }
+        }.let { withTvdbLabels(it) }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, HomeUiState())
 }
+
+private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueWatchingItem? {
+    val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
+    val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
+    val meta = cachedCwMeta(type, id)?.takeIf { it.tvdbOrder } ?: return item
+    return projectTvdbContinueWatching(item, meta.videos.map { it.asTvdbVideo() })
+}
+
+private fun HomeViewModel.withTvdbLabels(state: HomeUiState): HomeUiState = state.copy(
+    continueWatchingItems = state.continueWatchingItems.mapNotNull(::projectTvdbItem),
+    upcomingItems = state.upcomingItems.mapNotNull(::projectTvdbItem))
 
 private fun HomeViewModel.finishedShuffleSeeds() = combine(
     watchProgressRepository.observeNextUpSeeds(),
@@ -111,6 +134,7 @@ internal fun applyHomeShuffle(
                     ) ?: return@mapNotNull null
                     item.copy(shufflePlayback = true, info = info.copy(
                         videoId = selected.id, season = selected.season!!, episode = selected.episode!!,
+                        tvdbEpisodeId = selected.episodeIdentity?.tvdbEpisodeId,
                         episodeTitle = selected.title, episodeDescription = selected.overview,
                         thumbnail = selected.thumbnail, released = selected.released,
                         hasAired = true, airDateLabel = null, releaseTimestamp = null,

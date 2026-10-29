@@ -63,3 +63,16 @@ AGENTS.md
 /PR.md
 docs/
 status-page/
+
+# Private release and development material
+*.jks
+*.keystore
+*.credentials.clixml
+/TVDB_TECHNICAL_SPEC.md
+/CODEX_IMPLEMENTATION.md
+/TVDB_CODE_REVIEW.md
+/TVDB_IMPLEMENTATION.md
+/verify-tvdb.ps1
+
+/TVDB_*FIX.md
+/ACCESSIBILITY_HANDOVER.md

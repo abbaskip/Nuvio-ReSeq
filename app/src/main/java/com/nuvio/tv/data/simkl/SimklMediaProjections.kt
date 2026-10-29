@@ -53,7 +53,8 @@ fun SimklSyncSnapshot.toSimklWatchedProjection(): SimklWatchedProjection {
                     media,
                     episodeWatchedAt,
                     seasonNumber,
-                    episodeNumber
+                    episodeNumber,
+                    episode.ids?.tvdbId
                 )
             }
         }
@@ -288,8 +289,10 @@ private fun SimklLibraryEntry.toWatchedItem(
     media: SimklMedia,
     watchedAt: Long,
     season: Int? = null,
-    episode: Int? = null
+    episode: Int? = null,
+    tvdbEpisodeId: Long? = null
 ): WatchedItem = WatchedItem(
+    tvdbEpisodeId = tvdbEpisodeId,
     contentId = contentId,
     contentType = contentType,
     title = title,

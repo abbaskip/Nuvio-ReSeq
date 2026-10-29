@@ -114,6 +114,7 @@ fun HeroContentSection(
     episodeShuffle: com.nuvio.tv.domain.model.EpisodeShuffleSettings = com.nuvio.tv.domain.model.EpisodeShuffleSettings(),
     shuffleActionPending: Boolean = false,
     onRandomEpisodeClick: () -> Unit = {},
+    onEpisodeOrderChanged: (() -> Unit)? = null,
     randomEpisodeFocusRequester: FocusRequester? = null,
     hideLogoDuringTrailer: Boolean = false,
     mdbListRatings: MDBListRatings? = null,
@@ -321,6 +322,10 @@ fun HeroContentSection(
                                 focusRequester = randomEpisodeFocusRequester,
                                 onFocused = onHeroActionFocused
                             )
+                        }
+                        if (onEpisodeOrderChanged != null && meta.apiType in listOf("series", "tv") &&
+                            !com.nuvio.tv.data.mediaserver.ServerItemRef.isServerId(meta.id)) {
+                            TvdbOrderControl(meta, onEpisodeOrderChanged)
                         }
                     }
 

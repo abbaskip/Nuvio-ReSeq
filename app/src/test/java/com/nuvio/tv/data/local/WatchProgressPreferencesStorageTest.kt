@@ -27,6 +27,30 @@ class WatchProgressPreferencesStorageTest {
     private val gson = Gson()
 
     @Test
+    fun `TVDB stable identity survives persistence and a position-only update`() = runTest {
+        val harness = harness(emptyMap())
+        val episode = progress("firefly", lastWatched = 1L).copy(videoId = "firefly:1:6", season = 1, episode = 6,
+            episodeTitle = "Shindig", tvdbEpisodeId = 297994)
+        harness.preferences.saveProgress(episode)
+        harness.preferences.saveProgress(episode.copy(position = 50L, tvdbEpisodeId = null, lastWatched = 2L))
+        val recreated = WatchProgressPreferences(harness.factory, harness.profileManager)
+        val result = recreated.getAllRawEntries().getValue("firefly_s1e6")
+        assertEquals(297994L, result.tvdbEpisodeId)
+        assertEquals(6, result.episode)
+        assertEquals(50L, result.position)
+    }
+
+    @Test
+    fun `an unrelated episode occupying the same slot cannot inherit TVDB identity`() = runTest {
+        val harness = harness(emptyMap())
+        val episode = progress("firefly", lastWatched = 1L).copy(videoId = "firefly:1:6", season = 1, episode = 6,
+            episodeTitle = "Shindig", tvdbEpisodeId = 297994)
+        harness.preferences.saveProgress(episode)
+        harness.preferences.saveProgress(episode.copy(tvdbEpisodeId = null, episodeTitle = "Another episode", lastWatched = 2L))
+        assertNull(harness.preferences.getAllRawEntries().getValue("firefly_s1e6").tvdbEpisodeId)
+    }
+
+    @Test
     fun `empty legacy storage initializes without writing bucket files`() = runTest {
         val harness = harness(emptyMap())
 

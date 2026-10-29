@@ -18,6 +18,7 @@ import com.nuvio.tv.domain.repository.MetaRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.async
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,6 +72,26 @@ class TraktProgressServiceFailureTest {
         delay(SETTLE_MS)
 
         assertTrue(service.isShowHiddenFromProgress(DROPPED_SHOW_ID))
+    }
+
+    @Test
+    fun `TVDB canonical first waits for the real snapshot then reuses an empty loaded snapshot`() = runBlocking {
+        val service = createService()
+        val requested = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        coEvery { traktApi.getShowProgressWatched(any(), any()) } coAnswers {
+            requested.complete(Unit)
+            release.await()
+            Response.success(com.nuvio.tv.data.remote.dto.trakt.TraktShowProgressResponseDto(seasons = emptyList()))
+        }
+        val first = async { service.observeCanonicalEpisodeProgress("tt0000003").first() }
+        withTimeout(TIMEOUT_MS) { requested.await() }
+        delay(100)
+        assertTrue("Not-loaded must not be emitted as empty history", !first.isCompleted)
+        release.complete(Unit)
+        assertTrue(withTimeout(TIMEOUT_MS) { first.await() }.isEmpty())
+        assertTrue(withTimeout(TIMEOUT_MS) { service.observeCanonicalEpisodeProgress("tt0000003").first() }.isEmpty())
+        io.mockk.coVerify(exactly = 1) { traktApi.getShowProgressWatched(any(), any()) }
     }
 
     private fun createService(): TraktProgressService {

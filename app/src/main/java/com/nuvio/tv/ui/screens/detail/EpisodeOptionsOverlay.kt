@@ -557,7 +557,7 @@ internal fun episodeStepForKey(keyCode: Int, isRtl: Boolean): Int = when (keyCod
 }
 
 internal fun adjacentEpisode(episodes: List<Video>, current: Video, step: Int): Video? {
-    val index = episodes.indexOfFirst { it.id == current.id }
+    val index = episodes.indexOfFirst { it.episodeIdentity?.canonicalKey?.let { key -> key == current.episodeIdentity?.canonicalKey } ?: (it.id == current.id) }
     if (index < 0) return null
     return episodes.getOrNull(index + step)
 }

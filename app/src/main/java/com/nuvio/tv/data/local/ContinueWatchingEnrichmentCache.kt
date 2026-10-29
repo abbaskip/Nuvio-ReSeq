@@ -41,7 +41,8 @@ data class CachedNextUpItem(
     val seedSeason: Int? = null,
     val seedEpisode: Int? = null,
     val contentLanguage: String? = null,
-    val ratingVisible: Boolean = true
+    val ratingVisible: Boolean = true,
+    val tvdbEpisodeId: Long? = null
 )
 
 data class CachedInProgressItem(
@@ -65,8 +66,11 @@ data class CachedInProgressItem(
     val genres: List<String> = emptyList(),
     val releaseInfo: String? = null,
     val contentLanguage: String? = null,
-    val ratingVisible: Boolean = true
+    val ratingVisible: Boolean = true,
+    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null
 )
+
+data class CwContentInvalidation(val profileId: Int, val contentIds: Set<String>, val version: Long)
 
 @Singleton
 class ContinueWatchingEnrichmentCache @Inject constructor(
@@ -89,14 +93,16 @@ class ContinueWatchingEnrichmentCache @Inject constructor(
     private val _cacheCleared = kotlinx.coroutines.flow.MutableStateFlow(0)
     val cacheCleared: kotlinx.coroutines.flow.StateFlow<Int> = _cacheCleared
 
+    private val _contentInvalidated = kotlinx.coroutines.flow.MutableStateFlow<CwContentInvalidation?>(null)
+    val contentInvalidated: kotlinx.coroutines.flow.StateFlow<CwContentInvalidation?> = _contentInvalidated
+
     /** Incremented on every successful snapshot write; channel sync observes this. */
     private val _snapshotVersion = kotlinx.coroutines.flow.MutableStateFlow(0)
     val snapshotVersion: kotlinx.coroutines.flow.StateFlow<Int> = _snapshotVersion
 
     // --- Next Up snapshot cache ---
 
-    private fun nextUpFile(): File {
-        val profileId = profileManager.activeProfileId.value
+    private fun nextUpFile(profileId: Int = profileManager.activeProfileId.value): File {
         val dir = File(context.filesDir, "cw_enrichment")
         dir.mkdirs()
         return File(dir, "nextup_${profileId}.json")
@@ -141,8 +147,7 @@ class ContinueWatchingEnrichmentCache @Inject constructor(
 
     // --- In-progress snapshot cache ---
 
-    private fun inProgressFile(): File {
-        val profileId = profileManager.activeProfileId.value
+    private fun inProgressFile(profileId: Int = profileManager.activeProfileId.value): File {
         val dir = File(context.filesDir, "cw_enrichment")
         dir.mkdirs()
         return File(dir, "inprogress_${profileId}.json")
@@ -185,9 +190,21 @@ class ContinueWatchingEnrichmentCache @Inject constructor(
         }
     }
 
-    /**
-     * Deletes all CW enrichment cache files for the active profile.
-     */
+    /** Order changes refresh derived metadata, not the existing rendered snapshot.
+     * The normal pipeline replaces these cards after verified projection; its
+     * playback boundary independently validates a card restored from disk. */
+    suspend fun invalidateContent(profileId: Int, contentIds: Set<String>) = withContext(Dispatchers.IO) {
+        if (contentIds.isEmpty()) return@withContext
+        mutex.withLock {
+            lastNextUpHash = 0
+            lastInProgressHash = 0
+            lastNextUpWriteMs = 0L
+            lastInProgressWriteMs = 0L
+            _contentInvalidated.value = CwContentInvalidation(profileId, contentIds, (_contentInvalidated.value?.version ?: 0L) + 1)
+        }
+    }
+
+    /** Deletes all CW enrichment cache files for the active profile. */
     suspend fun clearAll() = withContext(Dispatchers.IO) {
         mutex.withLock {
             try {

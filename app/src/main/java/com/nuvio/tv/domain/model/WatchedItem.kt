@@ -11,7 +11,9 @@ data class WatchedItem(
     val releaseInfo: String? = null,
     override val trackingProviderId: String? = null,
     override val trackingProviderItemId: String? = null,
-    override val trackingSourceUrl: String? = null
+    override val trackingSourceUrl: String? = null,
+    val tvdbEpisodeId: Long? = null,
+    val tvdbEpisodeIds: List<Long>? = null
 ) : TrackingAttributedItem {
     override val trackingContentId: String
         get() = contentId

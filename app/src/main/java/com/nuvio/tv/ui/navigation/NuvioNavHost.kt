@@ -555,6 +555,11 @@ private fun PlaybackNavHost(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("tvdbContext") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 }
             )
         ) { backStackEntry ->
@@ -647,7 +652,8 @@ private fun PlaybackNavHost(
                                 contentLanguage = playbackInfo.contentLanguage,
                                 profileId = playbackInfo.profileId,
                                 audioDelayMs = playbackInfo.audioDelayMs,
-                                audioDelayLanguage = playbackInfo.audioDelayLanguage
+                                audioDelayLanguage = playbackInfo.audioDelayLanguage,
+                                tvdbContext = playbackInfo.tvdbContextJson
                             )
                         )
                     }
@@ -690,7 +696,8 @@ private fun PlaybackNavHost(
                                 contentLanguage = playbackInfo.contentLanguage,
                                 profileId = playbackInfo.profileId,
                                 audioDelayMs = playbackInfo.audioDelayMs,
-                                audioDelayLanguage = playbackInfo.audioDelayLanguage
+                                audioDelayLanguage = playbackInfo.audioDelayLanguage,
+                                tvdbContext = playbackInfo.tvdbContextJson
                             )
                         ) {
                             popUpTo(Screen.Stream.route) { inclusive = true }
@@ -854,6 +861,11 @@ private fun PlaybackNavHost(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("tvdbContext") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 }
             )
         ) { backStackEntry ->
@@ -978,7 +990,8 @@ private fun PlaybackNavHost(
                                         manualSelection = true,
                                         returnToDetailOnBack = returnToDetailOnBack,
                                         returnToHomeOnBack = returnToHomeOnBack,
-                                        profileId = args?.getString("profileId")?.toIntOrNull()
+                                        profileId = args?.getString("profileId")?.toIntOrNull(),
+                                tvdbContext = args?.getString("tvdbContext")
                                     )
                                 ) {
                                     popUpTo(Screen.Stream.route) { inclusive = true }
@@ -1026,7 +1039,8 @@ private fun PlaybackNavHost(
                             runtime = null,
                             returnToDetailOnBack = returnToDetailOnBack,
                             returnToHomeOnBack = returnToHomeOnBack,
-                            profileId = args?.getString("profileId")?.toIntOrNull()
+                            profileId = args?.getString("profileId")?.toIntOrNull(),
+                                tvdbContext = args?.getString("tvdbContext")
                         )
                         navController.navigate(route) {
                             popUpTo(Screen.Player.route) { inclusive = true }
@@ -1156,7 +1170,8 @@ private fun PlaybackNavHost(
                                     ?.toBooleanStrictOrNull() == true,
                                 returnToHomeOnBack = args?.getString("returnToHomeOnBack")
                                     ?.toBooleanStrictOrNull() == true,
-                                profileId = args?.getString("profileId")?.toIntOrNull()
+                                profileId = args?.getString("profileId")?.toIntOrNull(),
+                                tvdbContext = args?.getString("tvdbContext")
                             )
 
                             navController.navigate(route) {

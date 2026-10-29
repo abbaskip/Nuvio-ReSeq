@@ -28,6 +28,14 @@ interface TmdbApi {
         @Query("api_key") apiKey: String
     ): Response<TmdbExternalIdsResponse>
 
+    @GET("tv/{tv_id}/season/{season_number}/episode/{episode_number}/external_ids")
+    suspend fun getTvEpisodeExternalIds(
+        @Path("tv_id") tvId: Int,
+        @Path("season_number") season: Int,
+        @Path("episode_number") episode: Int,
+        @Query("api_key") apiKey: String
+    ): Response<TmdbExternalIdsResponse>
+
     @GET("movie/{movie_id}/videos")
     suspend fun getMovieVideos(
         @Path("movie_id") movieId: Int,
@@ -296,7 +304,11 @@ data class TmdbFindResult(
     @Json(name = "id") val id: Int,
     @Json(name = "title") val title: String? = null,
     @Json(name = "name") val name: String? = null,
-    @Json(name = "media_type") val mediaType: String? = null
+    @Json(name = "media_type") val mediaType: String? = null,
+    @Json(name = "show_id") val showId: Int? = null,
+    @Json(name = "season_number") val seasonNumber: Int? = null,
+    @Json(name = "episode_number") val episodeNumber: Int? = null,
+    @Json(name = "air_date") val airDate: String? = null
 )
 
 @JsonClass(generateAdapter = true)

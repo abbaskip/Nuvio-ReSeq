@@ -73,5 +73,6 @@ data class TraktEpisodeDto(
     @Json(name = "title") val title: String? = null,
     @Json(name = "season") val season: Int? = null,
     @Json(name = "number") val number: Int? = null,
-    @Json(name = "ids") val ids: TraktIdsDto? = null
+    @Json(name = "ids") val ids: TraktIdsDto? = null,
+    @Json(name = "first_aired") val firstAired: String? = null
 )

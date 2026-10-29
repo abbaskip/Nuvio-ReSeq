@@ -257,6 +257,7 @@ private fun SimklMedia.simklTrackingContentIds(): Set<String> = buildSet {
 }
 
 private fun WatchedItem.toSimklCompletedProgress(): WatchProgress = WatchProgress(
+    tvdbEpisodeId = tvdbEpisodeId,
     contentId = contentId,
     contentType = contentType,
     name = title,

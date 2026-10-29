@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">Nuvio ReSeq</string>
     <string name="type_movie">Film</string>
     <string name="type_series">Serial</string>
 
@@ -114,7 +114,7 @@
     <!-- AboutScreen -->
     <string name="about_title">Despre</string>
     <string name="about_subtitle">Informații despre aplicație, actualizări și legături legale</string>
-    <string name="about_made_with_love">Făcut cu ❤️ de Tapframe și prieteni</string>
+    <string name="about_made_with_love">Nuvio ReSeq by abbaskip · Based on Nuvio by Tapframe and contributors</string>
     <string name="about_version">Versiunea %1$s</string>
     <string name="about_check_updates">Verifică actualizările</string>
     <string name="about_check_updates_subtitle">Descarcă cea mai recentă versiune</string>
@@ -431,7 +431,7 @@
     <string name="trakt_stat_watched_hours">Ore vizionate</string>
     <string name="trakt_disconnect">Deconectare</string>
     <string name="trakt_disconnect_title">Deconectare Trakt?</string>
-    <string name="trakt_disconnect_subtitle">Aceasta va deconecta contul tău Trakt de Nuvio.</string>
+    <string name="trakt_disconnect_subtitle">Aceasta va deconecta contul tău Trakt de Nuvio ReSeq.</string>
     <string name="trakt_login">Autentificare</string>
     <string name="trakt_retry">Reîncercare</string>
     <string name="trakt_back">Înapoi</string>
@@ -757,7 +757,7 @@
     <string name="catalog_see_all_empty_subtitle">Încearcă un catalog diferit sau revino mai târziu</string>
 
     <!-- LayoutSelectionScreen -->
-    <string name="layout_selection_welcome">Bine ai venit la Nuvio</string>
+    <string name="layout_selection_welcome">Bine ai venit la Nuvio ReSeq</string>
     <string name="layout_selection_subtitle">Alege aspectul ecranului de pornire</string>
     <string name="layout_selection_continue">Continuă</string>
 

@@ -19,9 +19,14 @@ internal fun PlayerRuntimeController.fetchMetaDetails(id: String?, type: String?
     if (id.isNullOrBlank() || type.isNullOrBlank()) return
 
     metaFetchJob = scope.launch {
+        val selection = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(navigationArgs.tvdbContextJson)
+        if (selection != null) {
+            metaRepository.getPlaybackMeta(profileId, type, id, selection)?.let(::applyMetaDetails)
+            return@launch
+        }
         when (
-            val result = metaRepository.getMetaFromAllAddons(type = type, id = id)
-                .first { it !is NetworkResult.Loading }
+            val result = (if (navigationArgs.tvdbContextJson == "provider") metaRepository.getProviderMeta(type, id)
+                else metaRepository.getMetaFromAllAddons(type = type, id = id)).first { it !is NetworkResult.Loading }
         ) {
             is NetworkResult.Success -> {
                 applyMetaDetails(result.data)
@@ -129,9 +134,10 @@ private suspend fun PlayerRuntimeController.enrichDescriptionFromTmdb(id: String
     val isSeries = type.lowercase() in listOf("series", "tv")
     val season = currentSeason
     val episode = currentEpisode
+    val nativeEpisodes = metaVideos.any { it.episodeIdentity != null }
 
     // For series, try to get episode-level overview and title from TMDB.
-    val episodeEnrichment = if (isSeries && season != null && episode != null) {
+    val episodeEnrichment = if (!nativeEpisodes && isSeries && season != null && episode != null) {
         runCatching {
             tmdbMetadataService.fetchEpisodeEnrichment(
                 tmdbId = tmdbId,
@@ -140,8 +146,11 @@ private suspend fun PlayerRuntimeController.enrichDescriptionFromTmdb(id: String
             )[season to episode]
         }.getOrNull()
     } else null
+    // The native list or current episode may have changed while TMDB was loading.
+    val safeEpisode = episodeEnrichment.takeUnless { metaVideos.any { it.episodeIdentity != null } ||
+        currentSeason != season || currentEpisode != episode }
 
-    val tmdbDescription = episodeEnrichment?.overview ?: enrichment.description
+    val tmdbDescription = if (metaVideos.any { it.episodeIdentity != null }) null else safeEpisode?.overview ?: enrichment.description
     if (settings.useBasicInfo && !tmdbDescription.isNullOrBlank()) {
         _uiState.update { it.copy(description = tmdbDescription) }
     }
@@ -164,7 +173,7 @@ private suspend fun PlayerRuntimeController.enrichDescriptionFromTmdb(id: String
 
     // Also enrich episode title from TMDB if available.
     if (settings.useBasicInfo) {
-        val tmdbEpisodeTitle = episodeEnrichment?.title
+        val tmdbEpisodeTitle = safeEpisode?.title
         if (!tmdbEpisodeTitle.isNullOrBlank()) {
             _uiState.update { it.copy(currentEpisodeTitle = tmdbEpisodeTitle) }
         }
@@ -216,6 +225,7 @@ private suspend fun PlayerRuntimeController.enrichDescriptionFromTmdb(id: String
 }
 
 internal fun PlayerRuntimeController.recomputeNextEpisode(resetVisibility: Boolean) {
+    _uiState.update { it.withTvdbPlayback(metaVideos, currentSeason, currentEpisode, playbackShuffleState) }
     val normalizedType = contentType?.lowercase()
     if (normalizedType !in listOf("series", "tv", "other", "cloud")) {
         nextEpisodeVideo = null
@@ -233,6 +243,8 @@ internal fun PlayerRuntimeController.recomputeNextEpisode(resetVisibility: Boole
             return
         }
         val nextInfo = NextEpisodeInfo(
+            displaySeason = resolvedNext.episodeIdentity?.displayed?.season,
+            displayEpisode = resolvedNext.episodeIdentity?.displayed?.episode,
             videoId = resolvedNext.id,
             season = resolvedNext.season ?: 1,
             episode = resolvedNext.episode ?: (idx + 2),
@@ -272,6 +284,8 @@ internal fun PlayerRuntimeController.recomputeNextEpisode(resetVisibility: Boole
 
     val hasAired = PlayerNextEpisodeRules.hasEpisodeAired(resolvedNext.released)
     val nextInfo = NextEpisodeInfo(
+        displaySeason = resolvedNext.episodeIdentity?.displayed?.season,
+        displayEpisode = resolvedNext.episodeIdentity?.displayed?.episode,
         videoId = resolvedNext.id,
         season = resolvedNext.season ?: return,
         episode = resolvedNext.episode ?: return,

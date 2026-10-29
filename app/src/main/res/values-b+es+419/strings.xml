@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">Seguir viendo</string>
     <string name="type_movie">Película</string>
     <string name="type_movies">Películas</string>
@@ -369,7 +369,7 @@
     <string name="appearance_settings_style">Estilo de configuración</string>
     <string name="appearance_settings_style_subtitle">Elige cómo se muestran las pantallas de configuración</string>
     <string name="appearance_launcher_artwork">Ilustración del launcher</string>
-    <string name="appearance_launcher_artwork_subtitle">Elige cómo aparece Nuvio en la pantalla de inicio de tu TV</string>
+    <string name="appearance_launcher_artwork_subtitle">Elige cómo aparece Nuvio ReSeq en la pantalla de inicio de tu TV</string>
     <string name="ambient_mode_title">Modo ambiente</string>
     <string name="ambient_mode_subtitle">Muestra imágenes de tus catálogos mientras la TV está inactiva</string>
     <string name="ambient_mode_enabled_subtitle">Llena la pantalla con imágenes de fondo después de un período sin usar el control remoto</string>
@@ -389,7 +389,7 @@
     <string name="appearance_app_icon_picker_title">Elegir icono y banner de la aplicación</string>
     <string name="appearance_app_icon_picker_subtitle">Cada estilo incluye un icono cuadrado y un banner para TV a juego</string>
     <string name="appearance_app_icon_confirmation_title">¿Cambiar el icono de la aplicación?</string>
-    <string name="appearance_app_icon_confirmation_message">Cambiar a %1$s cerrará Nuvio. Es posible que el banner de TV requiera reiniciar el dispositivo para actualizarse. Selecciona Aceptar para continuar.</string>
+    <string name="appearance_app_icon_confirmation_message">Cambiar a %1$s cerrará Nuvio ReSeq. Es posible que el banner de TV requiera reiniciar el dispositivo para actualizarse. Selecciona Aceptar para continuar.</string>
     <string name="appearance_app_icon_change_failed">No se pudieron cambiar el icono y el banner. Inténtalo de nuevo.</string>
     <string name="appearance_app_icon_original">Original</string>
     <string name="appearance_app_icon_arctic_blue">Azul Ártico</string>
@@ -409,7 +409,7 @@
 
     <string name="about_title">Acerca de</string>
     <string name="about_subtitle">Información de la app, actualizaciones y enlaces legales</string>
-    <string name="about_made_with_love">Hecho con ❤️ por Tapframe y amigos</string>
+    <string name="about_made_with_love">Nuvio ReSeq by abbaskip · Based on Nuvio by Tapframe and contributors</string>
     <string name="about_version">Versión %1$s</string>
     <string name="about_update_banner_title">Banner de actualización automática</string>
     <string name="about_update_banner_subtitle">Mostrar un banner cuando haya una nueva versión disponible</string>
@@ -430,7 +430,7 @@
     <string name="about_licenses_attributions">Licencias y atribuciones</string>
     <string name="about_licenses_attributions_subtitle">Fuentes de datos, agradecimientos y licencias de Android</string>
     <string name="licenses_attributions_title">Licencias y atribuciones</string>
-    <string name="licenses_attributions_subtitle">Proveedores de datos, créditos de servicios y licencias de reproducción de Android utilizadas por Nuvio TV.</string>
+    <string name="licenses_attributions_subtitle">Proveedores de datos, créditos de servicios y licencias de reproducción de Android utilizadas por Nuvio ReSeq.</string>
     <string name="licenses_attributions_section_app">LICENCIA DE LA APP</string>
     <string name="licenses_attributions_section_data">DATOS Y SERVICIOS</string>
     <string name="licenses_attributions_section_playback">LICENCIAS DE REPRODUCCIÓN DE ANDROID</string>
@@ -440,21 +440,21 @@
     <string name="licenses_attributions_nuvio_title">Nuvio TV</string>
     <string name="licenses_attributions_nuvio_body">El código fuente y los términos de la licencia están disponibles en el repositorio del proyecto. Licenciado bajo la GNU General Public License v3.0.</string>
     <string name="licenses_attributions_tmdb_title">The Movie Database (TMDB)</string>
-    <string name="licenses_attributions_tmdb_body">Nuvio utiliza la API de TMDB para metadatos de películas y series, imágenes, tráilers, reparto, detalles de producción, colecciones y recomendaciones. Este producto utiliza la API de TMDB, pero no está respaldado ni certificado por TMDB.</string>
+    <string name="licenses_attributions_tmdb_body">Nuvio ReSeq utiliza la API de TMDB para metadatos de películas y series, imágenes, tráilers, reparto, detalles de producción, colecciones y recomendaciones. Este producto utiliza la API de TMDB, pero no está respaldado ni certificado por TMDB.</string>
     <string name="licenses_attributions_trakt_title">Trakt</string>
-    <string name="licenses_attributions_trakt_body">Nuvio se conecta a Trakt para autenticación de cuentas, historial de visualización, sincronización de progreso, datos de biblioteca, calificaciones, listas y comentarios. Nuvio no está afiliado ni respaldado por Trakt.</string>
+    <string name="licenses_attributions_trakt_body">Nuvio ReSeq se conecta a Trakt para autenticación de cuentas, historial de visualización, sincronización de progreso, datos de biblioteca, calificaciones, listas y comentarios. Nuvio ReSeq no está afiliado ni respaldado por Trakt.</string>
     <string name="licenses_attributions_simkl_title">Simkl</string>
-    <string name="licenses_attributions_simkl_body">Nuvio se conecta con Simkl para la autenticación de la cuenta, las listas de seguimiento, el historial de visualización, el progreso de reproducción y el scrobbling. Los datos de seguimiento de películas, series y anime son proporcionados por Simkl. Nuvio no está afiliado ni respaldado por Simkl.</string>
+    <string name="licenses_attributions_simkl_body">Nuvio ReSeq se conecta con Simkl para la autenticación de la cuenta, las listas de seguimiento, el historial de visualización, el progreso de reproducción y el scrobbling. Los datos de seguimiento de películas, series y anime son proporcionados por Simkl. Nuvio ReSeq no está afiliado ni respaldado por Simkl.</string>
     <string name="licenses_attributions_premiumize_title">Premiumize</string>
-    <string name="licenses_attributions_premiumize_body">Nuvio se conecta a Premiumize para autenticación de cuenta, acceso a la biblioteca en la nube, verificación de caché y funciones de reproducción en la nube. Nuvio no está afiliado ni respaldado por Premiumize.</string>
+    <string name="licenses_attributions_premiumize_body">Nuvio ReSeq se conecta a Premiumize para autenticación de cuenta, acceso a la biblioteca en la nube, verificación de caché y funciones de reproducción en la nube. Nuvio ReSeq no está afiliado ni respaldado por Premiumize.</string>
     <string name="licenses_attributions_torbox_title">TorBox</string>
-    <string name="licenses_attributions_torbox_body">Nuvio se conecta a TorBox para autenticación de cuenta, acceso a la biblioteca en la nube, verificación de caché y funciones de reproducción en la nube. Nuvio no está afiliado ni respaldado por TorBox.</string>
+    <string name="licenses_attributions_torbox_body">Nuvio ReSeq se conecta a TorBox para autenticación de cuenta, acceso a la biblioteca en la nube, verificación de caché y funciones de reproducción en la nube. Nuvio ReSeq no está afiliado ni respaldado por TorBox.</string>
     <string name="licenses_attributions_mdblist_title">MDBList</string>
-    <string name="licenses_attributions_mdblist_body">Nuvio utiliza MDBList para calificaciones y datos de proveedores de puntuaciones externas. Nuvio no está afiliado ni respaldado por MDBList.</string>
+    <string name="licenses_attributions_mdblist_body">Nuvio ReSeq utiliza MDBList para calificaciones y datos de proveedores de puntuaciones externas. Nuvio ReSeq no está afiliado ni respaldado por MDBList.</string>
     <string name="licenses_attributions_introdb_title">IntroDB</string>
-    <string name="licenses_attributions_introdb_body">Nuvio utiliza la API de IntroDB para marcas de tiempo de intros, resúmenes, créditos y avances proporcionadas por la comunidad y utilizadas por los controles de omisión. Nuvio no está afiliado ni respaldado por IntroDB.</string>
+    <string name="licenses_attributions_introdb_body">Nuvio ReSeq utiliza la API de IntroDB para marcas de tiempo de intros, resúmenes, créditos y avances proporcionadas por la comunidad y utilizadas por los controles de omisión. Nuvio ReSeq no está afiliado ni respaldado por IntroDB.</string>
     <string name="licenses_attributions_imdb_title">Datasets no comerciales de IMDb</string>
-    <string name="licenses_attributions_imdb_body">Nuvio utiliza los Datasets no comerciales de IMDb, incluyendo title.ratings.tsv.gz, para las calificaciones y conteos de votos de IMDb. Información cortesía de IMDb (https://www.imdb.com). Utilizado con permiso. Los datos de IMDb son solo para uso personal y no comercial bajo los términos de IMDb.</string>
+    <string name="licenses_attributions_imdb_body">Nuvio ReSeq utiliza los Datasets no comerciales de IMDb, incluyendo title.ratings.tsv.gz, para las calificaciones y conteos de votos de IMDb. Información cortesía de IMDb (https://www.imdb.com). Utilizado con permiso. Los datos de IMDb son solo para uso personal y no comercial bajo los términos de IMDb.</string>
     <string name="licenses_attributions_exoplayer_title">AndroidX Media3 ExoPlayer 1.8.0</string>
     <string name="licenses_attributions_exoplayer_body">Utilizado como motor de reproducción en Android. Licenciado bajo la Apache License, Version 2.0.</string>
     <string name="licenses_attributions_libmpv_title">libmpv / libmpv-android</string>
@@ -475,11 +475,11 @@
     <string name="settings_playback">Reproducción</string>
     <string name="settings_trakt_subtitle">Abrir pantalla de conexión con Trakt</string>
     <string name="settings_tracking_title">Seguimiento</string>
-    <string name="settings_tracking_description">Conecta servicios de seguimiento y elige cuál usará Nuvio para tu Biblioteca y Continuar viendo.</string>
+    <string name="settings_tracking_description">Conecta servicios de seguimiento y elige cuál usará Nuvio ReSeq para tu Biblioteca y Continuar viendo.</string>
     <string name="tracking_accounts_title">Cuentas</string>
     <string name="tracking_accounts_subtitle">Conecta y administra los servicios de seguimiento</string>
     <string name="tracking_sources_title">Fuentes</string>
-    <string name="tracking_sources_subtitle">Elige de dónde obtiene Nuvio tu biblioteca y el progreso de visualización. El scrobbling de reproducción se envía a todos los servicios conectados.</string>
+    <string name="tracking_sources_subtitle">Elige de dónde obtiene Nuvio ReSeq tu biblioteca y el progreso de visualización. El scrobbling de reproducción se envía a todos los servicios conectados.</string>
     <string name="tracking_trakt_features_title">Funciones de Trakt</string>
     <string name="tracking_trakt_features_subtitle">Historial, reseñas y recomendaciones exclusivas de Trakt</string>
     <string name="tracking_simkl_features_title">Funciones de Simkl</string>
@@ -496,8 +496,8 @@
     <string name="tracking_status_connecting">Conectando</string>
     <string name="tracking_finish_connection">Completar la aprobación de la conexión</string>
     <string name="tracking_connecting_provider">Iniciando conexión con %1$s…</string>
-    <string name="tracking_watch_progress_dialog_subtitle">Elige el servicio que Nuvio usará para reanudar la reproducción y Continuar viendo. El scrobbling seguirá activo en todos los servicios conectados.</string>
-    <string name="tracking_library_source_dialog_subtitle">Elige el servicio que Nuvio usará para tu Biblioteca. El scrobbling de reproducción se enviará a todos los servicios conectados.</string>
+    <string name="tracking_watch_progress_dialog_subtitle">Elige el servicio que Nuvio ReSeq usará para reanudar la reproducción y Continuar viendo. El scrobbling seguirá activo en todos los servicios conectados.</string>
+    <string name="tracking_library_source_dialog_subtitle">Elige el servicio que Nuvio ReSeq usará para tu Biblioteca. El scrobbling de reproducción se enviará a todos los servicios conectados.</string>
     <string name="tracking_trakt_progress_required">Disponible cuando Trakt es la fuente del progreso de visualización</string>
     <string name="trakt_name">Trakt</string>
     <string name="simkl_name">Simkl</string>
@@ -507,7 +507,7 @@
     <string name="settings_advanced_subtitle">Rendimiento, navegación, caché y diagnósticos</string>
     <string name="experience_mode_essential">Esencial</string>
     <string name="experience_mode_advanced">Avanzado</string>
-    <string name="experience_mode_choose_title">Elige tu experiencia en Nuvio</string>
+    <string name="experience_mode_choose_title">Elige tu experiencia en Nuvio ReSeq</string>
     <string name="experience_mode_choose_subtitle">Comienza de forma simple o desbloquea toda la personalización. Puedes cambiarlo en cualquier momento.</string>
     <string name="experience_mode_essential_card_subtitle">Configuración enfocada, addons, reproducción básica, Trakt y ajustes de cuenta.</string>
     <string name="experience_mode_advanced_card_subtitle">Configuración completa, controles de diseño, orden de catálogos, colecciones, plugins y diagnósticos.</string>
@@ -617,8 +617,8 @@
     <string name="buffer_safe_status">Seguro: dentro del límite recomendado para tu dispositivo.</string>
     <string name="buffer_unsafe_warning">Advertencia: supera el límite seguro recomendado (%1$d MB) para tu dispositivo %2$s. Puede provocar cierres inesperados de la aplicación.</string>
     <string name="buffer_auto_limit_active">Límite seguro ajustado automáticamente: %d MB</string>
-    <string name="advanced_nuvio_focus_scroll">Desplazamiento de enfoque de Nuvio</string>
-    <string name="advanced_nuvio_focus_scroll_subtitle">Usa la animación y posicionamiento global personalizado de enfoque de Nuvio.</string>
+    <string name="advanced_nuvio_focus_scroll">Desplazamiento de enfoque de Nuvio ReSeq</string>
+    <string name="advanced_nuvio_focus_scroll_subtitle">Usa la animación y posicionamiento global personalizado de enfoque de Nuvio ReSeq.</string>
     <string name="advanced_rgb565">Decodificación de imágenes RGB565</string>
     <string name="advanced_rgb565_subtitle">Usa colores de 16 bits que requieren menos memoria para las imágenes opacas compatibles. Cambiar esta opción reiniciará la aplicación.</string>
     <string name="advanced_memory_only_vertical_scroll">Desplazamiento vertical solo en memoria</string>
@@ -798,8 +798,8 @@
     <string name="playback_player_ask_desc">Elegir el reproductor en cada ocasión</string>
     <string name="playback_player_auto">Automático (Mejor para el contenido)</string>
     <string name="playback_player_auto_desc">ExoPlayer para películas y series · MPV para anime</string>
-    <string name="playback_engine_exoplayer_desc">Mejor compatibilidad con las funciones actuales de Nuvio.</string>
-    <string name="playback_engine_mvplayer_desc">Usa libmpv con controles OSD de Nuvio. Experimental.</string>
+    <string name="playback_engine_exoplayer_desc">Mejor compatibilidad con las funciones actuales de Nuvio ReSeq.</string>
+    <string name="playback_engine_mvplayer_desc">Usa libmpv con controles OSD de Nuvio ReSeq. Experimental.</string>
 
     <string name="video_section">Video</string>
     <string name="playback_true_black_letterbox">Barras en negro real</string>
@@ -1295,7 +1295,7 @@
     <string name="debrid_disconnect">Desconectar</string>
     <string name="debrid_device_auth_connected">%1$s está conectado en este dispositivo.</string>
     <string name="debrid_device_auth_starting">Iniciando inicio de sesión seguro...</string>
-    <string name="debrid_device_auth_instructions">Escanea el QR e ingresa este código para autorizar Nuvio.</string>
+    <string name="debrid_device_auth_instructions">Escanea el QR e ingresa este código para autorizar Nuvio ReSeq.</string>
     <string name="debrid_device_auth_code_copied">Código copiado.</string>
     <string name="debrid_device_auth_waiting">Esperando aprobación...</string>
     <string name="debrid_device_auth_failed">No se pudo iniciar sesión.</string>
@@ -1493,9 +1493,9 @@
     <string name="trakt_library_source_dialog_title">Fuente de la biblioteca</string>
     <string name="trakt_library_source_dialog_subtitle">Elige dónde guardar y administrar los elementos de tu biblioteca</string>
     <string name="trakt_library_source_trakt">Trakt</string>
-    <string name="trakt_library_source_nuvio">Biblioteca de Nuvio</string>
+    <string name="trakt_library_source_nuvio">Biblioteca de Nuvio ReSeq</string>
     <string name="trakt_library_source_trakt_selected">Biblioteca de Trakt seleccionada</string>
-    <string name="trakt_library_source_nuvio_selected">Biblioteca de Nuvio seleccionada</string>
+    <string name="trakt_library_source_nuvio_selected">Biblioteca de Nuvio ReSeq seleccionada</string>
     <string name="trakt_setting_on">Activado</string>
     <string name="trakt_setting_off">Desactivado</string>
     <string name="trakt_watch_progress_trakt_selected">Fuente de progreso de reproducción establecida en Trakt</string>
@@ -1528,7 +1528,7 @@
     <string name="trakt_stat_watched_hours">Horas vistas</string>
     <string name="trakt_disconnect">Desconectar</string>
     <string name="trakt_disconnect_title">¿Desconectar Trakt?</string>
-    <string name="trakt_disconnect_subtitle">Esto desconectará tu cuenta de Trakt de Nuvio.</string>
+    <string name="trakt_disconnect_subtitle">Esto desconectará tu cuenta de Trakt de Nuvio ReSeq.</string>
     <string name="trakt_login">Iniciar Sesión</string>
     <string name="trakt_retry">Reintentar</string>
     <string name="trakt_back">Atrás</string>
@@ -1605,11 +1605,11 @@
     <string name="profile_addons">addons</string>
     <string name="profile_plugins">plugins</string>
     <string name="profile_choose_avatar">Elegir avatar</string>
-    <string name="profile_custom_avatar_web_panel_note">Las URLs de avatares personalizados pueden configurarse desde el panel web de Nuvio.</string>
+    <string name="profile_custom_avatar_web_panel_note">Las URLs de avatares personalizados pueden configurarse desde el panel web de Nuvio ReSeq.</string>
     <string name="profile_editor_tab_avatar">Avatar</string>
     <string name="profile_editor_tab_background">Fondo</string>
     <string name="profile_choose_background">Elegir fondo del perfil</string>
-    <string name="profile_background_member_note">Las URL de fondos personalizados se pueden configurar desde el panel web de Nuvio.</string>
+    <string name="profile_background_member_note">Las URL de fondos personalizados se pueden configurar desde el panel web de Nuvio ReSeq.</string>
     <string name="profile_background_normal">Normal</string>
     <string name="profile_background_custom">Personalizado</string>
     <string name="profile_avatar_none_selected">Ningún avatar seleccionado</string>
@@ -1677,7 +1677,7 @@
     <string name="profile_pin_overlay_set_support">Este PIN será requerido antes de abrir este perfil.</string>
     <string name="profile_pin_overlay_confirm_support">Vuelve a ingresar los mismos 4 dígitos para finalizar la configuración.</string>
     <string name="profile_pin_overlay_mismatch">Los PIN no coinciden. Ingresa uno nuevo nuevamente.</string>
-    <string name="profile_pin_overlay_forgot_hint">¿Olvidaste el PIN? Restablécelo desde tu cuenta de Nuvio en el sitio web de Nuvio.</string>
+    <string name="profile_pin_overlay_forgot_hint">¿Olvidaste el PIN? Restablécelo desde tu cuenta de Nuvio ReSeq en el sitio web de Nuvio ReSeq.</string>
     <string name="profile_pin_overlay_back_hint">Presiona atrás para cancelar</string>
 
 
@@ -1760,7 +1760,7 @@
     <string name="stream_type_torrent">Torrent</string>
     <string name="stream_type_youtube">YouTube</string>
     <string name="p2p_consent_title">Streaming P2P</string>
-    <string name="p2p_consent_body">Este contenido utiliza tecnología peer-to-peer (P2P). Al habilitar P2P, reconoces y aceptas que:\n\n\u2022 Tu dirección IP será visible para otros pares en la red\n\u2022 Eres el único responsable del contenido al que accedes\n\u2022 Confirmas que tienes el derecho legal para reproducir este contenido en tu jurisdicción\n\u2022 Nuvio no aloja, distribuye ni controla contenido P2P\n\u2022 Nuvio no asume responsabilidad por consecuencias legales derivadas del uso de P2P\n\nUsas esta función bajo tu propio riesgo. Puedes desactivar P2P en cualquier momento desde Configuración.</string>
+    <string name="p2p_consent_body">Este contenido utiliza tecnología peer-to-peer (P2P). Al habilitar P2P, reconoces y aceptas que:\n\n\u2022 Tu dirección IP será visible para otros pares en la red\n\u2022 Eres el único responsable del contenido al que accedes\n\u2022 Confirmas que tienes el derecho legal para reproducir este contenido en tu jurisdicción\n\u2022 Nuvio ReSeq no aloja, distribuye ni controla contenido P2P\n\u2022 Nuvio ReSeq no asume responsabilidad por consecuencias legales derivadas del uso de P2P\n\nUsas esta función bajo tu propio riesgo. Puedes desactivar P2P en cualquier momento desde Configuración.</string>
     <string name="p2p_consent_enable">Activar P2P</string>
     <string name="p2p_consent_cancel">Cancelar</string>
     <string name="settings_p2p_title">Streaming P2P</string>
@@ -2346,7 +2346,7 @@
     <string name="catalog_see_all_empty_title">No hay elementos disponibles</string>
     <string name="catalog_see_all_empty_subtitle">Prueba un catálogo diferente o revisa más tarde</string>
 
-    <string name="layout_selection_welcome">Bienvenido a Nuvio</string>
+    <string name="layout_selection_welcome">Bienvenido a Nuvio ReSeq</string>
     <string name="layout_selection_subtitle">Elige el diseño de tu pantalla de inicio</string>
     <string name="layout_selection_continue">Continuar</string>
 
@@ -2530,7 +2530,7 @@
     <string name="cd_preview">Vista previa</string>
     <string name="cd_test">Probar</string>
     <string name="cd_unlink">Desvincular</string>
-    <string name="cd_nuvio_logo">NuvioTV</string>
+    <string name="cd_nuvio_logo">Nuvio ReSeq</string>
     <string name="cd_trakt_logo">Logo de Trakt</string>
     <string name="cd_trakt_qr">QR de activación de Trakt</string>
     <string name="cd_imdb">IMDb</string>
@@ -2542,7 +2542,7 @@
     <string name="cd_expand">Expandir %1$s</string>
     <string name="cd_collapse">Contraer %1$s</string>
     <string name="cd_qr_login">Código QR de inicio de sesión</string>
-    <string name="cd_nuvio">Nuvio</string>
+    <string name="cd_nuvio">Nuvio ReSeq</string>
 
     <string name="debug_signin_success">Inicio de sesión exitoso</string>
     <string name="debug_generate_description">Elemento generado para depuración %1$s #%2$d</string>
@@ -2685,7 +2685,7 @@
     <string name="collections_editor_tmdb_list_helper">Ejemplo: https://www.themoviedb.org/list/8504994 o 8504994.</string>
     <string name="collections_editor_tmdb_person_id">ID de persona</string>
     <string name="collections_editor_tmdb_person_helper">Ejemplo: https://www.themoviedb.org/person/31-tom-hanks o 31.</string>
-    <string name="collections_editor_tmdb_title_helper">Se muestra como el nombre de la fila/pestaña. Si está vacío, Nuvio crea uno a partir de la fuente.</string>
+    <string name="collections_editor_tmdb_title_helper">Se muestra como el nombre de la fila/pestaña. Si está vacío, Nuvio ReSeq crea uno a partir de la fuente.</string>
     <string name="collections_editor_tmdb_quick_genres">Géneros rápidos</string>
     <string name="collections_editor_tmdb_quick_languages">Idiomas rápidos</string>
     <string name="collections_editor_tmdb_quick_countries">Países rápidos</string>
@@ -2867,7 +2867,7 @@
     <string name="autoplay_regex_preset_no_remux_hdr">Sin REMUX/HDR</string>
 
     <!-- Playback settings sections -->
-    <string name="playback_player_internal_desc">Usar el reproductor integrado de NuvioTV</string>
+    <string name="playback_player_internal_desc">Usar el reproductor integrado de Nuvio ReSeq</string>
 
     <!-- Player runtime: torrent overlay + tracks -->
     <string name="player_torrent_peer_info">%1$d seeds · %2$d peers</string>
@@ -2972,9 +2972,9 @@
     <string name="simkl_visit">Visitar Simkl</string>
     <string name="simkl_sync_info_action">Cómo funciona la sincronización</string>
     <string name="simkl_sync_info_title">Cómo funciona la sincronización con Simkl</string>
-    <string name="simkl_sync_info_description">Nuvio consulta Simkl automáticamente como máximo una vez cada %1$d minutos. Los cambios realizados desde otra aplicación o desde el sitio web de Simkl pueden tardar ese tiempo en aparecer.</string>
+    <string name="simkl_sync_info_description">Nuvio ReSeq consulta Simkl automáticamente como máximo una vez cada %1$d minutos. Los cambios realizados desde otra aplicación o desde el sitio web de Simkl pueden tardar ese tiempo en aparecer.</string>
     <string name="simkl_sync_info_activity">En cada actualización, primero se comprueba si Simkl informa cambios y solo se descargan las actualizaciones necesarias. Esto sigue las reglas de la API de Simkl, reduce el uso innecesario de datos y ayuda a mantener la estabilidad del servicio.</string>
-    <string name="simkl_sync_info_manual">Los cambios realizados en Nuvio se envían a Simkl de inmediato. Usa Sincronizar ahora cuando quieras que Nuvio busque cambios remotos antes.</string>
+    <string name="simkl_sync_info_manual">Los cambios realizados en Nuvio ReSeq se envían a Simkl de inmediato. Usa Sincronizar ahora cuando quieras que Nuvio ReSeq busque cambios remotos antes.</string>
     <string name="simkl_sync_info_library_statuses">Las series que estén en las listas En pausa o Abandonadas de Simkl se ocultan de Continuar viendo. Permanecerán ocultas mientras sigan en cualquiera de esas listas.</string>
     <string name="simkl_sync_info_docs">Leer la guía de sincronización de Simkl</string>
     <string name="error_open_browser_failed">No se pudo abrir el navegador</string>

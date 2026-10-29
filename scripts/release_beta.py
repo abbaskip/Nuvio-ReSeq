@@ -14,18 +14,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_FILE = ROOT / "app" / "build.gradle.kts"
 RELEASE_OUTPUT_DIR = ROOT / "build" / "release"
-APK_DIR = ROOT / "app" / "build" / "outputs" / "apk" / "release"
+APK_DIR = ROOT / "app" / "build" / "outputs" / "apk" / "full" / "release"
 DEFAULT_BETA_NOTICE = (
     "## This is a beta version intended for testing only. Expect breaking changes "
-    "in updates. Normal users are advised to wait for the stable release."
+    "in updates. Back up your settings before updating."
 )
-EXPECTED_ASSET_NAMES = [
-    "app-arm64-v8a-release.apk",
-    "app-armeabi-v7a-release.apk",
-    "app-x86_64-release.apk",
-    "app-x86-release.apk",
-    "app-universal-release.apk",
-]
+EXPECTED_ASSET_NAMES = ["Nuvio-ReSeq-v<version>-universal.apk"]
+
 VERSION_NAME_RE = re.compile(r'(?m)^(\s*versionName\s*=\s*")([^"]+)(")')
 VERSION_CODE_RE = re.compile(r"(?m)^(\s*versionCode\s*=\s*)(\d+)")
 VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
@@ -64,14 +59,6 @@ WORD_REPLACEMENTS = (
     (re.compile(r"\btrakt\b", re.IGNORECASE), "Trakt"),
     (re.compile(r"\bnuvio\b", re.IGNORECASE), "Nuvio"),
 )
-ASSET_ORDER = {
-    "arm64-v8a": 0,
-    "armeabi-v7a": 1,
-    "x86_64": 2,
-    "x86": 3,
-    "universal": 4,
-}
-
 
 def run(
     *args: str,
@@ -330,22 +317,22 @@ def ensure_version_available(release_tag: str) -> None:
 
 
 def build_release() -> list[Path]:
+    if os.environ.get("CI_USE_DEBUG_SIGNING", "").lower() == "true":
+        raise SystemExit("Public ReSeq releases require the permanent release key.")
     subprocess.run(
-        ["./gradlew", "app:assembleRelease"],
+        ["./gradlew", ":app:assembleFullRelease", "-PuseLocalFfmpegDecoder=false"],
         cwd=ROOT,
         check=True,
         text=True,
     )
-    assets = sorted(
-        APK_DIR.glob("*.apk"),
-        key=lambda path: next(
-            (order for token, order in ASSET_ORDER.items() if token in path.name),
-            999,
-        ),
-    )
-    if not assets:
-        raise SystemExit(f"No APK assets found in {APK_DIR}")
-    return assets
+    source = APK_DIR / "app-full-universal-release.apk"
+    if not source.is_file():
+        raise SystemExit(f"No universal Full Release APK found in {APK_DIR}")
+    version, _ = parse_versions(read_build_file())
+    RELEASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    asset = RELEASE_OUTPUT_DIR / f"Nuvio-ReSeq-v{version}-universal.apk"
+    shutil.copy2(source, asset)
+    return [asset]
 
 
 def commit_tag_push(
@@ -387,11 +374,8 @@ def tag_push(
 
 
 def is_github_prerelease(release_tag: str) -> bool:
-    match = re.fullmatch(
-        r"v?(\d+)\.\d+\.\d+(-[0-9A-Za-z.-]+)?",
-        release_tag,
-    )
-    return bool(match and int(match.group(1)) >= 1 and match.group(2))
+    # ReSeq has one published channel, including beta-labelled versions.
+    return False
 
 
 def create_github_release(

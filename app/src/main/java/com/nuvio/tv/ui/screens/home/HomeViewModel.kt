@@ -92,7 +92,8 @@ class HomeViewModel @Inject constructor(
         tmdbService,
         tmdbMetadataService,
         mdbListRepository
-    )
+    ),
+    internal val tvdbOrderStore: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null
 ) : ViewModel() {
     companion object {
         internal const val TAG = "HomeViewModel"
@@ -364,6 +365,7 @@ class HomeViewModel @Inject constructor(
         observeStartupAuthNotice()
         viewModelScope.launch {
             profileManager.activeProfileReady.first { it }
+            observeTvdbContinueWatchingChanges()
             observeLayoutPreferences()
             observeModernHomePresentation()
             loadContinueWatching()
@@ -730,7 +732,7 @@ class HomeViewModel @Inject constructor(
                             position = cached.position,
                             duration = cached.duration,
                             lastWatched = cached.lastWatched,
-                            progressPercent = cached.progressPercent
+                            progressPercent = cached.progressPercent, tvdbContext = cached.tvdbContext
                         ),
                         episodeThumbnail = cached.episodeThumbnail,
                         episodeDescription = cached.episodeDescription,
@@ -769,7 +771,7 @@ class HomeViewModel @Inject constructor(
                         isReleaseAlert = cached.isReleaseAlert,
                         isNewSeasonRelease = cached.isNewSeasonRelease,
                         seedSeason = cached.seedSeason,
-                        seedEpisode = cached.seedEpisode,
+                        seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId,
                         contentLanguage = cached.contentLanguage
                     )
                 )

@@ -138,6 +138,10 @@ import com.nuvio.tv.domain.model.MDBListRatings
 import com.nuvio.tv.domain.model.NextToWatch
 import com.nuvio.tv.domain.model.TraktCommentReview
 import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.sourceSeason
+import com.nuvio.tv.domain.model.sourceEpisode
+import com.nuvio.tv.domain.model.hasResolvedSource
+import com.nuvio.tv.domain.model.episodeListKey
 import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.ui.components.ErrorState
 import com.nuvio.tv.ui.components.MetaDetailsSkeleton
@@ -706,8 +710,10 @@ fun MetaDetailsScreen(
                     formatDetailYearRange(meta.releaseInfo)
                 }
                 val playEpisode: (Video) -> Unit = playEpisode@{ video ->
-                    if (!playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
-                        Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
+                    if (!video.hasResolvedSource || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
+                        Toast.makeText(context, if (!video.hasResolvedSource) R.string.tvdb_episode_unmatched_message
+                            else R.string.playback_unavailable_message,
+                            if (!video.hasResolvedSource) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
                         return@playEpisode
                     }
                     onPlayClick(
@@ -718,8 +724,8 @@ fun MetaDetailsScreen(
                         video.thumbnail ?: meta.poster,
                         meta.backdropUrl,
                         meta.logo,
-                        video.season,
-                        video.episode,
+                        video.sourceSeason,
+                        video.sourceEpisode,
                         video.title,
                         null,
                         null,
@@ -728,8 +734,10 @@ fun MetaDetailsScreen(
                     )
                 }
                 val playEpisodeManually: (Video) -> Unit = playEpisodeManually@{ video ->
-                    if (!playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
-                        Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
+                    if (!video.hasResolvedSource || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
+                        Toast.makeText(context, if (!video.hasResolvedSource) R.string.tvdb_episode_unmatched_message
+                            else R.string.playback_unavailable_message,
+                            if (!video.hasResolvedSource) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
                         return@playEpisodeManually
                     }
                     onPlayManuallyClick(
@@ -740,8 +748,8 @@ fun MetaDetailsScreen(
                         video.thumbnail ?: meta.poster,
                         meta.backdropUrl,
                         meta.logo,
-                        video.season,
-                        video.episode,
+                        video.sourceSeason,
+                        video.sourceEpisode,
                         video.title,
                         null,
                         null,
@@ -875,6 +883,7 @@ fun MetaDetailsScreen(
                     episodeShuffle = uiState.episodeShuffle,
                     shufflePoolEmpty = uiState.shufflePoolEmpty,
                     onEpisodeShuffleChange = viewModel::setEpisodeShuffle,
+                    onEpisodeOrderChanged = viewModel::reloadEpisodeOrder,
                     episodeOptionsOverlayStyle = uiState.episodeOptionsOverlayStyle,
                     showFullReleaseDate = uiState.showFullReleaseDate,
                     overallRatingsVisibility = uiState.overallRatingsVisibility,
@@ -910,8 +919,10 @@ fun MetaDetailsScreen(
                     onPlayClick = playTitle,
                     onPlayManuallyClick = playTitleManually,
                     onEpisodeStartFromBeginningClick = onEpisodeStartFromBeginningClick@{ video ->
-                        if (!playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
-                            Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
+                        if (!video.hasResolvedSource || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
+                            Toast.makeText(context, if (!video.hasResolvedSource) R.string.tvdb_episode_unmatched_message
+                                else R.string.playback_unavailable_message,
+                                if (!video.hasResolvedSource) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
                             return@onEpisodeStartFromBeginningClick
                         }
                         onPlayStartFromBeginningClick(
@@ -922,8 +933,8 @@ fun MetaDetailsScreen(
                             video.thumbnail ?: meta.poster,
                             meta.backdropUrl,
                             meta.logo,
-                            video.season,
-                            video.episode,
+                            video.sourceSeason,
+                            video.sourceEpisode,
                             video.title,
                             null,
                             null,
@@ -1218,6 +1229,7 @@ private fun MetaDetailsContent(
     episodeShuffle: com.nuvio.tv.domain.model.EpisodeShuffleSettings,
     shufflePoolEmpty: Boolean,
     onEpisodeShuffleChange: suspend (com.nuvio.tv.domain.model.EpisodeShuffleSettings) -> Boolean,
+    onEpisodeOrderChanged: () -> Unit,
     episodeOptionsOverlayStyle: EpisodeOptionsOverlayStyle,
     showFullReleaseDate: Boolean,
     overallRatingsVisibility: HomeImdbRatingsVisibility,
@@ -2001,11 +2013,11 @@ private fun MetaDetailsContent(
     val seasonEpisodeFocusRequesters = remember(selectedSeason, episodesForSeason) {
         val byEpisodeId = episodeFocusRequestersBySeason.getOrPut(selectedSeason) { mutableMapOf() }
         episodesForSeason.forEach { episode ->
-            if (!byEpisodeId.containsKey(episode.id)) {
-                byEpisodeId[episode.id] = FocusRequester()
+            if (!byEpisodeId.containsKey(episode.episodeListKey)) {
+                byEpisodeId[episode.episodeListKey] = FocusRequester()
             }
         }
-        byEpisodeId.keys.retainAll(episodesForSeason.map { it.id }.toSet())
+        byEpisodeId.keys.retainAll(episodesForSeason.map { it.episodeListKey }.toSet())
         byEpisodeId
     }
     val seasonDownFocusRequester = remember(selectedSeason, episodesForSeason, seasonEpisodeFocusRequesters, lastFocusedEpisodeIdBySeason[selectedSeason], nextToWatch, defaultSeriesVideo, pendingRestoreType, pendingRestoreEpisodeId) {
@@ -2018,8 +2030,9 @@ private fun MetaDetailsContent(
         }
         val preferredEpisodeId = lastFocusedEpisodeIdBySeason[selectedSeason]
             ?: nextEpisodeId?.takeIf { episodesForSeason.any { ep -> ep.id == it } }
-        (preferredEpisodeId?.let { seasonEpisodeFocusRequesters[it] })
-            ?: episodesForSeason.firstOrNull()?.id?.let { seasonEpisodeFocusRequesters[it] }
+        (preferredEpisodeId?.let { id -> episodesForSeason.firstOrNull { it.episodeListKey == id || it.id == id }?.episodeListKey }
+            ?.let { seasonEpisodeFocusRequesters[it] })
+            ?: episodesForSeason.firstOrNull()?.episodeListKey?.let { seasonEpisodeFocusRequesters[it] }
     }
 
     val activePeopleTabFocusRequester = visiblePeopleTabItems
@@ -2516,6 +2529,7 @@ private fun MetaDetailsContent(
                             }
                         },
                         episodeShuffle = episodeShuffle,
+                        onEpisodeOrderChanged = onEpisodeOrderChanged,
                         shuffleActionPending = stoppingShuffle,
                         randomEpisodeFocusRequester = randomEpisodeFocusRequester,
                         hideLogoDuringTrailer = hideLogoDuringTrailer,

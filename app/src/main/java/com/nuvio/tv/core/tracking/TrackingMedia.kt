@@ -41,13 +41,19 @@ data class TrackingEpisode(
     val title: String? = null,
     val tvdbId: Long? = null,
     val usesTvdbSeasonMapping: Boolean = false,
-    val tmdbId: Long? = null
+    val tmdbId: Long? = null,
+    val traktId: Int? = null,
+    val numberingProvider: String? = null
 )
 
 data class TrackingCatalogReference(
     val contentId: String,
     val contentType: String,
-    val videoId: String? = null
+    val videoId: String? = null,
+    val tvdbEpisodeIds: List<Long>? = null,
+    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null,
+    val providerDefault: Boolean = false,
+    val tvdbCoverageVerified: Boolean = true
 )
 
 data class TrackingMediaReference(

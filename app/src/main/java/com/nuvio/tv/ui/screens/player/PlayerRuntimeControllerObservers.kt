@@ -508,10 +508,13 @@ internal fun PlayerRuntimeController.loadSavedProgressFor(season: Int?, episode:
 
     scope.launch {
         pendingResumeProgress = null
+        val context = currentTvdbContext()
         val local = if (isCloudLibraryPlayback) {
             loadCloudLibraryResumeProgress()
+        } else if (context != null) {
+            watchProgressRepository.getEpisodeProgress(progressContentId!!, context, profileId).firstOrNull()
         } else if (season != null && episode != null) {
-            watchProgressRepository.getEpisodeProgress(
+            watchProgressRepository.getProviderEpisodeProgress(
                 progressContentId!!,
                 season,
                 episode,
@@ -558,10 +561,13 @@ internal suspend fun PlayerRuntimeController.loadSavedProgressSuspend(season: In
     if (!isCloudLibraryPlayback && progressContentId == null) return
 
     pendingResumeProgress = null
+    val context = currentTvdbContext()
     val local = if (isCloudLibraryPlayback) {
         loadCloudLibraryResumeProgress()
+    } else if (context != null) {
+        watchProgressRepository.getEpisodeProgress(progressContentId!!, context, profileId).firstOrNull()
     } else if (season != null && episode != null) {
-        watchProgressRepository.getEpisodeProgress(
+        watchProgressRepository.getProviderEpisodeProgress(
             progressContentId!!,
             season,
             episode,

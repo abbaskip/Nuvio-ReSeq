@@ -45,7 +45,8 @@ data class Meta(
     val hasLandscapePoster: Boolean? = null,
     val hasLogo: Boolean? = null,
     val hasLinks: Boolean? = null,
-    val hasVideos: Boolean? = null
+    val hasVideos: Boolean? = null,
+    val episodeOrder: EpisodeOrderStatus? = null
 ) {
     val apiType: String
         get() = type.toApiString(rawType)
@@ -63,18 +64,18 @@ data class Meta(
 
 fun List<Video>.watchableEpisodes(): List<Video> {
     val candidates = filter {
-        it.season != null && it.episode != null && (it.season ?: 0) > 0
-    }
+        it.season != null && it.episode != null && (it.displaySeason ?: 0) > 0 && it.hasResolvedSource
+    }.distinctEpisodeSources()
     fun isFutureRelease(raw: String?): Boolean = isEpisodeReleaseAired(raw) == false
-    val unavailableSeasons = candidates.groupBy { it.season }
+    val unavailableSeasons = candidates.groupBy { it.displaySeason }
         .filter { (_, eps) ->
-            val first = eps.minByOrNull { it.episode ?: Int.MAX_VALUE }
+            val first = eps.minByOrNull { it.displayEpisode ?: Int.MAX_VALUE }
                 ?: return@filter false
             if (first.available == false) return@filter true
             isFutureRelease(first.released)
         }.keys
     return candidates
-        .filter { it.season !in unavailableSeasons }
+        .filter { it.displaySeason !in unavailableSeasons }
         .filter { it.available != false && !isFutureRelease(it.released) }
 }
 
@@ -198,7 +199,8 @@ data class Video(
     val runtime: Int? = null, // episode runtime in minutes
     /** Per-episode rating supplied by the addon, when it provides one. */
     val rating: Double? = null,
-    val available: Boolean? = null
+    val available: Boolean? = null,
+    val episodeIdentity: EpisodeIdentity? = null
 )
 
 @Immutable

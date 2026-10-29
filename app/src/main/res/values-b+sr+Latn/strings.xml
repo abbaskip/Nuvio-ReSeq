@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">Nastavi gledanje</string>
     <string name="type_movie">Film</string>
     <string name="type_movies">Filmovi</string>
@@ -370,13 +370,13 @@
     <string name="appearance_settings_style">Stil podešavanja</string>
     <string name="appearance_settings_style_subtitle">Izaberite kako su prikazani ekrani sa podešavanjima</string>
     <string name="appearance_launcher_artwork">Grafika pokretača</string>
-    <string name="appearance_launcher_artwork_subtitle">Izaberite kako se Nuvio prikazuje na početnom ekranu vašeg TV-a</string>
+    <string name="appearance_launcher_artwork_subtitle">Izaberite kako se Nuvio ReSeq prikazuje na početnom ekranu vašeg TV-a</string>
     <string name="appearance_app_icon_and_banner">Ikonica i baner aplikacije</string>
     <string name="appearance_app_icon_and_banner_subtitle">Promenite ikonice i baner aplikacije</string>
     <string name="appearance_app_icon_picker_title">Izaberite ikonicu i baner aplikacije</string>
     <string name="appearance_app_icon_picker_subtitle">Svaki stil uključuje odgovarajuću kvadratnu ikonicu i TV baner</string>
     <string name="appearance_app_icon_confirmation_title">Promeniti ikonicu aplikacije?</string>
-    <string name="appearance_app_icon_confirmation_message">Promena na %1$s će zatvoriti Nuvio. TV baner može zahtevati ponovno pokretanje uređaja pre nego što se ažurira. Izaberite OK za nastavak.</string>
+    <string name="appearance_app_icon_confirmation_message">Promena na %1$s će zatvoriti Nuvio ReSeq. TV baner može zahtevati ponovno pokretanje uređaja pre nego što se ažurira. Izaberite OK za nastavak.</string>
     <string name="appearance_app_icon_change_failed">Ikonica i baner nisu mogli biti promenjeni. Pokušajte ponovo.</string>
     <string name="appearance_app_icon_original">Original</string>
     <string name="appearance_app_icon_arctic_blue">Arktičko plava</string>
@@ -396,7 +396,7 @@
 
     <string name="about_title">O aplikaciji</string>
     <string name="about_subtitle">Informacije o aplikaciji, ažuriranja i pravne veze</string>
-    <string name="about_made_with_love">Napravljeno sa ❤️ od strane Tapframe-a i prijatelja</string>
+    <string name="about_made_with_love">Nuvio ReSeq by abbaskip · Based on Nuvio by Tapframe and contributors</string>
     <string name="about_version">Verzija %1$s</string>
     <string name="about_update_banner_title">Baner za automatsko ažuriranje</string>
     <string name="about_update_banner_subtitle">Prikaži baner kada je dostupna nova verzija</string>
@@ -417,28 +417,28 @@
     <string name="about_licenses_attributions">Licence i pripisivanja</string>
     <string name="about_licenses_attributions_subtitle">Izvori podataka, zahvalnice i Android licence</string>
     <string name="licenses_attributions_title">Licence i pripisivanja</string>
-    <string name="licenses_attributions_subtitle">Provajderi podataka, zasluge za usluge i Android licence za reprodukciju koje koristi Nuvio TV.</string>
+    <string name="licenses_attributions_subtitle">Provajderi podataka, zasluge za usluge i Android licence za reprodukciju koje koristi Nuvio ReSeq.</string>
     <string name="licenses_attributions_section_app">LICENCA APLIKACIJE</string>
     <string name="licenses_attributions_section_data">PODACI I USLUGE</string>
     <string name="licenses_attributions_section_playback">ANDROID LICENCE ZA REPRODUKCIJU</string>
     <string name="licenses_attributions_nuvio_title">Nuvio TV</string>
     <string name="licenses_attributions_nuvio_body">Izvorni kod i uslovi licenciranja su dostupni u spremištu projekta. Licencirano pod GNU General Public License v3.0.</string>
     <string name="licenses_attributions_tmdb_title">The Movie Database (TMDB)</string>
-    <string name="licenses_attributions_tmdb_body">Nuvio koristi TMDB API za metapodatke o filmovima i TV serijama, grafiku, trejlere, glumačku ekipu, detalje o produkciji, kolekcije i preporuke. Ovaj proizvod koristi TMDB API, ali nije podržan niti sertifikovan od strane TMDB-a.</string>
+    <string name="licenses_attributions_tmdb_body">Nuvio ReSeq koristi TMDB API za metapodatke o filmovima i TV serijama, grafiku, trejlere, glumačku ekipu, detalje o produkciji, kolekcije i preporuke. Ovaj proizvod koristi TMDB API, ali nije podržan niti sertifikovan od strane TMDB-a.</string>
     <string name="licenses_attributions_trakt_title">Trakt</string>
-    <string name="licenses_attributions_trakt_body">Nuvio se povezuje sa Trakt-om radi autentifikacije naloga, istorije gledanja, sinhronizacije napretka, podataka biblioteke, ocena, lista i komentara. Nuvio nije povezan niti podržan od strane Trakt-a.</string>
+    <string name="licenses_attributions_trakt_body">Nuvio ReSeq se povezuje sa Trakt-om radi autentifikacije naloga, istorije gledanja, sinhronizacije napretka, podataka biblioteke, ocena, lista i komentara. Nuvio ReSeq nije povezan niti podržan od strane Trakt-a.</string>
     <string name="licenses_attributions_simkl_title">Simkl</string>
-    <string name="licenses_attributions_simkl_body">Nuvio se povezuje sa Simkl-om radi autentifikacije naloga, lista gledanja, istorije gledanja, napretka reprodukcije i skrobovanja. Podatke o praćenju filmova, TV-a i animesa obezbeđuje Simkl. Nuvio nije povezan niti podržan od strane Simkl-a.</string>
+    <string name="licenses_attributions_simkl_body">Nuvio ReSeq se povezuje sa Simkl-om radi autentifikacije naloga, lista gledanja, istorije gledanja, napretka reprodukcije i skrobovanja. Podatke o praćenju filmova, TV-a i animesa obezbeđuje Simkl. Nuvio ReSeq nije povezan niti podržan od strane Simkl-a.</string>
     <string name="licenses_attributions_premiumize_title">Premiumize</string>
-    <string name="licenses_attributions_premiumize_body">Nuvio se povezuje sa Premiumize-om radi autentifikacije naloga, pristupa biblioteci u oblaku, provere keša i funkcija reprodukcije iz oblaka. Nuvio nije povezan niti podržan od strane Premiumize-a.</string>
+    <string name="licenses_attributions_premiumize_body">Nuvio ReSeq se povezuje sa Premiumize-om radi autentifikacije naloga, pristupa biblioteci u oblaku, provere keša i funkcija reprodukcije iz oblaka. Nuvio ReSeq nije povezan niti podržan od strane Premiumize-a.</string>
     <string name="licenses_attributions_torbox_title">TorBox</string>
-    <string name="licenses_attributions_torbox_body">Nuvio se povezuje sa TorBox-om radi autentifikacije naloga, pristupa biblioteci u oblaku, provere keša i funkcija reprodukcije iz oblaka. Nuvio nije povezan niti podržan od strane TorBox-a.</string>
+    <string name="licenses_attributions_torbox_body">Nuvio ReSeq se povezuje sa TorBox-om radi autentifikacije naloga, pristupa biblioteci u oblaku, provere keša i funkcija reprodukcije iz oblaka. Nuvio ReSeq nije povezan niti podržan od strane TorBox-a.</string>
     <string name="licenses_attributions_mdblist_title">MDBList</string>
-    <string name="licenses_attributions_mdblist_body">Nuvio koristi MDBList za ocene i podatke eksternih provajdera rezulata. Nuvio nije povezan niti podržan od strane MDBList-a.</string>
+    <string name="licenses_attributions_mdblist_body">Nuvio ReSeq koristi MDBList za ocene i podatke eksternih provajdera rezulata. Nuvio ReSeq nije povezan niti podržan od strane MDBList-a.</string>
     <string name="licenses_attributions_introdb_title">IntroDB</string>
-    <string name="licenses_attributions_introdb_body">Nuvio koristi IntroDB API za vremenske oznake uvodnih špica, rezimea, odjavnih špica i pregleda koje obezbeđuje zajednica, a koje se koriste za preskakanje. Nuvio nije povezan niti podržan od strane IntroDB-a.</string>
+    <string name="licenses_attributions_introdb_body">Nuvio ReSeq koristi IntroDB API za vremenske oznake uvodnih špica, rezimea, odjavnih špica i pregleda koje obezbeđuje zajednica, a koje se koriste za preskakanje. Nuvio ReSeq nije povezan niti podržan od strane IntroDB-a.</string>
     <string name="licenses_attributions_imdb_title">IMDb nekomercijalni skupovi podataka</string>
-    <string name="licenses_attributions_imdb_body">Nuvio koristi IMDb nekomercijalne skupove podataka, uključujući title.ratings.tsv.gz, za IMDb ocene i broj glasova. Podaci ljubaznošću IMDb-a (https://www.imdb.com). Korišćeno uz dozvolu. IMDb podaci su za ličnu i nekomercijalnu upotrebu pod IMDb uslovima.</string>
+    <string name="licenses_attributions_imdb_body">Nuvio ReSeq koristi IMDb nekomercijalne skupove podataka, uključujući title.ratings.tsv.gz, za IMDb ocene i broj glasova. Podaci ljubaznošću IMDb-a (https://www.imdb.com). Korišćeno uz dozvolu. IMDb podaci su za ličnu i nekomercijalnu upotrebu pod IMDb uslovima.</string>
     <string name="licenses_attributions_exoplayer_title">AndroidX Media3 ExoPlayer 1.8.0</string>
     <string name="licenses_attributions_exoplayer_body">Koristi se kao Android mehanizam za reprodukciju. Licencirano pod Apache licencom, verzija 2.0.</string>
     <string name="licenses_attributions_libmpv_title">libmpv / libmpv-android</string>
@@ -463,7 +463,7 @@
     <string name="tracking_accounts_title">Nalozi</string>
     <string name="tracking_accounts_subtitle">Povežite i upravljajte uslugama praćenja</string>
     <string name="tracking_sources_title">Izvori</string>
-    <string name="tracking_sources_subtitle">Izaberite odakle Nuvio čita vašu biblioteku i napredak gledanja. Reprodukcija se skrobluje na svaku povezanu uslugu.</string>
+    <string name="tracking_sources_subtitle">Izaberite odakle Nuvio ReSeq čita vašu biblioteku i napredak gledanja. Reprodukcija se skrobluje na svaku povezanu uslugu.</string>
     <string name="tracking_trakt_features_title">Trakt funkcije</string>
     <string name="tracking_trakt_features_subtitle">Istorija, recenzije i preporuke specifične za Trakt</string>
     <string name="tracking_simkl_features_title">Simkl funkcije</string>
@@ -479,8 +479,8 @@
     <string name="tracking_status_connecting">Povezivanje</string>
     <string name="tracking_finish_connection">Završi odobrenje veze</string>
     <string name="tracking_connecting_provider">Pokretanje %1$s veze…</string>
-    <string name="tracking_watch_progress_dialog_subtitle">Izaberite uslugu koju Nuvio čita za nastavak i Nastavak gledanja. Skrobovanje ostaje aktivno za svaku povezanu uslugu.</string>
-    <string name="tracking_library_source_dialog_subtitle">Izaberite uslugu koju Nuvio čita za vašu Biblioteku. Reprodukcija se skrobluje na svaku povezanu uslugu.</string>
+    <string name="tracking_watch_progress_dialog_subtitle">Izaberite uslugu koju Nuvio ReSeq čita za nastavak i Nastavak gledanja. Skrobovanje ostaje aktivno za svaku povezanu uslugu.</string>
+    <string name="tracking_library_source_dialog_subtitle">Izaberite uslugu koju Nuvio ReSeq čita za vašu Biblioteku. Reprodukcija se skrobluje na svaku povezanu uslugu.</string>
     <string name="tracking_trakt_progress_required">Dostupno kada je Trakt izvor napretka gledanja</string>
     <string name="trakt_name">Trakt</string>
     <string name="simkl_name">Simkl</string>
@@ -490,7 +490,7 @@
     <string name="settings_advanced_subtitle">Performanse, navigacija, keš i dijagnostika</string>
     <string name="experience_mode_essential">Osnovno</string>
     <string name="experience_mode_advanced">Napredno</string>
-    <string name="experience_mode_choose_title">Izaberite vaše Nuvio iskustvo</string>
+    <string name="experience_mode_choose_title">Izaberite vaše Nuvio ReSeq iskustvo</string>
     <string name="experience_mode_choose_subtitle">Počnite jednostavno ili otključajte svako prilagođavanje. Možete promeniti bilo kada.</string>
     <string name="experience_mode_essential_card_subtitle">Fokusirano podešavanje, dodaci, osnove reprodukcije, Trakt i podešavanja naloga.</string>
     <string name="experience_mode_advanced_card_subtitle">Puna podešavanja, kontrole rasporeda, redosled kataloga, kolekcije, priključci i dijagnostika.</string>
@@ -598,8 +598,8 @@
     <string name="buffer_safe_status">Bezbedno: Unutar preporučenog ograničenja za vaš uređaj.</string>
     <string name="buffer_unsafe_warning">Upozorenje: Premašuje preporučeno bezbedno ograničenje (%1$d MB) za vaš %2$s uređaj. Može izazvati rušenje aplikacije.</string>
     <string name="buffer_auto_limit_active">Automatski skalirano bezbedno ograničenje: %d MB</string>
-    <string name="advanced_nuvio_focus_scroll">Nuvio fokus skrolovanje</string>
-    <string name="advanced_nuvio_focus_scroll_subtitle">Koristite Nuvio prilagođenu animaciju i pozicioniranje globalnog skrolovanja fokusa.</string>
+    <string name="advanced_nuvio_focus_scroll">Nuvio ReSeq fokus skrolovanje</string>
+    <string name="advanced_nuvio_focus_scroll_subtitle">Koristite Nuvio ReSeq prilagođenu animaciju i pozicioniranje globalnog skrolovanja fokusa.</string>
     <string name="advanced_rgb565">RGB565 dekodiranje slika</string>
     <string name="advanced_rgb565_subtitle">Koristi 16-bitne boje sa manjom potrošnjom memorije za pogodne neprozirne slike. Promena ponovo pokreće aplikaciju.</string>
     <string name="advanced_memory_only_vertical_scroll">Vertikalno skrolovanje samo iz memorije</string>
@@ -754,8 +754,8 @@
     <string name="playback_player_ask_desc">Izaberi plejer svaki put</string>
     <string name="playback_player_auto">Automatski (Najbolje za sadržaj)</string>
     <string name="playback_player_auto_desc">ExoPlayer za filmove i TV serije · MPV za anime</string>
-    <string name="playback_engine_exoplayer_desc">Najbolja kompatibilnost sa trenutnim Nuvio funkcijama.</string>
-    <string name="playback_engine_mvplayer_desc">Koristi libmpv sa Nuvio OSD kontrolama. Eksperimentalno.</string>
+    <string name="playback_engine_exoplayer_desc">Najbolja kompatibilnost sa trenutnim Nuvio ReSeq funkcijama.</string>
+    <string name="playback_engine_mvplayer_desc">Koristi libmpv sa Nuvio ReSeq OSD kontrolama. Eksperimentalno.</string>
 
     <string name="video_section">Video</string>
     <string name="audio_trailer_section">Trejler</string>
@@ -1163,7 +1163,7 @@
     <string name="debrid_disconnect">Prekini vezu</string>
     <string name="debrid_device_auth_connected">%1$s je povezan na ovom uređaju.</string>
     <string name="debrid_device_auth_starting">Pokretanje bezbedne prijave...</string>
-    <string name="debrid_device_auth_instructions">Skenirajte QR i unesite ovaj kod da biste odobrili Nuvio.</string>
+    <string name="debrid_device_auth_instructions">Skenirajte QR i unesite ovaj kod da biste odobrili Nuvio ReSeq.</string>
     <string name="debrid_device_auth_code_copied">Kod je kopiran.</string>
     <string name="debrid_device_auth_waiting">Čeka se odobrenje...</string>
     <string name="debrid_device_auth_failed">Nije moguće pokrenuti prijavu.</string>
@@ -1357,13 +1357,13 @@
     <string name="trakt_watch_progress_source_trakt">Trakt</string>
     <string name="trakt_watch_progress_source_nuvio">Nuvio Sync</string>
     <string name="trakt_library_source_title">Izvor biblioteke</string>
-    <string name="trakt_library_source_subtitle">Izaberite koji izvor Nuvio čita za vašu Biblioteku</string>
+    <string name="trakt_library_source_subtitle">Izaberite koji izvor Nuvio ReSeq čita za vašu Biblioteku</string>
     <string name="trakt_library_source_dialog_title">Izvor biblioteke</string>
     <string name="trakt_library_source_dialog_subtitle">Izaberite gde ćete čuvati i upravljati stavkama vaše biblioteke</string>
     <string name="trakt_library_source_trakt">Trakt</string>
-    <string name="trakt_library_source_nuvio">Nuvio biblioteka</string>
+    <string name="trakt_library_source_nuvio">Nuvio ReSeq biblioteka</string>
     <string name="trakt_library_source_trakt_selected">Izabrana je Trakt biblioteka</string>
-    <string name="trakt_library_source_nuvio_selected">Izabrana je Nuvio biblioteka</string>
+    <string name="trakt_library_source_nuvio_selected">Izabrana je Nuvio ReSeq biblioteka</string>
     <string name="trakt_setting_on">Uključeno</string>
     <string name="trakt_setting_off">Isključeno</string>
     <string name="trakt_watch_progress_trakt_selected">Izvor napretka gledanja je podešen na Trakt</string>
@@ -1395,7 +1395,7 @@
     <string name="trakt_stat_watched_hours">Odgledano sati</string>
     <string name="trakt_disconnect">Prekini vezu</string>
     <string name="trakt_disconnect_title">Prekinuti vezu sa Trakt-om?</string>
-    <string name="trakt_disconnect_subtitle">Ovo će odspojiti vaš Trakt nalog sa Nuvio-a.</string>
+    <string name="trakt_disconnect_subtitle">Ovo će odspojiti vaš Trakt nalog sa Nuvio ReSeq-a.</string>
     <string name="trakt_login">Prijava</string>
     <string name="trakt_retry">Pokušaj ponovo</string>
     <string name="trakt_back">Nazad</string>
@@ -1472,11 +1472,11 @@
     <string name="profile_addons">dodaci</string>
     <string name="profile_plugins">priključci</string>
     <string name="profile_choose_avatar">Izaberite avatar</string>
-    <string name="profile_custom_avatar_web_panel_note">Prilagođeni URL-ovi avatara mogu se konfigurisati iz Nuvio veb panela.</string>
+    <string name="profile_custom_avatar_web_panel_note">Prilagođeni URL-ovi avatara mogu se konfigurisati iz Nuvio ReSeq veb panela.</string>
     <string name="profile_editor_tab_avatar">Avatar</string>
     <string name="profile_editor_tab_background">Pozadina</string>
     <string name="profile_choose_background">Izaberite pozadinu profila</string>
-    <string name="profile_background_member_note">Prilagođeni URL-ovi pozadine mogu se konfigurisati iz Nuvio veb panela.</string>
+    <string name="profile_background_member_note">Prilagođeni URL-ovi pozadine mogu se konfigurisati iz Nuvio ReSeq veb panela.</string>
     <string name="profile_background_normal">Normalno</string>
     <string name="profile_background_custom">Prilagođeno</string>
     <string name="profile_avatar_none_selected">Nije izabran avatar</string>
@@ -1544,7 +1544,7 @@
     <string name="profile_pin_overlay_set_support">Ovaj PIN će biti potreban pre otvaranja ovog profila.</string>
     <string name="profile_pin_overlay_confirm_support">Ponovo unesite iste 4 cifre da završite podešavanje.</string>
     <string name="profile_pin_overlay_mismatch">PIN kodovi se ne poklapaju. Unesite novi PIN ponovo.</string>
-    <string name="profile_pin_overlay_forgot_hint">Zaboravili ste PIN? Resetujte ga sa svog Nuvio naloga na nuvio veb-sajtu.</string>
+    <string name="profile_pin_overlay_forgot_hint">Zaboravili ste PIN? Resetujte ga sa svog Nuvio ReSeq naloga na nuvio veb-sajtu.</string>
     <string name="profile_pin_overlay_back_hint">Pritisnite nazad za otkazivanje</string>
 
 
@@ -1625,7 +1625,7 @@
     <string name="stream_type_torrent">Torrent</string>
     <string name="stream_type_youtube">YouTube</string>
     <string name="p2p_consent_title">P2P strimovanje</string>
-    <string name="p2p_consent_body">Ovaj strim koristi peer-to-peer (P2P) tehnologiju. Omogućavanjem P2P-a potvrđujete i saglasni ste da:\n\n\u2022 Vaša IP adresa će biti vidljiva drugim korisnicima u mreži\n\u2022 Vi ste isključivo odgovorni za sadržaj kom pristupate\n\u2022 Potvrđujete da imate zakonsko pravo na strimovanje ovog sadržaja u vašoj jurisdikciji\n\u2022 Nuvio ne hostuje, ne distribuira i ne kontroliše P2P sadržaj\n\u2022 Nuvio ne snosi nikakvu odgovornost za pravne posledice proistekle iz vašeg korišćenja P2P strimovanja\n\nOvu funkciju koristite isključivo na sopstvenu odgovornost. P2P se može onemogućiti u bilo kom trenutku u Podešavanjima.</string>
+    <string name="p2p_consent_body">Ovaj strim koristi peer-to-peer (P2P) tehnologiju. Omogućavanjem P2P-a potvrđujete i saglasni ste da:\n\n\u2022 Vaša IP adresa će biti vidljiva drugim korisnicima u mreži\n\u2022 Vi ste isključivo odgovorni za sadržaj kom pristupate\n\u2022 Potvrđujete da imate zakonsko pravo na strimovanje ovog sadržaja u vašoj jurisdikciji\n\u2022 Nuvio ReSeq ne hostuje, ne distribuira i ne kontroliše P2P sadržaj\n\u2022 Nuvio ReSeq ne snosi nikakvu odgovornost za pravne posledice proistekle iz vašeg korišćenja P2P strimovanja\n\nOvu funkciju koristite isključivo na sopstvenu odgovornost. P2P se može onemogućiti u bilo kom trenutku u Podešavanjima.</string>
     <string name="p2p_consent_enable">Omogući P2P</string>
     <string name="p2p_consent_cancel">Otkaži</string>
     <string name="settings_p2p_title">P2P strimovanje</string>
@@ -2189,7 +2189,7 @@
     <string name="catalog_see_all_empty_title">Nema dostupnih stavki</string>
     <string name="catalog_see_all_empty_subtitle">Pokušajte sa drugim katalogom ili proverite ponovo kasnije</string>
 
-    <string name="layout_selection_welcome">Welcome to Nuvio</string>
+    <string name="layout_selection_welcome">Welcome to Nuvio ReSeq</string>
     <string name="layout_selection_subtitle">Izaberite raspored početnog ekrana</string>
     <string name="layout_selection_continue">Continue</string>
 
@@ -2373,7 +2373,7 @@
     <string name="cd_preview">Pregled</string>
     <string name="cd_test">Testiraj</string>
     <string name="cd_unlink">Prekini vezu</string>
-    <string name="cd_nuvio_logo">NuvioTV</string>
+    <string name="cd_nuvio_logo">Nuvio ReSeq</string>
     <string name="cd_trakt_logo">Trakt logotip</string>
     <string name="cd_trakt_qr">QR kod za Trakt aktivaciju</string>
     <string name="cd_imdb">IMDb</string>
@@ -2385,7 +2385,7 @@
     <string name="cd_expand">Proširi %1$s</string>
     <string name="cd_collapse">Skupi %1$s</string>
     <string name="cd_qr_login">QR kod za prijavu</string>
-    <string name="cd_nuvio">Nuvio</string>
+    <string name="cd_nuvio">Nuvio ReSeq</string>
 
     <string name="debug_signin_success">Uspešna prijava</string>
     <string name="debug_generate_description">Debug generisana %1$s stavka #%2$d</string>
@@ -2527,7 +2527,7 @@
     <string name="collections_editor_tmdb_list_helper">Primer: https://www.themoviedb.org/list/8504994 ili 8504994.</string>
     <string name="collections_editor_tmdb_person_id">ID osobe</string>
     <string name="collections_editor_tmdb_person_helper">Primer: https://www.themoviedb.org/person/31-tom-hanks ili 31.</string>
-    <string name="collections_editor_tmdb_title_helper">Prikazuje se kao naziv reda/kartice. Ako ostavite prazno, Nuvio će ga kreirati na osnovu izvora.</string>
+    <string name="collections_editor_tmdb_title_helper">Prikazuje se kao naziv reda/kartice. Ako ostavite prazno, Nuvio ReSeq će ga kreirati na osnovu izvora.</string>
     <string name="collections_editor_tmdb_quick_genres">Brzi žanrovi</string>
     <string name="collections_editor_tmdb_quick_languages">Brzi jezici</string>
     <string name="collections_editor_tmdb_quick_countries">Brze zemlje</string>
@@ -2709,7 +2709,7 @@
     <string name="autoplay_regex_preset_no_remux_hdr">Bez REMUX/HDR</string>
 
     <!-- Playback settings sections -->
-    <string name="playback_player_internal_desc">Koristi ugrađeni NuvioTV plejer</string>
+    <string name="playback_player_internal_desc">Koristi ugrađeni Nuvio ReSeq plejer</string>
 
     <!-- Player runtime: torrent overlay + tracks -->
     <string name="player_torrent_peer_info">%1$d sedera · %2$d pira</string>
@@ -2810,9 +2810,9 @@
     <string name="simkl_visit">Poseti Simkl</string>
     <string name="simkl_sync_info_action">Kako funkcioniše sinhronizacija</string>
     <string name="simkl_sync_info_title">Kako funkcioniše Simkl sinhronizacija</string>
-    <string name="simkl_sync_info_description">Nuvio automatski proverava Simkl najviše jednom u %1$d minuta. Promenama napravljenim putem druge aplikacije ili Simkl veb-sajta može biti potrebno toliko vremena da se prikažu.</string>
+    <string name="simkl_sync_info_description">Nuvio ReSeq automatski proverava Simkl najviše jednom u %1$d minuta. Promenama napravljenim putem druge aplikacije ili Simkl veb-sajta može biti potrebno toliko vremena da se prikažu.</string>
     <string name="simkl_sync_info_activity">Svako osvežavanje prvo proverava da li Simkl prijavljuje promene i preuzima samo ažuriranja. Ovo prati pravila Simkl API-ja, smanjuje nepotrebnu potrošnju podataka i pomaže u održavanju stabilnosti usluge.</string>
-    <string name="simkl_sync_info_manual">Promene napravljene u Nuvio aplikaciji se odmah šalju na Simkl. Koristite „Sinhronizuj sada“ kad god želite da Nuvio ranije proveri ima li udaljenih promena.</string>
+    <string name="simkl_sync_info_manual">Promene napravljene u Nuvio ReSeq aplikaciji se odmah šalju na Simkl. Koristite „Sinhronizuj sada“ kad god želite da Nuvio ReSeq ranije proveri ima li udaljenih promena.</string>
     <string name="simkl_sync_info_library_statuses">Serije koje su na Simkl-u stavljene na liste „Na čekanju“ ili „Odbačeno“ sakrivene su iz odeljka „Nastavi gledanje“. Ostaju sakrivene sve dok se nalaze na bilo kojoj od te dve liste.</string>
     <string name="simkl_sync_info_docs">Pročitajte vodič za Simkl sinhronizaciju</string>
     <string name="error_open_browser_failed">Otvaranje veb-pregledača nije uspelo</string>

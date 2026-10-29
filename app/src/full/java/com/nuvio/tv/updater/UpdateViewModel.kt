@@ -36,7 +36,6 @@ data class UpdateUiState(
     val errorMessage: String? = null,
     val feedbackMessage: String? = null,
     val updateBannerEnabled: Boolean = true,
-    val updateChannel: UpdateChannel = UpdateChannel.STABLE,
     val autoInstallEnabled: Boolean = false,
     val autoInstallSupported: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
     val autoInstallNoticeEnabled: Boolean = true,
@@ -59,13 +58,11 @@ class UpdateViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val enabled = updatePreferences.updateBannerEnabled.first()
-            val channel = updatePreferences.getOrInitializeUpdateChannel()
             val autoInstallEnabled = updatePreferences.autoInstallEnabled.first()
             val autoInstallNoticeEnabled = updatePreferences.autoInstallNoticeEnabled.first()
             _uiState.update {
                 it.copy(
                     updateBannerEnabled = enabled,
-                    updateChannel = channel,
                     autoInstallEnabled = autoInstallEnabled,
                     autoInstallNoticeEnabled = autoInstallNoticeEnabled
                 )
@@ -84,7 +81,6 @@ class UpdateViewModel @Inject constructor(
 
         updateCheckJob?.cancel()
         updateCheckJob = viewModelScope.launch {
-            val channel = _uiState.value.updateChannel
             _uiState.update {
                 it.copy(
                     isChecking = true,
@@ -96,7 +92,7 @@ class UpdateViewModel @Inject constructor(
             }
 
             val dismissedTag = updatePreferences.ignoredTag.first()
-            val result = updateRepository.getLatestUpdate(channel)
+            val result = updateRepository.getLatestUpdate()
             updatePreferences.setLastCheckAtMs(System.currentTimeMillis())
 
             result
@@ -132,7 +128,7 @@ class UpdateViewModel @Inject constructor(
                             showUnknownSourcesDialog = false,
                             errorMessage = null,
                             feedbackMessage = if (showNoUpdateFeedback && !remoteNewer) {
-                                noUpdateFeedback(channel)
+                                context.getString(R.string.update_latest_version)
                             } else {
                                 null
                             }
@@ -153,7 +149,7 @@ class UpdateViewModel @Inject constructor(
                             errorMessage = null,
                             feedbackMessage = if (showNoUpdateFeedback) {
                                 if (error is NoEligibleUpdateException) {
-                                    noUpdateFeedback(channel)
+                                    context.getString(R.string.update_latest_version)
                                 } else {
                                     error.message ?: context.getString(R.string.update_error_check_failed)
                                 }
@@ -165,13 +161,6 @@ class UpdateViewModel @Inject constructor(
                 }
         }
     }
-
-    private fun noUpdateFeedback(channel: UpdateChannel): String =
-        if (channel == UpdateChannel.STABLE && VersionUtils.isPrerelease(BuildConfig.VERSION_NAME)) {
-            context.getString(R.string.update_waiting_for_stable)
-        } else {
-            context.getString(R.string.update_latest_version)
-        }
 
     fun dismissBanner() {
         val state = _uiState.value
@@ -213,36 +202,6 @@ class UpdateViewModel @Inject constructor(
             syncBackgroundJobs()
             if (enabled && changed && !BuildConfig.IS_DEBUG_BUILD) {
                 checkForUpdates(force = false, showNoUpdateFeedback = false)
-            }
-        }
-    }
-
-    fun setUpdateChannel(channel: UpdateChannel) {
-        val state = _uiState.value
-        if (state.updateChannel == channel) return
-
-        updateCheckJob?.cancel()
-        UpdateJobService.cancelIdleInstall(context)
-        _uiState.update {
-            it.copy(
-                updateChannel = channel,
-                isChecking = false,
-                update = null,
-                isUpdateAvailable = false,
-                isDownloading = false,
-                downloadProgress = null,
-                downloadedApkPath = null,
-                showBanner = false,
-                showUnknownSourcesDialog = false,
-                errorMessage = null,
-                feedbackMessage = null
-            )
-        }
-        viewModelScope.launch {
-            downloadStore.clear()
-            updatePreferences.setUpdateChannel(channel)
-            if (!BuildConfig.IS_DEBUG_BUILD) {
-                checkForUpdates(force = true, showNoUpdateFeedback = false)
             }
         }
     }

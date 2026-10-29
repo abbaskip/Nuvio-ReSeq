@@ -244,7 +244,8 @@ data class PlayerUiState(
     // When true, suppress all torrent stats text (buffer, seeds, peers, speed)
     // from loading overlay, rebuffering indicator, and corner overlay.
     val hideTorrentStats: Boolean = true,
-    val isLive: Boolean = false
+    val isLive: Boolean = false,
+    val tvdbEpisodeIdentity: com.nuvio.tv.domain.model.EpisodeIdentity? = null
 ) {
     /** Subtitle style to render with, after applying the HDR override for the current video. */
     val effectiveSubtitleStyle: SubtitleStyleSettings
@@ -298,7 +299,9 @@ data class NextEpisodeInfo(
     val hasAired: Boolean,
     val available: Boolean? = null,
     val unairedMessage: String?,
-    val isOtherType: Boolean = false
+    val isOtherType: Boolean = false,
+    val displaySeason: Int? = null,
+    val displayEpisode: Int? = null
 )
 
 data class SubtitleSyncCue(

@@ -32,10 +32,20 @@ data class WatchProgress(
     override val trackingProviderItemId: String? = null,
     override val trackingSourceUrl: String? = null,
     val completionThresholdOverride: Float? = null,
-    val excludedNextUpSeasons: Set<Int> = emptySet()
+    val excludedNextUpSeasons: Set<Int> = emptySet(),
+    val tvdbEpisodeId: Long? = null,
+    val tvdbEpisodeIds: List<Long>? = null,
+    val tvdbCompletedEpisodeIds: List<Long>? = null,
+    val tvdbContext: TvdbPlaybackContext? = null,
+    val providerDefaultPlayback: Boolean = false,
+    val tvdbCoverageVerified: Boolean? = null
 ) : TrackingAttributedItem {
     override val trackingContentId: String
         get() = contentId
+
+    val tvdbContentIds: Set<Long> get() = (tvdbContext?.episodeIds ?: tvdbEpisodeIds ?: listOfNotNull(tvdbEpisodeId)).toSet()
+    val tvdbWatchedIds: Set<Long> get() = if (tvdbCoverageVerified == false) emptySet() else tvdbCompletedEpisodeIds?.toSet()
+        ?: if (isCompleted()) tvdbContentIds else emptySet()
 
     companion object {
         const val SOURCE_LOCAL = "local"
@@ -64,13 +74,13 @@ data class WatchProgress(
     /**
      * Returns true if the content has been watched past the threshold (default 90%)
      */
-    fun isCompleted(threshold: Float = completionThreshold()): Boolean = progressPercentage >= threshold
+    fun isCompleted(threshold: Float = completionThreshold()): Boolean = tvdbCoverageVerified != false && progressPercentage >= threshold
 
     /**
      * Returns true if the content has been started but not completed
      */
     fun isInProgress(startThreshold: Float = STARTED_THRESHOLD, endThreshold: Float = completionThreshold()): Boolean =
-        progressPercentage >= startThreshold && progressPercentage < endThreshold
+        progressPercentage >= startThreshold && (progressPercentage < endThreshold || tvdbCoverageVerified == false)
 
     private fun completionThreshold(): Float =
         completionThresholdOverride?.takeIf { it.isFinite() && it > 0f && it <= 1f }

@@ -27,6 +27,11 @@ interface MetaRepository {
      * reading backdrop URLs synchronously before navigation.
      */
     fun getCachedMeta(type: String, id: String): Meta?
+
+    fun getProviderMeta(type: String, id: String): Flow<NetworkResult<Meta>> = getMetaFromAllAddons(type, id)
+
+    suspend fun getPlaybackMeta(profileId: Int, type: String, id: String,
+        context: com.nuvio.tv.domain.model.TvdbPlaybackContext): Meta? = null
     
     fun clearCache()
 }

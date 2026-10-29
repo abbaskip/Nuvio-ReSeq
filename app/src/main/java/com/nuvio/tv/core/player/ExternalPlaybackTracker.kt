@@ -68,7 +68,8 @@ data class ExternalPlaybackMetadata(
     val episode: Int?,
     val episodeTitle: String?,
     val year: String?,
-    val profileId: Int
+    val profileId: Int,
+    val tvdbContextJson: String? = null
 ) {
     /**
      * Builds a display title for external players.
@@ -108,7 +109,8 @@ data class ExternalAutoNextEpisode(
     val profileId: Int,
     // Lets the collector skip a value replayed after a config change while still
     // acting on a genuinely new event after a process restart.
-    val requestedAtMs: Long = System.currentTimeMillis()
+    val requestedAtMs: Long = System.currentTimeMillis(),
+    val tvdbContextJson: String? = null
 )
 
 /** Visuals for the loader shown while an external episode auto-advances. */
@@ -637,7 +639,8 @@ class ExternalPlaybackTracker @Inject constructor(
         // duration, so Nuvio can't compute a % and nothing is saved as resumable/watched.
         // Backfill the duration (saved progress, else episode/movie runtime) off-thread, then
         // process. Players that DO report a duration keep the synchronous path below unchanged.
-        if ((result.durationMs == null || result.durationMs <= 0L) && result.positionMs > 0L) {
+        if ((result.durationMs == null || result.durationMs <= 0L) && result.positionMs > 0L &&
+            (com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(metadata.tvdbContextJson)?.episodeIds?.size ?: 0) <= 1) {
             scope.launch {
                 val fallback = resolveFallbackDurationMs(metadata)
                 val enriched = if (fallback > 0L) {
@@ -726,8 +729,10 @@ class ExternalPlaybackTracker @Inject constructor(
     }
 
     private suspend fun currentSavedProgress(metadata: ExternalPlaybackMetadata): WatchProgress? {
-        val flow = if (metadata.season != null && metadata.episode != null) {
-            watchProgressRepository.getEpisodeProgress(
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(metadata.tvdbContextJson)
+        val flow = if (context != null) watchProgressRepository.getEpisodeProgress(metadata.contentId, context, metadata.profileId)
+        else if (metadata.season != null && metadata.episode != null) {
+            watchProgressRepository.getProviderEpisodeProgress(
                 metadata.contentId,
                 metadata.season,
                 metadata.episode,
@@ -739,11 +744,17 @@ class ExternalPlaybackTracker @Inject constructor(
         return flow.firstOrNull()
     }
 
+    private suspend fun fetchPlaybackMeta(metadata: ExternalPlaybackMetadata): NetworkResult<com.nuvio.tv.domain.model.Meta> {
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(metadata.tvdbContextJson)
+        if (context != null) return metaRepository.getPlaybackMeta(metadata.profileId, metadata.contentType, metadata.contentId, context)
+            ?.let { NetworkResult.Success(it) } ?: NetworkResult.Error("Episode order unavailable")
+        return (if (metadata.tvdbContextJson == "provider") metaRepository.getProviderMeta(metadata.contentType, metadata.contentId)
+            else metaRepository.getMetaFromAllAddons(metadata.contentType, metadata.contentId)).first { it !is NetworkResult.Loading }
+    }
+
     private suspend fun fetchRuntimeMsFromMeta(metadata: ExternalPlaybackMetadata): Long {
         val fetched = withTimeoutOrNull(META_FETCH_TIMEOUT_MS) {
-            metaRepository
-                .getMetaFromAllAddons(type = metadata.contentType, id = metadata.contentId)
-                .first { it !is NetworkResult.Loading }
+            fetchPlaybackMeta(metadata)
         }
         val meta = (fetched as? NetworkResult.Success)?.data ?: return 0L
         val season = metadata.season
@@ -774,6 +785,7 @@ class ExternalPlaybackTracker @Inject constructor(
             .putString("year", m.year)
             .putInt("profileId", m.profileId)
             .putString("cloudSessionToken", cloudSessionToken)
+            .putString("tvdbContext", m.tvdbContextJson)
             .apply()
     }
 
@@ -837,7 +849,8 @@ class ExternalPlaybackTracker @Inject constructor(
             episode = episode,
             episodeTitle = p.getString("episodeTitle", null),
             year = p.getString("year", null),
-            profileId = profileId
+            profileId = profileId,
+            tvdbContextJson = p.getString("tvdbContext", null)
         )
     }
 
@@ -928,9 +941,7 @@ class ExternalPlaybackTracker @Inject constructor(
             return resolveNextEpisodeSnapshot(metadata, loaded, preferredVideoId)
         }
         val result = withTimeoutOrNull(META_FETCH_TIMEOUT_MS) {
-            metaRepository
-                .getMetaFromAllAddons(type = metadata.contentType, id = metadata.contentId)
-                .first { it !is NetworkResult.Loading }
+            fetchPlaybackMeta(metadata)
         }
         val meta = (result as? NetworkResult.Success)?.data
             ?: return ExternalNextEpisodeSnapshot.Unknown
@@ -1077,7 +1088,8 @@ class ExternalPlaybackTracker @Inject constructor(
                     nextVideoId = nextVideoId,
                     nextSeason = nextSeason,
                     nextEpisode = nextEpisode,
-                    profileId = metadata.profileId
+                    profileId = metadata.profileId,
+                    tvdbContextJson = metadata.tvdbContextJson
                 )
             )
 
@@ -1407,7 +1419,7 @@ class ExternalPlaybackTracker @Inject constructor(
             return cloudPlaybackProgressStore.load(playbackContext.item, file)?.resumePositionMs ?: 0L
         }
         val flow = if (metadata.season != null && metadata.episode != null) {
-            watchProgressRepository.getEpisodeProgress(
+            watchProgressRepository.getProviderEpisodeProgress(
                 metadata.contentId,
                 metadata.season,
                 metadata.episode,
@@ -1439,6 +1451,7 @@ class ExternalPlaybackTracker @Inject constructor(
         val effectiveDuration = durationMs ?: 0L
 
         scope.launch {
+            val context = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(metadata.tvdbContextJson)
             val progress = WatchProgress(
                 contentId = metadata.contentId,
                 contentType = metadata.contentType,
@@ -1453,7 +1466,10 @@ class ExternalPlaybackTracker @Inject constructor(
                 position = positionMs,
                 duration = effectiveDuration,
                 progressPercent = explicitPercent,
-                lastWatched = System.currentTimeMillis()
+                lastWatched = System.currentTimeMillis(),
+                tvdbContext = context,
+                providerDefaultPlayback = metadata.tvdbContextJson == "provider",
+                tvdbCoverageVerified = context?.permitsTracking(effectiveDuration)
             )
             Log.d(TAG, "Saving progress: pos=${positionMs}ms, dur=${effectiveDuration}ms, " +
                 "content=${metadata.contentId}, video=${metadata.videoId}, " +
@@ -1470,7 +1486,8 @@ class ExternalPlaybackTracker @Inject constructor(
                 0f
             }
             if (progressPercent > 0f) {
-                val scrobbleItem = buildScrobbleItem(metadata)
+                val scrobbleItem = buildScrobbleItem(metadata)?.let { media -> media.copy(catalog = media.catalog?.copy(
+                    tvdbCoverageVerified = progress.tvdbCoverageVerified != false)) }
                 if (scrobbleItem != null) {
                     trackingScrobbleCoordinator.scrobble(
                         TrackingScrobbleAction.START,
@@ -1515,6 +1532,7 @@ class ExternalPlaybackTracker @Inject constructor(
             episodeNumber = metadata.episode,
             episodeTitle = metadata.episodeTitle
         )
+            .let { media -> media.copy(catalog = media.catalog?.copy(tvdbContext = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(metadata.tvdbContextJson), providerDefault = metadata.tvdbContextJson == "provider")) }
             .takeIf { media ->
                 media.hasResolvableIdentity &&
                     (media.kind == TrackingMediaKind.MOVIE ||

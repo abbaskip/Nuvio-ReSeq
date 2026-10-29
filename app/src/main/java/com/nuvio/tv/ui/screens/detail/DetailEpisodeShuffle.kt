@@ -26,7 +26,8 @@ internal fun applyDetailShuffle(
         shuffle.clearSelection(profile.profileId, meta.id, ShuffleSurface.DETAIL)
         return result
     }
-    val resume = continueWatching.asSequence().filter {
+    val resumable = if (meta.episodeOrder?.effectiveType != null) state.episodeProgressMap.values.toList() else continueWatching
+    val resume = resumable.asSequence().filter {
         (it.contentId == meta.id || it.contentId == meta.imdbId) &&
             (it.contentType.equals("series", true) || it.contentType.equals("tv", true)) &&
             it.season != null && it.episode != null && it.videoId.isNotBlank() &&

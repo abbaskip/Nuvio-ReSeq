@@ -134,6 +134,142 @@ class WatchStateSyncServiceTest {
         }
     }
 
+    @Test fun `single TVDB cloud push uses verified native identity and canonical key without changing local progress`() = runTest {
+        val postgrest = mockk<Postgrest>()
+        val mutations = mockk<WatchStateMutationStore>(relaxed = true)
+        val calls = mutableListOf<JsonObject>()
+        coEvery { postgrest.rpc(any(), any<JsonObject>()) } coAnswers {
+            calls += secondArg<JsonObject>()
+            mockk<PostgrestResult>(relaxed = true)
+        }
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(1, "alternate", 101, 5, 16,
+            listOf(101), "tt123:5:16", providerSources = listOf(com.nuvio.tv.domain.model.EpisodeSourceIdentity(
+                "tt123:5:14", com.nuvio.tv.domain.model.EpisodeCoordinates(5, 14), listOf(101), "Example")))
+        val local = progress("tt123").copy(contentType = "series", videoId = context.requestVideoId,
+            season = 5, episode = 16, tvdbContext = context)
+        val key = context.storageKey(local.contentId)
+        progressService(postgrest, mockk(relaxed = true), mutations).pushSingleToRemote(key, local, 1).getOrThrow()
+        val payload = calls.single().getValue("p_entries").jsonArray.single().jsonObject
+        assertEquals(14, payload.getValue("episode").jsonPrimitive.int)
+        assertEquals("tt123:5:14", payload.getValue("video_id").jsonPrimitive.content)
+        assertEquals("tt123_s5e14", payload.getValue("progress_key").jsonPrimitive.content)
+        assertEquals(16, local.episode)
+        coVerify { mutations.acknowledgeProgressUpserts(mapOf(key to local), 1) }
+    }
+
+    @Test fun `unresolved combined progress never reaches the native cloud progress RPC`() = runTest {
+        val postgrest = mockk<Postgrest>()
+        val mutations = mockk<WatchStateMutationStore>(relaxed = true)
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(1, "alternate", 101, 5, 16,
+            listOf(101, 102), "tt123:5:16", 44)
+        val local = progress("tt123").copy(contentType = "series", season = 5, episode = 16,
+            position = 44 * 60_000L, duration = 44 * 60_000L, tvdbContext = context)
+        val key = context.storageKey(local.contentId)
+        coEvery { mutations.pendingProgressDeletes(1) } returns emptySet()
+        coEvery { mutations.pendingProgressUpserts(1) } returns mapOf(key to local)
+        val service = progressService(postgrest, mockk(relaxed = true), mutations)
+        service.pushSingleToRemote(key, local, 1).getOrThrow()
+        service.pushToRemote(1).getOrThrow()
+        coVerify(exactly = 0) { postgrest.rpc(any(), any<JsonObject>()) }
+        coVerify(exactly = 2) { mutations.acknowledgeProgressUpserts(mapOf(key to local), 1) }
+        assertEquals(context, local.tvdbContext)
+    }
+
+    @Test fun `bulk TVDB aliases coalesce by native identity using the newest position`() = runTest {
+        val postgrest = mockk<Postgrest>()
+        val mutations = mockk<WatchStateMutationStore>(relaxed = true)
+        val calls = mutableListOf<JsonObject>()
+        coEvery { postgrest.rpc(any(), any<JsonObject>()) } coAnswers {
+            calls += secondArg<JsonObject>(); mockk<PostgrestResult>(relaxed = true)
+        }
+        val source = com.nuvio.tv.domain.model.EpisodeSourceIdentity("tt123:1:1",
+            com.nuvio.tv.domain.model.EpisodeCoordinates(1, 1), listOf(101), "Example")
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(1, "dvd", 101, 1, 2,
+            listOf(101), "tt123:1:2", providerSources = listOf(source))
+        val newer = progress("tt123").copy(contentType = "series", season = 1, episode = 2,
+            tvdbContext = context, lastWatched = 200, position = 500)
+        val older = newer.copy(tvdbContext = context.copy(orderType = "alternate"), lastWatched = 100, position = 100)
+        val pending = linkedMapOf(context.storageKey("tt123") to newer, older.tvdbContext!!.storageKey("tt123") to older)
+        coEvery { mutations.pendingProgressDeletes(1) } returns emptySet()
+        coEvery { mutations.pendingProgressUpserts(1) } returns pending
+        progressService(postgrest, mockk(relaxed = true), mutations).pushToRemote(1).getOrThrow()
+        val row = calls.single().getValue("p_entries").jsonArray.single().jsonObject
+        assertEquals("tt123_s1e1", row.getValue("progress_key").jsonPrimitive.content)
+        assertEquals(500, row.getValue("position").jsonPrimitive.int)
+        coVerify { mutations.acknowledgeProgressUpserts(pending, 1) }
+    }
+
+    @Test fun `TVDB resume reads reuse the cloud RPC without writes and keep profile caches separate`() = runTest {
+        val postgrest = mockk<Postgrest>()
+        every { postgrest.serializer } returns io.github.jan.supabase.serializer.KotlinXSerializer()
+        val profiles = mutableListOf<Int>()
+        coEvery { postgrest.rpc("sync_pull_watch_progress", any<JsonObject>()) } coAnswers {
+            profiles += secondArg<JsonObject>().getValue("p_profile_id").jsonPrimitive.int
+            PostgrestResult("[]", io.ktor.http.Headers.Empty, postgrest)
+        }
+        val service = progressService(postgrest, mockk(relaxed = true), mockk(relaxed = true))
+        repeat(2) { assertTrue(service.readTvdbResume(1).isEmpty()) }
+        assertTrue(service.readTvdbResume(2).isEmpty())
+        assertEquals(listOf(1, 2), profiles)
+        coVerify(exactly = 0) { postgrest.rpc("sync_push_watch_progress", any<JsonObject>()) }
+        coVerify(exactly = 0) { postgrest.rpc("sync_push_watched_items", any<JsonObject>()) }
+    }
+
+    @Test fun `combined cloud payloads trigger native completion only after the corresponding boundary`() = runTest {
+        val postgrest = mockk<Postgrest>()
+        val watched = mutableSetOf<Int>()
+        val episodes = mutableSetOf<Int>()
+        coEvery { postgrest.rpc("sync_push_watch_progress", any<JsonObject>()) } coAnswers {
+            secondArg<JsonObject>().getValue("p_entries").jsonArray.forEach { value ->
+                val row = value.jsonObject
+                val number = row.getValue("episode").jsonPrimitive.int
+                episodes += number
+                if (row.getValue("duration").jsonPrimitive.content.toLong() >= 60_000 &&
+                    row.getValue("position").jsonPrimitive.content.toLong() >= row.getValue("duration").jsonPrimitive.content.toLong() * 0.9) watched += number
+            }
+            mockk<PostgrestResult>(relaxed = true)
+        }
+        val refs = listOf(14 to 101L, 15 to 102L).map { (number, id) ->
+            com.nuvio.tv.domain.model.EpisodeSourceIdentity("tt123:5:$number",
+                com.nuvio.tv.domain.model.EpisodeCoordinates(5, number), listOf(id), "Example", 22)
+        }
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(1, "alternate", 103, 5, 16,
+            listOf(101, 102), "tt123:5:16", 44, providerSources = refs)
+        val original = progress("tt123").copy(contentType = "series", videoId = context.requestVideoId,
+            season = 5, episode = 16, tvdbContext = context, duration = 2_800_000)
+        val service = progressService(postgrest, mockk(relaxed = true), mockk(relaxed = true))
+        service.pushSingleToRemote(context.storageKey("tt123"), original.copy(position = 1_372_000), 1).getOrThrow()
+        assertTrue(watched.isEmpty())
+        service.pushSingleToRemote(context.storageKey("tt123"), original.copy(position = 2_100_000), 1).getOrThrow()
+        assertEquals(setOf(14), watched)
+        service.pushSingleToRemote(context.storageKey("tt123"), original.copy(position = 2_800_000), 1).getOrThrow()
+        assertEquals(setOf(14, 15), watched)
+        assertEquals(setOf(14, 15), episodes)
+    }
+
+    @Test fun `TVDB cloud resume excludes ambiguous pre-fix rows without deleting or rewriting them`() = runTest {
+        val postgrest = mockk<Postgrest>()
+        every { postgrest.serializer } returns io.github.jan.supabase.serializer.KotlinXSerializer()
+        val cutoff = com.nuvio.tv.data.tvdb.TVDB_NATIVE_CLOUD_PROGRESS_FROM
+        val body = """[
+            {"user_id":"test","content_id":"tt123","content_type":"series","video_id":"tt123:5:14",
+             "season":5,"episode":14,"position":100,"duration":1000,"last_watched":${cutoff - 1},"progress_key":"tt123_s5e14"},
+            {"user_id":"test","content_id":"tt123","content_type":"series","video_id":"tt123:5:15",
+             "season":5,"episode":15,"position":200,"duration":1000,"last_watched":${cutoff + 1},"progress_key":"tt123_s5e15"}
+        ]"""
+        coEvery { postgrest.rpc("sync_pull_watch_progress", any<JsonObject>()) } returns
+            PostgrestResult(body, io.ktor.http.Headers.Empty, postgrest)
+        val mutations = mockk<WatchStateMutationStore>(relaxed = true)
+        val prefs = mockk<WatchProgressPreferences>(relaxed = true)
+        val rows = progressService(postgrest, prefs, mutations).readTvdbResume(1)
+        assertTrue(rows.isNotEmpty())
+        assertTrue(rows.all { it.episode == 15 })
+        coVerify(exactly = 0) { postgrest.rpc("sync_push_watch_progress", any<JsonObject>()) }
+        coVerify(exactly = 0) { postgrest.rpc("sync_delete_watch_progress", any<JsonObject>()) }
+        coVerify(exactly = 0) { mutations.queueProgressDeletes(any(), any()) }
+        coVerify(exactly = 0) { prefs.removeProgressKeys(any(), any()) }
+    }
+
     private fun progressService(
         postgrest: Postgrest,
         preferences: WatchProgressPreferences,

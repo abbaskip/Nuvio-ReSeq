@@ -1,45 +1,26 @@
 package com.nuvio.tv.updater
 
+import com.nuvio.tv.data.remote.dto.GitHubAssetDto
 import com.nuvio.tv.data.remote.dto.GitHubReleaseDto
+import java.net.URI
 
 internal object ReleaseSelector {
-    private val prereleaseNamePattern = Regex(
-        "(?:^|[\\s._-])(alpha|beta|rc|preview)(?:[\\s._-]|$)",
-        RegexOption.IGNORE_CASE
-    )
-
-    fun eligibleReleases(
-        releases: List<GitHubReleaseDto>,
-        channel: UpdateChannel
-    ): List<GitHubReleaseDto> = releases
-        .asSequence()
-        .filterNot(GitHubReleaseDto::draft)
+    // Beta version labels belong to our single channel; GitHub's draft/prerelease flags do not.
+    fun eligibleReleases(releases: List<GitHubReleaseDto>): List<GitHubReleaseDto> = releases
+        .filterNot { it.draft || it.prerelease }
         .mapNotNull { release ->
-            val version = releaseVersion(release) ?: return@mapNotNull null
-            ReleaseCandidate(
-                release = release,
-                version = version,
-                prerelease = isPrerelease(release, version)
-            )
+            val version = VersionUtils.parse(release.tagName) ?: VersionUtils.parse(release.name)
+            version?.let { release to it }
         }
-        .filter { candidate -> channel == UpdateChannel.BETA || !candidate.prerelease }
-        .sortedByDescending(ReleaseCandidate::version)
-        .map(ReleaseCandidate::release)
-        .toList()
+        .sortedByDescending { it.second }
+        .map { it.first }
 
-    private fun releaseVersion(release: GitHubReleaseDto): SemanticVersion? =
-        VersionUtils.parse(release.tagName) ?: VersionUtils.parse(release.name)
-
-    private fun isPrerelease(
-        release: GitHubReleaseDto,
-        version: SemanticVersion
-    ): Boolean = release.prerelease ||
-        version.prerelease.isNotEmpty() ||
-        prereleaseNamePattern.containsMatchIn(release.name.orEmpty())
-
-    private data class ReleaseCandidate(
-        val release: GitHubReleaseDto,
-        val version: SemanticVersion,
-        val prerelease: Boolean
-    )
+    fun isOwnApk(asset: GitHubAssetDto, owner: String, repo: String): Boolean {
+        if (!asset.name.startsWith("Nuvio-ReSeq-") || !asset.name.endsWith(".apk")) return false
+        val uri = runCatching { URI(asset.browserDownloadUrl) }.getOrNull() ?: return false
+        return uri.scheme == "https" && uri.host.equals("github.com", ignoreCase = true) &&
+            uri.userInfo == null && uri.port == -1 &&
+            uri.path.startsWith("/$owner/$repo/releases/download/", ignoreCase = true) &&
+            uri.path.substringAfterLast('/') == asset.name
+    }
 }

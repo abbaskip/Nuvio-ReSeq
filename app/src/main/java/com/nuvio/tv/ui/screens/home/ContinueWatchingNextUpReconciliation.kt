@@ -115,7 +115,7 @@ internal fun List<ContinueWatchingItem>.toCachedNextUpSnapshot(
         poster = info.poster,
         backdrop = info.backdrop,
         logo = info.logo,
-        videoId = info.videoId,
+        videoId = info.videoId, tvdbEpisodeId = info.tvdbEpisodeId,
         season = info.season,
         episode = info.episode,
         episodeTitle = info.episodeTitle,

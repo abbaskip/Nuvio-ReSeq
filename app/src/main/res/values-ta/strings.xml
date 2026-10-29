@@ -333,7 +333,7 @@
     <!-- AboutScreen -->
     <string name="about_title">பற்றி</string>
     <string name="about_subtitle">செயலி தகவல், புதுப்பிப்புகள் மற்றும் சட்ட இணைப்புகள்</string>
-    <string name="about_made_with_love">❤️ உடன் டாப்ஃப்ரேம் மற்றும் நண்பர்களால் உருவாக்கப்பட்டது</string>
+    <string name="about_made_with_love">Nuvio ReSeq by abbaskip · Based on Nuvio by Tapframe and contributors</string>
     <string name="about_version">பதிப்பு %1$s</string>
     <string name="about_check_updates">புதுப்பிப்புகளை சரிபார்</string>
     <string name="about_check_updates_subtitle">சமீபத்திய வெளியீட்டை பதிவிறக்கு</string>
@@ -580,8 +580,8 @@
     <string name="playback_player_ask_desc">ஒவ்வொரு முறையும் பிளேயரை தேர்வு செய்</string>
     <string name="playback_player_auto">தானாக (உள்ளடக்கத்திற்கு சிறந்தது)</string>
     <string name="playback_player_auto_desc">திரைப்படங்கள் &amp; தொடர்களுக்கு ExoPlayer · Anime-க்கு MPV</string>
-    <string name="playback_engine_exoplayer_desc">தற்போதைய Nuvio அம்சங்களுடன் சிறந்த பொருத்தம்.</string>
-    <string name="playback_engine_mvplayer_desc">Nuvio OSD கட்டுப்பாடுகளுடன் libmpv பயன்படுத்துகிறது. சோதனை நிலையில் உள்ளது.</string>
+    <string name="playback_engine_exoplayer_desc">தற்போதைய Nuvio ReSeq அம்சங்களுடன் சிறந்த பொருத்தம்.</string>
+    <string name="playback_engine_mvplayer_desc">Nuvio ReSeq OSD கட்டுப்பாடுகளுடன் libmpv பயன்படுத்துகிறது. சோதனை நிலையில் உள்ளது.</string>
 
         <!-- PlaybackAudioSettings -->
     <string name="audio_trailer_section">ட்ரெய்லர்</string>

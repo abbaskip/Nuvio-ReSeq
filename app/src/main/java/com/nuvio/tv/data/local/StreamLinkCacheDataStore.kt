@@ -81,6 +81,11 @@ class StreamLinkCacheDataStore @Inject constructor(
         }
     }
 
+    suspend fun getValid(contentKeys: List<String>, maxAgeMs: Long, enabled: Boolean): CachedStreamLink? {
+        if (!enabled) return null
+        return contentKeys.firstNotNullOfOrNull { getValid(it, maxAgeMs) }
+    }
+
     suspend fun getValid(contentKey: String, maxAgeMs: Long): CachedStreamLink? {
         if (maxAgeMs <= 0L) return null
 

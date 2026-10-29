@@ -108,7 +108,8 @@ private enum class IntegrationSettingsSection {
     Debrid,
     Tmdb,
     MdbList,
-    AnimeSkip
+    AnimeSkip,
+    Tvdb
 }
 
 internal enum class SettingsSectionDestination {
@@ -1069,6 +1070,7 @@ private fun IntegrationSettingsContent(
     BackHandler(enabled = selectedSection != IntegrationSettingsSection.Hub) {
         onSelectSection(IntegrationSettingsSection.Hub)
     }
+    val tvdbFocusRequester = remember { FocusRequester() }
     val hubEntryFocusRequester = when (hubReturnSection) {
         IntegrationSettingsSection.Hub ->
             initialFocusRequester ?: hubFocusRequester
@@ -1076,6 +1078,7 @@ private fun IntegrationSettingsContent(
         IntegrationSettingsSection.Tmdb -> tmdbFocusRequester
         IntegrationSettingsSection.MdbList -> mdbListFocusRequester
         IntegrationSettingsSection.AnimeSkip -> animeSkipFocusRequester
+        IntegrationSettingsSection.Tvdb -> tvdbFocusRequester
     }
     val hubEntryTargetSection = hubReturnSection.takeIf {
         it != IntegrationSettingsSection.Hub
@@ -1089,6 +1092,7 @@ private fun IntegrationSettingsContent(
             IntegrationSettingsSection.Tmdb -> tmdbFocusRequester
             IntegrationSettingsSection.MdbList -> mdbListFocusRequester
             IntegrationSettingsSection.AnimeSkip -> animeSkipFocusRequester
+            IntegrationSettingsSection.Tvdb -> tvdbFocusRequester
         }
         runCatching { requester.requestFocus() }
     }
@@ -1154,6 +1158,11 @@ private fun IntegrationSettingsContent(
                                     }
                                 )
                             }
+                            item(key = "integration_hub_tvdb") {
+                                SettingsActionRow(title = "TheTVDB", subtitle = "Personal API key and native episode ordering",
+                                    onClick = { onSelectSection(IntegrationSettingsSection.Tvdb) },
+                                    modifier = if (hubEntryTargetSection == IntegrationSettingsSection.Tvdb) Modifier.focusRequester(hubEntryFocusRequester) else Modifier)
+                            }
                             item(key = "integration_hub_animeskip") {
                                 SettingsActionRow(
                                     title = "Anime-Skip",
@@ -1192,6 +1201,9 @@ private fun IntegrationSettingsContent(
             )
         }
 
+        IntegrationSettingsSection.Tvdb -> {
+            TvdbSettingsContent(initialFocusRequester = tvdbFocusRequester)
+        }
         IntegrationSettingsSection.AnimeSkip -> {
             AnimeSkipSettingsContent(
                 initialFocusRequester = animeSkipFocusRequester

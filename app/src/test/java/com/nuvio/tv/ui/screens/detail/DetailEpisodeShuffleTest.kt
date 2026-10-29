@@ -28,6 +28,7 @@ class DetailEpisodeShuffleTest {
         every { apiType } returns "series"
         every { type } returns ContentType.SERIES
         every { behaviorHints } returns null
+        every { episodeOrder } returns null
         every { videos } returns this@DetailEpisodeShuffleTest.videos
     }
     private val native = NextToWatch(null, false, videos.first().id, 1, 1, "Play")

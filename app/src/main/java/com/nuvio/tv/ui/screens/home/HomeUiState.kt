@@ -93,7 +93,9 @@ sealed class ContinueWatchingItem {
         override val shufflePlayback: Boolean = false,
         val originalPoster: String? = null,
         val customLandscapePoster: String? = null,
-        val mdbListRatings: com.nuvio.tv.domain.model.MDBListRatings? = null
+        val mdbListRatings: com.nuvio.tv.domain.model.MDBListRatings? = null,
+        val displaySeason: Int? = null,
+        val displayEpisode: Int? = null
     ) : ContinueWatchingItem()
 
     @Immutable
@@ -139,7 +141,10 @@ data class NextUpInfo(
     val seedSeason: Int? = null,
     val seedEpisode: Int? = null,
     val contentLanguage: String? = null,
-    val mdbListRatings: com.nuvio.tv.domain.model.MDBListRatings? = null
+    val mdbListRatings: com.nuvio.tv.domain.model.MDBListRatings? = null,
+    val displaySeason: Int? = null,
+    val displayEpisode: Int? = null,
+    val tvdbEpisodeId: Long? = null
 )
 
 @Immutable

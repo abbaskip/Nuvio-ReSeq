@@ -5,6 +5,8 @@ import com.nuvio.tv.data.repository.SkipInterval
 import com.nuvio.tv.core.util.isEpisodeReleaseAired
 import com.nuvio.tv.core.util.parseEpisodeReleaseLocalDate
 import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.episodeSequenceComparator
+import com.nuvio.tv.domain.model.distinctEpisodeSources
 import java.time.Clock
 import java.time.LocalDate
 
@@ -25,8 +27,9 @@ object PlayerNextEpisodeRules {
         }
 
         val sortedEpisodes = videos
+            .distinctEpisodeSources()
             .filter { it.season != null && it.episode != null }
-            .sortedWith(compareBy<Video> { it.season ?: Int.MAX_VALUE }.thenBy { it.episode ?: Int.MAX_VALUE })
+            .sortedWith(episodeSequenceComparator)
 
         val currentIndex = sortedEpisodes.indexOfFirst {
             it.season == currentSeason && it.episode == currentEpisode

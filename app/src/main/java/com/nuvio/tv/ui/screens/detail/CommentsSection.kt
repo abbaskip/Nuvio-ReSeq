@@ -730,7 +730,7 @@ private fun EpisodeCommentPickerDialog(
                 contentPadding = PaddingValues(vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(episodes, key = { it.id }) { episode ->
+                items(episodes, key = { it.episodeIdentity?.canonicalKey ?: it.id }) { episode ->
                     val episodeModifier = when {
                         episode.id == selectedEpisodeId -> Modifier
                             .fillMaxWidth()

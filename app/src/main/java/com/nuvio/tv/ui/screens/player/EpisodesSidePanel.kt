@@ -5,6 +5,10 @@
 
 package com.nuvio.tv.ui.screens.player
 
+import com.nuvio.tv.domain.model.displaySeason
+import com.nuvio.tv.domain.model.displayEpisode
+import com.nuvio.tv.domain.model.forEpisodeDisplay
+
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -643,7 +647,7 @@ private fun EpisodesListView(
 
     detailsEpisode?.let { episode ->
         EpisodeOptionsOverlay(
-            episode = episode,
+            episode = episode.forEpisodeDisplay(),
             isWatched = isEpisodeWatched(episode),
             blurUnwatchedEpisodes = uiState.blurUnwatchedEpisodes,
             style = uiState.episodeOptionsOverlayStyle,
@@ -784,9 +788,9 @@ private fun EpisodeItem(
     val formattedDate = remember(episode.released) {
         episode.released?.let { formatReleaseDate(it) }?.takeIf { it.isNotBlank() }
     }
-    val episodeCode = remember(episode.season, episode.episode) {
-        val s = episode.season
-        val e = episode.episode
+    val episodeCode = remember(episode.displaySeason, episode.displayEpisode) {
+        val s = episode.displaySeason
+        val e = episode.displayEpisode
         if (s != null && e != null) {
             context.getString(R.string.season_episode_format, s, e)
         } else {

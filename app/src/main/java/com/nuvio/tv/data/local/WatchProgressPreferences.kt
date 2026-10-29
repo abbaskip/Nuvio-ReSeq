@@ -13,6 +13,8 @@ import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.nuvio.tv.data.mediaserver.ServerItemRef
 import com.nuvio.tv.domain.model.WatchProgress
+import com.nuvio.tv.domain.model.TvdbPlaybackContext
+import com.nuvio.tv.domain.model.storageKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -254,8 +256,14 @@ class WatchProgressPreferences @Inject constructor(
         return progressSnapshots(profileId).map { snapshot ->
             val map = mergeWatchProgressBuckets(snapshot.recent, snapshot.archive)
             map.values
-                .filter { it.contentId == contentId && it.season != null && it.episode != null }
+                .filter { it.contentId == contentId && it.season != null && it.episode != null && it.tvdbContext == null }
                 .associateBy { (it.season!! to it.episode!!) }
+        }
+    }
+
+    fun observeEpisodeRecords(contentId: String, profileId: Int): Flow<List<WatchProgress>> = progressSnapshots(profileId).map { snapshot ->
+        mergeWatchProgressBuckets(snapshot.recent, snapshot.archive).values.filter {
+            it.contentId == contentId && it.season != null && it.episode != null
         }
     }
 
@@ -442,6 +450,17 @@ class WatchProgressPreferences @Inject constructor(
         }
     }
 
+    suspend fun removeProgressKeys(keys: Collection<String>, profileId: Int) {
+        if (keys.isEmpty()) return
+        storageMutex.withLock {
+            ensureStorageLocked(profileId)
+            val current = readBucketsLocked(profileId)
+            val recent = current.recent.toMutableMap().apply { keys.forEach(::remove) }
+            val archive = current.archive.toMutableMap().apply { keys.forEach(::remove) }
+            writeBucketsLocked(profileId, current, WatchProgressBuckets(recent, archive))
+        }
+    }
+
     /**
      * Merges remote entries into local storage. Newer lastWatched wins per key.
      *
@@ -469,7 +488,7 @@ class WatchProgressPreferences @Inject constructor(
                 val removedKeys = local.keys - remoteEntries.keys
                 removedKeys.forEach { key ->
                     val localEntry = local[key]
-                    if (localEntry != null && ServerItemRef.isServerId(localEntry.contentId)) {
+                    if (localEntry != null && (ServerItemRef.isServerId(localEntry.contentId) || localEntry.tvdbContext != null)) {
                         return@forEach
                     }
                     if (localEntry != null && isNonTraktId != null && isNonTraktId(localEntry.contentId)) {
@@ -601,13 +620,16 @@ class WatchProgressPreferences @Inject constructor(
      */
     suspend fun clearAllPreservingNonTraktIds(
         profileId: Int = profileManager.activeProfileId.value,
+        preserveTvdbProgress: Boolean = false,
         isNonTraktId: (String) -> Boolean
     ) {
         storageMutex.withLock {
             ensureStorageLocked(profileId)
             val current = readBucketsLocked(profileId)
             val map = mergeWatchProgressBuckets(current.recent, current.archive)
-            val preserved = map.filter { (_, progress) -> isNonTraktId(progress.contentId) }
+            val preserved = map.filter { (_, progress) ->
+                (preserveTvdbProgress && progress.tvdbContext != null) || isNonTraktId(progress.contentId)
+            }
             writeBucketsLocked(profileId, current, splitWatchProgressEntries(preserved))
             if (preserved.isNotEmpty()) {
                 Log.d(TAG, "clearAllPreservingNonTraktIds: preserved ${preserved.size} non-Trakt entries")
@@ -748,11 +770,7 @@ class WatchProgressPreferences @Inject constructor(
     }
 
     private fun createKey(progress: WatchProgress): String {
-        return if (progress.season != null && progress.episode != null) {
-            "${progress.contentId}_s${progress.season}e${progress.episode}"
-        } else {
-            progress.contentId
-        }
+        return progress.storageKey
     }
 
     private fun upsertProgressEntries(
@@ -766,12 +784,16 @@ class WatchProgressPreferences @Inject constructor(
             // entry when the incoming save has null values — prevents a mid-playback
             // position update from wiping artwork that was saved on first play.
             map[key] = if (existing != null) {
+                val identityConflict = tvdbIdentityConflict(progress, existing)
                 progress.copy(
                     name = progress.name.takeIf { it.isNotBlank() } ?: existing.name,
                     poster = progress.poster ?: existing.poster,
                     backdrop = progress.backdrop ?: existing.backdrop,
                     logo = progress.logo ?: existing.logo,
-                    episodeTitle = progress.episodeTitle ?: existing.episodeTitle,
+                    episodeTitle = progress.episodeTitle ?: existing.episodeTitle.takeUnless { identityConflict },
+                    tvdbEpisodeId = progress.tvdbEpisodeId ?: existing.tvdbEpisodeId.takeUnless { identityConflict },
+                    tvdbEpisodeIds = progress.tvdbEpisodeIds ?: existing.tvdbEpisodeIds.takeUnless { identityConflict },
+                    tvdbContext = progress.tvdbContext ?: existing.tvdbContext.takeUnless { identityConflict },
                 )
             } else {
                 progress
@@ -790,14 +812,25 @@ class WatchProgressPreferences @Inject constructor(
 
     private fun mergeDisplayMetadata(remote: WatchProgress, existing: WatchProgress?): WatchProgress {
         if (existing == null) return remote
+        val identityConflict = tvdbIdentityConflict(remote, existing)
         return remote.copy(
+            tvdbEpisodeId = remote.tvdbEpisodeId ?: existing.tvdbEpisodeId.takeUnless { identityConflict },
+            tvdbEpisodeIds = remote.tvdbEpisodeIds ?: existing.tvdbEpisodeIds.takeUnless { identityConflict },
+            tvdbContext = remote.tvdbContext ?: existing.tvdbContext.takeUnless { identityConflict },
             name = existing.name.takeIf { it.isNotBlank() } ?: remote.name.takeIf { it.isNotBlank() } ?: existing.name,
             poster = existing.poster ?: remote.poster,
             backdrop = existing.backdrop ?: remote.backdrop,
             logo = existing.logo ?: remote.logo,
-            episodeTitle = existing.episodeTitle ?: remote.episodeTitle,
+            episodeTitle = if (identityConflict) remote.episodeTitle else existing.episodeTitle ?: remote.episodeTitle,
             addonBaseUrl = remote.addonBaseUrl ?: existing.addonBaseUrl
         )
+    }
+
+    private fun tvdbIdentityConflict(incoming: WatchProgress, existing: WatchProgress): Boolean {
+        val stableId = existing.tvdbEpisodeId ?: return false
+        incoming.tvdbEpisodeId?.let { return it != stableId }
+        return incoming.videoId != existing.videoId || (!incoming.episodeTitle.isNullOrBlank() &&
+            !existing.episodeTitle.isNullOrBlank() && !incoming.episodeTitle.equals(existing.episodeTitle, ignoreCase = true))
     }
 
     private fun parseProgressMap(json: String): Map<String, WatchProgress> {
@@ -858,7 +891,13 @@ class WatchProgressPreferences @Inject constructor(
             traktPlaybackId = obj.getLong("traktPlaybackId", "trakt_playback_id"),
             traktMovieId = obj.getInt("traktMovieId", "trakt_movie_id"),
             traktShowId = obj.getInt("traktShowId", "trakt_show_id"),
-            traktEpisodeId = obj.getInt("traktEpisodeId", "trakt_episode_id")
+            traktEpisodeId = obj.getInt("traktEpisodeId", "trakt_episode_id"),
+            tvdbEpisodeId = obj.getLong("tvdbEpisodeId", "tvdb_episode_id"),
+            tvdbEpisodeIds = obj.get("tvdbEpisodeIds")?.takeIf { it.isJsonArray }?.asJsonArray?.mapNotNull { runCatching { it.asLong }.getOrNull() },
+            tvdbCompletedEpisodeIds = obj.get("tvdbCompletedEpisodeIds")?.takeIf { it.isJsonArray }?.asJsonArray?.mapNotNull { runCatching { it.asLong }.getOrNull() },
+            tvdbContext = TvdbPlaybackContext.decode(obj.get("tvdbContext")?.toString()),
+            providerDefaultPlayback = runCatching { obj.get("providerDefaultPlayback")?.asBoolean }.getOrNull() == true,
+            tvdbCoverageVerified = runCatching { obj.get("tvdbCoverageVerified")?.asBoolean }.getOrNull()
         )
     }
 

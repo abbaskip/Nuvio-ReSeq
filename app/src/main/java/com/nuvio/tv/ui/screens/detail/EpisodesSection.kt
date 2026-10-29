@@ -91,6 +91,8 @@ import coil3.request.crossfade
 import coil3.request.transformations
 import com.nuvio.tv.R
 import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.hasResolvedSource
+import com.nuvio.tv.domain.model.episodeListKey
 import com.nuvio.tv.domain.model.EpisodeOptionsOverlayStyle
 import com.nuvio.tv.ui.components.FocusMarqueeText
 import com.nuvio.tv.ui.components.ImdbRatingSourceLabel
@@ -411,7 +413,7 @@ fun EpisodesRow(
     anchorEpisodeId: String? = null,
     windowResetKey: String? = null
 ) {
-    val dedupedEpisodes = remember(episodes) { episodes.distinctBy { it.id } }
+    val dedupedEpisodes = remember(episodes) { episodes.distinctBy { it.episodeListKey } }
     var optionsEpisode by remember { mutableStateOf<Video?>(null) }
     val isOverlayOpen = optionsEpisode != null
     val cardMetrics = rememberEpisodeCardMetrics(posterCardCornerRadiusDp)
@@ -419,7 +421,7 @@ fun EpisodesRow(
     val rowPrefetchStrategy = remember { LazyListPrefetchStrategy(nestedPrefetchItemCount = 2) }
     val initialEpisodeIndex = remember(dedupedEpisodes, restoreEpisodeId, scrollToEpisodeId, anchorEpisodeId) {
         val initialEpisodeId = restoreEpisodeId ?: scrollToEpisodeId ?: anchorEpisodeId
-        val targetIndex = dedupedEpisodes.indexOfFirst { it.id == initialEpisodeId }
+        val targetIndex = dedupedEpisodes.indexOfFirst { it.episodeListKey == initialEpisodeId || it.id == initialEpisodeId }
         if (restoreEpisodeId != null) {
             (targetIndex - 1).coerceAtLeast(0)
         } else {
@@ -430,29 +432,29 @@ fun EpisodesRow(
         initialFirstVisibleItemIndex = initialEpisodeIndex,
         prefetchStrategy = rowPrefetchStrategy
     )
-    val episodeWindowIds = remember(dedupedEpisodes) { dedupedEpisodes.map { it.id } }
+    val episodeWindowIds = remember(dedupedEpisodes) { dedupedEpisodes.map { it.episodeListKey } }
     lazyListState.keepDetailRowWindow(
         itemIds = episodeWindowIds,
-        lazyKeyAt = { index -> dedupedEpisodes.getOrNull(index)?.id },
+        lazyKeyAt = { index -> dedupedEpisodes.getOrNull(index)?.episodeListKey },
         resetKey = windowResetKey
     )
     var lastHorizontalKeyRepeatTime by remember { mutableStateOf(0L) }
-    val episodeIds = remember(dedupedEpisodes) { dedupedEpisodes.mapTo(mutableSetOf()) { it.id } }
+    val episodeIds = remember(dedupedEpisodes) { dedupedEpisodes.mapTo(mutableSetOf()) { it.episodeListKey } }
     LaunchedEffect(episodeIds, episodeFocusRequesters) {
         episodeFocusRequesters.keys.retainAll(episodeIds)
     }
 
     LaunchedEffect(restoreFocusToken, restoreEpisodeId, dedupedEpisodes) {
         if (restoreFocusToken <= 0 || restoreEpisodeId.isNullOrBlank()) return@LaunchedEffect
-        if (dedupedEpisodes.none { it.id == restoreEpisodeId }) {
+        if (dedupedEpisodes.none { it.episodeListKey == restoreEpisodeId || it.id == restoreEpisodeId }) {
             if (dedupedEpisodes.isEmpty()) return@LaunchedEffect
             delay(EPISODE_RESTORE_FALLBACK_MS)
-            if (dedupedEpisodes.none { it.id == restoreEpisodeId }) {
+            if (dedupedEpisodes.none { it.episodeListKey == restoreEpisodeId || it.id == restoreEpisodeId }) {
                 onRestoreFocusHandled()
             }
             return@LaunchedEffect
         }
-        val index = dedupedEpisodes.indexOfFirst { it.id == restoreEpisodeId }
+        val index = dedupedEpisodes.indexOfFirst { it.episodeListKey == restoreEpisodeId || it.id == restoreEpisodeId }
         if (index >= 0) {
             val offsetPx = with(density) { (cardMetrics.cardWidth * 2f / 3f - cardMetrics.itemSpacing).roundToPx() }
             lazyListState.scrollToItem(index, scrollOffset = -offsetPx)
@@ -470,7 +472,7 @@ fun EpisodesRow(
 
     LaunchedEffect(scrollToEpisodeId, dedupedEpisodes) {
         if (scrollToEpisodeId.isNullOrBlank()) return@LaunchedEffect
-        val index = dedupedEpisodes.indexOfFirst { it.id == scrollToEpisodeId }
+        val index = dedupedEpisodes.indexOfFirst { it.episodeListKey == scrollToEpisodeId || it.id == scrollToEpisodeId }
         if (index < 0) return@LaunchedEffect
         val offsetPx = with(density) { (cardMetrics.cardWidth * 2f / 3f - cardMetrics.itemSpacing).roundToPx() }
         lazyListState.scrollToItem(index, scrollOffset = -offsetPx)
@@ -488,7 +490,7 @@ fun EpisodesRow(
             anchorPlaced = true
             return@LaunchedEffect
         }
-        val index = dedupedEpisodes.indexOfFirst { it.id == anchor }
+        val index = dedupedEpisodes.indexOfFirst { it.episodeListKey == anchor || it.id == anchor }
         if (index < 0) return@LaunchedEffect
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.map { it.index } }
             .first { it.isNotEmpty() }
@@ -527,18 +529,18 @@ fun EpisodesRow(
     ) {
         items(
             items = dedupedEpisodes,
-            key = { it.id },
+            key = { it.episodeListKey },
             contentType = { EPISODE_CARD_CONTENT_TYPE }
         ) { episode ->
             val seasonEp = remember(episode.season, episode.episode) { episode.season?.let { s -> episode.episode?.let { e -> s to e } } }
             val progress = remember(seasonEp, episodeProgressMap) { seasonEp?.let { episodeProgressMap[it] } }
             val imdbRating = remember(seasonEp, episodeRatings) { seasonEp?.let { episodeRatings[it] } }
             val isMarkedWatched = remember(seasonEp, watchedEpisodes) { seasonEp?.let { watchedEpisodes.contains(it) } ?: false }
-            val episodeFocusRequester = remember(episode.id) { episodeFocusRequesters.getOrPut(episode.id) { FocusRequester() } }
+            val episodeFocusRequester = remember(episode.episodeListKey) { episodeFocusRequesters.getOrPut(episode.episodeListKey) { FocusRequester() } }
             val episodeOnClick = remember(episode, onEpisodeClick) { { onEpisodeClick(episode) } }
-            val episodeOnLongPress = remember(episode.id) { { optionsEpisode = episode } }
-            val episodeOnFocused = remember(episode.id) { { onEpisodeFocused(episode.id) } }
-            val isRestoreTarget = episode.id == restoreEpisodeId
+            val episodeOnLongPress = remember(episode.episodeListKey) { { optionsEpisode = episode } }
+            val episodeOnFocused = remember(episode.episodeListKey) { { onEpisodeFocused(episode.episodeListKey) } }
+            val isRestoreTarget = episode.episodeListKey == restoreEpisodeId || episode.id == restoreEpisodeId
             val episodeOnFocusRestored = remember(isRestoreTarget, onRestoreFocusHandled) {
                 if (isRestoreTarget) onRestoreFocusHandled else null
             }
@@ -675,6 +677,7 @@ private fun EpisodeCard(
     val showCompletedBadge = isWatched
     val showNotStartedBadge = remember(showCompletedBadge, progressPercent) { !showCompletedBadge && progressPercent < 0.02f }
     val isUnavailable = remember(episode.available) { episode.available == false }
+    val isUnmatched = !episode.hasResolvedSource
     val cardBgColor = NuvioTheme.colors.BackgroundCard
     val isFocusedState = remember { mutableStateOf(false) }
     val cardCornerRadius = remember(cardMetrics.cornerRadius, density) {
@@ -811,6 +814,7 @@ private fun EpisodeCard(
     }
     val strEpisode = stringResource(R.string.episodes_episode)
     val strUnavailable = stringResource(R.string.episodes_unavailable)
+    val strUnmatched = stringResource(R.string.tvdb_episode_unmatched)
     val episodeCode = remember(episode.episode, strEpisode) {
         val prefix = strEpisode.uppercase(Locale.getDefault())
         episode.episode?.let { number -> "$prefix $number" } ?: prefix
@@ -1085,7 +1089,7 @@ private fun EpisodeCard(
                 )
             }
 
-            if (isUnavailable) {
+            if (isUnavailable || isUnmatched) {
                 Box(
                     modifier = Modifier
                         .align(if (showCompletedBadge) Alignment.TopStart else Alignment.TopEnd)
@@ -1104,7 +1108,7 @@ private fun EpisodeCard(
                         )
                 ) {
                     Text(
-                        text = strUnavailable.uppercase(Locale.getDefault()),
+                        text = (if (isUnmatched) strUnmatched else strUnavailable).uppercase(Locale.getDefault()),
                         style = episodeBadgeStyle,
                         maxLines = 1
                     )
@@ -1343,5 +1347,6 @@ private fun isSelectKey(keyCode: Int): Boolean {
 }
 
 private fun episodePendingKey(video: Video): String {
-    return "${video.id}:${video.season ?: -1}:${video.episode ?: -1}"
+    val source = video.episodeIdentity?.providerCoordinates
+    return "${video.id}:${source?.season ?: video.season ?: -1}:${source?.episode ?: video.episode ?: -1}"
 }

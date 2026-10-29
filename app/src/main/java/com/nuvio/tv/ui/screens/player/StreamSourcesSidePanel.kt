@@ -253,8 +253,8 @@ internal fun StreamSourcesSidePanel(
             val seasonEpisodeCode = if (uiState.currentSeason != null && uiState.currentEpisode != null) {
                 stringResource(
                     R.string.season_episode_format,
-                    uiState.currentSeason,
-                    uiState.currentEpisode
+                    uiState.displaySeason!!,
+                    uiState.displayEpisode!!
                 )
             } else {
                 null

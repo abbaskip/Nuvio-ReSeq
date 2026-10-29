@@ -207,7 +207,7 @@ fun StreamScreen(
 
     fun launchInternalPlayer(playbackInfo: StreamPlaybackInfo) {
         viewModel.onInternalPlayerLaunching()
-        onStreamSelected(playbackInfo)
+        scope.coroutineLaunch { onStreamSelected(viewModel.attachTvdbContext(playbackInfo)) }
     }
 
     fun routePlayback(playbackInfo: StreamPlaybackInfo) {
@@ -276,7 +276,7 @@ fun StreamScreen(
                 }
                 else -> {
                     viewModel.onInternalPlayerLaunching()
-                    onAutoPlayResolved(playbackInfo)
+                    scope.coroutineLaunch { onAutoPlayResolved(viewModel.attachTvdbContext(playbackInfo)) }
                 }
             }
             return
@@ -371,7 +371,7 @@ fun StreamScreen(
                 }
                 else -> {
                     viewModel.onInternalPlayerLaunching()
-                    onAutoPlayResolved(playbackInfo)
+                    onAutoPlayResolved(viewModel.attachTvdbContext(playbackInfo))
                     viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
                 }
             }
@@ -444,8 +444,8 @@ fun StreamScreen(
                     title = uiState.title,
                     logo = uiState.logo,
                     isEpisode = uiState.isEpisode,
-                    season = uiState.season,
-                    episode = uiState.episode,
+                    season = uiState.displaySeason,
+                    episode = uiState.displayEpisode,
                     episodeName = uiState.episodeName,
                     runtime = uiState.runtime,
                     genres = uiState.genres,

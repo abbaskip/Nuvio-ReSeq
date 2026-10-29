@@ -151,7 +151,7 @@ fun AboutSettingsContent(
                                 onClick = {
                                     val intent = Intent(
                                         Intent.ACTION_VIEW,
-                                        Uri.parse("https://nuvio.tv/privacy-policy")
+                                        Uri.parse("https://github.com/abbaskip/Nuvio-ReSeq/blob/dev/PRIVACY.md")
                                     )
                                     context.startActivity(intent)
                                 }

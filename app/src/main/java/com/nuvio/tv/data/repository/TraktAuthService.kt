@@ -118,7 +118,7 @@ class TraktAuthService @Inject constructor(
     }
 
     fun hasRequiredCredentials(): Boolean {
-        return BuildConfig.TRAKT_CLIENT_ID.isNotBlank() && BuildConfig.TRAKT_CLIENT_SECRET.isNotBlank()
+        return BuildConfig.TRAKT_CLIENT_ID.isNotBlank()
     }
 
     suspend fun getCurrentAuthState(): TraktAuthState = traktAuthDataStore.getCurrentState()
@@ -213,7 +213,6 @@ class TraktAuthService @Inject constructor(
                 TraktDeviceTokenRequestDto(
                     code = deviceCode,
                     clientId = BuildConfig.TRAKT_CLIENT_ID,
-                    clientSecret = BuildConfig.TRAKT_CLIENT_SECRET
                 )
             )
         } catch (e: IOException) {
@@ -276,7 +275,6 @@ class TraktAuthService @Inject constructor(
                     TraktRefreshTokenRequestDto(
                         refreshToken = refreshToken,
                         clientId = BuildConfig.TRAKT_CLIENT_ID,
-                        clientSecret = BuildConfig.TRAKT_CLIENT_SECRET,
                         redirectUri = traktRedirectUri()
                     )
                 )
@@ -311,7 +309,6 @@ class TraktAuthService @Inject constructor(
                         TraktRevokeRequestDto(
                             token = accessToken,
                             clientId = BuildConfig.TRAKT_CLIENT_ID,
-                            clientSecret = BuildConfig.TRAKT_CLIENT_SECRET
                         )
                     )
                 }

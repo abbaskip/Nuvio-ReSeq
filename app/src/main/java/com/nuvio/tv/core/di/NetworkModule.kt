@@ -3,6 +3,7 @@ package com.nuvio.tv.core.di
 import android.content.Context
 import android.util.Log
 import com.nuvio.tv.BuildConfig
+import com.nuvio.tv.core.network.traktEndpoint
 import com.nuvio.tv.core.network.NoDelaySocketFactory
 import com.nuvio.tv.data.remote.api.AddonApi
 import com.nuvio.tv.data.remote.api.AniSkipApi
@@ -249,6 +250,7 @@ object NetworkModule {
             val request = chain.request()
             val version = BuildConfig.VERSION_NAME.ifBlank { "dev" }
             val newRequest = request.newBuilder()
+                .url(request.url.traktEndpoint())
                 .header("Content-Type", "application/json")
                 .header("User-Agent", "Nuvio/$version")
                 .header("trakt-api-key", BuildConfig.TRAKT_CLIENT_ID)

@@ -449,7 +449,7 @@
     <string name="licenses_attributions_tmdb_title">The Movie Database (TMDB)</string>
     <string name="licenses_attributions_tmdb_body">Nuvio ReSeq uses the TMDB API for movie and TV metadata, artwork, trailers, cast, production details, collections, and recommendations. This product uses the TMDB API but is not endorsed or certified by TMDB.</string>
     <string name="licenses_attributions_trakt_title">Trakt</string>
-    <string name="licenses_attributions_trakt_body">Nuvio ReSeq connects to Trakt for account authentication, watched history, progress sync, library data, ratings, lists, and comments. Nuvio ReSeq is not affiliated with or endorsed by Trakt.</string>
+    <string name="licenses_attributions_trakt_body">Nuvio ReSeq connects to Trakt for account authentication, watched history, progress sync, library data, ratings, lists, and comments. Nuvio ReSeq uses Trakt but is not endorsed or certified by Trakt.</string>
     <string name="licenses_attributions_simkl_title">Simkl</string>
     <string name="licenses_attributions_simkl_body">Nuvio ReSeq connects to Simkl for account authentication, watchlists, watched history, playback progress, and scrobbling. Movie, TV, and anime tracking data is provided by Simkl. Nuvio ReSeq is not affiliated with or endorsed by Simkl.</string>
     <string name="licenses_attributions_premiumize_title">Premiumize</string>

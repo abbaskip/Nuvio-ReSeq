@@ -16,6 +16,13 @@
 
 # ── Gson ───────────────────────────────────────────────────────────────────────
 # Keep TypeToken generic signatures (used in AddonConfigServer/RepositoryConfigServer)
+# Persisted Continue Watching JSON must remain readable across Debug/Release and updates.
+-keep class com.nuvio.tv.data.local.CachedNextUpItem { *; }
+-keep class com.nuvio.tv.data.local.CachedInProgressItem { *; }
+# These queued native tracking writes are also persisted with Gson.
+-keep class com.nuvio.tv.core.sync.PendingProgressUpsert { *; }
+-keep class com.nuvio.tv.core.sync.PendingWatchedUpsert { *; }
+
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 

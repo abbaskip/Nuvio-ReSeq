@@ -58,6 +58,8 @@ Use Android Studio, JDK 21 and the Android SDK. Copy `local.example.properties` 
 
 Debug builds have a separate package ID. Signed releases require a private keystore and the `NUVIO_RELEASE_STORE_FILE`, `NUVIO_RELEASE_KEY_ALIAS`, `NUVIO_RELEASE_STORE_PASSWORD` and `NUVIO_RELEASE_KEY_PASSWORD` environment variables (or ignored local properties). Public ReSeq APKs use a permanent release certificate. Build configuration embedded in an APK is extractable; never supply personal account tokens or confidential backend credentials.
 
+[Privacy and data handling](PRIVACY.md). Some service authorisation pages may identify the existing Nuvio integration.
+
 ## Credits and licence
 
 Nuvio ReSeq is maintained by [abbaskip](https://github.com/abbaskip). It is based on [Nuvio by Tapframe and contributors](https://github.com/NuvioMedia/NuvioTV), whose work makes this fork possible. It is an independent fork and is not an official Nuvio release.

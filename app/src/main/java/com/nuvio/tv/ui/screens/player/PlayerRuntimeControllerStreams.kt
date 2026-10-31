@@ -1232,7 +1232,11 @@ internal fun PlayerRuntimeController.loadStreamsForEpisode(
     val newScope = kotlinx.coroutines.CoroutineScope(scope.coroutineContext + kotlinx.coroutines.SupervisorJob())
     episodeStreamsScope = newScope
     episodeStreamsJob = newScope.launch {
-        val playerSettings = if (manualSelection) null else playerSettingsDataStore.playerSettings.first()
+        val playerSettings = when {
+            manualSelection -> null
+            hasObservedPlayerSettings -> currentPlayerSettingsForReport
+            else -> playerSettingsDataStore.playerSettings.first()
+        }
         val autoPlaySettings = playerSettings?.takeIf { it.streamAutoPlayMode != StreamAutoPlayMode.MANUAL }
         if (autoPlaySettings != null && com.nuvio.tv.core.player.TieredStreamAutoPlay.isEnabled(autoPlaySettings)) {
             nextEpisodeAutoPlayJob?.cancel()
@@ -1980,7 +1984,11 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean) {
     nextEpisodeAutoPlayJob = scope.launch {
         try {
             streamRepository.setLocalPluginSearchPaused(false)
-            val playerSettings = playerSettingsDataStore.playerSettings.first()
+            val playerSettings = if (hasObservedPlayerSettings) {
+                currentPlayerSettingsForReport
+            } else {
+                playerSettingsDataStore.playerSettings.first()
+            }
             val nextSelection = com.nuvio.tv.core.player.StreamAutoPlayPolicy.nextEpisodeSelection(playerSettings)
             val bingeGroupOnlyManualMode = nextSelection.bingeGroupOnly
             if (!nextSelection.automatic) {

@@ -11,6 +11,8 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -78,8 +80,10 @@ class PluginDataStore @Inject constructor(
 
     // Repositories
     val repositories: Flow<List<PluginRepository>> = effectiveProfileIdFlow.flatMapLatest { pid ->
-        factory.get(pid, FEATURE).data.map { prefs ->
-            prefs[repositoriesKey]?.let { json ->
+        factory.get(pid, FEATURE).data
+            .map { it[repositoriesKey] }
+            .distinctUntilChanged()
+            .map { stored -> stored?.let { json ->
                 try {
                     moshi.adapter<List<PluginRepository>>(repoListType).fromJson(json) ?: emptyList()
                 } catch (e: Exception) {
@@ -87,7 +91,7 @@ class PluginDataStore @Inject constructor(
                 }
             } ?: emptyList()
         }
-    }
+    }.flowOn(Dispatchers.Default)
 
     suspend fun saveRepositories(repos: List<PluginRepository>) {
             val active = profileManager.activeProfile
@@ -129,8 +133,10 @@ class PluginDataStore @Inject constructor(
 
     // Scrapers
     val scrapers: Flow<List<ScraperInfo>> = effectiveProfileIdFlow.flatMapLatest { pid ->
-        factory.get(pid, FEATURE).data.map { prefs ->
-            prefs[scrapersKey]?.let { json ->
+        factory.get(pid, FEATURE).data
+            .map { it[scrapersKey] }
+            .distinctUntilChanged()
+            .map { stored -> stored?.let { json ->
                 try {
                     moshi.adapter<List<ScraperInfo>>(scraperListType).fromJson(json) ?: emptyList()
                 } catch (e: Exception) {
@@ -138,7 +144,7 @@ class PluginDataStore @Inject constructor(
                 }
             } ?: emptyList()
         }
-    }
+    }.flowOn(Dispatchers.Default)
 
     suspend fun saveScrapers(scrapers: List<ScraperInfo>) {
             val active = profileManager.activeProfile

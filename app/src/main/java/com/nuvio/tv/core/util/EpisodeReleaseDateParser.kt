@@ -46,6 +46,13 @@ internal fun parseEpisodeReleaseInstant(
 ): Instant? {
     val value = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
 
+    // Most date-only metadata is checked for every episode in a season. Avoid throwing
+    // three timestamp parse exceptions before reaching the same UTC-midnight result.
+    if (value.length == 10 && value[4] == '-' && value[7] == '-') {
+        runCatching { LocalDate.parse(value).atStartOfDay(ZoneOffset.UTC).toInstant() }
+            .getOrNull()?.let { return it }
+    }
+
     return parseExplicitReleaseInstant(value)
         ?: runCatching { LocalDateTime.parse(value).atZone(zoneId).toInstant() }.getOrNull()
         ?: runCatching { LocalDate.parse(value).atStartOfDay(ZoneOffset.UTC).toInstant() }.getOrNull()

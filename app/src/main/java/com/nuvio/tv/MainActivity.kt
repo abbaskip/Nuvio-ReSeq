@@ -50,6 +50,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
@@ -219,6 +222,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 val LocalSidebarExpanded = compositionLocalOf { false }
+val LocalOpenSidebar = compositionLocalOf<() -> Unit> { {} }
 val LocalContentFocusRequester = compositionLocalOf { FocusRequester.Default }
 
 data class SplashBackground(
@@ -238,7 +242,8 @@ data class DrawerItem(
     val route: String,
     val label: String,
     val iconRes: Int? = null,
-    val icon: ImageVector? = null
+    val icon: ImageVector? = null,
+    val sectionStart: Boolean = false
 )
 
 private data class MainUiPrefs(
@@ -1046,9 +1051,13 @@ open class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val rootRoutes = remember(discoverLocation) {
-                        buildSet {
+                    val liveTvFullscreen by com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.collectAsState()
+                    val rootRoutes = remember(discoverLocation, liveTvFullscreen) {
+                        if (liveTvFullscreen) emptySet() else buildSet {
                             add(Screen.Home.route)
+                            if (!liveTvFullscreen) add(Screen.LiveTv.route)
+                            add(Screen.Sports.route)
+                            add(Screen.OnDemand.route)
                             add(Screen.Search.route)
                             add(Screen.Library.route)
                             add(Screen.Settings.route)
@@ -1088,32 +1097,24 @@ open class MainActivity : ComponentActivity() {
                                     )
                                 )
                             }
-                            add(
-                                DrawerItem(
-                                    route = Screen.Search.route,
-                                    label = strNavSearch,
-                                    iconRes = R.raw.sidebar_search
-                                )
-                            )
-                            add(
-                                DrawerItem(
-                                    route = Screen.Library.route,
-                                    label = strNavLibrary,
-                                    iconRes = R.raw.sidebar_library
-                                )
-                            )
+                            add(DrawerItem(Screen.Library.route, strNavLibrary, iconRes = R.raw.sidebar_library))
+                            add(DrawerItem(Screen.Search.route, strNavSearch, iconRes = R.raw.sidebar_search))
+                            add(DrawerItem(Screen.LiveTv.route, "Live TV", icon = Icons.Default.LiveTv, sectionStart = true))
+                            add(DrawerItem(Screen.Sports.route, "Sports Hub", icon = Icons.Default.EmojiEvents))
+                            add(DrawerItem(Screen.OnDemand.route, "On Demand", icon = Icons.Default.VideoLibrary))
                             add(
                                 DrawerItem(
                                     route = Screen.Settings.route,
                                     label = strNavSettings,
-                                    iconRes = R.raw.sidebar_settings
+                                    iconRes = R.raw.sidebar_settings,
+                                    sectionStart = true
                                 )
                             )
                         }
                     }
-                    val selectedDrawerRoute = drawerItems.firstOrNull { item ->
+                    val selectedDrawerRoute = drawerItems.filter { item ->
                         currentRoute == item.route || currentRoute?.startsWith("${item.route}/") == true
-                    }?.route
+                    }.maxByOrNull { it.route.length }?.route
                     val selectedDrawerItem = drawerItems.firstOrNull { it.route == selectedDrawerRoute } ?: drawerItems.first()
 
                     val confirmExitEnabled by profileManager.confirmExitEnabled.collectAsState()
@@ -1221,15 +1222,21 @@ open class MainActivity : ComponentActivity() {
                                 )
                             }
 
+                            val liveTvPlaying by com.nuvio.tv.livetv.player.LiveWatching.active.collectAsState()
+                            // Watching is activity; begin a fresh idle interval when the stream stops.
+                            LaunchedEffect(liveTvPlaying) { ambientIdleController.onInteraction() }
                             val isTrailerPlaying by trailerPlayerPool.isTrailerPlaying.collectAsState()
                             LaunchedEffect(isTrailerPlaying) {
                                 if (!isTrailerPlaying) ambientIdleController.onInteraction()
                             }
                             AmbientModeHost(
                                 controller = ambientIdleController,
-                                allowed = currentRoute?.startsWith("player/") != true &&
-                                    autoNextOverlay == null &&
-                                    !isTrailerPlaying,
+                                allowed = com.nuvio.tv.ui.screens.ambient.ambientModeAllowed(
+                                    route = currentRoute,
+                                    hasAutoNextOverlay = autoNextOverlay != null,
+                                    trailerPlaying = isTrailerPlaying,
+                                    liveTvPlaying = liveTvPlaying != null
+                                ),
                                 onShown = { trailerPlayerPool.stop() }
                             )
                         }
@@ -1605,11 +1612,12 @@ private fun LegacySidebarScaffold(
                             .align(Alignment.CenterStart)
                             .offset(y = 28.dp)
                             .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                         horizontalAlignment = Alignment.Start
                     ) {
                         drawerItems.forEach { item ->
                             key(item.route) {
+                                if (item.sectionStart) Box(Modifier.padding(vertical = 5.dp, horizontal = 24.dp).width(24.dp).height(1.dp).background(NuvioTheme.colors.TextSecondary.copy(alpha = 0.3f)))
                                 LegacySidebarButton(
                                     label = item.label,
                                     iconRes = item.iconRes,
@@ -1699,6 +1707,7 @@ private fun LegacySidebarScaffold(
                 }
         ) {
             CompositionLocalProvider(
+                LocalOpenSidebar provides { pendingSidebarFocusRequest = true; drawerState.setValue(DrawerValue.Open) },
                 LocalSidebarExpanded provides (drawerState.currentValue == DrawerValue.Open),
                 LocalContentFocusRequester provides contentFocusRequester
             ) {
@@ -1764,7 +1773,7 @@ private fun LegacySidebarButton(
     Card(
         onClick = onClick,
         modifier = modifier
-            .height(NuvioComponents.tokens.sidebar.itemHeight)
+            .height(36.dp)
             .graphicsLayer {
                 scaleX = itemScale
                 scaleY = itemScale
@@ -2101,6 +2110,7 @@ private fun ModernSidebarScaffold(
                 }
         ) {
             CompositionLocalProvider(
+                LocalOpenSidebar provides { isSidebarExpanded = true; sidebarCollapsePending = false; pendingSidebarFocusRequest = true },
                 LocalSidebarExpanded provides isSidebarExpanded,
                 LocalContentFocusRequester provides contentFocusRequester
             ) {

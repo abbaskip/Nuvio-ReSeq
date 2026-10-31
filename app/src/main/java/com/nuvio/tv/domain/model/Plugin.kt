@@ -21,6 +21,7 @@ data class RemotePluginInfo(
 /**
  * Represents a plugin repository containing scrapers
  */
+@JsonClass(generateAdapter = true)
 data class PluginRepository(
     val id: String,
     val name: String,
@@ -69,6 +70,7 @@ data class ScraperManifestInfo(
 /**
  * Installed scraper info with runtime state
  */
+@JsonClass(generateAdapter = true)
 data class ScraperInfo(
     val id: String,
     val name: String,

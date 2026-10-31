@@ -359,6 +359,11 @@ private fun appLicenseItem() = LicenseAttributionItem(
 @Composable
 private fun dataAttributionItems() = listOf(
     LicenseAttributionItem(
+        title = stringResource(R.string.licenses_attributions_iptv_title),
+        body = stringResource(R.string.licenses_attributions_iptv_body),
+        url = "https://github.com/homelessbrian/NuvioPlusIPTV"
+    ),
+    LicenseAttributionItem(
         title = stringResource(R.string.licenses_attributions_tmdb_title),
         body = stringResource(R.string.licenses_attributions_tmdb_body),
         url = TmdbUrl,

@@ -1,0 +1,709 @@
+package com.nuvio.tv.livetv.sync
+
+import android.content.Context
+import android.os.Build
+import android.util.Base64
+import android.util.Log
+import com.nuvio.tv.BuildConfig
+import com.nuvio.tv.livetv.data.LiveTvPreferences
+import com.nuvio.tv.livetv.data.LiveTvRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import okhttp3.FormBody
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.security.MessageDigest
+import java.util.UUID
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/** What the settings screen shows. */
+data class DriveSyncState(
+    val available: Boolean = false,
+    val connected: Boolean = false,
+    val email: String? = null,
+    val autoSync: Boolean = true,
+    val busy: Boolean = false,
+    val message: String? = null,
+    val lastSyncMs: Long = 0L,
+    /** Set while signing in: show this code and address to the user. */
+    val signIn: SignInPrompt? = null
+)
+
+/** [qrUrl] is what the QR code opens: a link with the code filled in if Google gives one. */
+data class SignInPrompt(val userCode: String, val url: String, val qrUrl: String, val expiresAtMs: Long)
+
+/**
+ * Syncs the Live TV setup through the user's own Google Drive.
+ *
+ * The data goes in Drive's hidden app data folder (scope drive.appdata): it lives in the user's
+ * Drive, only this app can read it, and nothing is stored anywhere else. Sign-in uses Google's
+ * "TVs and limited input devices" flow: the TV shows a code, the user approves on their phone.
+ * Sync is "newest wins": changes are backed up shortly after they happen, and a newer copy from
+ * another TV is applied when the app starts or when you tap Restore.
+ */
+@Singleton
+class LiveTvDriveSync @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val prefs: LiveTvPreferences,
+    private val repository: LiveTvRepository
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val store = context.applicationContext.getSharedPreferences("livetv_drive_sync", Context.MODE_PRIVATE)
+    private val mutex = Mutex()
+    private val http = OkHttpClient.Builder()
+        // IPv4 first, like Nuvio's own connections: many VPNs (and some routers) leave IPv6
+        // half working, and each Google address then hung until it timed out.
+        .dns(com.nuvio.tv.core.network.IPv4FirstDns())
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    private val clientId = BuildConfig.GOOGLE_DRIVE_CLIENT_ID
+    private val clientSecret = BuildConfig.GOOGLE_DRIVE_CLIENT_SECRET
+
+    private val _state = MutableStateFlow(loadState())
+    val state: StateFlow<DriveSyncState> = _state.asStateFlow()
+
+    private var started = false
+    private var signInJob: Job? = null
+    private var accessToken: String? = null
+    private var accessTokenExpiresAt = 0L
+    /** True while a restored setup is being written, so it isn't backed up straight back. */
+    @Volatile private var applying = false
+    /** When a restore or sync last wrote this TV's setup (its own changes come after that). */
+    @Volatile private var appliedAtMs = 0L
+
+    /** The copy in Google Drive: when it was saved, on which TV, and whether that was this one. */
+    data class BackupInfo(val savedAtMs: Long, val device: String, val fromThisTv: Boolean)
+
+    /** About the saved copy, for the restore prompt (null: none, or Drive couldn't be reached). */
+    suspend fun backupInfo(): BackupInfo? = withContext(Dispatchers.IO) {
+        runCatching {
+            val token = token() ?: return@runCatching null
+            val fileId = fileId(token) ?: return@runCatching null
+            val json = JSONObject(execute(
+                Request.Builder()
+                    .url("https://www.googleapis.com/drive/v3/files/$fileId?alt=media")
+                    .header("Authorization", "Bearer $token")
+                    .get()
+                    .build()
+            ))
+            BackupInfo(json.optLong("savedAt"), json.optString("device").ifBlank { "another TV" }, json.optString("deviceId") == deviceId)
+        }.getOrNull()
+    }
+
+    /** When this TV's setup was last changed on this TV (0: not since this version). */
+    fun localChangedAt(): Long = store.getLong(KEY_LOCAL_CHANGED_AT, 0L)
+
+    private val deviceId: String
+        get() = store.getString(KEY_DEVICE_ID, null) ?: UUID.randomUUID().toString().also {
+            store.edit().putString(KEY_DEVICE_ID, it).apply()
+        }
+
+    private fun loadState() = DriveSyncState(
+        available = clientId.isNotBlank() && clientSecret.isNotBlank(),
+        connected = store.getString(KEY_REFRESH, null) != null,
+        email = store.getString(KEY_EMAIL, null),
+        autoSync = store.getBoolean(KEY_AUTO, true),
+        lastSyncMs = store.getLong(KEY_LAST_SYNC, 0L)
+    )
+
+    /** Starts automatic sync: check Drive for a newer setup, then back up local changes. */
+    @Synchronized
+    fun start() {
+        if (started) return
+        started = true
+        scope.launch {
+            if (_state.value.connected && _state.value.autoSync) pull(force = false)
+        }
+        // When this TV's own setup last changed (not by a restore or sync): the restore prompt
+        // warns when the saved copy is older than that.
+        scope.launch {
+            prefs.changes.drop(1).collect {
+                val now = System.currentTimeMillis()
+                if (!applying && now - appliedAtMs > 20_000) store.edit().putLong(KEY_LOCAL_CHANGED_AT, now).apply()
+            }
+        }
+        scope.launch {
+            prefs.changes.drop(1).debounce(8_000).collect {
+                val s = _state.value
+                if (s.connected && s.autoSync && !applying) push(force = false)
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ sign-in
+
+    fun beginSignIn() {
+        if (!_state.value.available) return
+        signInJob?.cancel()
+        signInJob = scope.launch {
+            _state.value = _state.value.copy(busy = true, message = null, signIn = null)
+            // Ask for the private app folder (plus the email, to show which account is connected).
+            // If Google won't allow that set for this project, fall back step by step, ending with
+            // a normal Drive file the app creates ("Nuvio Live TV backup").
+            var codes = JSONObject()
+            var mode = MODE_APPDATA
+            for ((scopes, m) in SCOPE_ATTEMPTS) {
+                codes = runCatching {
+                    postForm("https://oauth2.googleapis.com/device/code", mapOf("client_id" to clientId, "scope" to scopes))
+                }.getOrElse {
+                    _state.value = _state.value.copy(busy = false, message = "Couldn't reach Google. Try again.")
+                    return@launch
+                }
+                mode = m
+                if (codes.optString("error") != "invalid_scope") break
+                Log.w(TAG, "Scopes refused ($scopes): ${codes.optString("error_description")}")
+            }
+            val deviceCode = codes.optString("device_code")
+            val userCode = codes.optString("user_code")
+            if (deviceCode.isBlank() || userCode.isBlank()) {
+                _state.value = _state.value.copy(busy = false, message = googleError(codes))
+                return@launch
+            }
+            val url = codes.optString("verification_url").ifBlank { "https://www.google.com/device" }
+            val qrUrl = codes.optString("verification_uri_complete").ifBlank { url }
+            val expiresAt = System.currentTimeMillis() + codes.optLong("expires_in", 1800) * 1000
+            var interval = codes.optLong("interval", 5).coerceAtLeast(5)
+            _state.value = _state.value.copy(busy = false, signIn = SignInPrompt(userCode, url, qrUrl, expiresAt))
+
+            while (System.currentTimeMillis() < expiresAt) {
+                delay(interval * 1000)
+                val token = runCatching {
+                    postForm(
+                        "https://oauth2.googleapis.com/token",
+                        mapOf(
+                            "client_id" to clientId,
+                            "client_secret" to clientSecret,
+                            "device_code" to deviceCode,
+                            "grant_type" to "urn:ietf:params:oauth:grant-type:device_code"
+                        )
+                    )
+                }.getOrNull() ?: continue
+                when (token.optString("error")) {
+                    "" -> {
+                        store.edit().putString(KEY_MODE, mode).apply()
+                        onSignedIn(token)
+                        return@launch
+                    }
+                    "authorization_pending" -> Unit
+                    "slow_down" -> interval += 5
+                    "access_denied" -> {
+                        _state.value = _state.value.copy(signIn = null, message = "Sign-in was declined.")
+                        return@launch
+                    }
+                    else -> {
+                        _state.value = _state.value.copy(signIn = null, message = googleError(token))
+                        return@launch
+                    }
+                }
+            }
+            _state.value = _state.value.copy(signIn = null, message = "The code expired. Try again.")
+        }
+    }
+
+    fun cancelSignIn() {
+        signInJob?.cancel()
+        _state.value = _state.value.copy(signIn = null, busy = false)
+    }
+
+    private suspend fun onSignedIn(token: JSONObject) {
+        val refresh = token.optString("refresh_token")
+        if (refresh.isBlank()) {
+            _state.value = _state.value.copy(signIn = null, message = "Google didn't return a sign-in. Try again.")
+            return
+        }
+        accessToken = token.optString("access_token")
+        accessTokenExpiresAt = System.currentTimeMillis() + token.optLong("expires_in", 3600) * 1000
+        val email = emailFromIdToken(token.optString("id_token"))
+        store.edit().putString(KEY_REFRESH, refresh).putString(KEY_EMAIL, email).apply()
+        _state.value = _state.value.copy(connected = true, email = email, signIn = null, message = null)
+        // First connection: use the Drive copy if there is one, otherwise back this TV up.
+        if (!pull(force = true, onlyIfExists = true)) push(force = true)
+    }
+
+    fun disconnect() {
+        val refresh = store.getString(KEY_REFRESH, null)
+        store.edit().remove(KEY_REFRESH).remove(KEY_EMAIL).remove(KEY_FILE_ID).remove(KEY_LAST_HASH).remove(KEY_MODE).apply()
+        runCatching { baseFile().delete() }
+        accessToken = null
+        _state.value = _state.value.copy(connected = false, email = null, message = "Disconnected. Your backup stays in your Google Drive.")
+        if (refresh != null) scope.launch {
+            runCatching { postForm("https://oauth2.googleapis.com/revoke", mapOf("token" to refresh)) }
+        }
+    }
+
+    fun setAutoSync(enabled: Boolean) {
+        store.edit().putBoolean(KEY_AUTO, enabled).apply()
+        _state.value = _state.value.copy(autoSync = enabled)
+    }
+
+    fun backUpNow() { scope.launch { push(force = true) } }
+    @Volatile private var emptyRefused = false
+    fun restoreNow() { scope.launch { pull(force = true) } }
+
+    // ------------------------------------------------------------------ backup / restore
+
+    /** Uploads this TV's setup. Skips the upload when nothing changed since the last one. */
+    private suspend fun push(force: Boolean) = mutex.withLock {
+        val token = token() ?: return@withLock
+        emptyRefused = false
+        _state.value = _state.value.copy(busy = true, message = if (force) "Backing up…" else null)
+        val result = runCatching {
+            var data = prefs.exportForSync()
+            val removedHere = prefs.removedSourceIds()
+            val hash0 = sha(data.toString())
+            if (!force && hash0 == store.getString(KEY_LAST_HASH, null)) return@runCatching false
+            // Another TV saved since we last synced: combine its changes with ours first, so
+            // neither TV overwrites the other (that made favorites and names flip back and forth).
+            // Decided by what's in the copy, not by the TVs' clocks: a TV whose clock ran ahead
+            // took the other TVs' newer copy for an older one, skipped it, and then saved over it
+            // without the playlists they had added (which then vanished from every TV).
+            remoteCopy(token)?.let { remote ->
+                val remoteData = remote.optJSONObject("data")
+                val base = readBase()
+                if (remoteData != null && remoteData.toString() != base?.toString()) {
+                    val merged = merge(base, local = data, remote = remoteData, localWinsWithoutBase = true, removedHere = removedHere)
+                    if (merged.toString() != data.toString()) applyLocally(merged)
+                    data = merged
+                }
+            }
+            // No playlists and no guides here (signed out, a fresh install, everything removed):
+            // never write that over the backup. Automatic sync just skips it; Back up now says why.
+            if (!prefs.syncHasSources(data)) {
+                if (force) emptyRefused = true
+                return@runCatching false
+            }
+            val hash = sha(data.toString())
+            val now = System.currentTimeMillis()
+            val body = JSONObject()
+                .put("format", 1)
+                .put("savedAt", now)
+                .put("deviceId", deviceId)
+                .put("device", Build.MODEL ?: "TV")
+                .put("data", data)
+                .toString()
+            val fileId = fileId(token)
+            if (fileId == null) {
+                val meta = JSONObject().put("name", FILE_NAME)
+                if (isAppDataMode) meta.put("parents", org.json.JSONArray().put("appDataFolder"))
+                val multipart = MultipartBody.Builder().setType("multipart/related".toMediaType())
+                    .addPart(meta.toString().toRequestBody(JSON))
+                    .addPart(body.toRequestBody(JSON))
+                    .build()
+                val created = execute(
+                    Request.Builder()
+                        .url("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id")
+                        .header("Authorization", "Bearer $token")
+                        .post(multipart)
+                        .build()
+                )
+                store.edit().putString(KEY_FILE_ID, JSONObject(created).optString("id")).apply()
+            } else {
+                execute(
+                    Request.Builder()
+                        .url("https://www.googleapis.com/upload/drive/v3/files/$fileId?uploadType=media")
+                        .header("Authorization", "Bearer $token")
+                        .patch(body.toRequestBody(JSON))
+                        .build()
+                )
+            }
+            store.edit().putString(KEY_LAST_HASH, hash).putLong(KEY_LAST_SYNC, now).putLong(KEY_APPLIED_AT, now).apply()
+            writeBase(data)
+            // Those removals are in the saved copy now.
+            prefs.forgetRemovedSources(removedHere)
+            true
+        }
+        _state.value = _state.value.copy(
+            busy = false,
+            lastSyncMs = store.getLong(KEY_LAST_SYNC, 0L),
+            message = when {
+                result.isFailure -> "Backup failed: ${result.exceptionOrNull()?.message ?: "network error"}"
+                emptyRefused -> "Nothing backed up: add a playlist or guide first. Your saved copy in Google Drive was left as it was."
+                force -> "Backed up to Google Drive."
+                else -> _state.value.message
+            }
+        )
+    }
+
+    /**
+     * Applies the Drive copy if it's newer than what this TV has (or always, when [force]).
+     * Returns true if a copy was found and applied.
+     */
+    private suspend fun pull(force: Boolean, onlyIfExists: Boolean = false): Boolean = mutex.withLock {
+        val token = token() ?: return@withLock false
+        _state.value = _state.value.copy(busy = true, message = if (force && !onlyIfExists) "Restoring…" else null)
+        val result = runCatching {
+            val fileId = fileId(token) ?: return@runCatching null
+            val text = execute(
+                Request.Builder()
+                    .url("https://www.googleapis.com/drive/v3/files/$fileId?alt=media")
+                    .header("Authorization", "Bearer $token")
+                    .get()
+                    .build()
+            )
+            val json = JSONObject(text)
+            val savedAt = json.optLong("savedAt")
+            val fromThisTv = json.optString("deviceId") == deviceId
+            val remoteData = json.optJSONObject("data") ?: return@runCatching false
+            // Nothing new: saved by this TV, or the same as what this TV last synced. (Not judged
+            // by the time it was saved: TVs' clocks differ, and a newer copy was skipped.)
+            val base = readBase()
+            if (!force && (fromThisTv || remoteData.toString() == base?.toString())) return@runCatching false
+            // A saved copy with no playlists or guides (made by an older version after signing
+            // out): never let it empty this TV. Treated as no backup at all.
+            if (!prefs.syncHasSources(remoteData)) return@runCatching null
+            // "Restore" replaces this TV's setup; automatic sync keeps changes made on this TV
+            // since the last sync and takes everything else from the other TV.
+            val data = if (force) remoteData
+            else merge(base, local = prefs.exportForSync(), remote = remoteData, localWinsWithoutBase = false, removedHere = prefs.removedSourceIds())
+            applyLocally(data)
+            store.edit()
+                .putLong(KEY_APPLIED_AT, savedAt)
+                .putLong(KEY_LAST_SYNC, System.currentTimeMillis())
+                .putString(KEY_LAST_HASH, sha(remoteData.toString()))
+                .apply()
+            writeBase(remoteData)
+            // Our own changes were kept on top: send the combined setup back up.
+            if (data.toString() != remoteData.toString()) scope.launch { delay(2_000); push(force = false) }
+            true
+        }
+        val applied = result.getOrNull() == true
+        _state.value = _state.value.copy(
+            busy = false,
+            lastSyncMs = store.getLong(KEY_LAST_SYNC, 0L),
+            message = when {
+                result.isFailure -> "Restore failed: ${result.exceptionOrNull()?.message ?: "network error"}"
+                result.getOrNull() == null && force && !onlyIfExists -> "No backup found in Google Drive yet."
+                applied && force -> "Restored from Google Drive."
+                applied -> "Updated from your other TV."
+                else -> _state.value.message
+            }
+        )
+        applied
+    }
+
+    // ------------------------------------------------------------------ merging
+
+    private suspend fun applyLocally(data: JSONObject) {
+        applying = true
+        appliedAtMs = System.currentTimeMillis()
+        try {
+            val before = prefs.exportForSync()
+            val changed = prefs.importFromSync(data)
+            val after = prefs.exportForSync()
+            // What really changed here. Nothing: no reload at all (it used to reload Live TV,
+            // reading the guide again, on every sync, often twice at start-up).
+            val keys = (before.keys().asSequence() + after.keys().asSequence()).toSet()
+                .filter { k -> before.opt(k)?.toString() != after.opt(k)?.toString() }
+            if (keys.isEmpty() && changed.isEmpty()) {
+                com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Sync: other TV's setup is the same as this one; nothing to reload")
+                return
+            }
+            com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Sync: applied changes from your other TV (${keys.take(6).joinToString()}${if (keys.size > 6) "…" else ""})")
+            // Download any playlists or guides this TV doesn't have yet, playlists whose address
+            // or login changed on the other TV, and rebuild the guide.
+            repository.reloadAfterSync(changed)
+            delay(500)
+        } finally {
+            applying = false
+            appliedAtMs = System.currentTimeMillis()
+        }
+    }
+
+    /** The Drive copy, or null if there isn't one or it can't be read. */
+    private suspend fun remoteCopy(token: String): JSONObject? = runCatching {
+        val fileId = fileId(token) ?: return null
+        JSONObject(
+            execute(
+                Request.Builder()
+                    .url("https://www.googleapis.com/drive/v3/files/$fileId?alt=media")
+                    .header("Authorization", "Bearer $token")
+                    .get()
+                    .build()
+            )
+        )
+    }.getOrNull()
+
+    /**
+     * Combines two setups setting by setting: whatever this TV changed since the last sync
+     * ([base]) is kept, everything else comes from the other TV. Without a base, [localWinsWithoutBase]
+     * decides.
+     */
+    private fun merge(
+        base: JSONObject?,
+        local: JSONObject,
+        remote: JSONObject,
+        localWinsWithoutBase: Boolean,
+        removedHere: Set<String>
+    ): JSONObject {
+        if (base == null) {
+            // Nothing synced on this TV yet (or since an older version): one side's settings win,
+            // but playlists and guides from both are kept. Taking one TV's whole list lost the
+            // playlists only the other TVs had.
+            val (first, second) = if (localWinsWithoutBase) local to remote else remote to local
+            val out = JSONObject(first.toString())
+            for (k in SOURCE_LISTS) {
+                val a = first.optJSONObject(k)
+                val b = second.optJSONObject(k)
+                if (b == null) continue
+                if (a == null) { out.put(k, JSONObject(b.toString())); continue }
+                runCatching { unionSources(a.optString("v"), b.optString("v"), removedHere) }.getOrNull()
+                    ?.let { out.put(k, JSONObject(a.toString()).put("v", it)) }
+            }
+            return out
+        }
+        val out = JSONObject(remote.toString())
+        val keys = HashSet<String>().apply {
+            local.keys().forEach { add(it) }
+            base.keys().forEach { add(it) }
+        }
+        keys.forEach { k ->
+            val l = local.opt(k)?.toString()
+            val b = base.opt(k)?.toString()
+            if (l != b) {
+                // Playlists and guides are lists: combine them source by source, setting by
+                // setting. Taking this TV's whole list whenever anything in it had changed (a
+                // playlist switched off, the server's time zone learned) threw away the other
+                // TV's edits, like a provider's new server address, and then sent the old one back.
+                // A list missing on one side counts as empty (never "remove everything").
+                val listMerged = if (k in SOURCE_LISTS && (local.has(k) || remote.has(k))) {
+                    runCatching {
+                        mergeSources(
+                            base.optJSONObject(k)?.optString("v"),
+                            local.optJSONObject(k)?.optString("v") ?: "[]",
+                            remote.optJSONObject(k)?.optString("v") ?: "[]",
+                            removedHere
+                        )
+                    }.getOrNull()
+                } else null
+                val shell = (local.optJSONObject(k) ?: remote.optJSONObject(k))
+                when {
+                    listMerged != null && shell != null -> out.put(k, JSONObject(shell.toString()).put("v", listMerged))
+                    local.has(k) -> out.put(k, local.get(k))
+                    else -> out.remove(k)
+                }
+            }
+        }
+        return out
+    }
+
+    /**
+     * Three-way merge of two source lists (JSON arrays of objects with an "id"): sources added
+     * or removed on either TV are added or removed, and within a source each setting changed on
+     * this TV since the last sync is kept, everything else comes from the other TV.
+     */
+    private fun mergeSources(baseRaw: String?, localRaw: String, remoteRaw: String, removedHere: Set<String>): String {
+        fun read(raw: String?) = readSources(raw)
+        val base = read(baseRaw)
+        val local = read(localRaw)
+        val remote = read(remoteRaw)
+        val result = org.json.JSONArray()
+        // The other TV's order, with its additions and edits.
+        for ((id, r) in remote) {
+            val l = local[id]
+            val b = base[id]
+            when {
+                // Removed on this TV (by you) since the last sync: stays removed.
+                l == null && id in removedHere -> continue
+                // Missing here but never removed here (this TV didn't get it yet, or lost it):
+                // kept. Only a removal someone actually made takes a source off the other TVs.
+                l == null -> result.put(r)
+                b == null -> result.put(r) // On both TVs but new to the last sync: the other TV's.
+                else -> {
+                    val merged = JSONObject(r.toString())
+                    l.keys().forEach { f ->
+                        if (l.opt(f)?.toString() != b.opt(f)?.toString()) merged.put(f, l.get(f))
+                    }
+                    result.put(merged)
+                }
+            }
+        }
+        // Added on this TV since the last sync.
+        for ((id, l) in local) {
+            if (id !in remote && id !in base) result.put(l)
+        }
+        return result.toString()
+    }
+
+    private fun readSources(raw: String?): LinkedHashMap<String, JSONObject> {
+        val out = LinkedHashMap<String, JSONObject>()
+        if (raw.isNullOrBlank()) return out
+        val arr = org.json.JSONArray(raw)
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val id = o.optString("id")
+            if (id.isNotBlank()) out[id] = o
+        }
+        return out
+    }
+
+    /**
+     * Two source lists combined with nothing synced to compare against: every source in [firstRaw]
+     * (its versions win), then those only in [secondRaw], except ones removed on this TV.
+     */
+    private fun unionSources(firstRaw: String, secondRaw: String, removedHere: Set<String>): String {
+        val first = readSources(firstRaw)
+        val result = org.json.JSONArray()
+        first.values.forEach { result.put(it) }
+        for ((id, o) in readSources(secondRaw)) {
+            if (id !in first && id !in removedHere) result.put(o)
+        }
+        return result.toString()
+    }
+
+    private fun baseFile() = java.io.File(context.filesDir, "livetv_drive_base.json")
+
+    private fun readBase(): JSONObject? = runCatching { JSONObject(baseFile().readText()) }.getOrNull()
+
+    private fun writeBase(data: JSONObject) {
+        runCatching { baseFile().writeText(data.toString()) }
+    }
+
+    // ------------------------------------------------------------------ Google plumbing
+
+    /** A valid access token, refreshed when needed. Null (and disconnected) if sign-in was revoked. */
+    private suspend fun token(): String? {
+        val refresh = store.getString(KEY_REFRESH, null) ?: return null
+        accessToken?.let { if (System.currentTimeMillis() < accessTokenExpiresAt - 60_000) return it }
+        val res = runCatching {
+            postForm(
+                "https://oauth2.googleapis.com/token",
+                mapOf(
+                    "client_id" to clientId,
+                    "client_secret" to clientSecret,
+                    "refresh_token" to refresh,
+                    "grant_type" to "refresh_token"
+                )
+            )
+        }.getOrElse { e ->
+            // The reason too (timeout, blocked, no route…), so a VPN or network problem shows.
+            val why = when (e) {
+                is java.net.SocketTimeoutException -> "timed out"
+                is java.net.UnknownHostException -> "couldn't look up Google's address"
+                is javax.net.ssl.SSLException -> "secure connection refused"
+                is java.net.ConnectException -> "connection refused"
+                else -> e.javaClass.simpleName
+            }
+            _state.value = _state.value.copy(message = "Couldn't reach Google Drive ($why).")
+            return null
+        }
+        if (res.optString("error") == "invalid_grant") {
+            store.edit().remove(KEY_REFRESH).apply()
+            _state.value = _state.value.copy(connected = false, message = "Google Drive access was removed. Connect again to keep syncing.")
+            return null
+        }
+        val access = res.optString("access_token").ifBlank { return null }
+        accessToken = access
+        accessTokenExpiresAt = System.currentTimeMillis() + res.optLong("expires_in", 3600) * 1000
+        return access
+    }
+
+    /** The backup file's id in the app data folder, or null if there isn't one yet. */
+    private suspend fun fileId(token: String): String? {
+        store.getString(KEY_FILE_ID, null)?.let { return it }
+        val text = execute(
+            Request.Builder()
+                .url(
+                    "https://www.googleapis.com/drive/v3/files?spaces=${if (isAppDataMode) "appDataFolder" else "drive"}" +
+                        "&q=" + java.net.URLEncoder.encode("name='$FILE_NAME' and trashed=false", "UTF-8").replace("+", "%20") +
+                        "&fields=files(id)"
+                )
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+        )
+        val files = JSONObject(text).optJSONArray("files")
+        val id = files?.optJSONObject(0)?.optString("id")?.takeIf { it.isNotBlank() } ?: return null
+        store.edit().putString(KEY_FILE_ID, id).apply()
+        return id
+    }
+
+    private suspend fun postForm(url: String, fields: Map<String, String>): JSONObject = withContext(Dispatchers.IO) {
+        val form = FormBody.Builder().apply { fields.forEach { (k, v) -> add(k, v) } }.build()
+        http.newCall(Request.Builder().url(url).post(form).build()).execute().use { r ->
+            val text = r.body?.string().orEmpty()
+            runCatching { JSONObject(text) }.getOrElse { JSONObject().put("error", "http_${r.code}") }
+        }
+    }
+
+    private suspend fun execute(request: Request): String = withContext(Dispatchers.IO) {
+        http.newCall(request).execute().use { r ->
+            val text = r.body?.string().orEmpty()
+            if (r.code == 404) store.edit().remove(KEY_FILE_ID).apply()
+            if (!r.isSuccessful) error("HTTP ${r.code}")
+            text
+        }
+    }
+
+    private val isAppDataMode: Boolean
+        get() = store.getString(KEY_MODE, MODE_APPDATA) == MODE_APPDATA
+
+    /** Plain-English reason, plus Google's own wording so problems can be tracked down. */
+    private fun googleError(json: JSONObject): String {
+        val e = json.optString("error").ifBlank { json.optString("error_code") }
+        val detail = json.optString("error_description").takeIf { it.isNotBlank() }?.let { " Google says: $it" }.orEmpty()
+        return when (e) {
+            "invalid_client" -> "Google doesn't recognize this build's sign-in client. Check that the client ID and secret are right, and that its type is \"TVs and Limited Input devices\".$detail"
+            "unauthorized_client" -> "This sign-in client isn't allowed to use TV sign-in. Create one of type \"TVs and Limited Input devices\".$detail"
+            "invalid_scope" -> "Google refused the Drive permission for this app.$detail"
+            "org_internal" -> "This app is limited to one organization. Set the audience to External in Google Cloud.$detail"
+            "rate_limit_exceeded" -> "Too many attempts. Wait a minute and try again."
+            else -> "Google sign-in failed ($e).$detail"
+        }
+    }
+
+    private fun emailFromIdToken(idToken: String): String? = runCatching {
+        val payload = idToken.split('.')[1]
+        val json = String(Base64.decode(payload, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING))
+        JSONObject(json).optString("email").ifBlank { null }
+    }.onFailure { Log.w(TAG, "No email in sign-in") }.getOrNull()
+
+    private fun sha(s: String) =
+        MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString("") { "%02x".format(it) }
+
+    private companion object {
+        const val TAG = "LiveTvDriveSync"
+        /** Settings that are lists of sources, merged source by source. */
+        val SOURCE_LISTS = setOf("playlists", "epg_sources")
+        const val MODE_APPDATA = "appdata"
+        const val MODE_FILE = "file"
+        /** Tried in order until Google accepts one. */
+        val SCOPE_ATTEMPTS = listOf(
+            "openid email https://www.googleapis.com/auth/drive.appdata" to MODE_APPDATA,
+            "https://www.googleapis.com/auth/drive.appdata" to MODE_APPDATA,
+            "https://www.googleapis.com/auth/drive.file" to MODE_FILE
+        )
+        const val FILE_NAME = "Nuvio Live TV backup.json"
+        val JSON = "application/json; charset=UTF-8".toMediaType()
+        const val KEY_REFRESH = "refresh_token"
+        const val KEY_EMAIL = "email"
+        const val KEY_AUTO = "auto_sync"
+        const val KEY_FILE_ID = "file_id"
+        const val KEY_LAST_HASH = "last_hash"
+        const val KEY_LAST_SYNC = "last_sync"
+        const val KEY_APPLIED_AT = "applied_at"
+        const val KEY_LOCAL_CHANGED_AT = "local_changed_at"
+        const val KEY_DEVICE_ID = "device_id"
+        const val KEY_MODE = "mode"
+    }
+}

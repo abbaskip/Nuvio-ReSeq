@@ -16,6 +16,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import com.nuvio.tv.livetv.ondemand.settingsOnly
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -85,6 +87,7 @@ private fun PlaybackNavHost(
     startDestination: String,
     hideBuiltInHeaders: Boolean
 ) {
+    com.nuvio.tv.livetv.sports.SportsHost(navController)
     val playbackAvailability = LocalPlaybackAvailability.current
     val context = LocalContext.current
     fun isStreamToPlayer(from: String, to: String): Boolean {
@@ -192,6 +195,60 @@ private fun PlaybackNavHost(
             )
         }
 
+        composable(Screen.LiveTv.route) { entry ->
+            val vm: com.nuvio.tv.livetv.ui.LiveTvViewModel = androidx.hilt.navigation.compose.hiltViewModel(entry)
+            com.nuvio.tv.livetv.ui.LiveTvGuideScreen(
+                viewModel = vm,
+                onOpenFullscreen = { com.nuvio.tv.livetv.ui.LiveTvFullscreen.request() },
+                onOpenSettings = { navController.navigate(Screen.LiveTvSettings.route) },
+                onReturnToSports = { navController.navigate(Screen.Sports.route) { launchSingleTop = true } },
+                onFindInNuvio = { navController.navigate(Screen.Search.route) }
+            )
+        }
+        composable(Screen.Sports.route) {
+            com.nuvio.tv.livetv.sports.SportsScreen(onOpenLive = {
+                com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
+                navController.navigate(Screen.LiveTv.route) { launchSingleTop = true }
+            })
+        }
+        composable(Screen.OnDemand.route) {
+            val vm: com.nuvio.tv.livetv.ondemand.OnDemandViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val homeEntry = androidx.compose.runtime.remember {
+                runCatching { navController.getBackStackEntry(Screen.Home.route) }.getOrNull()
+            }
+            val homeSettings = homeEntry?.let {
+                val homeVm: com.nuvio.tv.ui.screens.home.HomeViewModel = androidx.hilt.navigation.compose.hiltViewModel(it)
+                homeVm.uiState.collectAsStateWithLifecycle().value.settingsOnly()
+            }
+            var selectedUid by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+            val providerItem by androidx.compose.runtime.produceState<com.nuvio.tv.livetv.ondemand.VodItem?>(null, selectedUid) {
+                value = selectedUid?.let { com.nuvio.tv.livetv.ondemand.onDemandRepository(context).itemByUid(it) }
+            }
+            val play: (String, String, String, String?) -> Unit = { url, title, type, poster ->
+                selectedUid = null
+                navController.navigate(Screen.Player.createRoute(streamUrl = url, title = title,
+                    contentType = type, contentName = title, poster = poster,
+                    addonName = com.nuvio.tv.livetv.ondemand.OnDemandStreams.GROUP_NAME))
+            }
+            com.nuvio.tv.livetv.ondemand.OnDemandHomeScreen(
+                homeSettings = homeSettings,
+                onOpenDetail = { _, _, _, uid -> selectedUid = uid },
+                onPlay = play,
+                onOpenSearch = { navController.navigate(Screen.Search.route) { launchSingleTop = true } },
+                viewModel = vm
+            )
+            providerItem?.let { item ->
+                com.nuvio.tv.livetv.ondemand.ProviderDetailDialog(item = item, viewModel = vm,
+                    onDismiss = { selectedUid = null },
+                    onPlay = { url, title, poster -> play(url, title,
+                        if (item.kind == com.nuvio.tv.livetv.ondemand.VodKind.SERIES) "series" else "movie", poster) })
+            }
+        }
+        composable(Screen.LiveTvSettings.route) {
+            androidx.activity.compose.BackHandler { navController.popBackStack() }
+            com.nuvio.tv.ui.screens.settings.LiveTvSettingsScreen(onBack = { navController.popBackStack() })
+        }
         composable(Screen.Home.route) {
             fun createContinueWatchingRoute(
                 item: ContinueWatchingItem,

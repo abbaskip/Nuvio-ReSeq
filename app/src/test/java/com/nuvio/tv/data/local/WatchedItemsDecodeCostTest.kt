@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -59,7 +60,25 @@ class WatchedItemsDecodeCostTest {
         }
     }
 
+    @Test
+    fun `concurrent cold startup collectors share one decoded snapshot`() = runBlocking {
+        withObservedHistory(warmCache = false) { preferences, collectors, _ ->
+            val snapshot = collectors.first().awaitEmission(1)
+            collectors.forEach { assertSame(snapshot, it.awaitEmission(1)) }
+            assertSame(snapshot, preferences.getAllItems(PROFILE_ID))
+            val removed = snapshot.first()
+            preferences.unmarkAsWatched(removed.contentId, removed.season, removed.episode, PROFILE_ID)
+            collectors.forEach {
+                val updated = it.awaitEmission(2)
+                assertEquals(HISTORY_SIZE - 1, updated.size)
+                assertEquals(false, updated.any { item -> item.key() == removed.key() })
+                assertSame(updated, preferences.getAllItems(PROFILE_ID))
+            }
+        }
+    }
+
     private suspend fun withObservedHistory(
+        warmCache: Boolean = true,
         block: suspend (WatchedItemsPreferences, List<Collector>, Map<Triple<String, Int?, Int?>, WatchedItem>) -> Unit
     ) {
         val store = TestPreferencesStore()
@@ -71,7 +90,7 @@ class WatchedItemsDecodeCostTest {
 
         preferences.markAsWatchedBatch((0 until HISTORY_SIZE).map(::item), PROFILE_ID)
         // The app has been running, so the history was decoded before playback reached the threshold.
-        val decoded = preferences.getAllItems(PROFILE_ID).associateBy { it.key() }
+        val decoded = if (warmCache) preferences.getAllItems(PROFILE_ID).associateBy { it.key() } else emptyMap()
 
         val scope = CoroutineScope(Dispatchers.Default)
         try {

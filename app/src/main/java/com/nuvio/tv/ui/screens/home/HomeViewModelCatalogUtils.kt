@@ -14,8 +14,28 @@ internal fun HomeViewModel.catalogKey(addonId: String, type: String, catalogId: 
 }
 
 internal fun HomeViewModel.buildHomeCatalogLoadSignature(addons: List<Addon>): String {
+    return buildHomeCatalogLoadSignature(addons, disabledHomeCatalogKeys)
+}
+
+internal fun buildHomeCatalogLoadSignature(addons: List<Addon>, disabled: Set<String>): String {
     val addonCatalogSignature = addons
         .flatMap { addon ->
+            val addonSignature = listOf(
+                addon.id,
+                addon.baseUrl,
+                addon.version,
+                addon.configVersion?.toString().orEmpty(),
+                addon.manifestLanguage.orEmpty(),
+                addon.rawTypes.joinToString("|"),
+                addon.resources.joinToString("|") { resource ->
+                    listOf(
+                        resource.name,
+                        resource.types.joinToString("/"),
+                        resource.idPrefixes.orEmpty().joinToString("/")
+                    ).joinToString(":")
+                },
+                addon.idPrefixes.joinToString("|")
+            ).joinToString("|")
             addon.catalogs.map { catalog ->
                 val extraSignature = catalog.extra.joinToString(";") { extra ->
                     listOf(
@@ -27,20 +47,7 @@ internal fun HomeViewModel.buildHomeCatalogLoadSignature(addons: List<Addon>): S
                     ).joinToString(":")
                 }
                 listOf(
-                    addon.id,
-                    addon.baseUrl,
-                    addon.version,
-                    addon.configVersion?.toString().orEmpty(),
-                    addon.manifestLanguage.orEmpty(),
-                    addon.rawTypes.joinToString("|"),
-                    addon.resources.joinToString("|") { resource ->
-                        listOf(
-                            resource.name,
-                            resource.types.joinToString("/"),
-                            resource.idPrefixes.orEmpty().joinToString("/")
-                        ).joinToString(":")
-                    },
-                    addon.idPrefixes.joinToString("|"),
+                    addonSignature,
                     catalog.apiType,
                     catalog.id,
                     catalog.name,
@@ -55,7 +62,7 @@ internal fun HomeViewModel.buildHomeCatalogLoadSignature(addons: List<Addon>): S
         }
         .sorted()
         .joinToString(separator = ",")
-    val disabledSignature = disabledHomeCatalogKeys
+    val disabledSignature = disabled
         .asSequence()
         .sorted()
         .joinToString(separator = ",")

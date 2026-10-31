@@ -23,6 +23,7 @@ class SettingsCatalogTest {
                 SettingsCategory.LAYOUT,
                 SettingsCategory.CONTENT_DISCOVERY,
                 SettingsCategory.PLAYBACK,
+                SettingsCategory.IPTV,
                 SettingsCategory.INTEGRATION,
                 SettingsCategory.TRACKING,
                 SettingsCategory.ADVANCED,
@@ -122,6 +123,14 @@ class SettingsCatalogTest {
             listOf(SettingsCategory.ACCOUNT, SettingsCategory.PROFILES, SettingsCategory.WATCH_PARTY),
             visibleSettingsCategories(true, isEssentialMode = false, isDebugBuild = false, isWatchPartyAvailable = true).take(3)
         )
+    }
+
+    @Test
+    fun `IPTV settings remain available across profiles and experience modes`() {
+        allCombinations().forEach { categories ->
+            assertTrue(SettingsCategory.IPTV in categories)
+            assertEquals(SettingsRailGroup.WATCH, SettingsCategory.IPTV.group)
+        }
     }
 
     private fun allCombinations(): List<List<SettingsCategory>> =

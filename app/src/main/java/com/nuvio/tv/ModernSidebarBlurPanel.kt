@@ -67,7 +67,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.hazeEffect
 
-private val SidebarLeadingVisualSize = NuvioComponents.tokens.sidebar.leadingVisual
+private val SidebarLeadingVisualSize = 28.dp
 private val SidebarContentGap = NuvioComponents.tokens.sidebar.contentGap
 private val SidebarProfileContentGap = NuvioComponents.tokens.sidebar.contentGap + NuvioTheme.spacing.xs
 
@@ -200,10 +200,11 @@ internal fun ModernSidebarBlurPanel(
         ) {
             Column(
                 modifier = Modifier.offset(y = (-12).dp),
-                verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm - NuvioTheme.spacing.xxs)
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 drawerItems.forEachIndexed { index, item ->
                     key(item.route) {
+                        if (item.sectionStart) Box(Modifier.padding(vertical = 5.dp, horizontal = 24.dp).fillMaxWidth(0.4f).height(1.dp).background(NuvioTheme.colors.TextSecondary.copy(alpha = 0.3f)))
                         SidebarNavigationItem(
                             label = item.label,
                             iconRes = item.iconRes,
@@ -325,7 +326,7 @@ private fun SidebarNavigationItem(
                     this.selected = selected
                 }
                 .fillMaxWidth()
-                .padding(horizontal = NuvioTheme.spacing.lg - NuvioTheme.spacing.xxs, vertical = NuvioTheme.spacing.sm + NuvioTheme.spacing.xxs),
+                .padding(horizontal = NuvioTheme.spacing.lg - NuvioTheme.spacing.xxs, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
         Box(
@@ -422,7 +423,7 @@ private fun SidebarProfileItem(
                     role = Role.Button
                 }
                 .fillMaxWidth()
-                .padding(horizontal = NuvioTheme.spacing.lg - NuvioTheme.spacing.xxs, vertical = NuvioTheme.spacing.sm + NuvioTheme.spacing.xxs),
+                .padding(horizontal = NuvioTheme.spacing.lg - NuvioTheme.spacing.xxs, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
         Box(

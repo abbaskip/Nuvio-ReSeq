@@ -135,14 +135,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10002
-        versionName = "0.1.0-beta.2"
+        versionCode = 10003
+        versionName = "0.1.0-beta.3"
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")
         buildConfigField("String", "TRAILER_API_URL", "\"${localProperties.getProperty("TRAILER_API_URL", "")}\"")
         buildConfigField("String", "IMDB_RATINGS_API_BASE_URL", "\"${localProperties.getProperty("IMDB_RATINGS_API_BASE_URL", "")}\"")
         buildConfigField("String", "IMDB_TAPFRAME_API_BASE_URL", "\"${localProperties.getProperty("IMDB_TAPFRAME_API_BASE_URL", "")}\"")
+        buildConfigField("String", "SPORTS_BASE_FEED_URL", buildConfigString(
+            providers.environmentVariable("NUVIO_SPORTS_BASE_FEED_URL").orNull
+                ?: resolveProperty(devProperties, localProperties, "SPORTS_BASE_FEED_URL").ifBlank { "https://abbaskip.github.io/Nuvio-ReSeq/sports-base.json" }
+        ))
         buildConfigField("String", "TRAKT_CLIENT_ID", "\"${localProperties.getProperty("TRAKT_CLIENT_ID", "")}\"")
         buildConfigField("String", "TRAKT_API_URL", "\"${localProperties.getProperty("TRAKT_API_URL", "https://api.trakt.tv/")}\"")
         buildConfigField("String", "TRAKT_REDIRECT_URI", "\"${localProperties.getProperty("TRAKT_REDIRECT_URI", "urn:ietf:wg:oauth:2.0:oob")}\"")
@@ -176,6 +180,8 @@ android {
         buildConfigField("String", "SENTRY_DSN", buildConfigString(sentryDsn))
 
         // In-app updater (GitHub Releases)
+        buildConfigField("String", "GOOGLE_DRIVE_CLIENT_ID", "\"\"")
+        buildConfigField("String", "GOOGLE_DRIVE_CLIENT_SECRET", "\"\"")
         buildConfigField("String", "GITHUB_OWNER", "\"abbaskip\"")
         buildConfigField("String", "GITHUB_REPO", "\"Nuvio-ReSeq\"")
     }
@@ -223,7 +229,7 @@ android {
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName("debug")
-            isDebuggable = parseBooleanProperty(providers.gradleProperty("debuggable").orNull)
+            isDebuggable = true
             isMinifyEnabled = false
 
             buildConfigField("boolean", "IS_DEBUG_BUILD", "true")
@@ -364,7 +370,7 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         val isPlaystore = variant.productFlavors.any { it.second == "playstore" }
-        variant.applicationId.set(if (isPlaystore) "io.github.abbaskip.nuvioreseq.playstore.debug" else "io.github.abbaskip.nuvioreseq.debug")
+        variant.applicationId.set(if (isPlaystore) "io.github.abbaskip.nuvioreseq.playstore.debug" else "io.github.abbaskip.nuvioreseq.iptvdebug")
     }
     // Only the full flavor ships the in-app updater.
     onVariants(selector().withFlavor("distribution" to "full")) { variant ->

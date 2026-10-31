@@ -2,12 +2,15 @@ package com.nuvio.tv.data.remote.dto.mdblist
 
 import com.nuvio.tv.domain.model.MDBListRatings
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
+@JsonClass(generateAdapter = true)
 data class MDBListMediaRequestDto(
     val ids: List<String>,
     @Json(name = "append_to_response") val appendToResponse: List<String> = listOf("keyword")
 )
 
+@JsonClass(generateAdapter = true)
 data class MDBListMediaResponseDto(
     val ratings: List<MDBListMediaRatingDto>? = null,
     val keywords: List<Any?>? = null,
@@ -58,6 +61,7 @@ data class MDBListMediaResponseDto(
     }
 }
 
+@JsonClass(generateAdapter = true)
 data class MDBListMediaRatingDto(
     val source: String,
     val value: Double? = null,

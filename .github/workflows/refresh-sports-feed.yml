@@ -1,0 +1,52 @@
+name: Refresh sports catalogue
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: sports-catalogue
+  cancel-in-progress: false
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: build/sports-feed
+          key: sports-feed-v1-${{ github.run_id }}
+          restore-keys: sports-feed-v1-
+      - run: python -m unittest discover -s tools/sports-feed -p 'test_*.py'
+      - name: Generate public catalogue
+        env:
+          THESPORTSDB_API_KEY: ${{ secrets.THESPORTSDB_API_KEY || '123' }}
+        run: python tools/sports-feed/generate.py
+      - name: Stage public files only
+        run: |
+          mkdir -p build/sports-public
+          cp build/sports-feed/sports-base.json build/sports-public/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sports-catalogue
+          path: build/sports-public
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/sports-public
+  publish:
+    needs: generate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

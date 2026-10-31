@@ -446,6 +446,8 @@
     <string name="licenses_attributions_haze_body">Used for background blur effects. Created by Chris Banes. Licensed under the Apache License, Version 2.0.</string>
     <string name="licenses_attributions_nuvio_title">Nuvio TV</string>
     <string name="licenses_attributions_nuvio_body">Source code and license terms are available in the project repository. Licensed under the GNU General Public License v3.0.</string>
+    <string name="licenses_attributions_iptv_title">Nuvio + IPTV — incorporated code</string>
+    <string name="licenses_attributions_iptv_body">Nuvio ReSeq incorporates and adapts Live TV, EPG, playback, Sports Hub and related code from homelessbrian/NuvioPlusIPTV, alongside its NuvioTV foundation. Distributed under GPLv3. Original notices are preserved; corresponding source and modifications are available in the ReSeq repository. ReSeq is independent and is not endorsed by either project.</string>
     <string name="licenses_attributions_tmdb_title">The Movie Database (TMDB)</string>
     <string name="licenses_attributions_tmdb_body">Nuvio ReSeq uses the TMDB API for movie and TV metadata, artwork, trailers, cast, production details, collections, and recommendations. This product uses the TMDB API but is not endorsed or certified by TMDB.</string>
     <string name="licenses_attributions_trakt_title">Trakt</string>

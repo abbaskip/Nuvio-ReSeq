@@ -110,4 +110,14 @@ class EpisodeReleaseDateParserTest {
         assertNull(isEpisodeReleaseAired(null))
         assertNull(isEpisodeReleaseAired("not-a-date"))
     }
+    @Test
+    fun `plain date fast path preserves UTC across viewer zones and leap dates`() {
+        val expected = Instant.parse("2024-02-29T00:00:00Z")
+        for (zone in listOf(eastern, ZoneId.of("Australia/Sydney"), ZoneId.of("Pacific/Honolulu"))) {
+            assertEquals(expected, parseEpisodeReleaseInstant(" 2024-02-29 ", zone))
+            assertNull(parseEpisodeReleaseInstant("2025-02-29", zone))
+            assertEquals(expected, parseEpisodeReleaseInstant("Aired 2024-02-29", zone))
+        }
+    }
+
 }

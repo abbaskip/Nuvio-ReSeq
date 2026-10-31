@@ -19,7 +19,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,30 +44,36 @@ class WatchedItemsPreferences @Inject constructor(
     private val deltaCursorKey = longPreferencesKey("watched_items_delta_cursor")
     private val deltaInitializedKey = booleanPreferencesKey("watched_items_delta_initialized")
 
-    // Decoded items per profile, keyed by their stored JSON. Every collector of observeAllItems
-    // decodes the full set on each change; reusing unchanged entries keeps a single write (such as
-    // marking an episode watched during playback) from re-parsing the whole history in every
-    // collector at once. Values depend only on the key, so a lost update only costs cache hits.
-    // Entries that fail to parse are cached as null so they are only parsed once.
-    private val decodeCaches = ConcurrentHashMap<Int, AtomicReference<Map<String, WatchedItem?>>>()
-
-    private fun decodeItems(profileId: Int, raw: Set<String>): List<WatchedItem> {
-        val cache = decodeCaches.getOrPut(profileId) { AtomicReference(emptyMap()) }
-        val previous = cache.get()
-        val decoded = HashMap<String, WatchedItem?>(raw.size * 2)
-        val items = ArrayList<WatchedItem>(raw.size)
-        raw.forEach { json ->
-            val item = if (previous.containsKey(json)) {
-                previous[json]
-            } else {
-                runCatching { gson.fromJson(json, WatchedItem::class.java) }.getOrNull()
-            }
-            decoded[json] = item
-            if (item != null) items += item
-        }
-        cache.set(decoded)
-        return items
+    private class DecodeCache {
+        val mutex = Mutex()
+        var raw: Set<String>? = null
+        var decoded: Map<String, WatchedItem?> = emptyMap()
+        var items: List<WatchedItem> = emptyList()
     }
+
+    // Startup collectors share one decode per profile. Unchanged JSON entries, including
+    // malformed entries, remain cached; removals are dropped with the next stored snapshot.
+    private val decodeCaches = ConcurrentHashMap<Int, DecodeCache>()
+
+    private suspend fun decodeItems(profileId: Int, raw: Set<String>): List<WatchedItem> =
+        withContext(Dispatchers.Default) {
+            val cache = decodeCaches.getOrPut(profileId) { DecodeCache() }
+            cache.mutex.withLock {
+                if (cache.raw == raw) return@withLock cache.items
+                val decoded = HashMap<String, WatchedItem?>(raw.size * 2)
+                val items = ArrayList<WatchedItem>(raw.size)
+                raw.forEach { json ->
+                    val item = if (cache.decoded.containsKey(json)) cache.decoded[json]
+                    else runCatching { gson.fromJson(json, WatchedItem::class.java) }.getOrNull()
+                    decoded[json] = item
+                    if (item != null) items += item
+                }
+                cache.decoded = decoded
+                cache.raw = raw
+                cache.items = items
+                items
+            }
+        }
 
     suspend fun getLastSuccessfulPushMs(profileId: Int = profileManager.activeProfileId.value): Long {
         val prefs = store(profileId).data.first()

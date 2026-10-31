@@ -211,8 +211,8 @@ private fun AppIconOptionCard(
                     .padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = painterResource(option.iconResource),
+                coil3.compose.AsyncImage(
+                    model = option.iconResource,
                     contentDescription = null,
                     modifier = Modifier
                         .size(34.dp)

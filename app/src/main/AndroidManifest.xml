@@ -21,6 +21,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
     <uses-feature
         android:name="android.hardware.touchscreen"
         android:required="false" />
@@ -207,6 +212,14 @@
         </activity>
 
         <profileable android:shell="true" />
+        <receiver android:name=".livetv.record.RecordingAlarmReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.nuvio.tv.livetv.RECORD" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <service android:name=".livetv.record.LiveTvRecordingService" android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>

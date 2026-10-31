@@ -4,7 +4,7 @@
 
 # Nuvio ReSeq
 
-Nuvio ReSeq is an independent Android TV fork of [Nuvio](https://github.com/NuvioMedia/NuvioTV), adding TheTVDB episode ordering while keeping Nuvio’s addons, playback and tracking integrations.
+Nuvio ReSeq is an independent Android TV fork of [Nuvio](https://github.com/NuvioMedia/NuvioTV), combining TheTVDB episode ordering and identity-aware tracking with integrated IPTV and Sports Hub. Its Live TV and Sports implementation incorporates and adapts code from [Nuvio + IPTV](https://github.com/homelessbrian/NuvioPlusIPTV), alongside the original Nuvio foundation.
 
 **[Download the latest APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/latest)** · [All releases](https://github.com/abbaskip/Nuvio-ReSeq/releases) · [Report an issue](https://github.com/abbaskip/Nuvio-ReSeq/issues)
 
@@ -33,6 +33,18 @@ Keys and order selections are profile-specific. No personal TVDB key is included
 
 Metadata provided by [TheTVDB](https://thetvdb.com). Please consider contributing missing information or subscribing.
 
+## IPTV and Sports Hub
+
+**Live TV** opens a TV guide with channel groups, playlist selection, favourites, ordering preferences, search and full-screen playback. Configure your own **Xtream Codes** account or an **M3U playlist with XMLTV guide** in Live TV settings. Supported provider on-demand content is available from **On Demand**. ReSeq supplies no playlists, subscriptions or media.
+
+**Sports Hub** brings together fixtures, supported results/live scores and channels from your playlists. Choose sports and optionally exclude categories or competitions; synonyms work in the background. Rugby League and Rugby Union are separate. Matching considers guide titles/descriptions, participants, broadcasters and channel names while retaining regional, provider and quality alternatives. Catch-up depends on your provider.
+
+Confirmed live fixtures use **LIVE**. Guide-only transmissions use **ON AIR**; explicit replay evidence can show **REPLAY**. A programme airing now does not establish that the original match is live. Confirmed live events take priority over guide broadcasts and replays, ahead of upcoming events.
+
+A shared catalogue is refreshed by this repository’s scheduled GitHub workflow and served from [our public sports feed](https://abbaskip.github.io/Nuvio-ReSeq/sports-base.json). Selective live-score requests, local EPG matching and caches keep device requests bounded. ESPN, TheSportsDB and sporting-events.org remain public data dependencies; their free coverage and availability vary. The feed contains public sporting metadata, never users’ playlists or account data.
+
+Optional Gemini assistance uses **your own key**, entered in Settings. It is not required for ordinary deterministic channel matching, and its suggestions are not treated as verified broadcast evidence. No personal Gemini or TVDB key is supplied with the app.
+
 ## Install and update
 
 Download the **universal APK** from this repository’s [GitHub Releases](https://github.com/abbaskip/Nuvio-ReSeq/releases/latest), transfer it to your Android TV device and allow installation from your chosen installer. Android 7.0 or later is required. Release pages include a SHA-256 checksum.
@@ -46,6 +58,8 @@ In-app updates check **only this repository**. There is one release channel: ver
 - TVDB coverage, artwork and episode correspondence vary. Missing or ambiguous identities are not guessed for tracking. Some episodes may therefore have limited tracking or resume support.
 - A combined video’s estimated split point may not match its actual scene boundary. Cross-device resume recovers the best available native-episode position; exact local resume is retained.
 - Switching cuts may change the meaning of a saved timestamp. Stream addons use different numbering conventions; selecting an order does not guarantee every returned stream matches it.
+- Large playlists and guides can take several minutes for the first complete background scan. Cached results and event-specific suggestions appear progressively; guide changes invalidate affected discovery. Ambiguous channels, competitions and replay status may remain unverified.
+- Free sports sources do not cover every sport, competition or broadcast territory, and scores can be delayed. A broadcaster match alone does not prove a specific programme is the selected event.
 - ReSeq does not supply media. Bring your own addons and sources. External services have their own availability, account and API requirements.
 
 ## Build from source
@@ -62,6 +76,6 @@ Debug builds have a separate package ID. Signed releases require a private keyst
 
 ## Credits and licence
 
-Nuvio ReSeq is maintained by [abbaskip](https://github.com/abbaskip). It is based on [Nuvio by Tapframe and contributors](https://github.com/NuvioMedia/NuvioTV), whose work makes this fork possible. It is an independent fork and is not an official Nuvio release.
+Nuvio ReSeq is maintained by [abbaskip](https://github.com/abbaskip). It is based on [Nuvio by Tapframe and contributors](https://github.com/NuvioMedia/NuvioTV), whose work makes this fork possible. Substantial Live TV, EPG, playback, Sports Hub and related code is incorporated and adapted from [Nuvio + IPTV by homelessbrian and contributors](https://github.com/homelessbrian/NuvioPlusIPTV); see [the incorporation and modification notice](NOTICE-IPTV.md). ReSeq is not an official release of, or endorsed by, either project.
 
 Source code is distributed under the [GNU General Public License v3.0](LICENSE). Existing third-party notices and in-app licences are retained. TheTVDB, TMDB, Trakt, Simkl, MDBList and other services retain their respective names, data rights and terms; their use does not imply endorsement.

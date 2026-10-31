@@ -444,6 +444,10 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         }
         if (cachedOnly) return emptyList()
         val leagueWords = leagues.flatMap { l -> l.guideWords.map { it to l } }
+        // Identify legacy competitions independently of visibility, as the taxonomy does.
+        val fallbackWords = (SportsCatalog.leagues + leagues).distinctBy { it.id }
+            .filter { l -> !l.id.startsWith("taxonomy/") && SportsTaxonomy.roots.none { SportsTaxonomy.sport(it.id) == l.sport } }
+            .flatMap { l -> l.guideWords.map { it to l } }
         val hits = ArrayList<Pair<String, EpgProgram>>()
         fun classify(p: EpgProgram): SportsTaxonomy.Node? {
             val key = p.title to p.description
@@ -484,9 +488,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             if (SportsCatalog.NOT_LIVE_WORDS.any { hasWord(nt, it) }) continue
             val classified = classify(p)
             val league = if (classified != null) leagues.firstOrNull { it.id == "taxonomy/" + classified.id }
-                else leagueWords.filter { (w, l) -> !l.id.startsWith("taxonomy/") &&
-                    SportsTaxonomy.roots.none { SportsTaxonomy.sport(it.id) == l.sport } &&
-                    (hasWord(nt, norm(w).trim()) || hasWord(nd, norm(w).trim())) }
+                else fallbackWords.filter { (w, _) ->
+                    hasWord(nt, norm(w).trim()) || hasWord(nd, norm(w).trim()) }
                     .maxByOrNull { (_, l) ->
                         // Explicit names beat generic aliases such as "Grand Prix".
                         val names = listOf(l.name, l.short).map { norm(it).trim() }.filter { it.isNotEmpty() }
@@ -495,7 +498,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                             names.any { hasWord(nd, it) } -> 1
                             else -> 0
                         }
-                    }?.second
+                    }?.second?.takeIf { it.id in allowedIds }
             // 24/7 and loop channels ("NETFLIX WWE", a movie channel called "… NXT"): not live sport.
             if (fillerOrLoop(ch, p)) continue
             // Wrestling words turn up in other shows' titles ("RuPaul's Drag Race - Lip Sync

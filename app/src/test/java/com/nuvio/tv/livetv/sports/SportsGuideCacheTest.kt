@@ -28,6 +28,10 @@ class SportsGuideCacheTest {
         val found = SportsMatcher(db).guideEvents(start, start + 86_400_000, SportsCatalog.leagues,
             emptyList(), mapOf("channel" to channel), 0, start).sortedBy { it.startMs }
         assertEquals(listOf("guide/motogp", "guide/motogp", "racing/f1", "racing/f1"), found.map { it.leagueId })
+        val onlyF1 = SportsMatcher(db).guideEvents(start, start + 86_400_000,
+            SportsCatalog.leagues.filter { it.id == "racing/f1" }, emptyList(), mapOf("channel" to channel), 0, start)
+        assertEquals(listOf("Live: Formula 1: Singapore Grand Prix", "Live: Grand Prix"),
+            onlyF1.sortedBy { it.startMs }.map { "Live: " + it.title })
     }
 
     @Test fun `completed discovery survives process restart but guide channels and settings invalidate it`() {

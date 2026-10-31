@@ -41,7 +41,13 @@ class LiveTvPreferences @Inject constructor(
 ) {
     private val store: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-        produceFile = { context.preferencesDataStoreFile("live_tv") }
+        produceFile = {
+            context.preferencesDataStoreFile("live_tv").apply {
+                parentFile?.mkdirs()
+                // Match Nuvio's first-read safeguard without replacing existing preferences.
+                createNewFile()
+            }
+        }
     )
 
     /**
@@ -50,7 +56,13 @@ class LiveTvPreferences @Inject constructor(
      */
     private val deviceStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-        produceFile = { context.preferencesDataStoreFile("live_tv_device") }
+        produceFile = {
+            context.preferencesDataStoreFile("live_tv_device").apply {
+                parentFile?.mkdirs()
+                // Match Nuvio's first-read safeguard without replacing existing preferences.
+                createNewFile()
+            }
+        }
     )
 
     private object Keys {

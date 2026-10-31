@@ -682,7 +682,8 @@ internal fun PlayerRuntimeController.handleStreamRedirect(requestedUrl: String, 
         _uiState.update {
             it.copy(
                 currentStreamName = target.name ?: target.addonName,
-                currentStreamAddonName = target.addonName
+                currentStreamAddonName = target.addonName,
+                currentStreamDescription = target.description
             )
         }
         // The saved link points at the release that played, so a resume goes straight to it.
@@ -714,11 +715,16 @@ private fun PlayerRuntimeController.persistSelectedStreamForReuse(
             filename = currentFilename,
             videoHash = currentVideoHash,
             videoSize = currentVideoSize,
+            infoHash = stream.getEffectiveInfoHash(),
+            fileIdx = stream.getEffectiveFileIdx(),
             bingeGroup = stream.behaviorHints?.bingeGroup,
             contentLanguage = contentLanguage,
             year = year,
             audioDelayMs = stream.behaviorHints?.audioDelayMs,
-            audioDelayLanguage = stream.behaviorHints?.audioDelayLanguage
+            audioDelayLanguage = stream.behaviorHints?.audioDelayLanguage,
+            addonName = stream.addonName,
+            addonLogo = stream.addonLogo,
+            streamDescription = stream.description
         )
     }
 }
@@ -747,7 +753,10 @@ private fun PlayerRuntimeController.persistTorrentStreamForReuse(stream: Stream)
             contentLanguage = contentLanguage,
             year = year,
             audioDelayMs = stream.behaviorHints?.audioDelayMs,
-            audioDelayLanguage = stream.behaviorHints?.audioDelayLanguage
+            audioDelayLanguage = stream.behaviorHints?.audioDelayLanguage,
+            addonName = stream.addonName,
+            addonLogo = stream.addonLogo,
+            streamDescription = stream.description
         )
     }
 }
@@ -946,6 +955,7 @@ internal fun PlayerRuntimeController.switchToSourceStream(
             currentStreamInfoHash = stream.infoHash ?: stream.clientResolve?.infoHash,
             currentStreamFileIdx = stream.clientResolve?.fileIdx,
             currentStreamAddonName = stream.addonName,
+            currentStreamDescription = stream.description,
             audioTracks = emptyList(),
             subtitleTracks = emptyList(),
             selectedAudioTrackIndex = -1,
@@ -1062,6 +1072,7 @@ private fun PlayerRuntimeController.switchToTorrentSourceStream(
             currentStreamInfoHash = stream.infoHash ?: stream.clientResolve?.infoHash,
             currentStreamFileIdx = stream.clientResolve?.fileIdx,
             currentStreamAddonName = stream.addonName,
+            currentStreamDescription = stream.description,
             audioTracks = emptyList(),
             subtitleTracks = emptyList(),
             selectedAudioTrackIndex = -1,
@@ -1631,6 +1642,7 @@ internal fun PlayerRuntimeController.switchToEpisodeStream(
             currentStreamInfoHash = stream.infoHash ?: stream.clientResolve?.infoHash,
             currentStreamFileIdx = stream.clientResolve?.fileIdx,
             currentStreamAddonName = stream.addonName,
+            currentStreamDescription = stream.description,
             audioTracks = emptyList(),
             subtitleTracks = emptyList(),
             selectedAudioTrackIndex = -1,
@@ -1748,6 +1760,7 @@ private fun PlayerRuntimeController.switchToEpisodeStreamCommon(
             currentStreamInfoHash = stream.infoHash ?: stream.clientResolve?.infoHash,
             currentStreamFileIdx = stream.clientResolve?.fileIdx,
             currentStreamAddonName = stream.addonName,
+            currentStreamDescription = stream.description,
             audioTracks = emptyList(),
             subtitleTracks = emptyList(),
             selectedAudioTrackIndex = -1,

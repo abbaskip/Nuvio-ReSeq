@@ -586,7 +586,10 @@ class StreamScreenViewModel @Inject constructor(
                                 sources = cached.sources,
                                 contentLanguage = cached.contentLanguage ?: contentLanguage,
                                 audioDelayMs = cached.audioDelayMs,
-                                audioDelayLanguage = cached.audioDelayLanguage
+                                audioDelayLanguage = cached.audioDelayLanguage,
+                                addonName = cached.addonName,
+                                addonLogo = cached.addonLogo,
+                                streamDescription = cached.streamDescription
                             ),
                             showDirectAutoPlayOverlay = showOverlay || it.showDirectAutoPlayOverlay,
                             isDirectAutoPlayFlow = showOverlay || it.isDirectAutoPlayFlow
@@ -1523,9 +1526,14 @@ class StreamScreenViewModel @Inject constructor(
                             filename = resolved.filename,
                             videoHash = resolved.videoHash,
                             videoSize = resolved.videoSize,
+                            infoHash = resolved.infoHash,
+                            fileIdx = resolved.fileIdx,
                             bingeGroup = resolved.bingeGroup,
                             contentLanguage = contentLanguage,
-                            year = year
+                            year = year,
+                            addonName = resolved.addonName,
+                            addonLogo = resolved.addonLogo,
+                            streamDescription = resolved.streamDescription
                         )
                         }
                     }
@@ -1760,11 +1768,16 @@ class StreamScreenViewModel @Inject constructor(
                         filename = playbackInfo.filename,
                         videoHash = playbackInfo.videoHash,
                         videoSize = playbackInfo.videoSize,
+                        infoHash = playbackInfo.infoHash,
+                        fileIdx = playbackInfo.fileIdx,
                         bingeGroup = playbackInfo.bingeGroup,
                         contentLanguage = contentLanguage,
                         year = year,
                         audioDelayMs = playbackInfo.audioDelayMs,
-                        audioDelayLanguage = playbackInfo.audioDelayLanguage
+                        audioDelayLanguage = playbackInfo.audioDelayLanguage,
+                        addonName = playbackInfo.addonName,
+                        addonLogo = playbackInfo.addonLogo,
+                        streamDescription = playbackInfo.streamDescription
                     )
                 }
             }

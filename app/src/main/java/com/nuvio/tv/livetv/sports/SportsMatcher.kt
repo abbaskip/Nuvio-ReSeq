@@ -435,7 +435,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             followedWords.toList(), shiftMs)
         guideScans[dayStart]?.takeIf { it.key == scanKey }
             ?.let { return it.events.map { event -> guideState(event, now) } }
-        val diskKey = SportsGuideCache.digest(listOf("1", scanKey.start.toString(), scanKey.end.toString(),
+        val diskKey = SportsGuideCache.digest(listOf("2", scanKey.start.toString(), scanKey.end.toString(),
             scanKey.fingerprint.orEmpty(), scanKey.revision.orEmpty(), scanKey.channels, scanKey.leagues,
             scanKey.shift.toString()) + scanKey.words)
         guideCacheDir?.let { dir -> SportsGuideCache.read(dir, dayStart, diskKey) }?.let { saved ->
@@ -484,9 +484,18 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             if (SportsCatalog.NOT_LIVE_WORDS.any { hasWord(nt, it) }) continue
             val classified = classify(p)
             val league = if (classified != null) leagues.firstOrNull { it.id == "taxonomy/" + classified.id }
-                else leagueWords.firstOrNull { (w, l) -> !l.id.startsWith("taxonomy/") &&
+                else leagueWords.filter { (w, l) -> !l.id.startsWith("taxonomy/") &&
                     SportsTaxonomy.roots.none { SportsTaxonomy.sport(it.id) == l.sport } &&
-                    (hasWord(nt, norm(w).trim()) || hasWord(nd, norm(w).trim())) }?.second
+                    (hasWord(nt, norm(w).trim()) || hasWord(nd, norm(w).trim())) }
+                    .maxByOrNull { (_, l) ->
+                        // Explicit names beat generic aliases such as "Grand Prix".
+                        val names = listOf(l.name, l.short).map { norm(it).trim() }.filter { it.isNotEmpty() }
+                        when {
+                            names.any { hasWord(nt, it) } -> 2
+                            names.any { hasWord(nd, it) } -> 1
+                            else -> 0
+                        }
+                    }?.second
             // 24/7 and loop channels ("NETFLIX WWE", a movie channel called "… NXT"): not live sport.
             if (fillerOrLoop(ch, p)) continue
             // Wrestling words turn up in other shows' titles ("RuPaul's Drag Race - Lip Sync

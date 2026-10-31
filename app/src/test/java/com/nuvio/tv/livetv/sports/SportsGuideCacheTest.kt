@@ -12,6 +12,24 @@ import org.junit.Test
 class SportsGuideCacheTest {
     @org.junit.Rule @JvmField val temp = org.junit.rules.TemporaryFolder()
 
+    @Test fun `explicit MotoGP names outrank shared Grand Prix wording`() {
+        val db = mockk<EpgDatabase>()
+        every { db.fingerprint() } returns "motorsport"
+        every { db.contentRevision() } returns "1"
+        val start = 1_793_318_400_000L
+        val titles = listOf("Live: MotoGP : Malaysian Grand Prix: MotoGP Free Practice 2 and Qualifying",
+            "Live: Malaysian Grand Prix", "Live: Formula 1: Singapore Grand Prix", "Live: Grand Prix")
+        every { db.visitPrograms(any(), any(), any()) } answers {
+            titles.forEachIndexed { i, title -> thirdArg<(String, EpgProgram) -> Unit>().invoke("channel",
+                EpgProgram(start + i * 3_600_000L, start + (i + 1) * 3_600_000L, title,
+                    when (i) { 0 -> "Formula 1 news follows MotoGP coverage"; 1 -> "MotoGP qualifying coverage"; else -> null })) }
+        }
+        val channel = LiveChannel("channel", "playlist", "Test", "TNT Sports 2", null, null, null, "sports", "Sports", 1, "https://example.invalid")
+        val found = SportsMatcher(db).guideEvents(start, start + 86_400_000, SportsCatalog.leagues,
+            emptyList(), mapOf("channel" to channel), 0, start).sortedBy { it.startMs }
+        assertEquals(listOf("guide/motogp", "guide/motogp", "racing/f1", "racing/f1"), found.map { it.leagueId })
+    }
+
     @Test fun `completed discovery survives process restart but guide channels and settings invalidate it`() {
         val db = mockk<EpgDatabase>()
         var revision = "committed"

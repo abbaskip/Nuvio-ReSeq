@@ -429,7 +429,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                             isReleaseAlert = cached.isReleaseAlert,
                             isNewSeasonRelease = cached.isNewSeasonRelease,
                             seedSeason = cached.seedSeason,
-                            seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId,
+                            seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId, tvdbContext = cached.tvdbContext,
                             contentLanguage = cached.contentLanguage
                         )
                     }
@@ -565,7 +565,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                             isReleaseAlert = freshIsReleaseAlert,
                             isNewSeasonRelease = freshIsNewSeasonRelease,
                             seedSeason = cached.seedSeason,
-                            seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId,
+                            seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId, tvdbContext = cached.tvdbContext,
                             contentLanguage = cached.contentLanguage
                         )
                     )
@@ -1037,7 +1037,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                 isReleaseAlert = freshIsReleaseAlert,
                                 isNewSeasonRelease = freshIsNewSeasonRelease,
                                 seedSeason = cached.seedSeason,
-                                seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId,
+                                seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId, tvdbContext = cached.tvdbContext,
                                 contentLanguage = cached.contentLanguage
                             )
                         )
@@ -1164,7 +1164,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                         com.nuvio.tv.data.local.CachedNextUpItem(
                             contentId = info.contentId, contentType = info.contentType, name = info.name,
                             poster = info.poster, backdrop = info.backdrop, logo = info.logo,
-                            videoId = info.videoId, tvdbEpisodeId = info.tvdbEpisodeId, season = info.season, episode = info.episode,
+                            videoId = info.videoId, tvdbEpisodeId = info.tvdbEpisodeId, tvdbContext = info.tvdbContext, season = info.season, episode = info.episode,
                             episodeTitle = info.episodeTitle, episodeDescription = info.episodeDescription,
                             thumbnail = info.thumbnail?.takeIf { it !in brokenUrls },
                             released = info.released, hasAired = info.hasAired, airDateLabel = info.airDateLabel,
@@ -1933,6 +1933,7 @@ private suspend fun HomeViewModel.buildNextUpItem(
         logo = progress.logo.normalizeImageUrl() ?: seedMeta?.logo.normalizeImageUrl(),
         videoId = nextUp.videoId,
         tvdbEpisodeId = nextUpVideo?.episodeIdentity?.trackingEpisodeId,
+        tvdbContext = nextUpVideo?.asTvdbVideo()?.tvdbPlaybackContext(),
         season = nextUp.season,
         episode = nextUp.episode,
         episodeTitle = nextUp.episodeTitle ?: nextUpVideo?.title,
@@ -2163,6 +2164,7 @@ private suspend fun HomeViewModel.enrichNextUpItem(
         episode = video?.episode ?: item.info.episode,
         videoId = video?.id?.takeIf { it.isNotBlank() } ?: item.info.videoId,
         tvdbEpisodeId = video?.episodeIdentity?.tvdbEpisodeId ?: item.info.tvdbEpisodeId,
+        tvdbContext = video?.asTvdbVideo()?.tvdbPlaybackContext() ?: item.info.tvdbContext,
         episodeTitle = if (settings.useEpisodes) tmdbData?.episodeTitle
             ?: video?.title?.takeIf { it.isNotBlank() }
             ?: item.info.episodeTitle
@@ -2717,7 +2719,7 @@ private fun HomeViewModel.persistLocalContinueWatchingMetadata(
                 poster = info.poster,
                 backdrop = info.backdrop,
                 logo = info.logo,
-                videoId = info.videoId, tvdbEpisodeId = info.tvdbEpisodeId,
+                videoId = info.videoId, tvdbEpisodeId = info.tvdbEpisodeId, tvdbContext = info.tvdbContext,
                 season = info.season,
                 episode = info.episode,
                 episodeTitle = info.episodeTitle,

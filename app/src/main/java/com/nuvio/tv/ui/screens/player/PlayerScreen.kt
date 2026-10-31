@@ -1938,6 +1938,7 @@ fun PlayerScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 StreamSourcesSidePanel(
                     uiState = uiState,
+                    currentFilename = viewModel.playerStreamFilename(),
                     streamsFocusRequester = sourceStreamsFocusRequester,
                     onClose = {
                         if (uiState.currentStreamUrl.isNullOrBlank()) {

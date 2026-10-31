@@ -82,6 +82,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.TransformOrigin
@@ -100,6 +101,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -1357,6 +1359,7 @@ open class MainActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) com.nuvio.tv.livetv.data.BackgroundWork.onNavigation()
         if (ambientIdleController.consumeKeyEvent(event)) return true
         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
             if (longPressBackHeld.value) {
@@ -1463,9 +1466,6 @@ private fun LegacySidebarScaffold(
     val contentFocusRequester = remember { FocusRequester() }
     var pendingContentFocusTransfer by remember { mutableStateOf(false) }
     var pendingSidebarFocusRequest by remember { mutableStateOf(false) }
-    // Bumped on every key event the drawer sees so the auto-collapse timer
-    // resets while the user navigates between drawer items.
-    var legacyDrawerInteractionVersion by remember { mutableStateOf(0) }
 
 
     BackHandler(enabled = currentRoute in rootRoutes && drawerState.currentValue == DrawerValue.Closed) {
@@ -1520,13 +1520,11 @@ private fun LegacySidebarScaffold(
                     modifier = Modifier
                         .fillMaxHeight()
                         .width(drawerWidth)
+                        .graphicsLayer()
                         .background(NuvioTheme.colors.Background)
                         .padding(NuvioTheme.spacing.card.outer)
                         .selectableGroup()
                         .onPreviewKeyEvent { keyEvent ->
-                            if (keyEvent.type == KeyEventType.KeyDown) {
-                                legacyDrawerInteractionVersion++
-                            }
                             val closeKey = if (isRtl) Key.DirectionLeft else Key.DirectionRight
                             if (keyEvent.key == closeKey && keyEvent.type == KeyEventType.KeyDown) {
                                 drawerState.setValue(DrawerValue.Closed)
@@ -1661,6 +1659,10 @@ private fun LegacySidebarScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(start = contentStartPadding)
+                .graphicsLayer()
+                // A modal drawer owns accessibility focus until it closes. Do not repeatedly
+                // rebuild the obscured Home/guide semantics during its focus animation.
+                .then(if (drawerState.currentValue == DrawerValue.Open) Modifier.clearAndSetSemantics { } else Modifier)
                 .onPreviewKeyEvent { keyEvent ->
                     // Long-press Back on a root route directly opens the sidebar,
                     // bypassing the "scroll row to start" BackHandler in home content.
@@ -1780,10 +1782,15 @@ private fun LegacySidebarButton(
                 transformOrigin = TransformOrigin.Center
             }
             .focusProperties { canFocus = expanded }
-            .onFocusChanged { isFocused = it.hasFocus },
+            .onFocusChanged { isFocused = it.hasFocus }
+            .semantics {
+                contentDescription = label
+                role = Role.Tab
+                this.selected = selected
+            },
         colors = CardDefaults.colors(
-            containerColor = backgroundColor,
-            focusedContainerColor = backgroundColor,
+            containerColor = Color.Transparent,
+            focusedContainerColor = Color.Transparent,
         ),
         border = CardDefaults.border(
             border = androidx.tv.material3.Border.None,
@@ -1798,16 +1805,16 @@ private fun LegacySidebarButton(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .semantics {
-                    contentDescription = label
-                    role = Role.Tab
-                    this.selected = selected
+                .drawWithCache {
+                    val outline = itemShape.createOutline(size, layoutDirection, this)
+                    onDrawBehind { drawOutline(outline, color = backgroundColor) }
                 }
+                .clearAndSetSemantics { }
         ) {
         DrawerItemIcon(
             iconRes = iconRes,
             icon = icon,
-            tint = iconTint,
+            tintProvider = { iconTint },
             brush = selectedCollapsedIconBrush,
             modifier = Modifier
                 .size(NuvioComponents.tokens.sidebar.iconSize)
@@ -1817,7 +1824,8 @@ private fun LegacySidebarButton(
         if (expanded) {
             com.nuvio.tv.ui.components.AutoResizeText(
                 text = label,
-                color = contentColor,
+                color = Color.Unspecified,
+                colorProducer = androidx.compose.ui.graphics.ColorProducer { contentColor },
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
@@ -2416,7 +2424,8 @@ private fun DrawerItemIcon(
     icon: ImageVector?,
     modifier: Modifier = Modifier,
     tint: Color = androidx.tv.material3.LocalContentColor.current,
-    brush: Brush? = null
+    brush: Brush? = null,
+    tintProvider: (() -> Color)? = null
 ) {
     val iconModifier = if (brush == null) {
         modifier
@@ -2430,7 +2439,7 @@ private fun DrawerItemIcon(
                 }
             }
     }
-    val iconTint = if (brush == null) tint else Color.White
+    val iconTint = if (brush == null) tintProvider?.invoke() ?: tint else Color.White
     when {
         icon != null -> Icon(
             imageVector = icon,

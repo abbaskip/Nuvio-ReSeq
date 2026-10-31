@@ -27,7 +27,8 @@ fun AutoResizeText(
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
     minFontSize: TextUnit = 9.sp,
-    textAlign: TextAlign? = null
+    textAlign: TextAlign? = null,
+    colorProducer: ColorProducer? = null
 ) {
     val maxFontSize = if (style.fontSize.type == TextUnitType.Sp) style.fontSize else 14.sp
     val autoSize = remember(minFontSize, maxFontSize) {
@@ -44,7 +45,7 @@ fun AutoResizeText(
         text = text,
         modifier = modifier,
         style = mergedStyle,
-        color = ColorProducer { color },
+        color = colorProducer ?: ColorProducer { color },
         autoSize = autoSize,
         maxLines = 1,
         softWrap = false,

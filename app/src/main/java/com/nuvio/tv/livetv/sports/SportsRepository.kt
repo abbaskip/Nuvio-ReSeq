@@ -69,7 +69,7 @@ class SportsRepository @Inject constructor(
     private val freeLeagues = LinkedHashMap<String, League>()
     private val broadcastEnrichment = MutableStateFlow<Map<String, List<SportsBroadcast>>>(emptyMap())
     private val freeAttemptAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
-    private val matcher = SportsMatcher(guideDb)
+    private val matcher = SportsMatcher(guideDb, File(context.cacheDir, "sports-guide"))
     private val dir = File(context.filesDir, "sports").apply { mkdirs() }
 
     val settings: StateFlow<SportsSettings> = prefs.sportsSettingsJson
@@ -1060,7 +1060,12 @@ class SportsRepository @Inject constructor(
         queueGeminiMatching()
     }
 
-    private suspend fun runMatch() = withContext(Dispatchers.Default) {
+    private suspend fun runMatch() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
+        val workContext = currentCoroutineContext()
+        val checkpoint = {
+            workContext.ensureActive()
+            com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation()
+        }
         val live = prefs.settings.first()
         val user = prefs.userState.first()
         val channels = visibleSportsChannels(live, user, settings.value)
@@ -1079,10 +1084,22 @@ class SportsRepository @Inject constructor(
                 retained, input(emptyList(), false)) }
             rebuildLiveScores()
         }
+        val guideLeagues = activeLeagues(s, f)
+        // Restore completed discoveries before the all-fixture pass, including after process death.
+        for (offset in listOf(0, 1, -1)) {
+            val saved = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues,
+                f.words, keys, shift, now, cachedOnly = true)
+            if (saved.isNotEmpty()) guideData.update { previous ->
+                val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
+                    f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
+                (previous + (dayStart(offset) to SportsGuideEvents.merge(saved, protectedIds.toSet())))
+                    .filterKeys { it >= dayStart(-1) && it < dayStart(2) }
+            }
+        }
         val current = events.value
         _matching.value = true
         val quickStarted = System.currentTimeMillis()
-        val quick = try { matcher.match(input(current, false)) } finally { _matching.value = false }
+        val quick = try { matcher.match(input(current, false), checkpoint) } finally { _matching.value = false }
         Log.d(TAG, "Quick matching ${current.size} events finished in ${System.currentTimeMillis() - quickStarted} ms")
         publish(quick, quick = true)
         saveMatches()
@@ -1091,12 +1108,11 @@ class SportsRepository @Inject constructor(
         withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
             // EPG-only fixtures should not wait behind all of the API fixtures' channel searches.
             var guideMatches = emptyMap<String, List<ChannelMatch>>()
-            val guideLeagues = activeLeagues(s, f)
             val scanContext = currentCoroutineContext()
             for (offset in listOf(0, 1, -1)) {
                 val scanStarted = System.currentTimeMillis()
                 val discovered = runCatching {
-                    val found = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues, f.words, keys, shift, now) { scanContext.ensureActive() }
+                    val found = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues, f.words, keys, shift, now) { scanContext.ensureActive(); checkpoint() }
                     val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
                         f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
                     SportsGuideEvents.merge(found, protectedIds.toSet())
@@ -1109,12 +1125,12 @@ class SportsRepository @Inject constructor(
                 // Today's guide-only fixtures need not wait for tomorrow and yesterday's scans.
                 guideData.update { previous -> (previous + (dayStart(offset) to discovered))
                     .filterKeys { it >= dayStart(-1) && it < dayStart(2) } }
-                guideMatches = matcher.match(input(guideData.value.values.flatten(), false)).matches
+                guideMatches = matcher.match(input(guideData.value.values.flatten(), false), checkpoint).matches
                 publish(SportsMatcher.Result(quick.matches + guideMatches, quick.summary), quick = true)
             }
             val matchStarted = System.currentTimeMillis()
             Log.d(TAG, "Matching ${current.size} events against ${channels.size} channels")
-            val result = matcher.match(input(current, true))
+            val result = matcher.match(input(current, true), checkpoint)
             Log.d(TAG, "Fixture matching finished in ${System.currentTimeMillis() - matchStarted} ms")
             publish(SportsMatcher.Result(result.matches + guideMatches, result.summary))
             saveMatches()

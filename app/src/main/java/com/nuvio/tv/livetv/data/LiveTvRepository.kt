@@ -1625,7 +1625,7 @@ class LiveTvRepository @Inject constructor(
 
     private val embeddedEpgUrls = HashMap<String, List<String>>()
 
-    private suspend fun buildChannels() = withContext(Dispatchers.IO) {
+    private suspend fun buildChannels() = withContext(BackgroundWork.quiet) {
         val playlists = prefs.currentPlaylists().filter { it.liveEnabled }
         val multi = playlists.size > 1
         val out = ArrayList<LiveChannel>()
@@ -1685,7 +1685,7 @@ class LiveTvRepository @Inject constructor(
         LIVE_REPORT.add("Guide matched and stored: ${_programs.value.size} channels in ${System.currentTimeMillis() - t0} ms")
     }
 
-    private suspend fun buildProgramsInner(settings: LiveTvSettings, targets: List<EpgTarget>) = withContext(Dispatchers.IO) {
+    private suspend fun buildProgramsInner(settings: LiveTvSettings, targets: List<EpgTarget>) = withContext(BackgroundWork.quiet) {
         val all = _channels.value
         if (all.isEmpty()) {
             _programs.value = emptyMap()

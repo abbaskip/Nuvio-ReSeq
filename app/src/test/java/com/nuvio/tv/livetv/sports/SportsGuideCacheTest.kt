@@ -10,6 +10,61 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SportsGuideCacheTest {
+    @org.junit.Rule @JvmField val temp = org.junit.rules.TemporaryFolder()
+
+    @Test fun `completed discovery survives process restart but guide channels and settings invalidate it`() {
+        val db = mockk<EpgDatabase>()
+        var revision = "committed"
+        every { db.contentRevision() } answers { revision }
+        every { db.fingerprint() } returns "same-guide"
+        val start = 1_793_318_400_000L
+        val programme = EpgProgram(start + 60_000, start + 3_600_000, "Live: NRL: Broncos vs Dolphins",
+            "Rugby league coverage", "Sport", "round 1", "https://example.invalid/logo", 2026, listOf("Presenter"))
+        every { db.visitPrograms(any(), any(), any()) } answers {
+            thirdArg<(String, EpgProgram) -> Unit>().invoke("channel", programme)
+        }
+        val dir = temp.newFolder()
+        val channel = LiveChannel("channel", "playlist", "Test", "AU: 7Mate", null, null, null, "local", "AU Local", 1, "https://example.invalid")
+        fun scan(ch: LiveChannel = channel, shift: Long = 0, words: List<String> = emptyList(), now: Long = start) =
+            SportsMatcher(db, dir).guideEvents(start, start + 86_400_000, SportsTaxonomy.leagues, words,
+                mapOf("channel" to ch), shift, now)
+        val original = scan()
+        assertEquals(programme, original.single().guideHits.single().second)
+        assertEquals(original, scan())
+        assertEquals(GameState.POST, scan(now = start + 7_200_000).single().state)
+        verify(exactly = 1) { db.visitPrograms(any(), any(), any()) }
+        scan(ch = channel.copy(name = "AU: Seven HD"))
+        scan(shift = 60_000)
+        scan(words = listOf("Broncos"))
+        revision = "new-guide"
+        scan()
+        verify(exactly = 5) { db.visitPrograms(any(), any(), any()) }
+        dir.listFiles()!!.single { it.name.endsWith(".gz") }.writeText("incomplete")
+        scan()
+        verify(exactly = 6) { db.visitPrograms(any(), any(), any()) }
+    }
+
+    @Test fun `guide mutation during discovery and cancelled scans never persist partial results`() {
+        val db = mockk<EpgDatabase>()
+        every { db.fingerprint() } returns "guide"
+        var revision = "before"
+        every { db.contentRevision() } answers { revision }
+        every { db.visitPrograms(any(), any(), any()) } answers { revision = "after" }
+        val dir = temp.newFolder()
+        SportsMatcher(db, dir).guideEvents(0, 86_400_000, emptyList(), emptyList(), emptyMap(), 0, 0)
+        assertTrue(dir.listFiles()!!.isEmpty())
+        every { db.visitPrograms(any(), any(), any()) } answers { }
+        SportsMatcher(db, dir).guideEvents(0, 86_400_000, emptyList(), emptyList(), emptyMap(), 0, 0)
+        assertEquals(1, dir.listFiles()!!.size)
+        SportsMatcher(db, dir).guideEvents(0, 86_400_000, emptyList(), emptyList(), emptyMap(), 0, 0)
+        verify(exactly = 2) { db.visitPrograms(any(), any(), any()) }
+    }
+
+    @Test fun `cache digest is stable and distinguishes field boundaries`() {
+        assertEquals(SportsGuideCache.digest(listOf("a", "bc")), SportsGuideCache.digest(listOf("a", "bc")))
+        assertNotEquals(SportsGuideCache.digest(listOf("a", "bc")), SportsGuideCache.digest(listOf("ab", "c")))
+    }
+
     @Test fun `guide scans reuse unchanged data update on-air state and invalidate on guide or vocabulary change`() {
         val db = mockk<EpgDatabase>()
         every { db.contentRevision() } returns null

@@ -13,6 +13,15 @@ import kotlinx.coroutines.flow.update
  * player closes. Updates you start yourself (Update now) aren't held back.
  */
 object BackgroundWork {
+    @Volatile private var lastNavigationNanos = 0L
+
+    fun onNavigation() { lastNavigationNanos = System.nanoTime() }
+
+    /** Called between small batches on a worker, never from the UI thread. */
+    fun yieldToNavigation() {
+        if (System.nanoTime() - lastNavigationNanos in 0..250_000_000L) Thread.sleep(16)
+    }
+
     /** Nuvio's player is open (set from the app's navigation). */
     val nuvioPlaying = MutableStateFlow(false)
 

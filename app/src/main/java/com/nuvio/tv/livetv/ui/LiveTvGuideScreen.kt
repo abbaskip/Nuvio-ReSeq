@@ -296,6 +296,7 @@ fun LiveTvGuideScreen(
     // The group list slides in from the left when you press Left, and slides away again when
     // you pick a group or go back to the channels, giving the guide the full width.
     var groupsOpen by remember { mutableStateOf(false) }
+    var groupsFocusJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var leftTapPending by remember { mutableStateOf(false) }
     // Up on the first channel: a tap wraps to the last, holding it goes to the ⚙ in the top bar.
     var upTopPending by remember { mutableStateOf(false) }
@@ -455,11 +456,14 @@ fun LiveTvGuideScreen(
 
     fun focusGroups() {
         groupsOpen = true
-        // If the group on screen sits in a folded playlist, unfold it so it can take focus.
-        ui.groups.firstOrNull { it.id == ui.selectedGroupId }?.sourceId?.let { src ->
-            if (src in viewModel.collapsedPlaylists.value) viewModel.togglePlaylistCollapsed(src)
-        }
-        scope.launch {
+        groupsFocusJob?.cancel()
+        groupsFocusJob = scope.launch {
+            // Right may arrive before a large guide model reflects the requested playlist.
+            // Focusing the old tile would select that old group again after its debounce.
+            val selected = awaitGuideSelection(viewModel.uiState, viewModel.requestedGroupId) ?: return@launch
+            selected.groups.firstOrNull { it.id == selected.selectedGroupId }?.sourceId?.let { src ->
+                if (src in viewModel.collapsedPlaylists.value) viewModel.togglePlaylistCollapsed(src)
+            }
             // Let an unfolded playlist's groups appear first.
             repeat(2) { androidx.compose.runtime.withFrameNanos { } }
             // Where the group really is in the list. With playlist headings, the headings are
@@ -467,7 +471,7 @@ fun LiveTvGuideScreen(
             // somewhere else: on a second playlist the group was never scrolled into view, and
             // Left from the channels (or from full screen) couldn't reach the groups at all.
             val idx = groupListIndex(
-                guideGroups, ui.selectedGroupId, settings.groupPlaylistHeadings, viewModel.collapsedPlaylists.value
+                selected.groups, selected.selectedGroupId, settings.groupPlaylistHeadings, viewModel.collapsedPlaylists.value
             ).coerceAtLeast(0)
             val visible = groupsListState.layoutInfo.visibleItemsInfo.map { it.index }
             if (idx !in visible) runCatching { groupsListState.scrollToItem((idx - 3).coerceAtLeast(0)) }
@@ -915,6 +919,7 @@ fun LiveTvGuideScreen(
                 if (fullscreen) return@onPreviewKeyEvent false
                 val playingNow = playback.channelKey != null
                 fun returnToPlaying() {
+                    groupsFocusJob?.cancel()
                     // Remember where you were browsing, to come back to it afterwards.
                     savedSpot = ui.selectedGroupId to focusedChannel?.key
                     // Back to the group the playing channel was watched in (not the group you were
@@ -1059,13 +1064,14 @@ fun LiveTvGuideScreen(
                             if (e.key == Key.DirectionLeft || e.key == Key.DirectionRight ||
                                 e.key == Key.DirectionUp || e.key == Key.DirectionDown) {
                                 if (e.type == KeyEventType.KeyDown) when (e.key) {
-                                    Key.DirectionLeft -> openSidebar()
+                                    Key.DirectionLeft -> { groupsFocusJob?.cancel(); openSidebar() }
                                     Key.DirectionRight -> focusGroups()
                                     else -> {
                                         val ids = listOf<String?>(null) + playlistNames.keys
                                         val current = ids.indexOf(selectedPlaylistId).coerceAtLeast(0)
                                         val delta = if (e.key == Key.DirectionUp) -1 else 1
                                         val id = ids[Math.floorMod(current + delta, ids.size)]
+                                        groupsFocusJob?.cancel()
                                         pendingGroupId = null
                                         viewModel.selectPlaylist(id)
                                         if (id in collapsedPlaylists) id?.let { viewModel.togglePlaylistCollapsed(it) }

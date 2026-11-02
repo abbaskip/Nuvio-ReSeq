@@ -166,6 +166,8 @@ class LiveTvViewModel @Inject constructor(
      * app (guide, full screen and search share it) instead of once per screen.
      */
     val selectedPlaylistId: StateFlow<String?> = session.currentPlaylistId
+    // A remote selection is immediate; rebuilding a large guide model runs in the background.
+    val requestedGroupId: StateFlow<String?> = session.currentGroupId
     // Playlist navigation jumps within one continuous group list; it does not filter it.
     val displayChannels: StateFlow<List<LiveChannel>> = channelStore.displayChannels
 

@@ -865,17 +865,19 @@ fun LiveTvGuideScreen(
     var headerGlassBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     // Only a Back press that *started* in the guide counts as "hold Back" here.
     var backPressStartedHere by remember { mutableStateOf(false) }
-    val keyView = androidx.compose.ui.platform.LocalView.current
-    var replayingLeft by remember { mutableStateOf(false) }
-    var leftStarted by remember { mutableStateOf<android.view.KeyEvent?>(null) }
-    var leftHoldFired by remember { mutableStateOf(false) }
-    var leftHoldJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
-    DisposableEffect(Unit) { onDispose { leftHoldJob?.cancel() } }
+    var backHoldJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    DisposableEffect(Unit) { onDispose { backHoldJob?.cancel() } }
     // Guide left alone for 2 minutes while a channel plays in the preview, with the guide itself
     // on screen (not a menu, a dialog or the side menu): back to full screen.
     var lastKeyAt by remember { mutableStateOf(System.currentTimeMillis()) }
     var guideHasFocus by remember { mutableStateOf(false) }
     val windowFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(windowFocused, fullscreen) {
+        if (!windowFocused || fullscreen) {
+            backHoldJob?.cancel()
+            backPressStartedHere = false
+        }
+    }
     val idleMinutes = GUIDE_IDLE_FULL_SCREEN_MINUTES
     // Coming back from full screen or closing a dialog starts the wait again.
     LaunchedEffect(windowFocused, fullscreen) { lastKeyAt = System.currentTimeMillis() }
@@ -910,11 +912,6 @@ fun LiveTvGuideScreen(
             }
             .onPreviewKeyEvent { e ->
                 lastKeyAt = System.currentTimeMillis()
-                // Swallow the rest of a hold even after the video has grown.
-                if (e.key == Key.DirectionLeft && leftHoldFired) {
-                    if (e.type == KeyEventType.KeyUp) { leftHoldFired = false; leftStarted = null }
-                    return@onPreviewKeyEvent true
-                }
                 // Full screen handles its own keys.
                 if (fullscreen) return@onPreviewKeyEvent false
                 val playingNow = playback.channelKey != null
@@ -931,43 +928,6 @@ fun LiveTvGuideScreen(
                         goFullscreen()
                     }
                 }
-                // Defer the tap until release so a hold cannot navigate first. Replaying
-                // both events preserves each focused control's existing short-Left action.
-                if (e.key == Key.DirectionLeft && !replayingLeft && (playingNow || leftStarted != null)) {
-                    val native = e.nativeKeyEvent
-                    if (e.type == KeyEventType.KeyDown && native.repeatCount == 0) {
-                        leftStarted = android.view.KeyEvent(native)
-                        leftHoldJob?.cancel()
-                        leftHoldJob = scope.launch {
-                            delay(GUIDE_LEFT_HOLD_MS)
-                            if (leftStarted != null && viewModel.playbackState.value.channelKey != null) {
-                                leftHoldFired = true
-                                returnToPlaying()
-                            }
-                        }
-                    } else if (e.type == KeyEventType.KeyDown && leftStarted != null && playingNow &&
-                        isGuideLeftHold(native.eventTime - native.downTime, native.isLongPress)) {
-                        leftHoldJob?.cancel()
-                        leftHoldFired = true
-                        returnToPlaying()
-                    } else if (e.type == KeyEventType.KeyUp) {
-                        leftHoldJob?.cancel()
-                        val down = leftStarted
-                        leftStarted = null
-                        if (down != null) {
-                            if (!native.isCanceled && isGuideLeftHold(native.eventTime - down.downTime, native.isLongPress) && playingNow) {
-                                returnToPlaying()
-                            } else if (!native.isCanceled) {
-                                replayingLeft = true
-                                try {
-                                    keyView.dispatchKeyEvent(down)
-                                    keyView.dispatchKeyEvent(native)
-                                } finally { replayingLeft = false }
-                            }
-                        }
-                    }
-                    return@onPreviewKeyEvent true
-                }
                 // Play/Pause on the remote: straight to full screen on what's playing. Works on
                 // every remote, including ones that can't report a held Back button.
                 if (e.type == KeyEventType.KeyDown && playingNow && e.nativeKeyEvent.repeatCount == 0 &&
@@ -982,11 +942,22 @@ fun LiveTvGuideScreen(
                 when {
                     e.type == KeyEventType.KeyDown && native.repeatCount == 0 && !native.isLongPress -> {
                         backPressStartedHere = true
+                        backHoldJob?.cancel()
+                        if (playingNow) backHoldJob = scope.launch {
+                            delay(GUIDE_BACK_HOLD_MS)
+                            if (backPressStartedHere && viewModel.playbackState.value.channelKey != null) {
+                                backPressStartedHere = false
+                                hostActivity?.longPressBackHeld?.value = true
+                                returnToPlaying()
+                            }
+                        }
                         false
                     }
                     // Remotes that repeat a held button: act while it's still held.
                     e.type == KeyEventType.KeyDown -> {
-                        if (!backPressStartedHere || !playingNow) return@onPreviewKeyEvent false
+                        if (!backPressStartedHere || !playingNow ||
+                            !isGuideBackHold(native.eventTime - native.downTime, native.isLongPress)) return@onPreviewKeyEvent false
+                        backHoldJob?.cancel()
                         backPressStartedHere = false
                         // Nuvio then swallows the rest of this Back press (so letting go doesn't
                         // also count as a normal Back and leave full screen again).
@@ -997,9 +968,11 @@ fun LiveTvGuideScreen(
                     // Remotes that don't repeat (many Fire TV and Google TV remotes): a press
                     // held for half a second or more counts as "hold", judged on release.
                     e.type == KeyEventType.KeyUp -> {
+                        backHoldJob?.cancel()
                         val started = backPressStartedHere
                         backPressStartedHere = false
-                        if (started && playingNow && native.eventTime - native.downTime >= 500) {
+                        if (started && playingNow && !native.isCanceled &&
+                            isGuideBackHold(native.eventTime - native.downTime, native.isLongPress)) {
                             returnToPlaying()
                             true
                         } else false

@@ -595,7 +595,9 @@ private fun SportsHub(
         fun airingNow(ev: SportsEvent): Boolean = matches[ev.id]?.any { m -> m.program?.let { now >= it.startMs && now < it.stopMs } == true } == true
         val weekLong = shown.filter { !it.hasTime && it.state == GameState.LIVE && !airingNow(it) }
         val weekIds = weekLong.mapTo(HashSet()) { it.id }
-        val live = shown.filter { it.state == GameState.LIVE && it.id !in weekIds }
+        val onAir = shown.filter { it.state == GameState.LIVE && it.source == EventSource.GUIDE }
+            .sortedWith(compareBy<SportsEvent> { it.isReplay }.thenBy { rank(it) }.thenBy { it.startMs })
+        val live = shown.filter { it.state == GameState.LIVE && it.source != EventSource.GUIDE && it.id !in weekIds }
             .sortedWith(compareBy<SportsEvent> { it.source == EventSource.GUIDE }.thenBy { it.isReplay }.thenByDescending { isMine(it, follows) }.thenByDescending { matches[it.id]?.isNotEmpty() == true }.thenBy { rank(it) }.thenBy { it.startMs })
         val upcoming = shown.filter { it.state == GameState.PRE || it.state == GameState.OFF }
             .sortedWith(compareBy<SportsEvent> { if (it.hasTime) it.startMs else Long.MIN_VALUE }.thenByDescending { isMine(it, follows) }.thenBy { rank(it) })
@@ -603,14 +605,14 @@ private fun SportsHub(
             .sortedWith(compareByDescending<SportsEvent> { it.startMs }.thenBy { rank(it) })
             .let { if (leagueView != null) it.take(12) else it }
         val liveCount = dayEvents.count { it.source != EventSource.GUIDE && it.state == GameState.LIVE && (it.hasTime || airingNow(it)) }
-        DaySections(weekLong, live, upcoming, finished, liveCount)
+        DaySections(weekLong, live, onAir, upcoming, finished, liveCount)
     }
     val columns = if (videoOn) 1 else 2
 
     val firstContent = remember { FocusRequester() }
     val firstChip = remember { FocusRequester() }
     var focusedOnce by remember { mutableStateOf(false) }
-    val hasContent = sections.live.isNotEmpty() || sections.upcoming.isNotEmpty() || sections.finished.isNotEmpty() || sections.weekLong.isNotEmpty()
+    val hasContent = sections.live.isNotEmpty() || sections.onAir.isNotEmpty() || sections.upcoming.isNotEmpty() || sections.finished.isNotEmpty() || sections.weekLong.isNotEmpty()
     LaunchedEffect(hasContent, day, effectiveChip) {
         delay(120)
         // My Teams' rows put the highlight where it belongs themselves.
@@ -922,8 +924,12 @@ private fun GameList(
             }
         }
         if (sections.live.isNotEmpty()) {
-            item(key = "live_label") { SectionHeader("ON NOW", live = true, count = sections.live.size) }
+            item(key = "live_label") { SectionHeader("LIVE EVENTS", live = true, count = sections.live.size) }
             cardRows("live_", sections.live)
+        }
+        if (sections.onAir.isNotEmpty()) {
+            item(key = "onair_label") { SectionHeader("ON AIR · SPORTS SHOWS", live = true, count = sections.onAir.size, indicatorColor = SportsLook.OnAir) }
+            cardRows("onair_", sections.onAir)
         }
         if (sections.upcoming.isNotEmpty()) {
             // A league's week: a heading per day ("SATURDAY 24 OCT"); a day: one heading.
@@ -964,7 +970,7 @@ private fun GameList(
             item(key = "done_label") { SectionHeader(if (day < 0 || byDate) "RESULTS" else "FINISHED", count = sections.finished.size) }
             cardRows("done_", sections.finished)
         }
-        val hasContent = sections.live.isNotEmpty() || sections.upcoming.isNotEmpty() || sections.finished.isNotEmpty() || sections.weekLong.isNotEmpty()
+        val hasContent = sections.live.isNotEmpty() || sections.onAir.isNotEmpty() || sections.upcoming.isNotEmpty() || sections.finished.isNotEmpty() || sections.weekLong.isNotEmpty()
         if (!hasContent) item(key = "empty") {
             EmptyDay(chip = emptyChip, loading = false, anyToday = anyToday, followsEmpty = follows.isEmpty, onShowAll = onShowAll, onPick = onPick)
         }
@@ -1628,6 +1634,7 @@ internal fun clock(ms: Long, use24h: Boolean): String = formatClock(ms, use24h)
 private class DaySections(
     val weekLong: List<SportsEvent>,
     val live: List<SportsEvent>,
+    val onAir: List<SportsEvent>,
     val upcoming: List<SportsEvent>,
     val finished: List<SportsEvent>,
     val liveCount: Int

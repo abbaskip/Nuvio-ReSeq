@@ -87,6 +87,7 @@ internal object SportsLook {
     val Dim = Color(0xFF8B90A0)
     val Faint = Color(0xFF5D6170)
     val Live = Color(0xFFE53935)
+    val OnAir = Color(0xFF1565C0)
     val Flash = Color(0xFFFFD54A)
     val Ink = Color(0xFF0B0C10)
     val Shape = RoundedCornerShape(14.dp)
@@ -95,6 +96,9 @@ internal object SportsLook {
     /** Scores with every digit the same width, so 9 → 10 doesn't shift the row. */
     val ScoreStyle = TextStyle(fontFeatureSettings = "tnum", fontWeight = FontWeight.Black)
 }
+
+/** Guide transmission (including replays) is distinct from confirmed live competition. */
+internal fun SportsEvent.liveBadgeColor(): Color = if (source == EventSource.GUIDE) SportsLook.OnAir else SportsLook.Live
 
 /** A team colour made dark enough for white text on top of it. */
 internal fun bandColor(c: Color): Color = lerp(c, SportsLook.Ink, if (c.luminance() > 0.5f) 0.5f else if (c.luminance() > 0.25f) 0.25f else 0.08f)
@@ -303,7 +307,7 @@ internal fun StateBadge(ev: SportsEvent, playing: Boolean, use24h: Boolean) {
     val colors = NuvioTheme.colors
     when {
         playing -> SportsBadge("▶ PLAYING", colors.Secondary, colors.OnSecondary)
-        ev.state == GameState.LIVE -> SportsBadge("● ${ev.liveLabel}", SportsLook.Live, Color.White)
+        ev.state == GameState.LIVE -> SportsBadge("● ${ev.liveLabel}", ev.liveBadgeColor(), Color.White)
         ev.state == GameState.POST -> SportsBadge(ev.finishedLabel, Color.White.copy(alpha = 0.12f), Color.White)
         ev.state == GameState.OFF -> SportsBadge((ev.status ?: "POSTPONED").uppercase(), Color(0x33FF8A80), Color(0xFFFF8A80))
         // Set to record: the start time, and REC under it.
@@ -658,10 +662,10 @@ internal fun FilterIcon(icon: String, label: String, selected: Boolean, modifier
 
 /** A section's heading: "● LIVE NOW", "COMING UP", with the count on the right. */
 @Composable
-internal fun SectionHeader(title: String, live: Boolean = false, count: Int? = null, modifier: Modifier = Modifier) {
+internal fun SectionHeader(title: String, live: Boolean = false, count: Int? = null, modifier: Modifier = Modifier, indicatorColor: Color = SportsLook.Live) {
     Row(modifier.fillMaxWidth().padding(top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         if (live) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(SportsLook.Live))
+            Box(Modifier.size(8.dp).clip(CircleShape).background(indicatorColor))
             Spacer(Modifier.width(7.dp))
         }
         LiveText(title, color = if (live) Color.White else Color(0xFFC9CCD6), size = 11.sp, weight = FontWeight.Black)

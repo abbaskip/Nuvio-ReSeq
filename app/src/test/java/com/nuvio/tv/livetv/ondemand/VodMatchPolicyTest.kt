@@ -1,5 +1,6 @@
 package com.nuvio.tv.livetv.ondemand
 
+import com.nuvio.tv.domain.model.EpisodeCoordinates
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -9,6 +10,102 @@ class VodMatchPolicyTest {
     private fun episode(name: String, season: Int, number: Int, tvdb: Long? = null, imdb: String? = null) =
         VodEpisode(season, number, "$season-$number-$name", "mkv", name, null, null, "https://media.example.test/$season/$number", tvdbId = tvdb, imdbId = imdb)
     private fun target(vararg names: String) = VodStreamTarget(VodKind.SERIES, "2316", "The Office", 2005, names.toSet())
+
+    @Test fun `Tulsa King series year decorations do not become episode part numbers`() {
+        val names = listOf("Go West, Old Man", "Center of the Universe", "Caprice", "Visitation Place", "Token Joe")
+        val candidates = names.mapIndexed { index, name -> episode("Tulsa King (2022) - S01E%02d - $name".format(index + 1), 1, index + 1) }
+        names.forEachIndexed { index, name ->
+            val wanted = target(name).copy(title = "Tulsa King", year = 2022)
+            assertEquals(name, listOf(candidates[index]), VodMatchPolicy.episodes(wanted, candidates, "Tulsa King"))
+        }
+        assertEquals("gowestoldman", VodMatchPolicy.episodeKey(candidates.first().title, "Tulsa King"))
+    }
+
+    @Test fun `series year and country decorations are separate from an episode title`() {
+        listOf("Tulsa King (2022) - S01E01 - Go West, Old Man",
+            "Tulsa.King.2022.US.S01E01.Go.West.Old.Man",
+            "Tulsa_King_2022_US_S01E01_Go_West_Old_Man",
+            "Tulsa King (2022) - Go West, Old Man").forEach { name ->
+            assertEquals(name, "gowestoldman", VodMatchPolicy.episodeKey(name, "Tulsa King"))
+        }
+        val wanted = target().copy(tmdbId = null, title = "Tulsa King", year = 2022)
+        val show = item(name = "Tulsa King (2022)", year = 2022, tmdb = null)
+        assertTrue(OnDemandDatabase.normalize(show.name) in OnDemandDatabase.titleLookupKeys(wanted.title))
+        assertTrue(VodMatchPolicy.parentMatches(wanted, show, null))
+    }
+
+    @Test fun `decorated episode title matching still overrides different default coordinates`() {
+        val wanted = target("Go West, Old Man").copy(title = "Tulsa King", year = 2022,
+            providerCoordinates = EpisodeCoordinates(1, 2))
+        val correct = episode("Tulsa King (2022) - S01E01 - Go West, Old Man", 1, 1)
+        val other = episode("Tulsa King (2022) - S01E02 - Center of the Universe", 1, 2)
+        assertEquals(listOf(correct), VodMatchPolicy.episodes(wanted, listOf(correct, other), "Tulsa King"))
+    }
+
+    @Test fun `series cleanup preserves real episode names years and part labels`() {
+        assertEquals("fireflyblossom", VodMatchPolicy.episodeKey("Firefly - S01E01 - Firefly Blossom", "Firefly"))
+        assertEquals("lecturecircuitpart2", VodMatchPolicy.episodeKey("The Office (2005) - S05E15 - Lecture Circuit (2)", "The Office"))
+        assertEquals("theyear2022", VodMatchPolicy.episodeKey("Tulsa King (2022) - S01E01 - The Year 2022", "Tulsa King"))
+        assertTrue(VodMatchPolicy.episodes(target("Blossom"), listOf(episode("Firefly - S01E01 - Firefly Blossom", 1, 1)), "Firefly").isEmpty())
+    }
+
+    @Test fun `Gilded Age filename numbers match standard metadata despite shuffled provider positions`() {
+        val wanted = VodStreamTarget(VodKind.SERIES, "81354", "The Gilded Age", 2022,
+            setOf("Never the New"), providerCoordinates = EpisodeCoordinates(1, 1))
+        val rows = listOf(2, 3, 1, 7, 8).mapIndexed { index, number ->
+            episode("The.Gilded.Age.2022.US.S01E%02d".format(number), 1, index + 1)
+        }
+        val matched = VodMatchPolicy.episodes(wanted, rows, "The Gilded Age").single()
+        assertEquals(rows[2].id, matched.id)
+        assertEquals(rows[2].url, matched.url)
+        assertEquals(1 to 1, matched.season to matched.episode)
+    }
+
+    @Test fun `filename fallback uses metadata numbers when titles are absent or localized`() {
+        val wanted = target().copy(providerCoordinates = EpisodeCoordinates(1, 1))
+        val candidate = episode("The.Office.s01e01.Localized.Title.1080p.mkv", 9, 9)
+        assertEquals(listOf(candidate.copy(season = 1, episode = 1)), VodMatchPolicy.episodes(wanted, listOf(candidate), "The Office"))
+    }
+
+    @Test fun `episode title identity takes priority over a standard numbered filename`() {
+        val wanted = target("Serenity").copy(providerCoordinates = EpisodeCoordinates(1, 1))
+        val serenity = episode("Firefly.S01E11.Serenity", 1, 11)
+        assertEquals(listOf(serenity), VodMatchPolicy.episodes(wanted,
+            listOf(episode("Firefly.S01E01", 1, 1), serenity), "Firefly"))
+    }
+
+    @Test fun `filename fallback requires known standard coordinates and rejects contrary ids`() {
+        val filename = episode("The.Office.S01E01", 1, 1)
+        assertTrue(VodMatchPolicy.episodes(target("Pilot"), listOf(filename), "The Office").isEmpty())
+        val wanted = target("Pilot").copy(providerCoordinates = EpisodeCoordinates(1, 1),
+            tvdbEpisodeIds = setOf(101), selectedTvdbEpisodeId = 101)
+        assertTrue(VodMatchPolicy.episodes(wanted, listOf(filename.copy(tvdbId = 999)), "The Office").isEmpty())
+    }
+
+    @Test fun `filename fallback never guesses from array positions or another season`() {
+        val wanted = target("Pilot").copy(providerCoordinates = EpisodeCoordinates(1, 1))
+        assertTrue(VodMatchPolicy.episodes(wanted, listOf(episode("Episode 1", 1, 1),
+            episode("The.Office.S02E01", 1, 1), episode("The.Office.S01E02", 1, 1)), "The Office").isEmpty())
+    }
+
+    @Test fun `filename fallback rejects multi episode and range entries`() {
+        val wanted = target("Pilot").copy(providerCoordinates = EpisodeCoordinates(1, 1))
+        listOf("S01E01E02", "S01E01-E02", "S01E01-02", "S01E01.S01E02", "S01E01.E02").forEach { name ->
+            assertTrue(name, VodMatchPolicy.episodes(wanted, listOf(episode(name, 1, 1)), "The Office").isEmpty())
+        }
+    }
+
+    @Test fun `ambiguous title matches do not fall through to filename numbering`() {
+        val wanted = target("Pilot").copy(providerCoordinates = EpisodeCoordinates(1, 1))
+        assertTrue(VodMatchPolicy.episodes(wanted, listOf(episode("Pilot", 1, 2), episode("Pilot", 2, 2),
+            episode("The.Office.S01E01", 1, 1)), "The Office").isEmpty())
+    }
+
+    @Test fun `filename fallback retains multiple copies of the same episode`() {
+        val wanted = target("Pilot").copy(providerCoordinates = EpisodeCoordinates(1, 1))
+        val copies = listOf(episode("The.Office.S01E01.1080p", 1, 1), episode("The.Office.S01E01.2160p", 1, 1))
+        assertEquals(copies, VodMatchPolicy.episodes(wanted, copies, "The Office"))
+    }
 
     private fun realCatalogue(tmdb: String): Pair<String, List<VodEpisode>> {
         val raw = javaClass.classLoader!!.getResourceAsStream("iptv/numbering-catalogues.json")!!.bufferedReader().use { it.readText() }

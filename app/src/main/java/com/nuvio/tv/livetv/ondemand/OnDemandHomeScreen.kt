@@ -80,7 +80,7 @@ fun OnDemandHomeScreen(
     homeSettings: HomeUiState?,
     onOpenDetail: (itemId: String, itemType: String, addonBaseUrl: String?, onDemandUid: String) -> Unit,
     onPlay: (url: String, title: String, type: String, poster: String?) -> Unit,
-    /** The search button: Nuvio's own search. */
+    /** The search button: the imported On Demand library. */
     onOpenSearch: () -> Unit,
     /** Home's own trailer lookup and results (trailers follow Nuvio's trailer settings). */
     trailers: OnDemandTrailers? = null,
@@ -421,7 +421,7 @@ fun OnDemandHomeScreen(
             }
         }
 
-        // Top right: Nuvio's search and Manage VOD Groups (not over See all).
+        // Top right: On Demand search and Manage VOD Groups (not over See all).
         if (seeAllUid == null) Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)

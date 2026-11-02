@@ -23,6 +23,7 @@ class IptvVodStreamsTest {
         val target = loader.prepare("series", "tt0386676:5:3", 5, 3, selection)!!
         assertEquals(setOf(200L), target.tvdbEpisodeIds)
         assertEquals(300L, target.selectedTvdbEpisodeId)
+        assertNull(target.providerCoordinates)
         assertEquals(setOf("Business Ethics"), target.episodeTitles)
         assertEquals("tt0386676:5:3", selection.tvdb!!.requestVideoId)
         coVerify(exactly = 0) { metadata.getProviderMeta(any(), any()) }
@@ -34,6 +35,7 @@ class IptvVodStreamsTest {
         assertTrue(target.tvdbEpisodeIds.isEmpty())
         assertNull(target.selectedTvdbEpisodeId)
         assertEquals(setOf("Serenity"), target.episodeTitles)
+        assertEquals(EpisodeCoordinates(1, 1), target.providerCoordinates)
         coVerify(exactly = 0) { metadata.getProviderMeta(any(), any()) }
     }
     @Test fun `combined targets do not inherit the titles of their individual parts`() = runBlocking {
@@ -44,6 +46,34 @@ class IptvVodStreamsTest {
         val target = loader.prepare("series", "tt0386676:5:16", 5, 16,
             StreamContentContext("tt0386676", "The Office", 2005, "Lecture Circuit", combined))!!
         assertEquals(setOf("Lecture Circuit"), target.episodeTitles)
+        assertNull(target.providerCoordinates)
+    }
+
+    @Test fun `TVDB selections use verified Provider Default coordinates for filename fallback`() = runBlocking {
+        coEvery { tmdb.ensureTmdbId("tt0386676", "series") } returns "2316"
+        val mapped = context.copy(providerSources = listOf(
+            EpisodeSourceIdentity("tt0386676:5:2", EpisodeCoordinates(5, 2), listOf(200), "Business Ethics")))
+        val target = loader.prepare("series", "tt0386676:5:3", 5, 3,
+            StreamContentContext("tt0386676", "The Office", 2005, "Business Ethics", mapped))!!
+        assertEquals(EpisodeCoordinates(5, 2), target.providerCoordinates)
+        val source = VodEpisode(5, 2, "file", "mkv", "The.Office.S05E02", null, null, "https://media.example.test/file")
+        assertEquals(listOf(source), VodMatchPolicy.episodes(target, listOf(source), "The Office"))
+        assertTrue(VodMatchPolicy.episodes(target, listOf(source.copy(title = "The.Office.S05E03")), "The Office").isEmpty())
+    }
+
+    @Test fun `conflicting native mappings cannot supply a filename fallback`() = runBlocking {
+        coEvery { tmdb.ensureTmdbId("tt0386676", "series") } returns "2316"
+        val mapped = context.copy(providerSources = listOf(
+            EpisodeSourceIdentity("tt0386676:5:2", EpisodeCoordinates(5, 2), listOf(200), "Business Ethics"),
+            EpisodeSourceIdentity("tt0386676:5:3", EpisodeCoordinates(5, 3), listOf(200), "Business Ethics")))
+        assertNull(loader.prepare("series", "tt0386676:5:3", 5, 3,
+            StreamContentContext("tt0386676", "The Office", 2005, "Business Ethics", mapped))!!.providerCoordinates)
+    }
+
+    @Test fun `absolute anime episode numbers are not treated as standard season episode coordinates`() = runBlocking {
+        val target = loader.prepare("series", "mal:6448:68", 2, 10,
+            StreamContentContext("tmdb:123", "Synthetic anime", 2005, "Synthetic episode"))!!
+        assertNull(target.providerCoordinates)
     }
     @Test fun `a profile change prevents a pending catalogue result from reaching the picker`() = runBlocking {
         val target = VodStreamTarget(VodKind.MOVIE, "1", "Synthetic", 2020)

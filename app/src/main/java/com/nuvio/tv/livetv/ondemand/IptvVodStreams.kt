@@ -1,10 +1,12 @@
 package com.nuvio.tv.livetv.ondemand
 
 import com.nuvio.tv.core.network.NetworkResult
+import com.nuvio.tv.core.plugin.resolvePluginSeasonEpisode
 import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.core.tmdb.TmdbService
 import com.nuvio.tv.core.tracking.extractTrackingYear
 import com.nuvio.tv.core.tracking.parseTrackingExternalIds
+import com.nuvio.tv.domain.model.EpisodeCoordinates
 import com.nuvio.tv.domain.model.Stream
 import com.nuvio.tv.domain.model.StreamContentContext
 import com.nuvio.tv.domain.repository.MetaRepository
@@ -55,16 +57,25 @@ class IptvVodStreams @Inject constructor(
             it.id == videoId || it.season == season && it.episode == episode
         } else null
         val context = selection?.tvdb
+        val nativeSources = context?.providerSources.orEmpty().filter { source ->
+            context != null && context.episodeIds.isNotEmpty() && source.episodeIds.toSet() == context.episodeIds.toSet()
+        }
+        val (nativeSeason, nativeEpisode) = resolvePluginSeasonEpisode(videoId, season, episode)
+        val providerCoordinates = if (kind != VodKind.SERIES) null else if (context == null) {
+            if (nativeSeason != null && nativeSeason >= 0 && nativeEpisode != null && nativeEpisode > 0)
+                EpisodeCoordinates(nativeSeason, nativeEpisode) else null
+        } else {
+            // Never interpret selected TVDB coordinates as Provider Default coordinates.
+            nativeSources.map { it.coordinates }.distinct().singleOrNull()
+        }
         val titles = linkedSetOf<String>()
         (selection?.episodeTitle ?: native?.title)?.takeIf { it.isNotBlank() }?.let(titles::add)
-        context?.providerSources.orEmpty().filter { source ->
-            context != null && context.episodeIds.isNotEmpty() && source.episodeIds.toSet() == context.episodeIds.toSet()
-        }.forEach { titles += it.title }
+        nativeSources.forEach { titles += it.title }
         android.util.Log.d("IptvVod", "Catalogue target: kind=$kind tmdb=${tmdbId != null} imdb=${imdb != null} year=${selection?.year != null || meta != null} titles=${titles.size}")
         return VodStreamTarget(kind, tmdbId, selection?.title?.takeIf { it.isNotBlank() } ?: meta?.name.orEmpty(),
             selection?.year ?: extractTrackingYear(meta?.releaseInfo), titles,
             context?.episodeIds.orEmpty().toSet(), context?.episodeId,
-            (native?.id ?: videoId).takeIf { it.matches(Regex("tt[0-9]+")) && it != id }, imdb)
+            (native?.id ?: videoId).takeIf { it.matches(Regex("tt[0-9]+")) && it != id }, imdb, providerCoordinates)
     }
 
     internal suspend fun load(playlistKey: String, sourceName: String, target: VodStreamTarget?, profileId: Int): List<Stream> {

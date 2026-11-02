@@ -1,5 +1,6 @@
 package com.nuvio.tv.livetv.ondemand
 
+import com.nuvio.tv.domain.model.EpisodeCoordinates
 import java.text.Normalizer
 
 internal data class VodStreamTarget(
@@ -11,10 +12,11 @@ internal data class VodStreamTarget(
     val tvdbEpisodeIds: Set<Long> = emptySet(),
     val selectedTvdbEpisodeId: Long? = null,
     val imdbEpisodeId: String? = null,
-    val imdbId: String? = null
+    val imdbId: String? = null,
+    val providerCoordinates: EpisodeCoordinates? = null
 )
 
-/** Coordinates describe a provider's catalogue, not the identity of its episode. */
+/** IDs and titles establish episode identity before a standard metadata numbering fallback. */
 internal object VodMatchPolicy {
     fun titleMatches(target: VodStreamTarget, item: VodItem): Boolean {
         if (target.kind != item.kind) return false
@@ -41,12 +43,31 @@ internal object VodMatchPolicy {
         }
         if (identified.isNotEmpty()) return identified.filterNot { contradicts(target, it) }
         val titles = target.episodeTitles.map(::episodeKey).filter { distinctive(it) }.toSet()
-        if (titles.isEmpty()) return emptyList()
         val matches = candidates.filter { candidate ->
             !contradicts(target, candidate) && episodeKey(candidate.title, seriesTitle) in titles
         }
         // Same title in distinct episode positions is ambiguous; leave those in the browser.
-        return matches.takeIf { it.map { e -> e.season to e.episode }.distinct().size == 1 }.orEmpty()
+        if (matches.isNotEmpty()) return matches.takeIf { it.map { e -> e.season to e.episode }.distinct().size == 1 }.orEmpty()
+        val wanted = target.providerCoordinates ?: return emptyList()
+        // This is called only after the parent series has been verified. An explicit filename
+        // number wins over an unreliable API episode_num (or the array-position fallback).
+        return candidates.mapNotNull { candidate ->
+            if (contradicts(target, candidate)) return@mapNotNull null
+            val numbered = filenameCoordinates(candidate.title) ?: return@mapNotNull null
+            if (numbered != wanted) return@mapNotNull null
+            candidate.copy(season = numbered.season, episode = numbered.episode)
+        }
+    }
+
+    private val filenameNumber = Regex("""(?i)(?<![\p{L}\p{N}])S\s*(\d{1,3})\s*E\s*(\d{1,4})(?![\p{L}\p{N}])""")
+    private val additionalEpisode = Regex("""(?i)^[\s._]*(?:[-+&][\s._]*(?:E\s*)?\d+\b|E\s*\d+\b)""")
+    private fun filenameCoordinates(title: String): EpisodeCoordinates? {
+        val match = filenameNumber.findAll(title).singleOrNull() ?: return null
+        // A range or multi-episode file cannot safely stand in for one selected episode.
+        if (additionalEpisode.containsMatchIn(title.substring(match.range.last + 1))) return null
+        val season = match.groupValues[1].toIntOrNull() ?: return null
+        val episode = match.groupValues[2].toIntOrNull()?.takeIf { it > 0 } ?: return null
+        return EpisodeCoordinates(season, episode)
     }
 
     private fun contradicts(target: VodStreamTarget, episode: VodEpisode): Boolean =
@@ -55,7 +76,7 @@ internal object VodMatchPolicy {
                 episode.tvdbId != target.selectedTvdbEpisodeId &&
                 (target.tvdbEpisodeIds.size != 1 || episode.tvdbId !in target.tvdbEpisodeIds)
 
-    private val coordinates = Regex("""(?i)\b(?:S\d{1,3}\s*E\d{1,4}|\d{1,3}x\d{1,4}|season\s*\d+\s*episode\s*\d+)\b""")
+    private val coordinates = Regex("""(?i)(?<![\p{L}\p{N}])(?:S\s*\d{1,3}\s*E\s*\d{1,4}|\d{1,3}x\d{1,4}|season\s*\d+\s*episode\s*\d+)(?![\p{L}\p{N}])""")
     private val edition = Regex("""(?i)\s*[\[(](?:extended(?: cut| edition)?|uncut|director's cut)[\])]\s*""")
     private val part = Regex("""(?i)\((\d+)\)|\bpart\s*(\d+)\b""")
     private val generic = Regex("""(?:episode|ep|part|chapter|episodio|folge|capitulo|odcinek)?\d*""")
@@ -65,14 +86,24 @@ internal object VodMatchPolicy {
         .lowercase().replace(Regex("""\p{M}"""), "").replace('&', ' ').replace(Regex("""[^\p{L}\p{N}]+"""), "")
     private fun titleKey(value: String) = normalized(OnDemandDatabase.displayTitle(value))
     internal fun episodeKey(value: String, series: String = ""): String {
-        var title = value.replace(coordinates, " ").replace(edition, " ")
+        var title = value
+        val seriesKey = OnDemandDatabase.coreKey(series)
+        val number = coordinates.find(value)
+        if (seriesKey.isNotBlank() && number != null &&
+            OnDemandDatabase.coreKey(value.substring(0, number.range.first)) == seriesKey) {
+            // Remove the series decoration as a unit before interpreting (2) as a part.
+            // Otherwise "Tulsa King (2022) - S01E01 - Go West, Old Man" retains "part2022".
+            title = value.substring(number.range.last + 1)
+        } else {
+            val seriesWords = OnDemandDatabase.displayTitle(series).split(Regex("""[^\p{L}\p{N}]+""")).filter { it.isNotBlank() }
+            if (seriesWords.isNotEmpty()) {
+                val prefix = Regex("(?iu)^\\s*" + seriesWords.joinToString("[\\s._-]+") { Regex.escape(it) } +
+                    """(?:[\s._-]*(?:\((?:19|20)\d{2}\)|(?:19|20)\d{2}))?\s*[-:|.]""").find(value)
+                if (prefix != null) title = value.substring(prefix.range.last + 1)
+            }
+        }
+        title = title.replace(coordinates, " ").replace(edition, " ")
         title = title.replace(part) { " part" + (it.groups[1]?.value ?: it.groups[2]?.value) + " " }
-        val key = normalized(title)
-        val prefix = titleKey(series)
-        val seriesWords = OnDemandDatabase.displayTitle(series).split(Regex("""[^\p{L}\p{N}]+""")).filter { it.isNotBlank() }
-        val markedPrefix = seriesWords.isNotEmpty() && Regex("(?iu)^\\s*" + seriesWords.joinToString("[\\s._-]+") { Regex.escape(it) } + "\\s*[-:|.]").containsMatchIn(value)
-        val withoutSeries = if (prefix.isNotEmpty() && key.startsWith(prefix) && key.length > prefix.length &&
-            (coordinates.containsMatchIn(value) || markedPrefix)) key.removePrefix(prefix) else key
-        return withoutSeries.replace(Regex("""^(?:episode|ep)\d+(?=[a-z])"""), "")
+        return normalized(title).replace(Regex("""^(?:episode|ep)\d+(?=[a-z])"""), "")
     }
 }

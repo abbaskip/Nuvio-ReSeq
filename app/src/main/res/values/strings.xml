@@ -3423,4 +3423,10 @@
     <string name="stream_resume_from_percent">Resume from %1$d%%</string>
     <string name="about_check_for_updates">Check for updates</string>
     <string name="about_check_for_updates_subtitle">Look for a newer version of Nuvio ReSeq.</string>
+    <string name="vod_search_title">Search On Demand</string>
+    <string name="vod_search_hint">Search IPTV movies and series</string>
+    <string name="vod_search_start">Enter at least 2 characters to search your On Demand playlists.</string>
+    <string name="vod_search_no_results">Try another title or switch between All, Movies and Series.</string>
+    <string name="vod_search_playlist">IPTV · %1$s</string>
+    <string name="vod_search_scope_description">Search in On Demand searches the imported movies and series from every enabled IPTV playlist, with separate results for each playlist.</string>
 </resources>

@@ -543,6 +543,12 @@ class OnDemandRepository @Inject constructor(
         runCatching { db.search(kind, text, hidden, sort = sort, merge = merge) }.getOrDefault(emptyList())
     }
 
+    /** Searches the full imported library for one login, a page at a time. */
+    suspend fun searchPlaylist(playlistId: String, kind: VodKind?, text: String, hidden: Set<String>,
+        merge: Boolean, limit: Int, offset: Int): List<VodItem> = withContext(Dispatchers.IO) {
+        db.search(kind, text, hidden, limit = limit, merge = merge, playlistId = playlistId, offset = offset)
+    }
+
     private suspend fun playlist(id: String): PlaylistSource? = prefs.playlists.first().firstOrNull { it.id == id }
 
     /** A title by its uid ("movie:<playlist>:<id>"). */

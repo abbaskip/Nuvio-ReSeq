@@ -9,6 +9,7 @@ sealed class Screen(val route: String) {
     data object LiveTvSettings : Screen("livetv/settings")
     data object Sports : Screen("livetv/sports")
     data object OnDemand : Screen("livetv/ondemand")
+    data object OnDemandSearch : Screen("livetv/ondemand/search")
     data object Home : Screen("home")
     data object Detail : Screen("detail/{itemId}/{itemType}?addonBaseUrl={addonBaseUrl}&returnFocusSeason={returnFocusSeason}&returnFocusEpisode={returnFocusEpisode}&returnToHomeOnBack={returnToHomeOnBack}&heroBackdropUrl={heroBackdropUrl}&playOnLoad={playOnLoad}&manualSelection={manualSelection}") {
         private fun encode(value: String): String =

@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
@@ -60,6 +61,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.nuvio.tv.R
 import com.nuvio.tv.livetv.model.ChannelSort
 import com.nuvio.tv.livetv.model.effectiveStartPage
 import com.nuvio.tv.livetv.model.EpgSource
@@ -1274,8 +1276,7 @@ internal fun LiveTvSettingsContent(
                         s.searchPreview,
                         { update { it.copy(searchPreview = !it.searchPreview) } }
                     )
-                    // Search from Home and the side menu always shows everything; these set what
-                    // search shows when it's opened from the guide or from On Demand.
+                    // The guide's search scope is separate from the dedicated On Demand search.
                     SubHeading("Search from the Guide Shows")
                     SettingsToggleRow(
                         "Live TV",
@@ -1295,25 +1296,9 @@ internal fun LiveTvSettingsContent(
                         s.guideSearchOnDemand,
                         { update { it.copy(guideSearchOnDemand = !it.guideSearchOnDemand) } }
                     )
-                    SubHeading("Search from On Demand Shows")
-                    SettingsToggleRow(
-                        "Live TV",
-                        "Channels and shows in the guide",
-                        s.onDemandSearchLive,
-                        { update { it.copy(onDemandSearchLive = !it.onDemandSearchLive) } }
-                    )
-                    SettingsToggleRow(
-                        "Movies & Series",
-                        "Titles from your Nuvio addons",
-                        s.onDemandSearchCatalog,
-                        { update { it.copy(onDemandSearchCatalog = !it.onDemandSearchCatalog) } }
-                    )
-                    SettingsToggleRow(
-                        "On Demand",
-                        "Your provider's own movies and series",
-                        s.onDemandSearchOnDemand,
-                        { update { it.copy(onDemandSearchOnDemand = !it.onDemandSearchOnDemand) } }
-                    )
+                    SubHeading(stringResource(R.string.vod_search_title))
+                    Text(stringResource(R.string.vod_search_scope_description),
+                        style = MaterialTheme.typography.bodySmall, color = NuvioTheme.colors.TextSecondary)
                     SubHeading("Streams List")
                     SettingsToggleRow(
                         "On Demand in Streams",

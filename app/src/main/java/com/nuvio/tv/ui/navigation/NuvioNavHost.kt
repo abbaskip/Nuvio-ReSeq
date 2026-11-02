@@ -247,7 +247,7 @@ private fun PlaybackNavHost(
                 homeSettings = homeSettings,
                 onOpenDetail = { _, _, _, uid -> selectedUid = uid },
                 onPlay = play,
-                onOpenSearch = { navController.navigate(Screen.Search.route) { launchSingleTop = true } },
+                onOpenSearch = { navController.navigate(Screen.OnDemandSearch.route) { launchSingleTop = true } },
                 viewModel = vm
             )
             providerItem?.let { item ->
@@ -256,6 +256,16 @@ private fun PlaybackNavHost(
                     onPlay = { url, title, poster -> play(url, title,
                         if (item.kind == com.nuvio.tv.livetv.ondemand.VodKind.SERIES) "series" else "movie", poster) })
             }
+        }
+        composable(Screen.OnDemandSearch.route) {
+            com.nuvio.tv.livetv.ondemand.OnDemandLibrarySearchScreen(
+                onBack = { navController.popBackStack() },
+                onPlay = { url, title, type, poster ->
+                    navController.navigate(Screen.Player.createRoute(streamUrl = url, title = title,
+                        contentType = type, contentName = title, poster = poster,
+                        addonName = com.nuvio.tv.livetv.ondemand.OnDemandStreams.GROUP_NAME))
+                }
+            )
         }
         composable(Screen.LiveTvSettings.route) {
             androidx.activity.compose.BackHandler { navController.popBackStack() }

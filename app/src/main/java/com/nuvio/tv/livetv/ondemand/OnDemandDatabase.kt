@@ -565,16 +565,28 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         return query("SELECT *$copies FROM items WHERE $where$group ORDER BY $order, $tieBreak LIMIT $limit OFFSET $offset", args)
     }
 
-    fun search(kind: VodKind, text: String, excludeCategories: Set<String>, limit: Int = 300, sort: VodSort = VodSort.DEFAULT, merge: Boolean = true): List<VodItem> {
+    fun search(kind: VodKind?, text: String, excludeCategories: Set<String>, limit: Int = 300, sort: VodSort = VodSort.DEFAULT,
+        merge: Boolean = true, playlistId: String? = null, offset: Int = 0): List<VodItem> {
         val words = normalizeWords(text)
         if (words.isEmpty()) return emptyList()
-        val where = StringBuilder("kind = ?")
-        val args = arrayListOf(kind.key)
+        val where = StringBuilder("1 = 1")
+        val args = arrayListOf<String>()
+        if (kind != null) { where.append(" AND kind = ?"); args += kind.key }
+        if (playlistId != null) { where.append(" AND pl = ?"); args += playlistId }
         words.forEach { w -> where.append(" AND norm LIKE ?"); args += "%$w%" }
-        val group = if (merge) " GROUP BY $DUP_KEY" else ""
+        // Filter before grouping and paging, so hidden copies cannot hide an allowed copy
+        // or fill the first page with results the user cannot see.
+        excludeCategories.forEach { uid ->
+            val parts = uid.split(':', limit = 3)
+            if (parts.size == 3) {
+                where.append(" AND NOT (kind = ? AND pl = ? AND cat = ?)")
+                args += listOf(parts[0], parts[1], parts[2])
+            }
+        }
+        val group = if (merge) " GROUP BY kind, $DUP_KEY" else ""
         val copies = if (merge) ", COUNT(*) AS copies" else ""
-        return query("SELECT *$copies FROM items WHERE $where$group ORDER BY ${sort.orderBy("length(name)")} LIMIT $limit", args)
-            .filter { "${it.kind.key}:${it.playlistId}:${it.categoryId}" !in excludeCategories }
+        val tieBreak = if (merge) "MIN(rowid)" else "rowid"
+        return query("SELECT *$copies FROM items WHERE $where$group ORDER BY ${sort.orderBy("length(name)")}, $tieBreak LIMIT ${limit.coerceAtLeast(1)} OFFSET ${offset.coerceAtLeast(0)}", args)
     }
 
     /** Every copy of a title: same TMDB id, or same name and year (other quality, other provider). */

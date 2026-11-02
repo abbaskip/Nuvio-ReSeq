@@ -177,6 +177,8 @@ data class PlayerUiState(
     val sourceAllStreams: List<Stream> = emptyList(),
     val sourceSelectedAddonFilter: String? = null, // null means "All"
     val sourceFilteredStreams: List<Stream> = emptyList(),
+    // Keep paging data in the same atomic snapshot as the selected filter and visible page.
+    val sourceFilterFullList: List<Stream> = emptyList(),
     val sourceAvailableAddons: List<String> = emptyList(),
     val sourceChips: List<SourceChipItem> = emptyList(),
     val showFileSizeBadges: Boolean = true,

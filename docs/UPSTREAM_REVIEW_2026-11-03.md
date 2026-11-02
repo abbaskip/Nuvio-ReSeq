@@ -30,6 +30,16 @@ custom ReSeq Live TV guide.
 
 ## Regression validation
 
+The integration review found a source-list paging cache stored separately from
+the atomic player UI state. Background debrid preparation and badge updates could
+race addon-filter changes or page expansion, leaving that cache inconsistent with
+the selected filter. The integration follow-up puts the full filtered cache,
+visible page, and selected addon into one immutable state snapshot. Retried updates
+have no separate cache side effect. Page sizes and filter behavior are retained.
+Four regression tests cover filter changes, expanded pages after link preparation,
+shrinking results, and a forced background-preparation/filter-change interleaving.
+The PR build also runs those paging tests alongside the updater tests.
+
 - Initial unfiltered Full Debug unit run: 2,868 tests, 2,865 passed, two skipped,
   one failed. The failure was `TraktAuthServiceTest.refresh token 400 clears
   credentials and prevents another refresh`.
@@ -37,11 +47,12 @@ custom ReSeq Live TV guide.
   `refreshToken ... was not called` failure. Local builds omit `TRAKT_CLIENT_ID`;
   production code returns before the API request when that field is empty.
   Neither the test nor the service is changed by this merge.
-- Repeated the suite excluding only that confirmed baseline failure: 2,867 tests,
-  2,865 passed, two skipped, zero failures or errors.
+- After the source-paging integration fix, repeated the suite excluding only that
+  confirmed baseline failure: 2,871 tests, 2,869 passed, two skipped, zero failures
+  or errors.
 - This includes 245 Live TV/Sports/On Demand/updater tests and 28 focused tests
   covering debrid preparation, HEVC alternative transfer SEI, night-mode audio,
-  and subtitle MIME/language handling.
+  and subtitle MIME/language handling, plus the four source-paging regressions.
 - `:app:assembleFullDebug` and `:app:compilePlaystoreDebugKotlin` passed with
   `-PuseLocalFfmpegDecoder=false`, exercising the updated prebuilt decoder.
 - `git diff --cached --check` passed. Live TV source files and TVDB identity

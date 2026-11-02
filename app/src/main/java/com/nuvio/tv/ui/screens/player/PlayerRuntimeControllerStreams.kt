@@ -64,16 +64,7 @@ internal fun PlayerRuntimeController.scheduleSourceBadgeApplication() {
                 val updatedAll = current.sourceAllStreams.map { s ->
                     badgedByKey[s.sourceBadgeMergeKey()] ?: s
                 }
-                val selectedAddon = current.sourceSelectedAddonFilter
-                val fullFiltered = updatedAll.filterByAddon(selectedAddon)
-                sourceFilterFullList = fullFiltered
-                val pageEnd = current.sourceFilteredStreams.size.coerceAtMost(fullFiltered.size)
-                    .coerceAtLeast(SOURCE_FILTER_PAGE_SIZE.coerceAtMost(fullFiltered.size))
-                current.copy(
-                    sourceAllStreams = updatedAll,
-                    sourceFilteredStreams = if (pageEnd >= fullFiltered.size) fullFiltered
-                        else fullFiltered.subList(0, pageEnd)
-                )
+                current.withSourceStreams(updatedAll)
             }
             val coveredAddons = chunk.map { it.addonName }.toSet()
             sourceBadgedAddonNames = sourceBadgedAddonNames + coveredAddons
@@ -228,6 +219,7 @@ internal fun PlayerRuntimeController.loadSourceStreams(forceRefresh: Boolean) {
                 sourceAllStreams = if (forceRefresh || targetChanged) emptyList() else it.sourceAllStreams,
                 sourceSelectedAddonFilter = if (forceRefresh || targetChanged) null else it.sourceSelectedAddonFilter,
                 sourceFilteredStreams = if (forceRefresh || targetChanged) emptyList() else it.sourceFilteredStreams,
+                sourceFilterFullList = if (forceRefresh || targetChanged) emptyList() else it.sourceFilterFullList,
                 sourceAvailableAddons = if (forceRefresh || targetChanged) emptyList() else it.sourceAvailableAddons,
                 sourceChips = if (forceRefresh || targetChanged) emptyList() else it.sourceChips
             )
@@ -281,22 +273,8 @@ internal fun PlayerRuntimeController.loadSourceStreams(forceRefresh: Boolean) {
                         } else {
                             availableAddons
                         }
-                        val selectedAddon = it.sourceSelectedAddonFilter
-                        val filteredStreams = if (selectedAddon == null) {
-                            badgePreserved
-                        } else {
-                            badgePreserved.filter { stream -> stream.addonName == selectedAddon }
-                        }
-                        sourceFilterFullList = filteredStreams
-                        val paginatedStreams = if (filteredStreams.size > SOURCE_FILTER_PAGE_SIZE) {
-                            filteredStreams.subList(0, SOURCE_FILTER_PAGE_SIZE)
-                        } else {
-                            filteredStreams
-                        }
-                        it.copy(
+                        it.withSourceStreams(badgePreserved, resetPage = true).copy(
                             isLoadingSourceStreams = true,
-                            sourceAllStreams = badgePreserved,
-                            sourceFilteredStreams = paginatedStreams,
                             sourceAvailableAddons = mergedAvailableAddons,
                             sourceChips = mergeSourceChipStatuses(
                                 existing = it.sourceChips,
@@ -390,16 +368,7 @@ private fun PlayerRuntimeController.replacePreparedSourceStream(
         if (updatedStreams == state.sourceAllStreams) {
             state
         } else {
-            val selectedAddon = state.sourceSelectedAddonFilter
-            val fullFiltered = updatedStreams.filterByAddon(selectedAddon)
-            sourceFilterFullList = fullFiltered
-            val pageEnd = state.sourceFilteredStreams.size.coerceAtMost(fullFiltered.size)
-                .coerceAtLeast(SOURCE_FILTER_PAGE_SIZE.coerceAtMost(fullFiltered.size))
-            state.copy(
-                sourceAllStreams = updatedStreams,
-                sourceFilteredStreams = if (pageEnd >= fullFiltered.size) fullFiltered
-                    else fullFiltered.subList(0, pageEnd)
-            )
+            state.withSourceStreams(updatedStreams)
         }
     }
 }
@@ -420,37 +389,12 @@ internal fun PlayerRuntimeController.dismissSourcesPanel() {
 }
 
 internal fun PlayerRuntimeController.filterSourceStreamsByAddon(addonName: String?) {
-    val allStreams = _uiState.value.sourceAllStreams
-    val fullFiltered = if (addonName == null) {
-        allStreams
-    } else {
-        allStreams.filter { it.addonName == addonName }
-    }
-    sourceFilterFullList = fullFiltered
-    val paginatedStreams = if (fullFiltered.size > SOURCE_FILTER_PAGE_SIZE) {
-        fullFiltered.subList(0, SOURCE_FILTER_PAGE_SIZE)
-    } else {
-        fullFiltered
-    }
-    _uiState.update {
-        it.copy(
-            sourceSelectedAddonFilter = addonName,
-            sourceFilteredStreams = paginatedStreams
-        )
-    }
+    _uiState.update { it.withSourceAddonFilter(addonName) }
 }
 
 internal fun PlayerRuntimeController.expandSourceFilteredStreamsIfNeeded() {
-    val current = _uiState.value.sourceFilteredStreams
-    val full = sourceFilterFullList
-    if (current.size >= full.size) return
-    val nextEnd = (current.size + SOURCE_FILTER_PAGE_SIZE).coerceAtMost(full.size)
-    _uiState.update {
-        it.copy(sourceFilteredStreams = full.subList(0, nextEnd))
-    }
+    _uiState.update { it.withExpandedSourcePage() }
 }
-
-private const val SOURCE_FILTER_PAGE_SIZE = 100
 
 private suspend fun PlayerRuntimeController.updateSourceChipsForFetchStart(
     type: String,

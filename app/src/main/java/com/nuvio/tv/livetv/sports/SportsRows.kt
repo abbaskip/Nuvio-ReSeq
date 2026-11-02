@@ -18,7 +18,7 @@ internal class SportsRow(
     /** Where the row opens: the first game that isn't over. */
     val startIndex: Int = 0
 ) {
-    enum class Kind { UPCOMING, TEAM, LEAGUE, WORD }
+    enum class Kind { UPCOMING, ON_AIR, TEAM, LEAGUE, WORD }
 }
 
 /** [heroes]: the big card's games (on now first, then the next ones); left and right go through them. */
@@ -69,8 +69,10 @@ internal object SportsRows {
             isMine(ev) && (ev.state == GameState.LIVE ||
                 (ev.state == GameState.PRE && ev.startMs in (now - 3 * HOUR)..(now + 8 * DAY)))
         }.sortedWith(compareBy<SportsEvent> { if (it.state == GameState.LIVE) 0 else 1 }.thenBy { it.startMs })
-            .take(24)
-        if (soon.isNotEmpty()) rows += SportsRow("up", "Live & Upcoming", SportsRow.Kind.UPCOMING, events = soon)
+        val fixtures = soon.filter { it.source != EventSource.GUIDE }.take(24)
+        val shows = soon.filter { it.source == EventSource.GUIDE }.take(24)
+        if (fixtures.isNotEmpty()) rows += SportsRow("up", "Live & Upcoming Events", SportsRow.Kind.UPCOMING, events = fixtures)
+        if (shows.isNotEmpty()) rows += SportsRow("onair", "On Air & Upcoming Shows", SportsRow.Kind.ON_AIR, events = shows)
 
         // ---- a row per team or country
         for (t in follows.teams) {
@@ -105,11 +107,12 @@ internal object SportsRows {
         }
 
         // The big card: games and events at a set time (not a week-long tournament).
-        val heroes = soon.filter { it.hasTime && (it.state == GameState.LIVE || (it.state == GameState.PRE && it.startMs >= now - HOUR)) }.take(8)
+        val heroes = fixtures.filter { it.hasTime && (it.state == GameState.LIVE || (it.state == GameState.PRE && it.startMs >= now - HOUR)) }.take(8)
         // Your order (Arrange My Sports); Live & Upcoming always first.
         val rank = rowKeys(follows).withIndex().associate { (i, k) -> k to i }
-        val sorted = rows.filter { it.kind == SportsRow.Kind.UPCOMING } +
-            rows.filter { it.kind != SportsRow.Kind.UPCOMING }.sortedBy { rank[it.key] ?: Int.MAX_VALUE }
+        val summaryKinds = setOf(SportsRow.Kind.UPCOMING, SportsRow.Kind.ON_AIR)
+        val sorted = rows.filter { it.kind in summaryKinds } +
+            rows.filter { it.kind !in summaryKinds }.sortedBy { rank[it.key.removeSuffix("|shows")] ?: Int.MAX_VALUE }
         return MyTeamsPage(heroes, sorted)
     }
 
@@ -117,12 +120,18 @@ internal object SportsRows {
     private fun timeline(
         key: String, title: String, kind: SportsRow.Kind, games: List<SportsEvent>, now: Long,
         team: FollowedTeam? = null, league: League? = null, results: Int = RESULTS
-    ): SportsRow {
+    ): List<SportsRow> {
+        val (shows, fixtures) = games.partition { it.source == EventSource.GUIDE }
+        if (shows.isNotEmpty() && fixtures.isNotEmpty()) {
+            return timeline(key, title, kind, fixtures, now, team, league, results) +
+                timeline("$key|shows", title, kind, shows, now, team, league, results)
+        }
         val sorted = games.sortedBy { it.startMs }
         val done = sorted.filter { it.state == GameState.POST || (it.state == GameState.OFF && it.startMs < now) }
         val doneIds = done.mapTo(HashSet()) { it.id }
         val ahead = sorted.filter { it.id !in doneIds }
         val past = done.takeLast(results)
-        return SportsRow(key, title, kind, team, league, past + ahead, startIndex = if (ahead.isEmpty()) (past.size - 1).coerceAtLeast(0) else past.size)
+        val rowTitle = if (shows.isNotEmpty()) "$title · Sports Shows" else title
+        return listOf(SportsRow(key, rowTitle, kind, team, league, past + ahead, startIndex = if (ahead.isEmpty()) (past.size - 1).coerceAtLeast(0) else past.size))
     }
 }

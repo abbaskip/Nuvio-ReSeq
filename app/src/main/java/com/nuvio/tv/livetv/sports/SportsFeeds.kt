@@ -442,20 +442,14 @@ internal class SportsFeeds {
 
             if (league.kind == LeagueKind.EVENT) {
                 val multiDay = end != null && end - start > 20 * 3_600_000L
-                // A tournament that runs for days: the feed says "final" once a day's play is
-                // done (tennis does every evening). It isn't over until its last day.
-                // Likewise "not started" between a tournament's first day and its last (no match on
-                // yet that day): it's under way.
-                val nowMs = System.currentTimeMillis()
-                // (The end date is the start of the last day, so the last day counts too.)
-                val underWay = multiDay && end != null && end + 24 * 3_600_000L > nowMs && start <= nowMs
-                val evState = if (underWay && (state == GameState.POST || state == GameState.PRE)) GameState.LIVE else state
+                // A weekend/tournament date range does not establish live play. In particular,
+                // never turn ESPN's final race status back into LIVE for the rest of the day.
                 return SportsEvent(
                     id = "espn:${league.id}:$espnId",
                     leagueId = league.id,
                     startMs = start,
                     hasTime = !multiDay,
-                    state = evState,
+                    state = state,
                     title = ev.str("name") ?: ev.str("shortName") ?: league.name,
                     subtitle = listOfNotNull(headline, venue).joinToString(" · ").ifBlank { null },
                     status = status,

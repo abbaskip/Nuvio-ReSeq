@@ -308,6 +308,7 @@ private fun RowHeader(row: SportsRow, follows: SportsFollows, place: String? = n
     Row(Modifier.fillMaxWidth().height(30.dp).padding(top = 6.dp, bottom = 2.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         when (row.kind) {
             SportsRow.Kind.UPCOMING -> Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(SportsLook.Live))
+            SportsRow.Kind.ON_AIR -> Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(SportsLook.OnAir))
             SportsRow.Kind.TEAM -> row.team?.let { t ->
                 TeamLogo(TeamInfo(t.leagueId, t.teamId, t.name, t.name, t.abbr, null, t.color, null, t.logo), 22.dp)
             }
@@ -323,6 +324,7 @@ private fun RowHeader(row: SportsRow, follows: SportsFollows, place: String? = n
         LiveText(
             when (row.kind) {
                 SportsRow.Kind.UPCOMING -> "Everything you follow, soonest first"
+                SportsRow.Kind.ON_AIR -> "TV guide listings · may include replays"
                 SportsRow.Kind.LEAGUE -> if (ahead == 1) "1 game ahead" else "$ahead games ahead"
                 else -> if (ahead == 1) "1 game ahead" else "$ahead games ahead"
             },
@@ -430,7 +432,7 @@ private fun CornerBadge(ev: SportsEvent, now: Long, playing: Boolean) {
     when {
         playing -> SportsBadge("▶ PLAYING", colors.Secondary, colors.OnSecondary)
         rec -> RecBadge()
-        ev.state == GameState.LIVE -> SportsBadge("● ${ev.liveLabel}", SportsLook.Live, Color.White)
+        ev.state == GameState.LIVE -> SportsBadge("● ${ev.liveLabel}", ev.liveBadgeColor(), Color.White)
         ev.state == GameState.PRE -> when (dayWord(ev.startMs, now)) {
             "Today" -> OutlineBadge("TODAY", colors.Secondary)
             "Tomorrow" -> OutlineBadge("TOMORROW", colors.Secondary)
@@ -525,7 +527,7 @@ private fun HeroCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 LiveText(
                     label,
-                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (ev.state == GameState.LIVE) SportsLook.Live else Color.Black.copy(alpha = 0.4f)).padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (ev.state == GameState.LIVE) ev.liveBadgeColor() else Color.Black.copy(alpha = 0.4f)).padding(horizontal = 8.dp, vertical = 2.dp),
                     color = Color.White, size = 10.sp, weight = FontWeight.Black
                 )
                 if (reminded) LiveText("  🔔", size = 11.sp)

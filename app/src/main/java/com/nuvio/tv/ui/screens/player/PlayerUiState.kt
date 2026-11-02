@@ -9,6 +9,7 @@ import com.nuvio.tv.data.local.FrameRateMatchingMode
 import com.nuvio.tv.data.local.InternalPlayerEngine
 import com.nuvio.tv.data.local.LibassRenderType
 import com.nuvio.tv.data.local.LibassRenderMode
+import com.nuvio.tv.data.local.NightMode
 import com.nuvio.tv.data.local.StreamAutoPlayMode
 import com.nuvio.tv.data.local.SubtitleStyleSettings
 import com.nuvio.tv.data.repository.SkipInterval
@@ -112,6 +113,8 @@ data class PlayerUiState(
     val persistAudioAmplification: Boolean = false,
     val centerMixLevelDb: Int = 0,
     val isCenterMixAvailable: Boolean = false,
+    val nightMode: NightMode = NightMode.OFF,
+    val isNightModeAvailable: Boolean = false,
     val showAudioOverlay: Boolean = false,
     val showSubtitleOverlay: Boolean = false,
     val showSubtitleStylePanel: Boolean = false,
@@ -174,6 +177,8 @@ data class PlayerUiState(
     val sourceAllStreams: List<Stream> = emptyList(),
     val sourceSelectedAddonFilter: String? = null, // null means "All"
     val sourceFilteredStreams: List<Stream> = emptyList(),
+    // Keep paging data in the same atomic snapshot as the selected filter and visible page.
+    val sourceFilterFullList: List<Stream> = emptyList(),
     val sourceAvailableAddons: List<String> = emptyList(),
     val sourceChips: List<SourceChipItem> = emptyList(),
     val showFileSizeBadges: Boolean = true,
@@ -331,6 +336,7 @@ sealed class PlayerEvent {
     data class OnSetAudioAmplificationDb(val db: Int) : PlayerEvent()
     data class OnSetPersistAudioAmplification(val enabled: Boolean) : PlayerEvent()
     data class OnSetCenterMixLevelDb(val db: Int) : PlayerEvent()
+    data class OnSetNightMode(val mode: NightMode) : PlayerEvent()
     data class OnSelectSubtitleTrack(val index: Int) : PlayerEvent()
     data object OnDisableSubtitles : PlayerEvent()
     data class OnSelectAddonSubtitle(val subtitle: Subtitle) : PlayerEvent()

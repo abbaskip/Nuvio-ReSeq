@@ -10,6 +10,18 @@ Nuvio ReSeq is an independent Android TV fork of [Nuvio](https://github.com/Nuvi
 
 [Project website](https://abbaskip.github.io/Nuvio-ReSeq/) · [Privacy Policy](https://abbaskip.github.io/Nuvio-ReSeq/privacy.html) · [Terms of Service](https://abbaskip.github.io/Nuvio-ReSeq/terms.html)
 
+## Copyright, content sources and independence
+
+Nuvio ReSeq is an independent media player and IPTV integration application. It does not host, supply or distribute movies, series, live broadcasts, IPTV subscriptions or playlists, or bundle third-party addons that supply those playback streams. Users configure their own playback sources.
+
+**Default services:** ReSeq includes predefined Cinemeta metadata (`v3-cinemeta.strem.io`) and OpenSubtitles v3 subtitle (`opensubtitles-v3.strem.io`) addon endpoints. It also uses predefined metadata, trailer and sports-data services, including the project's public sports metadata feed. These are distinct from movie, series and live-channel playback sources; ReSeq is not supplied with an IPTV subscription or playlist. See [privacy and data handling](PRIVACY.md) for external-service disclosures.
+
+Users are responsible for ensuring their use of content sources complies with applicable copyright laws, licensing requirements and provider terms. The project does not endorse or encourage copyright infringement. Sports fixtures, EPG matches and stream results do not establish permission to view or redistribute content.
+
+Stremio-compatible addons and TiviMate-style IPTV functionality describe compatibility and the guide/player experience. ReSeq is not affiliated with, sponsored by or endorsed by Stremio, TiviMate, Trakt, Simkl, MDBList, TheTVDB or other third-party services. Third-party trademarks and service names belong to their respective owners and are used to identify compatibility, integrations and attribution.
+
+[Report a rights concern](docs/RIGHTS.md) about code, assets or other material distributed by this project. These disclosures do not change the [GPLv3 licence](LICENSE) or determine legal liability.
+
 ## Choose the episode order that matches your sources
 
 Open a series and select **Episode order**:
@@ -37,7 +49,7 @@ Metadata provided by [TheTVDB](https://thetvdb.com). Please consider contributin
 
 ## IPTV and Sports Hub
 
-**Live TV** opens a TV guide with channel groups, playlist selection, favourites, ordering preferences, search and full-screen playback. Configure your own **Xtream Codes** account or an **M3U playlist with XMLTV guide** in Live TV settings. Supported provider on-demand content is available from **On Demand**. ReSeq supplies no playlists, subscriptions or media. The guide and standalone On Demand browser use provider metadata and artwork, without automatic title searches against metadata addons. Catalogue caching and identity-aware IPTV stream matching from normal movie and series pages remain available.
+**Live TV** opens a TV guide with channel groups, playlist selection, favourites, ordering preferences, search and full-screen playback. Configure your own **Xtream Codes** account or an **M3U playlist with XMLTV guide** in Live TV settings. Supported provider on-demand content is available from **On Demand**. ReSeq supplies no IPTV playlists, subscriptions or playback streams. The guide and standalone On Demand browser use provider metadata and artwork, without automatic title searches against metadata addons. Catalogue caching and identity-aware IPTV stream matching from normal movie and series pages remain available.
 
 **Sports Hub** brings together fixtures, supported results/live scores and channels from your playlists. Choose sports and optionally exclude categories or competitions; synonyms work in the background. Rugby League and Rugby Union are separate. Matching considers guide titles/descriptions, participants, broadcasters and channel names while retaining regional, provider and quality alternatives. Catch-up depends on your provider.
 
@@ -82,7 +94,7 @@ In-app updates check **only this repository**. There is one release channel: ver
 - Switching cuts may change the meaning of a saved timestamp. Stream addons use different numbering conventions; selecting an order does not guarantee every returned stream matches it.
 - Large playlists and guides can take several minutes for the first complete background scan. Cached results and event-specific suggestions appear progressively; guide changes invalidate affected discovery. Ambiguous channels, competitions and replay status may remain unverified.
 - Free sports sources do not cover every sport, competition or broadcast territory, and scores can be delayed. A broadcaster match alone does not prove a specific programme is the selected event.
-- ReSeq does not supply media. Bring your own addons and sources. External services have their own availability, account and API requirements.
+- ReSeq does not supply movie, series or live-channel playback sources. Configure your own playback addons and IPTV sources; the default metadata/subtitle endpoints are described above. External services have their own availability, account and API requirements.
 
 ## Build from source
 

@@ -1,0 +1,32 @@
+name: Copyright or other rights concern
+description: Report a concern about material distributed by this project.
+title: "[Rights concern]: "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is a public, informal project contact channel. Do not include personal addresses, private contact details, credentials, private playlist URLs or confidential evidence.
+        This form is separate from the bug-report requirements. See [reporting guidance](https://github.com/abbaskip/Nuvio-ReSeq/blob/dev/docs/RIGHTS.md), including GitHub's own copyright-reporting route.
+  - type: textarea
+    id: material
+    attributes:
+      label: Project material concerned
+      description: Identify exact repository files/commits, release assets or project-hosted URLs.
+    validations:
+      required: true
+  - type: textarea
+    id: concern
+    attributes:
+      label: Work and basis of concern
+      description: Describe the work or right concerned and why you believe the project's use needs review. Include public ownership or permission references where available.
+    validations:
+      required: true
+  - type: textarea
+    id: resolution
+    attributes:
+      label: Requested change
+      description: Explain the correction or other action you request.
+    validations:
+      required: true

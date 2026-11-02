@@ -15,6 +15,14 @@ third-party fonts, analytics, package installation or Android build is required.
 Run `python tools/check-public-site.py` for internal link/fragment and page checks.
 Preview with `python -m http.server 8765 --directory docs`.
 
+Keep the homepage, terms and README content-source disclosures consistent. Default
+Cinemeta metadata and OpenSubtitles v3 subtitle endpoints must be disclosed rather
+than described as an absence of all addons. The public terms link rights holders
+to the dedicated issue form; repository [rights guidance](RIGHTS.md) and
+[release documentation review](RELEASE_DOCUMENTATION.md) record reporting options
+and remaining manual checks. These two Markdown files are repository documentation,
+not additional Pages routes.
+
 ## Deployment
 
 Repository Settings → Pages must use **GitHub Actions**, preserving the existing

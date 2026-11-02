@@ -8,7 +8,7 @@ below is retained as repository background.
 
 Nuvio ReSeq runs on your Android TV device. The maintainer does not operate a separate ReSeq account service or tracking backend. This release has no ReSeq telemetry endpoint.
 
-The app contacts the metadata providers, addons and integrations you configure. These requests can include titles, catalogue IDs, search terms and episode numbers. Connected tracking services can receive playback progress and watched activity through Nuvio’s existing integration settings. Your chosen read sources control watched indicators, resume and Continue Watching; playback can scrobble to each connected service.
+The app includes default Cinemeta metadata and OpenSubtitles v3 subtitle addon endpoints and predefined metadata, trailer and sports-data services. It also contacts the playback sources, addons and integrations you configure. These requests can include titles, catalogue IDs, search terms and episode numbers. Connected tracking services can receive playback progress and watched activity through Nuvio’s existing integration settings. Your chosen read sources control watched indicators, resume and Continue Watching; playback can scrobble to each connected service.
 
 Signing into a Nuvio account uses Nuvio’s authentication and cloud-sync services. Supported profiles, addons, settings, library and progress data can be stored there. [Nuvio’s privacy policy](https://nuvio.tv/privacy-policy) applies to those services. Trakt, Simkl, MDBList, TheTVDB and your other providers have their own policies and account controls.
 

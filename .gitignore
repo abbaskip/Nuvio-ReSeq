@@ -67,6 +67,8 @@ docs/*
 !docs/privacy.html
 !docs/terms.html
 !docs/WEBSITE.md
+!docs/RIGHTS.md
+!docs/RELEASE_DOCUMENTATION.md
 !docs/assets/
 docs/assets/*
 !docs/assets/site.css

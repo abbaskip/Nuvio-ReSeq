@@ -2,6 +2,8 @@
 
 Thanks for helping improve Nuvio ReSeq.
 
+For copyright or other rights concerns about project-distributed material, use the separate [rights reporting route](docs/RIGHTS.md); bug-report and feature-request requirements below do not apply to those reports. For future release notes, use the [release template](.github/RELEASE_TEMPLATE.md) and [release documentation guidance](docs/RELEASE_DOCUMENTATION.md).
+
 ## Strict rules - read before opening anything
 
 These rules are enforced strictly. Issues and PRs that do not follow them will be closed without review.

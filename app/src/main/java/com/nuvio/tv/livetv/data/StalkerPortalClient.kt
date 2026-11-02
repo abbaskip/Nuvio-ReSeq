@@ -221,6 +221,7 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
         val genres = request(source, "itv", "get_genres") as? JSONArray ?: error("Invalid portal categories.")
         val names = (0 until genres.length()).mapNotNull { genres.optJSONObject(it) }
             .associate { it.optString("id") to it.optString("title") }
+        target.parentFile?.mkdirs()
         val temp = File(target.parentFile, target.name + ".tmp")
         try {
             request(source, "itv", "get_all_channels") { response ->
@@ -249,6 +250,7 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
     }
 
     suspend fun writeGuide(source: PlaylistSource, target: File) = withContext(Dispatchers.IO) {
+        target.parentFile?.mkdirs()
         val temp = File(target.parentFile, target.name + ".tmp")
         try {
             request(source, "itv", "get_epg_info", mapOf("period" to "168")) { response ->

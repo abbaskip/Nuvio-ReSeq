@@ -69,14 +69,17 @@ class StalkerPortalClientTest {
         assertNotNull(StalkerPortalClient.validate("https://example.test/c/", "not-a-mac"))
     }
 
-    @Test fun `channel import and guide share a session and stable playlist scoped identities`() = runBlocking {
+    @Test fun `first channel import and guide create cache directories and share stable identities`() = runBlocking {
         MockWebServer().use { server ->
             login(server)
             body(server, "[{\"id\":\"2\",\"title\":\"Sport\"}]")
             body(server, "{\"data\":[{\"id\":\"42\",\"name\":\"Seven & Mate\",\"tv_genre_id\":\"2\",\"cmd\":\"ffmpeg http://localhost/ch/42_\"}]}")
             body(server, "{\"42\":[{\"name\":\"England & PNG\",\"descr\":\"Live <sport>\",\"start_timestamp\":1793000000,\"stop_timestamp\":1793003600}]}")
             val client = StalkerPortalClient(OkHttpClient(), { 0L })
-            val playlist = temporary.newFile(); val guide = temporary.newFile()
+            val playlist = temporary.root.resolve("livetv/playlists/test-playlist.m3u")
+            val guide = temporary.root.resolve("livetv/epg/test-guide.xml")
+            assertFalse(playlist.parentFile!!.exists())
+            assertFalse(guide.parentFile!!.exists())
             client.writePlaylist(source(server), playlist); client.writeGuide(source(server), guide)
             val channel = playlist.bufferedReader().use { M3uParser.parse(it) }.entries.single()
             assertEquals("Sport", channel.group)
@@ -85,6 +88,8 @@ class StalkerPortalClientTest {
             assertFalse(playlist.readText().contains("synthetic-token"))
             assertTrue(guide.readText().contains("England &amp; PNG"))
             assertTrue(guide.readText().contains("stalker:test-playlist:42"))
+            assertFalse(playlist.resolveSibling(playlist.name + ".tmp").exists())
+            assertFalse(guide.resolveSibling(guide.name + ".tmp").exists())
             assertEquals(5, server.requestCount)
             assertNull(server.takeRequest().getHeader("Authorization"))
             assertEquals("Bearer synthetic-token", server.takeRequest().getHeader("Authorization"))
@@ -130,12 +135,13 @@ class StalkerPortalClientTest {
             assertEquals("previous channels", target.readText())
         }
     }
-    @Test fun `bulk guide retains every listing in a nested data envelope`() = runBlocking {
+    @Test fun `first bulk guide creates cache directories and retains every nested listing`() = runBlocking {
         MockWebServer().use { server ->
             login(server)
             val programme = "{\"name\":\"England & PNG\",\"start_timestamp\":1793000000,\"stop_timestamp\":1793003600}"
             body(server, "{\"data\":{\"42\":[" + List(20_000) { programme }.joinToString(",") + "]}}")
-            val target = temporary.newFile()
+            val target = temporary.root.resolve("livetv/epg/test-guide.xml")
+            assertFalse(target.parentFile!!.exists())
             StalkerPortalClient(OkHttpClient(), { 0L }).writeGuide(source(server), target)
             assertEquals(20_000, target.useLines { lines -> lines.count { it.startsWith("<programme ") } })
             assertTrue(target.useLines { lines -> lines.any { "England &amp; PNG" in it } })

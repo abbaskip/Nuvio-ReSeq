@@ -179,7 +179,8 @@ class LiveTvTimeshift(private val context: Context) {
                 var bytes = 0L
                 val why = try {
                     LiveHttp.consume(url, headers) { response ->
-                        response.body.byteStream().use { input ->
+                        val body = response.body ?: throw java.io.IOException("The provider returned no response body")
+                        body.byteStream().use { input ->
                             val buf = ByteArray(64 * 1024)
                             while (workContext.isActive && session?.dir == dir) {
                                 val n = input.read(buf)
@@ -323,7 +324,8 @@ class LiveTvTimeshift(private val context: Context) {
         return try {
             val tmp = File(to.parentFile, to.name + ".part")
             LiveHttp.consume(url, headers) { response ->
-                response.body.byteStream().use { input ->
+                val body = response.body ?: throw java.io.IOException("The provider returned no response body")
+                body.byteStream().use { input ->
                     tmp.outputStream().buffered(128 * 1024).use { output ->
                         val buffer = ByteArray(64 * 1024)
                         while (true) {

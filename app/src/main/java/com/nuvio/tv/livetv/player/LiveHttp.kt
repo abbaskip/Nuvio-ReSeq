@@ -32,7 +32,10 @@ object LiveHttp {
     }
 
     internal suspend fun fetchCancellable(url: String, headers: Map<String, String>): Pair<String, String> =
-        consume(url, headers) { it.body.string() to it.request.url.toString() }
+        consume(url, headers) { response ->
+            val body = response.body ?: throw java.io.IOException("The provider returned no response body")
+            body.string() to response.request.url.toString()
+        }
 
     /** The connection after the last redirect (its [HttpURLConnection.getURL] is where it ended up). */
     fun open(url: String, headers: Map<String, String>, readTimeoutMs: Int = 20_000): HttpURLConnection {

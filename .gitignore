@@ -49,6 +49,7 @@ scripts/*
 !scripts/release-metadata.sh
 !scripts/release_beta.py
 !scripts/prepare_release_apks.py
+!scripts/verify_apk_services.py
 !scripts/tests/
 !scripts/tests/*.py
 /supabase

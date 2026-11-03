@@ -196,6 +196,15 @@ class LocalhostZeroCopyDataSourceTest {
         thread {
             try {
                 val client = serverSocket.accept()
+                // Read the request before closing the response socket. On Windows,
+                // closing with unread request bytes can reset the connection before
+                // the data source receives the 404 headers.
+                client.soTimeout = 5_000
+                val request = client.getInputStream().bufferedReader(Charsets.US_ASCII)
+                while (true) {
+                    val line = request.readLine() ?: break
+                    if (line.isEmpty()) break
+                }
                 val out = client.getOutputStream()
                 out.write(responseHeaders.toByteArray())
                 out.flush()

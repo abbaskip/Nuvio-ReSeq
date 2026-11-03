@@ -64,7 +64,9 @@ jobs:
           test -n "$APP_CONFIG" && test -n "$KEYSTORE" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD" && test -n "$STORE_PASSWORD"
           printf '%s' "$APP_CONFIG" | base64 --decode > local.properties
           sed -i -E '/^[[:space:]]*(sdk\.dir|NUVIO_RELEASE_STORE_FILE)[[:space:]]*=/d' local.properties
-          for property in GOOGLE_DRIVE_CLIENT_ID GOOGLE_DRIVE_CLIENT_SECRET NUVIO_SUPABASE_URL NUVIO_SUPABASE_ANON_KEY TRAKT_CLIENT_ID; do
+          # Personal TMDB keys belong only in runtime profile settings.
+          sed -i -E '/^[[:space:]]*TMDB_API_KEY[[:space:]]*=/d' local.properties
+          for property in GOOGLE_DRIVE_CLIENT_ID GOOGLE_DRIVE_CLIENT_SECRET NUVIO_SUPABASE_URL NUVIO_SUPABASE_ANON_KEY TRAKT_CLIENT_ID SIMKL_CLIENT_ID MDBLIST_CLIENT_ID; do
             grep -Eq "^${property}=.+" local.properties || { echo "Missing required service configuration: $property" >&2; exit 1; }
           done
           printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/reseq.jks"
@@ -75,7 +77,7 @@ jobs:
       - name: Test Live TV, Sports and updater; build all APKs
         run: |
           PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -v
-          ./gradlew :app:testFullReleaseUnitTest --tests 'com.nuvio.tv.livetv.*' --tests 'com.nuvio.tv.updater.*' :app:assembleFullRelease -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --stacktrace
+          ./gradlew :app:testFullReleaseUnitTest --tests 'com.nuvio.tv.livetv.*' --tests 'com.nuvio.tv.updater.*' --tests 'com.nuvio.tv.core.tmdb.*' --tests 'com.nuvio.tv.data.local.SavedDiscoveriesDataStoreTest' --tests 'com.nuvio.tv.data.repository.DiscoveryRepositoryTest' --tests 'com.nuvio.tv.domain.model.DiscoveryQueryTest' --tests 'com.nuvio.tv.ui.screens.search.AdvancedDiscoverViewModelTest' --tests 'com.nuvio.tv.ui.screens.settings.TmdbSettingsViewModelTest' --tests 'com.nuvio.tv.ui.screens.player.SourceStreamPagingTest' :app:assembleFullRelease -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --stacktrace
       - name: Verify signing, upgrade identity and native libraries
         env:
           VERSION: ${{ steps.version.outputs.name }}
@@ -86,6 +88,7 @@ jobs:
           test "${#previous[@]}" -eq 1
           tools="$ANDROID_HOME/build-tools/36.0.0"
           python3 scripts/prepare_release_apks.py --apk-dir app/build/outputs/apk/full/release --output-dir build/release --version "$VERSION" --apksigner "$tools/apksigner" --aapt "$tools/aapt" --reference-apk "${previous[0]}"
+          python3 scripts/verify_apk_services.py --properties local.properties --apk-dir build/release --report build/service-verification.json
       - name: Assemble reviewed notes and download guidance
         env:
           NOTES_PATH: ${{ inputs.notes }}

@@ -46,6 +46,9 @@ jobs:
             touch local.dev.properties
           fi
 
+          # TMDB keys are entered at runtime and stay local to the TV profile.
+          sed -i -E '/^[[:space:]]*TMDB_API_KEY[[:space:]]*=/d' local.properties local.dev.properties
+
       - name: Prepare CI signing config
         run: |
           keytool -genkeypair \

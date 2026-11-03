@@ -572,8 +572,9 @@ fun LiveTvPlayerScreen(
             }
             .focusable()
     ) {
+        val activePlayer by viewModel.playback.playerFlow.collectAsStateWithLifecycle()
         if (!embedded) LivePlayerSurface(
-            player = viewModel.playback.player,
+            player = activePlayer,
             modifier = Modifier.fillMaxSize(),
             useSurfaceView = true,
             onAttached = { viewModel.playback.onSurfaceAttached() },

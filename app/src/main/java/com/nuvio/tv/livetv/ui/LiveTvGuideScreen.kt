@@ -272,8 +272,8 @@ fun LiveTvGuideScreen(
         viewModel.playback.attach()
         onDispose { viewModel.playback.detach() }
     }
-    LaunchedEffect(settings.showPreview) {
-        if (!settings.showPreview) viewModel.playback.stop()
+    LaunchedEffect(settings.showPreview, fullscreen, fullscreenComing) {
+        if (!settings.showPreview && !fullscreen && !fullscreenComing && !LiveTvFullscreen.pending) viewModel.playback.stop()
     }
 
     val gridFocus = remember { FocusRequester() }
@@ -1563,8 +1563,9 @@ fun LiveTvGuideScreen(
         if (fullscreen) Box(Modifier.fillMaxSize().background(Color.Black))
         val shapes by viewModel.pictureShapes.collectAsStateWithLifecycle()
         val pictureShapeNow = com.nuvio.tv.livetv.player.PictureShape.of(playback.channelKey?.let { shapes[it] })
+        val activePlayer by viewModel.playback.playerFlow.collectAsStateWithLifecycle()
         LivePlayerSurface(
-            player = viewModel.playback.player,
+            player = activePlayer,
             useSurfaceView = true,
             modifier = videoModifier,
             onAttached = { viewModel.playback.onSurfaceAttached() },
@@ -2105,8 +2106,8 @@ fun LiveTvGuideScreen(
                 onBack = {
                     fullscreenComing = false
                     if (com.nuvio.tv.livetv.sports.SportsLaunch.takeReturnToSports()) {
-                        // Opened from the Sports page: back to the game you picked there.
-                        fullscreen = false
+                        // Keep the video covering the guide until navigation removes this page.
+                        // Revealing the guide here showed an EPG frame during the return transition.
                         onReturnToSports()
                     } else {
                         fullscreen = false; exitFullscreenTick++

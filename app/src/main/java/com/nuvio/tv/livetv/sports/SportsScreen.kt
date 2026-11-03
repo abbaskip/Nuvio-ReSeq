@@ -51,6 +51,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.res.stringResource
+import com.nuvio.tv.R
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.graphicsLayer
@@ -77,6 +82,7 @@ import com.nuvio.tv.livetv.ui.ThemeGlow
 import com.nuvio.tv.livetv.ui.drawThemeGlow
 import com.nuvio.tv.livetv.ui.formatClock
 import com.nuvio.tv.ui.theme.NuvioTheme
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.input.key.Key
@@ -153,6 +159,9 @@ private val LIST_WIDTH = 470.dp
 fun SportsScreen(
     /** Live TV is playing the picked channel: open it full screen. */
     onOpenLive: () -> Unit,
+    onOpenGuide: () -> Unit = onOpenLive,
+    onOpenSettings: () -> Unit = {},
+    onFindInNuvio: () -> Unit = {},
     viewModel: SportsViewModel = hiltViewModel()
 ) {
     com.nuvio.tv.livetv.ui.PauseLiveTvInBackground(viewModel.playback)
@@ -169,6 +178,12 @@ fun SportsScreen(
     val hasChannels by viewModel.hasChannels.collectAsStateWithLifecycle()
     val playingKey by viewModel.playingKey.collectAsStateWithLifecycle()
     val previewState by viewModel.previewState.collectAsStateWithLifecycle()
+    val liveSettings by viewModel.liveSettings.collectAsStateWithLifecycle()
+    val pictureShapes by viewModel.pictureShapes.collectAsStateWithLifecycle()
+    var fullscreen by rememberSaveable { mutableStateOf(false) }
+    var previewFocused by remember { mutableStateOf(false) }
+    var returnFocusToPreview by remember { mutableStateOf(false) }
+    val previewFocus = remember { FocusRequester() }
     val backdrop by viewModel.backdrop.collectAsStateWithLifecycle()
 
     var day by rememberSaveable { mutableIntStateOf(0) }
@@ -195,21 +210,45 @@ fun SportsScreen(
 
     // ---- the video window: the shared player, shown where the page puts its slot
     val videoOn = settings.videoWindow && hasChannels
-    var playerRef by remember { mutableStateOf<androidx.media3.common.Player?>(null) }
-    DisposableEffect(videoOn) {
-        if (videoOn) playerRef = viewModel.attachPlayer()
-        onDispose { if (videoOn) { viewModel.detachPlayer(); playerRef = null } }
+    val playerRef by viewModel.playback.playerFlow.collectAsStateWithLifecycle()
+    val surfaceOn = videoOn || fullscreen
+    DisposableEffect(surfaceOn) {
+        if (surfaceOn) viewModel.attachPlayer()
+        onDispose { if (surfaceOn) viewModel.detachPlayer() }
     }
     // A game playing in the window: keep the TV awake (no screen saver), as Live TV does.
     val playingNow by viewModel.playingNow.collectAsStateWithLifecycle()
     com.nuvio.tv.livetv.ui.KeepScreenAwake(videoOn && playingNow)
     var slot by remember { mutableStateOf<Rect?>(null) }
     var root by remember { mutableStateOf<Rect?>(null) }
-    val videoSlot: @Composable (Modifier) -> Unit = { m -> VideoSlot(m) { slot = it } }
+    fun expandPreview() {
+        if (!previewState.hasPreviewContent) return
+        if (previewState.catchupTitle != null) { onOpenLive(); return }
+        returnFocusToPreview = previewFocused
+        fullscreen = true
+    }
+    val previewDescription = stringResource(R.string.sports_preview_fullscreen)
+    val videoSlot: @Composable (Modifier) -> Unit = { m ->
+        VideoSlot(m.focusRequester(previewFocus).onFocusChanged { previewFocused = it.isFocused }
+            .semantics { contentDescription = previewDescription }
+            .clickable(enabled = previewState.hasPreviewContent, role = Role.Button, onClick = ::expandPreview)) { slot = it }
+    }
 
-    DisposableEffect(Unit) {
-        viewModel.repo.setViewing(true)
-        onDispose { viewModel.repo.setViewing(false) }
+    DisposableEffect(fullscreen) {
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) android.util.Log.i("SportsFullscreen", "active=$fullscreen")
+        if (fullscreen) com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value = true
+        else viewModel.repo.setViewing(true)
+        onDispose {
+            if (fullscreen) com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value = false
+            else viewModel.repo.setViewing(false)
+        }
+    }
+    LaunchedEffect(fullscreen) {
+        if (!fullscreen && returnFocusToPreview) {
+            returnFocusToPreview = false
+            delay(80)
+            runCatching { previewFocus.requestFocus() }
+        }
     }
     LaunchedEffect(Unit) {
         // Back from watching a game: the highlight goes back on it.
@@ -242,6 +281,7 @@ fun SportsScreen(
     /** A channel picked on the game page: in the window (again: full screen), or full screen. */
     fun choose(ev: SportsEvent, m: ChannelMatch) {
         when {
+            videoOn && canExpandSportsPreview(previewState, m.channel.key) -> expandPreview()
             !videoOn -> watch(ev, m)
             ev.state == GameState.POST -> watch(ev, m)
             playingKey == m.channel.key -> watch(ev, m)
@@ -265,7 +305,7 @@ fun SportsScreen(
     fun backToFullscreen() {
         val key = playingKey ?: return
         events.firstOrNull { ev -> matches[ev.id]?.any { it.channel.key == key } == true }?.let { SportsLaunch.openedFromSports(it.id) }
-        onOpenLive()
+        expandPreview()
     }
     com.nuvio.tv.livetv.ui.FrameMeter("Sports")
     Box(
@@ -274,6 +314,7 @@ fun SportsScreen(
             .guideBackdrop(backdrop)
             .onGloballyPositioned { root = it.boundsInRoot() }
             .onPreviewKeyEvent { e ->
+                if (fullscreen) return@onPreviewKeyEvent false
                 if (e.key != Key.Back) return@onPreviewKeyEvent false
                 val native = e.nativeKeyEvent
                 val canGo = videoOn && playingKey != null && playingNow
@@ -298,94 +339,112 @@ fun SportsScreen(
                 }
             }
     ) {
-        // The same soft glow in the theme colour as the top of the guide.
-        ThemeGlow(Modifier.fillMaxWidth().height(SPORTS_GLOW_HEIGHT))
-        val opened = openId?.let { id -> known.firstOrNull { it.id == id } }
-        if (openId != null && opened == null && known.isNotEmpty()) openId = null
-        when {
-            picker -> SportsPicker(viewModel = viewModel, onClose = { picker = false; returnTo = null; rowsReturning = false; viewModel.repo.markSetUp() })
-            tableReq != null -> {
-                BackHandler { tableReq = null }
-                TablesPage(
-                    viewModel = viewModel,
+        if (!fullscreen) {
+            // The same soft glow in the theme colour as the top of the guide.
+            ThemeGlow(Modifier.fillMaxWidth().height(SPORTS_GLOW_HEIGHT))
+            val opened = openId?.let { id -> known.firstOrNull { it.id == id } }
+            if (openId != null && opened == null && known.isNotEmpty()) openId = null
+            when {
+                picker -> SportsPicker(viewModel = viewModel, onClose = { picker = false; returnTo = null; rowsReturning = false; viewModel.repo.markSetUp() })
+                tableReq != null -> {
+                    BackHandler { tableReq = null }
+                    TablesPage(
+                        viewModel = viewModel,
+                        follows = follows,
+                        settings = settings,
+                        now = now,
+                        use24h = use24h,
+                        videoOn = videoOn,
+                        videoSlot = videoSlot,
+                        header = {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 2.dp)) {
+                                LiveText("‹  " + (opened?.title ?: "Sports"), color = SportsLook.Dim, size = 12.sp, weight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+                                Spacer(Modifier.width(10.dp))
+                                LiveText("Tables", size = 22.sp, weight = FontWeight.Black)
+                            }
+                        },
+                        request = tableReq,
+                        focusTable = true,
+                        onOpen = { ev -> tableReq = null; openId = ev.id },
+                        onQuickWatch = ::quickWatch
+                    )
+                }
+                opened != null -> GamePage(
+                    ev = opened,
+                    matches = matches[opened.id].orEmpty(),
                     follows = follows,
                     settings = settings,
                     now = now,
                     use24h = use24h,
+                    matching = matching,
+                    hasChannels = hasChannels,
                     videoOn = videoOn,
+                    playingKey = playingKey,
                     videoSlot = videoSlot,
-                    header = {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 2.dp)) {
-                            LiveText("‹  " + (opened?.title ?: "Sports"), color = SportsLook.Dim, size = 12.sp, weight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
-                            Spacer(Modifier.width(10.dp))
-                            LiveText("Tables", size = 22.sp, weight = FontWeight.Black)
-                        }
-                    },
-                    request = tableReq,
-                    focusTable = true,
-                    onOpen = { ev -> tableReq = null; openId = ev.id },
-                    onQuickWatch = ::quickWatch
+                    previewFocus = previewFocus.takeIf { videoOn && previewState.hasPreviewContent },
+                    viewModel = viewModel,
+                    onChoose = { m -> choose(opened, m) },
+                    onFromStart = { m -> fromStart(opened, m) },
+                    onFix = { fixFor = opened },
+                    onTable = { tableReq = TableRequest(opened.leagueId, opened.sides.map { it.team.id }.toSet()) },
+                    onOpenGame = { ev -> openId = ev.id },
+                    onQuickWatch = ::quickWatch,
+                    onClose = { returnTo = opened.id; rowsReturning = true; openId = null }
+                )
+                else -> SportsHub(
+                    events = events,
+                    known = known,
+                    rowsState = rowsState,
+                    rowState = { key, start -> rowStates.getOrPut(key) { androidx.compose.foundation.lazy.LazyListState(start) } },
+                    lastRowFocus = rowFocus[0],
+                    onRowFocus = { rowFocus[0] = it },
+                    rowsReturning = rowsReturning,
+                    onRowsReturned = { rowsReturning = false },
+                    matches = matches,
+                    follows = follows,
+                    settings = settings,
+                    now = now,
+                    use24h = use24h,
+                    loading = loading,
+                    matching = matching,
+                    problem = problem,
+                    hasChannels = hasChannels,
+                    videoOn = videoOn,
+                    playingKey = playingKey,
+                    day = day,
+                    onDay = { day = it },
+                    chip = chip,
+                    onChip = { chip = it },
+                    listState = listState,
+                    requesterFor = ::requesterFor,
+                    returnTo = returnTo,
+                    onReturned = { returnTo = null; rowsReturning = false },
+                    videoSlot = videoSlot,
+                    previewFocus = previewFocus.takeIf { videoOn && previewState.hasPreviewContent },
+                    viewModel = viewModel,
+                    onOpen = { ev -> openId = ev.id },
+                    onQuickWatch = ::quickWatch,
+                    onPick = { sportsPreferences = true }
                 )
             }
-            opened != null -> GamePage(
-                ev = opened,
-                matches = matches[opened.id].orEmpty(),
-                follows = follows,
-                settings = settings,
-                now = now,
-                use24h = use24h,
-                matching = matching,
-                hasChannels = hasChannels,
-                videoOn = videoOn,
-                playingKey = playingKey,
-                videoSlot = videoSlot,
-                viewModel = viewModel,
-                onChoose = { m -> choose(opened, m) },
-                onFromStart = { m -> fromStart(opened, m) },
-                onFix = { fixFor = opened },
-                onTable = { tableReq = TableRequest(opened.leagueId, opened.sides.map { it.team.id }.toSet()) },
-                onOpenGame = { ev -> openId = ev.id },
-                onQuickWatch = ::quickWatch,
-                onClose = { returnTo = opened.id; rowsReturning = true; openId = null }
-            )
-            else -> SportsHub(
-                events = events,
-                known = known,
-                rowsState = rowsState,
-                rowState = { key, start -> rowStates.getOrPut(key) { androidx.compose.foundation.lazy.LazyListState(start) } },
-                lastRowFocus = rowFocus[0],
-                onRowFocus = { rowFocus[0] = it },
-                rowsReturning = rowsReturning,
-                onRowsReturned = { rowsReturning = false },
-                matches = matches,
-                follows = follows,
-                settings = settings,
-                now = now,
-                use24h = use24h,
-                loading = loading,
-                matching = matching,
-                problem = problem,
-                hasChannels = hasChannels,
-                videoOn = videoOn,
-                playingKey = playingKey,
-                day = day,
-                onDay = { day = it },
-                chip = chip,
-                onChip = { chip = it },
-                listState = listState,
-                requesterFor = ::requesterFor,
-                returnTo = returnTo,
-                onReturned = { returnTo = null; rowsReturning = false },
-                videoSlot = videoSlot,
-                viewModel = viewModel,
-                onOpen = { ev -> openId = ev.id },
-                onQuickWatch = ::quickWatch,
-                onPick = { sportsPreferences = true }
-            )
         }
         // The picture, on top of the page where its slot is (one view for every page, so it
         // never restarts), then the rounded corners and the "nothing playing" note over it.
-        if (videoOn) VideoLayer(slot, root, playerRef ?: viewModel.player, playing = previewState.hasPreviewContent, label = previewState.catchupTitle ?: viewModel.playback.playingChannel?.name, backdrop = backdrop, onAttached = { viewModel.onSurfaceAttached() })
+        if (surfaceOn) VideoLayer(slot, root, playerRef, playing = previewState.hasPreviewContent,
+            label = previewState.catchupTitle ?: viewModel.playback.playingChannel?.name, backdrop = backdrop,
+            fullscreen = fullscreen, focused = previewFocused,
+            aspectMode = if (fullscreen) com.nuvio.tv.livetv.ui.aspectModeOf(liveSettings.aspectMode) else null,
+            pictureShape = com.nuvio.tv.livetv.player.PictureShape.of(previewState.channelKey?.let { pictureShapes[it] }),
+            onAttached = { viewModel.onSurfaceAttached() })
+        if (fullscreen) {
+            com.nuvio.tv.livetv.ui.LiveTvPlayerScreen(
+                onBack = { fullscreen = false },
+                onBackToGroups = { fullscreen = false; onOpenGuide() },
+                onFindInNuvio = { fullscreen = false; onFindInNuvio() },
+                onOpenSettings = { fullscreen = false; onOpenSettings() },
+                embedded = true
+            )
+        }
     }
     if (sportsPreferences) SportsPreferencesDialog(settings.excludedSportsNodes,
         region = SportsCatalog.regionOf(settings), onRegion = { region -> viewModel.repo.updateSettings { it.copy(region = region) } },
@@ -420,22 +479,26 @@ private fun VideoSlot(modifier: Modifier, onBounds: (Rect?) -> Unit) {
 }
 
 @Composable
-private fun VideoLayer(slot: Rect?, root: Rect?, player: androidx.media3.common.Player?, playing: Boolean, label: String?, backdrop: String, onAttached: () -> Unit) {
+private fun VideoLayer(slot: Rect?, root: Rect?, player: androidx.media3.common.Player?, playing: Boolean, label: String?, backdrop: String,
+    fullscreen: Boolean, focused: Boolean, aspectMode: com.nuvio.tv.ui.screens.player.AspectMode?,
+    pictureShape: com.nuvio.tv.livetv.player.PictureShape, onAttached: () -> Unit) {
     val density = LocalDensity.current
     val placed = slot != null && root != null && slot.width > 1f
-    val place = if (placed) with(density) {
+    val place = if (fullscreen) Modifier.fillMaxSize().background(Color.Black) else if (placed) with(density) {
         Modifier
             .offset { IntOffset((slot!!.left - root!!.left).toInt(), (slot.top - root.top).toInt()) }
             .size(slot!!.width.toDp(), slot.height.toDp())
     } else Modifier.size(1.dp)
-    LivePlayerSurface(player = player, useSurfaceView = true, modifier = place, onAttached = onAttached)
-    if (!placed) return
+    LivePlayerSurface(player = player, useSurfaceView = true, modifier = place, onAttached = onAttached,
+        aspectMode = aspectMode, pictureShape = pictureShape)
+    if (fullscreen || !placed) return
     val bg = NuvioTheme.colors.Background
     val backdropResolved = com.nuvio.tv.livetv.ui.resolveBackdrop(backdrop)
     val accent = NuvioTheme.colors.Secondary
     val glowTop = NuvioTheme.colors.BackgroundElevated
     Box(
         place
+            .border(if (focused) 3.dp else 0.dp, if (focused) NuvioTheme.colors.Secondary else Color.Transparent, RoundedCornerShape(14.dp))
             .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
             .drawBehind {
                 // Rounded corners: exactly what's behind them (the page colour and the glow) over
@@ -500,6 +563,7 @@ private fun SportsHub(
     returnTo: String?,
     onReturned: () -> Unit,
     videoSlot: @Composable (Modifier) -> Unit,
+    previewFocus: FocusRequester?,
     viewModel: SportsViewModel,
     onOpen: (SportsEvent) -> Unit,
     onQuickWatch: (SportsEvent) -> Unit,
@@ -725,6 +789,7 @@ private fun SportsHub(
             listState = listState,
             firstContent = firstContent,
             requesterFor = requesterFor,
+            previewFocus = previewFocus,
             emptyChip = effectiveChip,
             byDate = leagueView != null,
             anyToday = dayEvents.isNotEmpty(),
@@ -737,7 +802,11 @@ private fun SportsHub(
 
     // Where your teams stand ("2nd in Premier League", by their rows' names): their leagues' tables.
     val tables by viewModel.repo.standings.collectAsStateWithLifecycle()
-    LaunchedEffect(follows.teams, settings.hideScores) { if (!settings.hideScores) viewModel.repo.loadTeamTables() }
+    LaunchedEffect(follows.teams, settings.hideScores) {
+        viewModel.repo.backgroundAllowed.collectLatest { allowed ->
+            if (allowed && !settings.hideScores) viewModel.repo.loadTeamTables()
+        }
+    }
     val places = remember(tables, follows, settings.hideScores) {
         if (settings.hideScores) emptyMap()
         else follows.teams.mapNotNull { t -> tables[t.leagueId]?.placeText(t.teamId)?.let { t.key to it } }.toMap()
@@ -785,6 +854,7 @@ private fun SportsHub(
                 playingKey = playingKey,
                 videoOn = videoOn,
                 videoSlot = videoSlot,
+                previewFocus = previewFocus,
                 header = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         LiveText("Sports", size = 26.sp, weight = FontWeight.Black)
@@ -869,6 +939,7 @@ private fun GameList(
     listState: androidx.compose.foundation.lazy.LazyListState,
     firstContent: FocusRequester,
     requesterFor: (String) -> FocusRequester,
+    previewFocus: FocusRequester?,
     emptyChip: String,
     byDate: Boolean,
     anyToday: Boolean,
@@ -880,9 +951,9 @@ private fun GameList(
     fun playing(ev: SportsEvent) = playingKey != null && matches[ev.id]?.any { it.channel.key == playingKey } == true
     LazyColumn(
         state = listState,
-        // Nothing to the right of the list (the video window isn't a button): Right stays put
-        // instead of jumping up to the day tabs.
-        modifier = modifier.keepFocusWhileHeld(neverRight = true),
+        // The occupied video window is a remote target; an empty window is not.
+        modifier = modifier.keepFocusWhileHeld(neverRight = previewFocus == null)
+            .focusProperties { previewFocus?.let { right = it } },
         // Room for the highlight's glow and bigger size at the edges.
         contentPadding = PaddingValues(start = 8.dp, end = 10.dp, top = 2.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -1129,6 +1200,7 @@ private fun GamePage(
     videoOn: Boolean,
     playingKey: String?,
     videoSlot: @Composable (Modifier) -> Unit,
+    previewFocus: FocusRequester?,
     viewModel: SportsViewModel,
     onChoose: (ChannelMatch) -> Unit,
     onFromStart: (ChannelMatch) -> Unit,
@@ -1147,12 +1219,15 @@ private fun GamePage(
     val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     LaunchedEffect(ev.id, owner) {
         owner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
-            runCatching { viewModel.repo.loadEventChannels(ev) }
-            runCatching { viewModel.repo.loadBroadcasts(ev) }
-            runCatching { viewModel.repo.loadEventChannels(ev) }
-            while (true) {
-                runCatching { viewModel.repo.refreshFreeEvent(ev) }
-                delay(90_000)
+            viewModel.repo.browsingAllowed.collectLatest { allowed ->
+                if (!allowed) return@collectLatest
+                sportsCatching { viewModel.repo.loadEventChannels(ev) }
+                sportsCatching { viewModel.repo.loadBroadcasts(ev) }
+                sportsCatching { viewModel.repo.loadEventChannels(ev) }
+                while (true) {
+                    sportsCatching { viewModel.repo.refreshFreeEvent(ev) }
+                    delay(90_000)
+                }
             }
         }
     }
@@ -1231,7 +1306,12 @@ private fun GamePage(
                         now = now,
                         eventStartMs = ev.startMs,
                         use24h = use24h,
-                        modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
+                        modifier = (if (i == 0) Modifier.focusRequester(first) else Modifier).focusProperties {
+                            previewFocus?.let { preview ->
+                                right = preview
+                                if (i == 0) up = preview
+                            }
+                        },
                         onClick = { onChoose(m) }
                     )
                 }
@@ -1651,11 +1731,14 @@ private fun rememberScoringPlays(ev: SportsEvent, hideScores: Boolean, viewModel
     val latest = androidx.compose.runtime.rememberUpdatedState(ev)
     LaunchedEffect(ev.id, ev.state, ev.away?.score, ev.home?.score, hideScores) {
         if (hideScores) return@LaunchedEffect
-        while (true) {
-            val e = latest.value
-            if (e.state != GameState.PRE) plays = viewModel.plays(e)
-            if (e.state != GameState.LIVE) break
-            delay(30_000)
+        viewModel.repo.browsingAllowed.collectLatest { allowed ->
+            if (!allowed) return@collectLatest
+            while (true) {
+                val e = latest.value
+                if (e.state != GameState.PRE) plays = viewModel.plays(e)
+                if (e.state != GameState.LIVE) break
+                delay(30_000)
+            }
         }
     }
     return plays

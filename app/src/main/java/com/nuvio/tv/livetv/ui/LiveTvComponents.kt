@@ -606,10 +606,14 @@ internal fun LivePlayerSurface(
     AndroidView(
         modifier = modifier,
         factory = { ctx ->
-            (LayoutInflater.from(ctx).inflate(layout, null) as PlayerView).also { viewRef = it }
+            (LayoutInflater.from(ctx).inflate(layout, null) as PlayerView).also {
+                viewRef = it
+                if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) android.util.Log.i("LiveTvSurface", "Created view=${System.identityHashCode(it)}")
+            }
         },
         update = { view ->
             if (view.player !== player) {
+                if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) android.util.Log.i("LiveTvSurface", "Bind view=${System.identityHashCode(view)} player=${player?.let(System::identityHashCode)}")
                 view.player = player
                 if (player != null) onAttached()
             }
@@ -635,7 +639,10 @@ internal fun LivePlayerSurface(
     }
     androidx.compose.runtime.LaunchedEffect(pictureShape, aspectMode) { viewRef?.let { reshape(it) } }
     DisposableEffect(Unit) {
-        onDispose { viewRef?.player = null }
+        onDispose {
+            if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) android.util.Log.i("LiveTvSurface", "Disposed view=${viewRef?.let(System::identityHashCode)}")
+            viewRef?.player = null
+        }
     }
 }
 

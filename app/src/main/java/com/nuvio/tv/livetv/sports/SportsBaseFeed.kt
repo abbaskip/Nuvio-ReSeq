@@ -1,5 +1,7 @@
 package com.nuvio.tv.livetv.sports
 
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
@@ -56,7 +58,7 @@ internal class SportsBaseFeed(
         runCatching {
             val request = Request.Builder().url(url).header("Accept", "application/json")
                 .apply { if (cached() != null) etag?.let { header("If-None-Match", it) } }.build()
-            http.newCall(request).execute().use { response ->
+            http.newCall(request).consumeSportsResponse { response ->
                 if (response.code == 304) {
                     require(cached() != null)
                 } else {
@@ -87,7 +89,13 @@ internal class SportsBaseFeed(
                     put("url", url); put("checkedAt", now); etag?.let { put("etag", it) }
                 }.toString())
             }
+        }.onFailure {
+            if (it is kotlinx.coroutines.CancellationException) {
+                nextAttempt = 0L
+                throw it
+            }
         }
+        currentCoroutineContext().ensureActive()
         cached()
     }
 

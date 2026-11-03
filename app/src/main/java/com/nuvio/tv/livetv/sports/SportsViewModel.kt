@@ -27,6 +27,10 @@ class SportsViewModel @Inject constructor(
     liveRepo: LiveTvRepository,
     private val recordings: com.nuvio.tv.livetv.record.LiveTvRecordingScheduler
 ) : ViewModel() {
+    val liveSettings = livePrefs.settings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.nuvio.tv.livetv.model.LiveTvSettings())
+    val pictureShapes = livePrefs.pictureShapes
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
     val settings = repo.settings
     val follows = repo.follows
     val events = repo.events

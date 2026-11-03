@@ -2,6 +2,8 @@ package com.nuvio.tv.livetv.player
 
 import java.io.File
 import java.io.FileOutputStream
+import java.io.BufferedOutputStream
+import java.io.OutputStream
 
 /**
  * Cuts a live MPEG-TS stream into short pieces with a local HLS playlist, as it arrives, so a
@@ -21,6 +23,8 @@ class TsSegmenter(
     private val dir: File,
     private val targetSec: Double = 6.0,
     private val keepSec: Double? = null,
+    /** Rewind uses short bounded pieces; normal recordings retain their existing clean-cut policy. */
+    private val fixedTargetDurationSec: Int? = null,
     /** A piece was saved (its length in seconds); the playlist is already updated. */
     private val onSegment: (Double) -> Unit = {}
 ) {
@@ -29,6 +33,7 @@ class TsSegmenter(
     val playlist: File = File(dir, "index.m3u8")
 
     private val pieces = ArrayList<Piece>()
+    private var discontinuitySequence = 0L
     @Volatile var trimmedSec: Double = 0.0
         private set
     @Volatile var totalSec: Double = 0.0
@@ -47,7 +52,7 @@ class TsSegmenter(
 
     // The piece being written.
     private var seq = 0L
-    private var out: FileOutputStream? = null
+    private var out: OutputStream? = null
     private var outFile: File? = null
     private var pieceStartPcr = -1L
     private var lastPcr = -1L
@@ -55,6 +60,7 @@ class TsSegmenter(
     private var pieceBytes = 0L
     private var pieceDiscontinuity = false
 
+    @Synchronized
     fun write(buf: ByteArray, off: Int, len: Int) {
         var i = off
         val end = off + len
@@ -81,6 +87,7 @@ class TsSegmenter(
      * The connection dropped and a new one is starting: close the current piece and mark the
      * next as a fresh start (its clock starts over), so the player carries on across the gap.
      */
+    @Synchronized
     fun reconnected() {
         closePiece()
         synced = false
@@ -91,6 +98,7 @@ class TsSegmenter(
     private var nextIsDiscontinuity = false
 
     /** Closes the last piece and marks the playlist finished (no more to come). */
+    @Synchronized
     fun finish(ended: Boolean = true) {
         closePiece()
         writePlaylist(ended)
@@ -121,7 +129,14 @@ class TsSegmenter(
         }
         if (pcr >= 0 && (pcrPid < 0 || pid == pcrPid)) {
             if (pcrPid < 0) pcrPid = pid
+            // A provider clock reset/jump is a new timeline, not a very long segment.
+            // Close against the previous clock before accepting the new timestamp.
+            if (lastPcr >= 0 && (pcr < lastPcr || pcr - lastPcr > 180_000L)) {
+                closePiece()
+                nextIsDiscontinuity = pieces.isNotEmpty()
+            }
             lastPcr = pcr
+            if (out != null && pieceStartPcr < 0) pieceStartPcr = pcr
         }
 
         // Time to start a new piece?
@@ -133,8 +148,9 @@ class TsSegmenter(
             val len = currentLengthSec()
             val target = if (pieces.isEmpty()) 2.0 else targetSec
             val cleanCut = randomAccess && len >= target
-            val forcedCut = len >= target * 2 && pusi && pid == pcrPid
-            if (cleanCut || forcedCut || len >= target * 3) {
+            val forcedCut = len >= (if (fixedTargetDurationSec != null) target else target * 2) && pusi && pid == pcrPid
+            val hardLimit = fixedTargetDurationSec?.toDouble() ?: (target * 3)
+            if (cleanCut || forcedCut || len >= hardLimit) {
                 closePiece()
                 openPiece()
             }
@@ -154,7 +170,7 @@ class TsSegmenter(
     private fun openPiece() {
         val f = File(dir, "seg$seq.ts")
         outFile = f
-        out = FileOutputStream(f).also { o ->
+        out = BufferedOutputStream(FileOutputStream(f), 128 * 1024).also { o ->
             pat?.let { o.write(it) }
             pmts.values.forEach { o.write(it) }
         }
@@ -181,6 +197,7 @@ class TsSegmenter(
             var kept = pieces.sumOf { it.durationSec }
             while (pieces.size > 3 && kept > keep) {
                 val first = pieces.removeAt(0)
+                if (first.discontinuity) discontinuitySequence++
                 kept -= first.durationSec
                 trimmedSec += first.durationSec
                 runCatching { File(dir, first.name).delete() }
@@ -195,10 +212,11 @@ class TsSegmenter(
         // A steady target length from the start (pieces can run longer than planned when the
         // stream rarely marks a clean cut): a target that grows mid-way, or pieces longer than
         // it, made the player think the playlist had stalled and give up.
-        val target = maxOf(20, kotlin.math.ceil(pieces.maxOf { it.durationSec }).toInt())
+        val target = maxOf(fixedTargetDurationSec ?: 20, kotlin.math.ceil(pieces.maxOf { it.durationSec }).toInt())
         val sb = StringBuilder()
         sb.append("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:").append(target).append('\n')
         sb.append("#EXT-X-MEDIA-SEQUENCE:").append(pieces.first().seq).append('\n')
+        sb.append("#EXT-X-DISCONTINUITY-SEQUENCE:").append(discontinuitySequence).append('\n')
         // A rewind buffer drops its oldest pieces, which an "EVENT" playlist isn't allowed to do.
         if (keepSec == null) sb.append("#EXT-X-PLAYLIST-TYPE:EVENT\n")
         pieces.forEach { pc ->

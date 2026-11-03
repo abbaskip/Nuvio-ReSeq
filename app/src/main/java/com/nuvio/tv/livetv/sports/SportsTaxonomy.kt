@@ -152,11 +152,12 @@ internal object SportsTaxonomy {
         }
     }
     val leagueById by lazy { leagues.associateBy { it.id } }
-    val leagues by lazy { nodes.map { n -> League("taxonomy/" + n.id, sport(n.sportId), n.label, n.label,
+    val leagues by lazy { nodes.map { n -> League("taxonomy/" + n.id, sport(n.sportId),
+        if (n.children.isEmpty()) n.label else "All " + n.label, n.label,
         kind = LeagueKind.EVENT, guideWords = n.aliases.map { it.term }, guideOnly = true) } }
     /** Following a taxonomy sport/category also includes its child competitions. */
     fun includesLeague(followedId: String, candidateId: String): Boolean {
-        if (followedId == candidateId) return true
+        if (SportsCompetitions.same(followedId, candidateId)) return true
         val parent = when {
             followedId.startsWith("taxonomy/") -> byId[followedId.removePrefix("taxonomy/")]
             followedId.startsWith("guide/") -> roots.firstOrNull { it.id == followedId.removePrefix("guide/") }

@@ -1,5 +1,7 @@
 package com.nuvio.tv.ui.components
 
+import com.nuvio.tv.ui.screens.home.tvMixPreview
+
 import com.nuvio.tv.ui.screens.home.shuffleFocusKey
 
 import android.view.KeyEvent as AndroidKeyEvent
@@ -1178,6 +1180,8 @@ fun ContinueWatchingOptionsDialog(
                 Text(stringResource(R.string.cw_action_start_from_beginning))
             }
         }
+
+        remember(item) { item.tvMixPreview() }?.let { com.nuvio.tv.ui.screens.tvmix.AddToMixAction(it) }
 
         Button(
             onClick = onRemove,

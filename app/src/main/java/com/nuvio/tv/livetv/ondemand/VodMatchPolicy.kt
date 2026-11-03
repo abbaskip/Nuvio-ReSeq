@@ -60,8 +60,8 @@ internal object VodMatchPolicy {
         }
     }
 
-    private val filenameNumber = Regex("""(?i)(?<![\p{L}\p{N}])S\s*(\d{1,3})\s*E\s*(\d{1,4})(?![\p{L}\p{N}])""")
-    private val additionalEpisode = Regex("""(?i)^[\s._]*(?:[-+&][\s._]*(?:E\s*)?\d+\b|E\s*\d+\b)""")
+    private val filenameNumber = Regex("""(?i)(?<![\p{L}\p{N}])S\s*(\d{1,3})[\s._\-\u2010-\u2015]*E\s*(\d{1,4})(?![\p{L}\p{N}])""")
+    private val additionalEpisode = Regex("""(?i)^[\s._]*(?:[-+&\u2010-\u2015][\s._]*(?:E\s*)?\d+\b|E\s*\d+\b)""")
     private fun filenameCoordinates(title: String): EpisodeCoordinates? {
         val match = filenameNumber.findAll(title).singleOrNull() ?: return null
         // A range or multi-episode file cannot safely stand in for one selected episode.
@@ -77,7 +77,7 @@ internal object VodMatchPolicy {
                 episode.tvdbId != target.selectedTvdbEpisodeId &&
                 (target.tvdbEpisodeIds.size != 1 || episode.tvdbId !in target.tvdbEpisodeIds)
 
-    private val coordinates = Regex("""(?i)(?<![\p{L}\p{N}])(?:S\s*\d{1,3}\s*E\s*\d{1,4}|\d{1,3}x\d{1,4}|season\s*\d+\s*episode\s*\d+)(?![\p{L}\p{N}])""")
+    private val coordinates = Regex("""(?i)(?<![\p{L}\p{N}])(?:S\s*\d{1,3}[\s._\-\u2010-\u2015]*E\s*\d{1,4}|\d{1,3}x\d{1,4}|season\s*\d+\s*episode\s*\d+)(?![\p{L}\p{N}])""")
     private val edition = Regex("""(?i)\s*[\[(](?:extended(?: cut| edition)?|uncut|director's cut)[\])]\s*""")
     private val part = Regex("""(?i)\((\d+)\)|\bpart\s*(\d+)\b""")
     private val generic = Regex("""(?:episode|ep|part|chapter|episodio|folge|capitulo|odcinek)?\d*""")

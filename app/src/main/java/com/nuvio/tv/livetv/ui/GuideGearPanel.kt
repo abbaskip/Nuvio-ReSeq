@@ -53,6 +53,8 @@ internal fun GuideGearPanel(
     settings: LiveTvSettings,
     onChange: ((LiveTvSettings) -> LiveTvSettings) -> Unit,
     onSettings: () -> Unit,
+    onManageGroups: () -> Unit,
+    onShowAllGroups: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val first = remember { FocusRequester() }
@@ -98,9 +100,19 @@ internal fun GuideGearPanel(
                 modifier = Modifier.padding(start = 10.dp, top = 8.dp, bottom = 2.dp)
             )
             Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+                heading("Groups")
+                GearRow(Modifier.fillMaxWidth().focusRequester(first), onClick = onManageGroups) { focused ->
+                    LiveText("Manage group visibility", size = 13.sp, color = gearText(focused))
+                }
+                GearRow(Modifier.fillMaxWidth(), onClick = onShowAllGroups) { focused ->
+                    Column {
+                        LiveText("Show all groups", size = 13.sp, color = gearText(focused))
+                        LiveText("Restore hidden groups for this profile", size = 10.sp, color = gearText(focused, dim = true))
+                    }
+                }
                 heading("Info panel")
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    toggle(Modifier.weight(1f).focusRequester(first), "Show info panel", "Off hides all of it", settings.showProgramDetails) {
+                    toggle(Modifier.weight(1f), "Show info panel", "Off hides all of it", settings.showProgramDetails) {
                         onChange { it.copy(showProgramDetails = !it.showProgramDetails) }
                     }
                     toggle(Modifier.weight(1f), "Poster", "Off: channel logo", settings.showPosters) {

@@ -77,8 +77,9 @@ class SportsRepository @Inject constructor(
         .map { SportsSettings.fromJson(it) }
         .stateIn(scope, SharingStarted.Eagerly, SportsSettings())
 
-    val follows: StateFlow<SportsFollows> = prefs.sportsMineJson
-        .map { SportsFollows.fromJson(it) }
+    val follows: StateFlow<SportsFollows> = combine(prefs.sportsMineJson, SportsCatalog.extraFlow) { raw, _ ->
+            SportsCompetitions.follows(SportsFollows.fromJson(raw))
+        }
         .stateIn(scope, SharingStarted.Eagerly, SportsFollows())
 
     private class LeagueData(val events: List<SportsEvent>, val fetchedAt: Long, val error: String?)
@@ -348,7 +349,7 @@ class SportsRepository @Inject constructor(
         f.teams.forEach { t -> out += t.leagueId; out += SportsCatalog.relatedLeagues(t.leagueId) }
         out += f.leagues
         out += f.pins
-        return out
+        return (out + out.flatMap { SportsCompetitions.sources(it).map(League::id) }).toSet()
     }
 
     private fun isMine(l: League, f: SportsFollows) = l.id in followedLeagueIds(f)
@@ -729,7 +730,7 @@ class SportsRepository @Inject constructor(
                 ?.second?.let { applyFreeLeagues(it) }
         }
         val selected = SportsCatalog.all.filter { SportsTaxonomy.accepts(it, settings.value.excludedSportsNodes) }.map { it.sport }.toSet()
-        for (sport in FreeSportsDb.discoverySports.filterKeys { it in selected }.values.distinct()) {
+        for (sport in FreeSportsDb.discoverySports.filterKeys { it in selected }.values.flatten().distinct()) {
             if (!foreground.value || viewers.value == 0) return
             freeCached("discovery_${safe(sport)}", 24 * HOUR) { freeDb.get("search_all_leagues.php", "s" to sport) }
                 ?.second?.let { applyFreeLeagues(it) }
@@ -1396,6 +1397,13 @@ class SportsRepository @Inject constructor(
     }
 
     suspend fun teams(league: League): List<TeamInfo> = withContext(Dispatchers.IO) {
+        val loaded = SportsCompetitions.sources(league.id).filter {
+            it.espnPath != null || (it.id.startsWith("tsdb/") && it.kind == LeagueKind.TEAMS)
+        }.flatMap { sourceTeams(it) }
+        SportsCompetitions.teams(league.id, loaded, follows.value)
+    }
+
+    private suspend fun sourceTeams(league: League): List<TeamInfo> = withContext(Dispatchers.IO) {
         if (league.id.startsWith("tsdb/")) {
             if (tsdbTeams[league.id] == null) {
                 freeCached("teams_${safe(league.id)}", 24 * HOUR) {
@@ -1468,7 +1476,9 @@ class SportsRepository @Inject constructor(
 
     fun updateFollows(transform: (SportsFollows) -> SportsFollows) {
         scope.launch {
-            prefs.editSportsMine { raw -> transform(SportsFollows.fromJson(raw)).toJson() }
+            prefs.editSportsMine { raw ->
+                SportsCompetitions.follows(transform(SportsCompetitions.follows(SportsFollows.fromJson(raw)))).toJson()
+            }
             kick.value++
         }
     }
@@ -1494,8 +1504,9 @@ class SportsRepository @Inject constructor(
 
     /** A league's own button on the Sports top bar (and its row under My Teams): on or off. */
     fun togglePin(leagueId: String) = updateFollows { f ->
-        if (leagueId in f.pins) f.copy(pins = f.pins - leagueId, unpinned = f.unpinned + leagueId)
-        else f.copy(pins = f.pins + leagueId, unpinned = f.unpinned - leagueId, setUp = true)
+        val id = SportsCompetitions.canonicalId(leagueId)
+        if (id in f.pins) f.copy(pins = f.pins - id, unpinned = f.unpinned + id)
+        else f.copy(pins = f.pins + id, unpinned = f.unpinned - id, setUp = true)
     }
 
     fun toggleLeague(leagueId: String) = updateFollows { f ->

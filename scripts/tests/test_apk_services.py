@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 import zipfile
 
-from verify_apk_services import REQUIRED, verify
+from verify_apk_services import REQUIRED, verify, verify_backend
 
 
 def fixture_dex(strings):
@@ -76,6 +76,24 @@ class ApkServicesTest(unittest.TestCase):
         forbidden = "fixture-excluded-personal-key"
         with self.assertRaisesRegex(ValueError, "Excluded personal TMDB"):
             verify(self.apks(list(self.values.values()) + [forbidden]), self.values, forbidden)
+
+    def test_multiple_excluded_tmdb_credentials_are_checked_without_exposing_values(self):
+        forbidden = ["fixture-personal-key", "fixture-personal-token"]
+        with self.assertRaisesRegex(ValueError, "Excluded personal TMDB"):
+            verify(self.apks(list(self.values.values()) + [forbidden[1]]), self.values, forbidden)
+
+    def test_instrumentation_harness_has_its_actual_backend_checked(self):
+        url = self.values["NUVIO_SUPABASE_URL"]
+        key = self.values["NUVIO_SUPABASE_ANON_KEY"]
+        apks = self.apks([url, key])[:1]
+        self.assertTrue(verify_backend(apks, self.values, [])[0]["backend_key_configured"])
+        with self.assertRaisesRegex(ValueError, "missing configured backend"):
+            verify_backend(self.apks([url])[:1], self.values, [])
+
+    def test_underscore_placeholder_backend_key_is_rejected(self):
+        self.values["NUVIO_SUPABASE_ANON_KEY"] = "your_supabase_anon_key_here"
+        with self.assertRaisesRegex(ValueError, "placeholder"):
+            verify(self.apks(), self.values)
 
     def test_missing_architecture_output_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "all five"):

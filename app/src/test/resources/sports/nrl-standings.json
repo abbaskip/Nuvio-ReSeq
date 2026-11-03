@@ -1,0 +1,120 @@
+{
+  "name": "Rugby League",
+  "children": [
+    {
+      "name": "Round-Robin",
+      "standings": {
+        "entries": [
+          {
+            "team": {
+              "id": "289199",
+              "displayName": "Panthers",
+              "shortDisplayName": "Panthers"
+            },
+            "stats": [
+              {
+                "name": "gamesPlayed",
+                "value": 24.0,
+                "displayValue": "24"
+              },
+              {
+                "name": "gamesLost",
+                "value": 6.0,
+                "displayValue": "6"
+              },
+              {
+                "name": "playoffSeed",
+                "value": 1.0,
+                "displayValue": "1"
+              },
+              {
+                "name": "pointsDifference",
+                "value": 336.0,
+                "displayValue": "+336"
+              },
+              {
+                "name": "points",
+                "value": 42.0,
+                "displayValue": "42"
+              },
+              {
+                "name": "gamesDrawn",
+                "value": 0.0,
+                "displayValue": "0"
+              },
+              {
+                "name": "winPercent",
+                "value": 0.75,
+                "displayValue": ".750"
+              },
+              {
+                "name": "gamesWon",
+                "value": 18.0,
+                "displayValue": "18"
+              },
+              {
+                "name": "rank",
+                "value": 1.0,
+                "displayValue": "1"
+              }
+            ]
+          },
+          {
+            "team": {
+              "id": "289201",
+              "displayName": "Warriors",
+              "shortDisplayName": "Warriors"
+            },
+            "stats": [
+              {
+                "name": "gamesPlayed",
+                "value": 24.0,
+                "displayValue": "24"
+              },
+              {
+                "name": "gamesLost",
+                "value": 6.0,
+                "displayValue": "6"
+              },
+              {
+                "name": "playoffSeed",
+                "value": 2.0,
+                "displayValue": "2"
+              },
+              {
+                "name": "pointsDifference",
+                "value": 310.0,
+                "displayValue": "+310"
+              },
+              {
+                "name": "points",
+                "value": 42.0,
+                "displayValue": "42"
+              },
+              {
+                "name": "gamesDrawn",
+                "value": 0.0,
+                "displayValue": "0"
+              },
+              {
+                "name": "winPercent",
+                "value": 0.75,
+                "displayValue": ".750"
+              },
+              {
+                "name": "gamesWon",
+                "value": 18.0,
+                "displayValue": "18"
+              },
+              {
+                "name": "rank",
+                "value": 2.0,
+                "displayValue": "2"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

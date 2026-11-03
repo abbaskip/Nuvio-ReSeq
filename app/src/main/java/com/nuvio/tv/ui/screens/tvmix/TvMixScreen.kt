@@ -54,32 +54,36 @@ fun TvMixArtwork(encoded: String, title: String, modifier: Modifier = Modifier) 
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun AddToMixAction(item: MetaPreview, viewModel: TvMixViewModel = hiltViewModel()) {
+fun AddToMixAction(item: MetaPreview) {
     var picker by remember { mutableStateOf(false) }
+    Button(onClick = { picker = true }, modifier = Modifier.fillMaxWidth()) { Text("Add to mix") }
+    if (picker) TvMixPicker(item, onDismiss = { picker = false })
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun TvMixPicker(item: MetaPreview, onDismiss: () -> Unit, viewModel: TvMixViewModel = hiltViewModel()) {
     var creating by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     val mixes by viewModel.mixes.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Button(onClick = { picker = true }, modifier = Modifier.fillMaxWidth()) { Text("Add to mix") }
-    if (picker) {
-        val focus = remember { FocusRequester() }
-        LaunchedEffect(creating) { focus.requestFocus() }
-        NuvioDialog(title = "Add ${item.name} to mix", onDismiss = { picker = false; creating = false }) {
-            if (state.error != null) Text(state.error!!)
-            if (creating) {
-                OutlinedTextField(value = name, onValueChange = { name = it.take(100) }, singleLine = true,
-                    label = { Text("Mix name") }, modifier = Modifier.fillMaxWidth().focusRequester(focus))
-                Button(onClick = { viewModel.add(item, null, name) { picker = false; creating = false; name = "" } },
-                    enabled = name.isNotBlank() && !state.saving) { Text("Save and add show") }
-            } else {
-                Button(onClick = { creating = true }, modifier = Modifier.fillMaxWidth().focusRequester(focus)) { Text("Create new mix") }
-                LazyColumn(Modifier.heightIn(max = 300.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(mixes, key = { it.id }) { mix ->
-                        val included = mix.shows.any { it.sameShow(TvMixShow(item.id, item.name, imdbId = item.imdbId)) }
-                        Button(onClick = { viewModel.add(item, mix.id, "") { picker = false } },
-                            enabled = !included && !state.saving, modifier = Modifier.fillMaxWidth()) {
-                            Text(mix.name + if (included) " (already added)" else "")
-                        }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(creating) { focus.requestFocus() }
+    NuvioDialog(title = "Add ${item.name} to mix", onDismiss = { onDismiss() }) {
+        if (state.error != null) Text(state.error!!)
+        if (creating) {
+            OutlinedTextField(value = name, onValueChange = { name = it.take(100) }, singleLine = true,
+                label = { Text("Mix name") }, modifier = Modifier.fillMaxWidth().focusRequester(focus))
+            Button(onClick = { viewModel.add(item, null, name) { onDismiss() } },
+                enabled = name.isNotBlank() && !state.saving) { Text("Save and add show") }
+        } else {
+            Button(onClick = { creating = true }, modifier = Modifier.fillMaxWidth().focusRequester(focus)) { Text("Create new mix") }
+            LazyColumn(Modifier.heightIn(max = 300.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(mixes, key = { it.id }) { mix ->
+                    val included = mix.shows.any { it.sameShow(TvMixShow(item.id, item.name, imdbId = item.imdbId)) }
+                    Button(onClick = { viewModel.add(item, mix.id, "") { onDismiss() } },
+                        enabled = !included && !state.saving, modifier = Modifier.fillMaxWidth()) {
+                        Text(mix.name + if (included) " (already added)" else "")
                     }
                 }
             }

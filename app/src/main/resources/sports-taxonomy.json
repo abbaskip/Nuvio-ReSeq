@@ -85,7 +85,7 @@
           "subcategories": [
             {
               "id": "cricket.tests-first-class.test-cricket",
-              "display": "Test Cricket",
+              "display": "Test Matches",
               "synonyms": [
                 {
                   "term": "Test Cricket",
@@ -317,7 +317,7 @@
           "subcategories": [
             {
               "id": "cricket.odi-one-day.odi-internationals",
-              "display": "ODI Internationals",
+              "display": "ODIs",
               "synonyms": [
                 {
                   "term": "ODI Internationals",
@@ -785,6 +785,14 @@
               "synonyms": [
                 {
                   "term": "Big Bash League",
+                  "match": "standalone"
+                },
+                {
+                  "term": "Australian Big Bash League",
+                  "match": "standalone"
+                },
+                {
+                  "term": "KFC Big Bash League",
                   "match": "standalone"
                 },
                 {
@@ -8245,7 +8253,7 @@
     },
     {
       "id": "billiards-cue-sports",
-      "display": "Billiards / Cue Sports",
+      "display": "Cue Sports",
       "synonyms": [
         {
           "term": "Billiards / Cue Sports",

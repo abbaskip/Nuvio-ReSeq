@@ -187,7 +187,8 @@ data class Standings(
             val kind = when {
                 athletes -> StandingsKind.RACING
                 "otLosses" in statNames -> StandingsKind.HOCKEY
-                league.sport == Sport.FOOTBALL || ("points" in statNames && "ties" in statNames && "winPercent" !in statNames) -> StandingsKind.TABLE
+                league.sport == Sport.FOOTBALL || league.sport == Sport.RUGBY_LEAGUE ||
+                    ("points" in statNames && "ties" in statNames && "winPercent" !in statNames) -> StandingsKind.TABLE
                 else -> StandingsKind.RECORD
             }
             val groups = used.map { (name, parent, node) ->
@@ -196,7 +197,9 @@ data class Standings(
             }
             val anyTies = groups.any { g -> g.rows.any { (it.values["ties"] ?: "0").let { t -> t != "0" && t.isNotBlank() } } }
             val columns = when (kind) {
-                StandingsKind.TABLE -> listOf(c("gamesPlayed", "P"), c("wins", "W"), c("ties", "D"), c("losses", "L"), c("pointDifferential", "GD"), c("points", "PTS"))
+                StandingsKind.TABLE -> if (league.sport == Sport.RUGBY_LEAGUE) {
+                    listOf(c("gamesPlayed", "P"), c("wins", "W"), c("losses", "L"), c("ties", "D"), c("pointDifferential", "PD"), c("points", "PTS"))
+                } else listOf(c("gamesPlayed", "P"), c("wins", "W"), c("ties", "D"), c("losses", "L"), c("pointDifferential", "GD"), c("points", "PTS"))
                 StandingsKind.HOCKEY -> listOf(c("gamesPlayed", "GP"), c("wins", "W"), c("losses", "L"), c("otLosses", "OTL"), c("points", "PTS"), c("streak", "STRK"))
                 StandingsKind.RACING -> listOf(c("points", "PTS"), c("behind", "BEHIND"))
                 StandingsKind.RECORD -> listOfNotNull(c("wins", "W"), c("losses", "L"), if (anyTies) c("ties", "T") else null, c("winPercent", "PCT"), c("gamesBehind", "GB"), c("streak", "STRK"))
@@ -210,8 +213,14 @@ data class Standings(
 
         private fun parseEntries(entries: List<JSONObject>, kind: StandingsKind): List<StandingsRow> {
             val rows = entries.mapNotNull { e -> runCatching { parseEntry(e, kind) }.getOrNull() }
-            // In table order: the feed's own rank, else as it gives them (US divisions are in order).
-            val ranked = if (rows.all { it.pos > 0 }) rows.sortedBy { it.pos } else rows
+            // NBA division entries can arrive bottom first without a rank. Use the official
+            // playoff order when available, then the record, rather than the array's order.
+            val ranked = when {
+                rows.all { it.pos > 0 } -> rows.sortedBy { it.pos }
+                kind == StandingsKind.RECORD && rows.all { it.seed != null } -> rows.sortedBy { it.seed }
+                kind == StandingsKind.RECORD -> rows.sortedByDescending { it.sortValue }
+                else -> rows
+            }
             val withPos = ranked.mapIndexed { i, r -> if (r.pos > 0) r else r.copy(pos = i + 1) }
             if (kind != StandingsKind.RACING || withPos.isEmpty()) return withPos
             // Racing: points behind the leader.
@@ -238,6 +247,11 @@ data class Standings(
                     "road", "away" -> road = s.str("summary") ?: s.str("displayValue")
                 }
                 s.str("name")?.let { stats[it] = s }
+            }
+            // Rugby league uses different stat names for the same table columns.
+            for ((key, alias) in listOf("wins" to "gamesWon", "losses" to "gamesLost",
+                "ties" to "gamesDrawn", "pointDifferential" to "pointsDifference")) {
+                if (key !in stats) stats[alias]?.let { stats[key] = it }
             }
             fun shown(name: String): String? = stats[name]?.let { s -> s.str("displayValue")?.trim()?.takeIf { it.isNotEmpty() } }
             fun num(name: String): Double? = stats[name]?.opt("value")?.let { (it as? Number)?.toDouble() ?: it.toString().toDoubleOrNull() }

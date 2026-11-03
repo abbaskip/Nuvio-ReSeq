@@ -45,10 +45,12 @@ def properties(path: Path) -> dict[str, str]:
     return values
 
 
-def verify(apks: list[Path], values: dict[str, str], forbidden: str = "") -> list[dict]:
+def verify(apks: list[Path], values: dict[str, str], forbidden: str | list[str] = "") -> list[dict]:
+    forbidden_values = [forbidden] if isinstance(forbidden, str) else forbidden
     for name in REQUIRED:
         value = values.get(name, "").strip()
-        if not value or any(word in value.lower() for word in PLACEHOLDERS):
+        normalized = value.lower().replace("_", "-").replace(" ", "-")
+        if not value or any(word in normalized for word in PLACEHOLDERS):
             raise ValueError(f"Required application service is missing or a placeholder: {name}")
     for name in ("NUVIO_SUPABASE_URL", "TV_LOGIN_WEB_BASE_URL", "DEVICE_LOGIN_WEB_BASE_URL"):
         url = urlparse(values[name])
@@ -74,7 +76,7 @@ def verify(apks: list[Path], values: dict[str, str], forbidden: str = "") -> lis
         for name in REQUIRED:
             if values[name] not in literals:
                 raise ValueError(f"Actual APK is missing configured service {name}: {apk.name}")
-        if forbidden and forbidden in literals:
+        if any(value and value in literals for value in forbidden_values):
             raise ValueError("Excluded personal TMDB credential found in actual APK")
         fingerprints = {name: hashlib.sha256(data).hexdigest() for name, data in dex.items()}
         if reference is None:
@@ -87,15 +89,46 @@ def verify(apks: list[Path], values: dict[str, str], forbidden: str = "") -> lis
     return results
 
 
+def verify_backend(apks: list[Path], values: dict[str, str], forbidden: list[str]) -> list[dict]:
+    """Instrumentation harnesses carry the same backend without unrelated app services."""
+    if not apks:
+        raise ValueError("No APKs found")
+    url = urlparse(values.get("NUVIO_SUPABASE_URL", ""))
+    key = values.get("NUVIO_SUPABASE_ANON_KEY", "")
+    if (url.scheme not in ("http", "https") or not url.hostname or url.username or
+            url.hostname in ("localhost", "127.0.0.1", "::1") or
+            url.hostname.endswith((".invalid", ".example")) or "example." in url.hostname or len(key) < 20 or
+            any(word in key.lower().replace("_", "-") for word in PLACEHOLDERS)):
+        raise ValueError("Backend configuration is missing or invalid")
+    result = []
+    for apk in apks:
+        with zipfile.ZipFile(apk) as archive:
+            literals = {value for name in archive.namelist() if name.startswith("classes") and name.endswith(".dex")
+                        for value in dex_strings(archive.read(name))}
+        if values["NUVIO_SUPABASE_URL"] not in literals or key not in literals:
+            raise ValueError("Actual test APK is missing configured backend services")
+        if any(value and value in literals for value in forbidden):
+            raise ValueError("Excluded personal TMDB credential found in actual APK")
+        result.append({"apk": apk.name, "backend_url_configured": True, "backend_key_configured": True,
+                       "personal_tmdb_excluded": True, "sha256": hashlib.sha256(apk.read_bytes()).hexdigest()})
+    return result
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--properties", type=Path, required=True)
     parser.add_argument("--apk-dir", type=Path, required=True)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--backend-only", action="store_true")
     args = parser.parse_args()
-    results = verify(sorted(args.apk_dir.glob("*.apk")), properties(args.properties),
-                     os.environ.get("RESEQ_FORBIDDEN_TMDB_KEY", ""))
+    forbidden = [os.environ.get("RESEQ_FORBIDDEN_TMDB_KEY", "")]
+    if os.environ.get("APP_CONFIG"):
+        from ci_app_config import excluded_tmdb_values
+        forbidden.extend(excluded_tmdb_values(os.environ["APP_CONFIG"]))
+    apks = sorted(args.apk_dir.glob("*.apk"))
+    values = properties(args.properties)
+    results = verify_backend(apks, values, forbidden) if args.backend_only else verify(apks, values, forbidden)
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(json.dumps(results, indent=2), encoding="utf-8")
-    print("All five actual APKs contain the configured backend, trackers and Google Drive; values withheld.")
+    print("Actual APK service configuration verified; values withheld.")

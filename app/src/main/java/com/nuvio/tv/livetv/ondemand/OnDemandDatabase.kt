@@ -99,7 +99,7 @@ data class VodCategory(
  */
 @Singleton
 class OnDemandDatabase @Inject constructor(@ApplicationContext private val appContext: Context) :
-    SQLiteOpenHelper(appContext, "livetv_on_demand.db", null, 9) {
+    SQLiteOpenHelper(appContext, "livetv_on_demand.db", null, 10) {
 
     init {
         // Browsing On Demand doesn't wait while an import or genre lookup is writing.
@@ -119,6 +119,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         db.execSQL("CREATE INDEX items_norm ON items(kind, norm)")
         db.execSQL("CREATE INDEX items_tmdb ON items(kind, tmdb)")
         db.execSQL("CREATE INDEX items_added ON items(kind, added)")
+        createImportTable(db)
         createPosterTable(db)
         createPrefixTable(db)
         createPosterFixTable(db)
@@ -163,6 +164,11 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
             createPosterFixTable(db)
             db.execSQL("DELETE FROM posters")
         }
+        if (oldVersion < 10) createImportTable(db)
+    }
+
+    private fun createImportTable(db: SQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS import_seen (session TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY(session, id))")
     }
 
     private fun fixYearsFromNames(db: SQLiteDatabase) {
@@ -364,83 +370,91 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
     }
 
     /**
-     * Brings one provider's catalog of [kind] up to date in a single transaction. Only titles that
-     * are new or changed are written, and titles the provider no longer lists are removed: every
-     * import used to delete and write back the whole catalog (100,000+ titles), even when only a
-     * few had changed. The first import of a catalog writes with the search indexes off and builds
-     * them once at the end, which is much quicker than keeping them up to date title by title.
+     * Commits bounded batches, with network reads outside transactions. Seen IDs live on disk,
+     * rather than two catalog-sized maps in the TV's heap. Only a complete response may remove
+     * old titles; interrupted imports keep both the old catalog and every committed batch.
+     * The producer returns true only after all responses have been read successfully.
      */
-    fun replace(playlistId: String, kind: VodKind, categories: List<Pair<String, String>>, items: Sequence<VodItem>): Int {
+    @Synchronized
+    fun replace(
+        playlistId: String,
+        kind: VodKind,
+        categories: List<Pair<String, String>>,
+        onBatchCommitted: () -> Unit = {},
+        readItems: ((VodItem) -> Unit) -> Boolean
+    ): Int {
         val db = writableDatabase
-        val existing = HashMap<String, Long>()
-        db.rawQuery("SELECT id, h FROM items WHERE pl = ? AND kind = ?", arrayOf(playlistId, kind.key)).use { c ->
-            while (c.moveToNext()) existing[c.getString(0)] = if (c.isNull(1)) 0L else c.getLong(1)
-        }
-        val bulk = existing.isEmpty()
+        val session = java.util.UUID.randomUUID().toString()
+        // A killed process can leave bookkeeping behind, but never an unfinished transaction.
+        db.delete("import_seen", null, null)
         var count = 0
         var written = 0
         var removed = 0
-        db.beginTransaction()
+        fun transaction(block: () -> Unit) {
+            db.beginTransactionNonExclusive()
+            try { block(); db.setTransactionSuccessful() } finally { db.endTransaction() }
+        }
         try {
-            if (bulk) {
-                db.execSQL("DROP INDEX IF EXISTS items_cat")
-                db.execSQL("DROP INDEX IF EXISTS items_norm")
-                db.execSQL("DROP INDEX IF EXISTS items_tmdb")
-                db.execSQL("DROP INDEX IF EXISTS items_added")
-            }
-            db.delete("categories", "pl = ? AND kind = ?", arrayOf(playlistId, kind.key))
-            categories.forEachIndexed { i, (id, name) ->
-                db.insertWithOnConflict("categories", null, ContentValues().apply {
-                    put("pl", playlistId); put("kind", kind.key); put("id", id); put("name", name); put("position", i)
-                }, SQLiteDatabase.CONFLICT_REPLACE)
-            }
-            val stmt = db.compileStatement(
+            db.compileStatement(
                 "INSERT OR REPLACE INTO items (pl, kind, id, name, norm, icon, cat, ext, tmdb, year, rating, added, genre, h) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-            )
-            val seen = HashSet<String>(maxOf(16, existing.size))
-            items.forEach { it ->
-                count++
-                seen.add(it.id)
-                val h = fingerprint(it)
-                if (existing[it.id] == h) return@forEach // unchanged
-                stmt.clearBindings()
-                stmt.bindString(1, playlistId)
-                stmt.bindString(2, kind.key)
-                stmt.bindString(3, it.id)
-                stmt.bindString(4, it.name)
-                stmt.bindString(5, normalize(it.name))
-                it.icon?.let { v -> stmt.bindString(6, v) } ?: stmt.bindNull(6)
-                stmt.bindString(7, it.categoryId)
-                it.ext?.let { v -> stmt.bindString(8, v) } ?: stmt.bindNull(8)
-                it.tmdbId?.let { v -> stmt.bindString(9, v) } ?: stmt.bindNull(9)
-                it.year?.let { v -> stmt.bindLong(10, v.toLong()) } ?: stmt.bindNull(10)
-                it.rating?.let { v -> stmt.bindString(11, v) } ?: stmt.bindNull(11)
-                stmt.bindLong(12, it.addedSec)
-                it.genre?.let { v -> stmt.bindString(13, v) } ?: stmt.bindNull(13)
-                stmt.bindLong(14, h)
-                stmt.executeInsert()
-                existing[it.id] = h // a title listed twice is written once
-                written++
-            }
-            // Titles the provider no longer lists.
-            if (existing.size > seen.size) {
-                val del = db.compileStatement("DELETE FROM items WHERE pl = ? AND kind = ? AND id = ?")
-                existing.keys.filter { it !in seen }.forEach { id ->
-                    del.clearBindings(); del.bindString(1, playlistId); del.bindString(2, kind.key); del.bindString(3, id)
-                    removed += del.executeUpdateDelete()
+            ).use { stmt ->
+                db.compileStatement("SELECT COALESCE((SELECT h FROM items WHERE pl = ? AND kind = ? AND id = ?), 0)").use { fingerprintQuery ->
+                    db.compileStatement("INSERT OR IGNORE INTO import_seen(session, id) VALUES (?, ?)").use { seen ->
+                        val complete = importCatalogBatches<VodItem>(produce = readItems) { batch ->
+                            transaction {
+                                for (item in batch) {
+                                    count++
+                                    seen.clearBindings(); seen.bindString(1, session); seen.bindString(2, item.id)
+                                    seen.executeInsert()
+                                    val h = fingerprint(item)
+                                    fingerprintQuery.clearBindings()
+                                    fingerprintQuery.bindString(1, playlistId)
+                                    fingerprintQuery.bindString(2, kind.key)
+                                    fingerprintQuery.bindString(3, item.id)
+                                    if (fingerprintQuery.simpleQueryForLong() == h) continue
+                                    stmt.clearBindings()
+                                    stmt.bindString(1, playlistId)
+                                    stmt.bindString(2, kind.key)
+                                    stmt.bindString(3, item.id)
+                                    stmt.bindString(4, item.name)
+                                    stmt.bindString(5, normalize(item.name))
+                                    item.icon?.let { stmt.bindString(6, it) } ?: stmt.bindNull(6)
+                                    stmt.bindString(7, item.categoryId)
+                                    item.ext?.let { stmt.bindString(8, it) } ?: stmt.bindNull(8)
+                                    item.tmdbId?.let { stmt.bindString(9, it) } ?: stmt.bindNull(9)
+                                    item.year?.let { stmt.bindLong(10, it.toLong()) } ?: stmt.bindNull(10)
+                                    item.rating?.let { stmt.bindString(11, it) } ?: stmt.bindNull(11)
+                                    stmt.bindLong(12, item.addedSec)
+                                    item.genre?.let { stmt.bindString(13, it) } ?: stmt.bindNull(13)
+                                    stmt.bindLong(14, h)
+                                    stmt.executeInsert()
+                                    written++
+                                }
+                            }
+                            onBatchCommitted()
+                            com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation()
+                        }
+                        transaction {
+                            if (complete) {
+                                removed = db.delete("items",
+                                    "pl = ? AND kind = ? AND NOT EXISTS (SELECT 1 FROM import_seen s WHERE s.session = ? AND s.id = items.id)",
+                                    arrayOf(playlistId, kind.key, session))
+                                // A category endpoint failure must not discard the saved names.
+                                if (categories.isNotEmpty()) db.delete("categories", "pl = ? AND kind = ?", arrayOf(playlistId, kind.key))
+                            }
+                            categories.forEachIndexed { i, (id, name) ->
+                                db.insertWithOnConflict("categories", null, ContentValues().apply {
+                                    put("pl", playlistId); put("kind", kind.key); put("id", id); put("name", name); put("position", i)
+                                }, SQLiteDatabase.CONFLICT_REPLACE)
+                            }
+                        }
+                    }
                 }
             }
-            if (bulk) {
-                db.execSQL("CREATE INDEX IF NOT EXISTS items_cat ON items(kind, pl, cat)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS items_norm ON items(kind, norm)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS items_tmdb ON items(kind, tmdb)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS items_added ON items(kind, added)")
-            }
-            db.setTransactionSuccessful()
         } finally {
-            db.endTransaction()
+            db.delete("import_seen", "session = ?", arrayOf(session))
+            lastChanges = written to removed
         }
-        lastChanges = written to removed
         return count
     }
 

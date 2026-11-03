@@ -9,17 +9,17 @@ import org.json.JSONObject
 enum class Sport(val label: String, val icon: String) {
     AMERICAN_FOOTBALL("American Football", "🏈"),
     BASKETBALL("Basketball", "🏀"),
-    HOCKEY("Hockey", "🏒"),
+    HOCKEY("Ice Hockey", "🏒"),
     BASEBALL("Baseball", "⚾"),
     FOOTBALL("Football", "⚽"),
     RUGBY("Rugby Union", "🏉"),
     FIGHTING("Fighting", "🥊"),
-    RACING("Racing", "🏁"),
+    RACING("Motorsport", "🏁"),
     GOLF("Golf", "⛳"),
     TENNIS("Tennis", "🎾"),
     CRICKET("Cricket", "🏏"),
     DARTS("Darts", "🎯"),
-    SNOOKER("Snooker", "🎱"),
+    SNOOKER("Cue Sports", "🎱"),
     WRESTLING("Wrestling", "💪"),
     AUSSIE_RULES("Aussie Rules", "🏉"),
     VOLLEYBALL("Volleyball", "🏐"),
@@ -31,6 +31,7 @@ enum class Sport(val label: String, val icon: String) {
     ATHLETICS("Athletics", "🏃"),
     GYMNASTICS("Gymnastics", "🤸"),
     CYCLING("Cycling", "🚴"),
+    HORSE_RACING("Horse Racing", "🏇"),
     OTHER("More Sports", "🏅");
 
     /** Home team first with "v" (UK style) instead of away team first with "at" (US style). */

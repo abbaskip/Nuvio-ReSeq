@@ -339,7 +339,8 @@ internal class SportsFeeds {
          * League logos from the feed (the version made for dark backgrounds when there is one),
          * by league id: shown on the Sports page's game cards.
          */
-        val leagueLogos = java.util.concurrent.ConcurrentHashMap<String, String>()
+        // Observable so badges arriving after a card is composed appear immediately.
+        val leagueLogos = androidx.compose.runtime.mutableStateMapOf<String, String>()
 
         /**
          * Logos for shows with their own branding inside a league ("guide/wwe|nxt" -> NXT's logo),

@@ -739,7 +739,9 @@ private fun cardStats(t: Standings, r: StandingsRow): List<Pair<String, String>>
         StandingsKind.TABLE -> listOfNotNull(
             "PLACE" to Standings.ordinal(r.pos),
             v["points"]?.let { "POINTS" to it },
-            v["pointDifferential"]?.let { "GOAL DIFF" to it },
+            v["pointDifferential"]?.let {
+                (if (t.columns.any { c -> c.key == "pointDifferential" && c.label == "PD" }) "POINT DIFF" else "GOAL DIFF") to it
+            },
             (r.form ?: r.record)?.let { "FORM" to (r.form ?: it) }
         )
         StandingsKind.RACING -> listOfNotNull("PLACE" to Standings.ordinal(r.pos), v["points"]?.let { "POINTS" to it }, v["behind"]?.let { "BEHIND" to it })

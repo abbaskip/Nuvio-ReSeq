@@ -264,10 +264,10 @@ object SportsCatalog {
             regions = setOf("UK", "IE", "AU", "OTHER"), guideOnly = true, fixtureSlug = "darts", kind = LeagueKind.EVENT, color = 0xFF0F3D2E),
         League("guide/snooker", Sport.SNOOKER, "Snooker", "SNOOKER", guideWords = listOf("Snooker"),
             regions = setOf("UK", "IE", "OTHER"), guideOnly = true, fixtureSlug = "snooker", kind = LeagueKind.EVENT, color = 0xFF145A32),
-        League("guide/horse-racing", Sport.OTHER, "Horse Racing", "RACING",
+        League("guide/horse-racing", Sport.HORSE_RACING, "Horse Racing", "RACING",
             guideWords = listOf("Horse Racing", "ITV Racing", "Racing TV", "Live Racing"),
             regions = setOf("UK", "IE", "AU", "OTHER"), guideOnly = true, fixtureSlug = "horse-racing", kind = LeagueKind.EVENT, color = 0xFF5D4037),
-        League("guide/cycling", Sport.OTHER, "Cycling", "CYCLING", guideWords = listOf("Cycling", "Tour de France", "Giro", "Vuelta"),
+        League("guide/cycling", Sport.CYCLING, "Cycling", "CYCLING", guideWords = listOf("Cycling", "Tour de France", "Giro", "Vuelta"),
             regions = setOf("UK", "IE", "OTHER"), guideOnly = true, fixtureSlug = "cycling", kind = LeagueKind.EVENT, color = 0xFFF2C200)
     )
 
@@ -278,17 +278,20 @@ object SportsCatalog {
      * Leagues that arrive with the data rather than being built in: non-league football from
      * the nuvio-data files (ids "tsdb/<TheSportsDB id>"). Set when that data loads.
      */
-    @Volatile var extra: List<League> = emptyList()
-        private set
+    private val _extra = kotlinx.coroutines.flow.MutableStateFlow<List<League>>(emptyList())
+    val extraFlow: kotlinx.coroutines.flow.StateFlow<List<League>> = _extra
+    val extra: List<League> get() = _extra.value
     @Volatile private var extraById: Map<String, League> = emptyMap()
 
     fun setExtra(list: List<League>) {
         extraById = list.associateBy { it.id }
-        extra = list
+        _extra.value = list
     }
 
     /** Every league, built in and from the data. */
     val all: List<League> get() = leagues + extra + SportsTaxonomy.leagues
+
+    fun browseOrdered(s: SportsSettings): List<League> = SportsCompetitions.browse(ordered(s))
 
     private val UEFA_CLUB = listOf("soccer/uefa.champions", "soccer/uefa.europa", "soccer/uefa.europa.conf")
     private val EURO_MORE = setOf("soccer/ned.1", "soccer/por.1", "soccer/bel.1", "soccer/tur.1", "soccer/gre.1", "soccer/aut.1", "soccer/den.1", "soccer/swe.1", "soccer/nor.1")
@@ -386,7 +389,9 @@ object SportsCatalog {
             "CA" -> listOf(Sport.HOCKEY, Sport.AMERICAN_FOOTBALL, Sport.BASKETBALL, Sport.BASEBALL)
             else -> listOf(Sport.AMERICAN_FOOTBALL, Sport.BASKETBALL, Sport.BASEBALL, Sport.HOCKEY, Sport.FOOTBALL)
         }
-        return uniqueBrowseLeagues(all).sortedBy { l -> first.indexOf(l.sport).let { if (it < 0) 100 + l.sport.ordinal else it } }
+        return all.sortedWith(compareBy<League> { l ->
+            first.indexOf(l.sport).let { if (it < 0) 100 + l.sport.ordinal else it }
+        }.thenBy { browsePriority(it) }.thenByDescending { shown(it, s) })
     }
 
     /** Keep provider-backed entries in the picker; preserve all IDs for saved follows and matching. */
@@ -402,6 +407,32 @@ object SportsCatalog {
                 if (names.any { it in seen }) false else { seen.addAll(names); true }
             }
     }
+
+    /** Main competitions precede regional suggestions and broad guide categories. Stable IDs
+     * keep existing follows and category exclusions intact. */
+    private val browseFirst = mapOf(
+        Sport.AUSSIE_RULES to listOf("australian-football/afl"),
+        Sport.RUGBY_LEAGUE to listOf("rugby-league/3"),
+        Sport.FOOTBALL to listOf("soccer/eng.1"),
+        Sport.RACING to listOf("racing/f1", "guide/motogp", "racing/nascar-premier", "racing/irl",
+            "racing/nascar-secondary", "racing/nascar-truck"),
+        Sport.AMERICAN_FOOTBALL to listOf("football/nfl"),
+        Sport.BASKETBALL to listOf("basketball/nba"),
+        Sport.HOCKEY to listOf("hockey/nhl"),
+        Sport.BASEBALL to listOf("baseball/mlb", "taxonomy/baseball.mlb-postseason-events.world-series"),
+        Sport.CRICKET to listOf(
+            "taxonomy/cricket.tests-first-class.test-cricket",
+            "taxonomy/cricket.odi-one-day.odi-internationals",
+            "taxonomy/cricket.t20-internationals.t20-internationals",
+            "taxonomy/cricket.franchise-t20-leagues.ipl",
+            "taxonomy/cricket.franchise-t20-leagues.bbl",
+            "taxonomy/cricket.franchise-t20-leagues.the-hundred"
+        )
+    )
+
+    private fun browsePriority(league: League): Int = browseFirst[league.sport]?.map(SportsCompetitions::canonicalId)
+        ?.indexOf(SportsCompetitions.canonicalId(league.id))
+        ?.takeIf { it >= 0 } ?: 100
 
     /** The sports in the region's order. */
     fun sportsOrder(s: SportsSettings): List<Sport> = ordered(s).map { it.sport }.distinct()

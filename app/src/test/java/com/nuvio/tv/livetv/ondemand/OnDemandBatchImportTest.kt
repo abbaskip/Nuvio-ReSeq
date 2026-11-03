@@ -1,0 +1,83 @@
+package com.nuvio.tv.livetv.ondemand
+
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.ConscryptMode
+
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [28], application = android.app.Application::class)
+@ConscryptMode(ConscryptMode.Mode.OFF)
+class OnDemandBatchImportTest {
+    private lateinit var db: OnDemandDatabase
+    private val cats = listOf("a" to "Movies")
+
+    @Before fun setup() {
+        val context = RuntimeEnvironment.getApplication()
+        context.deleteDatabase("livetv_on_demand.db")
+        db = OnDemandDatabase(context)
+    }
+    @After fun cleanup() { db.close() }
+
+    private fun item(id: Int, name: String = "Film $id", pl: String = "test", kind: VodKind = VodKind.MOVIE) =
+        VodItem(pl, kind, id.toString(), name, null, "a", "mp4", null, null, null, 0)
+
+    @Test fun `batches are durable and network reads never hold the write transaction`() {
+        var commits = 0
+        db.replace("test", VodKind.MOVIE, cats, onBatchCommitted = { commits++ }) { emit ->
+            repeat(56722) {
+                assertFalse(db.writableDatabase.inTransaction())
+                emit(item(it))
+                if (it == 499) assertEquals(500, db.count(VodKind.MOVIE))
+            }
+            false
+        }
+        assertEquals(114, commits)
+        assertEquals(56722, db.count(VodKind.MOVIE))
+    }
+
+    @Test fun `partial recovery merges without deleting old titles and complete refresh prunes`() {
+        db.replace("test", VodKind.MOVIE, cats) { emit -> repeat(1001) { emit(item(it)) }; true }
+        db.replace("other", VodKind.MOVIE, cats) { emit -> emit(item(0, pl = "other")); true }
+        db.replace("test", VodKind.SERIES, cats) { emit -> emit(item(0, kind = VodKind.SERIES)); true }
+        db.replace("test", VodKind.MOVIE, cats) { emit -> emit(item(0, "Changed")); emit(item(2000)); false }
+        assertEquals(1003, db.count(VodKind.MOVIE))
+        assertEquals(0, db.lastChanges.second)
+        // Category retry sees fewer titles: it must not erase either prior result.
+        db.replace("test", VodKind.MOVIE, cats) { emit -> emit(item(2001)); false }
+        assertEquals(1004, db.count(VodKind.MOVIE))
+        db.replace("test", VodKind.MOVIE, cats) { emit -> emit(item(2001)); emit(item(2001)); true }
+        assertEquals(2, db.count(VodKind.MOVIE))
+        assertEquals(0 to 1002, db.lastChanges)
+        assertEquals(1, db.count(VodKind.SERIES))
+    }
+
+    @Test fun `unexpected failure retains prior commits and next refresh recovers`() {
+        try {
+            db.replace("test", VodKind.MOVIE, cats) { emit ->
+                repeat(750) { emit(item(it)) }
+                throw IllegalStateException("Simulated interruption")
+            }
+            fail("Expected interruption")
+        } catch (_: IllegalStateException) {}
+        assertEquals(500, db.count(VodKind.MOVIE))
+        db.replace("test", VodKind.MOVIE, cats) { emit -> repeat(750) { emit(item(it)) }; true }
+        assertEquals(750, db.count(VodKind.MOVIE))
+        assertEquals(250 to 0, db.lastChanges)
+    }
+
+    @Test fun `version 9 catalog upgrades without losing titles`() {
+        db.replace("test", VodKind.MOVIE, cats) { emit -> emit(item(1)); true }
+        db.writableDatabase.execSQL("DROP TABLE import_seen")
+        db.writableDatabase.version = 9
+        db.close()
+        db = OnDemandDatabase(RuntimeEnvironment.getApplication())
+        db.replace("test", VodKind.MOVIE, cats) { emit -> emit(item(1)); emit(item(2)); true }
+        assertEquals(2, db.count(VodKind.MOVIE))
+    }
+}

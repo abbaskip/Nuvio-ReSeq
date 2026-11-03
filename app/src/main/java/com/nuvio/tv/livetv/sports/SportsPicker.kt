@@ -72,23 +72,25 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val follows by viewModel.follows.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val extra by SportsCatalog.extraFlow.collectAsStateWithLifecycle()
     val colors = NuvioTheme.colors
-    val sports = remember(settings) { SportsCatalog.sportsOrder(settings) }
+    val sports = remember(settings, extra) { SportsCatalog.sportsOrder(settings) }
     var sport by rememberSaveable { mutableStateOf(sports.firstOrNull()?.name ?: Sport.FOOTBALL.name) }
-    val leagues = remember(sport, settings) {
-        SportsCatalog.ordered(settings).filter { it.sport.name == sport }
-            .sortedByDescending { SportsCatalog.shown(it, settings) }
+    val leagues = remember(sport, settings, extra) {
+        SportsCatalog.browseOrdered(settings).filter { it.sport.name == sport }
     }
     var leagueId by rememberSaveable(sport) { mutableStateOf(leagues.firstOrNull()?.id) }
-    val league = leagues.firstOrNull { it.id == leagueId } ?: leagues.firstOrNull()
+    val league = leagues.firstOrNull { leagueId?.let { id -> SportsCompetitions.same(it.id, id) } == true } ?: leagues.firstOrNull()
     var query by rememberSaveable { mutableStateOf("") }
     var askWord by remember { mutableStateOf(false) }
     // Leagues and competitions whose name (or short name, or how guides name them) matches.
-    val leagueResults = remember(query) {
+    val leagueResults = remember(query, settings, extra) {
         val q = SportsCatalog.norm(query).trim()
         if (q.length < 2) emptyList()
-        else SportsCatalog.ordered(settings).filter { l ->
-            (listOf(l.name, l.short) + l.guideWords).any { SportsCatalog.norm(it).contains(q) }
+        else SportsCatalog.browseOrdered(settings).filter { l ->
+            SportsCompetitions.sources(l.id).any { source ->
+                (listOf(source.name, source.short) + source.guideWords).any { SportsCatalog.norm(it).contains(q) }
+            }
         }.sortedWith(compareByDescending<League> { SportsCatalog.norm(it.name).trim().startsWith(q) }
             .thenByDescending { SportsCatalog.shown(it, settings) })
     }
@@ -106,16 +108,16 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
     fun leagueReq(id: String) = leagueReqs.getOrPut(id) { FocusRequester() }
     // A league picked from search: opened once its sport's leagues are showing.
     var openLeague by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(sport, openLeague) {
+    LaunchedEffect(sport, openLeague, extra) {
         val id = openLeague ?: return@LaunchedEffect
-        val i = leagues.indexOfFirst { it.id == id }
+        val i = leagues.indexOfFirst { SportsCompetitions.same(it.id, id) }
         if (i < 0) return@LaunchedEffect
-        leagueId = id
+        leagueId = leagues[i].id
         openLeague = null
         delay(90)
         runCatching { leagueRowState.scrollToItem(i) }
         delay(60)
-        runCatching { leagueReq(id).requestFocus() }
+        runCatching { leagueReq(leagues[i].id).requestFocus() }
     }
     // OK on a sport: the highlight goes over to its first league.
     var toLeagues by remember { mutableStateOf(0) }
@@ -126,22 +128,23 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
         leagues.firstOrNull()?.let { runCatching { leagueReq(it.id).requestFocus() } }
     }
 
-    val teams by produceState<List<TeamInfo>?>(null, league?.id) {
+    val teams by produceState<List<TeamInfo>?>(null, league?.id, extra, follows.teams) {
         value = null
-        value = league?.let { if (it.espnPath != null || it.id.startsWith("tsdb/")) viewModel.teams(it) else emptyList() }.orEmpty()
+        value = league?.let { if (SportsCompetitions.hasTeams(it.id)) viewModel.teams(it) else emptyList() }.orEmpty()
     }
     // Search: every team in every league (loaded as needed, then saved for a week).
-    val searchResults by produceState<List<TeamInfo>?>(null, query) {
+    val searchResults by produceState<List<TeamInfo>?>(null, query, extra, follows.teams) {
         val q = SportsCatalog.norm(query).trim()
         if (q.length < 2) { value = null; return@produceState }
         delay(350)
         val all = ArrayList<TeamInfo>()
         // Your region's leagues first, then every other league (MLS from the UK, the Premier
         // League from the US…): a team can be found wherever it plays.
-        fun teamLeague(l: League) = l.espnPath != null && l.kind == LeagueKind.TEAMS && !l.national
+        fun teamLeague(l: League) = SportsCompetitions.hasTeams(l.id) && !l.national
         val searchIn = (viewModel.repo.activeLeagues().filter(::teamLeague) +
-            SportsCatalog.ordered(settings).filter(::teamLeague) +
-            SportsCatalog.leagues.filter { it.national }.distinctBy { it.nationalGroup } + SportsCatalog.extra).distinctBy { it.id }
+            SportsCatalog.browseOrdered(settings).filter(::teamLeague) +
+            SportsCatalog.leagues.filter { it.national }.distinctBy { it.nationalGroup })
+            .distinctBy { SportsCompetitions.canonicalId(it.id) }
         // Eight leagues at a time (there are well over a hundred; each list is saved for a week
         // after the first look), keeping the order: a club in more than one competition
         // (Arsenal: Premier League and Champions League) shows once, under its own league.
@@ -223,7 +226,7 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
                                         league = l,
                                         selected = false,
                                         followed = l.id in follows.pins,
-                                        teamsFollowed = follows.teams.count { it.leagueId == l.id },
+                                        teamsFollowed = follows.teams.count { SportsCompetitions.same(it.leagueId, l.id) },
                                         inRegion = SportsCatalog.shown(l, settings),
                                         onFocused = {},
                                         // Opens the league (to follow it, or pick its teams).
@@ -272,7 +275,7 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
                                 league = l,
                                 selected = l.id == league?.id,
                                 followed = l.id in follows.pins,
-                                teamsFollowed = follows.teams.count { it.leagueId == l.id },
+                                teamsFollowed = follows.teams.count { SportsCompetitions.same(it.leagueId, l.id) },
                                 inRegion = SportsCatalog.shown(l, settings),
                                 onFocused = { leagueId = l.id },
                                 onClick = { leagueId = l.id }
@@ -302,12 +305,12 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
                                     "Your own TV guide is checked too, to find the channel it's on. Follow it to see every show on My Sports.",
                                 color = colors.TextSecondary, size = 13.sp, maxLines = 4
                             )
-                            league.guideOnly -> LiveText(
+                            league.guideOnly && !SportsCompetitions.hasTeams(league.id) -> LiveText(
                                 "${league.name} comes from your own TV guide: live shows with \"${league.guideWords.first()}\" in the title. " +
                                     "Follow it to see them on My Sports. Follow a name (a player, a team) to catch shows that mention it.",
                                 color = colors.TextSecondary, size = 13.sp, maxLines = 4
                             )
-                            league.kind == LeagueKind.EVENT -> LiveText(
+                            league.kind == LeagueKind.EVENT && !SportsCompetitions.hasTeams(league.id) -> LiveText(
                                 "${league.name} is listed by event (each race, card or tournament). Follow it to see every one on My Sports, " +
                                     "or follow a name to catch shows that mention a driver or fighter.",
                                 color = colors.TextSecondary, size = 13.sp, maxLines = 4

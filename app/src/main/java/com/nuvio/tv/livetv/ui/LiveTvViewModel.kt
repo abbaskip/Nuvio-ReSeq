@@ -573,6 +573,10 @@ class LiveTvViewModel @Inject constructor(
         prefs.updateHiddenGroups(show = ids - hidden, hide = hidden intersect ids)
     }
 
+    fun showAllGroups() = viewModelScope.launch {
+        prefs.clearHiddenGroups()
+    }
+
     /** Saves Manage visibility: [hidden] is the full set of hidden keys among [inList]. */
     fun saveVisibility(inList: List<LiveChannel>, hidden: Set<String>) = viewModelScope.launch {
         val keys = inList.map { it.key }.toSet()

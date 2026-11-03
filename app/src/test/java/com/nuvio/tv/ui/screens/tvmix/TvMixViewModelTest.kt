@@ -6,7 +6,7 @@ import com.nuvio.tv.core.player.EpisodeShufflePlayback
 import com.nuvio.tv.core.player.PlaybackShuffleState
 import com.nuvio.tv.core.player.TvMixSession
 import com.nuvio.tv.core.profile.ProfileManager
-import com.nuvio.tv.core.tmdb.TmdbService
+import com.nuvio.tv.data.repository.DiscoveryRepository
 import com.nuvio.tv.data.local.TvMixStore
 import com.nuvio.tv.domain.model.*
 import com.nuvio.tv.domain.repository.MetaRepository
@@ -49,12 +49,12 @@ class TvMixViewModelTest {
         every { observe(any(), any(), any()) } returns flowOf(PlaybackShuffleState(EpisodeShuffleSettings(), emptySet(), emptyMap()))
     }
     private val progress = mockk<WatchProgressRepository> { every { isWatchedByVideoId(any(), any()) } returns false }
-    private val tmdb = mockk<TmdbService>()
+    private val discovery = mockk<DiscoveryRepository>()
     private val session = TvMixSession()
     private lateinit var vm: TvMixViewModel
     @Before fun setup() {
         Dispatchers.setMain(dispatcher)
-        vm = TvMixViewModel(store, profiles, metadata, shuffle, progress, tmdb, session)
+        vm = TvMixViewModel(store, profiles, metadata, shuffle, progress, discovery, session)
     }
     @After fun teardown() { vm.viewModelScope.cancel(); Dispatchers.resetMain() }
 
@@ -145,4 +145,14 @@ class TvMixViewModelTest {
         assertEquals(listOf(501L, 502L), context.episodeIds)
         assertEquals(44, context.expectedRuntimeMinutes)
     }
+    @Test fun `Discovery shows use the existing profile local runtime identity lookup`() = runTest(dispatcher) {
+        coEvery { discovery.imdbId(123, true) } returns "tt123"
+        coEvery { store.add(1, "mix", any()) } just Runs
+        val item = mix.preview().copy(id = "tmdb:123", type = ContentType.SERIES, rawType = "series", imdbId = null)
+        vm.add(item, "mix", "") { }
+        runCurrent()
+        coVerify(exactly = 1) { store.add(1, "mix", match { it.id == "tt123" && it.imdbId == "tt123" }) }
+        coVerify(exactly = 1) { discovery.imdbId(123, true) }
+    }
+
 }

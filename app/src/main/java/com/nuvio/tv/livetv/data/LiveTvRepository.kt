@@ -1076,7 +1076,7 @@ class LiveTvRepository @Inject constructor(
         private set
 
     /** One show's full details (description, cast…), from the stored guide. */
-    suspend fun programDetails(channelKey: String, startMs: Long): EpgProgram? = withContext(Dispatchers.IO) {
+    suspend fun programDetails(channelKey: String, startMs: Long): EpgProgram? = withContext(BackgroundWork.reads) {
         if (!guideInDb) null else runCatching { guideDb.program(channelKey, startMs) }.getOrNull()
     }
 
@@ -1652,45 +1652,50 @@ class LiveTvRepository @Inject constructor(
             val file = playlistFile(pl.id)
             if (!file.exists()) continue
             setStatus(loading = true, message = "Reading channels from \"${pl.name}\"" + (if (playlists.size > 1) " (${plIndex + 1} of ${playlists.size})" else "") + "…")
-            val parsed = runCatching { openMaybeGzip(file).bufferedReader().use { M3uParser.parse(it) } }
-                .onFailure { Log.w(TAG, "Parse ${pl.name} failed", it) }
-                .getOrNull() ?: continue
+            var channelCount = 0
+            // Do not retain a second full playlist (including all VOD entries from get.php)
+            // while constructing the live channel list.
+            val parsed = runCatching {
+                openMaybeGzip(file).bufferedReader().use { reader ->
+                    M3uParser.parse(reader, onEntry = entry@ { e ->
+                        // Many providers' M3U links ("m3u_plus") also list every movie and episode,
+                        // often 100,000+ entries. Those aren't TV channels, and loading them all into the
+                        // guide used enough memory to crash Live TV on some devices.
+                        if (isVodEntry(e.url)) return@entry
+                        val groupTitle = e.group?.ifBlank { null } ?: "Uncategorized"
+                        val baseKey = "${pl.id}|${e.tvgId ?: ""}|${e.name}"
+                        var key = baseKey
+                        var n = 2
+                        while (!usedKeys.add(key)) { key = "$baseKey#${n++}" }
+                        val number = e.chno ?: counter
+                        counter = maxOf(counter, number) + 1
+                        val headers = if (pl.userAgent.isNotBlank() && "User-Agent" !in e.headers) {
+                            e.headers + ("User-Agent" to pl.userAgent)
+                        } else e.headers
+                        out += LiveChannel(
+                            key = key,
+                            sourceId = pl.id,
+                            sourceName = pl.name,
+                            name = e.name,
+                            tvgId = e.tvgId,
+                            tvgName = e.tvgName,
+                            logo = e.logo,
+                            groupId = if (multi) "${pl.id}::$groupTitle" else groupTitle,
+                            // Names stay exactly as the playlist has them (the playlist is shown, if you want
+                            // it, with "Group by playlist").
+                            group = groupTitle,
+                            number = number,
+                            url = e.url,
+                            headers = headers,
+                            catchup = e.catchup,
+                            drm = e.drm
+                        )
+                        channelCount++
+                    })
+                }
+            }.onFailure { Log.w(TAG, "Parse ${pl.name} failed", it) }.getOrNull() ?: continue
             embeddedEpgUrls[pl.id] = parsed.epgUrls
-            for (e in parsed.entries) {
-                // Many providers' M3U links ("m3u_plus") also list every movie and episode,
-                // often 100,000+ entries. Those aren't TV channels, and loading them all into the
-                // guide used enough memory to crash Live TV on some devices.
-                if (isVodEntry(e.url)) continue
-                val groupTitle = e.group?.ifBlank { null } ?: "Uncategorized"
-                val baseKey = "${pl.id}|${e.tvgId ?: ""}|${e.name}"
-                var key = baseKey
-                var n = 2
-                while (!usedKeys.add(key)) { key = "$baseKey#${n++}" }
-                val number = e.chno ?: counter
-                counter = maxOf(counter, number) + 1
-                val headers = if (pl.userAgent.isNotBlank() && "User-Agent" !in e.headers) {
-                    e.headers + ("User-Agent" to pl.userAgent)
-                } else e.headers
-                out += LiveChannel(
-                    key = key,
-                    sourceId = pl.id,
-                    sourceName = pl.name,
-                    name = e.name,
-                    tvgId = e.tvgId,
-                    tvgName = e.tvgName,
-                    logo = e.logo,
-                    groupId = if (multi) "${pl.id}::$groupTitle" else groupTitle,
-                    // Names stay exactly as the playlist has them (the playlist is shown, if you want
-                    // it, with "Group by playlist").
-                    group = groupTitle,
-                    number = number,
-                    url = e.url,
-                    headers = headers,
-                    catchup = e.catchup,
-                    drm = e.drm
-                )
-            }
-            prefs.updatePlaylists { list -> list.map { if (it.id == pl.id) it.copy(channelCount = parsed.entries.size) else it } }
+            prefs.updatePlaylists { list -> list.map { if (it.id == pl.id) it.copy(channelCount = channelCount) else it } }
         }
         _channels.value = out
     }

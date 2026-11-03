@@ -11,6 +11,32 @@ class VodMatchPolicyTest {
         VodEpisode(season, number, "$season-$number-$name", "mkv", name, null, null, "https://media.example.test/$season/$number", tvdbId = tvdb, imdbId = imdb)
     private fun target(vararg names: String) = VodStreamTarget(VodKind.SERIES, "2316", "The Office", 2005, names.toSet())
 
+    @Test fun `Gibi dashed season episode names match despite incorrect provider episode positions`() {
+        val wanted = VodStreamTarget(VodKind.SERIES, null, "As If", 2021,
+            providerCoordinates = EpisodeCoordinates(1, 3), alternateTitles = setOf("Gibi"))
+        for (separator in listOf("-", " - ", "–", "—", ".", "_", " ", "")) {
+            val candidates = (1..5).map { number -> episode("Gibi S01${separator}E%02d".format(number), 9, 99) }
+            val result = VodMatchPolicy.episodes(wanted, candidates, "Gibi").single()
+            assertEquals("Gibi S01${separator}E03", result.title)
+            assertEquals(1, result.season)
+            assertEquals(3, result.episode)
+            assertEquals("", VodMatchPolicy.episodeKey(result.title, "Gibi"))
+        }
+    }
+
+    @Test fun `dashed episode coordinates preserve real titles and do not admit ranges or contrary identities`() {
+        val wanted = VodStreamTarget(VodKind.SERIES, null, "Gibi", 2021,
+            tvdbEpisodeIds = setOf(123), providerCoordinates = EpisodeCoordinates(1, 1))
+        assertEquals("pilot", VodMatchPolicy.episodeKey("Gibi S01-E01 - Pilot", "Gibi"))
+        listOf("Gibi S01-E01-E02", "Gibi S01-E01-02", "Gibi S01–E01–E02",
+            "Gibi S01-E01 + E02", "Gibi S01-E01 S01-E02", "Gibi S01-E00", "Gibi S02-E01").forEach { name ->
+            assertTrue(name, VodMatchPolicy.episodes(wanted, listOf(episode(name, 1, 1)), "Gibi").isEmpty())
+        }
+        assertTrue(VodMatchPolicy.episodes(wanted, listOf(episode("Gibi S01-E01", 1, 1, tvdb = 999)), "Gibi").isEmpty())
+        assertTrue(VodMatchPolicy.episodes(wanted.copy(providerCoordinates = null),
+            listOf(episode("Gibi S01-E01", 1, 1)), "Gibi").isEmpty())
+    }
+
     @Test fun `Gibi matches its verified As If alias but not remakes or conflicting ids`() {
         val wanted = VodStreamTarget(VodKind.SERIES, "123", "Gibi", 2021, alternateTitles = setOf("As If"))
         val provider = item(name = "As If", year = 2021, tmdb = null)

@@ -612,13 +612,21 @@ internal fun LivePlayerSurface(
             }
         },
         update = { view ->
+            var needsReshape = false
             if (view.player !== player) {
                 if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) android.util.Log.i("LiveTvSurface", "Bind view=${System.identityHashCode(view)} player=${player?.let(System::identityHashCode)}")
                 view.player = player
                 if (player != null) onAttached()
+                needsReshape = true
             }
-            view.resizeMode = if (aspectMode != null) AspectRatioFrameLayout.RESIZE_MODE_FIT else resizeMode
-            reshape(view)
+            val targetResizeMode = if (aspectMode != null) AspectRatioFrameLayout.RESIZE_MODE_FIT else resizeMode
+            if (view.resizeMode != targetResizeMode) {
+                view.resizeMode = targetResizeMode
+                needsReshape = true
+            }
+            // Guide focus changes recompose this view too. Picture/shape changes have their own
+            // listeners below; moving the cursor needn't post another video-layout update.
+            if (needsReshape) reshape(view)
         }
     )
     // Re-apply when the video's shape changes (new channel, different resolution). Runs after the

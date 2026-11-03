@@ -1,9 +1,9 @@
 package com.nuvio.tv.livetv.ondemand
 
-import android.util.JsonReader
-import android.util.JsonToken
 import android.util.Log
 import com.nuvio.tv.livetv.data.LiveTvPreferences
+import com.nuvio.tv.livetv.data.XtreamCatalogException
+import com.nuvio.tv.livetv.data.readXtreamCatalog
 import com.nuvio.tv.livetv.data.LiveTvRepository
 import com.nuvio.tv.livetv.model.PlaylistSource
 import kotlinx.coroutines.CoroutineScope
@@ -233,11 +233,12 @@ class OnDemandRepository @Inject constructor(
             lastProblem = null
             // Movies and series import separately, so a problem with one keeps the other.
             val movies = runCatching { importKind(pl, VodKind.MOVIE) }
-                .onFailure { Log.w(TAG, "Movies for ${pl.name} failed", it); lastProblem = "Couldn't import movies from ${pl.name}: ${it.message ?: it.javaClass.simpleName}" }
+                .onFailure { Log.w(TAG, "Movies import failed: ${catalogProblem(it)}"); lastProblem = "Couldn't import movies from ${pl.name}: ${catalogProblem(it)}" }
+            _version.value++
             if (!force) com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()
             if (!force) com.nuvio.tv.livetv.data.BackgroundWork.awaitNoHeavy()
             val series = runCatching { importKind(pl, VodKind.SERIES) }
-                .onFailure { Log.w(TAG, "Series for ${pl.name} failed", it); lastProblem = "Couldn't import series from ${pl.name}: ${it.message ?: it.javaClass.simpleName}" }
+                .onFailure { Log.w(TAG, "Series import failed: ${catalogProblem(it)}"); lastProblem = "Couldn't import series from ${pl.name}: ${catalogProblem(it)}" }
             val ok = movies.isSuccess && series.isSuccess && lastProblem == null
             lastProblem?.let { problemByPlaylist[pl.id] = it } ?: problemByPlaylist.remove(pl.id)
             // Success: next import in a day. Failure: try again in an hour, not on every start.
@@ -312,11 +313,18 @@ class OnDemandRepository @Inject constructor(
         }
     }
 
+    private fun catalogBatchCommitted() {
+        if (!_hasContent.value) {
+            _hasContent.value = true
+            _version.value++
+        }
+    }
+
     private fun importKind(pl: PlaylistSource, kind: VodKind) {
         val t0 = System.currentTimeMillis()
         try { importKindInner(pl, kind) } finally {
             com.nuvio.tv.livetv.model.LiveTvLoadReport.add(
-                "On Demand \"${pl.name}\": ${if (kind == VodKind.MOVIE) "movies" else "series"} imported in ${(System.currentTimeMillis() - t0) / 1000} s"
+                "On Demand \"${pl.name}\": ${if (kind == VodKind.MOVIE) "movies" else "series"} import finished in ${(System.currentTimeMillis() - t0) / 1000} s"
             )
         }
     }
@@ -328,11 +336,11 @@ class OnDemandRepository @Inject constructor(
         val what = if (kind == VodKind.MOVIE) "movies" else "series"
         val categories = ArrayList<Pair<String, String>>()
         runCatching {
-            val arr = org.json.JSONArray(getText("$api&action=$catAction", pl.userAgent))
-            for (i in 0 until arr.length()) {
-                val c = arr.optJSONObject(i) ?: continue
-                categories += c.optString("category_id") to c.optString("category_name").ifBlank { "Other" }
+            val loaded = ArrayList<Pair<String, String>>()
+            readXtreamCatalog(getText("$api&action=$catAction", pl.userAgent).reader(), "category_id") { c ->
+                loaded += c.getValue("category_id") to c["category_name"].orEmpty().ifBlank { "Other" }
             }
+            categories.addAll(loaded)
         }
         _status.value = OnDemandStatus(true, "Importing $what from ${pl.name}…")
         var n = 0
@@ -342,10 +350,12 @@ class OnDemandRepository @Inject constructor(
 
         // 1. The whole list in one go (fastest).
         var stoppedEarly: Throwable? = null
-        val saved = db.replace(
-            pl.id, kind, categories,
-            streamItems(pl, kind, "$api&action=$listAction", onStop = { stoppedEarly = it }, onItem = ::progress)
-        )
+        val saved = db.replace(pl.id, kind, categories, onBatchCommitted = ::catalogBatchCommitted) { emit ->
+            streamItems(pl, kind, "$api&action=$listAction", onStop = { stoppedEarly = it }) {
+                emit(it); progress()
+            }
+            stoppedEarly == null
+        }
         com.nuvio.tv.livetv.model.LiveTvLoadReport.add(
             "On Demand \"${pl.name}\": ${"%,d".format(saved)} $what, ${categories.size} categories; " +
                 "${"%,d".format(db.lastChanges.first)} new or changed, ${"%,d".format(db.lastChanges.second)} removed"
@@ -354,99 +364,78 @@ class OnDemandRepository @Inject constructor(
 
         // 2. Some panels cut off huge lists part-way (an "EOFException" partway through).
         //    Ask again one category at a time: many small lists instead of one huge one.
-        if (categories.isEmpty()) {
+        if (categories.isEmpty() || firstProblem.message == "HTTP 429") {
             reportStop(pl, what, saved, firstProblem)
             if (saved == 0) throw firstProblem
             return
         }
-        Log.w(TAG, "${pl.name}: $what list stopped after $saved; importing by category", firstProblem)
+        Log.w(TAG, "$what list stopped after $saved; importing by category (${catalogProblem(firstProblem)})")
         n = 0
         _status.value = OnDemandStatus(true, "Importing $what from ${pl.name} by category…")
         var failedCategories = 0
-        val byCategory = sequence {
+        val total = db.replace(pl.id, kind, categories, onBatchCommitted = ::catalogBatchCommitted) { emit ->
             for ((catId, _) in categories) {
                 var problem: Throwable? = null
-                yieldAll(
-                    streamItems(
-                        pl, kind, "$api&action=$listAction&category_id=${enc(catId)}",
-                        onStop = { problem = it }, onItem = ::progress
-                    )
-                )
+                streamItems(
+                    pl, kind, "$api&action=$listAction&category_id=${enc(catId)}",
+                    onStop = { problem = it }
+                ) { emit(it); progress() }
                 if (problem != null) failedCategories++
-                // "Too many requests": stop here instead of asking for every remaining category
-                // (that kept the provider refusing, including when you then pressed play).
-                if (problem?.message?.contains("429") == true) break
+                // Stop on rate limits instead of keeping the provider busy refusing requests.
+                if (problem?.message == "HTTP 429") break
             }
+            // Category lists can omit uncategorized titles, even when every request succeeds.
+            // Merge recovery results; only a complete full-catalog response can prune titles.
+            false
         }
-        val total = db.replace(pl.id, kind, categories, byCategory)
-        if (total < saved) {
-            // Category by category did worse: go back to what the full list gave.
-            db.replace(pl.id, kind, categories, streamItems(pl, kind, "$api&action=$listAction", onStop = {}, onItem = {}))
-            reportStop(pl, what, saved, firstProblem)
-        } else if (failedCategories > 0) {
-            lastProblem = "${pl.name}: imported ${"%,d".format(total)} $what, but $failedCategories categories " +
-                "didn't finish. It will try again in an hour."
+        com.nuvio.tv.livetv.model.LiveTvLoadReport.add(
+            "On Demand: category recovery received ${"%,d".format(total)} $what; $failedCategories categories incomplete; saved titles kept"
+        )
+        if (failedCategories > 0) {
+            lastProblem = "${pl.name}: received ${"%,d".format(total)} $what by category, but $failedCategories categories " +
+                "didn't finish. Saved titles were kept; it will try again in an hour."
         }
     }
 
     private fun reportStop(pl: PlaylistSource, what: String, saved: Int, e: Throwable) {
         lastProblem = "${pl.name} stopped sending $what after ${"%,d".format(saved)} " +
-            "(${e.message ?: e.javaClass.simpleName}). Those were saved; it will try again in an hour."
+            "(${catalogProblem(e)}). Those were saved; it will try again in an hour."
     }
 
-    /**
-     * Streams one provider list straight into the database, a title at a time. If the provider
-     * stops part-way, [onStop] is told and everything received so far is still yielded.
-     */
+    /** Streams one response; parse/network failures keep completed batches and trigger recovery. */
     private fun streamItems(
         pl: PlaylistSource,
         kind: VodKind,
         url: String,
         onStop: (Throwable) -> Unit,
-        onItem: () -> Unit
-    ): Sequence<VodItem> = sequence {
+        onItem: (VodItem) -> Unit
+    ) {
         val request = Request.Builder().url(url)
             .header("User-Agent", pl.userAgent.ifBlank { LiveTvRepository.DEFAULT_UA }).build()
         val response = try {
             http.newCall(request).execute()
-        } catch (e: Exception) {
-            onStop(e); return@sequence
+        } catch (e: java.io.IOException) {
+            onStop(e); return
         }
         response.use { r ->
-            if (!r.isSuccessful) { onStop(IllegalStateException("HTTP ${r.code}")); return@sequence }
-            val body = r.body ?: run { onStop(IllegalStateException("Empty response")); return@sequence }
-            JsonReader(body.charStream()).use { reader ->
-                // Panels don't always send perfectly valid JSON; be forgiving.
-                reader.isLenient = true
-                try {
-                    if (reader.peek() != JsonToken.BEGIN_ARRAY) { reader.skipValue(); return@sequence }
-                    reader.beginArray()
-                } catch (e: Exception) {
-                    onStop(e); return@sequence
-                }
-                while (true) {
-                    val f = try {
-                        if (!reader.hasNext()) break
-                        readFlat(reader)
-                    } catch (e: Exception) {
-                        onStop(e)
-                        break
-                    }
-                    val id = (if (kind == VodKind.MOVIE) f["stream_id"] else f["series_id"]) ?: continue
+            if (!r.isSuccessful) { onStop(IllegalStateException("HTTP ${r.code}")); return }
+            val body = r.body ?: run { onStop(IllegalStateException("Empty response")); return }
+            try {
+                readXtreamCatalog(
+                    body.charStream(), if (kind == VodKind.MOVIE) "stream_id" else "series_id",
+                    onInvalidEntry = { onStop(XtreamCatalogException()) }
+                ) { f ->
+                    val id = f.getValue(if (kind == VodKind.MOVIE) "stream_id" else "series_id")
                     val name = f["name"]?.trim().orEmpty().ifBlank { f["title"].orEmpty() }
-                    if (name.isBlank()) continue
-                    yield(
+                    // Treat unusable rows as incomplete, rather than pruning previously saved titles.
+                    if (name.isBlank()) { onStop(XtreamCatalogException()); return@readXtreamCatalog }
+                    onItem(
                         VodItem(
-                            playlistId = pl.id,
-                            kind = kind,
-                            id = id,
-                            name = name,
+                            playlistId = pl.id, kind = kind, id = id, name = name,
                             icon = (if (kind == VodKind.MOVIE) f["stream_icon"] else f["cover"])?.takeIf { it.startsWith("http") },
                             categoryId = f["category_id"].orEmpty(),
                             ext = f["container_extension"]?.takeIf { it.isNotBlank() },
                             tmdbId = (f["tmdb"] ?: f["tmdb_id"])?.takeIf { it.isNotBlank() && it != "0" },
-                            // The first of these that has a year: providers often send an empty
-                            // year field, which used to stop it trying the others (and the name).
                             year = listOf(f["year"], f["releaseDate"], f["release_date"]).firstNotNullOfOrNull { yearOf(it) }
                                 ?.takeIf { it <= OnDemandDatabase.latestYear() }
                                 ?: OnDemandDatabase.releaseYearInName(name),
@@ -455,26 +444,20 @@ class OnDemandRepository @Inject constructor(
                             genre = f["genre"]?.trim()?.takeIf { it.isNotBlank() }
                         )
                     )
-                    onItem()
                 }
+            } catch (e: XtreamCatalogException) {
+                onStop(e)
             }
         }
     }
 
-    /** One JSON object's simple fields as strings (nested values are skipped). */
-    private fun readFlat(reader: JsonReader): Map<String, String> {
-        val f = HashMap<String, String>()
-        reader.beginObject()
-        while (reader.hasNext()) {
-            val name = reader.nextName()
-            when (reader.peek()) {
-                JsonToken.STRING, JsonToken.NUMBER -> f[name] = reader.nextString()
-                JsonToken.BOOLEAN -> f[name] = reader.nextBoolean().toString()
-                else -> reader.skipValue()
-            }
-        }
-        reader.endObject()
-        return f
+    /** Never include provider response text, request URLs or credentials in diagnostics. */
+    private fun catalogProblem(e: Throwable): String = when {
+        e is XtreamCatalogException -> "The provider catalog was incomplete or invalid"
+        e is java.net.SocketTimeoutException -> "The provider timed out"
+        e.message?.matches(Regex("HTTP [0-9]{3}")) == true -> e.message!!
+        e is java.io.IOException -> "The provider connection failed"
+        else -> "Import failed (${e.javaClass.simpleName})"
     }
 
     // ------------------------------------------------------------------ reading

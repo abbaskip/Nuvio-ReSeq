@@ -37,7 +37,7 @@ class TvMixViewModel @Inject constructor(
     private val metadata: MetaRepository,
     private val shuffle: EpisodeShufflePlayback,
     private val progress: WatchProgressRepository,
-    private val tmdb: com.nuvio.tv.core.tmdb.TmdbService,
+    private val discovery: com.nuvio.tv.data.repository.DiscoveryRepository,
     val session: TvMixSession
 ) : ViewModel() {
     val mixes = store.mixes.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -132,7 +132,7 @@ class TvMixViewModel @Inject constructor(
         if (!imdb.isNullOrBlank()) return imdb
         if (!id.startsWith("tmdb:")) return id
         val numeric = id.substringAfter(':').substringBefore(':').toIntOrNull() ?: return id
-        return withTimeoutOrNull(5_000) { tmdb.tmdbToImdb(numeric, type) }?.takeIf(String::isNotBlank) ?: id
+        return withTimeoutOrNull(5_000) { discovery.imdbId(numeric, type in listOf("series", "tv", "anime")) }?.takeIf(String::isNotBlank) ?: id
     }
     private fun write(action: suspend (Int) -> Unit) {
         if (_state.value.saving) return

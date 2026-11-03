@@ -261,6 +261,7 @@ fun LiveTvGuideScreen(
     // A channel playing in the preview window: keep the TV awake (no screen saver), like full
     // screen does (full screen keeps it awake too; see KeepScreenAwake).
     val previewPlaying = playback.channelKey != null && (playback.isPlaying || playback.isBuffering) && !playback.userPaused
+    val navigationRepeatGate = remember { GuideNavigationRepeatGate() }
     KeepScreenAwake(previewPlaying)
     val now by viewModel.now.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -724,7 +725,7 @@ fun LiveTvGuideScreen(
         if (!settings.showPosters) return@produceState
         val p = headerBlock?.program ?: return@produceState
         value = p.icon
-        delay(250) // Avoid repeated local detail reads during rapid navigation.
+        delay(if (previewPlaying) PLAYING_GUIDE_DETAILS_DELAY_MS else 250L)
         value = viewModel.posterFor(p, headerChannel)
 
     }
@@ -899,7 +900,12 @@ fun LiveTvGuideScreen(
     }
     FrameMeter("Guide")
     androidx.compose.runtime.CompositionLocalProvider(
-        LocalShowDetails provides { key, p -> viewModel.details(key, p) },
+        LocalShowDetails provides { key, p ->
+            // Cancelled when the highlight moves again: don't read details for every row
+            // passed while holding a direction, especially while a stream needs the CPU.
+            if (previewPlaying) delay(PLAYING_GUIDE_DETAILS_DELAY_MS)
+            viewModel.details(key, p)
+        },
     ) {
     Box(
         modifier = Modifier
@@ -914,6 +920,17 @@ fun LiveTvGuideScreen(
                 lastKeyAt = System.currentTimeMillis()
                 // Full screen handles its own keys.
                 if (fullscreen) return@onPreviewKeyEvent false
+                val navigationKey = when (e.key) {
+                    Key.DirectionUp, Key.DirectionDown, Key.DirectionLeft, Key.DirectionRight,
+                    Key.PageUp, Key.PageDown, Key.ChannelUp, Key.ChannelDown -> true
+                    else -> false
+                }
+                if (navigationKey && e.type == KeyEventType.KeyDown && navigationRepeatGate.shouldConsume(
+                        keyCode = e.nativeKeyEvent.keyCode,
+                        repeated = e.nativeKeyEvent.repeatCount > 0,
+                        eventTimeMs = e.nativeKeyEvent.eventTime,
+                        playbackActive = previewPlaying
+                    )) return@onPreviewKeyEvent true
                 val playingNow = playback.channelKey != null
                 fun returnToPlaying() {
                     groupsFocusJob?.cancel()
@@ -1473,7 +1490,9 @@ fun LiveTvGuideScreen(
                             )
                             channels.isEmpty() -> EmptyGuideMessage(
                                 title = "No channels in this group",
-                                body = "Press left to pick another group.",
+                                body = if (user.hiddenGroups.isNotEmpty())
+                                    "Open the guide gear menu and choose Show all groups to restore hidden groups."
+                                else "Press left to pick another group.",
                                 action = null
                             )
                             else -> {
@@ -1908,6 +1927,20 @@ fun LiveTvGuideScreen(
                 settings = settings,
                 onChange = { f -> viewModel.updateSettings(f) },
                 onSettings = { guideGearOpen = false; onOpenSettings() },
+                onManageGroups = {
+                    guideGearOpen = false
+                    groupsOpen = true
+                    val all = viewModel.groupsWithHidden()
+                    groupVisibilityList = all
+                    groupHiddenPending = user.hiddenGroups intersect all.map { it.id }.toSet()
+                    scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
+                },
+                onShowAllGroups = {
+                    viewModel.showAllGroups()
+                    guideGearOpen = false
+                    groupsOpen = true
+                    scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
+                },
                 onDismiss = { guideGearOpen = false; scope.launch { delay(60); runCatching { gridFocus.requestFocus() } } }
             )
         }

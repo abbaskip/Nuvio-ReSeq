@@ -34,11 +34,12 @@ internal class FreeSportsDb {
 
     companion object {
         val discoverySports = mapOf(
-            Sport.RUGBY to "Rugby", Sport.RUGBY_LEAGUE to "Rugby", Sport.CRICKET to "Cricket",
-            Sport.FOOTBALL to "Soccer", Sport.BASKETBALL to "Basketball", Sport.AMERICAN_FOOTBALL to "American Football",
-            Sport.BASEBALL to "Baseball", Sport.HOCKEY to "Ice Hockey", Sport.SWIMMING to "Swimming",
-            Sport.ATHLETICS to "Athletics", Sport.SNOOKER to "Snooker", Sport.GYMNASTICS to "Gymnastics",
-            Sport.CYCLING to "Cycling", Sport.FIGHTING to "Fighting", Sport.WRESTLING to "Fighting", Sport.TENNIS to "Tennis", Sport.GOLF to "Golf")
+            Sport.RUGBY to listOf("Rugby"), Sport.RUGBY_LEAGUE to listOf("Rugby"), Sport.CRICKET to listOf("Cricket"),
+            Sport.FOOTBALL to listOf("Soccer"), Sport.BASKETBALL to listOf("Basketball"), Sport.AMERICAN_FOOTBALL to listOf("American Football"),
+            Sport.BASEBALL to listOf("Baseball"), Sport.HOCKEY to listOf("Ice Hockey"), Sport.SWIMMING to listOf("Swimming"),
+            Sport.ATHLETICS to listOf("Athletics"), Sport.SNOOKER to listOf("Snooker", "Pool", "Billiards"), Sport.GYMNASTICS to listOf("Gymnastics"),
+            Sport.CYCLING to listOf("Cycling"), Sport.FIGHTING to listOf("Fighting"), Sport.WRESTLING to listOf("Fighting"),
+            Sport.TENNIS to listOf("Tennis"), Sport.GOLF to listOf("Golf"), Sport.HORSE_RACING to listOf("Horse Racing"))
         // Stable catalogue identifiers, verified by lookup; discovery itself is truncated on free access.
         val seedIds = listOf("4416", "4415", "4461", "5806", "5282")
         private fun JsonObject.text(key: String) = (get(key) as? JsonPrimitive)?.contentOrNull
@@ -56,7 +57,7 @@ internal class FreeSportsDb {
                 .any { l -> l.guideWords.any { w -> SportsCatalog.hasWord(SportsCatalog.norm(name), SportsCatalog.norm(w).trim()) } }
             val sport = if (wrestling) Sport.WRESTLING else if (declared == "Rugby") classified?.let { SportsTaxonomy.sport(it.sportId) }
                 ?.takeIf { it == Sport.RUGBY || it == Sport.RUGBY_LEAGUE }
-                else discoverySports.entries.firstOrNull { it.value == declared }?.key
+                else discoverySports.entries.firstOrNull { declared in it.value }?.key
             if (sport == null) return@mapNotNull null
             League("tsdb/$id", sport, name, name, kind = if (sport in setOf(Sport.FOOTBALL, Sport.RUGBY, Sport.RUGBY_LEAGUE, Sport.CRICKET, Sport.BASKETBALL, Sport.BASEBALL, Sport.HOCKEY, Sport.AMERICAN_FOOTBALL)) LeagueKind.TEAMS else LeagueKind.EVENT, guideWords = listOf(name) +
                 o.text("strLeagueAlternate").orEmpty().split(',').map(String::trim).filter(String::isNotEmpty))

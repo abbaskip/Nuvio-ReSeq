@@ -142,7 +142,7 @@ internal fun Modifier.sportsFrame(
  */
 @Composable
 internal fun LeagueMark(league: League?, size: Dp) {
-    val logo = league?.let { SportsFeeds.leagueLogos[it.id] }
+    val logo = league?.let(SportsLeagueLogos::logo)
     when {
         logo != null -> AsyncImage(
             model = logo, contentDescription = league?.name, contentScale = ContentScale.Fit,

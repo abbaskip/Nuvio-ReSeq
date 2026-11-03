@@ -1,0 +1,369 @@
+{
+  "name": "National Basketball Association",
+  "children": [
+    {
+      "name": "Eastern Conference",
+      "children": [
+        {
+          "name": "Atlantic",
+          "standings": {
+            "entries": [
+              {
+                "team": {
+                  "id": "17",
+                  "displayName": "Brooklyn Nets",
+                  "shortDisplayName": "Nets"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 5.0,
+                    "displayValue": "5"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 15.0,
+                    "displayValue": "15"
+                  },
+                  {
+                    "name": "points",
+                    "value": -2.0,
+                    "displayValue": "-2.0"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.16666667,
+                    "displayValue": ".167"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 1.0,
+                    "displayValue": "1"
+                  }
+                ]
+              },
+              {
+                "team": {
+                  "id": "18",
+                  "displayName": "New York Knicks",
+                  "shortDisplayName": "Knicks"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 4.0,
+                    "displayValue": "4"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 11.0,
+                    "displayValue": "11"
+                  },
+                  {
+                    "name": "points",
+                    "value": -1.0,
+                    "displayValue": "-1.0"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.33333334,
+                    "displayValue": ".333"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 2.0,
+                    "displayValue": "2"
+                  }
+                ]
+              },
+              {
+                "team": {
+                  "id": "28",
+                  "displayName": "Toronto Raptors",
+                  "shortDisplayName": "Raptors"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 3.0,
+                    "displayValue": "3"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 5.0,
+                    "displayValue": "5"
+                  },
+                  {
+                    "name": "points",
+                    "value": 0.0,
+                    "displayValue": "0.0"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.5,
+                    "displayValue": ".500"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 3.0,
+                    "displayValue": "3"
+                  }
+                ]
+              },
+              {
+                "team": {
+                  "id": "2",
+                  "displayName": "Boston Celtics",
+                  "shortDisplayName": "Celtics"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 1.0,
+                    "displayValue": "1"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 3.0,
+                    "displayValue": "3"
+                  },
+                  {
+                    "name": "points",
+                    "value": 2.0,
+                    "displayValue": "2.0"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.8333333,
+                    "displayValue": ".833"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 5.0,
+                    "displayValue": "5"
+                  }
+                ]
+              },
+              {
+                "team": {
+                  "id": "20",
+                  "displayName": "Philadelphia 76ers",
+                  "shortDisplayName": "76ers"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 1.0,
+                    "displayValue": "1"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 1.0,
+                    "displayValue": "1"
+                  },
+                  {
+                    "name": "points",
+                    "value": 2.5,
+                    "displayValue": "2.5"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.85714287,
+                    "displayValue": ".857"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 6.0,
+                    "displayValue": "6"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Western Conference",
+      "children": [
+        {
+          "name": "Northwest",
+          "standings": {
+            "entries": [
+              {
+                "team": {
+                  "id": "26",
+                  "displayName": "Utah Jazz",
+                  "shortDisplayName": "Jazz"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 5.0,
+                    "displayValue": "5"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 14.0,
+                    "displayValue": "14"
+                  },
+                  {
+                    "name": "points",
+                    "value": -2.0,
+                    "displayValue": "-2.0"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.16666667,
+                    "displayValue": ".167"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 1.0,
+                    "displayValue": "1"
+                  }
+                ]
+              },
+              {
+                "team": {
+                  "id": "7",
+                  "displayName": "Denver Nuggets",
+                  "shortDisplayName": "Nuggets"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 2.0,
+                    "displayValue": "2"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 8.0,
+                    "displayValue": "8"
+                  },
+                  {
+                    "name": "points",
+                    "value": 0.5,
+                    "displayValue": "0.5"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.6,
+                    "displayValue": ".600"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 3.0,
+                    "displayValue": "3"
+                  }
+                ]
+              },
+              {
+                "team": {
+                  "id": "16",
+                  "displayName": "Minnesota Timberwolves",
+                  "shortDisplayName": "Timberwolves"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 3.0,
+                    "displayValue": "3"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 10.0,
+                    "displayValue": "10"
+                  },
+                  {
+                    "name": "points",
+                    "value": 0.5,
+                    "displayValue": "0.5"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.5714286,
+                    "displayValue": ".571"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 4.0,
+                    "displayValue": "4"
+                  }
+                ]
+              },
+              {
+                "team": {
+                  "id": "25",
+                  "displayName": "Oklahoma City Thunder",
+                  "shortDisplayName": "Thunder"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 2.0,
+                    "displayValue": "2"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 5.0,
+                    "displayValue": "5"
+                  },
+                  {
+                    "name": "points",
+                    "value": 1.0,
+                    "displayValue": "1.0"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.6666667,
+                    "displayValue": ".667"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 4.0,
+                    "displayValue": "4"
+                  }
+                ]
+              },
+              {
+                "team": {
+                  "id": "22",
+                  "displayName": "Portland Trail Blazers",
+                  "shortDisplayName": "Trail Blazers"
+                },
+                "stats": [
+                  {
+                    "name": "losses",
+                    "value": 1.0,
+                    "displayValue": "1"
+                  },
+                  {
+                    "name": "playoffSeed",
+                    "value": 3.0,
+                    "displayValue": "3"
+                  },
+                  {
+                    "name": "points",
+                    "value": 1.5,
+                    "displayValue": "1.5"
+                  },
+                  {
+                    "name": "winPercent",
+                    "value": 0.8,
+                    "displayValue": ".800"
+                  },
+                  {
+                    "name": "wins",
+                    "value": 4.0,
+                    "displayValue": "4"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

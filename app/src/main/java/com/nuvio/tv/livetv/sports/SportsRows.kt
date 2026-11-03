@@ -32,6 +32,8 @@ internal object SportsRows {
 
     /** The keys of My Sports' rows (not Live & Upcoming), in your order (see [SportsFollows.order]). */
     fun rowKeys(f: SportsFollows): List<String> {
+        val consolidated = SportsCompetitions.follows(f)
+        if (consolidated != f) return rowKeys(consolidated)
         val all = LinkedHashSet<String>()
         f.teams.forEach { all += "t:${it.key}" }
         (f.pins + f.leagues).forEach { all += "l:$it" }
@@ -52,6 +54,8 @@ internal object SportsRows {
      * from the top bar shows Arsenal, England and the Premier League, not the NFL).
      */
     fun build(known: List<SportsEvent>, follows: SportsFollows, now: Long, sport: Sport? = null, isMine: (SportsEvent) -> Boolean): MyTeamsPage {
+        val consolidated = SportsCompetitions.follows(follows)
+        if (consolidated != follows) return build(known, consolidated, now, sport, isMine)
         if (sport != null) {
             fun of(id: String) = SportsCatalog.league(id)?.sport == sport
             val f = follows.copy(

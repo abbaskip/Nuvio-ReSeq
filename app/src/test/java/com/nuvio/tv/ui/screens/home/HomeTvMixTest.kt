@@ -29,4 +29,15 @@ class HomeTvMixTest {
         assertEquals(row.stableItemKeys().single(), updated.stableItemKeys().last())
         assertEquals("Renamed", updated.items.last().name)
     }
+    @Test fun `Continue Watching offers the whole series with original artwork rather than episode identity`() {
+        val progress = WatchProgress("tmdb:99", "series", "Example", "episode-art", null, null,
+            "tt123:1:2", 1, 2, "Episode two", 100L, 1000L, 1L)
+        val item = ContinueWatchingItem.InProgress(progress, originalPoster = "series-art")
+        val preview = item.tvMixPreview()!!
+        assertEquals("tmdb:99", preview.id)
+        assertEquals("series-art", preview.poster)
+        assertEquals("series", preview.apiType)
+        assertNull(ContinueWatchingItem.InProgress(progress.copy(contentType = "movie")).tvMixPreview())
+    }
+
 }

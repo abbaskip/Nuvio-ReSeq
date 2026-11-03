@@ -11,6 +11,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SportsReplayMatcherTest {
+    @Test fun `recently finished game retains its confirmed original guide replay`() {
+        val fixture = lakersClippers().copy(startMs = now - 2 * 3_600_000L, state = GameState.POST)
+        val programme = EpgProgram(fixture.startMs, fixture.startMs + 90 * 60_000L,
+            "NBA Basketball", description = "Los Angeles Lakers at LA Clippers")
+        val result = match(listOf(channel("replay", "US: Sports West")),
+            programmes = listOf("replay" to programme), fixture = fixture,
+            replay = sportsReplayLookup(fixture, now))
+        assertTrue(result.any { it.channel.key == "replay" && it.sure && it.catchup && it.program == programme })
+    }
+
     private val now = 1_793_318_400_000L
     private val start = now - 2 * 24 * 3_600_000L
     private val league = "football/nfl"

@@ -139,13 +139,33 @@ internal class SportsBaseFeed(
 
 /** At most two relevant league/date scoreboards per round; catalogue dates never fan out on the TV. */
 internal object SportsRefreshPolicy {
+    private fun relevant(event: SportsEvent, league: League, viewing: Boolean, now: Long): Boolean {
+        if (league.espnPath == null || (!event.hasTime && event.endMs == null) ||
+            event.state == GameState.POST || event.state == GameState.OFF) return false
+        val ongoing = now >= event.startMs - 10 * 60_000L &&
+            now <= (event.endMs?.let { it + if (event.hasTime) 0L else 24 * 60 * 60_000L }
+                ?: (event.startMs + league.minutes * 60_000L)) + 30 * 60_000L
+        // A saved schedule can still say PRE after a game has finished. Refresh its result
+        // while browsing instead of dropping it forever once its expected duration passes.
+        val pendingResult = viewing && event.hasTime && event.state == GameState.PRE &&
+            event.startMs > now - 24 * 60 * 60_000L && event.startMs <= now
+        return ongoing || pendingResult
+    }
+
+    /** ESPN's date belongs to the game, which may still be yesterday in US Eastern. */
+    fun scoreboardAnchor(events: List<SportsEvent>, league: League, focused: String?, playing: Set<String>,
+                         viewing: Boolean, now: Long): Long = events.asSequence()
+        .filter { it.leagueId == league.id && relevant(it, league, viewing, now) }
+        .sortedWith(compareBy<SportsEvent> { if (it.id == focused || it.id in playing) 0 else 1 }
+            .thenBy { kotlin.math.abs(it.startMs - now) })
+        .firstOrNull()?.startMs ?: now
+
     fun choose(events: List<SportsEvent>, leagues: List<League>, focused: String?, playing: Set<String>,
                followed: Set<String>, viewing: Boolean, now: Long, attempts: Map<String, Long>): List<League> {
         val byId = leagues.associateBy { it.id }
         val current = events.filter { e ->
             val league = byId[e.leagueId]
-            league?.espnPath != null && (e.hasTime || e.endMs != null) && e.state != GameState.POST && e.state != GameState.OFF &&
-                now >= e.startMs - 10 * 60_000L && now <= (e.endMs?.let { it + if (e.hasTime) 0L else 24 * 60 * 60_000L } ?: (e.startMs + league.minutes * 60_000L)) + 30 * 60_000L
+            league != null && relevant(e, league, viewing, now)
         }.groupBy { it.leagueId }
         fun priority(id: String): Int = when {
             current[id].orEmpty().any { it.id == focused || it.id in playing } -> 0

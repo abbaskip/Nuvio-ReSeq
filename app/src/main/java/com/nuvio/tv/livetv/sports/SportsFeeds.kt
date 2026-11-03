@@ -749,7 +749,7 @@ internal class SportsFeeds {
                     away = null, home = null,
                     broadcasts = listOfNotNull(e.str("broadcast")),
                     source = EventSource.FIXTURES,
-                    note = if (time == null) "Starts today" else null
+                    note = if (time == null) "Time to be confirmed" else null
                 )
             }
             return out

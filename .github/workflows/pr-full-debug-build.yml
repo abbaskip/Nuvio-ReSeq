@@ -69,8 +69,8 @@ jobs:
             echo "NUVIO_RELEASE_STORE_PASSWORD=android"
           } >> "$GITHUB_ENV"
 
-      - name: Test navigation, updater and source paging, then build fullDebug APK
-        run: ./gradlew :app:testFullDebugUnitTest --tests 'com.nuvio.tv.ui.navigation.*' --tests 'com.nuvio.tv.updater.*' --tests 'com.nuvio.tv.ui.screens.player.SourceStreamPagingTest' :app:assembleFullDebug --stacktrace
+      - name: Test Sports Hub, navigation, updater and source paging, then build fullDebug APK
+        run: ./gradlew :app:testFullDebugUnitTest --tests 'com.nuvio.tv.livetv.sports.*' --tests 'com.nuvio.tv.ui.navigation.*' --tests 'com.nuvio.tv.updater.*' --tests 'com.nuvio.tv.ui.screens.player.SourceStreamPagingTest' :app:assembleFullDebug --stacktrace
 
       - name: Upload fullDebug APK
         uses: actions/upload-artifact@v7

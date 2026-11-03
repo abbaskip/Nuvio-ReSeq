@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
@@ -26,7 +27,17 @@ internal fun sportsBrowsingAllowed(
     nuvioPlaying: Flow<Boolean>
 ): Flow<Boolean> = combine(foreground, viewing, playback, fullscreen, nuvioPlaying) { front, viewers, live, full, vod ->
     front && !vod && !full && !live.isBuffering &&
-        (live.channelKey == null || (viewers > 0 && (live.isPlaying || live.userPaused)))
+        (live.channelKey == null || viewers > 0)
+}.distinctUntilChanged()
+
+/** An opened game's local channel/EPG lookup must work even when its preview is stalled. */
+internal fun sportsChannelLookupAllowed(
+    foreground: Flow<Boolean>,
+    viewing: Flow<Int>,
+    fullscreen: Flow<Boolean>,
+    nuvioPlaying: Flow<Boolean>
+): Flow<Boolean> = combine(foreground, viewing, fullscreen, nuvioPlaying) { front, viewers, full, vod ->
+    front && viewers > 0 && !full && !vod
 }.distinctUntilChanged()
 
 /** Bulk catalogue downloads and whole-guide scans also yield to the Sports preview player. */
@@ -43,10 +54,15 @@ internal fun sportsBackgroundAllowed(
 internal fun sportsScoresAllowed(
     foreground: Flow<Boolean>,
     playback: Flow<LivePlaybackState>,
-    nuvioPlaying: Flow<Boolean>
-): Flow<Boolean> = combine(foreground, playback, nuvioPlaying) { front, live, vod ->
-    front && !vod && (live.channelKey == null || (live.isPlaying && !live.isBuffering))
+    nuvioPlaying: Flow<Boolean>,
+    viewing: Flow<Int> = flowOf(0)
+): Flow<Boolean> = combine(foreground, playback, nuvioPlaying, viewing) { front, live, vod, viewers ->
+    front && !vod && !live.isBuffering && (live.channelKey == null || live.isPlaying || viewers > 0)
 }.distinctUntilChanged()
+
+/** Finished games need their original guide entries immediately, without a five-hour wait. */
+internal fun sportsReplayLookup(event: SportsEvent, now: Long): Boolean =
+    event.state == GameState.POST || event.startMs < now - 5 * 3_600_000L
 
 /** One page request or refinement, with no observer left behind after it finishes. */
 internal suspend fun StateFlow<Boolean>.whileAllowed(block: suspend () -> Unit) = coroutineScope {

@@ -15,6 +15,27 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SportsPlaybackWorkTest {
+    @Test fun `selected but inactive preview permits page lookup and scores while bulk work stays stopped`() = runTest {
+        val foreground = MutableStateFlow(true)
+        val viewers = MutableStateFlow(1)
+        val playback = MutableStateFlow(LivePlaybackState(channelKey = "sport"))
+        val fullscreen = MutableStateFlow(false)
+        val vod = MutableStateFlow(false)
+        assertTrue(sportsBrowsingAllowed(foreground, viewers, playback, fullscreen, vod).first())
+        assertTrue(sportsScoresAllowed(foreground, playback, vod, viewers).first())
+        assertFalse(sportsBackgroundAllowed(foreground, playback, fullscreen, vod).first())
+        viewers.value = 0
+        assertFalse(sportsBrowsingAllowed(foreground, viewers, playback, fullscreen, vod).first())
+        assertFalse(sportsScoresAllowed(foreground, playback, vod, viewers).first())
+        viewers.value = 1
+        playback.value = playback.value.copy(isBuffering = true)
+        assertFalse(sportsBrowsingAllowed(foreground, viewers, playback, fullscreen, vod).first())
+        assertFalse(sportsScoresAllowed(foreground, playback, vod, viewers).first())
+        assertTrue(sportsChannelLookupAllowed(foreground, viewers, fullscreen, vod).first())
+        fullscreen.value = true
+        assertFalse(sportsChannelLookupAllowed(foreground, viewers, fullscreen, vod).first())
+    }
+
     @Test fun `tuning cancels bulk work throughout preview and full screen until playback stops`() = runTest {
         val foreground = MutableStateFlow(true)
         val viewers = MutableStateFlow(1)

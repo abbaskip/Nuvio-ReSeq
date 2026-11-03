@@ -257,7 +257,9 @@ object SportsCatalog {
             regions = setOf("UK", "AU", "OTHER"), guideOnly = true, fixtureSlug = "rugby-league", kind = LeagueKind.EVENT, color = 0xFF1D3C8F),
         League("guide/cricket", Sport.CRICKET, "Cricket", "CRICKET",
             guideWords = listOf("Cricket", "Test Match", "The Ashes", "IPL", "T20", "The Hundred", "ODI"),
-            regions = setOf("UK", "IE", "AU", "OTHER"), guideOnly = true, fixtureSlug = "cricket", kind = LeagueKind.EVENT, color = 0xFF0E5A3A),
+            // The external cricket calendar contains incorrect Ashes seasons/dates. Use actual
+            // guide listings until a reliable fixture source is available.
+            regions = setOf("UK", "IE", "AU", "OTHER"), guideOnly = true, kind = LeagueKind.EVENT, color = 0xFF0E5A3A),
         League("guide/darts", Sport.DARTS, "Darts", "DARTS", guideWords = listOf("Darts"),
             regions = setOf("UK", "IE", "AU", "OTHER"), guideOnly = true, fixtureSlug = "darts", kind = LeagueKind.EVENT, color = 0xFF0F3D2E),
         League("guide/snooker", Sport.SNOOKER, "Snooker", "SNOOKER", guideWords = listOf("Snooker"),

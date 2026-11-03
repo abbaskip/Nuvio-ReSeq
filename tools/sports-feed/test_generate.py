@@ -21,6 +21,16 @@ class Responses:
 
 
 class ProducerTests(unittest.TestCase):
+    def test_unreliable_cricket_calendar_is_not_fetched_or_carried_forward(self):
+        source = Path("app/src/main/java/com/nuvio/tv/livetv/sports/SportsCatalog.kt").read_text(encoding="utf-8")
+        cricket = next(row for row in g.catalogue(source) if row["id"] == "guide/cricket")
+        self.assertIsNone(cricket["calendar"])
+        old = {"entries": [{"provider": "calendar", "leagueId": cricket["id"], "fetchedAt": NOW,
+                            "payload": {"events": [{"name": "The Ashes (1st Test)"}]}}]}
+        output = g.build([LEAGUE, cricket], Responses({"fetchedAt": NOW, "payload": {"events": [EVENT]}}),
+                         NOW, 0, 0, [LEAGUE["id"], cricket["id"]], old)
+        self.assertFalse(any(row["leagueId"] == cricket["id"] for row in output["entries"]))
+
     def test_reads_existing_kotlin_catalogue_and_college_query(self):
         source = Path("app/src/main/java/com/nuvio/tv/livetv/sports/SportsCatalog.kt").read_text(encoding="utf-8")
         catalogue = g.catalogue(source)

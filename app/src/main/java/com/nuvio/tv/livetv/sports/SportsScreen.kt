@@ -1217,16 +1217,20 @@ private fun GamePage(
         onDispose { viewModel.repo.focusEvent(null) }
     }
     val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    LaunchedEffect(ev.id, owner) {
+    LaunchedEffect(ev.id, ev.state, ev.startMs, owner) {
         owner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
-            viewModel.repo.browsingAllowed.collectLatest { allowed ->
+            viewModel.repo.channelLookupAllowed.collectLatest { allowed ->
                 if (!allowed) return@collectLatest
                 sportsCatching { viewModel.repo.loadEventChannels(ev) }
-                sportsCatching { viewModel.repo.loadBroadcasts(ev) }
-                sportsCatching { viewModel.repo.loadEventChannels(ev) }
-                while (true) {
-                    sportsCatching { viewModel.repo.refreshFreeEvent(ev) }
-                    delay(90_000)
+                viewModel.repo.browsingAllowed.collectLatest { optionalAllowed ->
+                    if (optionalAllowed) {
+                        sportsCatching { viewModel.repo.loadBroadcasts(ev) }
+                        sportsCatching { viewModel.repo.loadEventChannels(ev) }
+                        while (true) {
+                            sportsCatching { viewModel.repo.refreshFreeEvent(ev) }
+                            delay(90_000)
+                        }
+                    }
                 }
             }
         }

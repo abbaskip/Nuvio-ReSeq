@@ -237,6 +237,10 @@ class SportsRepository @Inject constructor(
         foreground, viewers, playback.state, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active,
         com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying
     ).stateIn(scope, SharingStarted.Eagerly, false)
+    internal val channelLookupAllowed = sportsChannelLookupAllowed(
+        foreground, viewers, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active,
+        com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying
+    ).stateIn(scope, SharingStarted.Eagerly, false)
     internal val backgroundAllowed = sportsBackgroundAllowed(
         foreground, playback.state, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active,
         com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying
@@ -275,7 +279,7 @@ class SportsRepository @Inject constructor(
             }
         }
         scope.launch {
-            sportsScoresAllowed(foreground, playback.state, com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying)
+            sportsScoresAllowed(foreground, playback.state, com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying, viewers)
                 .combine(cacheLoaded) { allowed, loaded -> allowed && loaded }.distinctUntilChanged()
                 .collectLatest { allowed ->
                     if (!allowed) return@collectLatest
@@ -425,8 +429,7 @@ class SportsRepository @Inject constructor(
             // Record attempts before I/O: a failed service must not be retried on each loop.
             scoreAttempts[league.id] = now
             val fmt = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = TimeZone.getTimeZone("America/New_York") }
-            val targets = known.value.filter { it.leagueId == league.id && (it.id == focused || it.id in playing) }
-            val at = targets.minByOrNull { kotlin.math.abs(it.startMs - now) }?.startMs ?: now
+            val at = SportsRefreshPolicy.scoreboardAnchor(known.value, league, focused, playing, browsing, now)
             sportsCatching {
                 val parsed = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, fmt.format(java.util.Date(at))))
                     .map { it.copy(updatedAt = now) }
@@ -1088,7 +1091,7 @@ class SportsRepository @Inject constructor(
         val channels = visibleSportsChannels(live, user, sp)
         fun input(guide: Boolean) = SportsMatcher.Input(listOf(enriched), channels, user.channelQuality,
             live.epgOffsetMinutes * MINUTE, sp, System.currentTimeMillis(),
-            replay = event.startMs < System.currentTimeMillis() - 5 * HOUR,
+            replay = sportsReplayLookup(event, System.currentTimeMillis()),
             guideAssignments = liveRepo.autoMatches.value + user.epgOverrides, includeGuide = guide)
         fun publish(result: SportsMatcher.Result, quick: Boolean = false) {
             _matches.update { previous ->

@@ -21,6 +21,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.Text
 import com.nuvio.tv.R
 import com.nuvio.tv.ui.components.NuvioDialog
+import com.nuvio.tv.ui.components.tvTextFieldNavigation
 import com.nuvio.tv.ui.theme.NuvioTheme
 
 @Composable
@@ -30,7 +31,7 @@ internal fun TmdbApiKeyDialog(state: TmdbSettingsUiState, viewModel: TmdbSetting
     NuvioDialog(onDismiss = { viewModel.cancelApiKeySave(); onDismiss() },
         title = stringResource(R.string.tmdb_local_api_key_title),
         subtitle = stringResource(R.string.tmdb_local_api_key_hint), width = 640.dp) {
-        OutlinedTextField(value = value, onValueChange = { value = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+        OutlinedTextField(value = value, onValueChange = { value = it }, modifier = Modifier.fillMaxWidth().tvTextFieldNavigation(), singleLine = true,
             enabled = !state.savingApiKey, visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             label = { Text(stringResource(R.string.tmdb_local_api_key_title), color = NuvioTheme.colors.TextSecondary) },

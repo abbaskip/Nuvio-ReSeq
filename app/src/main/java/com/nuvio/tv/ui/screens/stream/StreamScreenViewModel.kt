@@ -110,7 +110,8 @@ class StreamScreenViewModel @Inject constructor(
     profileManager: com.nuvio.tv.core.profile.ProfileManager,
     savedStateHandle: SavedStateHandle,
     private val tvdbOrderStore: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null,
-    private val iptvSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources? = null
+    private val iptvSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources? = null,
+    private val mixSession: com.nuvio.tv.core.player.TvMixSession? = null
 ) : ViewModel() {
     private var autoPlayHandledForSession = false
     private var directAutoPlayModeInitializedForSession = false
@@ -449,8 +450,13 @@ class StreamScreenViewModel @Inject constructor(
         streamLoadScope = newScope
         streamLoadJob = newScope.launch {
             streamLoadCompleted = false
-            val playerSettings = playerSettingsDataStore.playerSettings.first()
-            if (manualSelection) {
+            val storedSettings = playerSettingsDataStore.playerSettings.first()
+            val mixContinuation = mixSession?.continuationFor(playbackProfileId, contentId, videoId)
+            val nextSelection = mixContinuation?.let { StreamAutoPlayPolicy.nextEpisodeSelection(storedSettings) }
+            val playerSettings = nextSelection?.settings ?: storedSettings
+            val continuationBingeGroup = mixContinuation?.preferredBingeGroup
+                ?.takeIf { storedSettings.streamAutoPlayPreferBingeGroupForNextEpisode }
+            if (manualSelection || nextSelection?.automatic == false) {
                 directAutoPlayModeInitializedForSession = true
                 directAutoPlayFlowEnabledForSession = false
                 autoPlayHandledForSession = true
@@ -507,7 +513,8 @@ class StreamScreenViewModel @Inject constructor(
                 tvdbContextReady.await()
                 val cached = streamLinkCacheDataStore.getValid(streamCacheKeys,
                     playerSettings.streamReuseLastLinkCacheHours * 60L * 60L * 1000L, playerSettings.streamReuseLastLinkEnabled)
-                if (cached != null) {
+                if (cached != null && (nextSelection?.bingeGroupOnly != true ||
+                        (!continuationBingeGroup.isNullOrBlank() && cached.bingeGroup == continuationBingeGroup))) {
                     autoPlayHandledForSession = true
                     resolvedAutoPlayTarget = true
                     val isCachedTorrent = cached.infoHash != null && cached.url.isNullOrBlank()
@@ -571,14 +578,14 @@ class StreamScreenViewModel @Inject constructor(
             val installedAddonOrder = installedAddons.map { it.displayName }
             val directDebridSourceNames = emptyList<String>()
             val directDebridAvailable = false
-            val persistedBingeGroup = if (playerSettings.streamAutoPlayPreferBingeGroupForNextEpisode &&
+            val persistedBingeGroup = if (mixContinuation != null) continuationBingeGroup else if (playerSettings.streamAutoPlayPreferBingeGroupForNextEpisode &&
                 playerSettings.streamAutoPlayReuseBingeGroup) {
                 contentId?.let { bingeGroupCacheDataStore.get(it) }
             } else null
-            val persistedFilename = if (persistedBingeGroup != null) {
+            val persistedFilename = if (mixContinuation == null && persistedBingeGroup != null) {
                 contentId?.let { bingeGroupCacheDataStore.getFilename(it) }
             } else null
-            val persistedInfoHash = if (persistedBingeGroup != null) {
+            val persistedInfoHash = if (mixContinuation == null && persistedBingeGroup != null) {
                 contentId?.let { bingeGroupCacheDataStore.getInfoHash(it) }
             } else null
 
@@ -688,7 +695,8 @@ class StreamScreenViewModel @Inject constructor(
                         selectedAddons = playerSettings.streamAutoPlaySelectedAddons,
                         selectedPlugins = playerSettings.streamAutoPlaySelectedPlugins,
                         preferredBingeGroup = persistedBingeGroup,
-                        preferBingeGroupInSelection = persistedBingeGroup != null
+                        preferBingeGroupInSelection = persistedBingeGroup != null,
+                        bingeGroupOnly = nextSelection?.bingeGroupOnly == true
                     )
                 }
                 if (selectedAutoPlayStream != null) {

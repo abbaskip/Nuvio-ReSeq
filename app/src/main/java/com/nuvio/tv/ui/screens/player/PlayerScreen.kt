@@ -208,7 +208,7 @@ fun PlayerScreen(
     onBackPress: (currentVideoId: String?, currentSeason: Int?, currentEpisode: Int?, autoPlayEnabled: Boolean, playbackCompleted: Boolean) -> Unit,
     onPlaybackErrorBack: () -> Unit = { onBackPress(null, null, null, false, false) },
     onPlaybackEnded: ((nextVideoId: String?, nextSeason: Int?, nextEpisode: Int?, exitReason: PlayerExitReason?) -> Unit)? = null,
-    onMixPlaybackEnded: ((Boolean) -> Unit)? = null,
+    onMixPlaybackEnded: ((Boolean, String?) -> Unit)? = null,
     onMovieCompleted: (com.nuvio.tv.core.tracking.MovieRatingRequest) -> Unit = {},
     onPlayRecommendation: (PostPlayRecommendation, manualSelection: Boolean) -> Unit = { _, _ -> },
     onOpenRecommendationDetails: (PostPlayRecommendation) -> Unit = {},
@@ -471,8 +471,9 @@ fun PlayerScreen(
                 if (currentOnMixPlaybackEnded != null) {
                     if (!exitDispatched) {
                         exitDispatched = true
+                        val bingeGroup = viewModel.controller.currentStreamBingeGroup
                         viewModel.stopAndRelease()
-                        currentOnMixPlaybackEnded?.invoke(uiState.streamAutoPlayNextEpisodeEnabled)
+                        currentOnMixPlaybackEnded?.invoke(uiState.streamAutoPlayNextEpisodeEnabled, bingeGroup)
                     }
                     return@LaunchedEffect
                 }

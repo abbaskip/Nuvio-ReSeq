@@ -65,13 +65,16 @@ class TvMixViewModelTest {
         assertEquals(first, vm.state.value.selection)
         vm.play()
         assertTrue(session.matches(1, "tt123", first.video.id))
-        vm.completed(true); runCurrent()
+        assertFalse(session.playing.value!!.continuation)
+        vm.completed(true, "quality"); runCurrent()
         assertTrue(vm.state.value.autoStart)
         assertFalse(vm.state.value.continuePrompt)
         assertNotEquals(first.video.id, vm.state.value.selection!!.video.id)
         vm.play()
         assertFalse(vm.state.value.autoStart)
         assertNotNull(session.playing.value)
+        assertTrue(session.playing.value!!.continuation)
+        assertEquals("quality", session.playing.value!!.preferredBingeGroup)
     }
 
     @Test fun `restored catalog shows resolve full episodes without a warm metadata cache`() = runTest(dispatcher) {
@@ -89,7 +92,7 @@ class TvMixViewModelTest {
         vm.open("mix"); runCurrent()
         val completed = vm.state.value.selection!!.video.id
         vm.play()
-        vm.completed(false); runCurrent()
+        vm.completed(false, "quality"); runCurrent()
         assertTrue(vm.state.value.continuePrompt)
         assertFalse(vm.state.value.autoStart)
         assertNull(session.playing.value)
@@ -105,6 +108,9 @@ class TvMixViewModelTest {
         }
         assertTrue(vm.state.value.continuePrompt)
         assertNull(session.playing.value)
+        vm.play()
+        assertTrue(session.playing.value!!.continuation)
+        assertEquals("quality", session.playing.value!!.preferredBingeGroup)
         vm.end(); runCurrent()
         assertNull(session.playing.value)
         assertFalse(vm.state.value.continuePrompt)

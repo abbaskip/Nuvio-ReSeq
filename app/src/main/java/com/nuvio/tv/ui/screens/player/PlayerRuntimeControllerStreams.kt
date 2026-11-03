@@ -1922,18 +1922,9 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean = fa
         try {
             streamRepository.setLocalPluginSearchPaused(false)
             val playerSettings = playerSettingsDataStore.playerSettings.first()
-            val shouldAutoSelectInManualMode =
-                playerSettings.streamAutoPlayMode == StreamAutoPlayMode.MANUAL &&
-                    (
-                        playerSettings.streamAutoPlayNextEpisodeEnabled ||
-                            playerSettings.streamAutoPlayPreferBingeGroupForNextEpisode
-                        )
-            val bingeGroupOnlyManualMode =
-                shouldAutoSelectInManualMode &&
-                    (!playerSettings.streamAutoPlayNextEpisodeEnabled ||
-                        !playerSettings.streamAutoPlayNextEpisodeFallbackEnabled) &&
-                    playerSettings.streamAutoPlayPreferBingeGroupForNextEpisode
-            if (playerSettings.streamAutoPlayMode == StreamAutoPlayMode.MANUAL && !shouldAutoSelectInManualMode) {
+            val nextSelection = com.nuvio.tv.core.player.StreamAutoPlayPolicy.nextEpisodeSelection(playerSettings)
+            val bingeGroupOnlyManualMode = nextSelection.bingeGroupOnly
+            if (!nextSelection.automatic) {
                 _uiState.update {
                     it.copy(
                         postPlayMode = null,
@@ -1947,31 +1938,11 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean = fa
             val installedAddons = streamAddonsFor(nextVideo.id)
             val installedAddonOrder = installedAddons.map { it.displayName }
             val preferredServerNames = serverStreams.preferredSourceNames(type, nextVideo.id)
-            val effectiveMode = if (shouldAutoSelectInManualMode) {
-                StreamAutoPlayMode.FIRST_STREAM
-            } else {
-                playerSettings.streamAutoPlayMode
-            }
-            val effectiveSource = if (shouldAutoSelectInManualMode) {
-                StreamAutoPlaySource.ALL_SOURCES
-            } else {
-                playerSettings.streamAutoPlaySource
-            }
-            val effectiveSelectedAddons = if (shouldAutoSelectInManualMode) {
-                emptySet()
-            } else {
-                playerSettings.streamAutoPlaySelectedAddons
-            }
-            val effectiveSelectedPlugins = if (shouldAutoSelectInManualMode) {
-                emptySet()
-            } else {
-                playerSettings.streamAutoPlaySelectedPlugins
-            }
-            val effectiveRegex = if (shouldAutoSelectInManualMode) {
-                ""
-            } else {
-                playerSettings.streamAutoPlayRegex
-            }
+            val effectiveMode = nextSelection.settings.streamAutoPlayMode
+            val effectiveSource = nextSelection.settings.streamAutoPlaySource
+            val effectiveSelectedAddons = nextSelection.settings.streamAutoPlaySelectedAddons
+            val effectiveSelectedPlugins = nextSelection.settings.streamAutoPlaySelectedPlugins
+            val effectiveRegex = nextSelection.settings.streamAutoPlayRegex
             var selectedStream: Stream? = null
             var lastSuccessData: List<AddonStreams>? = null
             var autoSelectTriggered = false

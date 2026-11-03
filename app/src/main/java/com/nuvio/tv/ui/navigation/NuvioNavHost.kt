@@ -1171,8 +1171,8 @@ private fun PlaybackNavHost(
                     }
                 },
                 onMixPlaybackEnded = if (mixPlaying?.let { playing -> mixViewModel.session.matches(
-                    playing.profileId, backStackEntry.arguments?.getString("contentId"), backStackEntry.arguments?.getString("videoId")) } == true) ({ autoplay ->
-                    mixViewModel.completed(autoplay)
+                    playing.profileId, backStackEntry.arguments?.getString("contentId"), backStackEntry.arguments?.getString("videoId")) } == true) ({ autoplay, bingeGroup ->
+                    mixViewModel.completed(autoplay, bingeGroup)
                     returnToMix()
                 }) else null,
                 onPlaybackEnded = { nextVideoId, nextSeason, nextEpisode, exitReason ->

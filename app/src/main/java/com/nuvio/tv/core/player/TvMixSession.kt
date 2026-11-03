@@ -9,7 +9,9 @@ import javax.inject.Singleton
 /** Ephemeral, explicitly scoped to a profile and the exact selected episode. */
 @Singleton
 class TvMixSession @Inject constructor() {
-    data class Playing(val profileId: Int, val mixId: String, val selection: TvMixSelection, val token: String = UUID.randomUUID().toString())
+    data class Playing(val profileId: Int, val mixId: String, val selection: TvMixSelection,
+        val token: String = UUID.randomUUID().toString(), val continuation: Boolean = false,
+        val preferredBingeGroup: String? = null)
     data class ExternalReturn(val playing: Playing, val completed: Boolean, val autoplay: Boolean)
     val externalReturn = MutableStateFlow<ExternalReturn?>(null)
     fun returnedExternally(completed: Boolean, autoplay: Boolean, expected: Playing? = playing.value) {
@@ -19,5 +21,8 @@ class TvMixSession @Inject constructor() {
     fun matches(profileId: Int, contentId: String?, videoId: String?) = playing.value?.let {
         it.profileId == profileId && it.selection.meta.id == contentId && it.selection.video.id == videoId
     } == true
+    fun continuationFor(profileId: Int, contentId: String?, videoId: String?) = playing.value?.takeIf {
+        it.continuation && it.profileId == profileId && it.selection.meta.id == contentId && it.selection.video.id == videoId
+    }
     fun end() { playing.value = null; externalReturn.value = null }
 }

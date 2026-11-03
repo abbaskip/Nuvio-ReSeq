@@ -32,4 +32,17 @@ class TvMixSessionTest {
         session.returnedExternally(true, true)
         assertNull(session.externalReturn.value)
     }
+
+    @Test fun `next episode source policy applies only to a matching mix continuation`() {
+        val session = TvMixSession()
+        session.playing.value = TvMixSession.Playing(1, "mix", selection)
+        assertNull(session.continuationFor(1, "show", video.id))
+        session.playing.value = TvMixSession.Playing(1, "mix", selection,
+            continuation = true, preferredBingeGroup = "quality")
+        assertEquals("quality", session.continuationFor(1, "show", video.id)?.preferredBingeGroup)
+        assertNull(session.continuationFor(2, "show", video.id))
+        assertNull(session.continuationFor(1, "show", "show:1:2"))
+        session.end()
+        assertNull(session.continuationFor(1, "show", video.id))
+    }
 }

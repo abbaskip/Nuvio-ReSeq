@@ -46,15 +46,16 @@ class TvMixViewModel @Inject constructor(
     private var request: Job? = null
     private var previous: Pair<String, String>? = null
     private var lastPlayed: Pair<String, String>? = null
+    private var preferredBingeGroup: String? = null
     init {
         viewModelScope.launch { profiles.activeProfileId.drop(1).collect {
-            request?.cancel(); session.end(); previous = null; lastPlayed = null; _state.value = TvMixUiState()
+            request?.cancel(); session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null; _state.value = TvMixUiState()
         } }
     }
 
     fun open(id: String) {
         if (_state.value.mixId == id) return
-        session.end(); previous = null; lastPlayed = null
+        session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null
         _state.value = TvMixUiState(mixId = id)
         remix()
     }
@@ -104,22 +105,25 @@ class TvMixViewModel @Inject constructor(
     fun play(): TvMixSelection? {
         val s = _state.value
         val selected = s.selection ?: return null
-        session.playing.value = TvMixSession.Playing(profiles.activeProfileId.value, s.mixId ?: return null, selected)
+        session.playing.value = TvMixSession.Playing(profiles.activeProfileId.value, s.mixId ?: return null, selected,
+            continuation = s.autoStart || s.continuePrompt, preferredBingeGroup = preferredBingeGroup)
+        preferredBingeGroup = null
         _state.update { it.copy(continuePrompt = false, autoStart = false) }
         return selected
     }
 
-    fun completed(autoplay: Boolean) {
+    fun completed(autoplay: Boolean, bingeGroup: String? = null) {
         val playing = session.playing.value ?: return
         previous = playing.selection.key
         lastPlayed = playing.selection.key
+        preferredBingeGroup = bingeGroup
         session.end()
         _state.update { it.copy(mixId = playing.mixId, selection = null, continuePrompt = !autoplay, autoStart = autoplay) }
         remix()
     }
 
     fun end() {
-        request?.cancel(); session.end(); previous = null; lastPlayed = null; _state.value = TvMixUiState()
+        request?.cancel(); session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null; _state.value = TvMixUiState()
     }
 
     fun save(mix: TvMix, onSaved: () -> Unit = {}) = write { profile -> store.save(profile, mix); onSaved() }

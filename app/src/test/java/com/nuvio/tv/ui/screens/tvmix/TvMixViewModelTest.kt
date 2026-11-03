@@ -8,6 +8,7 @@ import com.nuvio.tv.core.player.TvMixSession
 import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.data.repository.DiscoveryRepository
 import com.nuvio.tv.data.local.TvMixStore
+import com.nuvio.tv.data.mediaserver.ServerItemRef
 import com.nuvio.tv.domain.model.*
 import com.nuvio.tv.domain.repository.MetaRepository
 import com.nuvio.tv.domain.repository.WatchProgressRepository
@@ -179,6 +180,48 @@ class TvMixViewModelTest {
         runCurrent()
         coVerify(exactly = 1) { store.add(1, "mix", match { it.id == "tt123" && it.imdbId == "tt123" }) }
         coVerify(exactly = 1) { discovery.imdbId(123, true) }
+    }
+
+    @Test fun `provider IDs remain authoritative when adding shows with IMDb aliases`() = runTest(dispatcher) {
+        coEvery { store.add(1, "mix", any()) } just Runs
+        val ids = listOf("tvdb:901", ServerItemRef("fixture", "show:1").encode(), "kitsu:123")
+        for (id in ids) {
+            val item = mix.preview().copy(id = id, type = ContentType.SERIES, rawType = "series", imdbId = "tt123")
+            vm.add(item, "mix", "") { }
+            runCurrent()
+            coVerify(exactly = 1) { store.add(1, "mix", match { it.id == id && it.imdbId == "tt123" }) }
+        }
+        coVerify(exactly = 0) { discovery.imdbId(any(), any()) }
+    }
+
+    @Test fun `restored provider IDs resolve their own metadata and keep original episode identity`() = runTest(dispatcher) {
+        val ids = listOf(
+            "tvdb:901" to "tvdb:901:episode:88",
+            ServerItemRef("fixture", "show:1").encode() to ServerItemRef("fixture", "episode:88").encode(),
+            "kitsu:123" to "kitsu:123:1:1"
+        )
+        for ((id, videoId) in ids) {
+            vm.end()
+            saved.value = listOf(mix.copy(shows = listOf(TvMixShow(id, "Example", imdbId = "tt123"))))
+            val original = episodes.first().copy(id = videoId)
+            every { meta.id } returns id
+            every { meta.videos } returns listOf(original)
+            vm.open("mix"); runCurrent()
+            verify(exactly = 1) { metadata.getMetaFromAllAddons("series", id, null) }
+            val selected = vm.play()!!
+            assertSame(original, selected.video)
+            assertTrue(session.matches(1, id, videoId))
+        }
+        verify(exactly = 0) { metadata.getMetaFromAllAddons("series", "tt123", any()) }
+    }
+
+    @Test fun `Discovery shows with known IMDb aliases still use addon compatible IDs`() = runTest(dispatcher) {
+        coEvery { store.add(1, "mix", any()) } just Runs
+        val item = mix.preview().copy(id = "tmdb:123", type = ContentType.SERIES, rawType = "series", imdbId = "tt123")
+        vm.add(item, "mix", "") { }
+        runCurrent()
+        coVerify(exactly = 1) { store.add(1, "mix", match { it.id == "tt123" && it.imdbId == "tt123" }) }
+        coVerify(exactly = 0) { discovery.imdbId(any(), any()) }
     }
 
 }

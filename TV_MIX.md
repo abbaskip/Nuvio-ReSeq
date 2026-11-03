@@ -36,6 +36,10 @@ storage, Continue Watching, or tracker/scrobble mappings. Mix sessions are tempo
 not restored after process death. External players continue mixes only when their result
 identifies a natural completion; missing or ambiguous results end the session safely.
 
+Native TVDB, media-server, and non-TMDB addon show IDs stay authoritative even when they have
+an IMDb alias. The alias is retained for duplicate detection. TMDB IDs retain the existing
+Discovery-compatible runtime IMDb lookup to find addon-compatible metadata.
+
 ## Validation
 
 The combined release has a passing full Debug unit suite (3,008 tests, two existing skips),

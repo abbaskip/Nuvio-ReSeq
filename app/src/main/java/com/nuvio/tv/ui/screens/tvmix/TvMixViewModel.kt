@@ -137,8 +137,10 @@ class TvMixViewModel @Inject constructor(
         onSaved()
     }
     private suspend fun lookupId(id: String, imdb: String?, type: String): String {
-        if (!imdb.isNullOrBlank()) return imdb
+        // Native/server/addon IDs select their own metadata and episode ordering.
+        // IMDb is an alias for duplicate detection; only Discovery's TMDB IDs need normalization.
         if (!id.startsWith("tmdb:")) return id
+        if (!imdb.isNullOrBlank()) return imdb
         val numeric = id.substringAfter(':').substringBefore(':').toIntOrNull() ?: return id
         return withTimeoutOrNull(5_000) { discovery.imdbId(numeric, type in listOf("series", "tv", "anime")) }?.takeIf(String::isNotBlank) ?: id
     }

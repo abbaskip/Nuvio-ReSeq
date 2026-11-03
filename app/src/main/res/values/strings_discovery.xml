@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<!-- Discovery uses English fallback in locales awaiting translations. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="advanced_discover_title">Advanced Discover</string>
     <string name="advanced_discover_back">Back</string>
     <string name="advanced_discover_show_results">Show results</string>
@@ -19,9 +20,9 @@
     <string name="advanced_discover_movies">Movies</string>
     <string name="advanced_discover_tv">TV shows</string>
     <string name="advanced_discover_genres">Include genres</string>
-    <string name="advanced_discover_genres_value">Include genres: %1$d selected</string>
+    <string name="advanced_discover_genres_value">Included genres: %1$d</string>
     <string name="advanced_discover_exclude_genres">Exclude genres</string>
-    <string name="advanced_discover_exclude_value">Exclude genres: %1$d selected</string>
+    <string name="advanced_discover_exclude_value">Excluded genres: %1$d</string>
     <string name="advanced_discover_match_all">Genres: match all selected</string>
     <string name="advanced_discover_match_any">Genres: match any selected</string>
     <string name="advanced_discover_first_aired">First aired between</string>
@@ -59,7 +60,7 @@
     <string name="advanced_discover_votes_asc">TMDB votes: fewest first</string>
     <string name="advanced_discover_attribution">Discovery, ratings and vote counts from TMDB.</string>
     <string name="advanced_discover_focused_title">%1$s · %2$s\nTMDB rating: %3$s · Votes: %4$s</string>
-    <string name="advanced_discover_result_count">%1$d loaded · %2$d TMDB matches before watched filtering</string>
+    <string name="advanced_discover_result_count">Loaded: %1$d · Matches before watched filtering: %2$d</string>
     <string name="advanced_discover_pending_changes">Filters changed. Select Show results to apply them.</string>
     <string name="advanced_discover_start">Choose your filters, then select Show results.</string>
     <string name="advanced_discover_empty">No matching titles on the loaded pages. Try broader filters or load another page.</string>

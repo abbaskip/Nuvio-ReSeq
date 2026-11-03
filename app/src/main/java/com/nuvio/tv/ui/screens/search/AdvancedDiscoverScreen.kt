@@ -369,9 +369,9 @@ private fun DiscoveryNote(message: String) {
 }
 
 @Composable
-private fun DiscoveryField(label: String, value: String, modifier: Modifier = Modifier.fillMaxWidth(),
+private fun DiscoveryField(label: String, value: String, modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text, placeholder: String = "", onChange: (String) -> Unit) {
-    OutlinedTextField(value = value, onValueChange = onChange, modifier = modifier, singleLine = true,
+    OutlinedTextField(value = value, onValueChange = onChange, modifier = modifier.fillMaxWidth(), singleLine = true,
         label = { Text(label, color = NuvioTheme.colors.TextSecondary) },
         placeholder = { Text(placeholder, color = NuvioTheme.colors.TextSecondary) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),

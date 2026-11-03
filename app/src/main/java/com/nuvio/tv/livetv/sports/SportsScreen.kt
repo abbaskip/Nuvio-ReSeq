@@ -236,8 +236,8 @@ fun SportsScreen(
 
     DisposableEffect(fullscreen) {
         if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) android.util.Log.i("SportsFullscreen", "active=$fullscreen")
-        if (fullscreen) com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value = true
-        else viewModel.repo.setViewing(true)
+        com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value = fullscreen
+        if (!fullscreen) viewModel.repo.setViewing(true)
         onDispose {
             if (fullscreen) com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value = false
             else viewModel.repo.setViewing(false)

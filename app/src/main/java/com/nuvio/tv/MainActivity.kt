@@ -1064,18 +1064,10 @@ open class MainActivity : ComponentActivity() {
 
                     val liveTvFullscreen by com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.collectAsState()
                     val rootRoutes = remember(discoverLocation, liveTvFullscreen) {
-                        if (liveTvFullscreen) emptySet() else buildSet {
-                            add(Screen.Home.route)
-                            if (!liveTvFullscreen) add(Screen.LiveTv.route)
-                            add(Screen.Sports.route)
-                            add(Screen.OnDemand.route)
-                            add(Screen.Search.route)
-                            add(Screen.Library.route)
-                            add(Screen.Settings.route)
-                            if (discoverLocation == DiscoverLocation.IN_SIDEBAR) {
-                                add(Screen.Discover.route)
-                            }
-                        }
+                        com.nuvio.tv.ui.navigation.rootSidebarRoutes(
+                            discoverInSidebar = discoverLocation == DiscoverLocation.IN_SIDEBAR,
+                            livePlaybackFullscreen = liveTvFullscreen
+                        )
                     }
 
                     val strNavHome = stringResource(R.string.nav_home)

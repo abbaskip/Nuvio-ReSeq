@@ -77,7 +77,7 @@ jobs:
       - name: Test Live TV, Sports and updater; build all APKs
         run: |
           PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -v
-          ./gradlew :app:testFullReleaseUnitTest --tests 'com.nuvio.tv.livetv.*' --tests 'com.nuvio.tv.updater.*' --tests 'com.nuvio.tv.core.tmdb.*' --tests 'com.nuvio.tv.data.local.SavedDiscoveriesDataStoreTest' --tests 'com.nuvio.tv.data.repository.DiscoveryRepositoryTest' --tests 'com.nuvio.tv.domain.model.DiscoveryQueryTest' --tests 'com.nuvio.tv.ui.screens.search.AdvancedDiscoverViewModelTest' --tests 'com.nuvio.tv.ui.screens.settings.TmdbSettingsViewModelTest' --tests 'com.nuvio.tv.ui.screens.player.SourceStreamPagingTest' :app:assembleFullRelease -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --stacktrace
+          ./gradlew :app:testFullReleaseUnitTest --tests 'com.nuvio.tv.ui.navigation.*' --tests 'com.nuvio.tv.livetv.*' --tests 'com.nuvio.tv.updater.*' --tests 'com.nuvio.tv.core.tmdb.*' --tests 'com.nuvio.tv.data.local.SavedDiscoveriesDataStoreTest' --tests 'com.nuvio.tv.data.repository.DiscoveryRepositoryTest' --tests 'com.nuvio.tv.domain.model.DiscoveryQueryTest' --tests 'com.nuvio.tv.ui.screens.search.AdvancedDiscoverViewModelTest' --tests 'com.nuvio.tv.ui.screens.settings.TmdbSettingsViewModelTest' --tests 'com.nuvio.tv.ui.screens.player.SourceStreamPagingTest' :app:assembleFullRelease -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --stacktrace
       - name: Verify signing, upgrade identity and native libraries
         env:
           VERSION: ${{ steps.version.outputs.name }}

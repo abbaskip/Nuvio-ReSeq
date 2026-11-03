@@ -11,6 +11,16 @@ class VodMatchPolicyTest {
         VodEpisode(season, number, "$season-$number-$name", "mkv", name, null, null, "https://media.example.test/$season/$number", tvdbId = tvdb, imdbId = imdb)
     private fun target(vararg names: String) = VodStreamTarget(VodKind.SERIES, "2316", "The Office", 2005, names.toSet())
 
+    @Test fun `Gibi matches its verified As If alias but not remakes or conflicting ids`() {
+        val wanted = VodStreamTarget(VodKind.SERIES, "123", "Gibi", 2021, alternateTitles = setOf("As If"))
+        val provider = item(name = "As If", year = 2021, tmdb = null)
+        assertTrue(VodMatchPolicy.parentMatches(wanted, provider, null))
+        assertFalse(VodMatchPolicy.parentMatches(wanted, provider.copy(year = 2001), null))
+        assertFalse(VodMatchPolicy.parentMatches(wanted, provider.copy(tmdbId = "999"), null))
+        assertFalse(VodMatchPolicy.parentMatches(wanted, provider.copy(year = null), null))
+        assertFalse(VodMatchPolicy.parentMatches(wanted.copy(alternateTitles = emptySet()), provider, null))
+    }
+
     @Test fun `Tulsa King series year decorations do not become episode part numbers`() {
         val names = listOf("Go West, Old Man", "Center of the Universe", "Caprice", "Visitation Place", "Token Joe")
         val candidates = names.mapIndexed { index, name -> episode("Tulsa King (2022) - S01E%02d - $name".format(index + 1), 1, index + 1) }

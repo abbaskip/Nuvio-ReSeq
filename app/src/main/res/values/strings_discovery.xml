@@ -73,7 +73,7 @@
     <string name="advanced_discover_configuration_error">Add a valid TMDB API key in TMDB settings to use Discovery.</string>
     <string name="advanced_discover_configure_tmdb">TMDB key settings</string>
     <string name="tmdb_local_api_key_title">TMDB API key</string>
-    <string name="tmdb_local_api_key_subtitle">Use your own key for Discovery and TMDB requests on this TV.</string>
+    <string name="tmdb_local_api_key_subtitle">Shared TMDB key for Advanced Discover on this profile. Enter it once here; Discovery uses this same setting.</string>
     <string name="tmdb_local_api_key_hint">Enter the API key from your TMDB account. It is saved encrypted on this TV for this profile and is not synced. Use the API key, rather than the API Read Access Token.</string>
     <string name="tmdb_local_api_key_configured">Configured</string>
     <string name="tmdb_local_api_key_not_set">Not set</string>
@@ -89,4 +89,9 @@
     <string name="advanced_discover_invalid_runtime_order">The minimum runtime must not exceed the maximum.</string>
     <string name="advanced_discover_invalid_genres">A genre cannot be both included and excluded.</string>
     <string name="advanced_discover_invalid_options">Choose valid language, status and sorting options.</string>
+    <string name="advanced_discover_certification_region">Age-rating country</string>
+    <string name="advanced_discover_certification_country">Age-rating country: %1$s</string>
+    <string name="advanced_discover_certification">Movie age rating (exact)</string>
+    <string name="advanced_discover_certification_value">Movie age rating (exact): %1$s</string>
+    <string name="advanced_discover_tv_certification_hint">TMDB does not support age-rating filters for TV discovery. Movie age ratings are discovery filters, not parental controls.</string>
 </resources>

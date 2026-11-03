@@ -217,6 +217,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -377,6 +378,19 @@ open class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         isFirstResumeAfterCreate = true
+        lifecycleScope.launch {
+            var hadPlayer = false
+            com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen.collectLatest { open ->
+                if (open) hadPlayer = true
+                else if (hadPlayer) {
+                    hadPlayer = false
+                    // Let the player's final local save/scrobble settle; reopening cancels this work.
+                    delay(750)
+                    trackingProgressRefreshCoordinator.refreshConnected(TrackingRefreshIntent.INVALIDATED)
+                }
+            }
+        }
+
         window?.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
 
         // Wire the Activity-level launcher to the tracker

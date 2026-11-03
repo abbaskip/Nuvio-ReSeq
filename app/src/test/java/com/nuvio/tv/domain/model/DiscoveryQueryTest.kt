@@ -7,6 +7,16 @@ import org.junit.Test
 
 class DiscoveryQueryTest {
     @Test
+    fun `certifications are regional saved filters and never sent for television`() {
+        val query = DiscoveryQuery(certificationCountry = "AU", certification = "MA15+")
+        assertNull(query.validationError())
+        assertEquals("AU", query.tmdbParameters()["certification_country"])
+        assertEquals("MA15+", query.tmdbParameters()["certification"])
+        assertFalse(query.copy(television = true).tmdbParameters().containsKey("certification"))
+        assertEquals(DiscoveryValidationError.OPTIONS, query.copy(certificationCountry = "US").validationError())
+    }
+
+    @Test
     fun `movie discovery combines filters with provider sorting`() {
         val query = DiscoveryQuery(genres = setOf(53, 80), excludedGenres = setOf(27),
             dateFrom = "2015-01-01", dateTo = "2026-11-03", originalLanguage = "en",

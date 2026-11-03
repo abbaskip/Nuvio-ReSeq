@@ -51,8 +51,17 @@ class SavedDiscoveriesDataStoreTest {
         val saved = SavedDiscovery("one", "Short crime films", DiscoveryQuery(genres = setOf(80, 53), excludedGenres = setOf(27),
             matchAllGenres = true, minimumVotes = "1000", minimumRating = "7", originalLanguage = "en",
             dateFrom = "2015-01-01", dateTo = "2026-11-03", runtimeFrom = "60", runtimeTo = "120",
-            hideWatched = true, sort = "release_date.asc"))
+            certificationCountry = "AU", certification = "PG", hideWatched = true, sort = "release_date.asc"))
         assertEquals(listOf(saved), store.parse(Gson().toJson(listOf(saved))))
+    }
+
+    @Test
+    fun `older saved searches without certification fields remain readable`() {
+        val saved = SavedDiscovery("old", "Old movies", DiscoveryQuery())
+        val json = Gson().toJson(listOf(saved))
+            .replace("\"certificationCountry\":\"AU\",", "")
+            .replace("\"certification\":\"\",", "")
+        assertEquals(listOf(saved), store.parse(json))
     }
 
     @Test

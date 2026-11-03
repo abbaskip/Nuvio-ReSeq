@@ -27,14 +27,17 @@ class TrackingProgressRefreshCoordinatorTest {
             id = TrackingProviderId.SIMKL,
             authenticated = true
         )
+        val mdblist = FakeProgressProvider(TrackingProviderId.MDBLIST, authenticated = true)
         val coordinator = TrackingProgressRefreshCoordinator(
-            TrackingProgressProviderRegistry(setOf(simkl, trakt))
+            TrackingProgressProviderRegistry(setOf(simkl, trakt, mdblist))
         )
 
         val failures = coordinator.refreshConnected(TrackingRefreshIntent.INVALIDATED)
 
         assertEquals(1, trakt.refreshCount)
         assertEquals(1, simkl.refreshCount)
+        assertEquals(1, mdblist.refreshCount)
+        assertEquals(TrackingRefreshIntent.INVALIDATED, mdblist.lastIntent)
         assertEquals(TrackingRefreshIntent.INVALIDATED, trakt.lastIntent)
         assertEquals(TrackingRefreshIntent.INVALIDATED, simkl.lastIntent)
         assertEquals(listOf(TrackingProviderId.TRAKT), failures.map { it.providerId })

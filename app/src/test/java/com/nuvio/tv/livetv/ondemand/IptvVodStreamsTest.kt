@@ -17,6 +17,15 @@ class IptvVodStreamsTest {
     private val loader = IptvVodStreams(repository, metadata, tmdb, mockk(relaxed = true), profiles)
     private val context = TvdbPlaybackContext(73244, "alternate", 300, 5, 3, listOf(200), "tt0386676:5:3")
 
+    @Test fun `verified show aliases reach the indexed catalogue target`() = runBlocking {
+        val aliases = mockk<VodTitleAliases>()
+        coEvery { aliases.resolve(VodKind.SERIES, "123", null, null) } returns VodTitleIdentity("123", setOf("Gibi", "As If"))
+        val withAliases = IptvVodStreams(repository, metadata, tmdb, mockk(relaxed = true), profiles, aliases)
+        val target = withAliases.prepare("series", "tmdb:123:1:1", 1, 1,
+            StreamContentContext("tmdb:123", "Gibi", 2021, "Episode 1"))!!
+        assertEquals(setOf("Gibi", "As If"), target.alternateTitles)
+    }
+
     @Test fun `selected coordinates remain separate from verified catalogue episode ids`() = runBlocking {
         coEvery { tmdb.ensureTmdbId("tt0386676", "series") } returns "2316"
         val selection = StreamContentContext("tt0386676", "The Office", 2005, "Business Ethics", context)

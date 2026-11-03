@@ -62,6 +62,17 @@ class TvdbClient @Inject constructor(
         }.distinctBy { it.type }
     }
 
+    suspend fun seriesTitles(profileId: Int, seriesId: Long): Set<String> {
+        require(seriesId > 0)
+        val series = get(profileId, "series/$seriesId/extended").objectData()
+        return buildSet {
+            series["name"].string()?.let(::add)
+            series["aliases"].array().forEach { row ->
+                ((row as? JsonObject)?.get("name").string() ?: row.string())?.let(::add)
+            }
+        }
+    }
+
     suspend fun seriesByRemoteId(profileId: Int, remoteId: String): Long? {
         require(remoteId.matches(Regex("[A-Za-z0-9:_-]+")))
         return get(profileId, "search/remoteid/$remoteId")["data"].array()

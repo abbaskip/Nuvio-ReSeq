@@ -75,7 +75,7 @@ private data class ContinueWatchingSettingsSnapshot(
     val showUnairedNextUp: Boolean,
     val nextUpFromFurthestEpisode: Boolean,
     val continueWatchingSortMode: ContinueWatchingSortMode,
-    val watchedItemsVersion: Int,  // triggers re-evaluation when watched items change
+    val watchedItemsVersion: List<com.nuvio.tv.domain.model.WatchedItem>,
     val hasLoadedRemoteProgress: Boolean
 )
 
@@ -286,11 +286,7 @@ private class CwDebugSession {
  * once the player closes.
  */
 private fun Flow<ContinueWatchingSettingsSnapshot>.holdWhilePlayerOpen(): Flow<ContinueWatchingSettingsSnapshot> =
-    combine(this, PlayerSessionTracker.isSessionOpen) { snapshot, playerOpen ->
-        snapshot.takeUnless { playerOpen }
-    }
-        .filterNotNull()
-        .distinctUntilChanged { old, new -> old === new }
+    holdContinueWatchingWhilePlayerOpen(PlayerSessionTracker.isSessionOpen)
 
 @OptIn(kotlinx.coroutines.FlowPreview::class)
 internal fun HomeViewModel.loadContinueWatchingPipeline() {
@@ -313,9 +309,9 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
             ) { daysCap, dismissedNextUp, showUnairedNextUp, nextUpFromFurthest, sortMode ->
                 arrayOf(daysCap, dismissedNextUp, showUnairedNextUp, nextUpFromFurthest, sortMode)
             },
-            watchProgressRepository.watchedItems.map { it.size },
+            watchProgressRepository.watchedItems,
             cwPipelineRefreshTrigger
-        ) { progressSnapshot, settingsSnapshot, watchedItemsSize, _ ->
+        ) { progressSnapshot, settingsSnapshot, watchedItemsVersion, _ ->
             val (items, nextUpSeeds, hasLoadedRemoteProgress) = progressSnapshot
             @Suppress("UNCHECKED_CAST")
             val daysCap = settingsSnapshot[0] as Int
@@ -331,7 +327,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 showUnairedNextUp = showUnairedNextUp,
                 nextUpFromFurthestEpisode = nextUpFromFurthestEpisode,
                 continueWatchingSortMode = continueWatchingSortMode,
-                watchedItemsVersion = watchedItemsSize,
+                watchedItemsVersion = watchedItemsVersion,
                 hasLoadedRemoteProgress = hasLoadedRemoteProgress
             )
         }.debounce(CW_PROGRESS_DEBOUNCE_MS).holdWhilePlayerOpen().collectLatest { snapshot ->

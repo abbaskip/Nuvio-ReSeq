@@ -25,7 +25,8 @@ class IptvVodStreams @Inject constructor(
     private val metadata: MetaRepository,
     private val tmdb: TmdbService,
     private val preferences: LiveTvPreferences,
-    private val profiles: ProfileManager
+    private val profiles: ProfileManager,
+    private val titleAliases: VodTitleAliases? = null
 ) {
     suspend fun revision(): String = MessageDigest.getInstance("SHA-256").digest(
         (preferences.playlists.first().filter { it.enabled && it.importVod && it.isXtream }
@@ -48,11 +49,13 @@ class IptvVodStreams @Inject constructor(
             (metadata.getProviderMeta(type, id).first { it !is NetworkResult.Loading } as? NetworkResult.Success)?.data
         } else null
         val imdb = meta?.imdbId ?: ids.imdb
-        val tmdbId = ids.tmdb?.toString() ?: if (tmdb.apiKey().isBlank()) null else withTimeoutOrNull(8_000) {
+        var tmdbId = ids.tmdb?.toString() ?: if (tmdb.apiKey().isBlank()) null else withTimeoutOrNull(8_000) {
             try { tmdb.ensureTmdbId(imdb ?: id, type) }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { null }
         }
+        val aliases = titleAliases?.resolve(kind, tmdbId, imdb, selection?.tvdb?.seriesId ?: id.takeIf { it.startsWith("tvdb:") }?.removePrefix("tvdb:")?.toLongOrNull())
+        tmdbId = aliases?.tmdbId ?: tmdbId
         val native = if (selection?.tvdb == null) meta?.videos?.singleOrNull {
             it.id == videoId || it.season == season && it.episode == episode
         } else null
@@ -75,7 +78,7 @@ class IptvVodStreams @Inject constructor(
         return VodStreamTarget(kind, tmdbId, selection?.title?.takeIf { it.isNotBlank() } ?: meta?.name.orEmpty(),
             selection?.year ?: extractTrackingYear(meta?.releaseInfo), titles,
             context?.episodeIds.orEmpty().toSet(), context?.episodeId,
-            (native?.id ?: videoId).takeIf { it.matches(Regex("tt[0-9]+")) && it != id }, imdb, providerCoordinates)
+            (native?.id ?: videoId).takeIf { it.matches(Regex("tt[0-9]+")) && it != id }, imdb, providerCoordinates, aliases?.titles.orEmpty())
     }
 
     internal suspend fun load(playlistKey: String, sourceName: String, target: VodStreamTarget?, profileId: Int): List<Stream> {

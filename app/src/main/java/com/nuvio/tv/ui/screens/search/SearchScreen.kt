@@ -627,6 +627,13 @@ fun SearchScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.lg)
         ) {
+            item(key = "advanced_discover") {
+                Button(
+                    onClick = onOpenAdvancedDiscover,
+                    modifier = Modifier.padding(horizontal = NuvioTheme.spacing.xxxl)
+                ) { Text(stringResource(R.string.advanced_discover_title)) }
+            }
+
             item(key = "search_input") {
                 SearchInputField(
                     modifier = Modifier.onFocusChanged { inputRowHasFocus = it.hasFocus },
@@ -663,12 +670,6 @@ fun SearchScreen(
                 )
             }
 
-            item(key = "advanced_discover") {
-                Button(
-                    onClick = onOpenAdvancedDiscover,
-                    modifier = Modifier.padding(horizontal = NuvioTheme.spacing.xxxl)
-                ) { Text(stringResource(R.string.advanced_discover_title)) }
-            }
 
             if (isDiscoverMode) {
                 if (showRecentSearches) {

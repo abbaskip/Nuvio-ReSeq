@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -192,6 +193,13 @@ fun AdvancedDiscoverScreen(
                     DiscoveryButton(stringResource(R.string.advanced_discover_language_value, language), Modifier.fillMaxWidth(),
                         enabled = state.languages.isNotEmpty(), onClick = { picker = "language" })
                 }
+                if (!query.television) item {
+                    DiscoveryButton(stringResource(R.string.advanced_discover_certification_country, query.certificationCountry),
+                        Modifier.fillMaxWidth(), onClick = { picker = "certification_country" })
+                    DiscoveryButton(stringResource(R.string.advanced_discover_certification_value,
+                        query.certification.ifBlank { stringResource(R.string.advanced_discover_any) }),
+                        Modifier.fillMaxWidth(), onClick = { picker = "certification" })
+                } else item { DiscoveryNote(stringResource(R.string.advanced_discover_tv_certification_hint)) }
                 item {
                     DiscoveryField(stringResource(R.string.advanced_discover_rating), query.minimumRating, keyboardType = KeyboardType.Decimal) {
                         viewModel.edit(query.copy(minimumRating = it))
@@ -326,11 +334,26 @@ fun AdvancedDiscoverScreen(
                     else query.copy(genres = updated, excludedGenres = query.excludedGenres - id))
             }
         }
-        "language" -> DiscoveryChoices(stringResource(R.string.advanced_discover_language),
-            listOf("" to stringResource(R.string.advanced_discover_any)) + state.languages.map { it.code to it.englishName },
-            query.originalLanguage, { picker = null }, searchable = true) {
-            viewModel.edit(query.copy(originalLanguage = it)); picker = null
+        "language" -> {
+            val preferredCodes = listOf("en", "es", "fr", "de", "it")
+            val preferred = preferredCodes.mapNotNull { code -> state.languages.firstOrNull { it.code == code } }
+            val remaining = state.languages.filterNot { it.code in preferredCodes }.sortedBy { it.englishName.lowercase(java.util.Locale.ROOT) }
+            DiscoveryChoices(stringResource(R.string.advanced_discover_language),
+                preferred.map { it.code to it.englishName } +
+                    listOf("" to stringResource(R.string.advanced_discover_any)) + remaining.map { it.code to it.englishName },
+                query.originalLanguage, { picker = null }, searchable = true, dividerBefore = "") {
+                viewModel.edit(query.copy(originalLanguage = it)); picker = null
+            }
         }
+        "certification_country" -> DiscoveryChoices(stringResource(R.string.advanced_discover_certification_region),
+            listOf("AU" to "Australia", "US" to "United States", "GB" to "United Kingdom"),
+            query.certificationCountry, { picker = null }) {
+                viewModel.edit(query.copy(certificationCountry = it, certification = "")); picker = null
+            }
+        "certification" -> DiscoveryChoices(stringResource(R.string.advanced_discover_certification),
+            listOf("" to stringResource(R.string.advanced_discover_any)) +
+                DiscoveryQuery.CERTIFICATIONS.getValue(query.certificationCountry).map { it to it },
+            query.certification, { picker = null }) { viewModel.edit(query.copy(certification = it)); picker = null }
         "votes" -> DiscoveryChoices(stringResource(R.string.advanced_discover_votes),
             listOf("" to stringResource(R.string.advanced_discover_any)) + listOf(50, 100, 500, 1000, 5000, 10000).map { it.toString() to it.toString() },
             query.minimumVotes, { picker = null }) { viewModel.edit(query.copy(minimumVotes = it)); picker = null }
@@ -381,16 +404,37 @@ private fun DiscoveryNote(message: String) {
 @Composable
 private fun DiscoveryField(label: String, value: String, modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text, placeholder: String = "", onChange: (String) -> Unit) {
-    val focus = LocalFocusManager.current
+    var editing by remember { mutableStateOf(false) }
+    val entry = remember { FocusRequester() }
+    val editor = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
     val keyboard = LocalSoftwareKeyboardController.current
-    OutlinedTextField(value = value, onValueChange = onChange, modifier = modifier.fillMaxWidth().tvTextFieldNavigation(), singleLine = true,
-        label = { Text(label, color = NuvioTheme.colors.TextSecondary) },
-        placeholder = { Text(placeholder, color = NuvioTheme.colors.TextSecondary) },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(onDone = { keyboard?.hide(); focus.moveFocus(FocusDirection.Next) }),
-        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = NuvioTheme.colors.TextPrimary,
-            unfocusedTextColor = NuvioTheme.colors.TextPrimary, cursorColor = NuvioTheme.colors.FocusRing,
-            focusedBorderColor = NuvioTheme.colors.FocusRing))
+    fun finish() {
+        keyboard?.hide()
+        editing = false
+        scope.launch { withFrameNanos { }; runCatching { entry.requestFocus() } }
+    }
+    DiscoveryButton("$label: ${value.ifBlank { placeholder }}", modifier.fillMaxWidth().focusRequester(entry),
+        onClick = { editing = true })
+    if (editing) {
+        Dialog(onDismissRequest = { finish() }) {
+            Column(Modifier.width(540.dp).background(NuvioTheme.colors.Background, RoundedCornerShape(16.dp)).padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(value = value, onValueChange = onChange,
+                    modifier = Modifier.fillMaxWidth().focusRequester(editor).tvTextFieldNavigation(), singleLine = true,
+                    label = { Text(label, color = NuvioTheme.colors.TextSecondary) },
+                    placeholder = { Text(placeholder, color = NuvioTheme.colors.TextSecondary) },
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { finish() }),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = NuvioTheme.colors.TextPrimary,
+                        unfocusedTextColor = NuvioTheme.colors.TextPrimary, cursorColor = NuvioTheme.colors.FocusRing,
+                        focusedBorderColor = NuvioTheme.colors.FocusRing))
+                DiscoveryButton(stringResource(R.string.advanced_discover_done), onClick = { finish() })
+            }
+        }
+        LaunchedEffect(Unit) { withFrameNanos { }; editor.requestFocus(); keyboard?.show() }
+    }
+
 }
 
 @Composable
@@ -409,16 +453,19 @@ private fun DiscoveryDialog(title: String, onDismiss: () -> Unit, content: @Comp
 
 @Composable
 private fun DiscoveryChoices(title: String, options: List<Pair<String, String>>, selected: String, onDismiss: () -> Unit,
-    multiple: Set<String>? = null, searchable: Boolean = false, onSelect: (String) -> Unit) {
+    multiple: Set<String>? = null, searchable: Boolean = false, dividerBefore: String? = null, onSelect: (String) -> Unit) {
     var search by rememberSaveable { mutableStateOf("") }
     val visible = options.filter { search.isBlank() || it.second.contains(search, ignoreCase = true) }
-    val scroll = rememberLazyListState(initialFirstVisibleItemIndex = options.indexOfFirst { it.first == selected }.coerceAtLeast(0))
+    val scroll = rememberLazyListState(initialFirstVisibleItemIndex = if (searchable) 0 else options.indexOfFirst { it.first == selected }.coerceAtLeast(0))
     val entryFocus = remember { FocusRequester() }
     DiscoveryDialog(title, onDismiss) {
         if (searchable) DiscoveryField(stringResource(R.string.advanced_discover_find_language), search, Modifier.fillMaxWidth().focusRequester(entryFocus)) { search = it }
         LazyColumn(Modifier.heightIn(max = if (searchable) 270.dp else 340.dp), state = scroll,
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(visible, key = { it.first }) { (value, label) ->
+                if (value == dividerBefore && visible.any { it.first != dividerBefore && options.indexOf(it) < options.indexOfFirst { option -> option.first == dividerBefore } }) {
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp), color = NuvioTheme.colors.TextSecondary)
+                }
                 val checked = if (multiple == null) value == selected else value in multiple
                 val initial = !searchable && value == (options.firstOrNull { it.first == selected } ?: options.firstOrNull())?.first
                 DiscoveryButton(if (checked) "✓ $label" else label,

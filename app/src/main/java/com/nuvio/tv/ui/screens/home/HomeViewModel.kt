@@ -784,7 +784,12 @@ class HomeViewModel @Inject constructor(
             )
             if (items.isNotEmpty()) {
                 val (mainItems, upcomingOnly) = splitUpcomingItems(items, sortMode)
-                _uiState.update { it.copy(continueWatchingItems = mainItems, upcomingItems = upcomingOnly) }
+                _uiState.update { state ->
+                    // A slow disk read must not replace a fresh result, including confirmed empty.
+                    if (!_initialCwResolved.value && state.continueWatchingItems.isEmpty() && state.upcomingItems.isEmpty())
+                        state.copy(continueWatchingItems = mainItems, upcomingItems = upcomingOnly)
+                    else state
+                }
                 _initialCwResolved.value = true
             }
         }

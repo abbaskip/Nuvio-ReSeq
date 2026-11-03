@@ -386,7 +386,21 @@ object SportsCatalog {
             "CA" -> listOf(Sport.HOCKEY, Sport.AMERICAN_FOOTBALL, Sport.BASKETBALL, Sport.BASEBALL)
             else -> listOf(Sport.AMERICAN_FOOTBALL, Sport.BASKETBALL, Sport.BASEBALL, Sport.HOCKEY, Sport.FOOTBALL)
         }
-        return all.sortedBy { l -> first.indexOf(l.sport).let { if (it < 0) 100 + l.sport.ordinal else it } }
+        return uniqueBrowseLeagues(all).sortedBy { l -> first.indexOf(l.sport).let { if (it < 0) 100 + l.sport.ordinal else it } }
+    }
+
+    /** Keep provider-backed entries in the picker; preserve all IDs for saved follows and matching. */
+    internal fun uniqueBrowseLeagues(candidates: List<League>): List<League> {
+        val seen = mutableSetOf<Pair<Sport, String>>()
+        return candidates.sortedBy { if (it.espnPath != null) 0 else if (it.id.startsWith("taxonomy/")) 2 else 1 }
+            .filter { league ->
+                val aliases = if (league.id.startsWith("taxonomy/"))
+                    SportsTaxonomy.byId[league.id.removePrefix("taxonomy/")]?.aliases.orEmpty()
+                        .filterNot { it.contextual }.map { it.term } else emptyList()
+                val names = (listOf(league.name, league.short) + aliases).map { norm(it).trim() }.filter { it.isNotBlank() }
+                    .map { league.sport to it }
+                if (names.any { it in seen }) false else { seen.addAll(names); true }
+            }
     }
 
     /** The sports in the region's order. */

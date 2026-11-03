@@ -17,6 +17,8 @@ data class DiscoveryQuery(
     val minimumVotes: String = "",
     val runtimeFrom: String = "",
     val runtimeTo: String = "",
+    val certificationCountry: String = "AU",
+    val certification: String = "",
     val seriesStatus: String = "",
     val hideWatched: Boolean = false,
     val sort: String = "popularity.desc"
@@ -41,6 +43,7 @@ data class DiscoveryQuery(
         if (genres.any { it <= 0 } || excludedGenres.any { it <= 0 } || genres.intersect(excludedGenres).isNotEmpty()) {
             return DiscoveryValidationError.GENRES
         }
+        if (certificationCountry !in CERTIFICATIONS || (certification.isNotBlank() && certification !in CERTIFICATIONS.getValue(certificationCountry))) return DiscoveryValidationError.OPTIONS
         if (sort !in SORTS || (seriesStatus.isNotBlank() && seriesStatus !in setOf("0", "3", "4")) ||
             (originalLanguage.isNotBlank() && !originalLanguage.matches(Regex("[a-z]{2}")))) return DiscoveryValidationError.OPTIONS
         return null
@@ -65,11 +68,21 @@ data class DiscoveryQuery(
             optional("vote_count.gte", minimumVotes)
             optional("with_runtime.gte", runtimeFrom)
             optional("with_runtime.lte", runtimeTo)
+            if (!television && certification.isNotBlank()) {
+                put("certification_country", certificationCountry)
+                put("region", certificationCountry)
+                put("certification", certification)
+            }
             if (television) optional("with_status", seriesStatus)
         }
     }
 
     companion object {
+        val CERTIFICATIONS = linkedMapOf(
+            "AU" to listOf("G", "PG", "M", "MA15+", "R18+"),
+            "US" to listOf("G", "PG", "PG-13", "R", "NC-17"),
+            "GB" to listOf("U", "PG", "12A", "12", "15", "18")
+        )
         val SORTS = listOf("popularity.desc", "popularity.asc", "release_date.desc", "release_date.asc",
             "vote_average.desc", "vote_average.asc", "vote_count.desc", "vote_count.asc")
     }

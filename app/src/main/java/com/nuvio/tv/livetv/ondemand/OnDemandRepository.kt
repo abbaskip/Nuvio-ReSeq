@@ -672,7 +672,9 @@ class OnDemandRepository @Inject constructor(
         }
         val candidates = linkedMapOf<String, VodItem>()
         target.tmdbId?.let { db.byTmdb(target.kind, it).forEach { item -> candidates[item.uid] = item } }
-        if (target.title.isNotBlank()) db.byTitle(target.kind, target.title).forEach { candidates.putIfAbsent(it.uid, it) }
+        (target.alternateTitles + target.title).filter { it.isNotBlank() }.forEach { title ->
+            db.byTitle(target.kind, title).forEach { candidates.putIfAbsent(it.uid, it) }
+        }
         val user = prefs.userState.first()
         val settings = prefs.settings.first()
         val headers = if (pl.userAgent.isBlank()) emptyMap() else mapOf("User-Agent" to pl.userAgent)

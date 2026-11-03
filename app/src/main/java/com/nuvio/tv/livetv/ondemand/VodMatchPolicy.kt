@@ -13,7 +13,8 @@ internal data class VodStreamTarget(
     val selectedTvdbEpisodeId: Long? = null,
     val imdbEpisodeId: String? = null,
     val imdbId: String? = null,
-    val providerCoordinates: EpisodeCoordinates? = null
+    val providerCoordinates: EpisodeCoordinates? = null,
+    val alternateTitles: Set<String> = emptySet()
 )
 
 /** IDs and titles establish episode identity before a standard metadata numbering fallback. */
@@ -22,7 +23,7 @@ internal object VodMatchPolicy {
         if (target.kind != item.kind) return false
         if (target.tmdbId != null && item.tmdbId != null) return target.tmdbId == item.tmdbId
         return target.year != null && item.year == target.year &&
-            titleKey(target.title).isNotBlank() && titleKey(target.title) == titleKey(item.name)
+            (target.alternateTitles + target.title).any { titleKey(it).isNotBlank() && titleKey(it) == titleKey(item.name) }
     }
 
     fun parentMatches(target: VodStreamTarget, item: VodItem, detail: VodInfo?): Boolean {

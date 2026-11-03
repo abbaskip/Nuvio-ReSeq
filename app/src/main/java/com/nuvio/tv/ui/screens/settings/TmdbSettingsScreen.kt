@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +55,8 @@ fun TmdbSettingsContent(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showApiKeyDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.profileId) { showApiKeyDialog = false }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -77,6 +80,14 @@ fun TmdbSettingsContent(
                 contentPadding = PaddingValues(bottom = NuvioTheme.spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                item(key = "tmdb_local_api_key") {
+                    SettingsActionRow(
+                        title = stringResource(R.string.tmdb_local_api_key_title),
+                        subtitle = stringResource(R.string.tmdb_local_api_key_subtitle),
+                        value = stringResource(if (uiState.hasApiKey) R.string.tmdb_local_api_key_configured else R.string.tmdb_local_api_key_not_set),
+                        onClick = { viewModel.cancelApiKeySave(); showApiKeyDialog = true }
+                    )
+                }
                 item(key = "tmdb_enabled") {
                     SettingsToggleRow(
                         title = stringResource(R.string.tmdb_enable_title),
@@ -256,6 +267,9 @@ fun TmdbSettingsContent(
         }
     }
 
+    if (showApiKeyDialog) {
+        TmdbApiKeyDialog(uiState, viewModel, onDismiss = { showApiKeyDialog = false })
+    }
     if (showLanguageDialog) {
         LanguageSelectionDialog(
             title = stringResource(R.string.tmdb_language_dialog_title),

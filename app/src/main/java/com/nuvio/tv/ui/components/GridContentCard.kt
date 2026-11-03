@@ -231,7 +231,9 @@ fun GridContentCard(
                     }
                     builder.build()
                 }
-                if (effectiveImageUrl.isNullOrBlank()) {
+                if (item.apiType == "tvmix") {
+                    com.nuvio.tv.ui.screens.tvmix.TvMixArtwork(item.poster.orEmpty(), item.name, Modifier.fillMaxSize())
+                } else if (effectiveImageUrl.isNullOrBlank()) {
                     MonochromePosterPlaceholder(contentDescription = item.name)
                 } else {
                     AsyncImage(

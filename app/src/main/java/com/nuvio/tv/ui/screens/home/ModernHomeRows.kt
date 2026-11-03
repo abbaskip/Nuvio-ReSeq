@@ -1407,6 +1407,8 @@ private fun ModernCarouselCard(
                                 .fillMaxSize()
                                 .placeholderCardShimmer(effectivePlaceholderShimmerOffsetState)
                         )
+                    } else if (item.metaPreview?.apiType == "tvmix") {
+                        com.nuvio.tv.ui.screens.tvmix.TvMixArtwork(item.metaPreview.poster.orEmpty(), item.title, Modifier.fillMaxSize())
                     } else if (hasImage) {
                         AsyncImage(
                             model = imageModel,
@@ -1492,7 +1494,7 @@ private fun ModernCarouselCard(
                         contentScale = ContentScale.Fit,
                         alignment = Alignment.CenterStart
                     )
-                } else if ((useLandscapeOverlayTreatment || isBackdropExpanded) && !isCollectionFolder && !(useLandscapeAsExpanded && !trailerFirstFrameRendered) && (effectiveIgnoreLandscapePoster || item.metaPreview?.landscapePoster.isNullOrBlank() || customPosterLoadFailed)) {
+                } else if (item.metaPreview?.apiType != "tvmix" && (useLandscapeOverlayTreatment || isBackdropExpanded) && !isCollectionFolder && !(useLandscapeAsExpanded && !trailerFirstFrameRendered) && (effectiveIgnoreLandscapePoster || item.metaPreview?.landscapePoster.isNullOrBlank() || customPosterLoadFailed)) {
                     Text(
                         text = item.title,
                         style = titleStyle.copy(

@@ -795,7 +795,7 @@ internal suspend fun HomeViewModel.updateCatalogRowsPipeline() {
                 }
             }
         }
-    }
+    }.withTvMixes(tvMixes)
 
     val nextGridItems = if (currentLayout == HomeLayout.GRID) {
         val posterCardWidthDp = _uiState.value.posterCardWidthDp
@@ -825,8 +825,8 @@ internal suspend fun HomeViewModel.updateCatalogRowsPipeline() {
                             ))
                             // Show "See All" if there are more items than fit in the
                             // displayed rows, or the API indicates more pages exist.
-                            val showSeeAll = row.hasMore || row.items.size > maxDisplaySlots
-                            val rawMax = if (showSeeAll) maxDisplaySlots - 1 else maxDisplaySlots
+                            val showSeeAll = row.apiType != "tvmix" && (row.hasMore || row.items.size > maxDisplaySlots)
+                            val rawMax = if (row.apiType == "tvmix") row.items.size else if (showSeeAll) maxDisplaySlots - 1 else maxDisplaySlots
                             val displayItems = row.items.take(rawMax)
                             displayItems.forEach { item ->
                                 add(GridItem.Content(

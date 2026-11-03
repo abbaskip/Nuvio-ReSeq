@@ -110,7 +110,8 @@ class PlayerRuntimeController(
     internal val profileId: Int,
     savedStateHandle: SavedStateHandle,
     internal val scope: CoroutineScope,
-    internal val iptvSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources? = null
+    internal val iptvSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources? = null,
+    internal val mixSession: com.nuvio.tv.core.player.TvMixSession? = null
 ) {
 
     /** Resolved once so every `context.getString(...)` here follows the app language. */
@@ -174,6 +175,8 @@ class PlayerRuntimeController(
         val streamUrl: String,
         val selection: RememberedSubtitleSelection
     )
+
+    internal val isMixPlayback: Boolean get() = mixSession?.matches(profileId, contentId, videoId) == true
 
     internal val navigationArgs = PlayerNavigationArgs.from(savedStateHandle)
     internal val initialStreamUrl: String = navigationArgs.streamUrl

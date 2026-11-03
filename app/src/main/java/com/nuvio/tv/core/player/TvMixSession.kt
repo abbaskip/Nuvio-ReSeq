@@ -1,0 +1,23 @@
+package com.nuvio.tv.core.player
+
+import com.nuvio.tv.domain.model.TvMixSelection
+import kotlinx.coroutines.flow.MutableStateFlow
+import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/** Ephemeral, explicitly scoped to a profile and the exact selected episode. */
+@Singleton
+class TvMixSession @Inject constructor() {
+    data class Playing(val profileId: Int, val mixId: String, val selection: TvMixSelection, val token: String = UUID.randomUUID().toString())
+    data class ExternalReturn(val playing: Playing, val completed: Boolean, val autoplay: Boolean)
+    val externalReturn = MutableStateFlow<ExternalReturn?>(null)
+    fun returnedExternally(completed: Boolean, autoplay: Boolean, expected: Playing? = playing.value) {
+        expected?.takeIf { playing.value === it }?.let { externalReturn.value = ExternalReturn(it, completed, autoplay) }
+    }
+    val playing = MutableStateFlow<Playing?>(null)
+    fun matches(profileId: Int, contentId: String?, videoId: String?) = playing.value?.let {
+        it.profileId == profileId && it.selection.meta.id == contentId && it.selection.video.id == videoId
+    } == true
+    fun end() { playing.value = null; externalReturn.value = null }
+}

@@ -103,7 +103,8 @@ class PlayerViewModel @Inject constructor(
     private val serverStreams: com.nuvio.tv.data.mediaserver.ServerStreams,
     partyRepository: com.nuvio.tv.core.party.PartyRepository,
     profileManager: com.nuvio.tv.core.profile.ProfileManager,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    mixSession: com.nuvio.tv.core.player.TvMixSession
 ) : ViewModel() {
 
     init {
@@ -155,7 +156,8 @@ class PlayerViewModel @Inject constructor(
             ?: profileManager.activeProfileId.value,
         savedStateHandle = savedStateHandle,
         scope = viewModelScope,
-        iptvSources = iptvSources
+        iptvSources = iptvSources,
+        mixSession = mixSession
     )
 
     init {

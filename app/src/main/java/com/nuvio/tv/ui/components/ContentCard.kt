@@ -416,6 +416,8 @@ fun ContentCard(
                                 backgroundColor = NuvioTheme.colors.BackgroundCard
                             )
                     )
+                } else if (item.apiType == "tvmix") {
+                    com.nuvio.tv.ui.screens.tvmix.TvMixArtwork(item.poster.orEmpty(), item.name, Modifier.fillMaxSize())
                 } else if (!imageUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = imageModel,

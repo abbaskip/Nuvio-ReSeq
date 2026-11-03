@@ -95,6 +95,7 @@ fun HomeScreen(
     onContinueWatchingStartFromBeginning: (ContinueWatchingItem) -> Unit = onContinueWatchingClick,
     onContinueWatchingPlayManually: (ContinueWatchingItem) -> Unit = onContinueWatchingClick,
     onNavigateToCatalogSeeAll: (String, String, String) -> Unit = { _, _, _ -> },
+    onNavigateToMix: (String, Boolean) -> Unit = { _, _ -> },
     onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -119,7 +120,7 @@ fun HomeScreen(
         initialValue = false
     )
     val hasCatalogContent = uiState.catalogRows.any { it.items.isNotEmpty() }
-    val hasCollectionContent = uiState.homeRows.any { it is HomeRow.CollectionRow }
+    val hasCollectionContent = uiState.homeRows.any { it is HomeRow.CollectionRow || (it is HomeRow.Catalog && it.row.apiType == "tvmix") }
     val hasHeroContent = uiState.heroItems.isNotEmpty()
     val modernPresentationReady =
         uiState.homeLayout != HomeLayout.MODERN ||
@@ -152,14 +153,20 @@ fun HomeScreen(
     val isCatalogItemWatched: (MetaPreview) -> Boolean = remember {
         { item: MetaPreview -> latestMovieWatchedStatus.value[homeItemStatusKey(item.id, item.apiType)] == true }
     }
-    val onCatalogItemLongPress: (MetaPreview, String) -> Unit = remember {
+    val onCatalogItemLongPress: (MetaPreview, String) -> Unit = remember(onNavigateToMix) {
         { item, addonBaseUrl ->
-            posterOptionsTarget = HomePosterOptionsTarget(item, addonBaseUrl)
-            viewModel.refreshPosterLibraryStatus(item)
+            if (item.apiType == "tvmix") onNavigateToMix(item.id.removePrefix("tvmix:"), true)
+            else {
+                posterOptionsTarget = HomePosterOptionsTarget(item, addonBaseUrl)
+                viewModel.refreshPosterLibraryStatus(item)
+            }
         }
     }
 
-    val onNavigateToDetailStable = remember(onNavigateToDetail) { onNavigateToDetail }
+    val onNavigateToDetailStable: (String, String, String) -> Unit = remember(onNavigateToDetail, onNavigateToMix) {
+        { id, type, addon -> if (type == "tvmix") onNavigateToMix(id.removePrefix("tvmix:"), false)
+            else onNavigateToDetail(id, type, addon) }
+    }
     val onContinueWatchingClickStable = remember(viewModel, onContinueWatchingClick) {
         { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingClick) }
     }
@@ -239,9 +246,9 @@ fun HomeScreen(
     val showStartupLoader = when {
         !uiState.layoutPreferencesReady -> true
         uiState.isLoading && !hasAnyContent -> true
-        uiState.error == noAddonsError && uiState.catalogRows.isEmpty() -> !homeStableGateReleased
+        uiState.error == noAddonsError && uiState.catalogRows.isEmpty() && !hasCollectionContent -> !homeStableGateReleased
         uiState.error == noCatalogAddonsError && uiState.catalogRows.isEmpty() && !hasCollectionContent && !hasHeroContent -> !homeStableGateReleased
-        uiState.error != null && uiState.catalogRows.isEmpty() -> false
+        uiState.error != null && uiState.catalogRows.isEmpty() && !hasCollectionContent -> false
         !uiState.isLoading && !hasAnyContent -> !homeStableGateReleased
         else -> !homeStableGateReleased || !modernPresentationReady || !showHomeContentWithAnimation
     }
@@ -461,6 +468,7 @@ fun HomeScreen(
             item.apiType.equals("tv", ignoreCase = true) ||
             item.apiType.equals("anime", ignoreCase = true)
         HomePosterOptionsDialog(
+            mixItem = item.copy(sourceAddonBaseUrl = selectedPoster.addonBaseUrl.takeIf { it.isNotBlank() } ?: item.sourceAddonBaseUrl),
             title = item.name,
             isInLibrary = uiState.posterLibraryMembership[statusKey] == true,
             isLibraryPending = statusKey in uiState.posterLibraryPending,
@@ -731,7 +739,8 @@ private fun HomePosterOptionsDialog(
     onDismiss: () -> Unit,
     onDetails: () -> Unit,
     onToggleLibrary: () -> Unit,
-    onToggleWatched: () -> Unit
+    onToggleWatched: () -> Unit,
+    mixItem: MetaPreview? = null
 ) {
     val primaryFocusRequester = remember { FocusRequester() }
 
@@ -778,6 +787,8 @@ private fun HomePosterOptionsDialog(
                 }
             )
         }
+
+        if (isSeries && mixItem != null) com.nuvio.tv.ui.screens.tvmix.AddToMixAction(mixItem)
 
         if (isMovie || isSeries) {
             Button(

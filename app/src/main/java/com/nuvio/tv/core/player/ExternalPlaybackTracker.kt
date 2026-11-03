@@ -196,7 +196,8 @@ class ExternalPlaybackTracker @Inject constructor(
     private val cloudPlaybackProgressStore: CloudLibraryPlaybackProgressStore,
     private val cloudPlaybackSessionStore: CloudLibraryPlaybackSessionStore,
     private val profileManager: com.nuvio.tv.core.profile.ProfileManager,
-    private val torrentService: TorrentService
+    private val torrentService: TorrentService,
+    private val mixSession: TvMixSession? = null
 ) {
     companion object {
         private const val TAG = "ExtPlaybackTracker"
@@ -618,6 +619,7 @@ class ExternalPlaybackTracker @Inject constructor(
             if (zidooMonitorJob?.isActive == true) {
                 return
             }
+            if (mixSession?.matches(metadata.profileId, metadata.contentId, metadata.videoId) == true) mixSession.returnedExternally(false, false)
             clearPersistedMetadata()
             stopTracking()
             return
@@ -666,6 +668,7 @@ class ExternalPlaybackTracker @Inject constructor(
         val duration = result.durationMs
         if (duration != null && duration in 1 until MIN_REAL_PLAYBACK_DURATION_MS) {
             Log.d(TAG, "Ignoring ${duration}ms playback (likely a cache-sync placeholder)")
+            if (mixSession?.matches(metadata.profileId, metadata.contentId, metadata.videoId) == true) mixSession.returnedExternally(false, false)
             _autoNextOverlay.value = null
             clearPersistedMetadata()
             stopTracking()
@@ -699,9 +702,13 @@ class ExternalPlaybackTracker @Inject constructor(
             // (and sync it) regardless of the reported position/duration.
             saveProgress(metadata, result.positionMs, result.durationMs, explicitPercent = 100f)
             // Try to auto-advance to the next episode.
-            maybeTriggerAutoNextEpisode(metadata)
+            if (mixSession?.matches(metadata.profileId, metadata.contentId, metadata.videoId) == true && result.endedByUser) {
+                mixSession.returnedExternally(false, false)
+                _autoNextOverlay.value = null
+            } else maybeTriggerAutoNextEpisode(metadata)
         } else {
             saveProgress(metadata, result.positionMs, result.durationMs)
+            if (mixSession?.matches(metadata.profileId, metadata.contentId, metadata.videoId) == true) mixSession.returnedExternally(false, false)
             // Not a completion — drop the optimistic auto-next loader so we fall back to the
             // stream screen instead of leaving the loader stuck.
             _autoNextOverlay.value = null
@@ -861,6 +868,7 @@ class ExternalPlaybackTracker @Inject constructor(
     // ===================== Completion + auto-next =====================
 
     private fun startNextEpisodePrefetch(metadata: ExternalPlaybackMetadata) {
+        if (mixSession?.matches(metadata.profileId, metadata.contentId, metadata.videoId) == true) return
         if (!ExternalAutoNextPolicy.shouldAttemptAdvance(
                 episode = metadata.episode,
                 contentType = metadata.contentType,
@@ -964,6 +972,13 @@ class ExternalPlaybackTracker @Inject constructor(
      * [metadata] is captured by value so it survives stopTracking() clearing it.
      */
     private fun maybeTriggerAutoNextEpisode(metadata: ExternalPlaybackMetadata) {
+        if (mixSession?.matches(metadata.profileId, metadata.contentId, metadata.videoId) == true) {
+            _autoNextOverlay.value = null
+            val expected = mixSession.playing.value
+            scope.launch { mixSession.returnedExternally(true,
+                playerSettingsDataStore.playerSettings.first().streamAutoPlayNextEpisodeEnabled, expected) }
+            return
+        }
         if (profileManager.activeProfileId.value != metadata.profileId) {
             _autoNextOverlay.value = null
             return
@@ -1312,6 +1327,7 @@ class ExternalPlaybackTracker @Inject constructor(
         metadata: ExternalPlaybackMetadata,
         allowUnknownNextEpisode: Boolean = false
     ) {
+        if (mixSession?.matches(metadata.profileId, metadata.contentId, metadata.videoId) == true) return
         if (metadata.contentType.equals("cloud", ignoreCase = true)) {
             val sessionToken = pendingCloudSessionToken ?: loadPersistedCloudSessionToken()
             val nextFile = cloudPlaybackSessionStore.load(sessionToken)?.nextFile
@@ -1405,6 +1421,7 @@ class ExternalPlaybackTracker @Inject constructor(
                 Log.d(TAG, "Zidoo monitor: pos=${result.positionMs}ms, dur=${result.durationMs}ms")
                 saveProgress(metadata, result.positionMs, result.durationMs)
             }
+            if (mixSession?.matches(metadata.profileId, metadata.contentId, metadata.videoId) == true) mixSession.returnedExternally(false, false)
             clearPersistedMetadata()
             _autoNextOverlay.value = null
             stopTracking()

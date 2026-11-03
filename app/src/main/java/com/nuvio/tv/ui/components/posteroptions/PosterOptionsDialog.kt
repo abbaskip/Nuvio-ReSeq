@@ -31,6 +31,7 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.nuvio.tv.R
+import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.core.tracking.TrackingMembershipRemovalImpact
 import com.nuvio.tv.core.tracking.TrackingMembershipRemovalConfirmation
 import com.nuvio.tv.core.tracking.LOCAL_LIBRARY_LIST_KEY
@@ -54,7 +55,8 @@ fun PosterOptionsDialog(
     onDismiss: () -> Unit,
     onDetails: () -> Unit,
     onToggleLibrary: () -> Unit,
-    onToggleWatched: () -> Unit
+    onToggleWatched: () -> Unit,
+    mixItem: MetaPreview? = null
 ) {
     val primaryFocusRequester = remember { FocusRequester() }
 
@@ -101,6 +103,8 @@ fun PosterOptionsDialog(
                 }
             )
         }
+
+        if (isSeries && mixItem != null) com.nuvio.tv.ui.screens.tvmix.AddToMixAction(mixItem)
 
         if (isMovie || isSeries) {
             Button(
@@ -221,6 +225,7 @@ fun PosterOptionsHost(
             target.apiType.equals("tv", ignoreCase = true) ||
             target.apiType.equals("anime", ignoreCase = true)
         PosterOptionsDialog(
+            mixItem = target.copy(sourceAddonBaseUrl = state.addonBaseUrl.takeIf { it.isNotBlank() } ?: target.sourceAddonBaseUrl),
             title = target.name,
             isInLibrary = state.isInLibrary,
             isLibraryPending = state.isLibraryPending,

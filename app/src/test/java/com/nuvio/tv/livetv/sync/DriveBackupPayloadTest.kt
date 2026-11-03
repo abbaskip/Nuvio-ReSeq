@@ -57,4 +57,29 @@ class DriveBackupPayloadTest {
         DriveSyncConflict.requireCompatible(JSONObject("""{"f":{"t":"s","v":["a","b"]}}"""),
             JSONObject("""{"f":{"t":"s","v":["b","a","c"]}}"""), JSONObject("""{"f":{"t":"s","v":["a","b","d"]}}"""), emptySet())
     }
+    @Test fun tvMixBackupKeepsItsOwnVersionAndProfile() {
+        val mix = com.google.gson.Gson().toJson(com.nuvio.tv.domain.model.TvMix("one", "Food & travel"))
+        val data = JSONObject().put("reseq_mix_version", JSONObject().put("t", "i").put("v", 1))
+            .put("reseq_mix:2:mix:one", JSONObject().put("t", "str").put("v", mix))
+        assertEquals(data.toString(), driveBackupData(JSONObject().put("format", 1).put("data", data)).toString())
+    }
+    @Test(expected = IllegalArgumentException::class) fun tvMixCannotRestoreUnderAnotherId() {
+        val mix = com.google.gson.Gson().toJson(com.nuvio.tv.domain.model.TvMix("one", "Food"))
+        driveBackupData(JSONObject().put("format", 1).put("data", JSONObject()
+            .put("reseq_mix_version", JSONObject().put("t", "i").put("v", 1))
+            .put("reseq_mix:1:mix:other", JSONObject().put("t", "str").put("v", mix))))
+    }
+    @Test(expected = IllegalArgumentException::class) fun tvMixRequiresSupportedVersion() {
+        driveBackupData(JSONObject("""{"format":1,"data":{"reseq_mix_version":{"t":"i","v":2}}}"""))
+    }
+    @Test fun independentMixEditsMergeButConflictingChangesToOneMixStopSync() {
+        val base = JSONObject().put("reseq_mix:1:mix:a", JSONObject().put("t", "str").put("v", "base"))
+        val local = JSONObject(base.toString()).put("reseq_mix:1:mix:a", JSONObject().put("t", "str").put("v", "local"))
+        val remote = JSONObject(base.toString()).put("reseq_mix:1:mix:b", JSONObject().put("t", "str").put("v", "new"))
+        DriveSyncConflict.requireCompatible(base, local, remote, emptySet())
+        remote.put("reseq_mix:1:mix:a", JSONObject().put("t", "str").put("v", "remote"))
+        try { DriveSyncConflict.requireCompatible(base, local, remote, emptySet()); fail() }
+        catch (_: IllegalStateException) { }
+    }
+
 }

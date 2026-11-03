@@ -29,6 +29,8 @@ internal class RandomEpisodePicker(
 
     fun count(includeWatched: Boolean): Int = candidates(includeWatched).size
 
+    fun eligibleVideos(includeWatched: Boolean): List<Video> = candidates(includeWatched)
+
     fun isWatched(episode: Video): Boolean = (episode.season to episode.episode) in watchedKeys
 
     fun find(videoId: String, includeWatched: Boolean, current: Pair<Int, Int>? = null): Video? =

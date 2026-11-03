@@ -846,6 +846,7 @@ fun ClassicHomeContent(
 
                     CatalogRowSection(
                         catalogRow = catalogRow,
+                        showSeeAll = catalogRow.apiType != "tvmix" && (catalogRow.hasMore || catalogRow.items.size >= 15),
                         posterCardStyle = classicCatalogPosterCardStyle,
                         showPosterLabels = uiState.posterLabelsEnabled,
                         showImdbRatings = uiState.homeImdbRatingsVisibility.showRatings,

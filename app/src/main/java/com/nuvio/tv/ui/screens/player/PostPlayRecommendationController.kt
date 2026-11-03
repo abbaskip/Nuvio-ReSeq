@@ -238,6 +238,7 @@ internal class PostPlayRecommendationController(
     }
 
     private fun evaluate(snapshot: PlaybackSnapshot) {
+        if (playbackController.isMixPlayback) { clearRecommendationState(); return }
         // If the player already has an active auto-play (next episode found and queued),
         // recommendations must not appear — clear any in-flight state and bail out.
         if (snapshot.hasActiveAutoPlay) {

@@ -128,6 +128,7 @@ fun StreamScreen(
     restoreSourceSelection: Boolean = false,
     onSourceSelectionRestoreHandled: () -> Unit = {},
     onBackPress: () -> Unit,
+    onExternalPlayerLaunched: (() -> Unit)? = null,
     onStreamSelected: (StreamPlaybackInfo) -> Unit,
     onAutoPlayResolved: (StreamPlaybackInfo) -> Unit
 ) {
@@ -265,7 +266,7 @@ fun StreamScreen(
                             // Delay pop so external player appears on top
                             coroutineDelay(1000)
                             viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
-                            onBackPress()
+                            (onExternalPlayerLaunched ?: onBackPress)()
                         }
                     }
                 }
@@ -362,7 +363,7 @@ fun StreamScreen(
                     coroutineDelay(1000)
                     Log.d("StreamScreen", "autoPlayPlaybackInfo EXTERNAL: popping now")
                     viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
-                    onBackPress()
+                    (onExternalPlayerLaunched ?: onBackPress)()
                 }
                 PlayerPreference.ASK_EVERY_TIME -> {
                     pendingPlaybackInfo = playbackInfo

@@ -275,7 +275,7 @@ fun CatalogRowSection(
     val catalogTitle = remember(catalogRow.catalogName, typeLabel, showCatalogTypeSuffix) {
         val formattedName = catalogRow.catalogName.replaceFirstChar { it.uppercase() }
         if (formattedName.isBlank()) ""
-        else if (showCatalogTypeSuffix && typeLabel.isNotEmpty()) "$formattedName - $typeLabel" else formattedName
+        else if (showCatalogTypeSuffix && catalogRow.apiType != "tvmix" && typeLabel.isNotEmpty()) "$formattedName - $typeLabel" else formattedName
     }
 
     Column(modifier = modifier.fillMaxWidth().then(
@@ -303,7 +303,7 @@ fun CatalogRowSection(
                     maxLines = 3,
                     overflow = TextOverflow.Clip
                 )
-                if (showAddonName) {
+                if (showAddonName && catalogRow.apiType != "tvmix") {
                     val addonText = if (catalogTitle.isBlank()) " " else stringResource(R.string.catalog_from_addon, catalogRow.addonName)
                     Text(
                         text = addonText,

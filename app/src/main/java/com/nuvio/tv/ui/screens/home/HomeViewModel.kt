@@ -93,7 +93,8 @@ class HomeViewModel @Inject constructor(
         tmdbMetadataService,
         mdbListRepository
     ),
-    internal val tvdbOrderStore: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null
+    internal val tvdbOrderStore: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null,
+    internal val tvMixStore: com.nuvio.tv.data.local.TvMixStore? = null
 ) : ViewModel() {
     companion object {
         internal const val TAG = "HomeViewModel"
@@ -345,7 +346,13 @@ class HomeViewModel @Inject constructor(
     val trailerPreviewAudioUrls: Map<String, String>
         get() = trailerPreviewAudioUrlsState
 
+    internal var tvMixes: List<com.nuvio.tv.domain.model.TvMix> = emptyList()
+
     init {
+        tvMixStore?.let { store -> viewModelScope.launch { store.mixes.collectLatest { mixes ->
+            tvMixes = mixes
+            scheduleUpdateCatalogRows()
+        } } }
         // Accumulates individual watched status changes and flushes them as a single
         // update after 150ms of inactivity, preventing N separate recompositions.
         viewModelScope.launch {
@@ -586,23 +593,23 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun requestTrailerPreview(item: MetaPreview) = requestTrailerPreviewPipeline(item)
+    fun requestTrailerPreview(item: MetaPreview) { if (item.apiType != "tvmix") requestTrailerPreviewPipeline(item) }
 
     fun requestTrailerPreview(
         itemId: String,
         title: String,
         releaseInfo: String?,
         apiType: String
-    ) = requestTrailerPreviewPipeline(
+    ) { if (apiType != "tvmix") requestTrailerPreviewPipeline(
         itemId = itemId,
         title = title,
         releaseInfo = releaseInfo,
         apiType = apiType
-    )
+    ) }
 
-    fun onItemFocus(item: MetaPreview) = onItemFocusPipeline(item)
+    fun onItemFocus(item: MetaPreview) { if (item.apiType != "tvmix") onItemFocusPipeline(item) }
 
-    fun preloadAdjacentItem(item: MetaPreview) = preloadAdjacentItemPipeline(item)
+    fun preloadAdjacentItem(item: MetaPreview) { if (item.apiType != "tvmix") preloadAdjacentItemPipeline(item) }
 
     private fun loadHomeCatalogOrderPreference() = loadHomeCatalogOrderPreferencePipeline()
 

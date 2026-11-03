@@ -1,5 +1,8 @@
 package com.nuvio.tv.ui.navigation
 
+import com.nuvio.tv.ui.screens.tvmix.streamRoute
+import com.nuvio.tv.ui.screens.tvmix.TV_MIX_ROUTE
+
 import com.nuvio.tv.ui.theme.NuvioMotion
 import com.nuvio.tv.ui.components.PlaybackAvailabilityProvider
 import com.nuvio.tv.ui.components.LocalPlaybackAvailability
@@ -88,11 +91,33 @@ private fun PlaybackNavHost(
     startDestination: String,
     hideBuiltInHeaders: Boolean
 ) {
+    val mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val mixPlaying by mixViewModel.session.playing.collectAsStateWithLifecycle()
+    fun returnToMix() {
+        if (!navController.popBackStack(TV_MIX_ROUTE, inclusive = false)) {
+            val id = mixViewModel.state.value.mixId
+            if (id != null) navController.navigate("tv-mix/$id?manage=false") {
+                popUpTo(Screen.Home.route)
+                launchSingleTop = true
+            }
+        }
+    }
+    val externalMixReturn by mixViewModel.session.externalReturn.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(externalMixReturn) {
+        externalMixReturn?.let { returned ->
+            mixViewModel.session.externalReturn.value = null
+            if (mixViewModel.session.playing.value == returned.playing) {
+                if (returned.completed) mixViewModel.completed(returned.autoplay) else mixViewModel.session.end()
+                returnToMix()
+            }
+        }
+    }
     var completedMovie by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.nuvio.tv.core.tracking.MovieRatingRequest?>(null) }
     val currentEntry by navController.currentBackStackEntryAsState()
     val route = currentEntry?.destination?.route
     androidx.compose.runtime.LaunchedEffect(route) {
         if (route?.startsWith("livetv/") == true || route?.startsWith("party") == true) completedMovie = null
+        if (route != null && !route.startsWith("tv-mix/") && !route.startsWith("stream/") && !route.startsWith("player/")) mixViewModel.end()
     }
     val pendingMovie = completedMovie
     com.nuvio.tv.ui.screens.detail.MovieRatingPromptHost(pendingMovie,
@@ -286,6 +311,20 @@ private fun PlaybackNavHost(
             androidx.activity.compose.BackHandler { navController.popBackStack() }
             com.nuvio.tv.ui.screens.settings.LiveTvSettingsScreen(onBack = { navController.popBackStack() })
         }
+        composable(TV_MIX_ROUTE, arguments = listOf(
+            navArgument("mixId") { type = NavType.StringType },
+            navArgument("manage") { type = NavType.BoolType; defaultValue = false }
+        )) { entry ->
+            com.nuvio.tv.ui.screens.tvmix.TvMixScreen(
+                id = entry.arguments?.getString("mixId").orEmpty(),
+                manageOnOpen = entry.arguments?.getBoolean("manage") == true,
+                viewModel = mixViewModel,
+                onBack = { navController.popBackStack() },
+                onPlay = { selection ->
+                    navController.navigate(selection.streamRoute(mixViewModel.session.playing.value?.profileId))
+                }
+            )
+        }
         composable(Screen.Home.route) {
             fun createContinueWatchingRoute(
                 item: ContinueWatchingItem,
@@ -339,6 +378,7 @@ private fun PlaybackNavHost(
             }
 
             HomeScreen(
+                onNavigateToMix = { id, manage -> navController.navigate("tv-mix/$id?manage=$manage") },
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
                     val heroBackdrop = HeroBackdropState.consumeAndClear()
                     navController.navigate(
@@ -673,11 +713,17 @@ private fun PlaybackNavHost(
                 ?.toBooleanStrictOrNull() == true
             StreamScreen(
                 startFromBeginning = startFromBeginning,
+                onExternalPlayerLaunched = if (mixPlaying != null) ({ returnToMix() }) else null,
                 restoreSourceSelection = restoreSourceSelection,
                 onSourceSelectionRestoreHandled = {
                     streamSavedState[SOURCE_SELECTION_RESTORE_STATE_KEY] = false
                 },
-                onBackPress = {
+                onBackPress = mixStreamBack@{
+                    if (mixViewModel.session.playing.value != null) {
+                        mixViewModel.session.end()
+                        returnToMix()
+                        return@mixStreamBack
+                    }
                     val streamContentType = streamArgs?.getString("contentType").orEmpty()
                     val streamContentId = streamArgs?.getString("contentId").orEmpty()
                     val season = streamArgs?.getString("season")?.toIntOrNull()
@@ -1008,7 +1054,12 @@ private fun PlaybackNavHost(
 
             PlayerScreen(
                 onMovieCompleted = { completedMovie = it },
-                onBackPress = { currentVideoId, currentSeason, currentEpisode, autoPlayEnabled, playbackCompleted ->
+                onBackPress = mixPlayerBack@{ currentVideoId, currentSeason, currentEpisode, autoPlayEnabled, playbackCompleted ->
+                    if (mixViewModel.session.playing.value != null) {
+                        mixViewModel.session.end()
+                        returnToMix()
+                        return@mixPlayerBack
+                    }
                     val args = backStackEntry.arguments
                     val initialSeason = args?.getString("season")?.toIntOrNull()
                     val initialEpisode = args?.getString("episode")?.toIntOrNull()
@@ -1108,6 +1159,11 @@ private fun PlaybackNavHost(
                         }
                     }
                 },
+                onMixPlaybackEnded = if (mixPlaying?.let { playing -> mixViewModel.session.matches(
+                    playing.profileId, backStackEntry.arguments?.getString("contentId"), backStackEntry.arguments?.getString("videoId")) } == true) ({ autoplay ->
+                    mixViewModel.completed(autoplay)
+                    returnToMix()
+                }) else null,
                 onPlaybackEnded = { nextVideoId, nextSeason, nextEpisode, exitReason ->
                     val args = backStackEntry.arguments
                     val contentType = args?.getString("contentType").orEmpty()

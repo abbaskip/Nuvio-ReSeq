@@ -422,7 +422,7 @@ fun GridHomeContent(
                         result.addAll(trimmed)
                         result.add(seeAllItem)
                     } else {
-                        result.addAll(sectionContent.take(maxItems))
+                        result.addAll(if (item is GridItem.SectionDivider && item.type == "tvmix") sectionContent else sectionContent.take(maxItems))
                     }
                 } else {
                     result.add(postItems[i])
@@ -727,7 +727,7 @@ fun GridHomeContent(
                             "series" -> strTypeSeries
                             else -> gridItem.type.replaceFirstChar { it.uppercase() }
                         }
-                        val displayName = if (uiState.catalogTypeSuffixEnabled && typeLabel.isNotBlank()) {
+                        val displayName = if (uiState.catalogTypeSuffixEnabled && gridItem.type != "tvmix" && typeLabel.isNotBlank()) {
                             "${gridItem.catalogName.replaceFirstChar { it.uppercase() }} - $typeLabel"
                         } else {
                             gridItem.catalogName.replaceFirstChar { it.uppercase() }

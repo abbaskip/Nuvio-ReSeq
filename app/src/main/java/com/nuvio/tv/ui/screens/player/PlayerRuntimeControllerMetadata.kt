@@ -227,6 +227,11 @@ private suspend fun PlayerRuntimeController.enrichDescriptionFromTmdb(id: String
 
 internal fun PlayerRuntimeController.recomputeNextEpisode(resetVisibility: Boolean) {
     _uiState.update { it.withTvdbPlayback(metaVideos, currentSeason, currentEpisode, playbackShuffleState) }
+    if (isMixPlayback) {
+        nextEpisodeVideo = null
+        clearNextEpisodeAndCancelPostPlay()
+        return
+    }
     val normalizedType = contentType?.lowercase()
     if (normalizedType !in listOf("series", "tv", "other", "cloud")) {
         nextEpisodeVideo = null

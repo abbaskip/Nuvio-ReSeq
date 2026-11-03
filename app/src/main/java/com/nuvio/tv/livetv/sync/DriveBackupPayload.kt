@@ -27,6 +27,8 @@ internal fun driveBackupData(envelope: JSONObject): JSONObject {
         data.getJSONObject("reseq_shuffle_version").getInt("v") == 1) { "Unsupported Shuffle backup format" }
     if (data.has("reseq_sources_version")) require(data.getJSONObject("reseq_sources_version").getString("t") == "i" &&
         data.getJSONObject("reseq_sources_version").getInt("v") == 1) { "Unsupported stream-source backup format" }
+    if (data.has("reseq_mix_version")) require(data.getJSONObject("reseq_mix_version").getString("t") == "i" &&
+        data.getJSONObject("reseq_mix_version").getInt("v") == 1) { "Unsupported TV Mix backup format" }
     for (key in listOf("playlists", "epg_sources")) {
         if (!data.has(key)) continue
         val entry = data.getJSONObject(key)
@@ -40,6 +42,11 @@ internal fun driveBackupData(envelope: JSONObject): JSONObject {
         }
     }
     data.keys().forEach { key ->
+        if (key.startsWith("reseq_mix:")) {
+            require(data.has("reseq_mix_version") && key.substringAfter(":").substringBefore(":").toIntOrNull() in 1..6 &&
+                data.getJSONObject(key).getString("t") == "str") { "Invalid profile TV Mix preference" }
+            com.nuvio.tv.data.local.validateTvMixBackup(mapOf(key.substringAfter(":").substringAfter(":") to data.getJSONObject(key).getString("v")))
+        }
         if (key.startsWith("reseq_tvdb:")) {
             require(data.has("reseq_tvdb_version") && key.substringAfter(":").substringBefore(":").toIntOrNull() in 1..6 &&
                 data.getJSONObject(key).getString("t") == "str") { "Invalid profile episode-order preference" }

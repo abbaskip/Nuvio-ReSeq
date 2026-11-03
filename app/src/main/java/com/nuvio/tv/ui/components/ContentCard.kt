@@ -130,7 +130,7 @@ fun ContentCard(
     }
     // Landscape cards are already 16:9 — expanded width equals base width (no size change).
     val expandedCardWidth = if (globalLandscape) baseCardWidth else baseCardHeight * BACKDROP_ASPECT_RATIO
-    val effectiveExpandEnabled = focusedPosterBackdropExpandEnabled
+    val effectiveExpandEnabled = focusedPosterBackdropExpandEnabled && item.apiType != "tvmix"
 
     var isFocused by remember { mutableStateOf(false) }
     var longPressTriggered by remember { mutableStateOf(false) }

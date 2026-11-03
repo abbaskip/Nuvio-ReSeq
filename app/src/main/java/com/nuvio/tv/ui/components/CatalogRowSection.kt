@@ -79,6 +79,8 @@ import com.nuvio.tv.ui.util.formatAddonTypeLabel
 import com.nuvio.tv.ui.util.localizedContentType
 import com.nuvio.tv.ui.util.contentTextDirection
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.withResumed
 
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -235,9 +237,12 @@ fun CatalogRowSection(
         }
     }
 
-    // Restore focus from saved state when focusedItemIndex is set.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    // A mix splash returns through a navigation transition. Wait until Home owns
+    // focus again before restoring its card, rather than losing it to the exiting scene.
     LaunchedEffect(focusedItemIndex, catalogRow.items) {
         if (focusedItemIndex >= 0 && focusedItemIndex < catalogRow.items.size) {
+            if (catalogRow.apiType == "tvmix") lifecycleOwner.lifecycle.withResumed { }
             val targetItem = catalogRow.items[focusedItemIndex]
             val targetItemKey = rowItemFocusKey(focusedItemIndex, targetItem)
             if (lastRequestedFocusItemKey == targetItemKey) return@LaunchedEffect

@@ -37,6 +37,7 @@ class TvMixHomeTvTest {
                 val focus = remember { FocusRequester() }
                 Row(Modifier.padding(40.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     ContentCard(first, Modifier.testTag("classic-mix"), focusRequester = focus,
+                        focusedPosterBackdropExpandEnabled = true, focusedPosterBackdropExpandDelaySeconds = 0,
                         onLongPress = { managed = first.id }, onClick = { played = first.id })
                     GridContentCard(second, onClick = { played = second.id }, modifier = Modifier.testTag("grid-mix"),
                         onLongPress = { managed = second.id })
@@ -49,6 +50,8 @@ class TvMixHomeTvTest {
         val classic = compose.onNode(hasAnyAncestor(hasTestTag("classic-mix")) and hasClickAction())
         val grid = compose.onNode(hasAnyAncestor(hasTestTag("grid-mix")) and hasClickAction())
         classic.assertIsFocused()
+        compose.mainClock.advanceTimeBy(1000)
+        compose.onNodeWithText("Tvmix").assertDoesNotExist()
         classic.performSemanticsAction(SemanticsActions.OnClick)
         compose.runOnIdle { assertEquals("tvmix:one", played) }
         classic.performKeyInput { keyDown(androidx.compose.ui.input.key.Key.DirectionCenter); advanceEventTime(700); keyUp(androidx.compose.ui.input.key.Key.DirectionCenter) }

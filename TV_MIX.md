@@ -1,6 +1,6 @@
 # TV Mix
 
-Implemented on `codex/tv-mix`, based on ReSeq beta 6.3 (`7fd96a2fb`), in `.worktrees/tv-mix`.
+Introduced in ReSeq beta 7, based on ReSeq beta 6.3 (`7fd96a2fb`).
 
 Long-press a series in Home, Search, Discovery, or the Library and choose **Add to mix**.
 Choose an existing mix or create a named one. Duplicate shows, including known IMDb aliases,
@@ -38,8 +38,9 @@ identifies a natural completion; missing or ambiguous results end the session sa
 
 ## Validation
 
-Latest local run: Kotlin build and Android TV test compilation succeeded; 247 unit tests passed,
-one existing test was skipped, and `git diff --check` passed.
+The combined release has a passing full Debug unit suite (3,008 tests, two existing skips),
+with focused reruns for subsequent TV Mix fixes and release-mode checks in CI.
+See the beta 7 release validation report for the exact source and final observed totals.
 
 Run with JDK 21 and the Android SDK configured:
 
@@ -51,12 +52,17 @@ The suite covers persistence/recreation, profile isolation, backup/restore and c
 equal show probability, lazy selection, release/availability filtering, repeat avoidance,
 autoplay on/off, Remix, manual exit, stale external results, Home row placement and stable
 focus keys, ordinary-next-episode suppression, and TVDB source/tracker identity handoff.
-`TvMixHomeTvTest` additionally checks card focus, navigation, click, and long-press semantics;
-it is compiled but requires an Android device/emulator to execute.
+`TvMixHomeTvTest` additionally checks card focus, navigation, click, long-press semantics,
+and stable composite cards when poster expansion is enabled. Classic Home return-focus timing
+is checked through real Onn navigation. The Android TV regression suite runs on the Onn box.
 
-Device acceptance still needs D-pad traversal and focus restoration across all Home layouts,
-text entry and management dialogs, real stream selection/failure recovery, internal and
-external player natural completion with autoplay on/off, and live tracker/Continue Watching
-updates. No APK was installed on the Onn box as part of this implementation. Before any Onn
-installation, validate the actual APK's backend URL/API key and absence of personal TMDB
-credentials, then verify Nuvio sign-in produces a pairing/QR code.
+Onn acceptance uses a separate temporary Android user and synthetic local media. It covers
+mix creation and management, missing artwork, persistence across upgrades, unwatched filtering,
+source selection, natural completion with autoplay on/off, repeated Remix without playback,
+Yes/No, unavailable streams, and manual exit near completion. Normal Continue Watching updates
+use the existing playback path. Final signed-build acceptance and performance observations
+are recorded with the release; external-player variants and live third-party tracker/cloud
+accounts remain dependent on their integrations and require separate testing.
+
+Before any Onn installation, validate the actual APK's backend URL/API key and absence of
+personal TMDB credentials, then verify Nuvio sign-in produces a pairing/QR code.

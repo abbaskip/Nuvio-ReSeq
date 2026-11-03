@@ -18,6 +18,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.nuvio.tv.livetv.ondemand.settingsOnly
@@ -74,13 +76,22 @@ fun NuvioNavHost(
     startDestination: String = Screen.Home.route,
     hideBuiltInHeaders: Boolean = false
 ) {
+    // The session owner below only supplies a store, not a Hilt factory. Resolve the
+    // shared mix coordinator from the activity before installing that owner.
+    val mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val activity = LocalActivity.current
+    DisposableEffect(mixViewModel) {
+        onDispose {
+            if (activity?.isChangingConfigurations != true) mixViewModel.end()
+        }
+    }
     PlaybackAvailabilityProvider {
         // The NavController keeps its back stack ViewModels in the store of the owner it is
         // composed under, so use the session store when MainActivity provides one.
         val navViewModelStoreOwner = LocalNavViewModelStoreOwner.current
             ?: checkNotNull(LocalViewModelStoreOwner.current)
         CompositionLocalProvider(LocalViewModelStoreOwner provides navViewModelStoreOwner) {
-            PlaybackNavHost(navController, startDestination, hideBuiltInHeaders)
+            PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel)
         }
     }
 }
@@ -89,9 +100,9 @@ fun NuvioNavHost(
 private fun PlaybackNavHost(
     navController: NavHostController,
     startDestination: String,
-    hideBuiltInHeaders: Boolean
+    hideBuiltInHeaders: Boolean,
+    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel
 ) {
-    val mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val mixPlaying by mixViewModel.session.playing.collectAsStateWithLifecycle()
     fun returnToMix() {
         if (!navController.popBackStack(TV_MIX_ROUTE, inclusive = false)) {

@@ -20,7 +20,8 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.nuvio.tv.TvHiltTestActivity
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -52,7 +53,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class EpisodeShuffleTvTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<TvHiltTestActivity>()
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val videos = (1..4).map { Video("fixture:1:$it", "Episode $it", "2020-01-01", null,
         season = 1, episode = it, overview = "An episode used to check shuffle playback on a TV remote.") }

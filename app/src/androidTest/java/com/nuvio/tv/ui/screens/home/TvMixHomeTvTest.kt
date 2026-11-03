@@ -44,16 +44,20 @@ class TvMixHomeTvTest {
                 LaunchedEffect(Unit) { focus.requestFocus() }
             }
         }
-        compose.onNodeWithTag("classic-mix").assertIsFocused()
-        compose.onNodeWithTag("classic-mix").performSemanticsAction(SemanticsActions.OnClick)
+        // The tags belong to the card containers; focus and remote actions belong to
+        // the actual TV Card inside each container.
+        val classic = compose.onNode(hasAnyAncestor(hasTestTag("classic-mix")) and hasClickAction())
+        val grid = compose.onNode(hasAnyAncestor(hasTestTag("grid-mix")) and hasClickAction())
+        classic.assertIsFocused()
+        classic.performSemanticsAction(SemanticsActions.OnClick)
         compose.runOnIdle { assertEquals("tvmix:one", played) }
-        compose.onNodeWithTag("classic-mix").performSemanticsAction(SemanticsActions.OnLongClick)
+        classic.performKeyInput { keyDown(androidx.compose.ui.input.key.Key.DirectionCenter); advanceEventTime(700); keyUp(androidx.compose.ui.input.key.Key.DirectionCenter) }
         compose.runOnIdle { assertEquals("tvmix:one", managed) }
-        compose.onNodeWithTag("classic-mix").performKeyInput { pressKey(androidx.compose.ui.input.key.Key.DirectionRight) }
-        compose.onNodeWithTag("grid-mix").assertIsFocused()
-        compose.onNodeWithTag("grid-mix").performSemanticsAction(SemanticsActions.OnClick)
+        classic.performKeyInput { pressKey(androidx.compose.ui.input.key.Key.DirectionRight) }
+        grid.assertIsFocused()
+        grid.performSemanticsAction(SemanticsActions.OnClick)
         compose.runOnIdle { assertEquals("tvmix:two", played) }
-        compose.onNodeWithTag("grid-mix").performSemanticsAction(SemanticsActions.OnLongClick)
+        grid.performKeyInput { keyDown(androidx.compose.ui.input.key.Key.DirectionCenter); advanceEventTime(700); keyUp(androidx.compose.ui.input.key.Key.DirectionCenter) }
         compose.runOnIdle { assertEquals("tvmix:two", managed) }
     }
 }

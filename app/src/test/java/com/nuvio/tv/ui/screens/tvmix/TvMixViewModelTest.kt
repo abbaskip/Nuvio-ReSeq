@@ -74,6 +74,17 @@ class TvMixViewModelTest {
         assertNotNull(session.playing.value)
     }
 
+    @Test fun `restored catalog shows resolve full episodes without a warm metadata cache`() = runTest(dispatcher) {
+        val source = "https://fixture.invalid"
+        saved.value = listOf(mix.copy(shows = listOf(mix.shows.single().copy(addonBaseUrl = source))))
+        every { metadata.getMetaFromAllAddons("series", "tt123", source) } returns
+            flowOf(NetworkResult.Error("Source addon sufficient", NetworkResult.SOURCE_SUFFICIENT_CODE))
+        vm.open("mix"); runCurrent()
+        assertNotNull(vm.state.value.selection)
+        assertNull(vm.state.value.error)
+        verify(exactly = 0) { metadata.getMetaFromAllAddons("series", "tt123", source) }
+    }
+
     @Test fun `autoplay off previews next episode remix does not play and No ends session`() = runTest(dispatcher) {
         vm.open("mix"); runCurrent()
         val completed = vm.state.value.selection!!.video.id

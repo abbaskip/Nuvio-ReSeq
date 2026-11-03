@@ -73,7 +73,9 @@ class TvMixViewModel @Inject constructor(
                     withTimeoutOrNull(20_000) {
                         try {
                             val lookup = lookupId(show.id, show.imdbId, show.type)
-                            val result = metadata.getMetaFromAllAddons(show.type, lookup, show.addonBaseUrl)
+                            // Saved entries contain a cover/name, not the source catalog's full
+                            // metadata. Skip the catalog-sufficient shortcut and resolve episodes.
+                            val result = metadata.getMetaFromAllAddons(show.type, lookup)
                                 .first { result -> result !is NetworkResult.Loading }
                             val meta = (result as? NetworkResult.Success)?.data ?: return@withTimeoutOrNull null
                             val state = shuffle.observe(profileId, meta.id, meta.apiType).first()

@@ -6,8 +6,20 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.QueryMap
 
 interface TmdbApi {
+    @GET("discover/{media_type}")
+    suspend fun advancedDiscover(
+        @Path("media_type") mediaType: String,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String,
+        @Query("page") page: Int,
+        @QueryMap filters: Map<String, String>
+    ): Response<TmdbDiscoverResponse>
+
+    @GET("configuration/languages")
+    suspend fun getLanguages(@Query("api_key") apiKey: String): Response<List<TmdbLanguage>>
     
     @GET("find/{external_id}")
     suspend fun findByExternalId(
@@ -277,6 +289,13 @@ interface TmdbApi {
         @Query("api_key") apiKey: String
     ): Response<TmdbAlternativeTitlesResponse>
 }
+
+@JsonClass(generateAdapter = true)
+data class TmdbLanguage(
+    @Json(name = "iso_639_1") val code: String,
+    @Json(name = "english_name") val englishName: String,
+    @Json(name = "name") val name: String = ""
+)
 
 @JsonClass(generateAdapter = true)
 data class TmdbAlternativeTitlesResponse(

@@ -138,7 +138,8 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
     onNavigateToDetail: (String, String, String) -> Unit,
     onNavigateToSeeAll: (catalogId: String, addonId: String, type: String) -> Unit = { _, _, _ -> },
-    onOpenDiscover: () -> Unit = {}
+    onOpenDiscover: () -> Unit = {},
+    onOpenAdvancedDiscover: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val watchedMovieIds by viewModel.watchedMovieIds.collectAsState()
@@ -660,6 +661,13 @@ fun SearchScreen(
                     clearHistoryFocusRequester = if (showRecentSearches) recentClearHistoryFocusRequester else null,
                     isScreenActive = isScreenActive
                 )
+            }
+
+            item(key = "advanced_discover") {
+                Button(
+                    onClick = onOpenAdvancedDiscover,
+                    modifier = Modifier.padding(horizontal = NuvioTheme.spacing.xxxl)
+                ) { Text(stringResource(R.string.advanced_discover_title)) }
             }
 
             if (isDiscoverMode) {

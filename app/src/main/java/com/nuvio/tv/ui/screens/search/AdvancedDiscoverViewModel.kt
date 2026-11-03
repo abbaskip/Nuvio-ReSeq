@@ -3,7 +3,7 @@ package com.nuvio.tv.ui.screens.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.profile.ProfileManager
-import com.nuvio.tv.core.tmdb.TmdbService
+import com.nuvio.tv.core.tmdb.TmdbCredentialStore
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.data.local.SavedDiscoveriesDataStore
 import com.nuvio.tv.data.local.TmdbSettingsDataStore
@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -71,7 +72,7 @@ class AdvancedDiscoverViewModel @Inject constructor(
     private val profileManager: ProfileManager,
     watchProgress: WatchProgressRepository,
     watchedSeries: WatchedSeriesStateHolder,
-    private val tmdbService: TmdbService,
+    credentials: TmdbCredentialStore,
     layout: LayoutPreferenceDataStore
 ) : ViewModel() {
     private val _state = MutableStateFlow(AdvancedDiscoverUiState())
@@ -84,12 +85,19 @@ class AdvancedDiscoverViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            profileManager.activeProfileId.collectLatest {
-                request?.cancel()
-                references?.cancel()
-                results.value = Results()
-                _state.value = AdvancedDiscoverUiState()
-                reloadReferences()
+            var previousProfile: Int? = null
+            combine(profileManager.activeProfileId, credentials.changes) { id, _ -> id to credentials.revision(id) }
+                .distinctUntilChanged().collectLatest { (profileId, _) ->
+                    request?.cancel()
+                    references?.cancel()
+                    val previous = _state.value
+                    _state.value = if (previousProfile == profileId) AdvancedDiscoverUiState(
+                        draft = previous.draft, saved = previous.saved, selectedSavedId = previous.selectedSavedId,
+                        cardWidthDp = previous.cardWidthDp, cardCornerRadiusDp = previous.cardCornerRadiusDp
+                    ) else AdvancedDiscoverUiState()
+                    previousProfile = profileId
+                    results.value = Results()
+                    reloadReferences()
             }
         }
         viewModelScope.launch { savedDiscoveries.discoveries.collect { saved -> _state.update { it.copy(saved = saved) } } }
@@ -230,9 +238,9 @@ class AdvancedDiscoverViewModel @Inject constructor(
         items.map { item -> async {
             if (item.id in watched) return@async null
             // Trackers normally supply TMDB aliases. Local IMDb-only history needs an ID lookup,
-            // only when Hide watched is enabled. Reuse the shared conversion cache, with bounded concurrency.
+            // only when Hide watched is enabled, using the same profile-local key and bounded concurrency.
             val imdbId = if (imdbIds.isNotEmpty()) aliasPermits.withPermit {
-                item.id.removePrefix("tmdb:").toIntOrNull()?.let { tmdbService.tmdbToImdb(it, mediaType) }
+                item.id.removePrefix("tmdb:").toIntOrNull()?.let { repository.imdbId(it, mediaType == "tv") }
             } else null
             item.takeUnless { imdbId != null && imdbId in imdbIds }
         } }.awaitAll().filterNotNull()

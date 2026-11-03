@@ -1311,6 +1311,7 @@ private fun PlaybackNavHost(
         composable(Screen.AdvancedDiscover.route) {
             com.nuvio.tv.ui.screens.search.AdvancedDiscoverScreen(
                 onBack = { navController.popBackStack() },
+                onOpenTmdbSettings = { navController.navigate(Screen.TmdbSettings.route) },
                 onNavigateToDetail = { id, type, addon ->
                     navController.navigate(Screen.Detail.createRoute(
                         itemId = id, itemType = type, addonBaseUrl = addon,

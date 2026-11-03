@@ -20,10 +20,58 @@ import com.squareup.moshi.Moshi
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import java.util.concurrent.TimeUnit
+import com.nuvio.tv.core.tmdb.TmdbCredentialAccess
+import com.nuvio.tv.data.remote.api.TmdbGenresResponse
+import com.nuvio.tv.data.remote.api.TmdbExternalIdsResponse
+import kotlinx.coroutines.CancellationException
 
 class DiscoveryRepositoryTest {
     private val api = mockk<TmdbApi>()
     private val movie = TmdbDiscoverResult(id = 99, title = "A Film", releaseDate = "2020-02-04", voteAverage = 7.2, voteCount = 1500)
+
+    @Test
+    fun `pages reference lists and watched lookups are invalidated on profile or key changes`() = runTest {
+        var current = TmdbCredentialAccess(1, 0, "synthetic-first")
+        val repository = DiscoveryRepository(api, { current })
+        coEvery { api.advancedDiscover(any(), any(), any(), any(), any()) } returns Response.success(TmdbDiscoverResponse(results = listOf(movie)))
+        coEvery { api.getMovieGenres(any(), any()) } returns Response.success(TmdbGenresResponse(emptyList()))
+        coEvery { api.getLanguages(any()) } returns Response.success(emptyList())
+        coEvery { api.getMovieExternalIds(any(), any()) } returns Response.success(TmdbExternalIdsResponse(id = 99, imdbId = "tt99"))
+        suspend fun load() {
+            repository.discover(DiscoveryQuery(), "en", 1)
+            repository.genres(false, "en")
+            repository.languages()
+            repository.imdbId(99, false)
+        }
+        load(); load()
+        coVerify(exactly = 1) { api.advancedDiscover(any(), any(), any(), any(), any()) }
+        current = TmdbCredentialAccess(1, 1, "synthetic-replacement")
+        load()
+        current = TmdbCredentialAccess(2, 0, "synthetic-other-profile")
+        load()
+        coVerify(exactly = 3) { api.advancedDiscover(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 3) { api.getMovieGenres(any(), any()) }
+        coVerify(exactly = 3) { api.getLanguages(any()) }
+        coVerify(exactly = 3) { api.getMovieExternalIds(99, any()) }
+        current = TmdbCredentialAccess(2, 1, "")
+        val error = runCatching { load() }.exceptionOrNull() as DiscoveryException
+        assertEquals(DiscoveryFailure.CONFIGURATION, error.failure)
+        coVerify(exactly = 3) { api.advancedDiscover(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `an older credential response cannot populate the active session`() = runTest {
+        var current = TmdbCredentialAccess(1, 0, "synthetic-first")
+        val repository = DiscoveryRepository(api, { current })
+        coEvery { api.advancedDiscover(any(), any(), any(), any(), any()) } answers {
+            current = TmdbCredentialAccess(2, 0, "synthetic-other")
+            Response.success(TmdbDiscoverResponse(results = listOf(movie)))
+        }
+        assertTrue(runCatching { repository.discover(DiscoveryQuery(), "en", 1) }.exceptionOrNull() is CancellationException)
+        coEvery { api.advancedDiscover(any(), any(), any(), any(), any()) } returns Response.success(TmdbDiscoverResponse(results = listOf(movie.copy(id = 2))))
+        assertEquals("tmdb:2", repository.discover(DiscoveryQuery(), "en", 1).items.single().id)
+        coVerify(exactly = 1) { api.advancedDiscover(any(), "synthetic-other", any(), any(), any()) }
+    }
 
     @Test
     fun `real Retrofit request encodes combined filters and parses TMDB response`() = runTest {

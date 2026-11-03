@@ -1,7 +1,7 @@
 package com.nuvio.tv.ui.screens.search
 
 import com.nuvio.tv.core.profile.ProfileManager
-import com.nuvio.tv.core.tmdb.TmdbService
+import com.nuvio.tv.core.tmdb.TmdbCredentialStore
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.data.local.SavedDiscoveriesDataStore
 import com.nuvio.tv.data.local.TmdbSettingsDataStore
@@ -50,7 +50,11 @@ class AdvancedDiscoverViewModelTest {
     private val movies = MutableStateFlow<Set<String>>(emptySet())
     private val shows = MutableStateFlow<Set<String>>(emptySet())
     private val savedFlow = MutableStateFlow<List<SavedDiscovery>>(emptyList())
-    private val conversions = mockk<TmdbService>()
+    private val credentialChanges = MutableStateFlow(0L)
+    private val credentials = mockk<TmdbCredentialStore> {
+        every { changes } returns credentialChanges
+        every { revision(any()) } returns 0L
+    }
     private val layout = mockk<LayoutPreferenceDataStore> {
         every { posterCardWidthDp } returns MutableStateFlow(126)
         every { posterCardCornerRadiusDp } returns MutableStateFlow(12)
@@ -68,7 +72,7 @@ class AdvancedDiscoverViewModelTest {
         mockk<TmdbSettingsDataStore> { every { settings } returns MutableStateFlow(TmdbSettings(language = "en")) },
         mockk<ProfileManager> { every { activeProfileId } returns this@AdvancedDiscoverViewModelTest.profiles },
         mockk<WatchProgressRepository> { every { observeWatchedMovieIds() } returns movies },
-        mockk<WatchedSeriesStateHolder> { every { fullyWatchedSeriesIds } returns shows }, conversions, layout)
+        mockk<WatchedSeriesStateHolder> { every { fullyWatchedSeriesIds } returns shows }, credentials, layout)
 
     @Test
     fun `editing filters makes no result requests until explicitly applied`() = runTest(dispatcher) {
@@ -85,6 +89,27 @@ class AdvancedDiscoverViewModelTest {
         assertEquals("500", vm.state.value.applied?.minimumVotes)
         assertEquals(listOf("tmdb:1"), vm.state.value.items.map { it.id })
         coVerify(exactly = 1) { repository.discover(any(), any(), any()) }
+    }
+
+    @Test
+    fun `replacing the local key clears results but preserves this profiles draft and saved discoveries`() = runTest(dispatcher) {
+        every { credentials.revision(any()) } answers { credentialChanges.value }
+        coEvery { repository.discover(any(), any(), any()) } returns DiscoveryPage(listOf(item(1)), false, 1)
+        val vm = viewModel()
+        runCurrent()
+        val query = DiscoveryQuery(minimumVotes = "1000")
+        val saved = SavedDiscovery("one", "Rated films", query)
+        savedFlow.value = listOf(saved)
+        vm.edit(query)
+        vm.showResults()
+        advanceUntilIdle()
+        assertEquals(1, vm.state.value.items.size)
+        credentialChanges.value = 1
+        advanceUntilIdle()
+        assertTrue(vm.state.value.items.isEmpty())
+        assertEquals(query, vm.state.value.draft)
+        assertEquals(listOf(saved), vm.state.value.saved)
+        assertNull(vm.state.value.applied)
     }
 
     @Test
@@ -135,20 +160,20 @@ class AdvancedDiscoverViewModelTest {
     fun `watched filtering handles direct and IMDb-only history without reordering`() = runTest(dispatcher) {
         movies.value = setOf("tmdb:1", "tt0002")
         coEvery { repository.discover(any(), any(), any()) } returns DiscoveryPage(listOf(item(1), item(2), item(3)), true, 4)
-        coEvery { conversions.tmdbToImdb(2, "movie") } returns "tt0002"
-        coEvery { conversions.tmdbToImdb(3, "movie") } returns "tt0003"
+        coEvery { repository.imdbId(2, false) } returns "tt0002"
+        coEvery { repository.imdbId(3, false) } returns "tt0003"
         val vm = viewModel()
         runCurrent()
         vm.showResults()
         advanceUntilIdle()
-        coVerify(exactly = 0) { conversions.tmdbToImdb(any(), any()) }
+        coVerify(exactly = 0) { repository.imdbId(any(), any()) }
         assertEquals(3, vm.state.value.items.size)
         vm.edit(DiscoveryQuery(hideWatched = true))
         vm.showResults()
         advanceUntilIdle()
         assertEquals(listOf("tmdb:3"), vm.state.value.items.map { it.id })
         assertTrue(vm.state.value.hasMore)
-        coVerify(exactly = 0) { conversions.tmdbToImdb(1, any()) }
+        coVerify(exactly = 0) { repository.imdbId(1, any()) }
     }
 
     @Test

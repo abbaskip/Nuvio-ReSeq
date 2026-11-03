@@ -70,7 +70,16 @@
     <string name="advanced_discover_retry">Retry results</string>
     <string name="advanced_discover_done">Done</string>
     <string name="advanced_discover_rate_limit">TMDB is limiting requests. Wait a moment, then retry.</string>
-    <string name="advanced_discover_configuration_error">TMDB discovery is unavailable in this build.</string>
+    <string name="advanced_discover_configuration_error">Add a valid TMDB API key in TMDB settings to use Discovery.</string>
+    <string name="advanced_discover_configure_tmdb">TMDB key settings</string>
+    <string name="tmdb_local_api_key_title">TMDB API key</string>
+    <string name="tmdb_local_api_key_subtitle">Use your own key for Discovery and TMDB requests on this TV.</string>
+    <string name="tmdb_local_api_key_hint">Enter the API key from your TMDB account. It is saved encrypted on this TV for this profile and is not synced. Use the API key, rather than the API Read Access Token.</string>
+    <string name="tmdb_local_api_key_configured">Configured</string>
+    <string name="tmdb_local_api_key_not_set">Not set</string>
+    <string name="tmdb_local_api_key_invalid">Enter a valid 32-character TMDB API key. The read access token is a different credential.</string>
+    <string name="tmdb_local_api_key_network">Could not validate or save the key. Check your connection and try again.</string>
+    <string name="tmdb_local_api_key_rate_limit">TMDB is limiting requests. Wait a moment, then try saving again.</string>
     <string name="advanced_discover_network_error">Could not reach TMDB. Check your connection and retry.</string>
     <string name="advanced_discover_invalid_date">Enter valid dates in YYYY-MM-DD format, or leave them blank.</string>
     <string name="advanced_discover_invalid_date_order">The From date must be on or before the To date.</string>

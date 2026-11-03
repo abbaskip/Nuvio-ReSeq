@@ -61,6 +61,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AdvancedDiscoverScreen(
     onBack: () -> Unit,
+    onOpenTmdbSettings: () -> Unit,
     onNavigateToDetail: (String, String, String) -> Unit,
     viewModel: AdvancedDiscoverViewModel = hiltViewModel()
 ) {
@@ -238,6 +239,9 @@ fun AdvancedDiscoverScreen(
 
             Column(Modifier.weight(0.57f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 DiscoveryNote(stringResource(R.string.advanced_discover_attribution))
+                if (state.error == DiscoveryFailure.CONFIGURATION || state.referenceError == DiscoveryFailure.CONFIGURATION) {
+                    DiscoveryButton(stringResource(R.string.advanced_discover_configure_tmdb), onClick = onOpenTmdbSettings)
+                }
                 if (state.applied != null) {
                     DiscoveryNote(stringResource(R.string.advanced_discover_result_count, state.items.size, state.totalResults))
                     if (state.applied != query) DiscoveryNote(stringResource(R.string.advanced_discover_pending_changes))

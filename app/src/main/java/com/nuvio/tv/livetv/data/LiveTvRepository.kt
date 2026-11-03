@@ -554,6 +554,7 @@ class LiveTvRepository @Inject constructor(
             outOfTheWay()
             val file = playlistFile(pl.id)
             val stale = !file.exists() ||
+                (pl.isStalker && stalker.needsPlaylistRefresh(file)) ||
                 now - file.lastModified() > settings.playlistRefreshHours.coerceAtLeast(1) * HOUR
             if (forcePlaylists || stale || pl.id in forceIds) {
                 LIVE_REPORT.add("Checking playlist \"${pl.name}\" for updates")

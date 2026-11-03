@@ -13,10 +13,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.RandomAccessFile
-import java.net.HttpURLConnection
 import java.net.URL
 
 /**
@@ -46,6 +47,10 @@ class LiveTvTimeshift(private val context: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
+    private val received = java.util.concurrent.atomic.AtomicLong()
+    val bytesReceived: Long get() = received.get()
+    @Volatile var availableDurationMs: Long = 0L
+        private set
     @Volatile var session: Session? = null
         private set
     @Volatile private var recording = false
@@ -83,25 +88,28 @@ class LiveTvTimeshift(private val context: Context) {
         /** Open the stream again when it ends (live); false for a replay, which simply ends. */
         reconnect: Boolean = true,
         /** How it's named in the Start-Up Report. */
-        label: String = "Pause buffer"
+        label: String = "Pause buffer",
+        connectionReleaseDelayMs: Long = 2_500L
     ): Session? {
         stop()
-        val dir = File(baseDir, System.currentTimeMillis().toString()).apply { mkdirs() }
-            .takeIf { it.exists() } ?: File(context.cacheDir, "timeshift/" + System.currentTimeMillis()).apply { mkdirs() }
+        val directoryName = "${System.currentTimeMillis()}-${java.util.UUID.randomUUID()}"
+        val dir = File(baseDir, directoryName).apply { mkdirs() }
+            .takeIf { it.exists() } ?: File(context.cacheDir, "timeshift/" + directoryName).apply { mkdirs() }
         val isHls = url.lowercase().substringBefore('?').endsWith(".m3u8") || url.contains("m3u8", ignoreCase = true)
         val now = System.currentTimeMillis()
         trimmedMs = 0L
         firstBatchMs = 0L
         recording = true
-        val s = if (isHls) {
-            val local = File(dir, "index.m3u8")
-            Session(Kind.HLS, now, Uri.fromFile(local), dir).also { job = scope.launch { recordHls(url, headers, dir, local, keepMinutes ?: 24 * 60) } }
-        } else {
-            val local = File(dir, "index.m3u8")
-            Session(Kind.TS, now, Uri.fromFile(local), dir).also { job = scope.launch { recordTs(url, headers, dir, keepMinutes, reconnect, label) } }
-        }
+        received.set(0L)
+        availableDurationMs = 0L
+        val local = File(dir, "index.m3u8")
+        val s = Session(if (isHls) Kind.HLS else Kind.TS, now, Uri.fromFile(local), dir)
         session = s
         ACTIVE += s.dir
+        job = scope.launch {
+            if (isHls) recordHls(url, headers, dir, local, keepMinutes ?: 24 * 60)
+            else recordTs(url, headers, dir, keepMinutes, reconnect, label, connectionReleaseDelayMs)
+        }
         return s
     }
 
@@ -136,8 +144,6 @@ class LiveTvTimeshift(private val context: Context) {
         }
     }
 
-    private fun open(url: String, headers: Map<String, String>): HttpURLConnection = LiveHttp.open(url, headers, 20_000)
-
     // ------------------------------------------------------------------ TS
 
     private suspend fun recordTs(
@@ -146,21 +152,24 @@ class LiveTvTimeshift(private val context: Context) {
         dir: File,
         keepMinutes: Int?,
         reconnect: Boolean = true,
-        label: String = "Pause buffer"
+        label: String = "Pause buffer",
+        connectionReleaseDelayMs: Long = 2_500L
     ) {
         // Pieces past the time limit are dropped as new ones come in (it records on, behind you).
-        val segmenter = TsSegmenter(dir, keepSec = keepMinutes?.let { it * 60.0 }) { _ -> }
+        val segmenter = TsSegmenter(dir, targetSec = if (keepMinutes != null) REWIND_SEGMENT_SECONDS else 6.0,
+            keepSec = keepMinutes?.let { it * 60.0 }, fixedTargetDurationSec = if (keepMinutes != null) REWIND_TARGET_SECONDS else null) { _ -> }
         val report = com.nuvio.tv.livetv.model.LiveTvLoadReport
         val began = System.currentTimeMillis()
         // The player has only just let go of its connection: give the provider a moment, or
         // accounts with one connection can refuse (or later cut) this one.
-        delay(2_500)
+        delay(connectionReleaseDelayMs)
+        val workContext = currentCoroutineContext()
         var attempt = 0
         try {
             // Keeps going until you go live or change channel: a dropped connection is opened
             // again, with the gap marked, instead of ending the buffer (which sent you back to
             // live after half a minute or so).
-            while (scope.isActive && recording) {
+            while (currentCoroutineContext().isActive && session?.dir == dir) {
                 if (attempt > 0) {
                     segmenter.reconnected()
                     delay((attempt * 2_000L).coerceAtMost(8_000L))
@@ -169,28 +178,31 @@ class LiveTvTimeshift(private val context: Context) {
                 val t0 = System.currentTimeMillis()
                 var bytes = 0L
                 val why = try {
-                    val c = open(url, headers)
-                    val code = c.responseCode
-                    if (code !in 200..299) { c.disconnect(); "HTTP $code" }
-                    else c.inputStream.use { input ->
-                        val buf = ByteArray(64 * 1024)
-                        var end = "the provider ended the stream"
-                        while (scope.isActive && recording) {
-                            val n = input.read(buf)
-                            if (n < 0) break
-                            bytes += n
-                            segmenter.write(buf, 0, n)
-                            trimmedMs = (segmenter.trimmedSec * 1000).toLong()
+                    LiveHttp.consume(url, headers) { response ->
+                        response.body.byteStream().use { input ->
+                            val buf = ByteArray(64 * 1024)
+                            while (workContext.isActive && session?.dir == dir) {
+                                val n = input.read(buf)
+                                if (n < 0) break
+                                workContext.ensureActive()
+                                bytes += n
+                                segmenter.write(buf, 0, n)
+                                if (session?.dir == dir) {
+                                    received.addAndGet(n.toLong())
+                                    trimmedMs = (segmenter.trimmedSec * 1000).toLong()
+                                    availableDurationMs = ((segmenter.totalSec - segmenter.trimmedSec) * 1000).toLong()
+                                }
+                            }
+                            workContext.ensureActive()
+                            "the provider ended the stream"
                         }
-                        if (!recording) end = "stopped"
-                        end
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (e: Exception) {
                     e.message ?: e.javaClass.simpleName
                 }
-                if (!recording) break
+                if (session?.dir != dir) break
                 // A replay that came in and ended: it's all saved (no reconnecting, which would
                 // start the replay again from its beginning).
                 if (!reconnect && (bytes > 0 || attempt >= 2)) {
@@ -205,7 +217,7 @@ class LiveTvTimeshift(private val context: Context) {
         } finally {
             report.add("$label finished after ${(System.currentTimeMillis() - began) / 1000}s (${segmenter.totalSec.toInt()}s recorded)")
             runCatching { segmenter.finish(ended = true) }
-            recording = false
+            if (session?.dir == dir) recording = false
         }
     }
 
@@ -216,7 +228,7 @@ class LiveTvTimeshift(private val context: Context) {
     private suspend fun recordHls(url: String, headers: Map<String, String>, dir: File, local: File, keepMinutes: Int) {
         try {
             var mediaUrl = url
-            var text = LiveHttp.fetch(mediaUrl, headers).let { (t, u) -> mediaUrl = u; t }
+            var text = LiveHttp.fetchCancellable(mediaUrl, headers).let { (t, u) -> mediaUrl = u; t }
             // A master playlist: take the best-quality variant.
             if (text.contains("#EXT-X-STREAM-INF")) {
                 val lines = text.lines()
@@ -230,19 +242,19 @@ class LiveTvTimeshift(private val context: Context) {
                     }
                 }
                 mediaUrl = resolve(mediaUrl, bestUri ?: return)
-                text = LiveHttp.fetch(mediaUrl, headers).let { (t, u) -> mediaUrl = u; t }
+                text = LiveHttp.fetchCancellable(mediaUrl, headers).let { (t, u) -> mediaUrl = u; t }
             }
             // Encrypted streams aren't recorded (the keys would have to be saved too).
             if (text.contains("#EXT-X-KEY") && !text.contains("METHOD=NONE")) {
                 Log.w(TAG, "Encrypted HLS: not recorded")
-                recording = false
+                if (session?.dir == dir) recording = false
                 return
             }
             val saved = ArrayList<Seg>()
             var lastSeq = -1L
             var mapLine: String? = null
             var target = 6
-            while (scope.isActive && recording) {
+            while (currentCoroutineContext().isActive && session?.dir == dir) {
                 val lines = text.lines()
                 var seq = Regex("""#EXT-X-MEDIA-SEQUENCE:(\d+)""").find(text)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
                 target = Regex("""#EXT-X-TARGETDURATION:(\d+)""").find(text)?.groupValues?.get(1)?.toIntOrNull() ?: target
@@ -278,14 +290,19 @@ class LiveTvTimeshift(private val context: Context) {
                     runCatching { File(dir, first.url).delete() }
                 }
                 if (firstBatchMs == 0L && saved.isNotEmpty()) firstBatchMs = (saved.sumOf { it.durationSec } * 1000).toLong()
+                currentCoroutineContext().ensureActive()
+                if (session?.dir != dir) return
+                availableDurationMs = (saved.sumOf { it.durationSec } * 1000).toLong()
                 writeLocalPlaylist(local, saved, target, mapLine)
                 delay((target * 1000L / 2).coerceIn(1_000L, 6_000L))
-                text = runCatching { LiveHttp.fetch(mediaUrl, headers).let { (t, u) -> mediaUrl = u; t } }.getOrElse { delay(2_000); continue }
+                text = runCatching { LiveHttp.fetchCancellable(mediaUrl, headers).let { (t, u) -> mediaUrl = u; t } }.getOrElse { delay(2_000); continue }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Log.w(TAG, "HLS recording stopped: ${e.message}")
+            Log.w(TAG, "HLS recording stopped: ${e.javaClass.simpleName}")
         } finally {
-            recording = false
+            if (session?.dir == dir) recording = false
         }
     }
 
@@ -294,7 +311,6 @@ class LiveTvTimeshift(private val context: Context) {
         val sb = StringBuilder()
         sb.append("#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-TARGETDURATION:").append(target + 1).append('\n')
         sb.append("#EXT-X-MEDIA-SEQUENCE:").append(segs.first().seq).append('\n')
-        sb.append("#EXT-X-PLAYLIST-TYPE:EVENT\n")
         mapLine?.let { sb.append(it).append('\n') }
         segs.forEach { s -> sb.append("#EXTINF:").append(String.format(java.util.Locale.US, "%.3f", s.durationSec)).append(",\n").append(s.url).append('\n') }
         val tmp = File(file.parentFile, file.name + ".tmp")
@@ -302,14 +318,34 @@ class LiveTvTimeshift(private val context: Context) {
         if (!tmp.renameTo(file)) { tmp.copyTo(file, overwrite = true); tmp.delete() }
     }
 
-    private fun fetchText(url: String, headers: Map<String, String>): String =
-        open(url, headers).inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
-
-    private fun download(url: String, headers: Map<String, String>, to: File): Boolean = runCatching {
-        val tmp = File(to.parentFile, to.name + ".part")
-        open(url, headers).inputStream.use { input -> tmp.outputStream().use { input.copyTo(it, 64 * 1024) } }
-        tmp.renameTo(to)
-    }.getOrDefault(false)
+    private suspend fun download(url: String, headers: Map<String, String>, to: File): Boolean {
+        val workContext = currentCoroutineContext()
+        return try {
+            val tmp = File(to.parentFile, to.name + ".part")
+            LiveHttp.consume(url, headers) { response ->
+                response.body.byteStream().use { input ->
+                    tmp.outputStream().buffered(128 * 1024).use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        while (true) {
+                            workContext.ensureActive()
+                            val n = input.read(buffer)
+                            if (n < 0) break
+                            workContext.ensureActive()
+                            output.write(buffer, 0, n)
+                            received.addAndGet(n.toLong())
+                        }
+                    }
+                }
+            }
+            workContext.ensureActive()
+            tmp.renameTo(to)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            workContext.ensureActive()
+            false
+        }
+    }
 
     private fun resolve(base: String, ref: String): String = runCatching { URL(URL(base), ref).toString() }.getOrDefault(ref)
 

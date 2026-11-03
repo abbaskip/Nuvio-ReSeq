@@ -25,7 +25,7 @@ internal class FreeSportsDb {
         val url = "https://www.thesportsdb.com/api/v1/json/123/".toHttpUrl().newBuilder()
             .addPathSegment(endpoint).apply { params.forEach { (k, v) -> addQueryParameter(k, v) } }.build()
         nextRequestAt = clock() + 2_200L
-        http.newCall(Request.Builder().url(url).header("Accept", "application/json").build()).execute().use { r ->
+        http.newCall(Request.Builder().url(url).header("Accept", "application/json").build()).consumeSportsResponse { r ->
             if (r.code == 429) nextRequestAt = clock() + 60_000L
             if (!r.isSuccessful) throw IOException("TheSportsDB HTTP ${r.code}")
             r.body?.string() ?: throw IOException("TheSportsDB empty response")

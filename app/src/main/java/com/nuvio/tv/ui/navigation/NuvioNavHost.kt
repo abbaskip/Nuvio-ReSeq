@@ -213,15 +213,30 @@ private fun PlaybackNavHost(
                 viewModel = vm,
                 onOpenFullscreen = { com.nuvio.tv.livetv.ui.LiveTvFullscreen.request() },
                 onOpenSettings = { navController.navigate(Screen.LiveTvSettings.route) },
-                onReturnToSports = { navController.navigate(Screen.Sports.route) { launchSingleTop = true } },
+                onReturnToSports = {
+                    if (!navController.popBackStack(Screen.Sports.route, inclusive = false)) {
+                        navController.navigate(Screen.Sports.route) {
+                            popUpTo(Screen.LiveTv.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
                 onFindInNuvio = { navController.navigate(Screen.Search.route) }
             )
         }
         composable(Screen.Sports.route) {
-            com.nuvio.tv.livetv.sports.SportsScreen(onOpenLive = {
-                com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
-                navController.navigate(Screen.LiveTv.route) { launchSingleTop = true }
-            })
+            com.nuvio.tv.livetv.sports.SportsScreen(
+                onOpenLive = {
+                    com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
+                    navController.navigate(Screen.LiveTv.route) { launchSingleTop = true }
+                },
+                onOpenGuide = {
+                    com.nuvio.tv.livetv.sports.SportsLaunch.clearReturn()
+                    navController.navigate(Screen.LiveTv.route) { launchSingleTop = true }
+                },
+                onOpenSettings = { navController.navigate(Screen.LiveTvSettings.route) },
+                onFindInNuvio = { navController.navigate(Screen.Search.route) }
+            )
         }
         composable(Screen.OnDemand.route) {
             val vm: com.nuvio.tv.livetv.ondemand.OnDemandViewModel = androidx.hilt.navigation.compose.hiltViewModel()

@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,7 +81,23 @@ class LiveTvPlaybackController @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var portalLinkJob: Job? = null
 
+    private val _playerFlow = MutableStateFlow<ExoPlayer?>(null)
+    val playerFlow: StateFlow<ExoPlayer?> = _playerFlow.asStateFlow()
     private var _player: ExoPlayer? = null
+        set(value) { field = value; _playerFlow.value = value }
+    private val settingsReady = MutableStateFlow(false)
+    private var pendingPlayJob: Job? = null
+    private var applyingSettings = false
+    private val diagnosticBytes = java.util.concurrent.atomic.AtomicLong()
+    private var diagnosticSources = 0
+    private val diagnosticTransferListener = object : androidx.media3.datasource.TransferListener {
+        override fun onTransferInitializing(source: androidx.media3.datasource.DataSource, dataSpec: androidx.media3.datasource.DataSpec, isNetwork: Boolean) = Unit
+        override fun onTransferStart(source: androidx.media3.datasource.DataSource, dataSpec: androidx.media3.datasource.DataSpec, isNetwork: Boolean) = Unit
+        override fun onBytesTransferred(source: androidx.media3.datasource.DataSource, dataSpec: androidx.media3.datasource.DataSpec, isNetwork: Boolean, bytesTransferred: Int) {
+            if (isNetwork) diagnosticBytes.addAndGet(bytesTransferred.toLong())
+        }
+        override fun onTransferEnd(source: androidx.media3.datasource.DataSource, dataSpec: androidx.media3.datasource.DataSpec, isNetwork: Boolean) = Unit
+    }
     val player: ExoPlayer? get() = _player
 
     private val _state = MutableStateFlow(LivePlaybackState())
@@ -174,7 +191,6 @@ class LiveTvPlaybackController @Inject constructor(
 
     private fun shouldBuffer(channel: LiveChannel, catchupTitle: String?): Boolean =
         rewindAlways && timeshiftEnabled && catchupTitle == null && channel.drm == null &&
-            com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value &&
             channel.key != bufferFailedKey && timeshift.hasRoomFor(timeshiftMinutes)
 
     /**
@@ -182,23 +198,36 @@ class LiveTvPlaybackController @Inject constructor(
      * recording a few seconds behind live, so you can skip back at any time (up to the buffer
      * length) without having paused. One connection to the provider, as always.
      */
-    private fun startAlwaysBuffer(channel: LiveChannel, url: String): Boolean {
+    private fun startAlwaysBuffer(channel: LiveChannel, url: String, connectionReleaseDelayMs: Long): Boolean {
         val p = _player ?: return false
-        val session = timeshift.start(url, channel.headers, timeshiftMinutes) ?: return false
+        val session = timeshift.start(url, channel.headers, timeshiftMinutes, connectionReleaseDelayMs = connectionReleaseDelayMs) ?: return false
         alwaysBuffer = true
         bufferStartedAt = System.currentTimeMillis()
         shiftPrepared = false
         _shiftStartedAt.value = session.startedAtMs
+        _state.value = _state.value.copy(isBuffering = true)
         shiftJob?.cancel()
         shiftJob = scope.launch {
             var waited = 0
             val f = java.io.File(session.playUri.path ?: "")
-            while (waited < 15_000 && !(f.exists() && f.length() > 0)) { delay(200); waited += 200 }
+            var playlist = ""
+            while (waited < 20_000) {
+                if (timeshift.session != session) return@launch
+                playlist = runCatching { f.readText() }.getOrDefault("")
+                if (rewindPlaylistDurationMs(playlist) >= REWIND_STARTUP_MS) break
+                if (!timeshift.isRecording) { bufferFailed(); return@launch }
+                delay(200)
+                waited += 200
+            }
             if (timeshift.session != session) return@launch
-            if (!f.exists()) { bufferFailed(); return@launch }
-            p.setMediaSource(localRecordingSource(session.playUri))
+            if (rewindPlaylistDurationMs(playlist) < REWIND_STARTUP_MS) { bufferFailed(); return@launch }
+            val targetSeconds = playlist.lineSequence().firstOrNull { it.startsWith("#EXT-X-TARGETDURATION:") }
+                ?.substringAfter(':')?.toLongOrNull() ?: REWIND_TARGET_SECONDS.toLong()
+            val offset = if (session.kind == LiveTvTimeshift.Kind.TS) REWIND_STARTUP_MS else maxOf(8_000L, targetSeconds * 3_000)
+            if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Rewind ready window=${rewindPlaylistDurationMs(playlist)} target=${targetSeconds}s")
+            p.setMediaSource(localRecordingSource(session.playUri, offset))
             p.prepare()
-            p.playWhenReady = true
+            // Keep a pause pressed while the initial rewind window was filling.
             shiftPrepared = true
         }
         return true
@@ -207,9 +236,11 @@ class LiveTvPlaybackController @Inject constructor(
     /** The buffer couldn't keep up (or the stream won't record): play this channel directly. */
     private fun bufferFailed() {
         val ch = currentChannel ?: return
+        val wasPlaying = _player?.playWhenReady != false
         bufferFailedKey = ch.key
         com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Rewind buffer failed on ${ch.name}; playing it directly")
         goLiveFresh()
+        if (!wasPlaying) _player?.pause()
     }
 
     /** Drops the buffer and plays the channel again from now (a new buffer, if it's on). */
@@ -219,18 +250,6 @@ class LiveTvPlaybackController @Inject constructor(
         stopShift()
         currentUrl = null
         play(ch, overrideUrl = url.takeIf { it != ch.url })
-    }
-
-    /** Going full screen with Rewind Anytime on: switch the channel over to the buffer. */
-    private fun watchFullscreen() {
-        scope.launch {
-            com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.collect { full ->
-                val ch = currentChannel ?: return@collect
-                if (!full || !rewindAlways || _shiftStartedAt.value != null || _recordingPlayback.value != null) return@collect
-                if (_state.value.catchupTitle != null || _player == null) return@collect
-                goLiveFresh()
-            }
-        }
     }
 
     /**
@@ -395,6 +414,9 @@ class LiveTvPlaybackController @Inject constructor(
         val p = _player ?: return
         val session = timeshift.session
         if (session == null) { com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Pause buffer: play pressed but there is no recording session"); return }
+        // Its startup job is already waiting for a safe lead. Do not replace it with the
+        // ordinary pause-buffer startup, which can open the first short piece too early.
+        if (alwaysBuffer && !shiftPrepared) { p.play(); return }
         if (shiftPrepared) { com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Pause buffer: play pressed (playing from the buffer)"); p.play(); return }
         shiftJob?.cancel()
         shiftJob = scope.launch {
@@ -445,6 +467,8 @@ class LiveTvPlaybackController @Inject constructor(
      * end of it, creeping towards live.
      */
     internal fun localRecordingSource(uri: android.net.Uri, offsetMs: Long = 8_000): androidx.media3.exoplayer.source.MediaSource {
+        diagnosticSources++
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Opening local stream source=$diagnosticSources offsetMs=$offsetMs")
         val item = MediaItem.Builder()
             .setUri(uri)
             .setMimeType(MimeTypes.APPLICATION_M3U8)
@@ -539,39 +563,38 @@ class LiveTvPlaybackController @Inject constructor(
         lastFrameUs = Long.MIN_VALUE
     }
 
-    /** Live TV buffer size ("small", "normal", "large", "xlarge"); changing it rebuilds the player. */
+    /** Saved playback options belong to the shared player, independently of which page opens. */
     var bufferSize: String = "normal"
         set(value) {
             if (field == value) return
             field = value
-            val p = _player ?: return
-            val ch = currentChannel
-            val url = currentUrl
-            val title = _state.value.catchupTitle
-            val wasPlaying = p.playWhenReady
-            release()
-            if (ch != null && wasPlaying) play(ch, overrideUrl = url.takeIf { it != ch.url }, catchupTitle = title)
+            if (!applyingSettings) rebuildForSettings()
         }
 
     var audioPassthrough: Boolean = true
         set(value) {
             if (field == value) return
             field = value
-            val p = _player ?: return
-            val ch = currentChannel
-            val url = currentUrl
-            val title = _state.value.catchupTitle
-            val wasPlaying = p.playWhenReady
-            release()
-            if (ch != null && wasPlaying) play(ch, overrideUrl = url.takeIf { it != ch.url }, catchupTitle = title)
+            if (!applyingSettings) rebuildForSettings()
         }
 
-    @Volatile private var watchingFullscreen = false
+    private fun rebuildForSettings() {
+        val p = _player ?: return
+        val ch = currentChannel
+        val url = currentUrl
+        val title = _state.value.catchupTitle
+        val wasPlaying = p.playWhenReady
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Rebuilding player for changed playback settings")
+        release()
+        if (ch != null) {
+            play(ch, overrideUrl = url.takeIf { it != ch.url }, catchupTitle = title)
+            if (!wasPlaying) _player?.pause()
+        }
+    }
 
     fun attach(): ExoPlayer {
         releaseJob?.cancel()
         attachCount++
-        if (!watchingFullscreen) { watchingFullscreen = true; watchFullscreen() }
         return _player ?: buildPlayer().also { _player = it }
     }
 
@@ -601,6 +624,29 @@ class LiveTvPlaybackController @Inject constructor(
         /** Catch-up: the real time the replay should start at (the show's start). */
         catchupStartMs: Long? = null
     ) {
+        if (!settingsReady.value) {
+            pendingPlayJob?.cancel()
+            pendingPlayJob = scope.launch {
+                settingsReady.first { it }
+                pendingPlayJob = null
+                play(channel, overrideUrl, catchupTitle, fallback, fallbacks, catchupStartMs)
+            }
+            return
+        }
+        pendingPlayJob?.cancel()
+        pendingPlayJob = null
+        // Re-selecting an active portal channel must not resolve its URL or stop the stream again.
+        val existing = _player
+        if (overrideUrl == null && catchupTitle == null && _state.value.catchupTitle == null &&
+            currentChannel?.key == channel.key && currentChannel?.url == channel.url &&
+            _state.value.error == null && _recordingPlayback.value == null &&
+            (currentUrl != null || portalLinkJob?.isActive == true) &&
+            (portalLinkJob?.isActive == true || (alwaysBuffer && timeshift.isRecording) ||
+                existing?.playbackState == Player.STATE_READY || existing?.playbackState == Player.STATE_BUFFERING)
+        ) {
+            if (existing != null && !existing.playWhenReady) existing.play()
+            return
+        }
         portalLinkJob?.cancel()
         portalLinkJob = null
         if (overrideUrl == null && channel.url.startsWith("reseq-stalker://")) {
@@ -696,10 +742,11 @@ class LiveTvPlaybackController @Inject constructor(
         _state.value = LivePlaybackState(channelKey = channel.key, isBuffering = true, catchupTitle = catchupTitle)
         if (catchupTitle == null) markStarting(channel.key)
         if (bufferFailedKey != null && bufferFailedKey != channel.key) bufferFailedKey = null
-        // Rewind anytime (full screen): play through the rolling buffer instead.
+        // Start rewind with the initial tune so expanding the preview never retunes it.
         if (shouldBuffer(channel, catchupTitle)) {
+            val releaseDelay = if (p.playbackState == Player.STATE_IDLE) 0L else 2_500L
             p.stop()
-            if (startAlwaysBuffer(channel, url)) { p.playWhenReady = true; return }
+            if (startAlwaysBuffer(channel, url, releaseDelay)) { p.playWhenReady = true; return }
         }
         // A TS catch-up replay: saved while it plays, for instant skipping.
         if (catchupTitle != null && catchupCache && channel.drm == null &&
@@ -830,6 +877,8 @@ class LiveTvPlaybackController @Inject constructor(
     }
 
     fun stop() {
+        pendingPlayJob?.cancel()
+        pendingPlayJob = null
         portalLinkJob?.cancel()
         portalLinkJob = null
         clearStarting()
@@ -870,16 +919,19 @@ class LiveTvPlaybackController @Inject constructor(
 
     private fun checkStall() {
         val p = _player ?: return
-        if (_shiftStartedAt.value != null || _recordingPlayback.value != null) { lastProgressAt = android.os.SystemClock.elapsedRealtime(); return }
         val now = android.os.SystemClock.elapsedRealtime()
         val ch = currentChannel
-        if (com.nuvio.tv.BuildConfig.DEBUG && now - lastDiagnosticAt >= 15_000) {
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD && now - lastDiagnosticAt >= 5_000) {
             lastDiagnosticAt = now
-            Log.d(TAG, "Playback state=${p.playbackState} playing=${p.isPlaying} ready=${p.playWhenReady} " +
+            p.videoDecoderCounters?.ensureUpdated()
+            Log.i(TAG, "Playback player=${System.identityHashCode(p)} channel=${ch?.key?.hashCode()} state=${p.playbackState} playing=${p.isPlaying} ready=${p.playWhenReady} " +
                 "position=${p.currentPosition} buffered=${p.bufferedPosition} uiBuffering=${_state.value.isBuffering} " +
-                "background=$pausedForBackground shift=${_shiftStartedAt.value != null} " +
-                "recording=${_recordingPlayback.value != null} awaitingFrame=$awaitingFrame reconnect=$autoReconnect")
+                "bufferMs=${p.totalBufferedDuration} suppression=${p.playbackSuppressionReason} background=$pausedForBackground shift=${_shiftStartedAt.value != null} " +
+                "recording=${_recordingPlayback.value != null} awaitingFrame=$awaitingFrame reconnect=$autoReconnect " +
+                "bytes=${diagnosticBytes.get() + timeshift.bytesReceived} sources=$diagnosticSources windowMs=${timeshift.availableDurationMs} " +
+                "frames=${p.videoDecoderCounters?.renderedOutputBufferCount} dropped=${p.videoDecoderCounters?.droppedBufferCount}")
         }
+        if (_shiftStartedAt.value != null || _recordingPlayback.value != null) { lastProgressAt = now; return }
         // Paused, in the background, nothing playing, or already showing an error: not a stall.
         if (ch == null || !p.playWhenReady || pausedForBackground || _state.value.error != null ||
             p.playbackState == Player.STATE_IDLE || p.playbackState == Player.STATE_ENDED
@@ -961,6 +1013,7 @@ class LiveTvPlaybackController @Inject constructor(
      * drop the channel; going to the launcher does. Scheduled recordings carry on.
      */
     fun onAppBackground() {
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Application background")
         val p = _player ?: return
         if (p.playWhenReady) {
             pausedForBackground = true
@@ -1009,6 +1062,7 @@ class LiveTvPlaybackController @Inject constructor(
 
     /** Back in the app: carry on, jumping to the live edge for live channels. */
     fun onAppForeground() {
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Application foreground")
         backgroundJob?.cancel()
         backgroundJob = null
         resumeAfterBackground?.let { r ->
@@ -1027,7 +1081,7 @@ class LiveTvPlaybackController @Inject constructor(
     fun togglePause() {
         val p = _player ?: return
         when {
-            _shiftStartedAt.value != null -> if (p.isPlaying) p.pause() else resumeShift()
+            _shiftStartedAt.value != null -> if (p.playWhenReady) p.pause() else resumeShift()
             _recordingPlayback.value != null -> if (p.isPlaying) p.pause() else p.play()
             p.isPlaying && _state.value.catchupTitle == null -> pauseLive()
             p.isPlaying -> p.pause()
@@ -1385,35 +1439,31 @@ class LiveTvPlaybackController @Inject constructor(
     fun onSurfaceAttached() {
         val p = _player ?: return
         awaitingFrame = true
-        if (com.nuvio.tv.BuildConfig.DEBUG) Log.d(TAG, "Video surface attached")
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Video surface attached player=${System.identityHashCode(p)}")
         frameJob?.cancel()
         frameJob = scope.launch {
-            // Sound playing but no picture: frozen video. A channel that's simply still loading
-            // gets longer before we step in (it may just be slow to start).
-            delay(FRAME_TIMEOUT_MS)
-            if (!stuck(p, requireReady = true)) {
-                delay(LOADING_AFTER_MOVE_MS - FRAME_TIMEOUT_MS)
-                if (!stuck(p, requireReady = false)) return@launch
+            repeat(12) {
+                delay(FRAME_TIMEOUT_MS)
+                if (!awaitingFrame || _player !== p || currentChannel == null) return@launch
+                // Loading a network or rewind buffer is not evidence that the video surface failed.
+                if (!shouldRecoverLiveSurface(awaitingFrame, p.playbackState, p.isPlaying,
+                        p.playWhenReady, p.playbackSuppressionReason, p.videoFormat != null)) return@repeat
+                Log.w(TAG, "No picture after moving the video; restarting the stream")
+                val archive = _state.value.catchupTitle != null
+                val pos = p.currentPosition
+                p.stop()
+                archiveStartPending = false
+                p.prepare()
+                if (archive && pos > 0) p.seekTo(pos)
+                p.playWhenReady = true
+                return@launch
             }
-            Log.w(TAG, "No picture after moving the video; restarting the stream")
-            val archive = _state.value.catchupTitle != null
-            val pos = p.currentPosition
-            p.stop()
-            archiveStartPending = false
-            p.prepare()
-            if (archive && pos > 0) p.seekTo(pos)
-            p.playWhenReady = true
         }
-    }
-
-    private fun stuck(p: ExoPlayer, requireReady: Boolean): Boolean {
-        if (!awaitingFrame || !p.playWhenReady || currentChannel == null || _state.value.error != null) return false
-        return if (requireReady) p.playbackState == Player.STATE_READY && p.isPlaying
-        else p.playbackState == Player.STATE_BUFFERING || p.playbackState == Player.STATE_READY
     }
 
     private val listener = object : Player.Listener {
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Play intent=$playWhenReady reason=$reason")
             _state.value = _state.value.copy(userPaused = !playWhenReady)
         }
 
@@ -1431,7 +1481,7 @@ class LiveTvPlaybackController @Inject constructor(
         }
 
         override fun onRenderedFirstFrame() {
-            if (com.nuvio.tv.BuildConfig.DEBUG) Log.d(TAG, "First video frame rendered")
+            if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "First video frame rendered player=${_player?.let(System::identityHashCode)}")
             awaitingFrame = false
             // Playing fine for a while: no longer counts as "the app closed while this was starting".
             currentChannel?.key?.let { key ->
@@ -1494,7 +1544,7 @@ class LiveTvPlaybackController @Inject constructor(
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            if (com.nuvio.tv.BuildConfig.DEBUG) Log.d(TAG, "Playback state changed to $playbackState")
+            if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Playback state changed to $playbackState")
             _state.value = _state.value.copy(
                 isBuffering = playbackState == Player.STATE_BUFFERING,
                 error = if (playbackState == Player.STATE_READY) null else _state.value.error,
@@ -1772,9 +1822,12 @@ class LiveTvPlaybackController @Inject constructor(
     }
 
     private fun buildMediaSource(url: String, headers: Map<String, String>, isLive: Boolean): androidx.media3.exoplayer.source.MediaSource {
+        diagnosticSources++
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Opening stream source=$diagnosticSources live=$isLive")
         // Protected (DRM) streams, e.g. MPEG-DASH with a ClearKey or Widevine license.
         currentChannel?.drm?.let { drm -> buildDrmMediaSource(url, headers, isLive, drm)?.let { return it } }
         val http = DefaultHttpDataSource.Factory()
+            .apply { if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) setTransferListener(diagnosticTransferListener) }
             .setUserAgent(headers["User-Agent"] ?: LiveTvRepository.DEFAULT_UA)
             .setDefaultRequestProperties(headers.filterKeys { it != "User-Agent" })
             .setAllowCrossProtocolRedirects(true)
@@ -1819,6 +1872,7 @@ class LiveTvPlaybackController @Inject constructor(
         drm: com.nuvio.tv.livetv.model.DrmInfo
     ): androidx.media3.exoplayer.source.MediaSource? = runCatching {
         val http = DefaultHttpDataSource.Factory()
+            .apply { if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) setTransferListener(diagnosticTransferListener) }
             .setUserAgent(headers["User-Agent"] ?: LiveTvRepository.DEFAULT_UA)
             .setDefaultRequestProperties(headers.filterKeys { it != "User-Agent" })
             .setAllowCrossProtocolRedirects(true)
@@ -1928,12 +1982,19 @@ class LiveTvPlaybackController @Inject constructor(
      * own player opens, so the two never hold the audio at the same time.
      */
     fun releaseNow() {
+        pendingPlayJob?.cancel()
+        pendingPlayJob = null
         portalLinkJob?.cancel()
         portalLinkJob = null
         if (_player != null || currentChannel != null) release()
     }
 
     private fun release() {
+        if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Releasing player=${_player?.let(System::identityHashCode)}")
+        pendingPlayJob?.cancel()
+        pendingPlayJob = null
+        frameJob?.cancel()
+        frameJob = null
         portalLinkJob?.cancel()
         portalLinkJob = null
         backgroundJob?.cancel()
@@ -1953,6 +2014,36 @@ class LiveTvPlaybackController @Inject constructor(
         _state.value = LivePlaybackState()
     }
 
+    init {
+        scope.launch {
+            preferences.settings.distinctUntilChanged().collect { saved ->
+                val rebuild = bufferSize != saved.bufferSize || audioPassthrough != saved.audioPassthrough
+                applyingSettings = true
+                try {
+                    autoReconnect = saved.autoReconnect
+                    catchupCache = saved.catchupCache
+                    audioPassthrough = saved.audioPassthrough
+                    bufferSize = saved.bufferSize
+                    timeshiftEnabled = saved.timeshiftEnabled
+                    timeshiftMinutes = saved.timeshiftMinutes
+                    rewindAlways = saved.timeshiftEnabled && saved.rewindAlways
+                    setBufferStorage(saved.recordingStorage)
+                    captionsByDefault = saved.captionsByDefault
+                } finally { applyingSettings = false }
+                if (rebuild) {
+                    val queued = pendingPlayJob
+                    pendingPlayJob = null
+                    rebuildForSettings()
+                    pendingPlayJob = queued
+                }
+                settingsReady.value = true
+                if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG,
+                    "Playback settings buffer=$bufferSize passthrough=$audioPassthrough rewind=$rewindAlways")
+            }
+        }
+        scope.launch { preferences.userState.collect { channelAudio = it.channelAudio } }
+    }
+
     companion object {
         private const val MAX_RECONNECTS = 8
         /** No progress for this long while it should be playing = stalled. */
@@ -1965,7 +2056,6 @@ class LiveTvPlaybackController @Inject constructor(
         /** No picture this long after the video moved to a new screen = stuck. */
         private const val FRAME_TIMEOUT_MS = 2_500L
         /** Still loading this long after the video moved to a new screen = stuck. */
-        private const val LOADING_AFTER_MOVE_MS = 7_000L
         private const val C_TIME_UNSET = Long.MIN_VALUE + 1
         private const val TAG = "LiveTvPlayback"
     }

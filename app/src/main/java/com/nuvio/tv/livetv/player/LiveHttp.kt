@@ -2,6 +2,11 @@ package com.nuvio.tv.livetv.player
 
 import java.net.HttpURLConnection
 import java.net.URL
+import com.nuvio.tv.core.network.consumeCancellableResponse
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import java.util.concurrent.TimeUnit
 
 /**
  * Opens a provider link for recording, following redirects all the way, including between
@@ -9,6 +14,26 @@ import java.net.URL
  * provider that sends you on to its stream server answered "HTTP 302" and nothing was recorded).
  */
 object LiveHttp {
+    private val recordingHttp by lazy {
+        OkHttpClient.Builder().dns(com.nuvio.tv.core.network.IPv4FirstDns())
+            .connectTimeout(15, TimeUnit.SECONDS).readTimeout(20, TimeUnit.SECONDS)
+            .followRedirects(true).followSslRedirects(true).build()
+    }
+
+    internal suspend fun <T> consume(url: String, headers: Map<String, String>, block: (Response) -> T): T {
+        val request = Request.Builder().url(url).apply {
+            headers.forEach { (key, value) -> header(key, value) }
+            if (headers.keys.none { it.equals("User-Agent", true) }) header("User-Agent", com.nuvio.tv.livetv.data.LiveTvRepository.DEFAULT_UA)
+        }.build()
+        return recordingHttp.newCall(request).consumeCancellableResponse { response ->
+            if (!response.isSuccessful) throw java.io.IOException("HTTP ${response.code}")
+            block(response)
+        }
+    }
+
+    internal suspend fun fetchCancellable(url: String, headers: Map<String, String>): Pair<String, String> =
+        consume(url, headers) { it.body.string() to it.request.url.toString() }
+
     /** The connection after the last redirect (its [HttpURLConnection.getURL] is where it ended up). */
     fun open(url: String, headers: Map<String, String>, readTimeoutMs: Int = 20_000): HttpURLConnection {
         var current = url

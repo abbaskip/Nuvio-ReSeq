@@ -27,51 +27,51 @@ internal class SportsFeeds {
         .retryOnConnectionFailure(true)
         .build()
 
-    private fun get(url: String): String {
+    private suspend fun get(url: String): String {
         val req = Request.Builder().url(url)
             .header("Accept", "application/json")
             .header("User-Agent", "Mozilla/5.0 (Linux; Android 12; TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36")
             .build()
-        http.newCall(req).execute().use { r ->
+        return http.newCall(req).consumeSportsResponse { r ->
             if (!r.isSuccessful) throw java.io.IOException("HTTP ${r.code}")
-            return r.body?.string() ?: throw java.io.IOException("empty answer")
+            r.body?.string() ?: throw java.io.IOException("empty answer")
         }
     }
 
     // ------------------------------------------------------------------ ESPN
 
     /** Raw scoreboard for [league] over the days [fromDay]..[toDay] ("yyyyMMdd", US Eastern days). */
-    fun scoreboardRaw(league: League, fromDay: String, toDay: String): String =
+    suspend fun scoreboardRaw(league: League, fromDay: String, toDay: String): String =
         get("$ESPN${league.espnPath}/scoreboard?dates=$fromDay-$toDay&limit=1000${league.espnQuery}")
 
     /** One day only (for leagues whose feed won't take a range of days). */
-    fun scoreboardDayRaw(league: League, day: String): String =
+    suspend fun scoreboardDayRaw(league: League, day: String): String =
         get("$ESPN${league.espnPath}/scoreboard?dates=$day&limit=1000${league.espnQuery}")
 
     /** The feed's own pick of days (no date asked for): the last resort. */
-    fun scoreboardDefaultRaw(league: League): String =
+    suspend fun scoreboardDefaultRaw(league: League): String =
         get("$ESPN${league.espnPath}/scoreboard?limit=1000${league.espnQuery}")
 
-    fun teamsRaw(league: League): String = get("$ESPN${league.espnPath}/teams?limit=1000")
+    suspend fun teamsRaw(league: League): String = get("$ESPN${league.espnPath}/teams?limit=1000")
 
     /**
      * A team's season from ESPN: results and games to come (US sports), or, for football with
      * [fixtures], the games still to play (without it, the results so far).
      */
-    fun teamScheduleRaw(leaguePath: String, teamId: String, fixtures: Boolean): String =
+    suspend fun teamScheduleRaw(leaguePath: String, teamId: String, fixtures: Boolean): String =
         get("$ESPN$leaguePath/teams/$teamId/schedule" + if (fixtures) "?fixture=true" else "")
 
-    fun summary(league: League, espnId: String): List<ScoringPlay> = parseSummary(summaryJson(league, espnId))
+    suspend fun summary(league: League, espnId: String): List<ScoringPlay> = parseSummary(summaryJson(league, espnId))
 
     /** A game's whole summary (scoring, stats, leaders, standings, venue…). */
-    fun summaryJson(league: League, espnId: String): JSONObject = JSONObject(get("$ESPN${league.espnPath}/summary?event=$espnId"))
+    suspend fun summaryJson(league: League, espnId: String): JSONObject = JSONObject(get("$ESPN${league.espnPath}/summary?event=$espnId"))
 
     /** A league table (ESPN's standings address, see [Standings.espnUrl]). */
-    fun standingsRaw(url: String): String = get(url)
+    suspend fun standingsRaw(url: String): String = get(url)
 
     // ------------------------------------------------------------------ sporting-events.org
 
-    fun fixturesRaw(slug: String): String = get("https://sporting-events.org/data/$slug.json")
+    suspend fun fixturesRaw(slug: String): String = get("https://sporting-events.org/data/$slug.json")
 
     companion object {
         private const val ESPN = "https://site.api.espn.com/apis/site/v2/sports/"

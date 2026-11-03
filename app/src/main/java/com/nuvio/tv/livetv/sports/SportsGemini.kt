@@ -118,11 +118,11 @@ class SportsGemini @Inject constructor(private val credentials: SportsGeminiCred
         if (profile != profiles.activeProfileId.value || key != credentials.read(profile)) throw IOException("The active profile or key changed.")
         GeminiSportsAnswer.html(raw)
     }
-    private fun request(payload: JsonObject, key: String): String {
+    private suspend fun request(payload: JsonObject, key: String): String {
         val request = Request.Builder()
             .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent")
             .header("x-goog-api-key", key).post(payload.toString().toRequestBody("application/json".toMediaType())).build()
-        return http.newCall(request).execute().use { response ->
+        return http.newCall(request).consumeSportsResponse { response ->
             if (!response.isSuccessful) throw IOException(when (response.code) {
                 400, 401, 403 -> "Gemini rejected this key or account access. Check Google AI Studio."
                 404 -> "This Gemini model is unavailable for this account."

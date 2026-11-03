@@ -211,7 +211,6 @@ class LiveTvViewModel @Inject constructor(
         }
         // The audio track picked on each channel, remembered and used every time it plays.
         playback.onAudioChosen = { key, audio -> viewModelScope.launch { prefs.setChannelAudio(key, audio) } }
-        viewModelScope.launch { userState.collect { playback.channelAudio = it.channelAudio } }
         playback.onCatchupHlsUnsupported = { sourceId ->
             viewModelScope.launch {
                 com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Catch-up: this provider doesn't do HLS replays; using TS for the next week")
@@ -236,19 +235,6 @@ class LiveTvViewModel @Inject constructor(
                 // Keep the hours around now loaded from the guide database as time passes.
                 repository.ensureRange(_now.value - 3 * 3_600_000L, _now.value + 12 * 3_600_000L)
                 delay(30_000)
-            }
-        }
-        viewModelScope.launch {
-            settings.collect {
-                playback.autoReconnect = it.autoReconnect
-                playback.catchupCache = it.catchupCache
-                playback.audioPassthrough = it.audioPassthrough
-                playback.bufferSize = it.bufferSize
-                playback.timeshiftEnabled = it.timeshiftEnabled
-                playback.timeshiftMinutes = it.timeshiftMinutes
-                playback.rewindAlways = it.timeshiftEnabled && it.rewindAlways
-                playback.setBufferStorage(it.recordingStorage)
-                playback.captionsByDefault = it.captionsByDefault
             }
         }
         viewModelScope.launch {

@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
@@ -119,6 +120,7 @@ internal fun MyTeamsRows(
     playingKey: String?,
     videoOn: Boolean,
     videoSlot: @Composable (Modifier) -> Unit,
+    previewFocus: FocusRequester?,
     header: @Composable () -> Unit,
     columnState: LazyListState,
     rowState: (String, Int) -> LazyListState,
@@ -209,7 +211,9 @@ internal fun MyTeamsRows(
                     channel = channelOf(hero),
                     playing = playing(hero),
                     reminded = follows.reminders.any { it.eventId == hero.id },
-                    modifier = Modifier.weight(1f).fillMaxHeight().focusRequester(heroReq).onFocusChanged { if (it.isFocused) onFocusKey("hero") },
+                    modifier = Modifier.weight(1f).fillMaxHeight().focusRequester(heroReq)
+                        .focusProperties { previewFocus?.let { up = it } }
+                        .onFocusChanged { if (it.isFocused) onFocusKey("hero") },
                     // Round and round: past the last game back to the first (and left from the first to the last).
                     onStep = { d -> heroIndex = Math.floorMod(heroAt + d, heroes.size) },
                     onClick = { onOpen(hero) },
@@ -229,7 +233,8 @@ internal fun MyTeamsRows(
                         size = 18.sp, weight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(10.dp))
-                    SportsAction("✎  Follow Teams & Leagues", modifier = Modifier.focusRequester(heroReq), onClick = onPick)
+                    SportsAction("✎  Follow Teams & Leagues", modifier = Modifier.focusRequester(heroReq)
+                        .focusProperties { previewFocus?.let { right = it; up = it } }, onClick = onPick)
                 }
             }
             if (videoOn) {

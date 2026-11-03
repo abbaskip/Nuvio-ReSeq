@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuvio.tv.livetv.ui.LiveText
 import com.nuvio.tv.ui.theme.NuvioTheme
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -57,10 +58,13 @@ internal fun rememberGameExtras(ev: SportsEvent, viewModel: SportsViewModel): Ga
     var extras by remember(ev.id) { mutableStateOf<GameExtras?>(null) }
     val latest = rememberUpdatedState(ev)
     LaunchedEffect(ev.id, ev.state) {
-        while (true) {
-            runCatching { viewModel.extras(latest.value) }.getOrNull()?.let { extras = it }
-            if (latest.value.state != GameState.LIVE) break
-            delay(60_000)
+        viewModel.repo.browsingAllowed.collectLatest { allowed ->
+            if (!allowed) return@collectLatest
+            while (true) {
+                sportsCatching { viewModel.extras(latest.value) }.getOrNull()?.let { extras = it }
+                if (latest.value.state != GameState.LIVE) break
+                delay(60_000)
+            }
         }
     }
     return extras

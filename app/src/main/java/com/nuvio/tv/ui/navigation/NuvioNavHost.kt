@@ -1285,13 +1285,15 @@ private fun PlaybackNavHost(
                         Screen.CatalogSeeAll.createRoute(catalogId, addonId, type, fromSearch = true)
                     )
                 },
-                onOpenDiscover = { navController.navigate(Screen.Discover.route) }
+                onOpenDiscover = { navController.navigate(Screen.Discover.route) },
+                onOpenAdvancedDiscover = { navController.navigate(Screen.AdvancedDiscover.route) }
             )
         }
 
         composable(Screen.Discover.route) {
             DiscoverScreen(
                 showBuiltInHeader = !hideBuiltInHeaders,
+                onOpenAdvancedDiscover = { navController.navigate(Screen.AdvancedDiscover.route) },
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
                     val heroBackdrop = HeroBackdropState.consumeAndClear()
                     navController.navigate(
@@ -1302,6 +1304,19 @@ private fun PlaybackNavHost(
                             heroBackdropUrl = heroBackdrop
                         )
                     )
+                }
+            )
+        }
+
+        composable(Screen.AdvancedDiscover.route) {
+            com.nuvio.tv.ui.screens.search.AdvancedDiscoverScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTmdbSettings = { navController.navigate(Screen.TmdbSettings.route) },
+                onNavigateToDetail = { id, type, addon ->
+                    navController.navigate(Screen.Detail.createRoute(
+                        itemId = id, itemType = type, addonBaseUrl = addon,
+                        heroBackdropUrl = HeroBackdropState.consumeAndClear()
+                    ))
                 }
             )
         }

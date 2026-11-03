@@ -7,6 +7,9 @@ import com.nuvio.tv.data.local.ContinueWatchingEnrichmentCache
 import com.nuvio.tv.data.trailer.TrailerService
 import com.nuvio.tv.domain.model.TmdbSettings
 import com.nuvio.tv.domain.repository.MetaRepository
+import com.nuvio.tv.core.profile.ProfileManager
+import com.nuvio.tv.core.tmdb.TmdbCredentialStore
+import com.nuvio.tv.data.remote.api.TmdbApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +17,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
+import javax.inject.Named
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,16 +31,86 @@ class TmdbSettingsViewModel @Inject constructor(
     private val dataStore: TmdbSettingsDataStore,
     private val trailerService: TrailerService,
     private val metaRepository: MetaRepository,
-    private val cwEnrichmentCache: ContinueWatchingEnrichmentCache
+    private val cwEnrichmentCache: ContinueWatchingEnrichmentCache,
+    private val credentials: TmdbCredentialStore,
+    private val profiles: ProfileManager,
+    @param:Named("discoveryTmdb") private val tmdb: TmdbApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TmdbSettingsUiState())
     val uiState: StateFlow<TmdbSettingsUiState> = _uiState.asStateFlow()
+    private var keySaveJob: Job? = null
 
     init {
         viewModelScope.launch {
             dataStore.settings.collectLatest { settings ->
                 _uiState.update { it.fromSettings(settings) }
+            }
+        }
+        viewModelScope.launch {
+            profiles.activeProfileId.collectLatest { profileId ->
+                keySaveJob?.cancel()
+                _uiState.update { it.copy(profileId = profileId, hasApiKey = false, savingApiKey = false, apiKeyError = null) }
+                credentials.changes.collectLatest {
+                    val access = withContext(Dispatchers.IO) { credentials.access(profileId) }
+                    if (credentials.revision(profileId) == access.revision) {
+                        _uiState.update { it.copy(hasApiKey = access.apiKey.isNotBlank()) }
+                    }
+                }
+            }
+        }
+    }
+
+    fun saveApiKey(value: String, expectedProfileId: Int? = _uiState.value.profileId, onSaved: () -> Unit) {
+        if (expectedProfileId != profiles.activeProfileId.value) return
+        val key = value.trim()
+        if (!key.matches(Regex("[a-fA-F0-9]{32}"))) {
+            _uiState.update { it.copy(apiKeyError = TmdbApiKeyError.INVALID) }
+            return
+        }
+        updateApiKey(key, onSaved)
+    }
+
+    fun clearApiKey(expectedProfileId: Int? = _uiState.value.profileId, onSaved: () -> Unit) {
+        if (expectedProfileId == profiles.activeProfileId.value) updateApiKey(null, onSaved)
+    }
+
+    fun cancelApiKeySave() {
+        keySaveJob?.cancel()
+        _uiState.update { it.copy(savingApiKey = false, apiKeyError = null) }
+    }
+
+    private fun updateApiKey(key: String?, onSaved: () -> Unit) {
+        if (_uiState.value.savingApiKey) return
+        val profileId = profiles.activeProfileId.value
+        _uiState.update { it.copy(savingApiKey = true, apiKeyError = null) }
+        keySaveJob = viewModelScope.launch {
+            try {
+                if (key != null) {
+                    val response = withContext(Dispatchers.IO) { tmdb.getMovieGenres(key, "en") }
+                    currentCoroutineContext().ensureActive()
+                    if (!response.isSuccessful || response.body() == null) {
+                        val error = when (response.code()) {
+                            401, 403 -> TmdbApiKeyError.INVALID
+                            429 -> TmdbApiKeyError.RATE_LIMIT
+                            else -> TmdbApiKeyError.NETWORK
+                        }
+                        _uiState.update { it.copy(apiKeyError = error) }
+                        return@launch
+                    }
+                }
+                currentCoroutineContext().ensureActive()
+                if (profiles.activeProfileId.value != profileId) return@launch
+                withContext(Dispatchers.IO) { credentials.save(profileId, key) }
+                if (profiles.activeProfileId.value == profileId) {
+                    _uiState.update { it.copy(hasApiKey = key != null) }
+                    onSaved()
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) {
+                if (profiles.activeProfileId.value == profileId) _uiState.update { it.copy(apiKeyError = TmdbApiKeyError.NETWORK) }
+            } finally {
+                if (profiles.activeProfileId.value == profileId) _uiState.update { it.copy(savingApiKey = false) }
             }
         }
     }
@@ -70,7 +150,13 @@ class TmdbSettingsViewModel @Inject constructor(
     }
 }
 
+enum class TmdbApiKeyError { INVALID, NETWORK, RATE_LIMIT }
+
 data class TmdbSettingsUiState(
+    val profileId: Int? = null,
+    val hasApiKey: Boolean = false,
+    val savingApiKey: Boolean = false,
+    val apiKeyError: TmdbApiKeyError? = null,
     val enabled: Boolean = false,
     val modernHomeEnabled: Boolean = false,
     val enrichContinueWatching: Boolean = true,

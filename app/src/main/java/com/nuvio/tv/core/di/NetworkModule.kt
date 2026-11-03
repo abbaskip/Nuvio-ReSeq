@@ -317,10 +317,10 @@ object NetworkModule {
     @Provides
     @Singleton
     @Named("tmdb")
-    fun provideTmdbRetrofit(okHttpClient: OkHttpClient, moshi: Moshi): Retrofit =
+    fun provideTmdbRetrofit(localKey: com.nuvio.tv.core.tmdb.TmdbLocalKeyInterceptor, moshi: Moshi): Retrofit =
         Retrofit.Builder()
             .baseUrl("https://api.themoviedb.org/3/")
-            .client(okHttpClient)
+            .client(com.nuvio.tv.core.tmdb.tmdbPrivateClient(localKey))
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
 

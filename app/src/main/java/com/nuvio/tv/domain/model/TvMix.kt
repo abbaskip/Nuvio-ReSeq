@@ -41,20 +41,29 @@ internal suspend fun selectTvMixEpisode(
     shows: List<TvMixShow>,
     previous: Pair<String, String>?,
     random: Random = Random.Default,
+    lastPlayed: Pair<String, String>? = null,
     candidates: suspend (TvMixShow) -> Pair<Meta, List<Video>>?
 ): TvMixSelection? {
-    var repeat: TvMixSelection? = null
+    var previewFallback: TvMixSelection? = null
+    var playedFallback: TvMixSelection? = null
     for (show in shows.shuffled(random)) {
         val (meta, episodes) = candidates(show) ?: continue
-        val alternatives = episodes.filterNot { meta.id to it.id == previous }
+        val alternatives = episodes.filterNot { meta.id to it.id == previous || meta.id to it.id == lastPlayed }
         // Use the same episode picker and availability/identity rules as episode shuffle.
         val video = RandomEpisodePicker(meta.id, alternatives, emptySet(), emptyMap(), random).pick(true)
         if (video != null) return TvMixSelection(meta, video)
-        if (repeat == null) previous?.takeIf { it.first == meta.id }?.let { key ->
+        if (previewFallback == null) previous?.takeIf { it.first == meta.id && it != lastPlayed }?.let { key ->
             RandomEpisodePicker(meta.id, episodes, emptySet(), emptyMap(), random).find(key.second, true)?.let {
-                repeat = TvMixSelection(meta, it)
+                previewFallback = TvMixSelection(meta, it)
+            }
+        }
+        if (playedFallback == null) lastPlayed?.takeIf { it.first == meta.id }?.let { key ->
+            RandomEpisodePicker(meta.id, episodes, emptySet(), emptyMap(), random).find(key.second, true)?.let {
+                playedFallback = TvMixSelection(meta, it)
             }
         }
     }
-    return repeat
+    // A two-episode mix can have only the current preview left after excluding the
+    // episode just played. Keep that preview rather than immediately replaying it.
+    return previewFallback ?: playedFallback
 }

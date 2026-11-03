@@ -45,15 +45,16 @@ class TvMixViewModel @Inject constructor(
     val state = _state.asStateFlow()
     private var request: Job? = null
     private var previous: Pair<String, String>? = null
+    private var lastPlayed: Pair<String, String>? = null
     init {
         viewModelScope.launch { profiles.activeProfileId.drop(1).collect {
-            request?.cancel(); session.end(); previous = null; _state.value = TvMixUiState()
+            request?.cancel(); session.end(); previous = null; lastPlayed = null; _state.value = TvMixUiState()
         } }
     }
 
     fun open(id: String) {
         if (_state.value.mixId == id) return
-        session.end(); previous = null
+        session.end(); previous = null; lastPlayed = null
         _state.value = TvMixUiState(mixId = id)
         remix()
     }
@@ -67,7 +68,7 @@ class TvMixViewModel @Inject constructor(
         request = viewModelScope.launch {
             try {
                 val mix = store.observe(profileId).first().firstOrNull { it.id == id }
-                val selected = mix?.let { selectTvMixEpisode(it.shows, previous) { show ->
+                val selected = mix?.let { selectTvMixEpisode(it.shows, previous, lastPlayed = lastPlayed) { show ->
                     // A failed provider is bounded; cancellation/profile switching still cancels the selection.
                     withTimeoutOrNull(20_000) {
                         try {
@@ -109,13 +110,14 @@ class TvMixViewModel @Inject constructor(
     fun completed(autoplay: Boolean) {
         val playing = session.playing.value ?: return
         previous = playing.selection.key
+        lastPlayed = playing.selection.key
         session.end()
         _state.update { it.copy(mixId = playing.mixId, selection = null, continuePrompt = !autoplay, autoStart = autoplay) }
         remix()
     }
 
     fun end() {
-        request?.cancel(); session.end(); previous = null; _state.value = TvMixUiState()
+        request?.cancel(); session.end(); previous = null; lastPlayed = null; _state.value = TvMixUiState()
     }
 
     fun save(mix: TvMix, onSaved: () -> Unit = {}) = write { profile -> store.save(profile, mix); onSaved() }

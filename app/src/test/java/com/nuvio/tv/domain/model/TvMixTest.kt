@@ -51,6 +51,24 @@ class TvMixTest {
         }?.video)
     }
 
+    @Test fun `remix avoids both the preview and last played episode across shows`() = runTest {
+        val shows = listOf("a", "b", "c").map { TvMixShow(it, it) }
+        repeat(30) { seed ->
+            val result = selectTvMixEpisode(shows, "b" to "b:1:1", Random(seed), lastPlayed = "a" to "a:1:1") {
+                meta(it.id) to listOf(episode(it.id, 1))
+            }
+            assertEquals("c", result?.meta?.id)
+        }
+        // With only two eligible episodes, retain the preview instead of replaying
+        // the completed episode. A sole eligible episode can still repeat.
+        assertEquals("b", selectTvMixEpisode(shows.take(2), "b" to "b:1:1", lastPlayed = "a" to "a:1:1") {
+            meta(it.id) to listOf(episode(it.id, 1))
+        }?.meta?.id)
+        assertEquals("a", selectTvMixEpisode(shows.take(1), "a" to "a:1:1", lastPlayed = "a" to "a:1:1") {
+            meta(it.id) to listOf(episode(it.id, 1))
+        }?.meta?.id)
+    }
+
     @Test fun `future unavailable and unresolved episodes cannot be selected or repeated`() = runTest {
         val unavailable = episode("a", 1).copy(available = false)
         val future = episode("a", 2).copy(released = "2999-01-01")

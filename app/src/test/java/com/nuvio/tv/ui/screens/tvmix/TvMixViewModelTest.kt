@@ -75,7 +75,9 @@ class TvMixViewModelTest {
     }
 
     @Test fun `autoplay off previews next episode remix does not play and No ends session`() = runTest(dispatcher) {
-        vm.open("mix"); runCurrent(); vm.play()
+        vm.open("mix"); runCurrent()
+        val completed = vm.state.value.selection!!.video.id
+        vm.play()
         vm.completed(false); runCurrent()
         assertTrue(vm.state.value.continuePrompt)
         assertFalse(vm.state.value.autoStart)
@@ -83,6 +85,13 @@ class TvMixViewModelTest {
         val next = vm.state.value.selection!!.video.id
         vm.remix(); runCurrent()
         assertNotEquals(next, vm.state.value.selection!!.video.id)
+        assertNotEquals(completed, vm.state.value.selection!!.video.id)
+        repeat(30) {
+            val preview = vm.state.value.selection!!.video.id
+            vm.remix(); runCurrent()
+            assertNotEquals(preview, vm.state.value.selection!!.video.id)
+            assertNotEquals(completed, vm.state.value.selection!!.video.id)
+        }
         assertTrue(vm.state.value.continuePrompt)
         assertNull(session.playing.value)
         vm.end(); runCurrent()

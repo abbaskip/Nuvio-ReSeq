@@ -363,11 +363,17 @@ class LiveTvViewModel @Inject constructor(
                 .map { it.value }
         }
         groups += orderedRegular
+        // Keep a long-press recovery route even if every regular group is hidden and
+        // the user has switched off all optional built-in group rows.
+        if (groups.none { it.id != ChannelGroup.SEARCH }) {
+            groups += ChannelGroup(ChannelGroup.ALL, "All channels", visible.size, special = true)
+        }
 
         val defaultGroupId = when {
             s.showAllChannelsGroup -> ChannelGroup.ALL
             orderedRegular.isNotEmpty() -> orderedRegular.first().id
             s.showFavoritesGroup -> ChannelGroup.FAVORITES
+            s.showRecentGroup -> ChannelGroup.RECENT
             else -> ChannelGroup.ALL
         }
         val groupId = if (exactGroup) groupIdRaw ?: "" else groupIdRaw?.takeIf { id -> groups.any { it.id == id } } ?: defaultGroupId
@@ -573,11 +579,11 @@ class LiveTvViewModel @Inject constructor(
     fun groupsWithHidden(): List<ChannelGroup> {
         val user = userState.value.copy(hiddenGroups = emptySet())
         return buildUi(displayChannels.value, user, settings.value, uiState.value.selectedGroupId, "", true)
-            .groups.filter { !it.special && !it.id.startsWith(ChannelGroup.CUSTOM_PREFIX) }
+            .groups.filter { !it.special }
     }
 
     fun saveGroupVisibility(inList: List<ChannelGroup>, hidden: Set<String>) = viewModelScope.launch {
-        val ids = inList.map { it.id }.toSet()
+        val ids = inList.filter { !it.special }.map { it.id }.toSet()
         prefs.updateHiddenGroups(show = ids - hidden, hide = hidden intersect ids)
     }
 

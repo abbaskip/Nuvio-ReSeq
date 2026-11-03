@@ -1077,10 +1077,8 @@ fun LiveTvGuideScreen(
                     onToggleGroupVisible = { id ->
                         groupHiddenPending = if (id in groupHiddenPending) groupHiddenPending - id else groupHiddenPending + id
                     },
-                    onHideAllGroups = { groupHiddenPending = groupVisibilityList.orEmpty().map { it.id }.toSet() },
-                    onShowAllGroups = { groupHiddenPending = emptySet() },
                     onVisibilityDone = {
-                        val list = groupVisibilityList.orEmpty()
+                        val list = groupVisibilityList.orEmpty().filter { !it.special }
                         viewModel.saveGroupVisibility(list, groupHiddenPending)
                         // If the group on screen was just hidden, move to the main group.
                         if (ui.selectedGroupId in groupHiddenPending) viewModel.selectGroup(ui.defaultGroupId)
@@ -1136,7 +1134,7 @@ fun LiveTvGuideScreen(
                             scope.launch { delay(60); runCatching { gridFocus.requestFocus() } }
                         }
                     },
-                    onGroupMenu = { g -> if (!g.special) groupMenu = g },
+                    onGroupMenu = { g -> groupMenu = g },
                     onLongUpAtTop = { runCatching { guideGearFocus.requestFocus() } },
                     onRight = {
                         column = GuideColumn.CHANNEL
@@ -1680,8 +1678,7 @@ fun LiveTvGuideScreen(
                 LiveText("Manage group visibility", size = 15.sp, weight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 LiveText("OK: show or hide group", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-                LiveText("Left: hide all", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-                LiveText("Right: show all", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
+                LiveText("Hold OK: Hide all / Show all", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
                 LiveText("Back: save and return", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
             }
         }
@@ -2004,58 +2001,76 @@ fun LiveTvGuideScreen(
             )
         }
         groupMenu?.let { g ->
-            val isCustom = g.id.startsWith(ChannelGroup.CUSTOM_PREFIX)
-            ActionMenuDialog(
-                title = g.title,
-                actions = buildList {
-                    add("Rename group" to {
-                        groupMenu = null
-                        textPrompt = TextPrompt(
-                            title = "Rename group",
-                            initial = g.title,
-                            hint = if (isCustom) "Group name" else "Leave empty to use the playlist name",
-                            onConfirm = { viewModel.renameGroup(g.id, it) }
-                        )
-                    })
-                    if (viewModel.parentalEnabled()) {
-                        if (viewModel.isGroupLockSet(g.id)) add("Remove parental lock" to {
+            if (groupVisibilityList != null) {
+                ActionMenuDialog(
+                    title = "Manage group visibility",
+                    actions = listOf(
+                        "Hide all" to {
+                            groupHiddenPending = groupVisibilityList.orEmpty().filter { !it.special }.map { it.id }.toSet()
                             groupMenu = null
-                            pinRemovesLock = true
-                            pinWrong = false
-                            pinGroup = g
-                        }) else add("Lock with PIN" to {
+                        },
+                        "Show all" to { groupHiddenPending = emptySet(); groupMenu = null }
+                    ),
+                    onDismiss = { groupMenu = null }
+                )
+            } else {
+                val isCustom = g.id.startsWith(ChannelGroup.CUSTOM_PREFIX)
+                ActionMenuDialog(
+                    title = g.title,
+                    actions = buildList {
+                        if (!g.special) {
+                            add("Rename group" to {
+                                groupMenu = null
+                                textPrompt = TextPrompt(
+                                    title = "Rename group",
+                                    initial = g.title,
+                                    hint = if (isCustom) "Group name" else "Leave empty to use the playlist name",
+                                    onConfirm = { viewModel.renameGroup(g.id, it) }
+                                )
+                            })
+                            if (viewModel.parentalEnabled()) {
+                                if (viewModel.isGroupLockSet(g.id)) add("Remove parental lock" to {
+                                    groupMenu = null
+                                    pinRemovesLock = true
+                                    pinWrong = false
+                                    pinGroup = g
+                                }) else add("Lock with PIN" to {
+                                    groupMenu = null
+                                    viewModel.setGroupLocked(g.id, true)
+                                    if (ui.selectedGroupId == g.id) viewModel.selectGroup(ui.defaultGroupId)
+                                })
+                            }
+                        }
+                        add("Manage visibility" to {
                             groupMenu = null
-                            viewModel.setGroupLocked(g.id, true)
-                            if (ui.selectedGroupId == g.id) viewModel.selectGroup(ui.defaultGroupId)
+                            val all = ui.groups.filter { it.special && it.id != ChannelGroup.SEARCH } + viewModel.groupsWithHidden()
+                            groupVisibilityList = all
+                            groupHiddenPending = user.hiddenGroups intersect all.map { it.id }.toSet()
+                            scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
                         })
-                    }
-                    add("Manage visibility" to {
-                        groupMenu = null
-                        val all = viewModel.groupsWithHidden()
-                        groupVisibilityList = all
-                        groupHiddenPending = user.hiddenGroups intersect all.map { it.id }.toSet()
-                        scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
-                    })
-                    add("Reorder groups" to {
-                        groupMenu = null
-                        groupWorking = ui.groups.filter { !it.special }
-                        groupReorderId = g.id
-                        scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
-                    })
-                    add("Move up" to { viewModel.moveGroup(g.id, -1) })
-                    add("Move down" to { viewModel.moveGroup(g.id, 1) })
-                    add("New group" to {
-                        groupMenu = null
-                        textPrompt = TextPrompt(
-                            title = "New group", initial = "", hint = "Group name",
-                            onConfirm = { name -> viewModel.createGroupWith(name, null) }
-                        )
-                    })
-                    add("Hide group" to { viewModel.hideGroup(g.id); groupMenu = null })
-                    if (isCustom) add("Delete group" to { viewModel.deleteGroup(g.id); groupMenu = null })
-                },
-                onDismiss = { groupMenu = null }
-            )
+                        if (!g.special) {
+                            add("Reorder groups" to {
+                                groupMenu = null
+                                groupWorking = ui.groups.filter { !it.special }
+                                groupReorderId = g.id
+                                scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
+                            })
+                            add("Move up" to { viewModel.moveGroup(g.id, -1) })
+                            add("Move down" to { viewModel.moveGroup(g.id, 1) })
+                            add("New group" to {
+                                groupMenu = null
+                                textPrompt = TextPrompt(
+                                    title = "New group", initial = "", hint = "Group name",
+                                    onConfirm = { name -> viewModel.createGroupWith(name, null) }
+                                )
+                            })
+                            add("Hide group" to { viewModel.hideGroup(g.id); groupMenu = null })
+                            if (isCustom) add("Delete group" to { viewModel.deleteGroup(g.id); groupMenu = null })
+                        }
+                    },
+                    onDismiss = { groupMenu = null }
+                )
+            }
         }
         if (searchOpen) {
             SearchDialog(
@@ -2821,8 +2836,6 @@ private fun GroupColumn(
     /** With several playlists, show each playlist's groups under its own heading (setting). */
     showPlaylistHeadings: Boolean = false,
     onToggleGroupVisible: (String) -> Unit = {},
-    onHideAllGroups: () -> Unit = {},
-    onShowAllGroups: () -> Unit = {},
     onVisibilityDone: () -> Unit = {},
     /** Height of a group tile: the same as a channel tile, so the two lists line up. */
     tileHeight: Dp = 32.dp
@@ -2836,14 +2849,10 @@ private fun GroupColumn(
             .padding(end = 8.dp, bottom = 12.dp)
             .onPreviewKeyEvent { e ->
                 if (hiddenPending != null) {
-                    // Manage visibility: OK toggles, Left hides all, Right shows all, Back saves.
-                    val isOk = e.key == Key.DirectionCenter || e.key == Key.Enter || e.key == Key.NumPadEnter
+                    // Let each tile's combinedClickable distinguish an OK tap from a hold.
                     return@onPreviewKeyEvent when {
-                        isOk && e.type == KeyEventType.KeyUp -> { focusedGroupId?.let(onToggleGroupVisible); true }
-                        isOk -> true
                         e.type != KeyEventType.KeyDown -> e.key == Key.Back || e.key == Key.DirectionLeft || e.key == Key.DirectionRight
-                        e.key == Key.DirectionLeft -> { onHideAllGroups(); true }
-                        e.key == Key.DirectionRight -> { onShowAllGroups(); true }
+                        e.key == Key.DirectionLeft || e.key == Key.DirectionRight -> true
                         e.key == Key.Back -> { onVisibilityDone(); true }
                         else -> false // Up / Down move through the groups as usual
                     }
@@ -2908,15 +2917,19 @@ private fun GroupColumn(
                         selected = selected || moving,
                         showCount = showCounts,
                         moving = moving,
-                        visible = hiddenPending?.let { g.id !in it },
+                        visible = if (g.special) null else hiddenPending?.let { g.id !in it },
                         modifier = if (requester) Modifier.focusRequester(focusRequester) else Modifier,
                         onFocused = {
                             if (focusedGroupId != g.id) focusedSince = android.os.SystemClock.uptimeMillis()
                             focusedGroupId = g.id
                             if (reorderingId == null && hiddenPending == null) onFocusGroup(g)
                         },
-                        onClick = { onSelect(g) },
-                        onLongClick = if (g.special) null else ({ onGroupMenu(g) })
+                        onClick = {
+                            if (hiddenPending != null) {
+                                if (!g.special) onToggleGroupVisible(g.id)
+                            } else onSelect(g)
+                        },
+                        onLongClick = { onGroupMenu(g) }
                     )
                 }
             }

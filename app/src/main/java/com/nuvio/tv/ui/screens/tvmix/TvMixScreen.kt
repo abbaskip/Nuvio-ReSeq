@@ -7,6 +7,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import com.nuvio.tv.ui.components.tvTextFieldNavigation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +60,20 @@ fun TvMixArtwork(encoded: String, title: String, modifier: Modifier = Modifier) 
     }
 }
 
+@Composable
+internal fun TvMixNameField(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    OutlinedTextField(value = value, onValueChange = { onChange(it.take(100)) }, singleLine = true,
+        label = { Text("Mix name", color = NuvioTheme.colors.TextSecondary) },
+        modifier = modifier.tvTextFieldNavigation(),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { keyboard?.hide(); focus.moveFocus(FocusDirection.Down) }),
+        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = NuvioTheme.colors.TextPrimary,
+            unfocusedTextColor = NuvioTheme.colors.TextPrimary, cursorColor = NuvioTheme.colors.FocusRing,
+            focusedBorderColor = NuvioTheme.colors.FocusRing))
+}
+
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun AddToMixAction(item: MetaPreview) {
@@ -72,8 +94,7 @@ private fun TvMixPicker(item: MetaPreview, onDismiss: () -> Unit, viewModel: TvM
     NuvioDialog(title = "Add ${item.name} to mix", onDismiss = { onDismiss() }) {
         if (state.error != null) Text(state.error!!)
         if (creating) {
-            OutlinedTextField(value = name, onValueChange = { name = it.take(100) }, singleLine = true,
-                label = { Text("Mix name") }, modifier = Modifier.fillMaxWidth().focusRequester(focus))
+            TvMixNameField(name, { name = it }, Modifier.fillMaxWidth().focusRequester(focus))
             Button(onClick = { viewModel.add(item, null, name) { onDismiss() } },
                 enabled = name.isNotBlank() && !state.saving) { Text("Save and add show") }
         } else {
@@ -172,8 +193,7 @@ fun TvMixScreen(id: String, manageOnOpen: Boolean, viewModel: TvMixViewModel,
         LaunchedEffect(renaming) { manageFocus.requestFocus() }
         NuvioDialog(title = "Manage ${mix.name}", onDismiss = { managing = false; renaming = false }) {
             if (renaming) {
-                OutlinedTextField(value = name, onValueChange = { name = it.take(100) }, label = { Text("Mix name") },
-                    singleLine = true, modifier = Modifier.focusRequester(manageFocus))
+                TvMixNameField(name, { name = it }, Modifier.fillMaxWidth().focusRequester(manageFocus))
                 Button(onClick = { viewModel.save(mix.copy(name = name.trim())) { renaming = false } },
                     enabled = name.isNotBlank() && !state.saving) { Text("Save name") }
                 Button(onClick = { renaming = false }) { Text("Cancel") }

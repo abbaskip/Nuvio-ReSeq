@@ -11,6 +11,10 @@ on:
         description: Repository path to reviewed release notes
         type: string
         required: true
+      artifacts_only:
+        description: Build verified artifacts without changing any release or tag
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -39,6 +43,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Resolve version and reject duplicate releases
         id: version
+        env:
+          ARTIFACTS_ONLY: ${{ inputs.artifacts_only }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import re
@@ -49,7 +55,7 @@ jobs:
           print(f'tag=v{version}')
           PY
           tag="$(sed -n 's/^tag=//p' "$GITHUB_OUTPUT" | tail -1)"
-          if git rev-parse --verify --quiet "refs/tags/$tag" || gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          if [[ "$ARTIFACTS_ONLY" != true ]] && { git rev-parse --verify --quiet "refs/tags/$tag" || gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; }; then
             echo "Release/tag already exists: $tag" >&2
             exit 1
           fi
@@ -127,6 +133,7 @@ jobs:
           path: build/release/*
           if-no-files-found: error
       - name: Publish one release from this exact commit
+        if: ${{ !inputs.artifacts_only }}
         env:
           TAG: ${{ steps.version.outputs.tag }}
           VERSION: ${{ steps.version.outputs.name }}

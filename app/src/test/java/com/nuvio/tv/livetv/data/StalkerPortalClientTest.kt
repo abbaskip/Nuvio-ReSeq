@@ -22,6 +22,113 @@ class StalkerPortalClientTest {
     }
     private fun marker(cmd: String = "ffmpeg http://localhost/ch/42_") = "reseq-stalker://test-playlist/42?cmd=" + URLEncoder.encode(cmd, "UTF-8")
 
+    @Test fun `incomplete link retries a preencoded command without forcing storage zero`() = runBlocking {
+        MockWebServer().use { server ->
+            login(server)
+            body(server, "{\"cmd\":\"http://media.example.test/play/live.php?stream=&play_token=synthetic\"}")
+            body(server, "{\"cmd\":\"ffmpeg http://media.example.test/play/live.php?stream=42&play_token=synthetic\"}")
+            val cmd = "ffmpeg%20http%3A%2F%2Flocalhost%2Fch%2F42_%3Fx%3D1%26type%3Dvod%2Btest"
+            val link = StalkerPortalClient(OkHttpClient(), { 0L }).resolve(source(server), marker(cmd))
+            assertTrue(link.url.contains("stream=42&"))
+            server.takeRequest(); server.takeRequest()
+            val first = server.takeRequest().requestUrl!!
+            assertEquals(cmd, first.queryParameter("cmd"))
+            assertEquals("0", first.queryParameter("forced_storage"))
+            val retry = server.takeRequest().requestUrl!!
+            assertEquals("ffmpeg http://localhost/ch/42_?x=1&type=vod+test", retry.queryParameter("cmd"))
+            assertEquals(listOf("itv"), retry.queryParameterValues("type"))
+            assertNull(retry.queryParameter("forced_storage"))
+            assertFalse(link.headers.containsKey("Cookie"))
+            assertFalse(link.headers.containsKey("Authorization"))
+        }
+    }
+
+    @Test fun `empty stream identifiers never reach the player and errors contain no credentials`() = runBlocking {
+        MockWebServer().use { server ->
+            login(server)
+            repeat(2) { body(server, "{\"cmd\":\"http://media.example.test/play/live.php?stream=&play_token=private-token\"}") }
+            val failure = runCatching { StalkerPortalClient(OkHttpClient(), { 0L }).resolve(source(server), marker()) }.exceptionOrNull()
+            assertNotNull(failure)
+            assertFalse(failure!!.message.orEmpty().contains("private-token"))
+            assertFalse(failure.message.orEmpty().contains(source(server).stalkerMac))
+            assertEquals(4, server.requestCount)
+        }
+    }
+
+    @Test fun `explicit static flags and alternate command fields survive playlist import`() = runBlocking {
+        MockWebServer().use { server ->
+            login(server); body(server, "[]")
+            body(server, """{"data":[{"id":"42","name":"Static","cmd":"","mc_cmd":"auto https://media.example.test/live/42.ts?stream=42","use_http_tmp_link":"0"}]}""")
+            val client = StalkerPortalClient(OkHttpClient(), { 0L })
+            val target = temporary.newFile()
+            target.writeText("#EXTM3U\n#EXTINF:-1,Old\n${marker()}\n")
+            assertTrue(client.needsPlaylistRefresh(target))
+            client.writePlaylist(source(server), target)
+            assertFalse(client.needsPlaylistRefresh(target))
+            val channel = target.bufferedReader().use { M3uParser.parse(it) }.entries.single()
+            assertTrue(channel.url.contains("resolve=0"))
+            assertEquals("https://media.example.test/live/42.ts?stream=42", client.resolve(source(server), channel.url).url)
+            val encoded = URLEncoder.encode("auto https://media.example.test/live/42.ts?stream=42", "UTF-8")
+            assertEquals("https://media.example.test/live/42.ts?stream=42", client.resolve(source(server), marker(encoded) + "&resolve=0").url)
+            // Already valid URLs retain escapes in paths and literal '+' in tokens.
+            val escaped = "https://media.example.test/a%2Fb.ts?stream=42&token=a+b"
+            assertEquals(escaped, client.resolve(source(server), marker(escaped) + "&resolve=0").url)
+            assertEquals(4, server.requestCount)
+        }
+    }
+
+    @Test fun `secondary temporary flags prevent direct playback even when primary flag is zero`() = runBlocking {
+        for (flag in listOf("use_load_balancing", "wowza_tmp_link", "flussonic_tmp_link")) {
+            MockWebServer().use { server ->
+                login(server); body(server, "[]")
+                body(server, """{"data":[{"id":"42","name":"Temporary","cmd":"http://media.example.test/old.ts","use_http_tmp_link":"0","$flag":"1"}]}""")
+                body(server, "{\"cmd\":\"https://media.example.test/fresh.ts\"}")
+                val client = StalkerPortalClient(OkHttpClient(), { 0L })
+                val target = temporary.newFile()
+                client.writePlaylist(source(server), target)
+                val channel = target.bufferedReader().use { M3uParser.parse(it) }.entries.single()
+                assertTrue(channel.url.contains("resolve=1"))
+                assertEquals("https://media.example.test/fresh.ts", client.resolve(source(server), channel.url).url)
+                assertEquals(5, server.requestCount)
+            }
+        }
+    }
+
+    @Test fun `temporary link flags override an otherwise playable command`() = runBlocking {
+        MockWebServer().use { server ->
+            login(server); body(server, "[]")
+            body(server, """{"data":[{"id":"42","name":"Temporary","url":"http://media.example.test/old.ts","use_http_tmp_link":1,"use_load_balancing":0}]}""")
+            body(server, "{\"stream_url\":\"ffrt https://media.example.test/fresh.ts\"}")
+            val client = StalkerPortalClient(OkHttpClient(), { 0L })
+            val target = temporary.newFile()
+            client.writePlaylist(source(server), target)
+            val channel = target.bufferedReader().use { M3uParser.parse(it) }.entries.single()
+            assertTrue(channel.url.contains("resolve=1"))
+            assertEquals("https://media.example.test/fresh.ts", client.resolve(source(server), channel.url).url)
+            assertEquals(5, server.requestCount)
+        }
+    }
+
+    @Test fun `old cached commands still request a fresh playback link`() = runBlocking {
+        MockWebServer().use { server ->
+            login(server); body(server, "{\"cmd\":\"https://media.example.test/fresh.ts\"}")
+            val link = StalkerPortalClient(OkHttpClient(), { 0L }).resolve(source(server), marker("https://media.example.test/old.ts"))
+            assertEquals("https://media.example.test/fresh.ts", link.url)
+            assertEquals(3, server.requestCount)
+        }
+    }
+
+    @Test fun `loopback and empty stream responses cannot bypass resolution as static channels`() = runBlocking {
+        for (cmd in listOf("http://127.0.0.2/live.ts", "http://localhost./live.ts", "http://media.example.test/ch/42_", "http://media.example.test/live.php?stream=")) {
+            MockWebServer().use { server ->
+                login(server); body(server, "{\"cmd\":\"https://media.example.test/fresh.ts\"}")
+                val link = StalkerPortalClient(OkHttpClient(), { 0L }).resolve(source(server), marker(cmd) + "&resolve=0")
+                assertEquals("https://media.example.test/fresh.ts", link.url)
+                assertEquals(3, server.requestCount)
+            }
+        }
+    }
+
     @Test fun `portal php fallback stays on the configured origin and is reused`() = runBlocking {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().setResponseCode(404)); login(server)

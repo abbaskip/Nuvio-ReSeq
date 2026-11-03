@@ -1,6 +1,7 @@
 package com.nuvio.tv.livetv.data
 
 import com.nuvio.tv.livetv.model.PlaylistSource
+import com.nuvio.tv.livetv.model.LiveTvLoadReport
 import com.google.gson.JsonParser
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
@@ -23,6 +24,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.net.URLEncoder
+import java.net.URLDecoder
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
@@ -229,15 +231,26 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
                     var count = 0
                     temp.bufferedWriter().use { out ->
                         out.appendLine("#EXTM3U")
+                        out.appendLine(PLAYLIST_FORMAT)
                         readResult(response) { reader -> readChannelArray(reader) { channel ->
                             val id = channel.optString("id").takeIf { it.isNotBlank() }
-                            val command = channel.optString("cmd").takeIf { it.isNotBlank() }
+                            val command = sequenceOf("cmd", "mc_cmd", "url")
+                                .map { channel.optString(it) }.firstOrNull { it.isNotBlank() && it != "null" }
                             if (id != null && command != null) {
                                 val name = clean(channel.optString("name"))
                                 val group = clean(names[channel.optString("tv_genre_id")] ?: "Uncategorized")
                                 val logo = clean(channel.optString("logo"))
                                 out.appendLine("#EXTINF:-1 tvg-id=\"${epgId(source.id, id)}\" tvg-logo=\"$logo\" group-title=\"$group\" tvg-chno=\"${channel.optInt("number", count + 1)}\",$name")
-                                out.appendLine("reseq-stalker://${source.id}/$id?cmd=${encode(command)}")
+                                // Only explicitly static channels may bypass create_link. Old cached
+                                // markers and channels without these fields still resolve at play time.
+                                val temporary = listOf("use_http_tmp_link", "use_load_balancing", "wowza_tmp_link", "flussonic_tmp_link")
+                                    .map { channel.optString(it).trim() }
+                                val resolve = when {
+                                    temporary.any { it == "1" || it.equals("true", true) } -> "1"
+                                    temporary.first().let { it == "0" || it.equals("false", true) } -> "0"
+                                    else -> ""
+                                }
+                                out.appendLine("reseq-stalker://${source.id}/$id?cmd=${encode(command)}&resolve=$resolve")
                                 count++
                             }
                         } }
@@ -248,6 +261,11 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
             temp.copyTo(target, overwrite = true)
         } finally { temp.delete() }
     }
+
+    /** Old imports discarded temporary-link flags; refresh them once after upgrading. */
+    internal fun needsPlaylistRefresh(file: File): Boolean = runCatching {
+        file.bufferedReader().use { it.readLine(); it.readLine() != PLAYLIST_FORMAT }
+    }.getOrDefault(true)
 
     suspend fun writeGuide(source: PlaylistSource, target: File) = withContext(Dispatchers.IO) {
         target.parentFile?.mkdirs()
@@ -296,16 +314,51 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
         val uri = marker.toHttpMarker()
         check(uri.host == source.id) { "The channel belongs to a different playlist." }
         val command = uri.queryParameter("cmd")?.takeIf { it.isNotBlank() } ?: error("Missing portal channel command.")
-        val data = request(source, "itv", "create_link", mapOf("cmd" to command, "series" to "", "forced_storage" to "0", "disable_ad" to "0")) as? JSONObject
-            ?: error("The portal did not return a playback link.")
-        val link = data.optString("cmd").trim().removePrefix("ffmpeg ").trim()
-        val url = runCatching { link.toHttpUrl() }.getOrNull() ?: error("The portal returned an unsupported playback link.")
-        check(url.host !in setOf("localhost", "127.0.0.1", "::1")) { "The portal returned an unresolved playback link." }
-        return Link(link, mapOf("User-Agent" to source.userAgent.ifBlank { USER_AGENT }))
+        fun link(url: String) = Link(url, mapOf("User-Agent" to source.userAgent.ifBlank { USER_AGENT }))
+        if (uri.queryParameter("resolve") == "0") {
+            val direct = playbackUrl(command)
+                ?: runCatching { playbackUrl(URLDecoder.decode(command, "UTF-8")) }.getOrNull()
+            if (direct != null) return link(direct)
+        }
+
+        suspend fun create(cmd: String, legacyStorage: Boolean): String? {
+            val parameters = linkedMapOf("cmd" to cmd, "series" to "", "disable_ad" to "0")
+            if (legacyStorage) parameters["forced_storage"] = "0"
+            val data = request(source, "itv", "create_link", parameters) as? JSONObject ?: return null
+            return sequenceOf("cmd", "url", "stream_url").mapNotNull { playbackUrl(data.optString(it)) }.firstOrNull()
+        }
+        create(command, legacyStorage = true)?.let { return link(it) }
+        LiveTvLoadReport.add("Stalker: incomplete playback link; retrying with MAG command decoding and default storage")
+
+        // Some panels store percent-encoded commands and expect the single form decode
+        // performed by their MAG client. Normal query encoding otherwise preserves those
+        // escapes, and create_link can return HTTP 200 with an empty stream identifier.
+        // Retry once with that interpretation and the portal's default storage selection.
+        // Query parameters are still encoded by OkHttp: embedded '&' cannot inject fields.
+        val compatible = runCatching { URLDecoder.decode(command, "UTF-8") }.getOrDefault(command)
+        create(compatible, legacyStorage = false)?.let {
+            LiveTvLoadReport.add("Stalker: compatibility playback link resolved")
+            return link(it)
+        }
+        LiveTvLoadReport.add("Stalker: portal returned no usable playback link after compatibility retry")
+        error("The portal returned an incomplete playback link. Refresh the playlist or check the portal account.")
+    }
+
+    private fun playbackUrl(command: String): String? {
+        val link = command.trim().replaceFirst(Regex("^(?:ffmpeg|ffrt[0-9]*|auto)\\s+", RegexOption.IGNORE_CASE), "").trim()
+        val url = runCatching { link.toHttpUrl() }.getOrNull() ?: return null
+        val host = url.host.lowercase().trimEnd('.')
+        if (host == "localhost" || host.endsWith(".localhost") || host.startsWith("127.") || host == "::1" || host == "0.0.0.0") return null
+        // Some portals put their own host in this placeholder instead of localhost.
+        if (Regex("/ch/[0-9]+_$").containsMatchIn(url.encodedPath)) return null
+        // Only reject a stream parameter when present. Many valid portals use path IDs.
+        if (url.queryParameterValues("stream").any { it.isNullOrBlank() || it.equals("null", true) }) return null
+        return link
     }
 
     private class PortalSessionExpired : IllegalStateException("Portal session expired. Reconnect or check your account.")
     companion object {
+        private const val PLAYLIST_FORMAT = "#RESEQ-STALKER-FORMAT:2"
         fun validate(portal: String, mac: String): String? = when {
             runCatching { endpoint(portal) }.isFailure -> "Enter a valid HTTP or HTTPS portal URL without embedded credentials."
             !MAC.matches(mac.trim()) -> "Enter the six-pair MAC address supplied by your provider."

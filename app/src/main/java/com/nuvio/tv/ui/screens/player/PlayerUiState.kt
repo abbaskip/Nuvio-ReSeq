@@ -38,8 +38,6 @@ sealed interface PostPlayMode {
     data class AutoPlay(
         override val nextEpisode: NextEpisodeInfo,
         val searching: Boolean = false,
-        val sourceName: String? = null,
-        val countdownSec: Int? = null,
     ) : PostPlayMode
 
     data class StillWatching(
@@ -57,7 +55,7 @@ sealed interface PostPlayMode {
 
     fun blocksNaturalCompletion(): Boolean = when (this) {
         is StillWatching -> true
-        is AutoPlay -> searching || countdownSec != null
+        is AutoPlay -> searching
     }
 }
 

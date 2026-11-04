@@ -36,11 +36,10 @@ class PostPlayResetRulesTest {
     }
 
     @Test
-    fun `ended playback does not reset during next episode autoplay countdown`() {
+    fun `ended playback does not reset while a requested episode switch is in flight`() {
         val state = PlayerUiState(
             postPlayMode = PostPlayMode.AutoPlay(
                 nextEpisode = nextInfo,
-                countdownSec = 2,
             )
         )
 
@@ -48,6 +47,26 @@ class PostPlayResetRulesTest {
             shouldResetPostPlayStateAfterPlaybackEnded(
                 state = state,
                 hasInFlightNextEpisodeAutoPlay = true
+            )
+        )
+    }
+
+    @Test
+    fun `ended playback can handle an ignored passive card`() {
+        assertTrue(
+            shouldResetPostPlayStateAfterPlaybackEnded(
+                state = PlayerUiState(postPlayMode = PostPlayMode.AutoPlay(nextInfo)),
+                hasInFlightNextEpisodeAutoPlay = false
+            )
+        )
+    }
+
+    @Test
+    fun `ended playback allows the end confirmation after the early card was dismissed`() {
+        assertTrue(
+            shouldResetPostPlayStateAfterPlaybackEnded(
+                state = PlayerUiState(postPlayDismissedForCurrentEpisode = true),
+                hasInFlightNextEpisodeAutoPlay = false
             )
         )
     }

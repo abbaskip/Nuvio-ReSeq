@@ -402,7 +402,7 @@ internal fun PlayerRuntimeController.evaluatePostPlayOverlayVisibility(positionM
         }
         return
     }
-    if (state.postPlayMode != null || state.postPlayDismissedForCurrentEpisode) return
+    if (state.playbackEnded || state.postPlayMode != null || state.postPlayDismissedForCurrentEpisode) return
 
     val effectiveDuration = effectiveDurationEarly
 
@@ -438,28 +438,15 @@ internal fun PlayerRuntimeController.evaluatePostPlayOverlayVisibility(positionM
 
     if (_uiState.value.postPlayDismissedForCurrentEpisode) return
 
-    val shouldEnterStillWatching = shouldEnterStillWatchingPrompt(
-        stillWatchingEnabled = stillWatchingEnabledSetting,
-        autoPlayNextEpisodeEnabled = streamAutoPlayNextEpisodeEnabledSetting,
-        nextEpisodeHasAired = state.nextEpisode.hasAired,
-        consecutiveAutoPlayCount = consecutiveAutoPlayCount,
-        threshold = stillWatchingEpisodeThresholdSetting,
-    )
+    val ne = state.nextEpisode
+    val isUnplayable = !ne.hasAired ||
+        (ne.released.isNullOrBlank() && ne.available == false)
+    if (isUnplayable) return
 
-    if (shouldEnterStillWatching) {
-        enterStillWatchingPromptMode()
-    } else {
-        val ne = state.nextEpisode
-        val isUnplayable = !ne.hasAired ||
-            (ne.released.isNullOrBlank() && ne.available == false)
-        if (isUnplayable) return
-
-        _uiState.update {
-            it.copy(postPlayMode = PostPlayMode.AutoPlay(nextEpisode = state.nextEpisode))
-        }
-        if (streamAutoPlayNextEpisodeEnabledSetting) {
-            playNextEpisode()
-        }
+    // Thresholds only offer the next episode. An automatic transition waits for
+    // playback to end; choosing Play is the only way to advance sooner.
+    _uiState.update {
+        it.copy(postPlayMode = PostPlayMode.AutoPlay(nextEpisode = ne))
     }
 }
 

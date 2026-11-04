@@ -305,18 +305,26 @@ internal fun PlayerRuntimeController.resetPostPlayStateAfterPlaybackEnded() {
         return
     }
 
-    // If auto-play is enabled and the user dismissed the card earlier,
-    // still auto-play the next episode when playback ends naturally.
     val state = _uiState.value
-    val autoPlayEligible = streamAutoPlayNextEpisodeEnabledSetting &&
-        state.nextEpisode?.hasAired == true &&
-        nextEpisodeVideo != null
-    if (autoPlayEligible && (state.postPlayDismissedForCurrentEpisode || state.postPlayMode == null)) {
-        playNextEpisode()
+    if (state.shouldAutoPlayNextEpisodeOnEnd() && nextEpisodeVideo != null) {
+        if (shouldEnterStillWatchingPrompt(
+                stillWatchingEnabled = stillWatchingEnabledSetting,
+                autoPlayNextEpisodeEnabled = streamAutoPlayNextEpisodeEnabledSetting,
+                nextEpisodeHasAired = state.nextEpisode?.hasAired == true,
+                consecutiveAutoPlayCount = consecutiveAutoPlayCount,
+                threshold = stillWatchingEpisodeThresholdSetting,
+            )
+        ) {
+            enterStillWatchingPromptMode()
+        } else {
+            playNextEpisode(userInitiated = false)
+        }
         return
     }
 
-    resetPostPlayOverlayState(clearEpisode = false)
+    // Keep the dismissal flag: Back opts out of autoplay for this episode and
+    // PlayerScreen must still offer confirmation now that playback has ended.
+    _uiState.update { it.copy(postPlayMode = null) }
 }
 
 internal fun shouldResetPostPlayStateAfterPlaybackEnded(

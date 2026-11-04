@@ -406,10 +406,10 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "8803fc64565f68e58acd2af273cbe42433301736": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/settings/NetworkSettingsScreen.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "irrelevant",
+      "reason": "Reviewed combined merge diff after integrating its two VPN side commits: it only unions their imports with keepLtr from the separately tracked RTL parent. No independent network behaviour or required fix is omitted; keep RTL work in its own validation queue rather than cherry-picking this topology merge.",
+      "run": "20261104T091110Z-f36aeb",
+      "base": "3b93c191c6eb250014db6bff71896bc601d78254"
     },
     "a7e176c428042047cb168384a2f34cb277311108": {
       "outcome": "held",

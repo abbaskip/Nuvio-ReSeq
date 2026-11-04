@@ -93,4 +93,22 @@ class NetworkConnectionKindTest {
         assertEquals(NetworkConnectionKind.Wifi, kind)
         assertFalse(called)
     }
+
+    @Test
+    fun `unrelated networks are never consulted for non VPN transports`() {
+        val cases = listOf(
+            emptySet<NetworkTransport>() to NetworkConnectionKind.Offline,
+            setOf(NetworkTransport.Ethernet) to NetworkConnectionKind.Ethernet,
+            setOf(NetworkTransport.Cellular) to NetworkConnectionKind.Wifi
+        )
+        cases.forEach { (active, expected) ->
+            var queried = false
+            val result = networkConnectionKind(active) {
+                queried = true
+                listOf(setOf(NetworkTransport.Wifi))
+            }
+            assertEquals(expected, result)
+            assertFalse(queried)
+        }
+    }
 }

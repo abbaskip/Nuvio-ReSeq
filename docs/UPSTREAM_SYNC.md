@@ -62,8 +62,9 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
    ReSeq, duplicate controls or silently omit useful upstream features.
 5. Prepare ignored local build properties from approved project configuration
    only. Use `configure --run ID --properties PATH --sdk PATH`; the existing
-   `.worktrees/beta7-release/local.properties` has approved project service
-   settings. This helper excludes TMDB and signing properties from both files.
+   `.worktrees/upstream-automation/local.properties` contains the approved project
+   service settings retained by the dedicated bootstrap checkout. This helper
+   excludes TMDB and signing properties from both files.
    Never read attachments for credentials or copy a personal TMDB key. Debug
    defaults for login endpoints come from `local.dev.properties`; explicitly
    set approved endpoints there if needed. Never print property values. Missing

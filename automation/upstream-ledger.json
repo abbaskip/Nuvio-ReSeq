@@ -188,16 +188,16 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "5cc28ccdc898c3d949a57d797360e0f38a3394b3": {
-      "outcome": "held",
-      "reason": "Independent compatible VPN network-label pair, including lazy fallback lookup and tests. No competing ReSeq network model found; eligible for isolated integration after lint policy and focused validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "integrated",
+      "reason": "Independent informational VPN network-label fix; inspected the complete pair and added transport/fallback regressions. No playback, episode mapping, accounts, source tiers, persisted settings or focus control changes. Full candidate validation required before release.",
+      "run": "20261104T091110Z-f36aeb",
+      "base": "3b93c191c6eb250014db6bff71896bc601d78254"
     },
     "c3d8e8aa8cbff51b8780cfcc3057b3792d525bc1": {
-      "outcome": "held",
-      "reason": "Independent compatible VPN network-label pair, including lazy fallback lookup and tests. No competing ReSeq network model found; eligible for isolated integration after lint policy and focused validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "integrated",
+      "reason": "Completes the independent VPN-label pair with lazy fallback lookup and Internet-capability filtering; existing unit coverage plus non-VPN supplier regression added. All functional design holds remain untouched.",
+      "run": "20261104T091110Z-f36aeb",
+      "base": "3b93c191c6eb250014db6bff71896bc601d78254"
     },
     "2e05d6feed0cb488d9544b81110203412f35b4ed": {
       "outcome": "held",

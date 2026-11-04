@@ -1,5 +1,10 @@
 # Upstream sync: 4 November 2026
 
+Follow-up: the maintainer approved the lint baseline policy later on 4 November.
+The complete repeated dry run passed, and compatible publication is enabled.
+The functional holds below remain protected. See [the current policy](UPSTREAM_SYNC.md#approved-lint-policy-4-november-2026).
+The following initial-review findings are retained as the historical setup record.
+
 Status: Changes held
 
 Initial setup and non-publishing rehearsal. No upstream integration was promoted,

@@ -677,8 +677,12 @@ class AddonManagerViewModel @Inject constructor(
             .distinct()
             .toList()
 
-        layoutPreferenceDataStore.setHomeCatalogOrderKeys(validCatalogOrder)
-        layoutPreferenceDataStore.setDisabledHomeCatalogKeys(validDisabledCatalogs)
+        // The addon web editor does not list TV Mix; keep its existing row preferences.
+        layoutPreferenceDataStore.setHomeCatalogOrderKeys(
+            com.nuvio.tv.domain.model.TvMixHomeCatalog.retainPosition(validCatalogOrder, homeCatalogOrderKeys)
+        )
+        layoutPreferenceDataStore.setDisabledHomeCatalogKeys(validDisabledCatalogs +
+            disabledHomeCatalogKeys.filter { it == com.nuvio.tv.domain.model.TvMixHomeCatalog.key })
         homeCatalogSettingsSyncService.triggerPush()
     }
 

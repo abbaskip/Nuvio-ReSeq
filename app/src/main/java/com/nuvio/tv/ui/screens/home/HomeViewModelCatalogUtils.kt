@@ -1,5 +1,7 @@
 package com.nuvio.tv.ui.screens.home
 
+import com.nuvio.tv.domain.model.TvMixHomeCatalog
+import com.nuvio.tv.domain.model.isStandaloneHomeRowKey
 import com.nuvio.tv.domain.model.catalogTypeKey
 import com.nuvio.tv.domain.model.catalogRowLegacyKey
 import com.nuvio.tv.domain.model.Addon
@@ -231,7 +233,8 @@ internal fun HomeViewModel.removeTruncatedRowCacheEntry(key: String) {
 
 internal fun HomeViewModel.rebuildCatalogOrder(addons: List<Addon>) {
     val defaultOrder = buildDefaultCatalogOrder(addons)
-    val collectionKeys = collectionsCache.map { "collection_${it.id}" }
+    val collectionKeys = collectionsCache.map { "collection_${it.id}" } +
+        if (tvMixes.isNotEmpty()) listOf(TvMixHomeCatalog.key) else emptyList()
     val allAvailable = (defaultOrder + collectionKeys).toSet()
 
     if (followAddonsOrderEnabled) {
@@ -401,7 +404,7 @@ private fun normalizeCollectionBoundaries(
         var i = 0
         while (i < result.size) {
             val key = result[i]
-            if (!key.startsWith("collection_")) {
+            if (!isStandaloneHomeRowKey(key)) {
                 i++
                 continue
             }
@@ -412,7 +415,7 @@ private fun normalizeCollectionBoundaries(
                 result.removeAt(i)
                 var insertPos = i
                 while (insertPos < result.size &&
-                    !result[insertPos].startsWith("collection_") &&
+                    !isStandaloneHomeRowKey(result[insertPos]) &&
                     addonKeyToOwner[result[insertPos]] == prevOwner
                 ) {
                     insertPos++
@@ -430,14 +433,14 @@ private fun normalizeCollectionBoundaries(
 
 private fun findOwnerBefore(order: List<String>, index: Int, owners: Map<String, String>): String? {
     for (j in index - 1 downTo 0) {
-        if (!order[j].startsWith("collection_")) return owners[order[j]]
+        if (!isStandaloneHomeRowKey(order[j])) return owners[order[j]]
     }
     return null
 }
 
 private fun findOwnerAfter(order: List<String>, index: Int, owners: Map<String, String>): String? {
     for (j in index + 1 until order.size) {
-        if (!order[j].startsWith("collection_")) return owners[order[j]]
+        if (!isStandaloneHomeRowKey(order[j])) return owners[order[j]]
     }
     return null
 }

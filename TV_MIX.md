@@ -4,7 +4,10 @@ Introduced in ReSeq beta 7, based on ReSeq beta 6.3 (`7fd96a2fb`).
 
 Long-press a series in Home, Search, Discovery, or the Library and choose **Add to mix**.
 Choose an existing mix or create a named one. Duplicate shows, including known IMDb aliases,
-are ignored. The **TV Mix** row appears last on Home in Classic, Modern, and Grid layouts.
+are ignored. The **TV Mix** row appears last on Home by default in Classic, Modern, and Grid layouts.
+Move it using **Reorder Home Catalogs**; its position uses the existing profile catalogue
+preferences and sync. With **Follow addons order** enabled, TV Mix moves between whole
+addon blocks, like a collection. The row is listed only while that profile has saved mixes.
 Its cards reuse the existing focus/navigation paths and Coil artwork cache.
 
 Click a mix to preview its next random episode and included show covers. **Play** uses the

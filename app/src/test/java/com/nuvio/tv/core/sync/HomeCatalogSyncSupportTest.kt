@@ -12,6 +12,20 @@ import org.junit.Test
 
 class HomeCatalogSyncSupportTest {
 
+    @Test fun `TV Mix position and enabled setting survive catalogue sync serialization`() {
+        val addon = testAddon("addon", "https://example.test", listOf(
+            CatalogDescriptor(ContentType.SERIES, id = "shows", name = "Shows")))
+        val mixKey = com.nuvio.tv.domain.model.TvMixHomeCatalog.key
+        val payload = buildHomeCatalogSyncPayload(listOf(addon), emptyList(), LocalHomeCatalogSettingsState(
+            orderKeys = listOf(mixKey, homeCatalogKey("addon", "series", "shows")), disabledKeys = setOf(mixKey)))
+        val json = kotlinx.serialization.json.Json.encodeToString(SyncHomeCatalogPayload.serializer(), payload)
+        val restored = kotlinx.serialization.json.Json.decodeFromString(SyncHomeCatalogPayload.serializer(), json)
+        assertEquals(payload, restored)
+        assertEquals(listOf(mixKey, homeCatalogKey("addon", "series", "shows")), restored.items.sortedBy { it.order }
+            .map { homeCatalogKey(it.addonId, it.type, it.catalogId) })
+        assertFalse(restored.items.first().enabled)
+    }
+
     @Test
     fun `manifest case is synced while old order disabled flags and titles survive`() {
         val addon = testAddon(

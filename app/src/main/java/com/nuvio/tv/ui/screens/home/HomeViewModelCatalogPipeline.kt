@@ -795,7 +795,7 @@ internal suspend fun HomeViewModel.updateCatalogRowsPipeline() {
                 }
             }
         }
-    }.withTvMixes(tvMixes)
+    }.withTvMixes(tvMixes, orderedKeys, disabledHomeCatalogKeys)
 
     val nextGridItems = if (currentLayout == HomeLayout.GRID) {
         val posterCardWidthDp = _uiState.value.posterCardWidthDp

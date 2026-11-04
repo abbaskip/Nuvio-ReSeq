@@ -93,6 +93,36 @@ class UpstreamSyncSafetyTest(unittest.TestCase):
                 self.assertNotIn("NUVIO_RELEASE_", text)
                 self.assertNotIn("sdk.dir", text)
 
+    def test_merge_only_resolution_is_not_lost_from_review_inventory(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args): return sync.git(*args, cwd=root)
+            git("init", "--initial-branch=main")
+            git("config", "user.name", "Sync safety test")
+            git("config", "user.email", "sync-test@example.invalid")
+            fixture = root / "identity.txt"
+            fixture.write_text("base\n")
+            git("add", "identity.txt"); git("commit", "-m", "base")
+            base = git("rev-parse", "HEAD")
+            git("switch", "-c", "left")
+            fixture.write_text("left implementation\n")
+            git("commit", "-am", "left")
+            git("switch", "-c", "right", base)
+            fixture.write_text("right implementation\n")
+            git("commit", "-am", "right")
+            conflict = subprocess.run(["git", "merge", "left", "--no-commit"], cwd=root, capture_output=True)
+            self.assertEqual(conflict.returncode, 1)
+            fixture.write_text("new identity decision introduced only by merge\n")
+            git("add", "identity.txt"); git("commit", "-m", "resolve identity")
+            merge = git("rev-parse", "HEAD")
+            inventory = sync.upstream_inventory(base, merge, root, {"commits": {}})
+            self.assertEqual(len(inventory), 3)
+            resolution = next(c for c in inventory if c["sha"] == merge)
+            self.assertTrue(resolution["is_merge"])
+            self.assertEqual(resolution["files"], ["identity.txt"])
+            self.assertIsNone(resolution["previous_review"])
+
 
 if __name__ == "__main__":
     unittest.main()

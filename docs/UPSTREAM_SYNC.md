@@ -29,7 +29,7 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
 1. In the dedicated automation checkout, run `python scripts/upstream_sync.py
    begin`. For a rehearsal append `--dry-run`. This obtains a shared exclusive
    lock, checks active releases, fetches both repositories, selects a safe base,
-   inventories unmerged non-merge commits and creates a unique branch/worktree.
+   inventories unmerged commits including merge resolutions and creates a unique branch/worktree.
    The printed JSON names the run, inventory and worktree. Never modify another
    worktree, reset the user's branch or reuse someone else's build outputs.
 2. Read the run JSON and `automation/upstream-ledger.json`. Review new commits,

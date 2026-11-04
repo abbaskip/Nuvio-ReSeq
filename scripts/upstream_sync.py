@@ -77,6 +77,23 @@ def choose_base(dev, released):
     raise RuntimeError("Development and latest published release diverged; compare before choosing a base")
 
 
+def upstream_inventory(base, upstream, cwd, ledger):
+    cherry = {line[2:]: line[0] for line in git("cherry", base, upstream, cwd=cwd).splitlines()}
+    commits = []
+    # Merge resolutions can introduce functional changes absent from both sides.
+    # They need review records too, even though git cherry only compares patches.
+    for sha in git("rev-list", "--reverse", "--topo-order", f"{base}..{upstream}", cwd=cwd).splitlines():
+        parents = git("show", "-s", "--format=%P", sha, cwd=cwd).split()
+        is_merge = len(parents) > 1
+        diff_args = ["diff-tree", "--no-commit-id", "--name-only", "-r"]
+        if is_merge: diff_args.append("--cc")
+        files = git(*diff_args, sha, cwd=cwd).splitlines()
+        commits.append({"sha": sha, "subject": git("show", "-s", "--format=%s", sha, cwd=cwd),
+                        "is_merge": is_merge, "patch_equivalent": cherry.get(sha) == "-",
+                        "previous_review": ledger["commits"].get(sha), "files": files})
+    return commits
+
+
 def begin(args, root, state):
     state.mkdir(parents=True, exist_ok=True)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
@@ -119,14 +136,7 @@ def begin(args, root, state):
                     ledger["commits"][sha] = decision
             if ledger["commits"]:
                 save(ledger_path, ledger)
-        cherry = {line[2:]: line[0] for line in git("cherry", base, upstream, cwd=root).splitlines()}
-        commits = []
-        for sha in git("rev-list", "--reverse", "--topo-order", "--no-merges", f"{base}..{upstream}", cwd=root).splitlines():
-            previous = ledger["commits"].get(sha)
-            files = git("diff-tree", "--no-commit-id", "--name-only", "-r", sha, cwd=root).splitlines()
-            commits.append({"sha": sha, "subject": git("show", "-s", "--format=%s", sha, cwd=root),
-                            "patch_equivalent": cherry.get(sha) == "-", "previous_review": previous,
-                            "files": files})
+        commits = upstream_inventory(base, upstream, root, ledger)
         run = {"schema": 1, "id": run_id, "dry_run": args.dry_run, "branch": branch,
                "worktree": str(worktree), "dev": dev, "base": base, "upstream": upstream,
                "latest_tag": latest["tag_name"], "commits": commits, "validation": None,

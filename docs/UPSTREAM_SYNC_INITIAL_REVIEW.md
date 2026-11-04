@@ -15,6 +15,9 @@ upstream snapshot is `f362dfeea1d241a7d57bfb690c4bc24789839e40`.
 There are 72 upstream commits outside published beta 7.1 ancestry, comprising
 46 non-merge commits and 26 merges. None of the 46 were patch-equivalent under
 `git cherry`; semantic equivalents still need source/test comparison.
+The tracked review ledger records all 72 dispositions, including combined-diff
+merge resolution paths. Held entries explain the compatibility/validation work;
+topology-only merges and upstream's version bump need no independent integration.
 
 Relevant groups: low-RAM image/player memory budgets; plugin source priority,
 variant identity, caching and autoplay; reused stream information; addon focus;
@@ -63,9 +66,10 @@ precedence was chosen during setup.
 - Full unit suite: 3,092 tests, 3,090 passed, two existing skips, zero failures
   after the sparse-fixture correction. Includes TVDB, trackers, Live TV/Sports,
   TV Mix, Drive payload/conflict, navigation and updater coverage.
-- Python release/coordinator tooling: 56 tests passed, including stale-pass
+- Python release/coordinator tooling: 57 tests passed, including stale-pass
   invalidation, exclusive run ownership, branch-base preservation, publication
-  disabled by default, Git restrictions and personal-TMDB configuration exclusion.
+  disabled by default, Git restrictions, personal-TMDB configuration exclusion
+  and a real conflicted-merge fixture proving merge-only decisions remain reviewed.
 - Full Android lint ran and failed on 4,110 existing errors, 2,010 warnings and
   48 hints. The largest categories are missing translations (2,632) and unsafe
   opt-in usage (1,262); remaining findings include API/foreground-service,

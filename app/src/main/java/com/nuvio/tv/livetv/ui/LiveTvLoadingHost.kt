@@ -68,8 +68,7 @@ fun LiveTvLoadingHost(navController: NavController) {
         // connection before the movie asks for one (accounts with one connection otherwise
         // refuse the movie with "too many requests" / HTTP 429).
         if (route.startsWith("player/") || route.startsWith("stream/")) entry.liveTvPlayback().releaseNow()
-        // Heavy Live TV / On Demand background work waits while Nuvio's player is open.
-        com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying.value = route.startsWith("player/")
+        // Background work follows PlayerSessionTracker independently of this optional overlay.
     }
     val message = when {
         live.loading && !live.quiet -> live.message ?: "Updating Live TV…"

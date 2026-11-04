@@ -410,6 +410,8 @@ class OnDemandRepository @Inject constructor(
         onStop: (Throwable) -> Unit,
         onItem: (VodItem) -> Unit
     ) {
+        com.nuvio.tv.livetv.data.BackgroundWork.awaitPlaybackIdleBlocking()
+        var playbackCheckpoint = 0
         val request = Request.Builder().url(url)
             .header("User-Agent", pl.userAgent.ifBlank { LiveTvRepository.DEFAULT_UA }).build()
         val response = try {
@@ -425,6 +427,9 @@ class OnDemandRepository @Inject constructor(
                     body.charStream(), if (kind == VodKind.MOVIE) "stream_id" else "series_id",
                     onInvalidEntry = { onStop(XtreamCatalogException()) }
                 ) { f ->
+                    if (playbackCheckpoint++ % 64 == 0) {
+                        com.nuvio.tv.livetv.data.BackgroundWork.awaitPlaybackIdleBlocking()
+                    }
                     val id = f.getValue(if (kind == VodKind.MOVIE) "stream_id" else "series_id")
                     val name = f["name"]?.trim().orEmpty().ifBlank { f["title"].orEmpty() }
                     // Treat unusable rows as incomplete, rather than pruning previously saved titles.

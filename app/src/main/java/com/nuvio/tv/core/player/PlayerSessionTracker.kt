@@ -16,6 +16,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 object PlayerSessionTracker {
     private val openSessions = MutableStateFlow(0)
 
+    /** Synchronous worker checkpoints must not wait for a UI collector to observe the session. */
+    val hasOpenSession: Boolean get() = openSessions.value > 0
+
     val isSessionOpen: Flow<Boolean> = openSessions.map { it > 0 }.distinctUntilChanged()
 
     fun open(): Session {

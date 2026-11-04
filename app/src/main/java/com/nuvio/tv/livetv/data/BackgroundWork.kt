@@ -19,11 +19,20 @@ object BackgroundWork {
 
     /** Called between small batches on a worker, never from the UI thread. */
     fun yieldToNavigation() {
+        awaitPlaybackIdleBlocking()
         if (System.nanoTime() - lastNavigationNanos in 0..250_000_000L) Thread.sleep(16)
     }
 
-    /** Nuvio's player is open (set from the app's navigation). */
-    val nuvioPlaying = MutableStateFlow(false)
+    /** Driven by the player controller, including pause, buffering and overlapping sessions. */
+    val nuvioPlaying = com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen
+
+    val isNuvioPlaying: Boolean
+        get() = com.nuvio.tv.core.player.PlayerSessionTracker.hasOpenSession
+
+    /** Only for synchronous background workers, outside database transactions. */
+    fun awaitPlaybackIdleBlocking() {
+        if (isNuvioPlaying) kotlinx.coroutines.runBlocking { awaitIdle() }
+    }
 
     /**
      * Two low-priority threads for work nobody is waiting on: automatic playlist and guide
@@ -62,7 +71,7 @@ object BackgroundWork {
 
     /** Waits while Nuvio's player is open. */
     suspend fun awaitIdle() {
-        if (nuvioPlaying.value) nuvioPlaying.first { !it }
+        if (isNuvioPlaying) nuvioPlaying.first { !it }
     }
 
     /**

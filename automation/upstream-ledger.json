@@ -200,10 +200,10 @@
       "base": "3b93c191c6eb250014db6bff71896bc601d78254"
     },
     "2e05d6feed0cb488d9544b81110203412f35b4ed": {
-      "outcome": "held",
-      "reason": "Compatible logo-loading deduplication candidate. Retain ReSeq branding and verify all web configuration servers; held for lint-policy resolution and validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "integrated",
+      "reason": "Reviewed all four web configuration logo providers: same existing ReSeq wordmark and routes; shared helper defers reads until requested with synchronized lazy caching, preserves nullable fallback and closes streams. No state/account/playback/identity/focus changes. Added exact-byte and failure/closure tests; full validation required.",
+      "run": "20261104T145553Z-66e977",
+      "base": "2584a5534118b21cfc08fb94f0c5ebdff99b3077"
     },
     "d1984d15cd7dbdc1fe21d480e3f9745d0e4bcb39": {
       "outcome": "held",

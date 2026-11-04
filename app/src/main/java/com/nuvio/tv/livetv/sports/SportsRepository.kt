@@ -116,18 +116,12 @@ class SportsRepository @Inject constructor(
         val from = dayStart(-DAYS_BACK - 1)
         val to = dayStart(DAYS_AHEAD + 2)
         val tsdb = t.values.flatMap { it.events }.filter { it.startMs in from until to }
-        // A scheduled event (sporting-events.org, the wrestling schedule) gives way to the same
-        // event found in the guide: one of its league within 3 hours of its start (or, for
-        // events with a date only, that day). Anything else in the guide doesn't hide it.
-        val guideByLeague = guide.groupBy { it.leagueId }
-        val fixtures = f.values.flatMap { it.events }.filter { fx ->
-            val same = guideByLeague[fx.leagueId].orEmpty()
-            if (fx.hasTime) same.none { kotlin.math.abs(it.startMs - fx.startMs) <= 3 * HOUR || sameShowShifted(it, fx) }
-            else same.none { dayOf(it.startMs) == dayOf(fx.startMs) }
-        }
+        // Keep provider fixtures even when the guide has an airing at a similar time.
+        // All Events uses these verified entries; TV Now uses the guide's programme times.
+        val fixtures = f.values.flatMap { it.events }
         val espn = l.values.flatMap { it.events } + w.values.flatMap { it.events }
-        // Keep the scored fixture when the guide names both participants at the same time.
-        // Women's and wheelchair listings must not disappear behind a men's fixture.
+        // Prefer scored fixtures over matching calendar entries. Keep TV airings separately:
+        // they belong to TV Now even when All Events already contains the actual match.
         val espnBySport = (espn + tsdb).filter { it.away != null && it.home != null }
             .groupBy { SportsCatalog.league(it.leagueId)?.sport }
         fun coveredByEspn(ev: SportsEvent): Boolean {
@@ -138,7 +132,7 @@ class SportsRepository @Inject constructor(
                 SportsEventIdentity.guideCoversFixture(ev, r, it)
             } == true }
         }
-        (espn + (fixtures + guide).filterNot(::coveredByEspn) + tsdb.filterNot { event ->
+        (espn + fixtures.filterNot(::coveredByEspn) + guide + tsdb.filterNot { event ->
             val league = SportsCatalog.league(event.leagueId)
             league != null && espn.any { other -> SportsCatalog.league(other.leagueId)?.let {
                 SportsEventIdentity.same(event, other, league, it) } == true }
@@ -165,20 +159,6 @@ class SportsRepository @Inject constructor(
     }.combine(settings) { list, s ->
         list.filter { SportsTaxonomy.acceptsEvent(SportsCatalog.league(it.leagueId), it.title, it.subtitle, s.excludedSportsNodes) }
     }.stateIn(scope, SharingStarted.Eagerly, emptyList())
-
-    /**
-     * The same weekly wrestling show in the schedule file and in your guide, up to a day and a
-     * bit apart: TheSportsDB sometimes files a US evening show under the wrong day (SmackDown,
-     * Friday 8 pm Eastern, listed as Thursday 8 pm: midnight UTC put on the Friday date).
-     * Your guide's airing is the real one, so the schedule's copy gives way to it.
-     */
-    private fun sameShowShifted(guide: SportsEvent, fx: SportsEvent): Boolean {
-        if (SportsCatalog.league(fx.leagueId)?.sport != Sport.WRESTLING) return false
-        if (kotlin.math.abs(guide.startMs - fx.startMs) > 30 * HOUR) return false
-        val a = SportsCatalog.norm(wrestlingHeadline(guide.title)).trim()
-        val b = SportsCatalog.norm(wrestlingHeadline(fx.title)).trim()
-        return a.length >= 3 && b.length >= 3 && (a == b || a.contains(b) || b.contains(a))
-    }
 
     /**
      * One wrestling show aired at different times (USA at 8 pm, a later or overseas feed at 1 am):
@@ -1594,11 +1574,6 @@ class SportsRepository @Inject constructor(
     fun dayStart(offset: Int): Long = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         add(Calendar.DAY_OF_MONTH, offset)
-    }.timeInMillis
-
-    private fun dayOf(ms: Long): Long = Calendar.getInstance().apply {
-        timeInMillis = ms
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }.timeInMillis
 
     /** ESPN groups games by US Eastern days: yesterday to tomorrow there covers the page's three days. */

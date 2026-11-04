@@ -223,6 +223,67 @@ class TieredStreamAutoPlayTest {
         assertNull(stopped.progress)
     }
 
+    @Test fun `mix source searches finish at the fallback deadline even when addons are still loading`() {
+        val session = TieredStreamAutoPlay(settings, addons, stopAtEmptyFallback = true)
+        val loading = StreamAutoPlaySnapshot(emptyList())
+        session.evaluate(loading, 0)
+        assertFalse(session.evaluate(loading, 29_999).finished)
+        val expired = session.evaluate(loading, 30_000)
+        assertTrue(expired.finished)
+        assertNull(expired.stream)
+        assertNull(expired.progress)
+    }
+
+    @Test fun `mixes still wait for the full fallback time when all addons finish empty early`() {
+        val session = TieredStreamAutoPlay(settings, addons, stopAtEmptyFallback = true)
+        val empty = StreamAutoPlaySnapshot(emptyList(), true)
+        assertFalse(session.evaluate(empty, 1_000).finished)
+        assertFalse(session.evaluate(empty, 29_999).finished)
+        assertTrue(session.evaluate(empty, 30_000).finished)
+    }
+
+    @Test fun `a playable source at the mix deadline is played instead of skipped`() {
+        val session = TieredStreamAutoPlay(settings, addons, stopAtEmptyFallback = true)
+        session.evaluate(StreamAutoPlaySnapshot(emptyList()), 0)
+        val available = stream("Backup")
+        assertEquals(available, session.evaluate(StreamAutoPlaySnapshot(listOf(available)), 30_000).stream)
+    }
+
+    @Test fun `a pending immediate batch at the mix deadline keeps its settling window`() {
+        val session = TieredStreamAutoPlay(settings, addons, stopAtEmptyFallback = true)
+        val available = stream("AIOLists")
+        val batch = StreamAutoPlaySnapshot(listOf(available))
+        session.evaluate(batch, 29_900)
+        assertFalse(session.evaluate(batch, 30_000).finished)
+        assertEquals(available, session.evaluate(batch, 30_400).stream)
+    }
+
+    @Test fun `mix deadline behavior is inactive when timed fallback is off`() {
+        val session = TieredStreamAutoPlay(settings.copy(streamAutoPlayAnySourceFallbackEnabled = false), addons,
+            stopAtEmptyFallback = true)
+        val loading = StreamAutoPlaySnapshot(emptyList())
+        session.evaluate(loading, 0)
+        assertFalse(session.evaluate(loading, 30_000).finished)
+    }
+
+    @Test fun `mix deadline completion cancels the outstanding snapshot collector`() = runTest {
+        var collectorStopped = false
+        val pending = async {
+            TieredStreamAutoPlay.awaitSelection(settings, flow {
+                try { emit(StreamAutoPlaySnapshot(emptyList())); awaitCancellation() }
+                finally { collectorStopped = true }
+            }, addons, stopAtEmptyFallback = true, nowMs = { testScheduler.currentTime })
+        }
+        runCurrent()
+        advanceTimeBy(29_999)
+        runCurrent()
+        assertFalse(pending.isCompleted)
+        advanceTimeBy(1)
+        runCurrent()
+        assertNull(pending.await())
+        assertTrue(collectorStopped)
+    }
+
     @Test fun `a final choice cannot be replaced by later source emissions`() {
         val session = TieredStreamAutoPlay(settings, addons)
         val chosen = stream("AIOLists")

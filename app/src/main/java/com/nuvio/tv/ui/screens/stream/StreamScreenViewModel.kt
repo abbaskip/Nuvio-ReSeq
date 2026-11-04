@@ -484,6 +484,12 @@ class StreamScreenViewModel @Inject constructor(
             val useTieredAutoPlay = !manualSelection && TieredStreamAutoPlay.isEnabled(playerSettings)
             val tieredSearchComplete = MutableStateFlow(false)
             val tieredSearchHasPayload = MutableStateFlow(false)
+            val mixSourceAttempt = mixSession?.playing?.value?.takeIf {
+                it.profileId == playbackProfileId && it.selection.meta.id == contentId && it.selection.video.id == videoId
+            }
+            val skipMixOnEmptyFallback = mixSourceAttempt != null && playerSettings.streamAutoPlayAnySourceFallbackEnabled &&
+                playerSettings.streamAutoPlayTimeoutSeconds != PlayerSettings.STREAM_AUTOPLAY_TIMEOUT_UNLIMITED
+            var mixSourceFailed = false
             val continuationBingeGroup = mixContinuation?.preferredBingeGroup
                 ?.takeIf { storedSettings.streamAutoPlayPreferBingeGroupForNextEpisode }
             if (manualSelection || nextSelection?.automatic == false) {
@@ -785,6 +791,7 @@ class StreamScreenViewModel @Inject constructor(
                     installedAddonNames = installedAddonOrder.toSet(),
                     preferredBingeGroup = persistedBingeGroup,
                     bingeGroupOnly = nextSelection?.bingeGroupOnly == true,
+                    stopAtEmptyFallback = skipMixOnEmptyFallback,
                     canSelect = { hostInForeground.value && !autoPlayHandledForSession },
                     onProgress = { decision ->
                         if (!autoPlayHandledForSession && decision.showPicker) {
@@ -810,6 +817,11 @@ class StreamScreenViewModel @Inject constructor(
                     }
                 } else {
                     updateUiStateIfChanged { it.copy(autoPlayFallback = null, isLoading = false) }
+                    if (!autoPlayHandledForSession && skipMixOnEmptyFallback && mixSourceAttempt != null &&
+                        mixSession?.reportSourceUnavailable(mixSourceAttempt) == true) {
+                        mixSourceFailed = true
+                        autoPlayHandledForSession = true
+                    }
                 }
             }
 
@@ -1060,7 +1072,7 @@ class StreamScreenViewModel @Inject constructor(
                     ) { streams, complete, fresh -> StreamAutoPlaySnapshot(if (fresh) streams else emptyList(), complete) })
                 }
                 tieredAutoPlayJob?.join()
-                if (!resolvedAutoPlayTarget && !autoPlayHandledForSession) {
+                if (mixSourceFailed || (!resolvedAutoPlayTarget && !autoPlayHandledForSession)) {
                     autoPlayHandledForSession = true
                     streamLoadInner.cancel()
                     markRemainingSourceChipsAsError()

@@ -47,20 +47,26 @@ class TvMixViewModel @Inject constructor(
     private var previous: Pair<String, String>? = null
     private var lastPlayed: Pair<String, String>? = null
     private var preferredBingeGroup: String? = null
+    private val failedSourceShows = mutableSetOf<String>()
     init {
         viewModelScope.launch { profiles.activeProfileId.drop(1).collect {
-            request?.cancel(); session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null; _state.value = TvMixUiState()
+            request?.cancel(); session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null; failedSourceShows.clear(); _state.value = TvMixUiState()
         } }
     }
 
     fun open(id: String) {
         if (_state.value.mixId == id) return
-        session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null
+        session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null; failedSourceShows.clear()
         _state.value = TvMixUiState(mixId = id)
         remix()
     }
 
     fun remix() {
+        failedSourceShows.clear()
+        selectNext()
+    }
+
+    private fun selectNext() {
         val id = _state.value.mixId ?: return
         val profileId = profiles.activeProfileId.value
         previous = _state.value.selection?.key ?: previous
@@ -69,7 +75,9 @@ class TvMixViewModel @Inject constructor(
         request = viewModelScope.launch {
             try {
                 val mix = store.observe(profileId).first().firstOrNull { it.id == id }
-                val selected = mix?.let { selectTvMixEpisode(it.shows, previous, lastPlayed = lastPlayed) { show ->
+                val selected = mix?.let { selectTvMixEpisode(it.shows.filterNot { show ->
+                    show.id in failedSourceShows || show.imdbId in failedSourceShows
+                }, previous, lastPlayed = lastPlayed) { show ->
                     // A failed provider is bounded; cancellation/profile switching still cancels the selection.
                     withTimeoutOrNull(20_000) {
                         try {
@@ -79,6 +87,7 @@ class TvMixViewModel @Inject constructor(
                             val result = metadata.getMetaFromAllAddons(show.type, lookup)
                                 .first { result -> result !is NetworkResult.Loading }
                             val meta = (result as? NetworkResult.Success)?.data ?: return@withTimeoutOrNull null
+                            if (meta.id in failedSourceShows) return@withTimeoutOrNull null
                             val state = shuffle.observe(profileId, meta.id, meta.apiType).first()
                             val reconciled = reconcileTvdbVideoProgress(meta.videos, state.progress)
                             val native = meta.videos.any { video -> video.episodeIdentity != null }
@@ -94,7 +103,10 @@ class TvMixViewModel @Inject constructor(
                 } }
                 if (profiles.activeProfileId.value == profileId) _state.update { it.copy(
                     selection = selected, loading = false,
-                    error = if (selected == null) "No eligible episodes available. Try another selection or change the mix." else null,
+                    error = if (selected == null) {
+                        if (failedSourceShows.isNotEmpty()) "No playable sources found for the remaining shows in this mix. Try again or change sources."
+                        else "No eligible episodes available. Try another selection or change the mix."
+                    } else null,
                     autoStart = it.autoStart && selected != null
                 ) }
             } catch (e: CancellationException) { throw e }
@@ -122,8 +134,21 @@ class TvMixViewModel @Inject constructor(
         remix()
     }
 
+    /** A source timeout skips the show without marking its episode played or watched. */
+    fun sourceUnavailable(expected: TvMixSession.Playing): Boolean {
+        if (session.playing.value !== expected || profiles.activeProfileId.value != expected.profileId ||
+            _state.value.mixId != expected.mixId) return false
+        failedSourceShows += expected.selection.meta.id
+        previous = expected.selection.key
+        preferredBingeGroup = expected.preferredBingeGroup
+        session.end()
+        _state.update { it.copy(mixId = expected.mixId, selection = null, continuePrompt = false, autoStart = true) }
+        selectNext()
+        return true
+    }
+
     fun end() {
-        request?.cancel(); session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null; _state.value = TvMixUiState()
+        request?.cancel(); session.end(); previous = null; lastPlayed = null; preferredBingeGroup = null; failedSourceShows.clear(); _state.value = TvMixUiState()
     }
 
     fun save(mix: TvMix, onSaved: () -> Unit = {}) = write { profile -> store.save(profile, mix); onSaved() }

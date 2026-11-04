@@ -45,4 +45,21 @@ class TvMixSessionTest {
         session.end()
         assertNull(session.continuationFor(1, "show", video.id))
     }
+
+    @Test fun `source failures belong to the exact active launch and are cleared when the session ends`() {
+        val session = TvMixSession()
+        val first = TvMixSession.Playing(1, "mix", selection)
+        session.playing.value = first
+        assertTrue(session.reportSourceUnavailable(first))
+        assertSame(first, session.sourceFailures.value)
+        session.end()
+        assertNull(session.sourceFailures.value)
+        assertFalse(session.reportSourceUnavailable(first))
+        val nextLaunch = TvMixSession.Playing(1, "mix", selection)
+        session.playing.value = nextLaunch
+        assertFalse(session.reportSourceUnavailable(first))
+        assertNull(session.sourceFailures.value)
+        assertTrue(session.reportSourceUnavailable(nextLaunch))
+        assertSame(nextLaunch, session.sourceFailures.value)
+    }
 }

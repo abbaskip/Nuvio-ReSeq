@@ -114,6 +114,13 @@ private fun PlaybackNavHost(
         }
     }
     val externalMixReturn by mixViewModel.session.externalReturn.collectAsStateWithLifecycle()
+    val mixSourceFailure by mixViewModel.session.sourceFailures.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(mixSourceFailure) {
+        mixSourceFailure?.let { failed ->
+            mixViewModel.session.sourceFailures.compareAndSet(failed, null)
+            if (mixViewModel.sourceUnavailable(failed)) returnToMix()
+        }
+    }
     androidx.compose.runtime.LaunchedEffect(externalMixReturn) {
         externalMixReturn?.let { returned ->
             mixViewModel.session.externalReturn.value = null

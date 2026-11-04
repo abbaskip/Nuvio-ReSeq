@@ -14,6 +14,12 @@ class TvMixSession @Inject constructor() {
         val preferredBingeGroup: String? = null)
     data class ExternalReturn(val playing: Playing, val completed: Boolean, val autoplay: Boolean)
     val externalReturn = MutableStateFlow<ExternalReturn?>(null)
+    val sourceFailures = MutableStateFlow<Playing?>(null)
+    fun reportSourceUnavailable(expected: Playing): Boolean {
+        if (playing.value !== expected) return false
+        sourceFailures.value = expected
+        return true
+    }
     fun returnedExternally(completed: Boolean, autoplay: Boolean, expected: Playing? = playing.value) {
         expected?.takeIf { playing.value === it }?.let { externalReturn.value = ExternalReturn(it, completed, autoplay) }
     }
@@ -24,5 +30,5 @@ class TvMixSession @Inject constructor() {
     fun continuationFor(profileId: Int, contentId: String?, videoId: String?) = playing.value?.takeIf {
         it.continuation && it.profileId == profileId && it.selection.meta.id == contentId && it.selection.video.id == videoId
     }
-    fun end() { playing.value = null; externalReturn.value = null }
+    fun end() { playing.value = null; externalReturn.value = null; sourceFailures.value = null }
 }

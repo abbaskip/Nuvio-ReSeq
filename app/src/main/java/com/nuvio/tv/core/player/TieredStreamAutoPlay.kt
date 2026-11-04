@@ -23,6 +23,7 @@ class TieredStreamAutoPlay(
     private val installedAddonNames: Set<String>,
     private val preferredBingeGroup: String? = null,
     private val bingeGroupOnly: Boolean = false,
+    private val stopAtEmptyFallback: Boolean = false,
 ) {
     data class Decision(
         val stream: Stream? = null,
@@ -104,7 +105,8 @@ class TieredStreamAutoPlay(
 
         val approvedExpired = !unlimited && elapsed >= approvedDeadlineMs
         val fallbackExpired = fallbackDeadlineMs != null && elapsed >= fallbackDeadlineMs
-        val finished = elapsed >= hardDeadlineMs || (snapshot.complete && immediate == null &&
+        val finished = (stopAtEmptyFallback && fallbackExpired && anySource == null) ||
+            elapsed >= hardDeadlineMs || (snapshot.complete && immediate == null &&
             (fallbackDeadlineMs == null || fallbackExpired))
         val progress = if (approvedExpired && fallbackDeadlineMs != null && !finished) {
             StreamAutoPlayFallbackProgress(
@@ -132,12 +134,13 @@ class TieredStreamAutoPlay(
             installedAddonNames: Set<String>,
             preferredBingeGroup: String? = null,
             bingeGroupOnly: Boolean = false,
+            stopAtEmptyFallback: Boolean = false,
             nowMs: () -> Long = { System.nanoTime() / 1_000_000L },
             canSelect: () -> Boolean = { true },
             onProgress: (Decision) -> Unit = {},
         ): Stream? = coroutineScope {
             val startedAt = nowMs()
-            val session = TieredStreamAutoPlay(settings, installedAddonNames, preferredBingeGroup, bingeGroupOnly)
+            val session = TieredStreamAutoPlay(settings, installedAddonNames, preferredBingeGroup, bingeGroupOnly, stopAtEmptyFallback)
             val updates = snapshots.conflate().produceIn(this)
             var snapshot = StreamAutoPlaySnapshot(emptyList())
             var closed = false

@@ -10,4 +10,6 @@ Both waits are measured from the start of the same source search. For example, a
 
 Choose a source manually, press **Cancel autoplay**, or leave the source screen to cancel pending automatic selection. Search results remain available after cancelling autoplay. This policy also applies to next-episode searches, TV Mix continuation, and automatic episode selection inside the player. Explicit manual source selection remains manual.
 
+For TV Mix, if no playable source is available when the longer fallback wait ends, ReSeq automatically selects another random show. Shows that time out are excluded for that attempt, without marking their episodes watched. If no shows remain, the mix stops with a retry message; Remix starts a fresh attempt. Cancelling autoplay or leaving the source screen does not skip to another show.
+
 The existing **Reuse Last Link** option retains its priority when enabled. Playback-engine choice, P2P consent, and source playability checks still apply. External error-page links and torrents awaiting cache verification are not automatically selected.

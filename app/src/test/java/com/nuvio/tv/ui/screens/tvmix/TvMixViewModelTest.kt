@@ -128,6 +128,72 @@ class TvMixViewModelTest {
         assertNull(vm.state.value.selection)
     }
 
+    private fun useMultipleShows(): Set<String> {
+        val ids = setOf("show-a", "show-b", "show-c")
+        saved.value = listOf(mix.copy(shows = ids.map { TvMixShow(it, it) }))
+        val metas = ids.associateWith { id -> mockk<Meta>(relaxed = true) {
+            every { this@mockk.id } returns id
+            every { apiType } returns "series"
+            every { videos } returns episodes.map { it.copy(id = "$id:1:${it.episode}") }
+        } }
+        every { metadata.getMetaFromAllAddons(any(), any(), any()) } answers {
+            flowOf(NetworkResult.Success(metas.getValue(secondArg())))
+        }
+        return ids
+    }
+
+    @Test fun `source timeout automatically chooses another show without a continue prompt or watched write`() = runTest(dispatcher) {
+        useMultipleShows()
+        vm.open("mix"); runCurrent()
+        val first = vm.play()!!
+        val attempt = session.playing.value!!
+        assertTrue(vm.sourceUnavailable(attempt))
+        runCurrent()
+        assertTrue(vm.state.value.autoStart)
+        assertFalse(vm.state.value.continuePrompt)
+        assertNotEquals(first.meta.id, vm.state.value.selection!!.meta.id)
+        assertNull(session.playing.value)
+        verify { progress wasNot Called }
+    }
+
+    @Test fun `failed shows are tried at most once until the mix runs out and manual remix retries`() = runTest(dispatcher) {
+        val ids = useMultipleShows()
+        vm.open("mix"); runCurrent()
+        val failed = mutableSetOf<String>()
+        repeat(ids.size) {
+            val selection = vm.play()!!
+            assertTrue(failed.add(selection.meta.id))
+            assertTrue(vm.sourceUnavailable(session.playing.value!!))
+            runCurrent()
+        }
+        assertEquals(ids, failed)
+        assertNull(vm.state.value.selection)
+        assertFalse(vm.state.value.autoStart)
+        assertFalse(vm.state.value.loading)
+        assertTrue(vm.state.value.error!!.contains("No playable sources"))
+        assertNull(session.playing.value)
+        verify { progress wasNot Called }
+        vm.remix(); runCurrent()
+        assertNotNull(vm.state.value.selection)
+        assertNull(vm.state.value.error)
+    }
+
+    @Test fun `a stale source timeout cannot skip a new launch or a different profile`() = runTest(dispatcher) {
+        useMultipleShows()
+        vm.open("mix"); runCurrent(); vm.play()
+        val old = session.playing.value!!
+        vm.end()
+        vm.open("mix"); runCurrent(); vm.play()
+        val current = session.playing.value!!
+        assertFalse(vm.sourceUnavailable(old))
+        assertSame(current, session.playing.value)
+        profile.value = 2
+        assertFalse(vm.sourceUnavailable(current))
+        runCurrent()
+        assertNull(session.playing.value)
+        assertFalse(vm.state.value.autoStart)
+    }
+
     @Test fun `unwatched filter uses existing local and remote watched state`() = runTest(dispatcher) {
         saved.value = listOf(mix.copy(unwatchedOnly = true))
         every { shuffle.observe(any(), any(), any()) } returns flowOf(PlaybackShuffleState(

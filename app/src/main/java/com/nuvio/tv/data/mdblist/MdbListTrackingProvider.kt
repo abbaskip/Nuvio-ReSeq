@@ -49,11 +49,13 @@ class MdbListTrackingProvider @Inject constructor(
 class MdbListTrackingScrobbler @Inject constructor(
     private val auth: MdbListAuthStore,
     private val sync: MdbListSyncRepository,
-    private val service: MdbListScrobbleService
+    private val service: MdbListScrobbleService,
+    private val episodeMappings: MdbListEpisodeMappingService
 ) : TrackingScrobbler {
     override val providerId = TrackingProviderId.MDBLIST
 
     override suspend fun scrobble(action: TrackingScrobbleAction, event: TrackingScrobbleEvent) {
+        val scope = sync.currentScope()
         val authenticated = auth.state.value.isAuthenticated
         Log.d(TRACKING_SCROBBLE_DIAGNOSTIC_TAG, "mdblist adapter received action=${action.wireValue} authenticated=$authenticated ${event.scrobbleDiagnosticSummary()}")
         if (!authenticated) {
@@ -62,7 +64,9 @@ class MdbListTrackingScrobbler @Inject constructor(
         }
         sync.ensureLoaded()
         try {
-            service.scrobble(sync.currentScope(), action, event)
+            val media = episodeMappings.toMdbListNumbering(event.media, sync.currentProjection().mediaIndex)
+            if (sync.currentScope() != scope) return
+            service.scrobble(scope, action, event.copy(media = media))
         } catch (error: Throwable) {
             Log.w(TRACKING_SCROBBLE_DIAGNOSTIC_TAG, "mdblist adapter failed action=${action.wireValue} error=${error.javaClass.simpleName}:${error.message} ${event.scrobbleDiagnosticSummary()}", error)
             throw error
@@ -74,7 +78,8 @@ class MdbListTrackingScrobbler @Inject constructor(
 @Singleton
 class MdbListTrackingHistoryWriter @Inject constructor(
     private val sync: MdbListSyncRepository,
-    private val service: MdbListHistoryService
+    private val service: MdbListHistoryService,
+    private val episodeMappings: MdbListEpisodeMappingService
 ) : TrackingHistoryWriter {
     override val providerId = TrackingProviderId.MDBLIST
 
@@ -84,12 +89,17 @@ class MdbListTrackingHistoryWriter @Inject constructor(
         // MDBList answers a show-level mark by marking every episode watched, same as Simkl.
         val pushableItems = items.filterNot(TrackingHistoryItem::isWholeSeriesMark)
         if (pushableItems.isEmpty()) return TrackingMutationResult(0)
-        return service.add(scope, pushableItems)
+        return service.add(scope, pushableItems.map { item -> item.copy(media = item.media.inMdbListNumbering()) })
     }
 
     override suspend fun removeFromHistory(profileId: Int, items: Collection<TrackingMediaReference>): TrackingMutationResult {
         val scope = sync.currentScope()
         if (scope.profileId != profileId) return TrackingMutationResult(0)
-        return service.remove(scope, items)
+        return service.remove(scope, items.map { it.inMdbListNumbering() })
+    }
+
+    private suspend fun TrackingMediaReference.inMdbListNumbering(): TrackingMediaReference {
+        sync.ensureLoaded()
+        return episodeMappings.toMdbListNumbering(this, sync.currentProjection().mediaIndex)
     }
 }

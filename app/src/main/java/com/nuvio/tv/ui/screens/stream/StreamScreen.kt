@@ -90,7 +90,6 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
-import com.nuvio.tv.core.player.ExternalPlayerLauncher
 import com.nuvio.tv.core.streams.StreamBadgePlacement
 import com.nuvio.tv.core.streams.StreamBadgeSettings
 import com.nuvio.tv.data.local.PlayerPreference
@@ -102,11 +101,13 @@ import com.nuvio.tv.ui.components.StreamBadgeChips
 import com.nuvio.tv.ui.components.StreamsSkeletonList
 import com.nuvio.tv.ui.screens.player.LoadingOverlay
 import com.nuvio.tv.ui.screens.player.AddonFilterChips
+import com.nuvio.tv.ui.screens.player.focusChip
 import com.nuvio.tv.ui.theme.NuvioTheme
 import com.nuvio.tv.ui.navigation.sourceSelectionRestoreTarget
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.delay as coroutineDelay
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch as coroutineLaunch
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -192,17 +193,15 @@ fun StreamScreen(
         val url = playbackInfo.url?.takeIf { it.isNotBlank() } ?: return false
         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             .addCategory(Intent.CATEGORY_BROWSABLE)
-        runCatching {
+        val openedInBrowser = runCatching {
             context.startActivity(browserIntent)
-        }.onFailure {
-            ExternalPlayerLauncher.launch(
-                context = context,
-                url = url,
-                title = playbackInfo.title,
-                headers = playbackInfo.headers,
-                startFromBeginning = startFromBeginning
-            )
+        }.isSuccess
+        if (!openedInBrowser) {
+            // The external player records the provider after its own launch succeeds.
+            launchExternalPlayer(playbackInfo)
+            return true
         }
+        viewModel.rememberPlayedPlugin(playbackInfo.bingeGroup)
         return true
     }
 
@@ -817,19 +816,21 @@ private fun RightStreamSection(
             }
         }
     }
+    val chipListState = rememberLazyListState()
     fun onAddonFilterSelectedGuarded(addon: String?) {
         userMovedFromFirstResult = true
-        onAddonFilterSelected(addon)
-        focusJob?.cancel()
-        focusJob = scope.coroutineLaunch {
-            withFrameNanos {}
-            val targetRequester = if (addon == null) {
-                chipFocusRequesters.getOrNull(1)
-            } else {
-                addonFocusRequesters[addon]
-            }
-            runCatching { targetRequester?.requestFocus() }
+        val targetRequester = if (addon == null) {
+            chipFocusRequesters.getOrNull(1)
+        } else {
+            addonFocusRequesters[addon]
         }
+        focusJob?.cancel()
+        // Focus the chip before the results change: once the focused card is gone,
+        // Compose would otherwise park focus on another chip first.
+        focusJob = scope.coroutineLaunch(start = CoroutineStart.UNDISPATCHED) {
+            chipListState.focusChip(chipFocusRequesters.indexOf(targetRequester), chipFocusRequesters)
+        }
+        onAddonFilterSelected(addon)
     }
 
     LaunchedEffect(Unit) {
@@ -868,7 +869,7 @@ private fun RightStreamSection(
         focusJob?.cancel()
         focusJob = scope.coroutineLaunch {
             withFrameNanos { }
-            runCatching { chipFocusRequesters[index].requestFocus() }
+            chipListState.focusChip(index, chipFocusRequesters)
         }
     }
 
@@ -952,6 +953,7 @@ private fun RightStreamSection(
                             onAddonSelected = { onAddonFilterSelected(it) },
                             externalFocusRequesters = chipFocusRequesters,
                             externalOrderedNames = orderedAddonNames,
+                            chipListState = chipListState,
                             debugTag = "StreamScreen"
                         )
                     }
@@ -1286,6 +1288,7 @@ private fun StreamsList(
                         color = NuvioTheme.colors.TextSecondary,
                         modifier = Modifier.padding(start = NuvioTheme.spacing.xs)
                     )
+                    StreamProviderHeader(streamProviderHeader(shared.stream))
                     StreamCard(
                         stream = shared.stream,
                         showFileSizeBadges = showFileSizeBadges,
@@ -1307,7 +1310,11 @@ private fun StreamsList(
         itemsIndexed(streams, key = { index, _ ->
             streamKeys[index]
         }) { index, stream ->
-            Box(modifier = Modifier.padding(vertical = NuvioTheme.spacing.xs)) {
+            Column(
+                modifier = Modifier.padding(vertical = NuvioTheme.spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm)
+            ) {
+                StreamProviderHeader(streamProviderHeader(stream, streams.getOrNull(index - 1)))
                 val isPartySource = partySource?.matches(stream) == true
                 StreamCard(
                     stream = stream,
@@ -1338,6 +1345,20 @@ private fun StreamsList(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun StreamProviderHeader(sourceName: String?) {
+    sourceName?.let { sourceName ->
+        Text(
+            text = sourceName,
+            modifier = Modifier.padding(start = NuvioTheme.spacing.lg),
+            style = MaterialTheme.typography.labelSmall.copy(
+                textDirection = sourceName.contentTextDirection()
+            ),
+            color = NuvioTheme.extendedColors.textSecondary
+        )
     }
 }
 
@@ -1467,16 +1488,6 @@ private fun StreamCard(
                             maxLines = 1
                         )
                     }
-                }
-
-                stream.pluginSourceName?.takeIf { it.isNotBlank() && it != stream.addonName }?.let { sourceName ->
-                    Text(
-                        text = sourceName,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            textDirection = sourceName.contentTextDirection()
-                        ),
-                        color = NuvioTheme.extendedColors.textSecondary
-                    )
                 }
 
                 streamDescription?.let { description ->

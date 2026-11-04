@@ -71,6 +71,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.Text
 import com.nuvio.tv.ui.screens.home.ContinueWatchingItem
+import com.nuvio.tv.ui.screens.home.canMarkWatched
 import com.nuvio.tv.ui.theme.NuvioTheme
 import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
@@ -133,6 +134,7 @@ fun ContinueWatchingSection(
     onStartFromBeginning: (ContinueWatchingItem) -> Unit = {},
     showManualPlayOption: Boolean = false,
     onPlayManually: (ContinueWatchingItem) -> Unit = {},
+    onMarkWatched: (ContinueWatchingItem) -> Unit = {},
     modifier: Modifier = Modifier,
     title: String? = null,
     focusedItemIndex: Int = -1,
@@ -318,6 +320,11 @@ fun ContinueWatchingSection(
             showPlayManually = showManualPlayOption,
             onPlayManually = {
                 onPlayManually(menuItem)
+                optionsItem = null
+            },
+            onMarkWatched = {
+                pendingFocusIndex = if (items.size <= 1) null else minOf(lastFocusedIndex, items.lastIndex)
+                onMarkWatched(menuItem)
                 optionsItem = null
             }
         )
@@ -1123,7 +1130,8 @@ fun ContinueWatchingOptionsDialog(
     onDetails: () -> Unit,
     onStartFromBeginning: () -> Unit = {},
     showPlayManually: Boolean = false,
-    onPlayManually: () -> Unit = {}
+    onPlayManually: () -> Unit = {},
+    onMarkWatched: () -> Unit = {}
 ) {
     val isPlayEnabled = LocalPlaybackAvailability.current.canStream(item)
     val title = when (item) {
@@ -1182,6 +1190,18 @@ fun ContinueWatchingOptionsDialog(
         }
 
         remember(item) { item.tvMixPreview() }?.let { com.nuvio.tv.ui.screens.tvmix.AddToMixAction(it) }
+        if (item.canMarkWatched()) {
+            Button(
+                onClick = onMarkWatched,
+                colors = ButtonDefaults.colors(
+                    containerColor = NuvioTheme.colors.BackgroundCard,
+                    contentColor = NuvioTheme.colors.TextPrimary
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.hero_mark_watched))
+            }
+        }
 
         Button(
             onClick = onRemove,

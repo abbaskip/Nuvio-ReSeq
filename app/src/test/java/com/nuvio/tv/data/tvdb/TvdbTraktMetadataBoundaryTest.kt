@@ -49,7 +49,8 @@ class TvdbTraktMetadataBoundaryTest {
         val decorated = mockk<MetaRepository> {
             every { getMetaFromAllAddons(any(), any(), any()) } answers { flowOf(NetworkResult.Success(displayed)) }
         }
-        val contaminated = TraktEpisodeMappingService(api, auth, decorated)
+        val profiles = mockk<com.nuvio.tv.core.profile.ProfileManager> { every { activeProfileId } returns kotlinx.coroutines.flow.MutableStateFlow(1) }
+        val contaminated = TraktEpisodeMappingService(api, auth, AddonEpisodeListService(decorated, profiles))
         contaminated.prefetchAddonEpisodes(listOf(provider.id))
         displayed = provider // Returning to Provider Default does not flush the upstream mapper's cache.
         val wrong = contaminated.resolveAddonEpisodeMapping(provider.id, "series", 4, 14)
@@ -59,7 +60,7 @@ class TvdbTraktMetadataBoundaryTest {
         val raw = mockk<MetaRepositoryImpl> {
             every { getMetaFromAllAddons(any(), any(), any()) } returns flowOf(NetworkResult.Success(provider))
         }
-        val isolated = TraktEpisodeMappingService(api, auth, raw)
+        val isolated = TraktEpisodeMappingService(api, auth, AddonEpisodeListService(raw, profiles))
         isolated.prefetchAddonEpisodes(listOf(provider.id))
         repeat(3) {
             displayed = if (it % 2 == 0) alternate else provider
@@ -70,7 +71,7 @@ class TvdbTraktMetadataBoundaryTest {
     }
 
     @Test fun `injection gives both native Trakt consumers original provider metadata`() {
-        for (consumer in listOf(TraktEpisodeMappingService::class.java, TraktProgressService::class.java)) {
+        for (consumer in listOf(AddonEpisodeListService::class.java, TraktProgressService::class.java)) {
             val parameter = consumer.constructors.single().parameters.single { it.type == MetaRepository::class.java }
             assertNotNull("Native Trakt metadata must bypass the TVDB decorator", parameter.getAnnotation(ProviderMetadata::class.java))
         }

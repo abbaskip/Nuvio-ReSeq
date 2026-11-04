@@ -283,11 +283,11 @@ class StreamScreenViewModel @Inject constructor(
                         }
                         val updatedAllStreams = updatedAddonStreams.flatMap { it.streams }
                         val currentFilter = state.selectedAddonFilter
-                        val fullFiltered = if (currentFilter == null) {
+                        val fullFiltered = groupStreamsByProvider(if (currentFilter == null) {
                             updatedAllStreams
                         } else {
                             updatedAllStreams.filter { it.addonName == currentFilter }
-                        }
+                        })
                         streamFilterFullList = fullFiltered
                         val pageEnd = state.filteredStreams.size
                             .coerceAtLeast(STREAM_FILTER_PAGE_SIZE.coerceAtMost(fullFiltered.size))
@@ -586,7 +586,10 @@ class StreamScreenViewModel @Inject constructor(
                                 sources = cached.sources,
                                 contentLanguage = cached.contentLanguage ?: contentLanguage,
                                 audioDelayMs = cached.audioDelayMs,
-                                audioDelayLanguage = cached.audioDelayLanguage
+                                audioDelayLanguage = cached.audioDelayLanguage,
+                                addonName = cached.addonName,
+                                addonLogo = cached.addonLogo,
+                                streamDescription = cached.streamDescription
                             ),
                             showDirectAutoPlayOverlay = showOverlay || it.showDirectAutoPlayOverlay,
                             isDirectAutoPlayFlow = showOverlay || it.isDirectAutoPlayFlow
@@ -679,21 +682,25 @@ class StreamScreenViewModel @Inject constructor(
                     } else null
                     // Try binge group + filename first
                     val bingeAndFilename = if (nextFilename != null) {
-                        StreamAutoPlaySelector.automaticStreams(allStreams, playerSettings, installedAddonOrder.toSet()).firstOrNull { stream ->
-                            !stream.isExternal() &&
-                                stream.behaviorHints?.bingeGroup == persistedBingeGroup &&
-                                com.nuvio.tv.core.player.FilenameEpisodeMatcher.matches(
-                                    stream.behaviorHints?.filename, nextFilename
-                                )
-                        }
+                        StreamAutoPlaySelector.selectEarlyBingeGroupMatch(
+                            StreamAutoPlaySelector.automaticStreams(allStreams, playerSettings, installedAddonOrder.toSet()).filter { stream ->
+                                !stream.isExternal() &&
+                                    com.nuvio.tv.core.player.FilenameEpisodeMatcher.matches(
+                                        stream.behaviorHints?.filename, nextFilename
+                                    )
+                            },
+                            persistedBingeGroup
+                        )
                     } else null
                     // Try binge group + infoHash when filename match failed or was unavailable
                     val bingeAndInfoHash = if (bingeAndFilename == null && persistedInfoHash != null) {
-                        StreamAutoPlaySelector.automaticStreams(allStreams, playerSettings, installedAddonOrder.toSet()).firstOrNull { stream ->
-                            !stream.isExternal() &&
-                                stream.behaviorHints?.bingeGroup == persistedBingeGroup &&
-                                stream.infoHash?.equals(persistedInfoHash, ignoreCase = true) == true
-                        }
+                        StreamAutoPlaySelector.selectEarlyBingeGroupMatch(
+                            StreamAutoPlaySelector.automaticStreams(allStreams, playerSettings, installedAddonOrder.toSet()).filter { stream ->
+                                !stream.isExternal() &&
+                                    stream.infoHash?.equals(persistedInfoHash, ignoreCase = true) == true
+                            },
+                            persistedBingeGroup
+                        )
                     } else null
                     // Fall back to binge group alone
                     bingeAndFilename ?: bingeAndInfoHash ?: StreamAutoPlaySelector.selectAutoPlayStream(
@@ -740,11 +747,11 @@ class StreamScreenViewModel @Inject constructor(
                 }
 
                 val currentFilter = _uiState.value.selectedAddonFilter
-                val fullFiltered = if (currentFilter == null) {
+                val fullFiltered = groupStreamsByProvider(if (currentFilter == null) {
                     allStreams
                 } else {
                     allStreams.filter { it.addonName == currentFilter }
-                }
+                })
                 streamFilterFullList = fullFiltered
                 val currentPageSize = _uiState.value.filteredStreams.size
                 val isFirstLoad = currentPageSize == 0
@@ -901,11 +908,11 @@ class StreamScreenViewModel @Inject constructor(
                                     addonStreams.streams
                                 }
                                 val currentFilter = state.selectedAddonFilter
-                                val fullFiltered = if (currentFilter == null) {
+                                val fullFiltered = groupStreamsByProvider(if (currentFilter == null) {
                                     updatedAllStreams
                                 } else {
                                     updatedAllStreams.filter { it.addonName == currentFilter }
-                                }
+                                })
                                 streamFilterFullList = fullFiltered
                                 val pageEnd = state.filteredStreams.size
                                     .coerceAtLeast(STREAM_FILTER_PAGE_SIZE.coerceAtMost(fullFiltered.size))
@@ -930,7 +937,8 @@ class StreamScreenViewModel @Inject constructor(
                     episode = episode,
                     forceRefresh = forceRefresh,
                     contentContext = com.nuvio.tv.domain.model.StreamContentContext(contentId ?: videoId,
-                        contentName ?: title, com.nuvio.tv.core.tracking.extractTrackingYear(year), episodeName, capturedTvdbContext)
+                        contentName ?: title, com.nuvio.tv.core.tracking.extractTrackingYear(year), episodeName, capturedTvdbContext),
+                    priorityBingeGroup = persistedBingeGroup
                 ).collect { result ->
                     when (result) {
                         is NetworkResult.Success -> {
@@ -1428,11 +1436,11 @@ class StreamScreenViewModel @Inject constructor(
             if (state.selectedAddonFilter == addonName) {
                 return@updateUiStateIfChanged state
             }
-            val fullFiltered = if (addonName == null) {
+            val fullFiltered = groupStreamsByProvider(if (addonName == null) {
                 state.allStreams
             } else {
                 state.allStreams.filter { it.addonName == addonName }
-            }
+            })
             streamFilterFullList = fullFiltered
             val paginatedStreams = if (fullFiltered.size > STREAM_FILTER_PAGE_SIZE) {
                 fullFiltered.subList(0, STREAM_FILTER_PAGE_SIZE)
@@ -1523,9 +1531,14 @@ class StreamScreenViewModel @Inject constructor(
                             filename = resolved.filename,
                             videoHash = resolved.videoHash,
                             videoSize = resolved.videoSize,
+                            infoHash = resolved.infoHash,
+                            fileIdx = resolved.fileIdx,
                             bingeGroup = resolved.bingeGroup,
                             contentLanguage = contentLanguage,
-                            year = year
+                            year = year,
+                            addonName = resolved.addonName,
+                            addonLogo = resolved.addonLogo,
+                            streamDescription = resolved.streamDescription
                         )
                         }
                     }
@@ -1612,6 +1625,10 @@ class StreamScreenViewModel @Inject constructor(
 
     fun onPlaybackErrorShown() {
         updateUiStateIfChanged { it.copy(playbackErrorMessage = null) }
+    }
+
+    fun rememberPlayedPlugin(bingeGroup: String?) {
+        pluginManager.recordPluginProviderPlay(bingeGroup)
     }
 
     fun onInternalPlayerLaunching() {
@@ -1760,11 +1777,16 @@ class StreamScreenViewModel @Inject constructor(
                         filename = playbackInfo.filename,
                         videoHash = playbackInfo.videoHash,
                         videoSize = playbackInfo.videoSize,
+                        infoHash = playbackInfo.infoHash,
+                        fileIdx = playbackInfo.fileIdx,
                         bingeGroup = playbackInfo.bingeGroup,
                         contentLanguage = contentLanguage,
                         year = year,
                         audioDelayMs = playbackInfo.audioDelayMs,
-                        audioDelayLanguage = playbackInfo.audioDelayLanguage
+                        audioDelayLanguage = playbackInfo.audioDelayLanguage,
+                        addonName = playbackInfo.addonName,
+                        addonLogo = playbackInfo.addonLogo,
+                        streamDescription = playbackInfo.streamDescription
                     )
                 }
             }
@@ -2062,6 +2084,7 @@ class StreamScreenViewModel @Inject constructor(
                 ownsTorrentStream = isTorrentStreamStarted,
                 context = context
             )
+            if (launched) rememberPlayedPlugin(playbackInfo.bingeGroup)
         } finally {
             if (!launched) abortExternalHandoff()
         }

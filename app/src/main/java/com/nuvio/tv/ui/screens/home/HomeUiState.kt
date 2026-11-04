@@ -144,7 +144,8 @@ data class NextUpInfo(
     val mdbListRatings: com.nuvio.tv.domain.model.MDBListRatings? = null,
     val displaySeason: Int? = null,
     val displayEpisode: Int? = null,
-    val tvdbEpisodeId: Long? = null
+    val tvdbEpisodeId: Long? = null,
+    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null
 )
 
 @Immutable
@@ -225,7 +226,62 @@ sealed class HomeEvent {
         val episode: Int? = null,
         val isNextUp: Boolean = false
     ) : HomeEvent()
+    data class OnMarkContinueWatchingWatched(val item: ContinueWatchingItem) : HomeEvent()
     data object OnRetry : HomeEvent()
+}
+
+/** Upcoming episodes stay in Next Up but cannot be marked until they air. */
+internal fun ContinueWatchingItem.canMarkWatched(): Boolean = when (this) {
+    is ContinueWatchingItem.InProgress -> progress.tvdbCoverageVerified != false && progress.tvdbContext?.episodeIds?.isEmpty() != true
+    is ContinueWatchingItem.NextUp -> info.hasAired && (info.tvdbEpisodeId == null || !info.tvdbContext?.episodeIds.isNullOrEmpty())
+}
+
+/** Same shape as the details screen builds, so tracking sync takes the same path. */
+internal fun ContinueWatchingItem.toCompletedProgress(
+    nowMs: Long = System.currentTimeMillis()
+): WatchProgress = when (this) {
+    is ContinueWatchingItem.InProgress -> {
+        val duration = progress.duration.coerceAtLeast(1L)
+        WatchProgress(
+            contentId = progress.contentId,
+            contentType = progress.contentType,
+            name = progress.name,
+            poster = progress.poster,
+            backdrop = progress.backdrop,
+            logo = progress.logo,
+            videoId = progress.videoId,
+            season = progress.season,
+            episode = progress.episode,
+            episodeTitle = progress.episodeTitle,
+            tvdbContext = progress.tvdbContext,
+            tvdbEpisodeId = progress.tvdbEpisodeId,
+            tvdbEpisodeIds = progress.tvdbEpisodeIds,
+            providerDefaultPlayback = progress.providerDefaultPlayback,
+            position = duration,
+            duration = duration,
+            lastWatched = nowMs,
+            progressPercent = 100f
+        )
+    }
+    is ContinueWatchingItem.NextUp -> WatchProgress(
+        contentId = info.contentId,
+        contentType = info.contentType,
+        name = info.name,
+        poster = info.poster,
+        backdrop = info.thumbnail ?: info.backdrop,
+        logo = info.logo,
+        videoId = info.videoId,
+        season = info.season,
+        episode = info.episode,
+        episodeTitle = info.episodeTitle,
+        tvdbContext = info.tvdbContext,
+        tvdbEpisodeIds = info.tvdbContext?.episodeIds,
+        tvdbEpisodeId = info.tvdbEpisodeId,
+        position = 1L,
+        duration = 1L,
+        lastWatched = nowMs,
+        progressPercent = 100f
+    )
 }
 
 fun homeItemStatusKey(itemId: String, itemType: String): String {

@@ -96,3 +96,4 @@ status-page/
 !scripts/lint-report.gradle
 !docs/UPSTREAM_SYNC.md
 !docs/UPSTREAM_SYNC_INITIAL_REVIEW.md
+!docs/CONSOLIDATION_2026-11-05.md

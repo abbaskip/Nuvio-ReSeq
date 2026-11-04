@@ -65,9 +65,10 @@ def root_dir():
     return common.parent
 
 
-def active_releases():
+def active_releases(head=None):
     runs = api(f"repos/{REPO}/actions/workflows/reseq-release.yml/runs?per_page=30")["workflow_runs"]
-    return [r["id"] for r in runs if r["status"] != "completed"]
+    return [r["id"] for r in runs if r["status"] != "completed" and
+            (head is None or r.get("head_sha") == head)]
 
 
 def choose_base(dev, released):
@@ -468,7 +469,7 @@ def main():
     elif args.action == "finish":
         report = Path(args.report).resolve()
         if not report.is_file(): raise RuntimeError("Morning report is required")
-        if run["publication"] and active_releases():
+        if run["publication"] and active_releases(head=run["publication"]["head"]):
             raise RuntimeError("Release still active; retain the lock and resume monitoring")
         ledger = Path(run["worktree"]) / LEDGER
         if ledger.exists() and not run["dry_run"]:

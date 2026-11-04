@@ -154,6 +154,9 @@ failure/held report and call `finish`; then start a new run. Don't remove a lock
 just because it is old. Existing release workflow concurrency serializes release
 jobs; the gate also defers while manual releases are active. Recheck for a newly
 published newer version immediately before completing any resumed release.
+New runs/publication check all active release jobs. Finalization waits only for
+the completed run's own release commit, so an unrelated manual release cannot
+strand its cleanup lock. Other jobs are never cancelled to release that lock.
 Runs and validation require at least 6 GiB free, covering the measured debug/
 Playstore/lint peak with a safety reserve. `finish` archives this task's unit/lint
 reports and retains a held ARM32 debug APK before removing only its own generated

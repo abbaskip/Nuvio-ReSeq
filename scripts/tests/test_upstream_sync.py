@@ -9,6 +9,20 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_new_publications_still_wait_for_all_active_release_jobs(self):
+        jobs={"workflow_runs":[{"id":1,"status":"in_progress","head_sha":"ours"},
+                               {"id":2,"status":"queued","head_sha":"other"},
+                               {"id":3,"status":"completed","head_sha":"ours"}]}
+        with patch.object(sync,"api",return_value=jobs):
+            self.assertEqual(sync.active_releases(),[1,2])
+
+    def test_cleanup_waits_only_for_its_own_release_commit(self):
+        jobs={"workflow_runs":[{"id":1,"status":"completed","head_sha":"ours"},
+                               {"id":2,"status":"in_progress","head_sha":"other"}]}
+        with patch.object(sync,"api",return_value=jobs):
+            self.assertEqual(sync.active_releases(head="ours"),[])
+            self.assertEqual(sync.active_releases(head="other"),[2])
+
     def test_published_functionality_wins_over_lagging_dev(self):
         with patch.object(sync, "ancestor", side_effect=[True]):
             self.assertEqual(sync.choose_base("old-dev", "released-tv-mix"), "released-tv-mix")

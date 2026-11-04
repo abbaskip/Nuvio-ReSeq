@@ -100,10 +100,12 @@ class MdbListTrackingProgressProvider @Inject constructor(
     override suspend fun refresh(intent: TrackingRefreshIntent) = sync.refresh(intent)
 
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {
+        val scope = sync.currentScope()
         val tmdb = if (season != null && episode != null) {
             episodeMapping(contentId, currentProjection())?.toTmdb(season, episode)
         } else null
-        scrobbles.clear(sync.currentScope(), contentId, tmdb?.season ?: season, tmdb?.episode ?: episode)
+        if (sync.currentScope() != scope) return
+        scrobbles.clear(scope, contentId, tmdb?.season ?: season, tmdb?.episode ?: episode)
     }
 
     override fun applyOptimisticProgress(progress: WatchProgress, quiet: Boolean) = Unit

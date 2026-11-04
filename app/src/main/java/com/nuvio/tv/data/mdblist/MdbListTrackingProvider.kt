@@ -55,6 +55,7 @@ class MdbListTrackingScrobbler @Inject constructor(
     override val providerId = TrackingProviderId.MDBLIST
 
     override suspend fun scrobble(action: TrackingScrobbleAction, event: TrackingScrobbleEvent) {
+        val scope = sync.currentScope()
         val authenticated = auth.state.value.isAuthenticated
         Log.d(TRACKING_SCROBBLE_DIAGNOSTIC_TAG, "mdblist adapter received action=${action.wireValue} authenticated=$authenticated ${event.scrobbleDiagnosticSummary()}")
         if (!authenticated) {
@@ -64,7 +65,8 @@ class MdbListTrackingScrobbler @Inject constructor(
         sync.ensureLoaded()
         try {
             val media = episodeMappings.toMdbListNumbering(event.media, sync.currentProjection().mediaIndex)
-            service.scrobble(sync.currentScope(), action, event.copy(media = media))
+            if (sync.currentScope() != scope) return
+            service.scrobble(scope, action, event.copy(media = media))
         } catch (error: Throwable) {
             Log.w(TRACKING_SCROBBLE_DIAGNOSTIC_TAG, "mdblist adapter failed action=${action.wireValue} error=${error.javaClass.simpleName}:${error.message} ${event.scrobbleDiagnosticSummary()}", error)
             throw error

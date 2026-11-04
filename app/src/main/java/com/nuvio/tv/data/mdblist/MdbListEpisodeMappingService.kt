@@ -69,7 +69,7 @@ class MdbListEpisodeMappingService @Inject constructor(
         }
         if (!owner) return deferred.await()
         return try {
-            load(id, tmdbShowId).takeIf { profiles.activeProfileId.value == profile }.also { mapping ->
+            load(id, tmdbShowId).takeIf { profiles.activeProfileId.value == profile && orders.cachedSelection(profile, id) == null }.also { mapping ->
                 if (mapping != null) resolved[key] = mapping
                 deferred.complete(mapping)
             }
@@ -111,7 +111,7 @@ class MdbListEpisodeMappingService @Inject constructor(
         val addon = addonEpisodes.episodes(contentId, "series")
         if (addon.isEmpty()) return null
         val tmdbId = tmdbShowId?.takeIf { it in 1..Int.MAX_VALUE }?.toInt() ?: lookupTmdbShowId(contentId) ?: return null
-        val seasons = tmdbApi.getTvDetails(tmdbId, "", TMDB_LANGUAGE).body()
+        val seasons = tmdbApi.getTvDetails(tmdbId, tmdbService.apiKey(), TMDB_LANGUAGE).body()
             ?.seasons.orEmpty()
             .mapNotNull { season ->
                 val number = season.seasonNumber?.takeIf { it > 0 } ?: return@mapNotNull null
@@ -129,7 +129,7 @@ class MdbListEpisodeMappingService @Inject constructor(
             seasons.keys.sorted().map { season ->
                 async {
                     semaphore.withPermit {
-                        tmdbApi.getTvSeasonDetails(tmdbId, season, "", TMDB_LANGUAGE).body()
+                        tmdbApi.getTvSeasonDetails(tmdbId, season, tmdbService.apiKey(), TMDB_LANGUAGE).body()
                             ?.episodes.orEmpty()
                             .mapNotNull { episode ->
                                 val number = episode.episodeNumber?.takeIf { it > 0 } ?: return@mapNotNull null
@@ -150,7 +150,7 @@ class MdbListEpisodeMappingService @Inject constructor(
         ids.tmdb?.takeIf { it in 1..Int.MAX_VALUE }?.let { return it.toInt() }
         ids.imdb?.let { return tmdbService.imdbToTmdb(it, "series") }
         ids.tvdb?.let { tvdb ->
-            return tmdbApi.findByExternalId(tvdb, "", "tvdb_id").body()
+            return tmdbApi.findByExternalId(tvdb, tmdbService.apiKey(), "tvdb_id").body()
                 ?.tvResults?.firstOrNull()?.id
         }
         return null

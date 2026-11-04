@@ -106,7 +106,7 @@ class MdbListEpisodeMappingServiceTest {
             io.mockk.every { cachedSelection(any(), any()) } returns null
             io.mockk.every { hasSnapshot(any()) } returns true
         }
-        return MdbListEpisodeMappingService(addon, tmdbApi, mockk<TmdbService>(), profiles, orders)
+        return MdbListEpisodeMappingService(addon, tmdbApi, mockk<TmdbService> { io.mockk.every { apiKey() } returns "" }, profiles, orders)
     }
 
     private fun tmdbApi(seasons: List<Int>) = mockk<TmdbApi> {

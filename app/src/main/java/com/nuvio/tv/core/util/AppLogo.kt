@@ -1,6 +1,7 @@
 package com.nuvio.tv.core.util
 
 import android.content.Context
+import android.net.Uri
 import com.nuvio.tv.R
 
 /**
@@ -9,7 +10,9 @@ import com.nuvio.tv.R
  */
 fun Context.readAppLogoBytes(): ByteArray? =
     try {
-        resources.openRawResource(R.drawable.app_logo_wordmark).use { it.readBytes() }
+        // android.resource supports drawable bytes without treating a drawable ID as @RawRes.
+        val uri = Uri.parse("android.resource://$packageName/${R.drawable.app_logo_wordmark}")
+        contentResolver.openInputStream(uri)?.use { it.readBytes() }
     } catch (_: Exception) {
         null
     }

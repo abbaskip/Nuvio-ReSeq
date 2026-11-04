@@ -165,9 +165,12 @@ can be preserved without publishing.
 Local scheduled tasks need the PC on, the desktop app running and project files
 available. Windows was on Sydney's DST-aware timezone at setup. Its High
 performance plan had AC sleep disabled, DC sleep 10 minutes and hibernation
-15 minutes on AC/DC. No power settings were changed. If it hibernates, keep the
-PC awake overnight or explicitly adjust hibernation yourself. Native scheduling
+15 minutes on AC/DC. This is the configured timeout after sleep, not evidence
+that an awake PC hibernates after 15 minutes. AC sleep is already disabled; keep
+the PC plugged in, awake and Codex running. No power settings were changed. Native scheduling
 does not guarantee waking a hibernated computer. Use Run now after a missed run.
+See [OpenAI scheduled tasks](https://learn.chatgpt.com/docs/automations) and
+[Microsoft's hibernate timeout definition](https://learn.microsoft.com/en-us/windows-hardware/customize/power-settings/sleep-settings-hibernate-idle-timeout).
 
 Scheduled Codex uses default sandbox permissions. At setup, GitHub/ADB and builds
 worked only outside the sandbox; managed `.git` is read-only inside it. Existing

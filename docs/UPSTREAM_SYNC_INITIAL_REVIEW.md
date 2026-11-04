@@ -116,9 +116,15 @@ check silently. The choice was requested during setup.
   command rule. Its rule match was verified; actual unattended operation has not
   yet been observed. The task must report any remaining permission failures.
 - Keep the PC on and the desktop app running. Power settings were not changed:
-  AC sleep was disabled, DC sleep was 10 minutes, and AC/DC hibernation was
-  15 minutes. A hibernated PC cannot be assumed to run the local task.
+  AC sleep was disabled, DC sleep was 10 minutes, and the AC/DC hibernate timeout
+  after sleep was 15 minutes. Keep it plugged in and awake; a hibernated PC cannot
+  be assumed to run the local task. No automatic wake mechanism was added.
 - Disk space was about 1.9 GiB after the build. New worktrees require 3 GiB at
   preflight. Reclaim only this task's disposable build outputs after retaining
   evidence; don't remove active developers' files. Use the native task's Run now
   for a safe catch-up after downtime or a failed preflight.
+
+This task retained a verified ARM32 debug APK, packaged-service evidence and
+`DEVICE_TESTS.md` in `.upstream-sync/artifacts/initial/`, with unit/lint evidence
+under `.upstream-sync/evidence/initial/`. Its own disposable `app/build` was then
+removed, recovering free space to about 3.2 GiB. Other worktrees were untouched.

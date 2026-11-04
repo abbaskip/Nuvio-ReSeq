@@ -3,6 +3,7 @@ package com.nuvio.tv.core.sync
 import com.nuvio.tv.data.mediaserver.ServerCatalog
 import com.nuvio.tv.domain.model.catalogTypeKey
 import com.nuvio.tv.domain.model.catalogRowLegacyKey
+import com.nuvio.tv.domain.model.TvMixHomeCatalog
 import com.nuvio.tv.domain.model.Addon
 import com.nuvio.tv.domain.model.CatalogDescriptor
 import com.nuvio.tv.domain.model.Collection
@@ -71,6 +72,16 @@ internal fun buildHomeCatalogSyncPayload(
     collections: List<Collection>,
     localState: LocalHomeCatalogSettingsState
 ): SyncHomeCatalogPayload {
+    val mixKey = TvMixHomeCatalog.key
+    val hasMixSettings = mixKey in localState.orderKeys || mixKey in localState.disabledKeys ||
+        mixKey in localState.customTitles
+    val mixEntries = if (hasMixSettings) listOf(HomeCatalogSyncEntry(
+        key = mixKey,
+        addonId = TvMixHomeCatalog.ADDON_ID,
+        type = TvMixHomeCatalog.TYPE,
+        catalogId = TvMixHomeCatalog.CATALOG_ID,
+        catalogName = TvMixHomeCatalog.TITLE
+    )) else emptyList()
     val catalogEntries = buildCatalogEntries(addons)
     val collectionEntries = collections.map { collection ->
         HomeCatalogSyncEntry(
@@ -79,7 +90,7 @@ internal fun buildHomeCatalogSyncPayload(
             collectionId = collection.id
         )
     }
-    val entryByKey = (catalogEntries + collectionEntries).associateBy { it.key }
+    val entryByKey = (catalogEntries + collectionEntries + mixEntries).associateBy { it.key }
     val catalogKeys = catalogEntries.map { it.key }
     val collectionKeys = collectionEntries.map { it.key }
 
@@ -91,7 +102,8 @@ internal fun buildHomeCatalogSyncPayload(
     val savedSet = savedValid.toSet()
     val mergedOrder = savedValid +
         catalogKeys.filterNot { it in savedSet } +
-        collectionKeys.filterNot { it in savedSet }
+        collectionKeys.filterNot { it in savedSet } +
+        mixEntries.map { it.key }.filterNot { it in savedSet }
 
     val items = mergedOrder.mapIndexedNotNull { index, key ->
         val entry = entryByKey[key] ?: return@mapIndexedNotNull null

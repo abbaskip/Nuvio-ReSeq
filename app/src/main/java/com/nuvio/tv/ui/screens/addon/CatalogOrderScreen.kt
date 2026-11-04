@@ -192,7 +192,8 @@ private fun CatalogOrderCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${item.catalogName} - ${item.typeLabel.toDisplayTypeLabel()}",
+                    text = if (item.typeLabel.isBlank()) item.catalogName
+                        else "${item.catalogName} - ${item.typeLabel.toDisplayTypeLabel()}",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = if (item.isDisabled) NuvioTheme.colors.TextSecondary else NuvioTheme.colors.TextPrimary
                 )

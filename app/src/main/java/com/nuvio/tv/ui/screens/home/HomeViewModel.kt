@@ -351,6 +351,7 @@ class HomeViewModel @Inject constructor(
     init {
         tvMixStore?.let { store -> viewModelScope.launch { store.mixes.collectLatest { mixes ->
             tvMixes = mixes
+            rebuildCatalogOrder(addonsCache)
             scheduleUpdateCatalogRows()
         } } }
         // Accumulates individual watched status changes and flushes them as a single

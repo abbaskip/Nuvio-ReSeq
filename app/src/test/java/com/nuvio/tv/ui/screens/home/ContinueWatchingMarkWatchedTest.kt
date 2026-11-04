@@ -32,6 +32,20 @@ class ContinueWatchingMarkWatchedTest {
         )
     )
 
+    @Test
+    fun `mark watched retains every component of a verified combined episode`() {
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(
+            10, "alternate", 20, 1, 2, listOf(100L, 101L), "tt1:1:2"
+        )
+        val item = inProgress()
+        val combined = item.copy(progress = item.progress.copy(tvdbContext = context, tvdbEpisodeIds = context.episodeIds))
+        assertEquals(context, combined.toCompletedProgress().tvdbContext)
+        assertEquals(context.episodeIds, combined.toCompletedProgress().tvdbEpisodeIds)
+        assertFalse(combined.copy(progress = combined.progress.copy(tvdbCoverageVerified = false)).canMarkWatched())
+        val legacy = nextUp()
+        assertFalse(legacy.copy(info = legacy.info.copy(tvdbEpisodeId = 20L)).canMarkWatched())
+    }
+
     private fun nextUp(hasAired: Boolean = true, thumbnail: String? = "thumb") = ContinueWatchingItem.NextUp(
         NextUpInfo(
             contentId = "tt1",

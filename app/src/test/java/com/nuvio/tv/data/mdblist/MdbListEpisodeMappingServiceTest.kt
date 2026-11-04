@@ -72,6 +72,15 @@ class MdbListEpisodeMappingServiceTest {
         assertNull(service.cached("tt1"))
     }
 
+    @Test
+    fun `provider native TVDB writes bypass addon numbering even with a cached anime mapping`() = runTest {
+        val service = service(addonSeasons = listOf(24, 24), tmdbSeasons = listOf(48))
+        service.resolve("tt1", 1)
+        val original = episodeReference(2, 11)
+        val canonical = original.copy(catalog = original.catalog!!.copy(providerDefault = true))
+        assertSame(canonical, service.toMdbListNumbering(canonical, null))
+    }
+
     private fun episodeReference(season: Int, episode: Int) = TrackingMediaReference(
         kind = TrackingMediaKind.SHOW,
         ids = TrackingExternalIds(imdb = "tt1", tmdb = 1),

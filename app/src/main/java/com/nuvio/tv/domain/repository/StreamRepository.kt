@@ -24,12 +24,15 @@ interface StreamRepository {
         season: Int? = null,
         episode: Int? = null,
         forceRefresh: Boolean = false,
-        contentContext: com.nuvio.tv.domain.model.StreamContentContext? = null
+        contentContext: com.nuvio.tv.domain.model.StreamContentContext? = null,
+        priorityBingeGroup: String? = null,
+        preferredPluginOnly: Boolean = false,
+        continuePluginOnly: Boolean = false
     ): Flow<NetworkResult<List<AddonStreams>>>
 
     /**
-     * Returns the streams a recent [getStreamsFromAllAddons] search already holds for this video,
-     * or null when none is cached. Never starts a search.
+     * Returns streams a recent search already holds for this video, including a plugin
+     * continuation stored under a different search mode. Never starts a search.
      */
     suspend fun getCachedStreamsFromAllAddons(
         type: String,

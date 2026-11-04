@@ -63,7 +63,8 @@ class AddonEpisodeListService @Inject constructor(
         contentId: String,
         contentType: String
     ): List<EpisodeMappingEntry> {
-        val cacheKey = cacheKey(contentId, contentType)
+        val profile = profiles.activeProfileId.value
+        val cacheKey = "$profile|${contentType.trim().lowercase()}|${contentId.trim()}"
 
         // Fast path: cache hit
         cacheMutex.withLock {
@@ -95,7 +96,7 @@ class AddonEpisodeListService @Inject constructor(
 
         return try {
             val meta = fetchSeriesMeta(contentId, contentType)
-            val episodes = meta?.videos?.toEpisodeMappingEntries() ?: emptyList()
+            val episodes = meta?.takeIf { profiles.activeProfileId.value == profile }?.videos?.toEpisodeMappingEntries().orEmpty()
             if (episodes.isNotEmpty()) {
                 cacheMutex.withLock { episodesCache[cacheKey] = episodes }
             }
@@ -107,10 +108,6 @@ class AddonEpisodeListService @Inject constructor(
         } finally {
             cacheMutex.withLock { episodesInFlight.remove(cacheKey) }
         }
-    }
-
-    private fun cacheKey(contentId: String, contentType: String): String {
-        return "${profiles.activeProfileId.value}|${contentType.trim().lowercase()}|${contentId.trim()}"
     }
 
     private suspend fun fetchSeriesMeta(contentId: String, contentType: String): Meta? {

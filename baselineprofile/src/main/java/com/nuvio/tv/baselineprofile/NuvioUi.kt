@@ -64,9 +64,6 @@ internal const val DEFAULT_TARGET_PACKAGE = "io.github.abbaskip.nuvioreseq"
 /** Application id of the benchmark build of the app, it carries the `.debug` suffix. */
 internal const val BENCHMARK_TARGET_PACKAGE = "io.github.abbaskip.nuvioreseq.debug"
 
-/** Application id of this test module, never a valid app-under-test package. */
-internal const val TEST_MODULE_PACKAGE = "com.nuvio.tv.baselineprofile"
-
 /**
  * Runner argument the baseline profile gradle plugin fills with the application id of the
  * tested APK. It is the authoritative source of the package under test.
@@ -101,9 +98,15 @@ internal fun instrumentationArg(name: String, default: String? = null): String? 
  * @param expected the package id the caller knows the app under test has.
  */
 internal fun resolveTargetPackage(device: UiDevice, expected: String): String {
-    val installed = device.executeShellCommand("pm path $expected").trim()
-    require(installed.startsWith("package:")) { "Expected ReSeq test target $expected is not installed" }
-    return expected
+    val target = instrumentationArg(TARGET_PACKAGE_ARGUMENT) ?: expected
+    require(target in setOf(DEFAULT_TARGET_PACKAGE, BENCHMARK_TARGET_PACKAGE,
+        "$DEFAULT_TARGET_PACKAGE.playstore", "$DEFAULT_TARGET_PACKAGE.playstore.debug")) {
+        "Unexpected target package for the ReSeq benchmark"
+    }
+    require(device.executeShellCommand("pm path $target").trim().startsWith("package:")) {
+        "Expected ReSeq test target $target is not installed"
+    }
+    return target
 }
 
 /** Waits for a node whose text or content description contains [text]. */

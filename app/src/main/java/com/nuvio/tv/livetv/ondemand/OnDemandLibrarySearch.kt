@@ -81,6 +81,13 @@ class OnDemandLibrarySearchViewModel @Inject constructor(
     init {
         repository.start()
         viewModelScope.launch {
+            repository.artworkUpdates.collect { urls ->
+                _ui.update { state -> state.copy(rows = state.rows.map { row -> row.copy(items = row.items.map { item ->
+                    if (urls.containsKey(item.uid)) item.copy(icon = urls[item.uid]) else item
+                }) }) }
+            }
+        }
+        viewModelScope.launch {
             // Re-run when imports, playlist eligibility, visibility or PIN access change.
             combine(repository.version, preferences.playlists, preferences.settings, preferences.userState,
                 ParentalControls.unlocked) { _, _, _, _, _ -> Unit }.collect { restart() }

@@ -289,6 +289,12 @@ internal fun LiveTvSettingsContent(
     val developerToolsOn by com.nuvio.tv.livetv.model.DeveloperTools.enabled.collectAsStateWithLifecycle()
     val onDemandHas by viewModel.onDemand.hasContent.collectAsStateWithLifecycle()
     val onDemandStatus by viewModel.onDemand.status.collectAsStateWithLifecycle()
+    val storageSnapshot by viewModel.storage.collectAsStateWithLifecycle()
+    val storageBusy by viewModel.storageBusy.collectAsStateWithLifecycle()
+    val storageMessage by viewModel.storageMessage.collectAsStateWithLifecycle()
+    var showStorage by remember { mutableStateOf(false) }
+    if (showStorage) IptvStorageDialog(storageSnapshot, storageBusy, storageMessage,
+        onMeasure = { viewModel.measureStorage() }, onClean = { viewModel.measureStorage(clean = true) }, onDismiss = { showStorage = false })
     var pinWrong by remember { mutableStateOf(false) }
 
     fun update(t: (LiveTvSettings) -> LiveTvSettings) = viewModel.update(t)
@@ -337,6 +343,10 @@ internal fun LiveTvSettingsContent(
             verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md)
         ) {
             // ------------------------------------------------------------ Playlists & Guides
+            if (show(LiveTvPage.MAIN) || show(LiveTvPage.ON_DEMAND)) item(key = "iptv_storage") {
+                SettingsActionRow("IPTV storage and cleanup", subtitle = "Catalogue, guide, artwork and installer sizes",
+                    onClick = { showStorage = true; viewModel.measureStorage() })
+            }
             if (show(LiveTvPage.MAIN)) item(key = "sources") {
                 LiveSection(
                     title = "Playlists & Guides",
@@ -594,12 +604,17 @@ internal fun LiveTvSettingsContent(
                     )
                     // One switch per Xtream login (logins added before On Demand start switched off).
                     playlists.filter { it.isXtream }.forEach { pl ->
+                        var importSettings by remember(pl.id) { mutableStateOf(false) }
                         SettingsToggleRow(
                             "Movies & Series from ${pl.name}",
                             if (pl.importVod) "Included" else "Not included. Switch on to import this provider's movies and series.",
                             pl.importVod,
                             { viewModel.savePlaylist(pl.copy(importVod = !pl.importVod)) }
                         )
+                        if (pl.importVod) SettingsActionRow("Import and storage options for ${pl.name}",
+                            subtitle = "Movies, series, categories and source matching mode", onClick = { importSettings = true })
+                        if (importSettings) com.nuvio.tv.livetv.ondemand.VodImportSettingsDialog(pl, viewModel.onDemand,
+                            onSave = viewModel::savePlaylist, onDismiss = { importSettings = false })
                     }
                     SubHeading("In Nuvio")
                     SettingsToggleRow(
@@ -1131,6 +1146,8 @@ internal fun LiveTvSettingsContent(
                         "Past Shows Kept", "How far back the guide keeps shows, for catch-up",
                         hoursLabel(s.epgPastHours), onClick = { dialog = LiveDialog.PastHours }
                     )
+                    SettingsToggleRow("Keep programme descriptions", "Switch off to keep titles, times and assignments without detailed synopses or cast. Rebuilds the guide.",
+                        s.epgDescriptions, { viewModel.updateAndReloadEpg { it.copy(epgDescriptions = !it.epgDescriptions) } })
                     SettingsActionRow(
                         title = "Guide Time Shift",
                         subtitle = "Moves all listings earlier or later, for a guide that's out of step with what's playing",

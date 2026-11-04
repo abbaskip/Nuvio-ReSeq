@@ -78,7 +78,22 @@ class StreamLinkCacheDataStore @Inject constructor(
 
         store().edit { prefs ->
             prefs[cachePrefKey(contentKey)] = payload
+            pruneEntries(prefs)
         }
+    }
+
+    suspend fun pruneAllProfiles() {
+        (profileManager.profiles.value.map { it.id } + profileManager.activeProfileId.value).distinct().forEach { id ->
+            store(id).edit { pruneEntries(it) }
+        }
+    }
+
+    private fun pruneEntries(prefs: androidx.datastore.preferences.core.MutablePreferences) {
+        val cutoff = System.currentTimeMillis() - 30L * 24 * 60 * 60_000L
+        val entries = prefs.asMap().filterKeys { it.name.startsWith("stream_link_") }.map { (key, value) ->
+            key to runCatching { JSONObject(value as String).optLong("cachedAtMs", 0L) }.getOrDefault(0L)
+        }.sortedByDescending { it.second }
+        entries.forEachIndexed { index, (key, stamp) -> if (index >= 2000 || stamp < cutoff) prefs.remove(key) }
     }
 
     suspend fun getValid(contentKeys: List<String>, maxAgeMs: Long, enabled: Boolean): CachedStreamLink? {

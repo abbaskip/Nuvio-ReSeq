@@ -89,6 +89,8 @@ class UpdateJobService : JobService() {
         if (!VersionUtils.isRemoteNewer(update.tag, BuildConfig.VERSION_NAME)) return
         if (update.tag == preferences.ignoredTag.first()) return
 
+        // Banner-only checks keep no installer on disk. Download when the user chooses Install.
+        if (!autoInstallEnabled) return
         downloadStore.download(update).getOrThrow()
         Log.d(TAG, "Downloaded ${update.tag} in the background")
         if (autoInstallEnabled) scheduleIdleInstall(applicationContext)

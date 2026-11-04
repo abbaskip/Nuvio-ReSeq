@@ -99,6 +99,16 @@ class OnDemandViewModel @Inject constructor(
 
     init {
         repository.start()
+        viewModelScope.launch {
+            repository.artworkUpdates.collect { urls ->
+                fun changed(item: VodItem) = if (urls.containsKey(item.uid)) item.copy(icon = urls[item.uid], artworkCheckedAt = System.currentTimeMillis()) else item
+                homeItems.entries.forEach { (key, items) ->
+                    if (items.any { it.uid in urls }) homeItems[key] = items.map(::changed)
+                }
+                _ui.value = _ui.value.copy(items = _ui.value.items.map(::changed))
+                if (homeItems.isNotEmpty()) updateHomeRows()
+            }
+        }
         viewModelScope.launch { repository.version.collect { reload() } }
         // New genres from the background fill: refresh the lists, keep your place.
         viewModelScope.launch { repository.genreUpdates.drop(1).collect { refreshGenres() } }
@@ -306,13 +316,14 @@ class OnDemandViewModel @Inject constructor(
             // The first page of every group (each a quick read from the device's catalog).
             for ((c, _) in homeGroups) {
                 val (sort, seed) = sortOf(c.uid)
-                val raw = repository.items(c.kind, c, emptySet(), false, HOME_PAGE, 0, sort, merge = settings.value.vodMergeDuplicates, seed = seed)
+                val raw = repository.items(c.kind, c, emptySet(), false, HOME_PAGE, 0, sort, merge = settings.value.vodMergeDuplicates, seed = seed, prefetchArtwork = false)
                 val page = dedupe(emptyList(), raw)
                 homeItems[c.uid] = page
                 homeRead[c.uid] = raw.size
                 if (raw.size < HOME_PAGE) homeEnded += c.uid
             }
             _home.value = VodHomeState(rows = buildHomeRows(), groups = entries, loading = false)
+            homeGroups.take(2).forEach { (category, _) -> repository.requestArtwork(homeItems[category.uid].orEmpty().take(10)) }
         }
     }
 
@@ -449,6 +460,10 @@ class OnDemandViewModel @Inject constructor(
     fun focusHome(metaId: String) {
         val uid = VodHomeIds.uidOf(metaId) ?: return
         uid.split(':').getOrNull(1)?.let { focusedPlaylist.value = it }
+        homeItems.values.firstOrNull { items -> items.any { it.uid == uid } }?.let { row ->
+            val index = row.indexOfFirst { it.uid == uid }
+            repository.requestArtwork(row.subList((index - 3).coerceAtLeast(0), (index + 8).coerceAtMost(row.size)))
+        }
     }
 
     // ------------------------------------------------------------ watched marks and the options menu

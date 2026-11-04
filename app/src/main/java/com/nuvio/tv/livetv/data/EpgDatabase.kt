@@ -19,6 +19,8 @@ import javax.inject.Singleton
 class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
     SQLiteOpenHelper(context, "livetv_guide.db", null, 3) {
 
+    @Volatile var retainDescriptions: Boolean = true
+
     init {
         // Readers don't wait for writers: the guide stays readable (scrolling, catch-up) while a
         // guide update is being stored, instead of stalling until it finishes.
@@ -81,12 +83,12 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                     stmt.bindLong(2, p.startMs)
                     stmt.bindLong(3, p.stopMs)
                     stmt.bindString(4, p.title)
-                    p.description?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
+                    p.description?.takeIf { retainDescriptions }?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
                     p.category?.let { stmt.bindString(6, it) } ?: stmt.bindNull(6)
                     p.episode?.let { stmt.bindString(7, it) } ?: stmt.bindNull(7)
                     p.icon?.let { stmt.bindString(8, it) } ?: stmt.bindNull(8)
                     p.year?.let { stmt.bindLong(9, it.toLong()) } ?: stmt.bindNull(9)
-                    if (p.people.isEmpty()) stmt.bindNull(10) else stmt.bindString(10, p.people.joinToString("\u001F"))
+                    if (!retainDescriptions || p.people.isEmpty()) stmt.bindNull(10) else stmt.bindString(10, p.people.joinToString("\u001F"))
                     stmt.executeInsert()
                 }
             }
@@ -134,12 +136,12 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                     stmt.bindLong(2, p.startMs)
                     stmt.bindLong(3, p.stopMs)
                     stmt.bindString(4, p.title)
-                    p.description?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
+                    p.description?.takeIf { retainDescriptions }?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
                     p.category?.let { stmt.bindString(6, it) } ?: stmt.bindNull(6)
                     p.episode?.let { stmt.bindString(7, it) } ?: stmt.bindNull(7)
                     p.icon?.let { stmt.bindString(8, it) } ?: stmt.bindNull(8)
                     p.year?.let { stmt.bindLong(9, it.toLong()) } ?: stmt.bindNull(9)
-                    if (p.people.isEmpty()) stmt.bindNull(10) else stmt.bindString(10, p.people.joinToString("\u001F"))
+                    if (!retainDescriptions || p.people.isEmpty()) stmt.bindNull(10) else stmt.bindString(10, p.people.joinToString("\u001F"))
                     stmt.executeInsert()
                 }
             }
@@ -373,7 +375,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             programs.forEach { p ->
                 stmt.clearBindings()
                 stmt.bindString(1, ch); stmt.bindLong(2, p.startMs); stmt.bindLong(3, p.stopMs); stmt.bindString(4, p.title)
-                p.description?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
+                p.description?.takeIf { retainDescriptions }?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
                 stmt.bindNull(6); stmt.bindNull(7); stmt.bindNull(8); stmt.bindNull(9); stmt.bindNull(10)
                 stmt.executeInsert()
             }
@@ -452,12 +454,12 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 stmt.clearBindings()
                 stmt.bindString(1, src); stmt.bindString(2, xid)
                 stmt.bindLong(3, p.startMs); stmt.bindLong(4, p.stopMs); stmt.bindString(5, p.title)
-                p.description?.let { stmt.bindString(6, it) } ?: stmt.bindNull(6)
+                p.description?.takeIf { retainDescriptions }?.let { stmt.bindString(6, it) } ?: stmt.bindNull(6)
                 p.category?.let { stmt.bindString(7, it) } ?: stmt.bindNull(7)
                 p.episode?.let { stmt.bindString(8, it) } ?: stmt.bindNull(8)
                 p.icon?.let { stmt.bindString(9, it) } ?: stmt.bindNull(9)
                 p.year?.let { stmt.bindLong(10, it.toLong()) } ?: stmt.bindNull(10)
-                if (p.people.isEmpty()) stmt.bindNull(11) else stmt.bindString(11, p.people.joinToString("\u001F"))
+                if (!retainDescriptions || p.people.isEmpty()) stmt.bindNull(11) else stmt.bindString(11, p.people.joinToString("\u001F"))
                 stmt.executeInsert()
                 m[0]++
                 if (p.stopMs > m[1]) m[1] = p.stopMs
@@ -500,7 +502,13 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             if (!open) return
             open = false
             runCatching { db.endTransaction() }
-            runCatching { db.delete("stage_info", "src = ?", arrayOf(src)) }
+            runCatching {
+                db.beginTransaction()
+                try {
+                    for (table in STAGING_TABLES) db.delete(table, "src = ?", arrayOf(src))
+                    db.setTransactionSuccessful()
+                } finally { db.endTransaction() }
+            }
         }
     }
 
@@ -596,15 +604,19 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
     /** Guides no longer used: their staged listings go. */
     fun dropStagesExcept(keep: Collection<String>) {
         val db = writableDatabase
-        val stale = ArrayList<String>()
-        db.rawQuery("SELECT src FROM stage_info", null).use { c -> while (c.moveToNext()) stale += c.getString(0) }
-        db.rawQuery("SELECT DISTINCT src FROM stage_meta", null).use { c -> while (c.moveToNext()) stale += c.getString(0) }
-        stale.distinct().filter { it !in keep }.forEach { src ->
-            db.delete("stage", "src = ?", arrayOf(src))
-            db.delete("stage_meta", "src = ?", arrayOf(src))
-            db.delete("stage_channels", "src = ?", arrayOf(src))
-            db.delete("stage_info", "src = ?", arrayOf(src))
-        }
+        db.beginTransaction()
+        try {
+            if (keep.isEmpty()) {
+                STAGING_TABLES.forEach { db.delete(it, null, null) }
+            } else {
+                val stale = ArrayList<String>()
+                db.rawQuery(STAGING_TABLES.joinToString(" UNION ") { "SELECT DISTINCT src FROM $it" }, null).use { c ->
+                    while (c.moveToNext()) if (c.getString(0) !in keep) stale += c.getString(0)
+                }
+                stale.forEach { src -> STAGING_TABLES.forEach { db.delete(it, "src = ?", arrayOf(src)) } }
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
     }
 
     /**
@@ -638,7 +650,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             }
             db.execSQL(
                 "INSERT INTO programs (ch, start, stop, title, descr, cat, ep, icon, year, people) " +
-                    "SELECT c.ch, s.start, s.stop, s.title, s.descr, s.cat, s.ep, s.icon, s.year, s.people " +
+                    "SELECT c.ch, s.start, s.stop, s.title, ${if (retainDescriptions) "s.descr" else "NULL"}, s.cat, s.ep, s.icon, s.year, ${if (retainDescriptions) "s.people" else "NULL"} " +
                     "FROM stage s JOIN temp.choice c ON c.src = s.src AND c.xid = s.xid WHERE s.stop > ? AND s.start < ?",
                 arrayOf<Any>(fromMs, toMs)
             )
@@ -650,12 +662,12 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 list.forEach { p ->
                     stmt.clearBindings()
                     stmt.bindString(1, ch); stmt.bindLong(2, p.startMs); stmt.bindLong(3, p.stopMs); stmt.bindString(4, p.title)
-                    p.description?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
+                    p.description?.takeIf { retainDescriptions }?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
                     p.category?.let { stmt.bindString(6, it) } ?: stmt.bindNull(6)
                     p.episode?.let { stmt.bindString(7, it) } ?: stmt.bindNull(7)
                     p.icon?.let { stmt.bindString(8, it) } ?: stmt.bindNull(8)
                     p.year?.let { stmt.bindLong(9, it.toLong()) } ?: stmt.bindNull(9)
-                    if (p.people.isEmpty()) stmt.bindNull(10) else stmt.bindString(10, p.people.joinToString("\u001F"))
+                    if (!retainDescriptions || p.people.isEmpty()) stmt.bindNull(10) else stmt.bindString(10, p.people.joinToString("\u001F"))
                     stmt.executeInsert()
                 }
             }
@@ -685,6 +697,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         runCatching { db.delete("stage", null, null); db.delete("stage_meta", null, null); db.delete("stage_channels", null, null); db.delete("stage_info", null, null) }
     }
 }
+
+private val STAGING_TABLES = listOf("stage", "stage_meta", "stage_channels", "stage_info")
 
 /** Longest single listing assumed when reading a time window (longer ones are very rare). */
 private const val MAX_SHOW_MS = 6L * 60 * 60 * 1000

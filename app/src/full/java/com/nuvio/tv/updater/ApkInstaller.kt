@@ -13,6 +13,23 @@ import java.io.File
 
 object ApkInstaller {
 
+    fun isCompatibleUpdate(context: Context, apk: File): Boolean = runCatching {
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            else android.content.pm.PackageManager.GET_SIGNATURES
+        @Suppress("DEPRECATION")
+        val installed = context.packageManager.getPackageInfo(context.packageName, flags)
+        @Suppress("DEPRECATION")
+        val candidate = context.packageManager.getPackageArchiveInfo(apk.path, flags) ?: return false
+        if (candidate.packageName != context.packageName) return false
+        @Suppress("DEPRECATION")
+        val newer = if (Build.VERSION.SDK_INT >= 28) candidate.longVersionCode > installed.longVersionCode
+            else candidate.versionCode > installed.versionCode
+        @Suppress("DEPRECATION")
+        fun signatures(info: PackageInfo) = if (Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners?.toSet()
+            else info.signatures?.toSet()
+        newer && !signatures(installed).isNullOrEmpty() && signatures(installed) == signatures(candidate)
+    }.getOrDefault(false)
+
     fun canRequestPackageInstalls(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.packageManager.canRequestPackageInstalls()
@@ -44,6 +61,7 @@ object ApkInstaller {
         background: Boolean,
         withDexMetadata: Boolean = true
     ) {
+        UpdateFiles(File(context.filesDir, "updates")).pin(apkFile)
         val packageInstaller = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
             setAppPackageName(context.packageName)
@@ -84,6 +102,7 @@ object ApkInstaller {
 
     /** Hands the APK to the system installer screen, used when the session install cannot be completed. */
     fun launchSystemInstaller(context: Context, apkFile: File) {
+        UpdateFiles(File(context.filesDir, "updates")).pin(apkFile)
         val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
         val uri = FileProvider.getUriForFile(context, authority, apkFile)
 

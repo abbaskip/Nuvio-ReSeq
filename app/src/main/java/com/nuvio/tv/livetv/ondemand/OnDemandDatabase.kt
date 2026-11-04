@@ -76,7 +76,8 @@ data class VodItem(
     /** The provider's genres, as sent ("Action, Comedy"). Not every provider includes them. */
     val genre: String? = null,
     /** With duplicates merged: how many copies of this title there are (qualities, providers). */
-    val copies: Int = 1
+    val copies: Int = 1,
+    val artworkCheckedAt: Long = 0L
 ) {
     val uid: String get() = "${kind.key}:$playlistId:$id"
 }
@@ -99,26 +100,21 @@ data class VodCategory(
  */
 @Singleton
 class OnDemandDatabase @Inject constructor(@ApplicationContext private val appContext: Context) :
-    SQLiteOpenHelper(appContext, "livetv_on_demand.db", null, 10) {
+    SQLiteOpenHelper(appContext, "livetv_on_demand.db", null, 11) {
 
     init {
         // Browsing On Demand doesn't wait while an import or genre lookup is writing.
         setWriteAheadLoggingEnabled(true)
     }
+    @Volatile private var compactStorage = false
+
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        compactStorage = CatalogSchema.isCompact(db)
+    }
 
     override fun onCreate(db: SQLiteDatabase) {
-        db.execSQL(
-            """CREATE TABLE items (
-                pl TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL,
-                name TEXT NOT NULL, norm TEXT NOT NULL, icon TEXT, cat TEXT NOT NULL,
-                ext TEXT, tmdb TEXT, year INTEGER, rating TEXT, added INTEGER NOT NULL DEFAULT 0,
-                genre TEXT, h INTEGER,
-                PRIMARY KEY (pl, kind, id))"""
-        )
-        db.execSQL("CREATE INDEX items_cat ON items(kind, pl, cat)")
-        db.execSQL("CREATE INDEX items_norm ON items(kind, norm)")
-        db.execSQL("CREATE INDEX items_tmdb ON items(kind, tmdb)")
-        db.execSQL("CREATE INDEX items_added ON items(kind, added)")
+        CatalogSchema.create(db)
         createImportTable(db)
         createPosterTable(db)
         createPrefixTable(db)
@@ -165,6 +161,21 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
             db.execSQL("DELETE FROM posters")
         }
         if (oldVersion < 10) createImportTable(db)
+        if (oldVersion < 11) {
+            if (CatalogSchema.migrateOrDefer(db)) reindexTitles(db)
+        }
+    }
+
+    private fun reindexTitles(db: SQLiteDatabase) {
+        db.rawQuery("SELECT rowid, name, norm FROM items ORDER BY rowid", null).use { cursor ->
+            db.compileStatement("UPDATE catalog_items SET norm=? WHERE rowid=?").use { update ->
+                while (cursor.moveToNext()) {
+                    val key = normalize(cursor.getString(1))
+                    if (key == cursor.getString(2)) continue
+                    update.bindString(1, key); update.bindLong(2, cursor.getLong(0)); update.executeUpdateDelete()
+                }
+            }
+        }
     }
 
     private fun createImportTable(db: SQLiteDatabase) {
@@ -210,7 +221,26 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
      * an empty one, so Newest and Oldest Release had nothing to sort by. Returns how many.
      */
     /** Gives back space left empty by removed titles (see SqliteCompact). */
-    fun compact(): Long = com.nuvio.tv.livetv.data.SqliteCompact.compactIfWasteful(writableDatabase, "On Demand")
+    @Synchronized
+    fun compact(): Long {
+        val db = writableDatabase
+        if (!compactStorage && CatalogSchema.canMigrate(db)) {
+            db.beginTransaction()
+            try {
+                CatalogSchema.migrate(db); reindexTitles(db)
+                db.setTransactionSuccessful()
+            } finally { db.endTransaction() }
+            compactStorage = true
+        }
+        val now = System.currentTimeMillis()
+        db.delete("posters", "checked < ? OR ((poster IS NULL OR poster='') AND checked < ?)",
+            arrayOf((now - 30L * 24 * 60 * 60_000L).toString(), (now - 7L * 24 * 60 * 60_000L).toString()))
+        db.execSQL("DELETE FROM posters WHERE uid IN (SELECT uid FROM posters ORDER BY checked DESC LIMIT -1 OFFSET 5000)")
+        CatalogSchema.pruneArtwork(db)
+        return com.nuvio.tv.livetv.data.SqliteCompact.compactIfWasteful(db, "On Demand")
+    }
+
+    fun shrinkingNeedsSpace(): Boolean { readableDatabase; return !compactStorage }
 
     /**
      * Release years for titles imported before years were read from their names (imports read
@@ -385,6 +415,8 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
     ): Int {
         val db = writableDatabase
         val session = java.util.UUID.randomUUID().toString()
+        // OR REPLACE on an outer view INSERT would override the triggers' dictionary OR IGNORE.
+        val insert = if (compactStorage) "INSERT" else "INSERT OR REPLACE"
         // A killed process can leave bookkeeping behind, but never an unfinished transaction.
         db.delete("import_seen", null, null)
         var count = 0
@@ -396,7 +428,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         }
         try {
             db.compileStatement(
-                "INSERT OR REPLACE INTO items (pl, kind, id, name, norm, icon, cat, ext, tmdb, year, rating, added, genre, h) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                "$insert INTO items (pl, kind, id, name, norm, icon, cat, ext, tmdb, year, rating, added, genre, h) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
             ).use { stmt ->
                 db.compileStatement("SELECT COALESCE((SELECT h FROM items WHERE pl = ? AND kind = ? AND id = ?), 0)").use { fingerprintQuery ->
                     db.compileStatement("INSERT OR IGNORE INTO import_seen(session, id) VALUES (?, ?)").use { seen ->
@@ -437,9 +469,11 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
                         }
                         transaction {
                             if (complete) {
-                                removed = db.delete("items",
-                                    "pl = ? AND kind = ? AND NOT EXISTS (SELECT 1 FROM import_seen s WHERE s.session = ? AND s.id = items.id)",
-                                    arrayOf(playlistId, kind.key, session))
+                                val obsolete = "pl = ? AND kind = ? AND NOT EXISTS (SELECT 1 FROM import_seen s WHERE s.session = ? AND s.id = items.id)"
+                                val obsoleteArgs = arrayOf(playlistId, kind.key, session)
+                                // SQLite reports zero direct changes for an INSTEAD OF trigger on a view.
+                                removed = db.rawQuery("SELECT COUNT(*) FROM items WHERE $obsolete", obsoleteArgs).use { c -> c.moveToFirst(); c.getInt(0) }
+                                db.delete("items", obsolete, obsoleteArgs)
                                 // A category endpoint failure must not discard the saved names.
                                 if (categories.isNotEmpty()) db.delete("categories", "pl = ? AND kind = ?", arrayOf(playlistId, kind.key))
                             }
@@ -470,8 +504,65 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         dropped.forEach { pl ->
             db.delete("items", "pl = ?", arrayOf(pl))
             db.delete("categories", "pl = ?", arrayOf(pl))
+            db.delete("prefixes", "pl = ?", arrayOf(pl))
+            db.delete("catalog_policy", "pl = ?", arrayOf(pl))
         }
+        db.execSQL("DELETE FROM posters WHERE uid NOT IN (SELECT kind || ':' || pl || ':' || id FROM items)")
         return dropped
+    }
+
+    @Synchronized
+    fun configureImport(source: com.nuvio.tv.livetv.model.PlaylistSource): Boolean {
+        val db = writableDatabase
+        val old = db.rawQuery("SELECT signature, lean FROM catalog_policy WHERE pl=?", arrayOf(source.id)).use {
+            if (it.moveToFirst()) it.getString(0) to (it.getInt(1) != 0) else null
+        }
+        if (old?.first == source.vodImportPolicy()) return false
+        db.beginTransaction()
+        try {
+            for (kind in VodKind.entries) {
+                val enabled = if (kind == VodKind.MOVIE) source.vodMovies else source.vodSeries
+                val selected = source.vodCategories(kind == VodKind.SERIES)
+                if (!enabled || selected?.isEmpty() == true) {
+                    db.delete("items", "pl=? AND kind=?", arrayOf(source.id, kind.key))
+                    db.delete("categories", "pl=? AND kind=?", arrayOf(source.id, kind.key))
+                } else if (selected != null) {
+                    val where = "pl=? AND kind=? AND cat NOT IN (${selected.joinToString { "?" }})"
+                    db.delete("items", where, (listOf(source.id, kind.key) + selected).toTypedArray())
+                    db.delete("categories", "pl=? AND kind=? AND id NOT IN (${selected.joinToString { "?" }})",
+                        (listOf(source.id, kind.key) + selected).toTypedArray())
+                }
+            }
+            if (source.vodSourceOnly && old?.second != true) {
+                db.execSQL("UPDATE items SET icon=NULL, genre=NULL, browse_at=0, h=NULL WHERE pl=?", arrayOf(source.id))
+            }
+            db.insertWithOnConflict("catalog_policy", null, ContentValues().apply {
+                put("pl", source.id); put("signature", source.vodImportPolicy()); put("lean", if (source.vodSourceOnly) 1 else 0)
+            }, SQLiteDatabase.CONFLICT_REPLACE)
+            CatalogSchema.pruneArtwork(db)
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+        return true
+    }
+
+    @Synchronized
+    fun cacheBrowseArtwork(playlistId: String, kind: VodKind, urls: Map<String, String?>, now: Long = System.currentTimeMillis()) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.compileStatement("UPDATE items SET icon=?, browse_at=? WHERE pl=? AND kind=? AND id=?").use { update ->
+                urls.forEach { (id, url) ->
+                    update.clearBindings()
+                    if (url == null) update.bindNull(1) else update.bindString(1, url)
+                    update.bindLong(2, now); update.bindString(3, playlistId); update.bindString(4, kind.key); update.bindString(5, id)
+                    update.executeUpdateDelete()
+                }
+            }
+            db.execSQL("""UPDATE items SET icon=NULL, genre=NULL, browse_at=0 WHERE rowid IN
+                (SELECT rowid FROM items WHERE pl=? AND browse_at>0 ORDER BY browse_at DESC, rowid DESC LIMIT -1 OFFSET 500)""", arrayOf(playlistId))
+            CatalogSchema.pruneArtwork(db)
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
     }
 
     // ------------------------------------------------------------------ reading
@@ -625,7 +716,8 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         query("SELECT * FROM items WHERE kind = ? AND tmdb = ?", arrayListOf(kind.key, tmdbId))
 
     fun byTitle(kind: VodKind, title: String): List<VodItem> {
-        val keys = titleLookupKeys(title)
+        readableDatabase
+        val keys = if (compactStorage) titleLookupKeys(title) else legacyTitleLookupKeys(title)
         if (keys.isEmpty()) return emptyList()
         return query("SELECT * FROM items WHERE kind = ? AND norm IN (${keys.joinToString { "?" }})",
             arrayListOf(kind.key).apply { addAll(keys) })
@@ -653,7 +745,8 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         rating = getStringOrNull("rating"),
         addedSec = getLong(getColumnIndexOrThrow("added")),
         genre = getColumnIndex("genre").takeIf { it >= 0 }?.let { i -> if (isNull(i)) null else getString(i) },
-        copies = getColumnIndex("copies").takeIf { it >= 0 }?.let { i -> getInt(i) } ?: 1
+        copies = getColumnIndex("copies").takeIf { it >= 0 }?.let { i -> getInt(i) } ?: 1,
+        artworkCheckedAt = getColumnIndex("browse_at").takeIf { it >= 0 }?.let { getLong(it) } ?: 0L
     )
 
     private fun Cursor.getStringOrNull(col: String): String? =
@@ -661,11 +754,21 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
 
     companion object {
         /** Lower case, letters and digits only, with years and quality tags taken out. */
-        fun normalize(s: String): String = normalizeWords(s).joinToString("")
+        fun normalize(s: String): String = normalizeWords(displayTitle(s)).joinToString("")
 
         // Match the same decoration cleanup used by the final title/year identity check.
         internal fun titleLookupKeys(title: String): List<String> =
             listOf(normalize(title), normalize(displayTitle(title))).filter { it.isNotBlank() }.distinct()
+
+        /** Preserve suffix-decorated matches while an old catalogue waits for migration space. */
+        internal fun legacyTitleLookupKeys(title: String): List<String> {
+            val raw = title.replace(PREFIX, "").replace(YEAR_IN_BRACKETS, " ").lowercase().replace(NOISE, " ")
+                .split(NON_WORD).filter { it.isNotBlank() }.joinToString("")
+            val bases = (titleLookupKeys(title) + raw).filter { it.isNotBlank() }.distinct()
+            val tags = LANGUAGE_WORDS.split('|').flatMap { language -> listOf(language, language + "audio", language + "dub", language + "sub") } +
+                listOf("enus", "engb", "enau", "enfr", "enfrsub", "ende", "enes", "ptbr", "ptpt")
+            return (bases + bases.flatMap { base -> tags.map { base + it } }).distinct()
+        }
 
         private val PREFIX = Regex("""^(\[[^\]]*\]|\|[^|]*\||[A-Z]{2,4}\s*[-|:]\s+)+""")
         // Built once: building a pattern is slow, and these run for every title on screen.
@@ -680,6 +783,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         /** Cleaned titles already worked out, by provider title (the same names come up again and again). */
         private val displayTitles = com.nuvio.tv.livetv.data.boundedCache<String, String>(5_000)
         private val NOISE = Regex("""\b(4k|uhd|fhd|hd|sd|1080p|720p|2160p|multi|sub|dub|vostfr)\b""")
+        private val DIACRITICS = Regex("""\p{M}""")
 
         /**
          * The title without the provider's decorations: language / country / service tags in
@@ -760,6 +864,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
             // "x265", "5.1"), and a capital language tag at the very end ("Movie FR").
             // Never down to nothing.
             val before = t
+            repeat(4) { t = t.replace(LANGUAGE_AT_END, "").replace(QUALITY_AT_END, "").trim() }
             t = t.replace(EMOJI_FLAG, " ")
                 .replace(BRACKET_TAG) { m -> if (RELEASE_WORDS.containsMatchIn(m.value) || SHORT_CAPS.matches(m.value)) " " else m.value }
                 .replace(RELEASE_WORDS, " ")
@@ -772,6 +877,16 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         }
 
         private val EMOJI_FLAG = Regex("[\\x{1F1E6}-\\x{1F1FF}]")
+        // Only explicit trailing language decorations. Never remove an ordinary word such as "It" or "En".
+        private const val LANGUAGE_WORDS = "en|eng|english|fr|fra|fre|french|de|deu|ger|german|es|spa|spanish|pt|por|portuguese|nl|nld|dut|it|ita|italian|pl|pol|tr|tur|ar|ara|ru|rus|ja|jpn|ko|kor"
+        private const val LANGUAGE = "(?:$LANGUAGE_WORDS)"
+        private const val LANGUAGE_LIST = "$LANGUAGE(?:[-_](?:us|gb|au|ca|br|pt))?(?:\\s*[/,;+|]\\s*$LANGUAGE)*(?:\\s+(?:audio|dub|sub))?"
+        private val LANGUAGE_AT_END = Regex("(?i)(?:\\s*[\\[({]\\s*$LANGUAGE_LIST\\s*[\\])}]|\\s+[-|:]\\s*$LANGUAGE_LIST)\\s*$")
+        internal fun withoutLanguageDecoration(value: String): String {
+            var title = value
+            repeat(4) { title = title.replace(LANGUAGE_AT_END, "").trim() }
+            return title
+        }
         private val BRACKET_TAG = Regex("""[\[{(][^\[\]{}()]*[\]})]""")
         private val SHORT_CAPS = Regex("""[\[{(]\s*[A-Z]{2,4}\s*[\]})]""")
         private val RELEASE_WORDS = Regex(
@@ -828,7 +943,9 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         private val TRAILING_YEAR = Regex("""(?:^|[\s\-|:,.])((?:19|20)\d{2})\s*$""")
 
         fun normalizeWords(s: String): List<String> =
-            s.replace(PREFIX, "")
+            java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKD)
+                .replace(DIACRITICS, "")
+                .replace(PREFIX, "")
                 .replace(YEAR_IN_BRACKETS, " ")
                 .lowercase()
                 .replace(NOISE, " ")

@@ -72,11 +72,20 @@ class OnDemandBatchImportTest {
     }
 
     @Test fun `version 9 catalog upgrades without losing titles`() {
-        db.replace("test", VodKind.MOVIE, cats) { emit -> emit(item(1)); true }
-        db.writableDatabase.execSQL("DROP TABLE import_seen")
-        db.writableDatabase.version = 9
         db.close()
-        db = OnDemandDatabase(RuntimeEnvironment.getApplication())
+        val context = RuntimeEnvironment.getApplication()
+        context.deleteDatabase("livetv_on_demand.db")
+        // Build the actual released v9 table, rather than relabel a newer storage schema as v9.
+        context.openOrCreateDatabase("livetv_on_demand.db", 0, null).use { legacy ->
+            legacy.execSQL("CREATE TABLE items(pl TEXT NOT NULL,kind TEXT NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,norm TEXT NOT NULL,icon TEXT,cat TEXT NOT NULL,ext TEXT,tmdb TEXT,year INTEGER,rating TEXT,added INTEGER NOT NULL DEFAULT 0,genre TEXT,h INTEGER,PRIMARY KEY(pl,kind,id))")
+            legacy.execSQL("CREATE TABLE categories(pl TEXT NOT NULL,kind TEXT NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,position INTEGER NOT NULL,PRIMARY KEY(pl,kind,id))")
+            legacy.execSQL("CREATE TABLE prefixes(pl TEXT NOT NULL,prefix TEXT NOT NULL,PRIMARY KEY(pl,prefix))")
+            legacy.execSQL("CREATE TABLE posters(uid TEXT PRIMARY KEY,poster TEXT,checked INTEGER NOT NULL,title TEXT)")
+            legacy.execSQL("CREATE TABLE poster_fix(uid TEXT PRIMARY KEY,title TEXT NOT NULL,year INTEGER)")
+            legacy.execSQL("INSERT INTO items VALUES ('test','movie','1','Film 1','film1',NULL,'a','mp4',NULL,NULL,NULL,0,NULL,NULL)")
+            legacy.version = 9
+        }
+        db = OnDemandDatabase(context)
         db.replace("test", VodKind.MOVIE, cats) { emit -> emit(item(1)); emit(item(2)); true }
         assertEquals(2, db.count(VodKind.MOVIE))
     }

@@ -39,6 +39,18 @@ internal fun driveBackupData(envelope: JSONObject): JSONObject {
             val source = sources.getJSONObject(index)
             val id = source.get("id")
             require(id is String && id.isNotBlank() && ids.add(id)) { "Invalid or duplicate source ID" }
+            if (key == "playlists") {
+                for (flag in listOf("vodMovies", "vodSeries", "vodSourceOnly")) {
+                    require(!source.has(flag) || source.get(flag) is Boolean) { "Invalid On Demand import option" }
+                }
+                for (field in listOf("vodMovieCategories", "vodSeriesCategories")) {
+                    if (!source.has(field) || source.isNull(field)) continue
+                    val selected = source.get(field)
+                    require(selected is JSONArray && (0 until selected.length()).all {
+                        selected.opt(it) is String && selected.getString(it).isNotBlank()
+                    }) { "Invalid On Demand category selection" }
+                }
+            }
         }
     }
     data.keys().forEach { key ->

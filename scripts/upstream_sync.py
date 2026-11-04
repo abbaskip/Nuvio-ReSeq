@@ -1,0 +1,342 @@
+"""Local Codex upstream-sync coordinator. Semantic review is performed by Codex.
+
+Never merges, cherry-picks, installs APKs or changes power settings implicitly.
+Publication uses the existing signed ReSeq workflow after exact-commit validation.
+"""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import uuid
+import xml.etree.ElementTree as ET
+
+REPO = "abbaskip/Nuvio-ReSeq"
+ORIGIN = "https://github.com/abbaskip/Nuvio-ReSeq.git"
+UPSTREAM = "https://github.com/NuvioMedia/NuvioTV.git"
+UPSTREAM_REF = "refs/remotes/nuvio-upstream/dev"
+LEDGER = "automation/upstream-ledger.json"
+STATUSES = ("integrated", "equivalent", "irrelevant", "held")
+
+
+def command(*args, cwd=None):
+    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True, encoding="utf-8", errors="replace")
+    if result.returncode:
+        # Commands here contain no secret arguments. Do not echo build output/config.
+        raise RuntimeError(f"Command failed ({result.returncode}): {args[0]} {args[1] if len(args) > 1 else ''}")
+    return result.stdout.strip()
+
+
+def git(*args, cwd=None):
+    return command("git", *args, cwd=cwd)
+
+
+def api(endpoint):
+    return json.loads(command("gh", "api", endpoint))
+
+
+def ancestor(a, b, cwd=None):
+    return subprocess.run(["git", "merge-base", "--is-ancestor", a, b], cwd=cwd, capture_output=True).returncode == 0
+
+
+def save(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
+
+
+def root_dir():
+    common = Path(git("rev-parse", "--git-common-dir")).resolve()
+    if common.name != ".git":
+        raise RuntimeError("Expected a normal shared .git directory")
+    return common.parent
+
+
+def active_releases():
+    runs = api(f"repos/{REPO}/actions/workflows/reseq-release.yml/runs?per_page=30")["workflow_runs"]
+    return [r["id"] for r in runs if r["status"] != "completed"]
+
+
+def choose_base(dev, released):
+    if ancestor(dev, released):
+        return released
+    if ancestor(released, dev):
+        return dev
+    raise RuntimeError("Development and latest published release diverged; compare before choosing a base")
+
+
+def begin(args, root, state):
+    state.mkdir(parents=True, exist_ok=True)
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
+    lock = state / "lock.json"
+    # No timeout/lease stealing: an interrupted run must be explicitly recovered.
+    with lock.open("x", encoding="utf-8") as stream:
+        json.dump({"run": run_id, "started_utc": datetime.now(timezone.utc).isoformat()}, stream)
+    try:
+        if active_releases():
+            raise RuntimeError("An existing release workflow is active; defer this run")
+        # Explicit URLs prevent accidentally monitoring the renamed fork as upstream.
+        git("fetch", "--no-tags", ORIGIN, "+refs/heads/dev:refs/remotes/origin/dev", cwd=root)
+        git("fetch", "--no-tags", UPSTREAM, f"+refs/heads/dev:{UPSTREAM_REF}", cwd=root)
+        latest = api(f"repos/{REPO}/releases/latest")
+        git("fetch", ORIGIN, f"refs/tags/{latest['tag_name']}:refs/tags/{latest['tag_name']}", cwd=root)
+        released = git("rev-parse", f"{latest['tag_name']}^{{commit}}", cwd=root)
+        dev = git("rev-parse", "refs/remotes/origin/dev", cwd=root)
+        base = choose_base(dev, released)
+        upstream = git("rev-parse", UPSTREAM_REF, cwd=root)
+        branch = f"automation/upstream-{run_id}"
+        worktree = root / ".worktrees" / f"upstream-{run_id}"
+        if args.setup_worktree:
+            if not args.dry_run:
+                raise RuntimeError("An existing setup worktree may only be used in dry-run mode")
+            worktree = Path(git("rev-parse", "--show-toplevel")).resolve()
+            branch = git("branch", "--show-current")
+            if worktree == root or not branch or not ancestor(base, "HEAD") or git("status", "--porcelain"):
+                raise RuntimeError("Setup rehearsal requires a clean isolated descendant worktree")
+        else:
+            git("worktree", "add", "-b", branch, str(worktree), base, cwd=root)
+        ledger_path = worktree / LEDGER
+        ledger = json.loads(ledger_path.read_text()) if ledger_path.exists() else {"schema": 1, "commits": {}}
+        # Review-only and held runs need durable decisions even when dev is unchanged.
+        shared = state / "review-ledger.json"
+        if shared.exists():
+            for sha, decision in json.loads(shared.read_text())["commits"].items():
+                if sha not in ledger["commits"] and decision["outcome"] != "integrated":
+                    ledger["commits"][sha] = decision
+            if ledger["commits"]:
+                save(ledger_path, ledger)
+        cherry = {line[2:]: line[0] for line in git("cherry", base, upstream, cwd=root).splitlines()}
+        commits = []
+        for sha in git("rev-list", "--reverse", "--topo-order", "--no-merges", f"{base}..{upstream}", cwd=root).splitlines():
+            previous = ledger["commits"].get(sha)
+            files = git("diff-tree", "--no-commit-id", "--name-only", "-r", sha, cwd=root).splitlines()
+            commits.append({"sha": sha, "subject": git("show", "-s", "--format=%s", sha, cwd=root),
+                            "patch_equivalent": cherry.get(sha) == "-", "previous_review": previous,
+                            "files": files})
+        run = {"schema": 1, "id": run_id, "dry_run": args.dry_run, "branch": branch,
+               "worktree": str(worktree), "dev": dev, "base": base, "upstream": upstream,
+               "latest_tag": latest["tag_name"], "commits": commits, "validation": None,
+               "compatibility": None, "device": None, "publication": None}
+        save(state / "runs" / f"{run_id}.json", run)
+        print(json.dumps({"run": run_id, "worktree": str(worktree), "base": base, "dev": dev,
+                          "latest_tag": latest["tag_name"], "upstream": upstream,
+                          "unreviewed": sum(not c["previous_review"] for c in commits),
+                          "previously_held": sum(bool(c["previous_review"] and c["previous_review"]["outcome"] == "held") for c in commits),
+                          "inventory": str(state / "runs" / f"{run_id}.json")}, indent=2))
+    except Exception:
+        # Preserve the lock once a run manifest exists, otherwise release preflight failure.
+        if not (state / "runs" / f"{run_id}.json").exists():
+            lock.unlink()
+        raise
+
+
+def load_run(state, run_id):
+    if not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z-[a-f0-9]{6}", run_id):
+        raise RuntimeError("Invalid run id")
+    if json.loads((state / "lock.json").read_text())["run"] != run_id:
+        raise RuntimeError("Run does not own the shared lock")
+    return json.loads((state / "runs" / f"{run_id}.json").read_text())
+
+
+def review(run, args):
+    if args.commit not in {c["sha"] for c in run["commits"]}:
+        raise RuntimeError("Commit is not in this run's inventory")
+    path = Path(run["worktree"]) / LEDGER
+    ledger = json.loads(path.read_text()) if path.exists() else {"schema": 1, "commits": {}}
+    ledger["commits"][args.commit] = {"outcome": args.outcome, "reason": args.reason,
+                                      "run": run["id"], "base": run["base"]}
+    save(path, ledger)
+    # Any decision change requires fresh compatibility and exact-commit validation.
+    run["validation"] = run["compatibility"] = run["device"] = None
+
+
+def configure(run, args, root):
+    source = Path(args.properties).resolve()
+    if not source.is_relative_to(root) or not source.is_file():
+        raise RuntimeError("Approved configuration must be an existing file in this project")
+    # Preserve Java properties escaping; never propagate TMDB or signing material.
+    lines = [line for line in source.read_text(encoding="utf-8-sig").splitlines()
+             if "=" in line and not line.lstrip().startswith(("#", "!")) and
+             not re.match(r"\s*(?:TMDB|NUVIO_RELEASE_|sdk\.dir)", line, re.I)]
+    worktree = Path(run["worktree"])
+    (worktree / "local.dev.properties").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if args.sdk:
+        lines.append("sdk.dir=" + Path(args.sdk).resolve().as_posix())
+    (worktree / "local.properties").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print("Project service settings prepared; TMDB and signing properties excluded; values withheld.")
+
+
+def validation(run):
+    worktree = Path(run["worktree"])
+    if git("status", "--porcelain", cwd=worktree):
+        raise RuntimeError("Commit reviewed changes/version/notes/ledger before exact-commit validation")
+    run["validation"] = None
+    head = git("rev-parse", "HEAD", cwd=worktree)
+    output = worktree / "build" / "upstream-sync"
+    output.mkdir(parents=True, exist_ok=True)
+    commands = [[sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-v"],
+                [str(worktree / ("gradlew.bat" if os.name == "nt" else "gradlew")),
+                 ":app:testFullDebugUnitTest", ":app:assembleFullDebug", ":app:compilePlaystoreDebugKotlin",
+                 ":app:lintFullDebug", "-PuseLocalFfmpegDecoder=false",
+                 "-Pkotlin.compiler.execution.strategy=in-process", "--max-workers=2", "--console=plain"]]
+    env = dict(os.environ, PYTHONPATH="scripts")
+    for index, argv in enumerate(commands):
+        log = output / f"validation-{index}.log"
+        with log.open("w", encoding="utf-8") as stream:
+            result = subprocess.run(argv, cwd=worktree, env=env, stdout=stream, stderr=subprocess.STDOUT)
+        if result.returncode:
+            raise RuntimeError(f"Validation failed; inspect {log}; no publication allowed")
+    git("diff", "--check", cwd=worktree)
+    suites = [ET.parse(p).getroot() for p in (worktree / "app/build/test-results/testFullDebugUnitTest").glob("TEST-*.xml")]
+    totals = {key: sum(int(s.get(key, 0)) for s in suites) for key in ("tests", "failures", "errors", "skipped")}
+    if not totals["tests"] or totals["failures"] or totals["errors"]:
+        raise RuntimeError("No passing regression results")
+    if head != git("rev-parse", "HEAD", cwd=worktree) or git("status", "--porcelain", cwd=worktree):
+        raise RuntimeError("Source changed during validation")
+    run["validation"] = {"head": head, "result": "passed", "unit_tests": totals,
+                         "checks": ["Python tests", "fullDebug unit suite", "debug APKs", "Playstore compile", "Android lint", "diff check"]}
+    print(json.dumps(run["validation"], indent=2))
+
+
+def attest(run, args):
+    worktree = Path(run["worktree"])
+    report = Path(args.report).resolve()
+    if not report.is_file() or not report.read_text(encoding="utf-8").strip():
+        raise RuntimeError("A substantive compatibility/device report is required")
+    if not run["validation"] or run["validation"]["head"] != git("rev-parse", "HEAD", cwd=worktree):
+        raise RuntimeError("Validate this exact commit before attestation")
+    run["compatibility"] = {"head": run["validation"]["head"], "report": str(report),
+                            "sha256": hashlib.sha256(report.read_bytes()).hexdigest(), "preserved": True}
+    run["device"] = {"status": args.device, "reason": args.reason}
+
+
+def gate(run, state):
+    if run["dry_run"]:
+        raise RuntimeError("Dry runs cannot publish")
+    if not (state / "publication-enabled.json").exists():
+        raise RuntimeError("Initial dry run has not enabled publication")
+    worktree = Path(run["worktree"])
+    head = git("rev-parse", "HEAD", cwd=worktree)
+    if git("status", "--porcelain", cwd=worktree) or git("ls-files", "-u", cwd=worktree):
+        raise RuntimeError("Uncommitted changes or conflicts")
+    if not run["validation"] or run["validation"]["head"] != head:
+        raise RuntimeError("Exact commit has not passed full validation")
+    if not run["compatibility"] or run["compatibility"]["head"] != head:
+        raise RuntimeError("Compatibility and functional overlap review missing")
+    report = Path(run["compatibility"]["report"])
+    if not report.is_file() or hashlib.sha256(report.read_bytes()).hexdigest() != run["compatibility"]["sha256"]:
+        raise RuntimeError("Compatibility evidence changed or disappeared")
+    if not run["device"] or run["device"]["status"] not in ("passed", "not-required"):
+        raise RuntimeError("Required device testing has not passed")
+    ledger = json.loads((worktree / LEDGER).read_text())["commits"]
+    if any(c["sha"] not in ledger for c in run["commits"]):
+        raise RuntimeError("Unreviewed upstream commits remain")
+    integrated = [c for c in run["commits"] if ledger[c["sha"]]["outcome"] == "integrated" and
+                  ledger[c["sha"]].get("run") == run["id"]]
+    if not integrated:
+        raise RuntimeError("No new upstream changes integrated; no release needed")
+    # Held changes must not become incorporated by a full merge.
+    for c in run["commits"]:
+        if ledger[c["sha"]]["outcome"] == "held" and ancestor(c["sha"], head, cwd=worktree):
+            raise RuntimeError("A held change is included in release ancestry")
+    if not ancestor(run["dev"], head, cwd=worktree) or not ancestor(run["base"], head, cwd=worktree):
+        raise RuntimeError("Release would omit development or published functionality")
+    remote = git("ls-remote", ORIGIN, "refs/heads/dev", cwd=worktree).split()[0]
+    if remote != run["dev"]:
+        raise RuntimeError("Development advanced; rebuild from new base and repeat validation")
+    latest = api(f"repos/{REPO}/releases/latest")
+    if latest["tag_name"] != run["latest_tag"] or active_releases():
+        raise RuntimeError("Release state changed or another release is running")
+    contents = (worktree / "app/build.gradle.kts").read_text(encoding="utf-8-sig")
+    version = re.search(r'versionName\s*=\s*"([^"]+)"', contents)[1]
+    if not re.fullmatch(r"0\.1\.0-beta\.\d+(?:\.\d+)?", version) or f"v{version}" == run["latest_tag"]:
+        raise RuntimeError("Prepare a new version using ReSeq beta conventions")
+    before = git("show", f"{run['base']}:app/build.gradle.kts", cwd=worktree)
+    if int(re.search(r"versionCode\s*=\s*(\d+)", contents)[1]) <= int(re.search(r"versionCode\s*=\s*(\d+)", before)[1]):
+        raise RuntimeError("versionCode must increase")
+    return head, version
+
+
+def publish(run, state, args):
+    head, version = gate(run, state)
+    worktree = Path(run["worktree"])
+    notes = (worktree / args.notes).resolve()
+    if not notes.is_relative_to(worktree.resolve()) or not notes.is_file():
+        raise RuntimeError("Reviewed notes must be committed in this worktree")
+    git("ls-files", "--error-unmatch", str(notes.relative_to(worktree.resolve())), cwd=worktree)
+    # Normal atomic fast-forward pushes only; never update the checked-out local dev.
+    git("push", "--atomic", ORIGIN, f"{head}:refs/heads/{run['branch']}", f"{head}:refs/heads/dev", cwd=worktree)
+    run["publication"] = {"head": head, "version": version, "state": "pushed; dispatch pending"}
+    save(state / "runs" / f"{run['id']}.json", run)
+    command("gh", "workflow", "run", "reseq-release.yml", "--repo", REPO, "--ref", run["branch"],
+            "-f", "publish=true", "-f", f"notes={notes.relative_to(worktree.resolve()).as_posix()}")
+    run["publication"]["state"] = "dispatched; verify workflow, release and all five APKs before finishing"
+    print(json.dumps(run["publication"], indent=2))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="action", required=True)
+    p = sub.add_parser("begin"); p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--setup-worktree", action="store_true", help="Rehearse in this already isolated clean setup worktree")
+    sub.add_parser("status")
+    for name in ("review", "configure", "validate", "attest", "gate", "publish", "finish", "enable"):
+        p = sub.add_parser(name); p.add_argument("--run", required=True)
+        if name == "review":
+            p.add_argument("--commit", required=True); p.add_argument("--outcome", choices=STATUSES, required=True)
+            p.add_argument("--reason", required=True)
+        if name == "configure":
+            p.add_argument("--properties", required=True); p.add_argument("--sdk")
+        if name == "attest":
+            p.add_argument("--report", required=True); p.add_argument("--device", choices=("passed", "not-required", "held"), required=True)
+            p.add_argument("--reason", required=True)
+        if name == "publish": p.add_argument("--notes", required=True)
+        if name == "finish": p.add_argument("--report", required=True)
+        if name == "enable": p.add_argument("--report", required=True)
+    args = parser.parse_args()
+    root = root_dir(); state = root / ".upstream-sync"
+    if args.action == "begin": return begin(args, root, state)
+    if args.action == "status":
+        print((state / "lock.json").read_text() if (state / "lock.json").exists() else "No active run")
+        return
+    run = load_run(state, args.run)
+    if args.action == "review": review(run, args)
+    elif args.action == "configure": configure(run, args, root)
+    elif args.action == "validate":
+        # Persist invalidation before running tools; a failed retry must never reuse a pass.
+        run["validation"] = run["compatibility"] = run["device"] = None
+        save(state / "runs" / f"{run['id']}.json", run)
+        validation(run)
+    elif args.action == "attest": attest(run, args)
+    elif args.action == "gate": print(gate(run, state))
+    elif args.action == "publish": publish(run, state, args)
+    elif args.action == "enable":
+        if not run["dry_run"] or not Path(args.report).is_file() or not run["validation"]:
+            raise RuntimeError("A completed dry-run validation and report are required")
+        save(state / "publication-enabled.json", {"dry_run": run["id"], "report": str(Path(args.report).resolve())})
+    elif args.action == "finish":
+        report = Path(args.report).resolve()
+        if not report.is_file(): raise RuntimeError("Morning report is required")
+        if run["publication"] and active_releases():
+            raise RuntimeError("Release still active; retain the lock and resume monitoring")
+        ledger = Path(run["worktree"]) / LEDGER
+        if ledger.exists() and not run["dry_run"]:
+            save(state / "review-ledger.json", json.loads(ledger.read_text()))
+        run["report"] = str(report); run["finished_utc"] = datetime.now(timezone.utc).isoformat()
+    save(state / "runs" / f"{run['id']}.json", run)
+    if args.action == "finish": (state / "lock.json").unlink()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (RuntimeError, FileExistsError) as error:
+        print(str(error), file=sys.stderr)
+        sys.exit(1)

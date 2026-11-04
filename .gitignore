@@ -90,3 +90,6 @@ status-page/
 
 /TVDB_*FIX.md
 /ACCESSIBILITY_HANDOVER.md
+/.upstream-sync/
+!scripts/upstream_sync.py
+!docs/UPSTREAM_SYNC.md

@@ -104,6 +104,7 @@ def begin(args, root, state):
     with lock.open("x", encoding="utf-8") as stream:
         json.dump({"run": run_id, "started_utc": datetime.now(timezone.utc).isoformat()}, stream)
     try:
+        retry_pending_cleanup(root, state)
         if shutil.disk_usage(root).free < MIN_BUILD_FREE:
             raise RuntimeError("Less than 6 GiB free; preserve the build reserve before starting another run")
         if active_releases():
@@ -396,7 +397,9 @@ def retire_build_outputs(run, root, state):
     build = (tree / "app/build").resolve()
     if build != tree / "app/build" or not build.is_relative_to(tree):
         raise RuntimeError("Refuse redirected build cleanup target")
-    if not build.exists(): return
+    if not build.exists():
+        run.setdefault("storage", {}).update(cleanup_pending=[], free_bytes=shutil.disk_usage(root).free)
+        return
     evidence = state / "evidence" / run["id"]
     evidence.mkdir(parents=True, exist_ok=True)
     for name in ("test-results", "reports"):
@@ -409,9 +412,30 @@ def retire_build_outputs(run, root, state):
         target.mkdir(parents=True, exist_ok=True)
         shutil.copy2(held_apk, target / held_apk.name)
     before = shutil.disk_usage(root).free
-    shutil.rmtree(build)
+    pending = []
+    def deferred(operation, path, error):
+        # A shared Windows lint worker can retain JAR handles after a build.
+        # Leave held files alone; never stop a shared daemon to reclaim them.
+        pending.append({"path":str(Path(path).relative_to(build)),
+                        "operation":operation.__name__, "error":type(error[1]).__name__})
+    shutil.rmtree(build, onerror=deferred)
     run["storage"] = {"reclaimed_bytes": shutil.disk_usage(root).free - before,
-                      "free_bytes": shutil.disk_usage(root).free, "evidence": str(evidence)}
+                      "free_bytes": shutil.disk_usage(root).free, "evidence": str(evidence),
+                      "cleanup_pending": pending}
+
+
+def retry_pending_cleanup(root, state):
+    for path in (state / "runs").glob("*.json"):
+        old = json.loads(path.read_text())
+        if not old.get("finished_utc") or not (old.get("storage") or {}).get("cleanup_pending"):
+            continue
+        tree = Path(old["worktree"])
+        if (not tree.is_dir() or not old.get("finished_head") or
+                git("rev-parse", "HEAD", cwd=tree) != old["finished_head"] or
+                git("status", "--porcelain", cwd=tree)):
+            continue
+        retire_build_outputs(old, root, state)
+        save(path, old)
 
 
 def main():
@@ -475,6 +499,7 @@ def main():
         if ledger.exists() and not run["dry_run"]:
             save(state / "review-ledger.json", json.loads(ledger.read_text()))
         retire_build_outputs(run, root, state)
+        run["finished_head"] = git("rev-parse", "HEAD", cwd=run["worktree"])
         run["report"] = str(report); run["finished_utc"] = datetime.now(timezone.utc).isoformat()
     save(state / "runs" / f"{run['id']}.json", run)
     if args.action == "finish": (state / "lock.json").unlink()

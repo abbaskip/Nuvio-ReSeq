@@ -157,6 +157,10 @@ published newer version immediately before completing any resumed release.
 New runs/publication check all active release jobs. Finalization waits only for
 the completed run's own release commit, so an unrelated manual release cannot
 strand its cleanup lock. Other jobs are never cancelled to release that lock.
+Windows worker-held cache JARs are left in place and recorded for later cleanup;
+they never strand a completed run's lock. The next run retries only finished,
+unchanged, clean automation worktrees. Shared daemons and reused developer
+checkouts are never stopped or cleaned to force those files free.
 Runs and validation require at least 6 GiB free, covering the measured debug/
 Playstore/lint peak with a safety reserve. `finish` archives this task's unit/lint
 reports and retains a held ARM32 debug APK before removing only its own generated

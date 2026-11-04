@@ -191,6 +191,33 @@ class UpstreamSyncSafetyTest(unittest.TestCase):
             self.assertTrue((state/"evidence"/run["id"]/"reports/result.txt").exists())
             self.assertTrue((state/"artifacts"/run["id"]/apk.name).exists())
 
+    def test_locked_generated_file_is_deferred_without_stranding_finished_run(self):
+        import os
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve()
+            tree=root/".worktrees/upstream-20261104T000000Z-abcdef"
+            build=tree/"app/build"; build.mkdir(parents=True)
+            run={"id":"20261104T000000Z-abcdef","worktree":str(tree),"publication":{"verified":True}}
+            def locked(path,onerror):
+                error=PermissionError("fixture locked by shared worker")
+                onerror(os.unlink,str(Path(path)/"locked.jar"),(PermissionError,error,None))
+            with patch.object(sync.shutil,"rmtree",side_effect=locked):
+                sync.retire_build_outputs(run,root,root/".upstream-sync")
+            self.assertEqual(run["storage"]["cleanup_pending"][0]["path"],"locked.jar")
+            self.assertTrue(build.exists())
+
+    def test_deferred_cleanup_never_touches_a_reused_worktree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve(); state=root/".upstream-sync"
+            tree=root/".worktrees/upstream-20261104T000000Z-abcdef"; tree.mkdir(parents=True)
+            old={"id":"20261104T000000Z-abcdef","worktree":str(tree),"finished_utc":"done",
+                 "finished_head":"original", "storage":{"cleanup_pending":[{"path":"locked.jar"}]}}
+            sync.save(state/"runs"/(old["id"]+".json"),old)
+            with patch.object(sync,"git",return_value="new-development-head"), \
+                 patch.object(sync,"retire_build_outputs") as cleanup:
+                sync.retry_pending_cleanup(root,state)
+                cleanup.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

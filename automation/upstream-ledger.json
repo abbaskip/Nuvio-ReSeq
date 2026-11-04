@@ -9,7 +9,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending."
+        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "2ba905a8ddd58699b7b8226e467318cda5756606": {
@@ -20,7 +21,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending."
+        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "facf25ec382026f7aa27477a81f578176e1ac5c7": {
@@ -33,7 +35,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Shared raw provider metadata only, scoped caches by profile, guarded canonical TVDB writes and selected orders, and preserved the runtime TMDB credential path. New canonical-reference and Trakt metadata regressions."
+        "evidence": "Shared raw provider metadata only, scoped caches by profile, guarded canonical TVDB writes and selected orders, and preserved the runtime TMDB credential path. New canonical-reference and Trakt metadata regressions.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "c8f175cd876df462649daa79cc48338bdc87d2b0": {
@@ -44,7 +47,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending."
+        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "d8238f5852b00ea54c283839bf175794d6545fff": {
@@ -55,7 +59,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Ported benchmark tooling and documentation to ReSeq package IDs. Real benchmark journeys need an idle test device."
+        "evidence": "Ported benchmark tooling and documentation to ReSeq package IDs. Real benchmark journeys need an idle test device.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "c8b855b460462e14b479c043db0312112117cca7": {
@@ -66,7 +71,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Ported journey and documentation changes. Upstream-generated ART rules are not representative of ReSeq. Regeneration remains blocked pending a dedicated idle device."
+        "evidence": "Ported journey and documentation changes. Upstream-generated ART rules are not representative of ReSeq. Regeneration remains blocked pending a dedicated idle device.",
+        "status": "tooling ported; ReSeq profile collection pending a dedicated idle test device"
       }
     },
     "d9746a0baaaa3a81add6da1c095442c618da5c63": {
@@ -77,7 +83,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Ported journey and documentation changes. Upstream-generated ART rules are not representative of ReSeq. Regeneration remains blocked pending a dedicated idle device."
+        "evidence": "Ported journey and documentation changes. Upstream-generated ART rules are not representative of ReSeq. Regeneration remains blocked pending a dedicated idle device.",
+        "status": "tooling ported; ReSeq profile collection pending a dedicated idle test device"
       }
     },
     "1292f469e7c525f821279589cb5c8811d8401c24": {
@@ -88,7 +95,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Ported benchmark tooling and documentation to ReSeq package IDs. Real benchmark journeys need an idle test device."
+        "evidence": "Ported benchmark tooling and documentation to ReSeq package IDs. Real benchmark journeys need an idle test device.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "b71ccb1f6f805d6b0b778f4370aa58e38435dbe3": {
@@ -101,7 +109,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Kept Add to Mix, propagated verified TVDB component sets through Next Up cache and completion, and guarded uncertain coverage."
+        "evidence": "Kept Add to Mix, propagated verified TVDB component sets through Next Up cache and completion, and guarded uncertain coverage.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "7242ff8b63afdd011570647ed48403b4bba219c7": {
@@ -114,7 +123,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Saved upstream stream metadata inside the ReSeq cache-key wrapper so TVDB and source identity survive link reuse."
+        "evidence": "Saved upstream stream metadata inside the ReSeq cache-key wrapper so TVDB and source identity survive link reuse.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "2b4b640a85de7d6fd554f9ec0e5187529d88c8dc": {
@@ -127,7 +137,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change."
+        "evidence": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "424a61c7ac307d77c75cb26ea71d443d785bbb6f": {
@@ -138,7 +149,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change."
+        "evidence": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "ae868099630c7187f04313890483c0cc4bae52cf": {
@@ -149,7 +161,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending."
+        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "cac9fea5805bf1b75bb98c3bf4d674a7d7a2bc4e": {
@@ -162,7 +175,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "665f19260b7a4949e6ebe0a5e002ac01303af10b": {
@@ -175,7 +189,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "5601777bd58aeae240b528827f4e7f7d32997dea": {
@@ -188,7 +203,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "fdf8d3f023b68c6cc3a7ae2af97b8e1f0c553594": {
@@ -201,7 +217,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "fcc0f38baab6ebe28c06f89b7c50fd05cf70e32c": {
@@ -214,7 +231,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "665c3c14da2c4b0c380443a394c54959289f9310": {
@@ -227,7 +245,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "cc4e60e4f887cafa31a20a0c59224b753ed6100f": {
@@ -240,7 +259,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "4f1e27b79454ab697070c16f2f491aebeeacee52": {
@@ -253,7 +273,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "9cd91e83398719fd1aa0be886ce7a773faf172b0": {
@@ -264,7 +285,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "1a96f01ff0729b19b6bb93667c9357402f79b35e": {
@@ -275,7 +297,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "50f9e39e811423a46ff519c766a9cc2f45c2215b": {
@@ -286,7 +309,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "e985a0fa869854bc3cd53c908b0f2a5ffb270e52": {
@@ -297,7 +321,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "fb6feae978420a55299aa635bccdb012d20d824f": {
@@ -308,7 +333,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "567aee0d77bb53ffe2e374599608fd715f962d3a": {
@@ -319,7 +345,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "5cc28ccdc898c3d949a57d797360e0f38a3394b3": {
@@ -342,7 +369,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Consolidated identical web configuration logo readers. Open the original bundled drawable by its Android resource URI to return its encoded image bytes without an invalid raw-resource argument."
+        "evidence": "Consolidated identical web configuration logo readers. Open the original bundled drawable by its Android resource URI to return its encoded image bytes without an invalid raw-resource argument.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "d1984d15cd7dbdc1fe21d480e3f9745d0e4bcb39": {
@@ -353,7 +381,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending."
+        "evidence": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "09295b14587157d6f2c693cde0fe4e7a0b6a07b6": {
@@ -364,7 +393,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending."
+        "evidence": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "2f16ec05032e0d17c4746854ca7bb709d5d22b18": {
@@ -375,7 +405,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders."
+        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders.",
+        "status": "included in beta 7.4 source"
       }
     },
     "eed08f0079533428c21d17c2e1baa2de31b6c9b9": {
@@ -386,7 +417,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "077ee8b4f0b445fe1e2e7df0bfa6feae6dba70a9": {
@@ -397,7 +429,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "53f07bb1b0b9500a1753fcb49288925b1f07cf80": {
@@ -408,7 +441,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "35269a980b7e81d9a042bf1487123d9845ab1b64": {
@@ -419,7 +453,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "fd999d937a519b6dd8c6ae5fb8e65c307337d126": {
@@ -430,7 +465,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "570edd1f03edcef30aa1a47f977c578660507494": {
@@ -441,7 +477,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "ed4bc05bf0e7d0b7d97747da6d190d4012c8baa1": {
@@ -454,7 +491,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context.",
+        "status": "implemented on integration branch; pending device acceptance and release promotion"
       }
     },
     "dc9a9fb6651e038220e73e47bbaccaac4733e0e2": {
@@ -465,7 +503,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders."
+        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders.",
+        "status": "included in beta 7.4 source"
       }
     },
     "3c33a58918b931a85dd12f7ac4ef5069413a6f98": {
@@ -476,7 +515,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders."
+        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders.",
+        "status": "included in beta 7.4 source"
       }
     },
     "aeb3ed62937bfb0d2c28a3b3b8ac5948834b1534": {
@@ -487,7 +527,8 @@
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Transient file deletion superseded by b4b6cb2b7; deleting the complete fork resource would lose ReSeq customizations."
+        "evidence": "Transient file deletion superseded by b4b6cb2b7; deleting the complete fork resource would lose ReSeq customizations.",
+        "status": "closed without a separate patch"
       }
     },
     "b4b6cb2b71c1384ba22bf0f2bf3d06ae0e0ef520": {
@@ -498,7 +539,8 @@
       "backlog_review": {
         "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Merged final Brazilian Portuguese file by three-way comparison. Verified every ReSeq-only key and value and retained fork branding."
+        "evidence": "Merged final Brazilian Portuguese file by three-way comparison. Verified every ReSeq-only key and value and retained fork branding.",
+        "status": "included in beta 7.4 source"
       }
     },
     "49d83006a90fb3462ee54de18b1e64520818601d": {
@@ -509,7 +551,8 @@
       "backlog_review": {
         "classification": "direct",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders."
+        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders.",
+        "status": "included in beta 7.4 source"
       }
     },
     "99fbd65d8c16928d1fe11bf3f9812c4b5aaaca8f": {
@@ -548,15 +591,16 @@
     },
     "441e12eec73ad223848ad828539d7fe3285fb99f": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "requires_decision": true,
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "ee22329e913580e071eac16ba2bf30585656ab47": {
@@ -567,41 +611,44 @@
     },
     "7b0904c150bb5cc59a85a44bb6dfcae6f4211482": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "requires_decision": true,
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "bb17891ae115c58658f4ce862079b6755ebd5978": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "requires_decision": true,
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "9c1b9a192cf8dd08b6342432e7caec36f0261334": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "requires_decision": true,
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "761f9fa0d1b54513c6b30bb7008d742ab195c38b": {
@@ -630,24 +677,26 @@
     },
     "0a9733a95415079e8fe14dd789f1a53bf0488329": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "3c6b9506b411e3ded6247f42fe04c0e96725e1eb": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "8803fc64565f68e58acd2af273cbe42433301736": {
@@ -658,13 +707,14 @@
     },
     "a7e176c428042047cb168384a2f34cb277311108": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "8f2f5caea8300bcdd2554522bb78a07f1ffeb0fc": {
@@ -681,13 +731,14 @@
     },
     "842985dd518d327164163feb80d4d46de01c1ab6": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "1dae72df13361e7bfbfaf4889285960be499ceb6": {
@@ -698,13 +749,14 @@
     },
     "92ae40e54b9a6574088fba752c3412bec79361e6": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     },
     "a102f6bf57b839db329d72a0e88d76ff67dc1f03": {
@@ -729,13 +781,14 @@
     },
     "31400cf86396fbd512b4f49c7288d6a5c090377f": {
       "outcome": "irrelevant",
-      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "backlog_review": {
         "classification": "unnecessary",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
+        "status": "closed without a separate patch"
       }
     }
   }

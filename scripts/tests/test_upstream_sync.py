@@ -70,6 +70,29 @@ class UpstreamSyncSafetyTest(unittest.TestCase):
             self.assertIsNone(saved["compatibility"])
             self.assertIsNone(saved["device"])
 
+    def test_git_facade_cannot_push_or_override_the_worktree(self):
+        for argv in (["push", "--force"], ["status", "-C", "elsewhere"], ["add", "-f", "local.properties"]):
+            with self.subTest(argv=argv), self.assertRaises(RuntimeError):
+                sync.worktree_git({"worktree": "unused"}, argv)
+
+    def test_configuration_excludes_personal_tmdb_and_signing_material(self):
+        from argparse import Namespace
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source = root / "approved.properties"
+            source.write_text("NUVIO_SUPABASE_URL=https://project.invalid\nTMDB_API_KEY=personal-test-only\n"
+                              "TMDB_READ_ACCESS_TOKEN=personal-test-token\nNUVIO_RELEASE_KEY_PASSWORD=secret-test\n"
+                              "sdk.dir=old-sdk\n", encoding="utf-8")
+            target = root / "worktree"
+            target.mkdir()
+            sync.configure({"worktree": str(target)}, Namespace(properties=str(source), sdk=None), root)
+            for name in ("local.properties", "local.dev.properties"):
+                text = (target / name).read_text()
+                self.assertIn("NUVIO_SUPABASE_URL=", text)
+                self.assertNotIn("TMDB", text)
+                self.assertNotIn("NUVIO_RELEASE_", text)
+                self.assertNotIn("sdk.dir", text)
+
 
 if __name__ == "__main__":
     unittest.main()

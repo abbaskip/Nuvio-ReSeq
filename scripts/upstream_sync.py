@@ -23,6 +23,8 @@ UPSTREAM = "https://github.com/NuvioMedia/NuvioTV.git"
 UPSTREAM_REF = "refs/remotes/nuvio-upstream/dev"
 LEDGER = "automation/upstream-ledger.json"
 STATUSES = ("integrated", "equivalent", "irrelevant", "held")
+GIT_ACTIONS = {"show", "diff", "log", "status", "cherry", "rev-parse", "merge-base",
+               "cherry-pick", "merge", "add", "commit", "ls-files", "diff-tree", "rev-list"}
 
 
 def command(*args, cwd=None):
@@ -173,6 +175,16 @@ def configure(run, args, root):
     print("Project service settings prepared; TMDB and signing properties excluded; values withheld.")
 
 
+def worktree_git(run, argv):
+    if argv and argv[0] == "--": argv = argv[1:]
+    if not argv or argv[0] not in GIT_ACTIONS:
+        raise RuntimeError("Unsupported worktree Git action; use guarded publication for pushes")
+    if any(a in ("--git-dir", "--work-tree", "-C", "--force", "-f") or
+           a.startswith(("--git-dir=", "--work-tree=")) for a in argv):
+        raise RuntimeError("Git directory overrides and forced operations are forbidden")
+    print(git(*argv, cwd=run["worktree"]))
+
+
 def validation(run):
     worktree = Path(run["worktree"])
     if git("status", "--porcelain", cwd=worktree):
@@ -287,13 +299,14 @@ def main():
     p = sub.add_parser("begin"); p.add_argument("--dry-run", action="store_true")
     p.add_argument("--setup-worktree", action="store_true", help="Rehearse in this already isolated clean setup worktree")
     sub.add_parser("status")
-    for name in ("review", "configure", "validate", "attest", "gate", "publish", "finish", "enable"):
+    for name in ("review", "configure", "git", "validate", "attest", "gate", "publish", "finish", "enable"):
         p = sub.add_parser(name); p.add_argument("--run", required=True)
         if name == "review":
             p.add_argument("--commit", required=True); p.add_argument("--outcome", choices=STATUSES, required=True)
             p.add_argument("--reason", required=True)
         if name == "configure":
             p.add_argument("--properties", required=True); p.add_argument("--sdk")
+        if name == "git": p.add_argument("git_args", nargs=argparse.REMAINDER)
         if name == "attest":
             p.add_argument("--report", required=True); p.add_argument("--device", choices=("passed", "not-required", "held"), required=True)
             p.add_argument("--reason", required=True)
@@ -309,6 +322,7 @@ def main():
     run = load_run(state, args.run)
     if args.action == "review": review(run, args)
     elif args.action == "configure": configure(run, args, root)
+    elif args.action == "git": worktree_git(run, args.git_args)
     elif args.action == "validate":
         # Persist invalidation before running tools; a failed retry must never reuse a pass.
         run["validation"] = run["compatibility"] = run["device"] = None

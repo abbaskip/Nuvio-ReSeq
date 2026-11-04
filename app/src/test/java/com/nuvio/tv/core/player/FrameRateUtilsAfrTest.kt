@@ -789,10 +789,20 @@ class FrameRateUtilsAfrTest {
 
             // 2. Sparse File (Head at 0, Seek to tailStart, Write Tail)
             val sparseFile = java.io.File(tempDir, "sparse.mp4")
-            java.io.RandomAccessFile(sparseFile, "rw").use { raf ->
-                raf.write(headBytes)
-                raf.seek(tailStart)
-                raf.write(tailBytes)
+            // RandomAccessFile does not request sparse allocation on Windows and
+            // can allocate nearly 10 GB for this tiny fixture. Keep the real large
+            // offsets while asking the filesystem to leave the gap unallocated.
+            java.nio.file.Files.newByteChannel(
+                sparseFile.toPath(),
+                setOf(
+                    java.nio.file.StandardOpenOption.CREATE_NEW,
+                    java.nio.file.StandardOpenOption.WRITE,
+                    java.nio.file.StandardOpenOption.SPARSE
+                )
+            ).use { channel ->
+                channel.write(java.nio.ByteBuffer.wrap(headBytes))
+                channel.position(tailStart)
+                channel.write(java.nio.ByteBuffer.wrap(tailBytes))
             }
             assertEquals(tailStart + tailBytes.size, sparseFile.length())
             assertTrue(sparseFile.length() >= tailStart)

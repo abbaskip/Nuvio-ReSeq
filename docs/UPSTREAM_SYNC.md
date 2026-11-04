@@ -60,8 +60,9 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
    advantages, coexistence risks, options and a recommendation. Do not replace
    ReSeq, duplicate controls or silently omit useful upstream features.
 5. Prepare ignored local build properties from approved project configuration
-   only. The existing beta release checkout has approved service settings; copy
-   only the needed service entries, excluding TMDB and signing properties.
+   only. Use `configure --run ID --properties PATH --sdk PATH`; the existing
+   `.worktrees/beta7-release/local.properties` has approved project service
+   settings. This helper excludes TMDB and signing properties from both files.
    Never read attachments for credentials or copy a personal TMDB key. Debug
    defaults for login endpoints come from `local.dev.properties`; explicitly
    set approved endpoints there if needed. Never print property values. Missing
@@ -169,6 +170,12 @@ Unattended availability must be demonstrated, not assumed from an interactive
 escalation. If the scheduled policy denies network/Git/build/device access,
 record Failed with the exact blocked operation and preserve work. Never change
 global permissions or bypass sandbox controls to get an unattended release.
+Use the exact approved absolute `python <automation-checkout>/scripts/upstream_sync.py`
+entry point for scheduled commands. For worktree Git operations use `git --run ID
+-- cherry-pick -x SHA` (or add/commit/show/diff) through that coordinator; it pins
+operations to the isolated run worktree, forbids forced operations and does not
+permit direct pushes. The `publish` action is the guarded push path. Source edits
+remain ordinary workspace file edits. Never broaden the command allowance.
 
 ## Morning report
 

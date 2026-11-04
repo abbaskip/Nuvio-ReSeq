@@ -85,13 +85,18 @@ precedence was chosen during setup.
   state changed during setup, so no install/launch/input was sent. QR/pairing and
   device regression tests were not performed and are not reported as passed.
 - The existing GitHub workflow was dispatched in `artifacts_only=true`,
-  `publish=false`, `device_tests=false` mode. Its final result is recorded in the
-  private morning report; dispatch alone is not release validation.
+  `publish=false`, `device_tests=false` mode. [Rehearsal 41792378123](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/41792378123)
+  passed: release tests/build, permanent signing, upgrade identity, native library
+  and actual packaged-service checks. Publication was skipped. Downloaded the
+  uploaded bundle and verified all five nonempty APKs against SHA256SUMS and the
+  service-verification report hashes, then removed the temporary archive.
+  This validates packaging; the full dry run remains blocked by lint.
 
 ## Publication
 
-No new version/release/tag. Setup is preserved on the dedicated automation
-branch. ReSeq's latest published release remained `v0.1.0-beta.7.1` at inspection.
+No new version/release/tag. Setup is saved on remote `dev` and the dedicated
+automation branch, including all previously released beta 7.1 ancestry. ReSeq's
+latest published release remained `v0.1.0-beta.7.1` after the rehearsal.
 Native task: `nuvio-reseq-upstream-sync`, Monday/Thursday at 02:00 on the
 Windows host's Australia/Sydney timezone, following local daylight saving.
 Review/testing can run while publication is disabled.

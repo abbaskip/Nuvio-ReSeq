@@ -4,11 +4,44 @@ import com.nuvio.tv.livetv.data.EpgDatabase
 import com.nuvio.tv.livetv.model.CatchupInfo
 import com.nuvio.tv.livetv.model.LiveChannel
 import io.mockk.mockk
+import io.mockk.every
 import io.mockk.verify
 import org.junit.Assert.*
 import org.junit.Test
 
 class SportsQuickMatchingTest {
+    @Test fun `guide result preparation checks cancellation inside the slot`() {
+        val db = mockk<EpgDatabase>()
+        var queried = false
+        every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+            queried = true
+            List(500) { "network" to com.nuvio.tv.livetv.model.EpgProgram(now, now + 3_600_000,
+                "NBA Basketball", description = event.title) }
+        }
+        try {
+            SportsMatcher(db).match(SportsMatcher.Input(listOf(event), listOf(channel("network", "NBA TV HD")),
+                emptyMap(), 0, SportsSettings(), now)) {
+                if (queried) throw kotlinx.coroutines.CancellationException("Playback started")
+            }
+            fail("Guide scoring ignored cancellation")
+        } catch (_: kotlinx.coroutines.CancellationException) {
+            assertTrue(queried)
+        }
+    }
+    @Test fun `large channel preparation observes cancellation before completing`() {
+        val db = mockk<EpgDatabase>()
+        val channels = (1..1000).map { channel("channel$it", "US NBA TV $it HD") }
+        var checks = 0
+        try {
+            SportsMatcher(db).match(SportsMatcher.Input(listOf(event), channels, emptyMap(), 0,
+                SportsSettings(), now, includeGuide = false)) {
+                if (++checks == 3) throw kotlinx.coroutines.CancellationException("Playback started")
+            }
+            fail("Matcher ignored cancellation")
+        } catch (_: kotlinx.coroutines.CancellationException) {
+            assertEquals(3, checks)
+        }
+    }
     private val now = 1_793_318_400_000L
     private val league = "basketball/nba"
     private fun side(id: String, name: String, home: Boolean) = Side(

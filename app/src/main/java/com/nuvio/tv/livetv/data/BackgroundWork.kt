@@ -19,7 +19,6 @@ object BackgroundWork {
 
     /** Called between small batches on a worker, never from the UI thread. */
     fun yieldToNavigation() {
-        awaitPlaybackIdleBlocking()
         if (System.nanoTime() - lastNavigationNanos in 0..250_000_000L) Thread.sleep(16)
     }
 

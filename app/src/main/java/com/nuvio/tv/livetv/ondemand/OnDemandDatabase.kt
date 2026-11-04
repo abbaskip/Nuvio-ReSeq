@@ -432,6 +432,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
                                 }
                             }
                             onBatchCommitted()
+                            com.nuvio.tv.livetv.data.BackgroundWork.awaitPlaybackIdleBlocking()
                             com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation()
                         }
                         transaction {

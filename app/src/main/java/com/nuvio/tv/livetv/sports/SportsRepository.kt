@@ -1097,6 +1097,9 @@ class SportsRepository @Inject constructor(
         val workContext = currentCoroutineContext()
         val checkpoint = {
             workContext.ensureActive()
+            if (com.nuvio.tv.livetv.data.BackgroundWork.isNuvioPlaying) {
+                throw kotlinx.coroutines.CancellationException("Player session opened")
+            }
             com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation()
         }
         val live = prefs.settings.first()

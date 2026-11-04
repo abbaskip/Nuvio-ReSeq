@@ -70,19 +70,21 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
     )
     @Volatile private var nameData: NameData? = null
 
-    @Synchronized private fun nameData(channels: List<LiveChannel>): NameData {
+    @Synchronized private fun nameData(channels: List<LiveChannel>, checkpoint: () -> Unit): NameData {
         // The channel list is rebuilt for every search, so it's recognised by its contents.
         var fp = channels.size.toLong()
-        for (ch in channels) fp = fp * 31 + ch.key.hashCode() * 17L + ch.name.hashCode()
+        for (ch in channels) { checkpoint(); fp = fp * 31 + ch.key.hashCode() * 17L + ch.name.hashCode() }
         nameData?.let { if (it.fingerprint == fp) return it }
         // Separator "channels" ("##### USA SPORTS #####", "==== UK ====") are never a game's channel.
         val names = channels.mapNotNull { ch ->
+            checkpoint()
             if (ch.name.length < 6 || isBanner(ch.name)) null
             else ch to norm(ch.name.replace("+", " plus ").replace("@", " at "))
         }
         // Channel names by word, so a game's channels are found without going through every channel.
         val tokenIndex = HashMap<String, MutableList<Int>>()
         names.forEachIndexed { i, (_, nn) ->
+            checkpoint()
             val tokens = nn.split(' ').filter { it.isNotEmpty() }.toMutableSet()
             // Lookup aliases only: final broadcaster matching still checks the full name.
             for (word in tokens.toList()) {
@@ -99,10 +101,12 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
 
     fun match(input: Input, checkpoint: () -> Unit = {}): Result {
         checkpoint()
+        var operations = 0
+        fun boundedCheckpoint() { if (operations++ % 64 == 0) checkpoint() }
         val byKey = input.channels.associateBy { it.key }
         val rank = preferenceRank(input.settings)
         val tStart = System.currentTimeMillis()
-        val nd0 = nameData(input.channels)
+        val nd0 = nameData(input.channels, ::boundedCheckpoint)
         val names = nd0.names
         val tokenIndex = nd0.tokenIndex
         val groups = input.channels.map { it.group }.distinct().associateWith(::norm)
@@ -197,6 +201,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             }.getOrDefault(emptyList())
             if (hits.isEmpty()) return@forEach
             val prepared = hits.mapNotNull { (key, p0) ->
+                boundedCheckpoint()
                 val ch = byKey[key] ?: return@mapNotNull null
                 val p = if (input.shiftMs == 0L) p0 else p0.copy(startMs = p0.startMs + input.shiftMs, stopMs = p0.stopMs + input.shiftMs)
                 if (fillerOrLoop(ch, p)) return@mapNotNull null
@@ -218,6 +223,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 val eventSport = SportsCatalog.league(ev.leagueId)?.sport
                 val t = terms[ev.id] ?: continue
                 for ((key, p, texts) in prepared) {
+                    boundedCheckpoint()
                     val (nt, nd) = texts
                     val programmeSport = programmeSports[key to p.startMs]
                     if (conflictingSports(eventSport, programmeSport) && !t.namesLeague(nt, "")) continue
@@ -257,6 +263,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             // Only channels whose name has one of the game's words can match: look at those, not
             // all of them (with tens of thousands of channels, every game against every channel took minutes).
             forNamed(tokenIndex, t.anchorTokens(ev.id in noStart), names) { ch, nn ->
+                boundedCheckpoint()
                 val channelSport = SportsTaxonomy.classifyProgramme(ch.name, null)?.let { SportsTaxonomy.sport(it.sportId) }
                 if (conflictingSports(SportsCatalog.league(ev.leagueId)?.sport, channelSport) && !t.leagueInName(nn)) return@forNamed
                 if (!discEvent && ch.key in discNames) return@forNamed
@@ -285,13 +292,15 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             .filter { (key, assignment) -> key in byKey && !assignment.isNone }
             .entries.groupBy({ it.value }, { it.key }) else emptyMap()
         networkEvents.flatMap { it.broadcasts }.map { networkKey(it) }.distinct().forEach { n ->
+            checkpoint()
             val pats = (NETWORKS[n] ?: listOf(n)).map(BroadcastNames::canonical).filter { it.length >= 3 }.distinct()
             if (pats.isEmpty()) return@forEach
             val not = NETWORK_NOT[n].orEmpty()
-            val participants = networkEvents.filter { ev -> ev.broadcasts.any { networkKey(it) == n } }
+            val participants = networkEvents.filter { ev -> boundedCheckpoint(); ev.broadcasts.any { networkKey(it) == n } }
                 .flatMap { ev -> terms[ev.id]?.let { it.a + it.b }.orEmpty() }.distinct()
             val list = ArrayList<LiveChannel>()
             forNamed(tokenIndex, pats.mapNotNull { it.trim().substringBefore(' ').takeIf { w -> w.isNotEmpty() } }.toSet(), names) { ch, nn ->
+                boundedCheckpoint()
                 if ((pats.any { BroadcastNames.matches(it, ch.name, participants) } || BroadcastNames.matches(n, ch.name, participants)) && not.none { hasWord(nn, it) }) list += ch
             }
             val aliases = guideAliases.values.filter { group -> list.any { it.key in group } }.flatten()
@@ -323,6 +332,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     val national = n in NATIONAL
                     candidates[n].orEmpty()
                         .map { ch ->
+                            boundedCheckpoint()
                             val p = onNow[ch.key]
                             val reported = ev.broadcastCoverage.filter { networkKey(it.name) == n }
                             val countryAllowed = reported.isEmpty() || reported.any { BroadcastNames.compatible(it, ch.name) }

@@ -85,15 +85,16 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
    Sports tests, TV Mix tests, Drive payload/conflict tests and updater tests.
    The full unit suite covers these but is not proof of device behaviour or live
    account compatibility. Add regression tests for newly identified risks.
-9. Probe ADB availability read-only. Target the actual Onn 4K Pro (`jarvis2`,
+9. Run `probe-device --run ID` for read-only ADB availability. Target the actual Onn 4K Pro (`jarvis2`,
    currently `192.168.1.121:5555`); `.102` is another TV. Read power, foreground
    activity and audio/media playback state. Awake, active playback, another app,
    a developer test session or uncertain state means potentially in use. Skip
    installation/launch/input; never wake, stop, log out, clear data or uninstall.
    Recheck immediately before each disruptive operation. Only test when idle is
    established. Keep backend/pairing codes, screenshots and account logs private.
-10. Before any installation, use `verify_apk_services.py` on the five actual APKs
-    and approved properties (the existing verifier requires all five variants),
+10. Before any installation, use `verify_apk_services.py` on the actual APKs
+    and approved properties (use `--backend-only` for an individual debug APK;
+    full release service verification checks all five variants),
     not generated BuildConfig or property presence. Verify no personal TMDB
     credential is included, preserve signature and package/upgrade identity, and
     use the existing signed release workflow in draft mode for release APKs when
@@ -146,6 +147,9 @@ failure/held report and call `finish`; then start a new run. Don't remove a lock
 just because it is old. Existing release workflow concurrency serializes release
 jobs; the gate also defers while manual releases are active. Recheck for a newly
 published newer version immediately before completing any resumed release.
+New worktrees require at least 4 GiB free at preflight. Remove only this task's
+completed, unneeded build outputs after retaining reports/evidence and needed
+APKs. Never delete another worktree or another developer's outputs to make room.
 
 Catch up by running the same native task with **Run now**, or asking this chat to
 catch up. Inventory is ancestry/ledger based, not a date window, so missed runs
@@ -176,6 +180,12 @@ entry point for scheduled commands. For worktree Git operations use `git --run I
 operations to the isolated run worktree, forbids forced operations and does not
 permit direct pushes. The `publish` action is the guarded push path. Source edits
 remain ordinary workspace file edits. Never broaden the command allowance.
+The narrow user rule is `~/.codex/rules/nuvio-reseq-upstream.rules`; its matching
+behaviour was checked with `codex execpolicy check`. Restart Codex once before
+the first scheduled run to load the new rule; do not restart active work for it.
+An actual unattended run has not yet been observed. The task must report any
+remaining permission failure candidly rather than treating interactive access
+as proof that scheduled execution works.
 
 ## Morning report
 

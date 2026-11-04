@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import uuid
@@ -28,7 +29,9 @@ GIT_ACTIONS = {"show", "diff", "log", "status", "cherry", "rev-parse", "merge-ba
 
 
 def command(*args, cwd=None):
-    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True, encoding="utf-8", errors="replace")
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="Never", GH_PROMPT_DISABLED="1")
+    result = subprocess.run(args, cwd=cwd, env=env, text=True, capture_output=True,
+                            encoding="utf-8", errors="replace", timeout=300)
     if result.returncode:
         # Commands here contain no secret arguments. Do not echo build output/config.
         raise RuntimeError(f"Command failed ({result.returncode}): {args[0]} {args[1] if len(args) > 1 else ''}")
@@ -82,6 +85,8 @@ def begin(args, root, state):
     with lock.open("x", encoding="utf-8") as stream:
         json.dump({"run": run_id, "started_utc": datetime.now(timezone.utc).isoformat()}, stream)
     try:
+        if not args.setup_worktree and shutil.disk_usage(root).free < 4 * 1024**3:
+            raise RuntimeError("Less than 4 GiB free; make room before creating another build worktree")
         if active_releases():
             raise RuntimeError("An existing release workflow is active; defer this run")
         # Explicit URLs prevent accidentally monitoring the renamed fork as upstream.
@@ -185,6 +190,29 @@ def worktree_git(run, argv):
     print(git(*argv, cwd=run["worktree"]))
 
 
+def probe_device(run):
+    adb = Path(os.environ.get("LOCALAPPDATA", "")) / "Android/Sdk/platform-tools/adb.exe"
+    serial = "192.168.1.121:5555"
+    result = {"serial": serial, "device_tests": "not run", "safe_to_disrupt": False}
+    try:
+        if not adb.is_file(): raise RuntimeError("ADB executable unavailable")
+        if command(str(adb), "-s", serial, "get-state") != "device":
+            raise RuntimeError("Onn device unavailable")
+        model = command(str(adb), "-s", serial, "shell", "getprop", "ro.product.device")
+        if model != "jarvis2": raise RuntimeError("Device identity differs from configured Onn 4K Pro")
+        power = command(str(adb), "-s", serial, "shell", "dumpsys", "power")
+        activities = command(str(adb), "-s", serial, "shell", "dumpsys", "activity", "activities")
+        audio = command(str(adb), "-s", serial, "shell", "dumpsys", "audio")
+        result.update(available=True, model=model, awake="mWakefulness=Awake" in power,
+                      audio_started=bool(re.search(r"state\s*[:=]\s*started", audio, re.I)),
+                      launcher_foreground=bool(re.search(r"(?:topResumedActivity|mResumedActivity).*com\.spocky\.projengmenu", activities)))
+        result["reason"] = "Read-only probe only; availability is not proof of inactivity or a device test pass"
+    except (RuntimeError, subprocess.TimeoutExpired):
+        result.update(available=False, reason="ADB unavailable or device identity could not be established")
+    save(Path(run["worktree"]) / "build/upstream-sync/device-probe.json", result)
+    print(json.dumps(result, indent=2))
+
+
 def validation(run):
     worktree = Path(run["worktree"])
     if git("status", "--porcelain", cwd=worktree):
@@ -268,8 +296,13 @@ def gate(run, state):
         raise RuntimeError("Release state changed or another release is running")
     contents = (worktree / "app/build.gradle.kts").read_text(encoding="utf-8-sig")
     version = re.search(r'versionName\s*=\s*"([^"]+)"', contents)[1]
-    if not re.fullmatch(r"0\.1\.0-beta\.\d+(?:\.\d+)?", version) or f"v{version}" == run["latest_tag"]:
+    if not re.fullmatch(r"0\.1\.0-beta\.\d+(?:\.\d+)?", version):
         raise RuntimeError("Prepare a new version using ReSeq beta conventions")
+    previous_version = run["latest_tag"].removeprefix("v")
+    if not re.fullmatch(r"0\.1\.0-beta\.\d+(?:\.\d+)?", previous_version):
+        raise RuntimeError("Release version convention changed; review before publishing")
+    if tuple(map(int, version.split("-beta.")[1].split("."))) <= tuple(map(int, previous_version.split("-beta.")[1].split("."))):
+        raise RuntimeError("Beta version must advance the latest published release")
     before = git("show", f"{run['base']}:app/build.gradle.kts", cwd=worktree)
     if int(re.search(r"versionCode\s*=\s*(\d+)", contents)[1]) <= int(re.search(r"versionCode\s*=\s*(\d+)", before)[1]):
         raise RuntimeError("versionCode must increase")
@@ -299,7 +332,7 @@ def main():
     p = sub.add_parser("begin"); p.add_argument("--dry-run", action="store_true")
     p.add_argument("--setup-worktree", action="store_true", help="Rehearse in this already isolated clean setup worktree")
     sub.add_parser("status")
-    for name in ("review", "configure", "git", "validate", "attest", "gate", "publish", "finish", "enable"):
+    for name in ("review", "configure", "git", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable"):
         p = sub.add_parser(name); p.add_argument("--run", required=True)
         if name == "review":
             p.add_argument("--commit", required=True); p.add_argument("--outcome", choices=STATUSES, required=True)
@@ -323,6 +356,7 @@ def main():
     if args.action == "review": review(run, args)
     elif args.action == "configure": configure(run, args, root)
     elif args.action == "git": worktree_git(run, args.git_args)
+    elif args.action == "probe-device": probe_device(run)
     elif args.action == "validate":
         # Persist invalidation before running tools; a failed retry must never reuse a pass.
         run["validation"] = run["compatibility"] = run["device"] = None
@@ -332,7 +366,8 @@ def main():
     elif args.action == "gate": print(gate(run, state))
     elif args.action == "publish": publish(run, state, args)
     elif args.action == "enable":
-        if not run["dry_run"] or not Path(args.report).is_file() or not run["validation"]:
+        if (not run["dry_run"] or not Path(args.report).is_file() or not run["validation"] or
+                run["validation"]["head"] != git("rev-parse", "HEAD", cwd=run["worktree"])):
             raise RuntimeError("A completed dry-run validation and report are required")
         save(state / "publication-enabled.json", {"dry_run": run["id"], "report": str(Path(args.report).resolve())})
     elif args.action == "finish":
@@ -351,6 +386,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, FileExistsError) as error:
+    except (RuntimeError, FileExistsError, subprocess.TimeoutExpired) as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

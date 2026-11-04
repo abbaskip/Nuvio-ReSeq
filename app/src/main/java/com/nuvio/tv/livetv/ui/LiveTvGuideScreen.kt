@@ -315,19 +315,13 @@ fun LiveTvGuideScreen(
     var focusGroupsOnOpen by remember { mutableStateOf(false) }
     // Manage visibility (TiviMate style): every channel in the group, hidden ones included.
     var visibilityMode by remember { mutableStateOf(false) }
-    // Reorder channels: on while reordering (several channels can be moved one after another);
-    // the channel picked up (null between moves), and the group's list while you move them.
-    var reorderActive by remember { mutableStateOf(false) }
-    var reorderKey by remember { mutableStateOf<String?>(null) }
-    var reorderList by remember { mutableStateOf<List<LiveChannel>>(emptyList()) }
-    var reorderGroupId by remember { mutableStateOf("") }
+    // Ordering dialogs keep a local draft until Save.
+    var orderRequest by remember { mutableStateOf<OrderRequest?>(null) }
+    var orderWarning by remember { mutableStateOf<OrderSortWarning?>(null) }
     var copyPickerFor by remember { mutableStateOf<LiveChannel?>(null) }
     // After saving a new order, keep showing it until the group reloads in that order
     // (otherwise the cursor lands on the channel's old spot for a moment).
     var savedOrder by remember { mutableStateOf<List<LiveChannel>?>(null) }
-    // Reorder groups: the group being moved, and the group order while you move it.
-    var groupReorderId by remember { mutableStateOf<String?>(null) }
-    var groupWorking by remember { mutableStateOf<List<ChannelGroup>>(emptyList()) }
     // Manage visibility for groups: every group (hidden ones too) and which ones are hidden.
     var groupVisibilityList by remember { mutableStateOf<List<ChannelGroup>?>(null) }
     var groupHiddenPending by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -373,7 +367,6 @@ fun LiveTvGuideScreen(
     var epgUnassignedOnly by remember { mutableStateOf(false) }
     val channels = when {
         visibilityMode -> visibilityChannels
-        reorderActive -> reorderList
         savedOrder != null -> savedOrder!!
         epgUnassignedOnly -> ui.channels.filter { programs[it.key].isNullOrEmpty() }
         else -> ui.channels
@@ -1087,7 +1080,6 @@ fun LiveTvGuideScreen(
                     tileHeight = guideRowHeight(settings) - 4.dp,
                     groups = when {
                         groupVisibilityList != null -> groupVisibilityList!!
-                        groupReorderId != null -> ui.groups.filter { it.special } + groupWorking
                         else -> guideGroups
                     },
                     hiddenPending = if (groupVisibilityList != null) groupHiddenPending else null,
@@ -1111,22 +1103,6 @@ fun LiveTvGuideScreen(
                     showPlaylistHeadings = settings.groupPlaylistHeadings,
                     collapsed = collapsedPlaylists,
                     onToggleCollapse = { viewModel.togglePlaylistCollapsed(it) },
-                    reorderingId = groupReorderId,
-                    onReorderMove = { delta ->
-                        val from = groupWorking.indexOfFirst { it.id == groupReorderId }
-                        val to = from + delta
-                        if (from >= 0 && to in groupWorking.indices) {
-                            groupWorking = groupWorking.toMutableList().apply { add(to, removeAt(from)) }
-                            scope.launch {
-                                val index = ui.groups.count { it.special && it.id != ChannelGroup.SEARCH } + to
-                                runCatching { groupsListState.scrollToItem((index - 3).coerceAtLeast(0)) }
-                            }
-                        }
-                    },
-                    onReorderDone = {
-                        viewModel.saveGroupOrder(groupWorking.map { it.id })
-                        groupReorderId = null
-                    },
                     selectedId = ui.selectedGroupId,
                     showCounts = settings.showGroupCounts,
                     listState = groupsListState,
@@ -1243,47 +1219,7 @@ fun LiveTvGuideScreen(
                             }
                             .onPreviewKeyEvent { event ->
                                 val isOk = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
-                                if (reorderActive) {
-                                    // A channel picked up: Up/Down moves it, OK puts it down (still
-                                    // reordering, so another can be picked). Nothing picked: Up/Down
-                                    // moves the highlight, OK picks that channel up. Back saves it all.
-                                    fun scrollTo(target: Int) {
-                                        // After the list has been redrawn in its new order: the list
-                                        // keeps its place by channel, so scrolling straight away was
-                                        // undone and a channel moved past the top went off screen.
-                                        scope.launch {
-                                            androidx.compose.runtime.withFrameNanos { }
-                                            androidx.compose.runtime.withFrameNanos { }
-                                            ensureRowVisible(target)
-                                        }
-                                    }
-                                    if (event.type == KeyEventType.KeyDown) {
-                                        val picked = reorderKey
-                                        val from = if (picked != null) reorderList.indexOfFirst { it.key == picked } else row
-                                        fun moveTo(to: Int) {
-                                            if (from < 0 || to !in reorderList.indices || to == from) return
-                                            if (picked != null) reorderList = reorderList.toMutableList().apply { add(to, removeAt(from)) }
-                                            row = to
-                                            if (picked != null) scrollTo(to) else ensureRowVisible(to)
-                                        }
-                                        when {
-                                            event.key == Key.DirectionUp -> moveTo(from - 1)
-                                            event.key == Key.DirectionDown -> moveTo(from + 1)
-                                            event.key == Key.PageUp || event.key == Key.ChannelUp -> moveTo((from - 8).coerceAtLeast(0))
-                                            event.key == Key.PageDown || event.key == Key.ChannelDown -> moveTo((from + 8).coerceAtMost(reorderList.lastIndex))
-                                            event.key == Key.Back && event.nativeKeyEvent.repeatCount == 0 -> {
-                                                viewModel.saveOrder(reorderGroupId, reorderList.map { it.key })
-                                                savedOrder = reorderList
-                                                savedMovedKey = reorderKey ?: reorderList.getOrNull(row)?.key
-                                                reorderKey = null
-                                                reorderActive = false
-                                            }
-                                        }
-                                    } else if (isOk && event.type == KeyEventType.KeyUp) {
-                                        reorderKey = if (reorderKey != null) null else reorderList.getOrNull(row)?.key
-                                    }
-                                    return@onPreviewKeyEvent true
-                                }
+
                                 if (visibilityMode) {
                                     // OK: show/hide · Left: hide all · Right: show all · Back: save and return
                                     val down = event.type == KeyEventType.KeyDown
@@ -1512,13 +1448,10 @@ fun LiveTvGuideScreen(
                                             now = now,
                                             isFavorite = ch.key in user.favorites,
                                             isPlaying = ch.key == playback.channelKey,
-                                            focusColumn = if (index == row && (gridFocused || epgPickerFor != null) && !nameFocus && !reorderActive) column else null,
+                                            focusColumn = if (index == row && (gridFocused || epgPickerFor != null) && !nameFocus) column else null,
                                             focusedBlock = if (index == row) focusedBlock else null,
                                             visible = if (visibilityMode) ch.key !in pendingHidden else null,
-                                            moving = reorderKey == ch.key,
-                                            reorderMode = reorderActive,
-                                            nameFocused = (index == row && gridFocused && nameFocus) ||
-                                                (reorderActive && reorderKey == null && index == row),
+                                            nameFocused = (index == row && gridFocused && nameFocus),
                                             quality = if (settings.showQualityBadges) user.channelQuality[ch.key] else null,
                                             reminderStarts = reminderStartsByChannel[ch.key].orEmpty(),
                                             recordingSpan = recordingUntil[ch.key],
@@ -1702,41 +1635,8 @@ fun LiveTvGuideScreen(
                 LiveText("Back: save and return", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
             }
         }
-        if (groupReorderId != null) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 36.dp, bottom = 24.dp)
-                    .glass(guideInfoGlass(settings.guideInfoBackground), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                LiveText("Reorder groups", size = 15.sp, weight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                LiveText("Up / Down: move the group", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-                LiveText("OK or Back: save", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-            }
-        }
-        if (reorderActive) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 36.dp, bottom = 24.dp)
-                    .glass(guideInfoGlass(settings.guideInfoBackground), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                LiveText("Reorder channels", size = 15.sp, weight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                if (reorderKey != null) {
-                    LiveText("Up / Down: move the channel", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-                    LiveText("CH+ / CH−: move 8 places", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-                    LiveText("OK: place it here", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-                } else {
-                    LiveText("Up / Down: choose a channel", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-                    LiveText("OK: select it to move", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-                }
-                LiveText("Back: save and finish", color = NuvioTheme.colors.TextSecondary, size = 13.sp)
-            }
-        }
+
+
         if (visibilityMode) {
             Column(
                 modifier = Modifier
@@ -1816,6 +1716,28 @@ fun LiveTvGuideScreen(
             )
         }
         menuTarget?.let { target ->
+            fun startChannelOrder(move: OrderMove? = null) {
+                menuTarget = null
+                val groupId = ui.selectedGroupId
+                val alphabetical = settings.channelSort == com.nuvio.tv.livetv.model.ChannelSort.NAME && user.channelOrder[groupId] == null
+                val initial = channels.map { it.key }
+                val begin: () -> Unit = {
+                    if (move != null) {
+                        viewModel.saveOrder(groupId, moveOrderedItems(initial, setOf(target.channel.key), move))
+                    } else {
+                        if (alphabetical) viewModel.saveOrder(groupId, initial)
+                        orderRequest = OrderRequest(
+                            "Manage channel order", channels.map { OrderEntry(it.key, it.name) }, target.channel.key
+                        ) { keys ->
+                            val byKey = channels.associateBy { it.key }
+                            savedOrder = keys.mapNotNull { byKey[it] }
+                            savedMovedKey = target.channel.key
+                            viewModel.saveOrder(groupId, keys)
+                        }
+                    }
+                }
+                if (alphabetical) orderWarning = OrderSortWarning("this group", begin) else begin()
+            }
             ChannelContextMenu(
                 target = target,
                 reminderSet = target.block?.program?.let { p -> user.reminders.any { it.channelKey == target.channel.key && it.startMs == p.startMs } } == true,
@@ -1832,7 +1754,6 @@ fun LiveTvGuideScreen(
                     if (viewModel.watchFromStart(target.channel)) goFullscreen()
                 },
                 isFavorite = target.channel.key in user.favorites,
-                inFavoritesGroup = ui.selectedGroupId == ChannelGroup.FAVORITES,
                 now = now,
                 onDismiss = { menuTarget = null },
                 onWatch = { menuTarget = null; viewModel.preview(target.channel); goFullscreen() },
@@ -1841,15 +1762,7 @@ fun LiveTvGuideScreen(
                     if (viewModel.playCatchup(target.channel, program)) goFullscreen()
                 },
                 onToggleFavorite = { viewModel.toggleFavorite(target.channel); menuTarget = null },
-                onMoveFavorite = { d ->
-                    viewModel.moveFavorite(target.channel, d)
-                    row = (row + d).coerceIn(0, (channels.size - 1).coerceAtLeast(0))
-                },
                 customGroupId = ui.selectedGroupId.takeIf { it.startsWith(ChannelGroup.CUSTOM_PREFIX) },
-                onMoveInGroup = { gid, d ->
-                    viewModel.moveInGroup(gid, target.channel, d)
-                    row = (row + d).coerceIn(0, (channels.size - 1).coerceAtLeast(0))
-                },
                 onRemoveFromGroup = { gid -> viewModel.removeFromGroup(gid, target.channel); menuTarget = null },
                 onAddToGroup = { menuTarget = null; groupPickerFor = target.channel },
                 onRename = {
@@ -1877,15 +1790,8 @@ fun LiveTvGuideScreen(
                     menuTarget = null
                 },
                 canReorder = viewModel.canReorder(ui.selectedGroupId),
-                onReorder = {
-                    menuTarget = null
-                    reorderGroupId = ui.selectedGroupId
-                    reorderList = channels
-                    reorderActive = true
-                    reorderKey = target.channel.key
-                    row = channels.indexOfFirst { it.key == target.channel.key }.coerceAtLeast(0)
-                    scope.launch { delay(60); runCatching { gridFocus.requestFocus() } }
-                },
+                onReorder = { startChannelOrder() },
+                onMoveToEdge = { startChannelOrder(it) },
                 onCopy = { menuTarget = null; copyPickerFor = target.channel },
                 isCopyHere = viewModel.isCopyIn(ui.selectedGroupId, target.channel),
                 onRemoveCopy = { viewModel.removeCopy(ui.selectedGroupId, target.channel); menuTarget = null },
@@ -2049,6 +1955,28 @@ fun LiveTvGuideScreen(
                 )
             } else {
                 val isCustom = g.id.startsWith(ChannelGroup.CUSTOM_PREFIX)
+                fun startGroupOrder(move: OrderMove? = null) {
+                    groupMenu = null
+                    val all = ui.groups.filterNot { it.special }
+                    val alphabetical = settings.groupSort == "name"
+                    val samePlaylist = all.filter { it.sourceId == g.sourceId }.let { groups ->
+                        if (alphabetical) groups.sortedBy { it.title.lowercase() } else groups
+                    }
+                    val initial = samePlaylist.map { it.id }
+                    val begin: () -> Unit = {
+                        if (move != null) {
+                            val moved = moveOrderedItems(initial, setOf(g.id), move)
+                            viewModel.saveGroupOrder(replaceOrderScope(all.map { it.id }, moved))
+                        } else {
+                            if (alphabetical) viewModel.saveGroupOrder(replaceOrderScope(all.map { it.id }, initial))
+                            orderRequest = OrderRequest(
+                                "Manage group order — ${g.sourceId?.let { playlistNames[it] } ?: "My groups"}",
+                                samePlaylist.map { OrderEntry(it.id, it.title) }, g.id
+                            ) { ids -> viewModel.saveGroupOrder(replaceOrderScope(all.map { it.id }, ids)) }
+                        }
+                    }
+                    if (alphabetical) orderWarning = OrderSortWarning("groups", begin) else begin()
+                }
                 ActionMenuDialog(
                     title = g.title,
                     actions = buildList {
@@ -2083,14 +2011,14 @@ fun LiveTvGuideScreen(
                             scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
                         })
                         if (!g.special) {
-                            add("Reorder groups" to {
-                                groupMenu = null
-                                groupWorking = ui.groups.filter { !it.special }
-                                groupReorderId = g.id
-                                scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
+                            add((if (g.id in user.favoriteGroups) "Remove from favourite groups" else "Add to favourite groups") to {
+                                viewModel.toggleFavoriteGroup(g.id); groupMenu = null
                             })
-                            add("Move up" to { viewModel.moveGroup(g.id, -1) })
-                            add("Move down" to { viewModel.moveGroup(g.id, 1) })
+                            add("Manage group order" to { startGroupOrder() })
+                            add("Move to top of playlist" to { startGroupOrder(OrderMove.TOP) })
+                            add("Move to bottom of playlist" to { startGroupOrder(OrderMove.BOTTOM) })
+                            add("Move up" to { startGroupOrder(OrderMove.UP) })
+                            add("Move down" to { startGroupOrder(OrderMove.DOWN) })
                             add("New group" to {
                                 groupMenu = null
                                 textPrompt = TextPrompt(
@@ -2105,6 +2033,12 @@ fun LiveTvGuideScreen(
                     onDismiss = { groupMenu = null }
                 )
             }
+        }
+        orderWarning?.let { warning ->
+            OrderSortWarningDialog(warning) { orderWarning = null }
+        }
+        orderRequest?.let { request ->
+            LiveTvOrderDialog(request) { orderRequest = null }
         }
         if (searchOpen) {
             SearchDialog(
@@ -2862,9 +2796,6 @@ private fun GroupColumn(
     playlistNames: Map<String, String> = emptyMap(),
     collapsed: Set<String> = emptySet(),
     onToggleCollapse: (String) -> Unit = {},
-    reorderingId: String? = null,
-    onReorderMove: (Int) -> Unit = {},
-    onReorderDone: () -> Unit = {},
     /** Non-null while managing group visibility: the groups set to hidden. */
     hiddenPending: Set<String>? = null,
     /** With several playlists, show each playlist's groups under its own heading (setting). */
@@ -2891,23 +2822,13 @@ private fun GroupColumn(
                         else -> false // Up / Down move through the groups as usual
                     }
                 }
-                if (reorderingId != null) {
-                    // Reorder groups: Up/Down moves the group, OK or Back saves.
-                    val isOk = e.key == Key.DirectionCenter || e.key == Key.Enter || e.key == Key.NumPadEnter
-                    if (e.type == KeyEventType.KeyDown) when (e.key) {
-                        Key.DirectionUp -> onReorderMove(-1)
-                        Key.DirectionDown -> onReorderMove(1)
-                        Key.Back -> onReorderDone()
-                        else -> Unit
-                    } else if (isOk && e.type == KeyEventType.KeyUp) onReorderDone()
-                    return@onPreviewKeyEvent true
-                }
+
                 if (e.type == KeyEventType.KeyDown && e.key == Key.DirectionLeft) {
                     onLeft(); true
                 } else if (e.type == KeyEventType.KeyDown && e.key == Key.DirectionRight) {
                     onRight(); true
                 } else if (e.type == KeyEventType.KeyDown && e.key == Key.DirectionUp && e.nativeKeyEvent.repeatCount >= 2 &&
-                    reorderingId == null && hiddenPending == null &&
+                    hiddenPending == null &&
                     focusedGroupId == groups.firstOrNull { it.id != ChannelGroup.SEARCH }?.id &&
                     e.nativeKeyEvent.eventTime - focusedSince > 500
                 ) {
@@ -2923,10 +2844,10 @@ private fun GroupColumn(
             )
         }
         // With more than one playlist, each playlist's groups sit under its own heading,
-        // which folds away when selected. (Not while reordering: that's one plain list.)
+        // which folds away when selected.
         val listed = groups.filter { it.id != ChannelGroup.SEARCH }
         val sources = listed.mapNotNull { it.sourceId }.distinct()
-        val sectioned = showPlaylistHeadings && reorderingId == null && hiddenPending == null && sources.size > 1
+        val sectioned = showPlaylistHeadings && hiddenPending == null && sources.size > 1
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -2938,9 +2859,7 @@ private fun GroupColumn(
             fun groupItem(g: ChannelGroup) {
                 item(key = g.id) {
                     val selected = g.id == selectedId
-                    val moving = g.id == reorderingId
                     val requester = when {
-                        reorderingId != null -> moving
                         hiddenPending != null ->
                             g.id == (if (groups.any { it.id == selectedId }) selectedId else groups.firstOrNull()?.id)
                         else -> selected
@@ -2948,15 +2867,14 @@ private fun GroupColumn(
                     GroupItem(
                         tileHeight = tileHeight,
                         group = g,
-                        selected = selected || moving,
+                        selected = selected,
                         showCount = showCounts,
-                        moving = moving,
                         visible = if (g.special) null else hiddenPending?.let { g.id !in it },
                         modifier = if (requester) Modifier.focusRequester(focusRequester) else Modifier,
                         onFocused = {
                             if (focusedGroupId != g.id) focusedSince = android.os.SystemClock.uptimeMillis()
                             focusedGroupId = g.id
-                            if (reorderingId == null && hiddenPending == null) onFocusGroup(g)
+                            if (hiddenPending == null) onFocusGroup(g)
                         },
                         onClick = {
                             if (hiddenPending != null) {
@@ -2970,9 +2888,10 @@ private fun GroupColumn(
             if (!sectioned) {
                 listed.forEach { groupItem(it) }
             } else {
-                listed.filter { it.sourceId == null }.forEach { groupItem(it) }
+                listed.filter { it.sourceId == null || it.favorite }.forEach { groupItem(it) }
                 sources.forEach { src ->
-                    val inSource = listed.filter { it.sourceId == src }
+                    val inSource = listed.filter { it.sourceId == src && !it.favorite }
+                    if (inSource.isEmpty()) return@forEach
                     val isCollapsed = src in collapsed
                     item(key = "header:$src") {
                         PlaylistHeader(
@@ -2996,16 +2915,17 @@ private fun GroupColumn(
  * playlist headings (and more than one playlist), each heading is a row of its own and a folded
  * playlist's groups aren't listed.
  */
-private fun groupListIndex(groups: List<ChannelGroup>, id: String, headings: Boolean, collapsed: Set<String>): Int {
+internal fun groupListIndex(groups: List<ChannelGroup>, id: String, headings: Boolean, collapsed: Set<String>): Int {
     val listed = groups.filter { it.id != ChannelGroup.SEARCH }
     val sources = listed.mapNotNull { it.sourceId }.distinct()
     if (!headings || sources.size <= 1) return listed.indexOfFirst { it.id == id }
     var i = 0
-    for (g in listed) if (g.sourceId == null) { if (g.id == id) return i; i++ }
+    for (g in listed) if (g.sourceId == null || g.favorite) { if (g.id == id) return i; i++ }
     for (src in sources) {
+        if (listed.none { it.sourceId == src && !it.favorite }) continue
         i++ // the playlist's heading
         if (src in collapsed) continue
-        for (g in listed) if (g.sourceId == src) { if (g.id == id) return i; i++ }
+        for (g in listed) if (g.sourceId == src && !g.favorite) { if (g.id == id) return i; i++ }
     }
     return -1
 }
@@ -3136,7 +3056,7 @@ private fun GroupItem(
     ) {
         Spacer(Modifier.width(12.dp))
         LiveText(
-            group.title,
+            (if (group.favorite) "★ " else "") + group.title,
             modifier = Modifier.weight(1f),
             color = colors.text,
             size = gsp(14f),
@@ -3170,15 +3090,12 @@ private fun GroupItem(
 private fun ChannelContextMenu(
     target: MenuTarget,
     isFavorite: Boolean,
-    inFavoritesGroup: Boolean,
     now: Long,
     onDismiss: () -> Unit,
     onWatch: () -> Unit,
     onCatchup: (EpgProgram) -> Unit,
     onToggleFavorite: () -> Unit,
-    onMoveFavorite: (Int) -> Unit,
     customGroupId: String?,
-    onMoveInGroup: (String, Int) -> Unit,
     onRemoveFromGroup: (String) -> Unit,
     onAddToGroup: () -> Unit,
     onRename: () -> Unit,
@@ -3187,6 +3104,7 @@ private fun ChannelContextMenu(
     onHide: () -> Unit,
     canReorder: Boolean,
     onReorder: () -> Unit,
+    onMoveToEdge: (OrderMove) -> Unit,
     onCopy: () -> Unit,
     isCopyHere: Boolean,
     onRemoveCopy: () -> Unit,
@@ -3247,14 +3165,8 @@ private fun ChannelContextMenu(
             item { MenuItem("Schedule a recording…", onClick = onScheduleRecording) }
             item { MenuHeader("Favorites & groups") }
             item { MenuItem(if (isFavorite) "Remove from favorites" else "Add to favorites", onClick = onToggleFavorite) }
-            if (isFavorite && inFavoritesGroup) {
-                item { MenuItem("Move up in favorites", onClick = { onMoveFavorite(-1) }) }
-                item { MenuItem("Move down in favorites", onClick = { onMoveFavorite(1) }) }
-            }
             item { MenuItem("Add to group…", onClick = onAddToGroup) }
             if (customGroupId != null) {
-                item { MenuItem("Move up in this group", onClick = { onMoveInGroup(customGroupId, -1) }) }
-                item { MenuItem("Move down in this group", onClick = { onMoveInGroup(customGroupId, 1) }) }
                 item { MenuItem("Remove from this group", onClick = { onRemoveFromGroup(customGroupId) }) }
             }
             item { MenuItem("Copy channel…", onClick = onCopy) }
@@ -3267,7 +3179,11 @@ private fun ChannelContextMenu(
             item { MenuItem("Hide channel", onClick = onHide) }
             item { MenuItem("Hide group \"${ch.group}\"", onClick = onHideGroup) }
             item { MenuItem("Manage visibility", onClick = onManageVisibility) }
-            if (canReorder) item { MenuItem("Reorder channels", onClick = onReorder) }
+            if (canReorder) {
+                item { MenuItem("Manage channel order", onClick = onReorder) }
+                item { MenuItem("Move to top of group") { onMoveToEdge(OrderMove.TOP) } }
+                item { MenuItem("Move to bottom of group") { onMoveToEdge(OrderMove.BOTTOM) } }
+            }
             item { MenuHeader("Guide") }
             item { MenuItem("Update playlists & EPG", onClick = onRefresh) }
             item { MenuItem("Guide display (info panel, preview…)", onClick = onGuideDisplay) }
@@ -3855,8 +3771,8 @@ private fun ActionMenuDialog(title: String, actions: List<Pair<String, () -> Uni
     LiveDialog(onDismiss = onDismiss, width = 420.dp) {
         LiveText(title, size = 20.sp, weight = FontWeight.Bold)
         Spacer(Modifier.height(14.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            actions.forEachIndexed { i, (label, action) ->
+        LazyColumn(modifier = Modifier.heightIn(max = 380.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            itemsIndexed(actions) { i, (label, action) ->
                 MenuItem(label, if (i == 0) Modifier.focusRequester(first) else Modifier, action)
             }
         }

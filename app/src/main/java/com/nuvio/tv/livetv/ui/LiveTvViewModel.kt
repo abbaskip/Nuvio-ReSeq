@@ -249,7 +249,7 @@ class LiveTvViewModel @Inject constructor(
 
     /** The parts of the saved user state that [buildUi] reads; keep in step with it. */
     private fun sameForLists(a: LiveUserState, b: LiveUserState): Boolean =
-        a.favorites == b.favorites && a.recent == b.recent &&
+        a.favorites == b.favorites && a.favoriteGroups == b.favoriteGroups && a.recent == b.recent &&
             a.hiddenChannels == b.hiddenChannels && a.hiddenGroups == b.hiddenGroups &&
             a.lockedGroups == b.lockedGroups && a.customGroups == b.customGroups &&
             a.channelOrder == b.channelOrder && a.groupOrder == b.groupOrder &&
@@ -348,7 +348,8 @@ class LiveTvViewModel @Inject constructor(
                 .sortedWith(compareBy<IndexedValue<ChannelGroup>>({ orderIndex[it.value.id] ?: Int.MAX_VALUE }, { it.index }))
                 .map { it.value }
         }
-        groups += orderedRegular
+        groups += orderedRegular.map { it.copy(favorite = it.id in user.favoriteGroups) }
+            .sortedByDescending { it.favorite }
         // Keep a long-press recovery route even if every regular group is hidden and
         // the user has switched off all optional built-in group rows.
         if (groups.none { it.id != ChannelGroup.SEARCH }) {
@@ -365,8 +366,8 @@ class LiveTvViewModel @Inject constructor(
         val groupId = if (exactGroup) groupIdRaw ?: "" else groupIdRaw?.takeIf { id -> groups.any { it.id == id } } ?: defaultGroupId
         val rawList = when {
             groupId == ChannelGroup.ALL && s.showAllChannelsGroup -> ordered(ChannelGroup.ALL, visible)
-            // "Playlist order" keeps your own order here; Number / Name sort these too.
-            groupId == ChannelGroup.FAVORITES -> sorted(favorites)
+            // A saved manual order takes precedence for this group alone.
+            groupId == ChannelGroup.FAVORITES -> ordered(groupId, favorites)
             groupId == ChannelGroup.RECENT -> recent
             groupId == ChannelGroup.SEARCH -> {
                 val q = query.trim()
@@ -376,7 +377,7 @@ class LiveTvViewModel @Inject constructor(
             }
             groupId in lockedIds -> emptyList()
             groupId.startsWith(ChannelGroup.CUSTOM_PREFIX) ->
-                sorted(user.customGroups.firstOrNull { it.id == groupId }?.channelKeys?.mapNotNull { byKey[it] }.orEmpty())
+                ordered(groupId, user.customGroups.firstOrNull { it.id == groupId }?.channelKeys?.mapNotNull { byKey[it] }.orEmpty())
             else -> ordered(groupId, groupChannels(groupId)).distinctBy { it.key }
         }
         // TiviMate's number override: 1, 2, 3… in the order the group shows them.
@@ -1073,14 +1074,14 @@ class LiveTvViewModel @Inject constructor(
     /** Saves the whole group order at once (Reorder groups). */
     fun saveGroupOrder(ids: List<String>) {
         // Reordering by hand means "my order" from now on.
-        if (settings.value.groupSort != "custom") viewModelScope.launch { prefs.updateSettings { it.copy(groupSort = "custom") } }
         if (ids.isEmpty()) return
-        viewModelScope.launch { prefs.moveGroup(ids.first(), 0, ids) }
+        viewModelScope.launch {
+            prefs.setGroupOrder(ids)
+            prefs.updateSettings { it.copy(groupSort = "custom") }
+        }
     }
 
-    fun moveGroup(groupId: String, delta: Int) {
-        viewModelScope.launch { prefs.moveGroup(groupId, delta, uiState.value.orderableGroupIds) }
-    }
+    fun toggleFavoriteGroup(groupId: String) = viewModelScope.launch { prefs.toggleFavoriteGroup(groupId) }
 
     fun createGroupWith(name: String, channel: LiveChannel?) = viewModelScope.launch {
         val id = prefs.createCustomGroup(name)
@@ -1205,10 +1206,11 @@ class LiveTvViewModel @Inject constructor(
     fun canReorder(groupId: String) = groupId != ChannelGroup.SEARCH && groupId != ChannelGroup.RECENT
 
     fun saveOrder(groupId: String, keys: List<String>) = viewModelScope.launch {
+        if (!canReorder(groupId)) return@launch
+        prefs.setChannelOrder(groupId, keys)
         when {
             groupId == ChannelGroup.FAVORITES -> prefs.setFavoritesOrder(keys)
             groupId.startsWith(ChannelGroup.CUSTOM_PREFIX) -> prefs.setCustomGroupOrder(groupId, keys)
-            else -> prefs.setChannelOrder(groupId, keys)
         }
     }
 

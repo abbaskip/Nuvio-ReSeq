@@ -281,7 +281,7 @@ private fun OverlayModeContent(
                             groupIndex = groups.indexOfFirst { it.id == ui.selectedGroupId }.coerceAtLeast(0)
                             headingAt = null
                             // The group showing is in a folded playlist: unfold it, so it can be seen.
-                            groups.getOrNull(groupIndex)?.sourceId?.let { src ->
+                            groups.getOrNull(groupIndex)?.takeUnless { it.favorite }?.sourceId?.let { src ->
                                 if (headed && src in collapsed) viewModel.togglePlaylistCollapsed(src)
                             }
                             level = OverlayLevel.GROUPS
@@ -537,16 +537,17 @@ private fun ChannelsPanel(
 }
 
 /** A row of the overlay's group list: a group ([group] is its index) or a playlist heading ([group] -1). */
-private class GroupRow(val source: String?, val group: Int)
+internal class GroupRow(val source: String?, val group: Int)
 
 /** The group list as the guide lays it out: groups of no playlist first, then each playlist's heading and (unless folded) its groups. */
-private fun overlayGroupRows(groups: List<ChannelGroup>, headed: Boolean, collapsed: Set<String>): List<GroupRow> {
+internal fun overlayGroupRows(groups: List<ChannelGroup>, headed: Boolean, collapsed: Set<String>): List<GroupRow> {
     if (!headed) return groups.indices.map { GroupRow(groups[it].sourceId, it) }
     val out = ArrayList<GroupRow>()
-    groups.forEachIndexed { i, g -> if (g.sourceId == null) out += GroupRow(null, i) }
+    groups.forEachIndexed { i, g -> if (g.sourceId == null || g.favorite) out += GroupRow(g.sourceId, i) }
     groups.mapNotNull { it.sourceId }.distinct().forEach { src ->
+        if (groups.none { it.sourceId == src && !it.favorite }) return@forEach
         out += GroupRow(src, -1)
-        if (src !in collapsed) groups.forEachIndexed { i, g -> if (g.sourceId == src) out += GroupRow(src, i) }
+        if (src !in collapsed) groups.forEachIndexed { i, g -> if (g.sourceId == src && !g.favorite) out += GroupRow(src, i) }
     }
     return out
 }
@@ -573,7 +574,7 @@ private fun GroupsPanel(
                     val src = row.source.orEmpty()
                     val focused = headingAt == src
                     val isCollapsed = src in collapsed
-                    val inSource = groups.filter { it.sourceId == src }
+                    val inSource = groups.filter { it.sourceId == src && !it.favorite }
                     val colors = liveCellColors(focused = focused, idle = Color.Transparent, idleText = NuvioTheme.colors.Secondary)
                     Row(
                         modifier = Modifier
@@ -615,7 +616,7 @@ private fun GroupsPanel(
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LiveText(g.title, color = colors.text, size = osp(16f), modifier = Modifier.weight(1f), marquee = headingAt == null && i == index)
+                    LiveText((if (g.favorite) "★ " else "") + g.title, color = colors.text, size = osp(16f), modifier = Modifier.weight(1f), marquee = headingAt == null && i == index)
                     if (showCounts) LiveText(g.count.toString(), color = NuvioTheme.colors.TextSecondary, size = osp(12f))
                 }
             }

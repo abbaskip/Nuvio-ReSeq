@@ -332,10 +332,10 @@
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "441e12eec73ad223848ad828539d7fe3285fb99f": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerObservers.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerUiState.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "requires_decision": true,
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
@@ -346,26 +346,26 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "7b0904c150bb5cc59a85a44bb6dfcae6f4211482": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/full/java/com/nuvio/tv/core/plugin/PluginManager.kt, app/src/main/java/com/nuvio/tv/data/local/PluginDataStore.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/playstore/java/com/nuvio/tv/core/plugin/PluginManager.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "requires_decision": true,
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "bb17891ae115c58658f4ce862079b6755ebd5978": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "requires_decision": true,
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "9c1b9a192cf8dd08b6342432e7caec36f0261334": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
       "requires_decision": true,
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
@@ -394,16 +394,16 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "0a9733a95415079e8fe14dd789f1a53bf0488329": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerScreen.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "3c6b9506b411e3ded6247f42fe04c0e96725e1eb": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/SubtitleSelectionOverlay.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "8803fc64565f68e58acd2af273cbe42433301736": {
       "outcome": "irrelevant",
@@ -412,10 +412,10 @@
       "base": "3b93c191c6eb250014db6bff71896bc601d78254"
     },
     "a7e176c428042047cb168384a2f34cb277311108": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/addon/AddonManagerViewModel.kt, app/src/main/java/com/nuvio/tv/ui/screens/settings/LayoutSettingsViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "8f2f5caea8300bcdd2554522bb78a07f1ffeb0fc": {
       "outcome": "irrelevant",
@@ -430,10 +430,10 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "842985dd518d327164163feb80d4d46de01c1ab6": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/settings/LayoutSettingsViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "1dae72df13361e7bfbfaf4889285960be499ceb6": {
       "outcome": "irrelevant",
@@ -442,10 +442,10 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "92ae40e54b9a6574088fba752c3412bec79361e6": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/NuvioApplication.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "a102f6bf57b839db329d72a0e88d76ff67dc1f03": {
       "outcome": "irrelevant",
@@ -468,10 +468,10 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "31400cf86396fbd512b4f49c7288d6a5c090377f": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/detail/MetaDetailsScreen.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge exactly reproduces this upstream merge. All parent changes have separate ledger entries, with feature ports on codex/backlog-functional-nov4.",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     }
   }
 }

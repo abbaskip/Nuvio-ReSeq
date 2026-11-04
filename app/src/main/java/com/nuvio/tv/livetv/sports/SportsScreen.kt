@@ -132,6 +132,7 @@ object SportsLaunch {
 
 private const val CHIP_MINE = "mine"
 private const val CHIP_LIVE = "live"
+private const val CHIP_TV_NOW = "tv_now"
 private const val CHIP_ALL = "all"
 /** A league from the top bar: "lg:" + its id. */
 private const val CHIP_LEAGUE = "lg:"
@@ -587,8 +588,7 @@ private fun SportsHub(
     val pinnedChip = chip?.takeIf { it.startsWith(CHIP_LEAGUE) }
     val followedSports = remember(follows, settings) { SportsRows.followedSports(follows, SportsCatalog.sportsOrder(settings)) }
     val sportChip = chip?.takeIf { it.startsWith(CHIP_SPORT) }
-    // Picking a filter puts the highlight on the page: All Events' first game (the first one on
-    // now), My Sports' big card.
+    // Picking a filter puts the highlight on its first event, or My Sports' big card.
     var contentJump by remember { mutableIntStateOf(0) }
     val pickChip: (String) -> Unit = { c -> onChip(c); contentJump++ }
     val dayTabReqs = remember { HashMap<Int, FocusRequester>() }
@@ -613,70 +613,25 @@ private fun SportsHub(
     val rowsSport: Sport? = effectiveChip.takeIf { it.startsWith(CHIP_SPORT) }?.let { c -> followedSports.firstOrNull { CHIP_SPORT + it.name == c } }
     val rowsPage = effectiveChip == CHIP_MINE || rowsSport != null
     val leagueView = effectiveChip.takeIf { it.startsWith(CHIP_LEAGUE) }?.removePrefix(CHIP_LEAGUE)
-    val weekStart = viewModel.repo.dayStart(-1)
-    val weekEnd = viewModel.repo.dayStart(SportsRepository.DAYS_AHEAD + 1)
-    // Days before yesterday: their games are fetched when you open one.
-    LaunchedEffect(day) { if (day < -1) viewModel.repo.wantPast() }
-    val dayEvents = remember(events, dayStart, dayEnd, active, filterToChannels, matches, follows, leagueView, weekStart, now / 60_000L) {
-        if (leagueView != null) return@remember events.filter { ev ->
-            ev.leagueId == leagueView && ev.startMs < weekEnd && (ev.endMs ?: ev.startMs) >= weekStart
-        }
-        events.filter { ev ->
-            // A finished game or event shows on the day it finished only (a race weekend or a
-            // tournament isn't repeated on every day of its dates once it's over).
-            val onDay = when {
-                ev.state == GameState.POST -> {
-                    val finished = if (ev.hasTime) ev.startMs else minOf(ev.endMs ?: ev.startMs, now)
-                    finished in dayStart until dayEnd
-                }
-                ev.hasTime -> ev.startMs in dayStart until dayEnd
-                // A tournament or race weekend still to come: on the day it starts only.
-                ev.state == GameState.PRE -> ev.startMs in dayStart until dayEnd
-                // One under way: today and the days ahead it still runs (not the days before today).
-                else -> dayEnd > now && ev.startMs < dayEnd && (ev.endMs ?: (ev.startMs + 1)) >= dayStart
-            }
-            ev.leagueId in active && onDay &&
+    // Past scoreboards are loaded only when their date is opened.
+    LaunchedEffect(day, effectiveChip) { if (day < -1 && effectiveChip != CHIP_TV_NOW) viewModel.repo.wantPast() }
+    val dayEvents = remember(events, dayStart, dayEnd, active, filterToChannels, matches, follows, now) {
+        SportsEventListings.allEvents(events, dayStart, dayEnd, now).filter { ev ->
+            ev.leagueId in active &&
                 (!filterToChannels || ev.state == GameState.POST || isMine(ev, follows) || matches[ev.id]?.isNotEmpty() == true)
         }
     }
-    val shown = remember(dayEvents, effectiveChip, follows) {
-        when (effectiveChip) {
-            CHIP_MINE -> dayEvents.filter { isMine(it, follows) }
-            CHIP_LIVE -> dayEvents.filter { it.state == GameState.LIVE }
-            CHIP_ALL -> dayEvents
-            else -> if (effectiveChip.startsWith(CHIP_LEAGUE)) dayEvents
-            else dayEvents.filter { SportsCatalog.league(it.leagueId)?.sport?.name == effectiveChip }
-        }
+    val shown = remember(events, dayEvents, effectiveChip, active, now) {
+        if (effectiveChip == CHIP_TV_NOW) SportsEventListings.tvNow(events, now).filter { it.leagueId in active }
+        else dayEvents
     }
-    // League rank as a lookup (it was a list search inside every sort comparison).
-    val leagueRank = remember(settings) { SportsCatalog.ordered(settings).mapIndexed { i, l -> l.id to i }.toMap() }
-    // The sections, sorted once per change of games, channels or time, not on every redraw
-    // (moving the highlight redraws this screen).
-    val sections = remember(shown, dayEvents, matches, follows, now, leagueRank, leagueView) {
-        fun rank(ev: SportsEvent) = leagueRank[ev.leagueId] ?: 999
-        // Golf, tennis, a race weekend: "in progress" all week in the feed. Live Now only while one
-        // of your channels is showing it; otherwise listed under This Week.
-        fun airingNow(ev: SportsEvent): Boolean = matches[ev.id]?.any { m -> m.program?.let { now >= it.startMs && now < it.stopMs } == true } == true
-        val weekLong = shown.filter { !it.hasTime && it.state == GameState.LIVE && !airingNow(it) }
-        val weekIds = weekLong.mapTo(HashSet()) { it.id }
-        val onAir = shown.filter { it.state == GameState.LIVE && it.source == EventSource.GUIDE }
-            .sortedWith(compareBy<SportsEvent> { it.isReplay }.thenBy { rank(it) }.thenBy { it.startMs })
-        val live = shown.filter { it.state == GameState.LIVE && it.source != EventSource.GUIDE && it.id !in weekIds }
-            .sortedWith(compareBy<SportsEvent> { it.source == EventSource.GUIDE }.thenBy { it.isReplay }.thenByDescending { isMine(it, follows) }.thenByDescending { matches[it.id]?.isNotEmpty() == true }.thenBy { rank(it) }.thenBy { it.startMs })
-        val upcoming = shown.filter { it.state == GameState.PRE || it.state == GameState.OFF }
-            .sortedWith(compareBy<SportsEvent> { if (it.hasTime) it.startMs else Long.MIN_VALUE }.thenByDescending { isMine(it, follows) }.thenBy { rank(it) })
-        val finished = shown.filter { it.state == GameState.POST }
-            .sortedWith(compareByDescending<SportsEvent> { it.startMs }.thenBy { rank(it) })
-            .let { if (leagueView != null) it.take(12) else it }
-        val liveCount = dayEvents.count { it.source != EventSource.GUIDE && it.state == GameState.LIVE && (it.hasTime || airingNow(it)) }
-        DaySections(weekLong, live, onAir, upcoming, finished, liveCount)
-    }
+    val liveCount = remember(dayEvents) { dayEvents.count { it.state == GameState.LIVE } }
     val columns = if (videoOn) 1 else 2
 
     val firstContent = remember { FocusRequester() }
     val firstChip = remember { FocusRequester() }
     var focusedOnce by remember { mutableStateOf(false) }
-    val hasContent = sections.live.isNotEmpty() || sections.onAir.isNotEmpty() || sections.upcoming.isNotEmpty() || sections.finished.isNotEmpty() || sections.weekLong.isNotEmpty()
+    val hasContent = shown.isNotEmpty()
     LaunchedEffect(hasContent, day, effectiveChip) {
         delay(120)
         // My Teams' rows put the highlight where it belongs themselves.
@@ -692,12 +647,13 @@ private fun SportsHub(
 
     // Only a problem is worth a line (scores update quietly in the background), and it sits in
     // the bottom corner so nothing on the page moves when it comes and goes.
-    // A filter picked on All Events: down to its first game (LIVE NOW comes first).
+    // A filter picked: return to the start of its timeline.
     LaunchedEffect(contentJump) {
         if (contentJump == 0 || rowsPage) return@LaunchedEffect
+        listState.scrollToItem(0)
         delay(160)
         focusedOnce = true
-        runCatching { firstContent.requestFocus() }
+        runCatching { (if (hasContent) firstContent else firstChip).requestFocus() }
     }
     val status: String? = problem
     val statusLine: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {
@@ -721,7 +677,9 @@ private fun SportsHub(
             LiveText("Sports", size = 26.sp, weight = FontWeight.Black)
             Spacer(Modifier.width(14.dp))
             val lv = leagueView?.let { SportsCatalog.league(it) }
-            if (lv != null) {
+            if (effectiveChip == CHIP_TV_NOW) {
+                LiveText("Sport on TV now", color = SportsLook.Dim, size = 12.sp, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            } else if (lv != null) {
                 LiveText("${lv.name} · the next 7 days", color = SportsLook.Dim, size = 12.sp, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
             } else {
                 // A week back to a week ahead; opens on Yesterday and Today, and scrolls.
@@ -751,16 +709,19 @@ private fun SportsHub(
     val filters: @Composable (Modifier) -> Unit = { m ->
         LazyRow(m.keepFocusWhileHeld(vertical = false), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)) {
             // ↑ from the filters on All Events: the day you're looking at (on screen: it's the one picked).
-            val upTo = if (!rowsPage) Modifier.focusProperties {
+            val upTo = if (!rowsPage && effectiveChip != CHIP_TV_NOW) Modifier.focusProperties {
                 up = if (tabsState.layoutInfo.visibleItemsInfo.any { it.key == day }) dayTabReq(day) else FocusRequester.Default
             } else Modifier
             item(key = CHIP_MINE) { FilterIcon("★", "My Sports", effectiveChip == CHIP_MINE, Modifier.focusRequester(firstChip).then(upTo), withLabel = true) { pickChip(CHIP_MINE) } }
-            // Everything on, day by day (live games first), with how many are on now.
+            // Verified fixtures in start-time order, with results and upcoming dates.
             item(key = CHIP_ALL) {
                 FilterIcon(
-                    "▦", if (sections.liveCount > 0) "All Events · ${sections.liveCount} live" else "All Events",
+                    "▦", if (liveCount > 0) "All Events · $liveCount live" else "All Events",
                     effectiveChip == CHIP_ALL, upTo, withLabel = true
                 ) { pickChip(CHIP_ALL) }
+            }
+            item(key = CHIP_TV_NOW) {
+                FilterIcon("▣", "TV Now", effectiveChip == CHIP_TV_NOW, upTo, withLabel = true) { pickChip(CHIP_TV_NOW) }
             }
             // Your leagues' tables.
             item(key = "preferences") { FilterIcon("⚙", "Choose Sports", false, upTo, withLabel = true) { onPick() } }
@@ -775,9 +736,8 @@ private fun SportsHub(
     val list: @Composable (Modifier) -> Unit = { m ->
         GameList(
             modifier = m,
-            sections = sections,
+            shown = shown,
             columns = columns,
-            day = day,
             matches = matches,
             follows = follows,
             settings = settings,
@@ -791,7 +751,6 @@ private fun SportsHub(
             requesterFor = requesterFor,
             previewFocus = previewFocus,
             emptyChip = effectiveChip,
-            byDate = leagueView != null,
             anyToday = dayEvents.isNotEmpty(),
             onShowAll = { onChip(CHIP_ALL) },
             onPick = onPick,
@@ -925,9 +884,8 @@ private fun SportsHub(
 @Composable
 private fun GameList(
     modifier: Modifier,
-    sections: DaySections,
+    shown: List<SportsEvent>,
     columns: Int,
-    day: Int,
     matches: Map<String, List<ChannelMatch>>,
     follows: SportsFollows,
     settings: SportsSettings,
@@ -941,7 +899,6 @@ private fun GameList(
     requesterFor: (String) -> FocusRequester,
     previewFocus: FocusRequester?,
     emptyChip: String,
-    byDate: Boolean,
     anyToday: Boolean,
     onShowAll: () -> Unit,
     onPick: () -> Unit,
@@ -965,7 +922,7 @@ private fun GameList(
             )
         }
         if (loading) {
-            item(key = "ph_label") { SectionHeader("ON NOW", live = true) }
+            item(key = "ph_label") { SectionHeader(if (emptyChip == CHIP_TV_NOW) "SPORT ON TV NOW" else "EVENTS BY START TIME") }
             items(3, key = { "ph_$it" }) { PlaceholderCard() }
             return@LazyColumn
         }
@@ -977,71 +934,37 @@ private fun GameList(
                 item(key = prefix + row.first().id) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         row.forEachIndexed { i, ev ->
-                            GameCard(
-                                ev = ev,
-                                follows = follows,
-                                now = now,
-                                use24h = use24h,
-                                hideScores = settings.hideScores,
-                                playing = playing(ev),
-                                modifier = Modifier.weight(1f).then(if (i == 0) rowFirst else Modifier).focusRequester(requesterFor(ev.id)),
-                                onClick = { onOpen(ev) },
-                                onLongClick = { onQuickWatch(ev) }
-                            )
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                LiveText(
+                                    if (ev.hasTime) clock(ev.startMs, use24h) else "Time to be confirmed",
+                                    color = SportsLook.Dim, size = 11.sp, weight = FontWeight.Bold,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                                GameCard(
+                                    ev = ev,
+                                    follows = follows,
+                                    now = now,
+                                    use24h = use24h,
+                                    hideScores = settings.hideScores,
+                                    playing = playing(ev),
+                                    modifier = Modifier.then(if (i == 0) rowFirst else Modifier).focusRequester(requesterFor(ev.id)),
+                                    onClick = { onOpen(ev) },
+                                    onLongClick = { onQuickWatch(ev) }
+                                )
+                            }
                         }
                         repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
         }
-        if (sections.live.isNotEmpty()) {
-            item(key = "live_label") { SectionHeader("LIVE EVENTS", live = true, count = sections.live.size) }
-            cardRows("live_", sections.live)
-        }
-        if (sections.onAir.isNotEmpty()) {
-            item(key = "onair_label") { SectionHeader("ON AIR · SPORTS SHOWS", live = true, count = sections.onAir.size, indicatorColor = SportsLook.OnAir) }
-            cardRows("onair_", sections.onAir)
-        }
-        if (sections.upcoming.isNotEmpty()) {
-            // A league's week: a heading per day ("SATURDAY 24 OCT"); a day: one heading.
-            val groups: List<Pair<String, List<SportsEvent>>> =
-                if (byDate) sections.upcoming.groupBy { dayWord(it.startMs, now) }.toList()
-                else listOf((if (day == 0) "COMING UP" else if (day > 0) "SCHEDULE" else "DIDN'T START") to sections.upcoming)
-            groups.forEach { (label, groupList) ->
-            item(key = "up_label_$label") { SectionHeader(label.uppercase(), count = groupList.size) }
-            groupList.chunked(columns).forEachIndexed { ri, row ->
-                val rowFirst = if (ri == 0) firstMod() else Modifier
-                item(key = "up_" + row.first().id) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        row.forEachIndexed { i, ev ->
-                            val ms = matches[ev.id].orEmpty()
-                            UpcomingRow(
-                                ev = ev,
-                                channel = ms.firstOrNull()?.channel?.name ?: ev.broadcasts.firstOrNull(),
-                                follows = follows,
-                                reminded = follows.reminders.any { it.eventId == ev.id },
-                                use24h = use24h,
-                                playing = playing(ev),
-                                modifier = Modifier.weight(1f).then(if (i == 0) rowFirst else Modifier).focusRequester(requesterFor(ev.id)),
-                                onClick = { onOpen(ev) },
-                                onLongClick = { onQuickWatch(ev) }
-                            )
-                        }
-                        repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
-                    }
-                }
+        if (shown.isNotEmpty()) {
+            item(key = "timeline_label") {
+                SectionHeader(if (emptyChip == CHIP_TV_NOW) "SPORT ON TV NOW" else "EVENTS BY START TIME", count = shown.size)
             }
-            }
+            cardRows("event_", shown)
         }
-        if (sections.weekLong.isNotEmpty()) {
-            item(key = "week_label") { SectionHeader("THIS WEEK", count = sections.weekLong.size) }
-            cardRows("week_", sections.weekLong)
-        }
-        if (sections.finished.isNotEmpty()) {
-            item(key = "done_label") { SectionHeader(if (day < 0 || byDate) "RESULTS" else "FINISHED", count = sections.finished.size) }
-            cardRows("done_", sections.finished)
-        }
-        val hasContent = sections.live.isNotEmpty() || sections.onAir.isNotEmpty() || sections.upcoming.isNotEmpty() || sections.finished.isNotEmpty() || sections.weekLong.isNotEmpty()
+        val hasContent = shown.isNotEmpty()
         if (!hasContent) item(key = "empty") {
             EmptyDay(chip = emptyChip, loading = false, anyToday = anyToday, followsEmpty = follows.isEmpty, onShowAll = onShowAll, onPick = onPick)
         }
@@ -1163,8 +1086,8 @@ private fun EmptyDay(chip: String, loading: Boolean, anyToday: Boolean, followsE
                 loading && !anyToday -> "Getting today's games…"
                 chip == CHIP_MINE && followsEmpty -> "You're not following any teams yet."
                 chip == CHIP_MINE -> "Nothing from your teams on this day."
-                chip == CHIP_LIVE -> "Nothing on right now."
-                else -> "Nothing on this day."
+                chip == CHIP_TV_NOW -> "No sports are airing on your TV guide right now."
+                else -> "No verified events on this day."
             },
             size = 17.sp, weight = FontWeight.Bold
         )
@@ -1713,16 +1636,6 @@ private fun ChannelPickerDialog(
 
 /** "1:00 PM" etc., also used by the picker and host. */
 internal fun clock(ms: Long, use24h: Boolean): String = formatClock(ms, use24h)
-
-/** The Sports page's sections for the day on screen. */
-private class DaySections(
-    val weekLong: List<SportsEvent>,
-    val live: List<SportsEvent>,
-    val onAir: List<SportsEvent>,
-    val upcoming: List<SportsEvent>,
-    val finished: List<SportsEvent>,
-    val liveCount: Int
-)
 
 /**
  * A game's scoring plays, kept up to date: asked again when the score changes, and every 30

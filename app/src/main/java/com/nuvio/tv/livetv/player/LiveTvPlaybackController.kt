@@ -80,6 +80,7 @@ class LiveTvPlaybackController @Inject constructor(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var portalLinkJob: Job? = null
+    private var portalCommandRecoveryUsed = false
 
     private val _playerFlow = MutableStateFlow<ExoPlayer?>(null)
     val playerFlow: StateFlow<ExoPlayer?> = _playerFlow.asStateFlow()
@@ -622,14 +623,15 @@ class LiveTvPlaybackController @Inject constructor(
         fallback: String? = null,
         fallbacks: List<String> = emptyList(),
         /** Catch-up: the real time the replay should start at (the show's start). */
-        catchupStartMs: Long? = null
+        catchupStartMs: Long? = null,
+        refreshPortalCommand: Boolean = false
     ) {
         if (!settingsReady.value) {
             pendingPlayJob?.cancel()
             pendingPlayJob = scope.launch {
                 settingsReady.first { it }
                 pendingPlayJob = null
-                play(channel, overrideUrl, catchupTitle, fallback, fallbacks, catchupStartMs)
+                play(channel, overrideUrl, catchupTitle, fallback, fallbacks, catchupStartMs, refreshPortalCommand)
             }
             return
         }
@@ -650,6 +652,7 @@ class LiveTvPlaybackController @Inject constructor(
         portalLinkJob?.cancel()
         portalLinkJob = null
         if (overrideUrl == null && channel.url.startsWith("reseq-stalker://")) {
+            portalCommandRecoveryUsed = refreshPortalCommand
             reconnectJob?.cancel()
             stallJob?.cancel()
             stallJob = null
@@ -665,7 +668,7 @@ class LiveTvPlaybackController @Inject constructor(
                 try {
                     val source = preferences.playlists.first().singleOrNull { it.id == channel.sourceId && it.isStalker && it.liveEnabled }
                         ?: error("This portal playlist is unavailable.")
-                    val link = stalker.resolve(source, channel.url)
+                    val link = stalker.resolve(source, channel.url, refreshCommand = refreshPortalCommand)
                     kotlinx.coroutines.currentCoroutineContext().ensureActive()
                     portalLinkJob = null
                     play(channel.copy(headers = channel.headers + link.headers), overrideUrl = link.url)
@@ -997,7 +1000,8 @@ class LiveTvPlaybackController @Inject constructor(
         val ch = currentChannel ?: return
         val url = currentUrl
         currentUrl = null
-        play(ch, url, _state.value.catchupTitle)
+        val portal = ch.url.startsWith("reseq-stalker://") && _state.value.catchupTitle == null
+        play(ch, url.takeUnless { portal }, _state.value.catchupTitle, refreshPortalCommand = portal)
     }
 
     private var pausedForBackground = false
@@ -1048,7 +1052,7 @@ class LiveTvPlaybackController @Inject constructor(
                 }
             } else {
                 currentUrl = null
-                play(ch, overrideUrl = url.takeIf { it != ch.url })
+                play(ch, overrideUrl = url.takeIf { it != ch.url && !ch.url.startsWith("reseq-stalker://") })
             }
         }
         stopShift()
@@ -1545,6 +1549,7 @@ class LiveTvPlaybackController @Inject constructor(
 
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.i(TAG, "Playback state changed to $playbackState")
+            if (playbackState == Player.STATE_READY) portalCommandRecoveryUsed = false
             _state.value = _state.value.copy(
                 isBuffering = playbackState == Player.STATE_BUFFERING,
                 error = if (playbackState == Player.STATE_READY) null else _state.value.error,
@@ -1772,11 +1777,7 @@ class LiveTvPlaybackController @Inject constructor(
     }
 
     /** A link for the start-up report, with the username and password hidden. */
-    private fun redact(url: String): String =
-        url.replace(Regex("""(/(?:timeshift|live|movie|series)/)[^/]+/[^/]+/"""), "$1***/***/")
-            .replace(Regex("""(username|password)=[^&]*"""), "$1=***")
-            // Xtream links without "/live": http://host:port/user/pass/123.ts
-            .replace(Regex("""^(https?://[^/]+)/(?!\*\*\*)[^/]+/[^/]+/(\d+(?:\.[A-Za-z0-9]+)?(?:\?.*)?)$"""), "$1/***/***/$2")
+    private fun redact(url: String): String = redactLiveStreamUrl(url)
 
     /**
      * A live channel failed twice in a row (or never started): Live TV may switch to a backup
@@ -1795,7 +1796,7 @@ class LiveTvPlaybackController @Inject constructor(
                 generateSequence(e.cause) { it.cause }.take(4)
                     .map { c -> c.javaClass.simpleName + (c.message?.take(80)?.let { m -> ": $m" } ?: "") }
                     .joinToString(" ← ")
-            }.orEmpty()
+            }.orEmpty().let(::redactLiveStreamUrl)
             com.nuvio.tv.livetv.model.LiveTvLoadReport.add(
                 "Channel ${currentChannel?.name} failed (try $attempt): $reason" +
                     (error?.let { " (${it.errorCodeName})" } ?: "") +
@@ -1809,13 +1810,46 @@ class LiveTvPlaybackController @Inject constructor(
             if (key != null && onLiveFailure?.invoke(key) == true) return
         }
         if (!autoReconnect || attempt > MAX_RECONNECTS) return
+        val portal = currentChannel?.url?.startsWith("reseq-stalker://") == true && _state.value.catchupTitle == null
+        val status = error?.let { e -> generateSequence<Throwable>(e) { it.cause }
+            .filterIsInstance<androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException>().firstOrNull()?.responseCode }
+        // These refusals get one fresh channel listing, not eight requests for the same
+        // stored play token. 460 is provider-specific; do not assign it an auth meaning.
+        val refreshCommand = portal && status in setOf(401, 403, 410, 460)
+        if (refreshCommand && portalCommandRecoveryUsed) return
+        if (refreshCommand) portalCommandRecoveryUsed = true
         reconnectJob?.cancel()
         reconnectJob = scope.launch {
             delay((attempt * 2_000L).coerceAtMost(10_000L))
             val ch = currentChannel ?: return@launch
-            val url = currentUrl ?: return@launch
             val p = _player ?: return@launch
-            p.setMediaSource(buildMediaSource(url, ch.headers, isLive = _state.value.catchupTitle == null))
+            var url = currentUrl ?: return@launch
+            var headers = ch.headers
+            if (portal) {
+                try {
+                    val source = preferences.playlists.first().singleOrNull { it.id == ch.sourceId && it.isStalker && it.liveEnabled }
+                        ?: error("This portal playlist is unavailable.")
+                    com.nuvio.tv.livetv.model.LiveTvLoadReport.add(
+                        if (refreshCommand) "Stalker: playback refused; refreshing the channel command once"
+                        else "Stalker: resolving the channel again before reconnecting"
+                    )
+                    val link = kotlinx.coroutines.withTimeoutOrNull(90_000) { stalker.resolve(source, ch.url, refreshCommand) }
+                        ?: error("Portal recovery timed out.")
+                    kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                    if (currentChannel?.key != ch.key) return@launch
+                    url = link.url
+                    headers = ch.headers + link.headers
+                    currentChannel = ch.copy(headers = headers)
+                    currentUrl = url
+                } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (_: Exception) {
+                    com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Stalker: reconnect could not obtain a fresh playback link")
+                    _state.value = _state.value.copy(error = "Could not refresh the portal channel. Try again.", isBuffering = false)
+                    return@launch
+                }
+            }
+            _state.value = _state.value.copy(error = null, isBuffering = true)
+            p.setMediaSource(buildMediaSource(url, headers, isLive = _state.value.catchupTitle == null))
             p.prepare()
             p.playWhenReady = true
         }

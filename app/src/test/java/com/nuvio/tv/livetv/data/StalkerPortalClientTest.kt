@@ -11,6 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.net.URLEncoder
+import java.util.zip.GZIPOutputStream
 
 class StalkerPortalClientTest {
     @get:Rule val temporary = TemporaryFolder()
@@ -21,6 +22,58 @@ class StalkerPortalClientTest {
         body(server, "{\"token\":\"$token\"}"); body(server, "{\"id\":42}")
     }
     private fun marker(cmd: String = "ffmpeg http://localhost/ch/42_") = "reseq-stalker://test-playlist/42?cmd=" + URLEncoder.encode(cmd, "UTF-8")
+
+    @Test fun `a refused cached direct URL recovers from the fresh listing without create link`() = runBlocking {
+        MockWebServer().use { server ->
+            val http = OkHttpClient.Builder().dns { listOf(java.net.InetAddress.getLoopbackAddress()) }.build()
+            val host = "http://media.example.test:${server.port}/play/live.php?stream=42&play_token="
+            val staleMarker = marker("ffmpeg ${host}old-synthetic-token") + "&resolve=0"
+            val client = StalkerPortalClient(http, { 0L })
+            server.enqueue(MockResponse().setResponseCode(460))
+            val stale = client.resolve(source(server), staleMarker)
+            http.newCall(okhttp3.Request.Builder().url(stale.url).build()).execute().use { assertEquals(460, it.code) }
+
+            login(server)
+            body(server, """{"data":[{"id":"41","name":"Other","cmd":"ffmpeg ${host}wrong-channel","use_http_tmp_link":"0"},{"id":"42","name":"Target","cmd":"ffmpeg ${host}fresh-synthetic-token","use_http_tmp_link":"0"}]}""")
+            val fresh = client.resolve(source(server), staleMarker, refreshCommand = true)
+            assertEquals(host + "fresh-synthetic-token", fresh.url)
+            server.enqueue(MockResponse().setBody("synthetic stream bytes"))
+            http.newCall(okhttp3.Request.Builder().url(fresh.url).build()).execute().use {
+                assertEquals(200, it.code)
+                assertEquals("synthetic stream bytes", it.body!!.string())
+            }
+            val actions = List(5) { server.takeRequest().requestUrl!!.queryParameter("action") }
+            assertEquals(listOf(null, "handshake", "get_profile", "get_all_channels", null), actions)
+            assertFalse(fresh.headers.containsKey("Authorization"))
+            assertFalse(fresh.headers.containsKey("Cookie"))
+        }
+    }
+
+    @Test fun `fresh listing must contain the exact channel id rather than a matching name`() = runBlocking {
+        MockWebServer().use { server ->
+            login(server)
+            body(server, """{"data":[{"id":"99","name":"Same name","cmd":"https://media.example.test/wrong.ts","use_http_tmp_link":"0"}]}""")
+            val result = runCatching {
+                StalkerPortalClient(OkHttpClient(), { 0L }).resolve(source(server), marker("https://media.example.test/old.ts") + "&resolve=0", refreshCommand = true)
+            }
+            assertTrue(result.isFailure)
+            assertEquals(3, server.requestCount)
+        }
+    }
+
+    @Test fun `refreshed temporary channel still resolves its new command at playback time`() = runBlocking {
+        MockWebServer().use { server ->
+            login(server)
+            body(server, """{"data":[{"id":"42","name":"Temporary","cmd":"ffmpeg http://localhost/ch/900_","use_http_tmp_link":"1"}]}""")
+            body(server, "{\"cmd\":\"https://media.example.test/fresh.ts\"}")
+            val link = StalkerPortalClient(OkHttpClient(), { 0L }).resolve(source(server), marker(), refreshCommand = true)
+            assertEquals("https://media.example.test/fresh.ts", link.url)
+            repeat(3) { server.takeRequest() }
+            val request = server.takeRequest().requestUrl!!
+            assertEquals("create_link", request.queryParameter("action"))
+            assertEquals("ffmpeg http://localhost/ch/900_", request.queryParameter("cmd"))
+        }
+    }
 
     @Test fun `incomplete link retries a preencoded command without forcing storage zero`() = runBlocking {
         MockWebServer().use { server ->
@@ -74,7 +127,19 @@ class StalkerPortalClientTest {
             val escaped = "https://media.example.test/a%2Fb.ts?stream=42&token=a+b"
             assertEquals(escaped, client.resolve(source(server), marker(escaped) + "&resolve=0").url)
             assertEquals(4, server.requestCount)
+            val contents = target.readBytes()
+            GZIPOutputStream(target.outputStream()).use { it.write(contents) }
+            assertFalse("Zipping a current playlist must not force another portal import", client.needsPlaylistRefresh(target))
         }
+    }
+
+    @Test fun `zipped legacy and truncated playlists still require migration`() {
+        val client = StalkerPortalClient(OkHttpClient(), { 0L })
+        val target = temporary.newFile()
+        GZIPOutputStream(target.outputStream()).use { it.write("#EXTM3U\n${marker()}\n".toByteArray()) }
+        assertTrue(client.needsPlaylistRefresh(target))
+        target.writeBytes(byteArrayOf(0x1f, 0x8b.toByte()))
+        assertTrue(client.needsPlaylistRefresh(target))
     }
 
     @Test fun `secondary temporary flags prevent direct playback even when primary flag is zero`() = runBlocking {

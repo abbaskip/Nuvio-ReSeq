@@ -31,6 +31,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -243,13 +244,7 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
                                 out.appendLine("#EXTINF:-1 tvg-id=\"${epgId(source.id, id)}\" tvg-logo=\"$logo\" group-title=\"$group\" tvg-chno=\"${channel.optInt("number", count + 1)}\",$name")
                                 // Only explicitly static channels may bypass create_link. Old cached
                                 // markers and channels without these fields still resolve at play time.
-                                val temporary = listOf("use_http_tmp_link", "use_load_balancing", "wowza_tmp_link", "flussonic_tmp_link")
-                                    .map { channel.optString(it).trim() }
-                                val resolve = when {
-                                    temporary.any { it == "1" || it.equals("true", true) } -> "1"
-                                    temporary.first().let { it == "0" || it.equals("false", true) } -> "0"
-                                    else -> ""
-                                }
+                                val resolve = resolutionMode(channel)
                                 out.appendLine("reseq-stalker://${source.id}/$id?cmd=${encode(command)}&resolve=$resolve")
                                 count++
                             }
@@ -264,7 +259,13 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
 
     /** Old imports discarded temporary-link flags; refresh them once after upgrading. */
     internal fun needsPlaylistRefresh(file: File): Boolean = runCatching {
-        file.bufferedReader().use { it.readLine(); it.readLine() != PLAYLIST_FORMAT }
+        file.inputStream().buffered().use { input ->
+            input.mark(2)
+            val zipped = input.read() == 0x1f && input.read() == 0x8b
+            input.reset()
+            val decoded = if (zipped) GZIPInputStream(input) else input
+            decoded.bufferedReader().use { it.readLine(); it.readLine() != PLAYLIST_FORMAT }
+        }
     }.getOrDefault(true)
 
     suspend fun writeGuide(source: PlaylistSource, target: File) = withContext(Dispatchers.IO) {
@@ -310,15 +311,40 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
         } finally { temp.delete() }
     }
 
-    suspend fun resolve(source: PlaylistSource, marker: String): Link {
+    suspend fun resolve(source: PlaylistSource, marker: String, refreshCommand: Boolean = false): Link {
         val uri = marker.toHttpMarker()
         check(uri.host == source.id) { "The channel belongs to a different playlist." }
+        if (refreshCommand) {
+            // Direct URLs may contain play tokens minted during an old playlist import.
+            // Re-list the exact channel instead of sending its ready-to-play URL to
+            // create_link, which some panels turn into an empty-stream URL.
+            val id = uri.pathSegments.singleOrNull()?.takeIf { it.isNotBlank() }
+                ?: error("Missing portal channel identifier.")
+            var fresh: JSONObject? = null
+            request(source, "itv", "get_all_channels") { response ->
+                readResult(response) { reader -> readChannelArray(reader) { channel ->
+                    if (channel.optString("id") == id) {
+                        check(fresh == null) { "The portal returned an ambiguous channel identifier." }
+                        fresh = channel
+                    }
+                } }
+            }
+            val channel = fresh ?: error("The portal no longer lists this channel. Refresh the playlist.")
+            val command = sequenceOf("cmd", "mc_cmd", "url").map { channel.optString(it) }
+                .firstOrNull { it.isNotBlank() && it != "null" } ?: error("The portal returned no channel command.")
+            val mode = resolutionMode(channel)
+            LiveTvLoadReport.add("Stalker: channel command refreshed from the portal")
+            return resolve(source, "reseq-stalker://${source.id}/$id?cmd=${encode(command)}&resolve=$mode")
+        }
         val command = uri.queryParameter("cmd")?.takeIf { it.isNotBlank() } ?: error("Missing portal channel command.")
         fun link(url: String) = Link(url, mapOf("User-Agent" to source.userAgent.ifBlank { USER_AGENT }))
         if (uri.queryParameter("resolve") == "0") {
             val direct = playbackUrl(command)
                 ?: runCatching { playbackUrl(URLDecoder.decode(command, "UTF-8")) }.getOrNull()
-            if (direct != null) return link(direct)
+            if (direct != null) {
+                LiveTvLoadReport.add("Stalker: direct channel playback selected")
+                return link(direct)
+            }
         }
 
         suspend fun create(cmd: String, legacyStorage: Boolean): String? {
@@ -354,6 +380,16 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
         // Only reject a stream parameter when present. Many valid portals use path IDs.
         if (url.queryParameterValues("stream").any { it.isNullOrBlank() || it.equals("null", true) }) return null
         return link
+    }
+
+    private fun resolutionMode(channel: JSONObject): String {
+        val temporary = listOf("use_http_tmp_link", "use_load_balancing", "wowza_tmp_link", "flussonic_tmp_link")
+            .map { channel.optString(it).trim() }
+        return when {
+            temporary.any { it == "1" || it.equals("true", true) } -> "1"
+            temporary.first().let { it == "0" || it.equals("false", true) } -> "0"
+            else -> ""
+        }
     }
 
     private class PortalSessionExpired : IllegalStateException("Portal session expired. Reconnect or check your account.")

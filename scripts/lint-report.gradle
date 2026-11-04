@@ -1,0 +1,7 @@
+// Diagnostic reports remain complete. lint_guard.py, not this exit code, is the
+// automation gate. Normal Android lint invocations retain their default failure.
+allprojects {
+    plugins.withId('com.android.application') {
+        android.lint.abortOnError = false
+    }
+}

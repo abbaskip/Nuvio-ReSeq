@@ -76,9 +76,14 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
    Commit source, tests, ledger, notes and version before validation.
 7. Run `validate --run ID`. This requires a clean commit and runs the complete
    Full Debug unit suite, debug APK build, Playstore Kotlin compilation, Android
-   lint, Python tooling tests and whitespace checks. Logs stay under the run
-   worktree's ignored `build/upstream-sync/`. Do not exclude failures or weaken
-   lint to get a pass. Investigate, fix and repeat after every code change.
+   lint, packaged-service verification, Python tooling tests and whitespace checks.
+   Lint runs with the explicit report-only init script, then `lint_guard.py`
+   enforces the approved released-source budget below. Normal lint behaviour is
+   unchanged. Logs stay under ignored `build/upstream-sync/`. Never skip the
+   guard, suppress findings globally, widen the budget or mass-clean old debt.
+   If findings improve, validation automatically shrinks the tracked budget and
+   stops: commit that reduction and repeat validation on the exact new commit.
+   Investigate, fix and repeat after every source change.
    Execute affected integration tests as appropriate in addition. Account-live
    tests can mutate remote watched/history data: do not run them blindly.
 8. Test affected risks in depth. Use TVDB mapping/identity/progress tests,
@@ -148,9 +153,16 @@ failure/held report and call `finish`; then start a new run. Don't remove a lock
 just because it is old. Existing release workflow concurrency serializes release
 jobs; the gate also defers while manual releases are active. Recheck for a newly
 published newer version immediately before completing any resumed release.
-New worktrees require at least 3 GiB free at preflight. Remove only this task's
-completed, unneeded build outputs after retaining reports/evidence and needed
-APKs. Never delete another worktree or another developer's outputs to make room.
+Runs and validation require at least 6 GiB free, covering the measured debug/
+Playstore/lint peak with a safety reserve. `finish` archives this task's unit/lint
+reports and retains a held ARM32 debug APK before removing only its own generated
+`app/build`. It verifies the resolved path belongs to a known automation worktree.
+Source, branches, reports and other developers' worktrees are preserved. Do not
+automatically clear shared Gradle caches, SDKs or other projects to make room.
+During setup only, 5.15 GiB of disposable compiler intermediates were removed from
+the clean, idle beta 5.1 and November 3 release worktrees, both already incorporated
+in published beta 7.1; their source, APKs and reports were retained. Beta 6 contained
+source edits and was explicitly skipped. Future routine cleanup is task-owned only.
 
 Catch up by running the same native task with **Run now**, or asking this chat to
 catch up. Inventory is ancestry/ledger based, not a date window, so missed runs
@@ -191,6 +203,37 @@ the first scheduled run to load the new rule; do not restart active work for it.
 An actual unattended run has not yet been observed. The task must report any
 remaining permission failure candidly rather than treating interactive access
 as proof that scheduled execution works.
+
+## Approved lint policy (4 November 2026)
+
+The maintainer approved baselining inherited lint debt only. This does not clear
+MDBList/TVDB identity, autoplay/source-tier or other functional design holds.
+Twenty known overlapping commits/merges carry `requires_decision` in the ledger.
+The review helper refuses routine promotion of those records. The publication
+gate also detects held ancestry, cherry-pick trailers and patch equivalents;
+adapting an implementation still requires functional comparison and attestation.
+
+`automation/lint-baseline.json` was captured from unchanged released tag
+`v0.1.0-beta.7.1` (`289a93d49`), using a detached reference worktree. It records
+the release commit/tree and raw report SHA256. The complete report is retained
+privately in `.upstream-sync/evidence/lint-reference-beta7.1/`. Its released-source
+findings include 4,109 errors (the earlier 4,110 count also included a local SDK
+properties escaping error, which is not released source).
+
+The immutable seed stores relative paths and hashes, not source snippets or
+service values. Active allowances can only shrink. Complete reports are compared
+by detector, source context/declaration and message; line-number shifts do not
+change identity. New errors, increased counts, higher severity, changed error
+details and returns of retired findings fail. Missing-translation language sets
+can shrink but never expand or regain a fixed language. New warnings are reported
+without gaining an error exemption. The guard compares budget changes against
+both Git history and the run's fetched base, preventing intermediate candidate
+commits from resurrecting an exemption. Previously resolved findings must stay fixed.
+
+Capture is a one-time operation requiring clean tracked source at the explicit
+released tag. Do not recapture from integrated code or overwrite the seed. Keep
+the full report: neither the diagnostic init script nor this budget suppresses
+lint output. The normal standalone lint task retains its default error behaviour.
 
 ## Morning report
 

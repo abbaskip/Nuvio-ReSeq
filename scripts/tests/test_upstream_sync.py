@@ -123,6 +123,60 @@ class UpstreamSyncSafetyTest(unittest.TestCase):
             self.assertEqual(resolution["files"], ["identity.txt"])
             self.assertIsNone(resolution["previous_review"])
 
+    def test_lint_approval_cannot_promote_a_protected_functional_hold(self):
+        from argparse import Namespace
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / sync.LEDGER
+            sync.save(path, {"schema":1, "commits":{"abc":{"outcome":"held", "requires_decision":True}}})
+            run = {"worktree":directory, "commits":[{"sha":"abc"}], "id":"run", "base":"base"}
+            with self.assertRaisesRegex(RuntimeError, "maintainer's design decision"):
+                sync.review(run, Namespace(commit="abc", outcome="integrated", reason="Lint passed"))
+            self.assertEqual(json.loads(path.read_text())["commits"]["abc"]["outcome"], "held")
+
+    def test_held_cherry_pick_is_blocked_even_without_upstream_ancestry(self):
+        sha = "a" * 40
+        run = {"worktree":"unused", "commits":[{"sha":sha}], "base":"base", "upstream":"upstream"}
+        ledger = {sha:{"outcome":"held"}}
+        with patch.object(sync,"ancestor",return_value=False), \
+             patch.object(sync,"git",return_value=f"(cherry picked from commit {sha})"):
+            with self.assertRaisesRegex(RuntimeError,"cherry-picked"):
+                sync.enforce_held_changes(run,ledger,"candidate")
+
+    def test_patch_equivalent_held_change_is_also_blocked(self):
+        sha = "a" * 40
+        run = {"worktree":"unused", "commits":[{"sha":sha}], "base":"base", "upstream":"upstream"}
+        with patch.object(sync,"ancestor",return_value=False), patch.object(sync,"git",side_effect=["", "- "+sha]):
+            with self.assertRaisesRegex(RuntimeError,"patch is present"):
+                sync.enforce_held_changes(run,{sha:{"outcome":"held"}},"candidate")
+
+    def test_cleanup_refuses_another_development_worktree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve()
+            build=root/".worktrees/beta6-release/app/build"
+            build.mkdir(parents=True)
+            sentinel=build/"active-output"; sentinel.write_text("keep")
+            with self.assertRaisesRegex(RuntimeError,"known worktree names"):
+                sync.retire_build_outputs({"worktree":str(build.parents[1])},root,root/".upstream-sync")
+            self.assertTrue(sentinel.exists())
+
+    def test_completed_run_cleanup_preserves_sources_evidence_and_held_apk(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve()
+            tree=root/".worktrees/upstream-20261104T000000Z-abcdef"
+            build=tree/"app/build"
+            (build/"reports").mkdir(parents=True)
+            (build/"reports/result.txt").write_text("pass")
+            apk=build/"outputs/apk/full/debug/app-full-armeabi-v7a-debug.apk"
+            apk.parent.mkdir(parents=True); apk.write_bytes(b"fixture")
+            source=tree/"app/unchanged-source.kt"; source.write_text("keep")
+            run={"id":"20261104T000000Z-abcdef","worktree":str(tree),"publication":None}
+            state=root/".upstream-sync"
+            sync.retire_build_outputs(run,root,state)
+            self.assertTrue(source.exists())
+            self.assertFalse(build.exists())
+            self.assertTrue((state/"evidence"/run["id"]/"reports/result.txt").exists())
+            self.assertTrue((state/"artifacts"/run["id"]/apk.name).exists())
+
 
 if __name__ == "__main__":
     unittest.main()

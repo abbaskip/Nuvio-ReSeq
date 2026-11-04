@@ -17,7 +17,9 @@
       "outcome": "held",
       "reason": "MDBList anime mapping overlaps with ReSeq canonical TVDB tracking. Preserve providerDefault/canonical references, avoid double remapping, and use the profile-aware TMDB service; require default-path plus split/combined/cross-series tests.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "c8f175cd876df462649daa79cc48338bdc87d2b0": {
       "outcome": "held",
@@ -53,19 +55,25 @@
       "outcome": "held",
       "reason": "Useful Continue Watching watched action overlaps with TVDB tracker identity/progress projections. Route through canonical component-aware history operations; test combined episodes and TV Mix before enabling.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "7242ff8b63afdd011570647ed48403b4bba219c7": {
       "outcome": "held",
       "reason": "Useful stream reuse/provider-grouping improvements. Preserve atomic paging, addon filters, current-stream identity and ReSeq focus; validate grouping and cache integration before promotion.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "2b4b640a85de7d6fd554f9ec0e5187529d88c8dc": {
       "outcome": "held",
       "reason": "Useful stream reuse/provider-grouping improvements. Preserve atomic paging, addon filters, current-stream identity and ReSeq focus; validate grouping and cache integration before promotion.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "424a61c7ac307d77c75cb26ea71d443d785bbb6f": {
       "outcome": "held",
@@ -83,49 +91,65 @@
       "outcome": "held",
       "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "665f19260b7a4949e6ebe0a5e002ac01303af10b": {
       "outcome": "held",
       "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "5601777bd58aeae240b528827f4e7f7d32997dea": {
       "outcome": "held",
       "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "fdf8d3f023b68c6cc3a7ae2af97b8e1f0c553594": {
       "outcome": "held",
       "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "fcc0f38baab6ebe28c06f89b7c50fd05cf70e32c": {
       "outcome": "held",
       "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "665c3c14da2c4b0c380443a394c54959289f9310": {
       "outcome": "held",
       "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "cc4e60e4f887cafa31a20a0c59224b753ed6100f": {
       "outcome": "held",
       "reason": "Useful stream reuse/provider-grouping improvements. Preserve atomic paging, addon filters, current-stream identity and ReSeq focus; validate grouping and cache integration before promotion.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "4f1e27b79454ab697070c16f2f491aebeeacee52": {
       "outcome": "held",
       "reason": "Useful stream reuse/provider-grouping improvements. Preserve atomic paging, addon filters, current-stream identity and ReSeq focus; validate grouping and cache integration before promotion.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "9cd91e83398719fd1aa0be886ce7a773faf172b0": {
       "outcome": "held",
@@ -239,7 +263,9 @@
       "outcome": "held",
       "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "dc9a9fb6651e038220e73e47bbaccaac4733e0e2": {
       "outcome": "held",
@@ -281,7 +307,9 @@
       "outcome": "irrelevant",
       "reason": "Merge topology only: combined diff has no additional resolution delta. Functional side commits are separately recorded; do not cherry-pick this merge as an independent feature.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "b381b61da5c084e5bb8aed3148c2f9a74f1af2dc": {
       "outcome": "irrelevant",
@@ -299,13 +327,17 @@
       "outcome": "irrelevant",
       "reason": "Merge topology only: combined diff has no additional resolution delta. Functional side commits are separately recorded; do not cherry-pick this merge as an independent feature.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "441e12eec73ad223848ad828539d7fe3285fb99f": {
       "outcome": "held",
       "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerObservers.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerUiState.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "ee22329e913580e071eac16ba2bf30585656ab47": {
       "outcome": "irrelevant",
@@ -317,19 +349,25 @@
       "outcome": "held",
       "reason": "Merge contains final resolution changes in app/src/full/java/com/nuvio/tv/core/plugin/PluginManager.kt, app/src/main/java/com/nuvio/tv/data/local/PluginDataStore.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/playstore/java/com/nuvio/tv/core/plugin/PluginManager.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "bb17891ae115c58658f4ce862079b6755ebd5978": {
       "outcome": "held",
       "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "9c1b9a192cf8dd08b6342432e7caec36f0261334": {
       "outcome": "held",
       "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "761f9fa0d1b54513c6b30bb7008d742ab195c38b": {
       "outcome": "irrelevant",
@@ -413,7 +451,9 @@
       "outcome": "irrelevant",
       "reason": "Merge topology only: combined diff has no additional resolution delta. Functional side commits are separately recorded; do not cherry-pick this merge as an independent feature.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "requires_decision": true,
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "cd7a3c8396686403d472d0723573fde8e7553951": {
       "outcome": "irrelevant",

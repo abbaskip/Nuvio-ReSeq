@@ -92,5 +92,7 @@ status-page/
 /ACCESSIBILITY_HANDOVER.md
 /.upstream-sync/
 !scripts/upstream_sync.py
+!scripts/lint_guard.py
+!scripts/lint-report.gradle
 !docs/UPSTREAM_SYNC.md
 !docs/UPSTREAM_SYNC_INITIAL_REVIEW.md

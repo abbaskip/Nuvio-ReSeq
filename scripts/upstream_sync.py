@@ -26,6 +26,7 @@ LEDGER = "automation/upstream-ledger.json"
 STATUSES = ("integrated", "equivalent", "irrelevant", "held")
 GIT_ACTIONS = {"show", "diff", "log", "status", "cherry", "rev-parse", "merge-base",
                "cherry-pick", "merge", "add", "commit", "ls-files", "diff-tree", "rev-list"}
+MIN_BUILD_FREE = 6 * 1024**3
 
 
 def command(*args, cwd=None):
@@ -102,8 +103,8 @@ def begin(args, root, state):
     with lock.open("x", encoding="utf-8") as stream:
         json.dump({"run": run_id, "started_utc": datetime.now(timezone.utc).isoformat()}, stream)
     try:
-        if not args.setup_worktree and shutil.disk_usage(root).free < 3 * 1024**3:
-            raise RuntimeError("Less than 3 GiB free; make room before creating another build worktree")
+        if shutil.disk_usage(root).free < MIN_BUILD_FREE:
+            raise RuntimeError("Less than 6 GiB free; preserve the build reserve before starting another run")
         if active_releases():
             raise RuntimeError("An existing release workflow is active; defer this run")
         # Explicit URLs prevent accidentally monitoring the renamed fork as upstream.
@@ -167,8 +168,12 @@ def review(run, args):
         raise RuntimeError("Commit is not in this run's inventory")
     path = Path(run["worktree"]) / LEDGER
     ledger = json.loads(path.read_text()) if path.exists() else {"schema": 1, "commits": {}}
+    previous = ledger["commits"].get(args.commit, {})
+    protected = {key:previous[key] for key in ("requires_decision", "decision_context") if key in previous}
+    if previous.get("requires_decision") and args.outcome in ("integrated", "equivalent"):
+        raise RuntimeError("This functional hold requires the maintainer's design decision; lint approval does not clear it")
     ledger["commits"][args.commit] = {"outcome": args.outcome, "reason": args.reason,
-                                      "run": run["id"], "base": run["base"]}
+                                      "run": run["id"], "base": run["base"], **protected}
     save(path, ledger)
     # Any decision change requires fresh compatibility and exact-commit validation.
     run["validation"] = run["compatibility"] = run["device"] = None
@@ -185,7 +190,7 @@ def configure(run, args, root):
     worktree = Path(run["worktree"])
     (worktree / "local.dev.properties").write_text("\n".join(lines) + "\n", encoding="utf-8")
     if args.sdk:
-        lines.append("sdk.dir=" + Path(args.sdk).resolve().as_posix())
+        lines.append("sdk.dir=" + Path(args.sdk).resolve().as_posix().replace(":", r"\:"))
     (worktree / "local.properties").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("Project service settings prepared; TMDB and signing properties excluded; values withheld.")
 
@@ -231,11 +236,26 @@ def validation(run):
     head = git("rev-parse", "HEAD", cwd=worktree)
     output = worktree / "build" / "upstream-sync"
     output.mkdir(parents=True, exist_ok=True)
+    if shutil.disk_usage(worktree).free < MIN_BUILD_FREE:
+        raise RuntimeError("Validation requires 6 GiB free for build outputs and a safety reserve")
+    gradle = str(worktree / ("gradlew.bat" if os.name == "nt" else "gradlew"))
+    lint_report = worktree / "app/build/reports/lint-results-fullDebug.xml"
+    lint_report.unlink(missing_ok=True)
     commands = [[sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-v"],
-                [str(worktree / ("gradlew.bat" if os.name == "nt" else "gradlew")),
+                [gradle,
                  ":app:testFullDebugUnitTest", ":app:assembleFullDebug", ":app:compilePlaystoreDebugKotlin",
-                 ":app:lintFullDebug", "-PuseLocalFfmpegDecoder=false",
-                 "-Pkotlin.compiler.execution.strategy=in-process", "--max-workers=2", "--console=plain"]]
+                 "-PuseLocalFfmpegDecoder=false", "-Pkotlin.compiler.execution.strategy=in-process",
+                 "--max-workers=2", "--console=plain"],
+                [gradle, ":app:lintFullDebug", "--init-script", "scripts/lint-report.gradle",
+                 "-PuseLocalFfmpegDecoder=false", "-Pkotlin.compiler.execution.strategy=in-process",
+                 "--max-workers=2", "--console=plain"],
+                [sys.executable, "scripts/lint_guard.py", "check", "--project", ".",
+                 "--report", str(lint_report), "--baseline", "automation/lint-baseline.json",
+                 "--previous-ref", run["base"], "--summary", str(output / "lint-verdict.json")],
+                [sys.executable, "scripts/verify_apk_services.py", "--properties", "local.properties",
+                 "--apk-dir", "app/build/outputs/apk/full/debug", "--report", str(output / "apk-services.json")],
+                [sys.executable, "scripts/lint_guard.py", "ratchet", "--project", ".", "--report", str(lint_report),
+                 "--baseline", "automation/lint-baseline.json", "--previous-ref", run["base"]]]
     env = dict(os.environ, PYTHONPATH="scripts")
     for index, argv in enumerate(commands):
         log = output / f"validation-{index}.log"
@@ -248,10 +268,14 @@ def validation(run):
     totals = {key: sum(int(s.get(key, 0)) for s in suites) for key in ("tests", "failures", "errors", "skipped")}
     if not totals["tests"] or totals["failures"] or totals["errors"]:
         raise RuntimeError("No passing regression results")
+    if "automation/lint-baseline.json" in git("diff", "--name-only", cwd=worktree).splitlines():
+        raise RuntimeError("Lint improved: commit the automatically reduced budget, then repeat exact-commit validation")
     if head != git("rev-parse", "HEAD", cwd=worktree) or git("status", "--porcelain", cwd=worktree):
         raise RuntimeError("Source changed during validation")
     run["validation"] = {"head": head, "result": "passed", "unit_tests": totals,
-                         "checks": ["Python tests", "fullDebug unit suite", "debug APKs", "Playstore compile", "Android lint", "diff check"]}
+                         "lint": json.loads((output / "lint-verdict.json").read_text()),
+                         "checks": ["Python tests", "fullDebug unit suite", "debug APKs", "Playstore compile",
+                                    "complete lint report with shrinking released-source budget", "packaged services", "diff check"]}
     print(json.dumps(run["validation"], indent=2))
 
 
@@ -265,6 +289,23 @@ def attest(run, args):
     run["compatibility"] = {"head": run["validation"]["head"], "report": str(report),
                             "sha256": hashlib.sha256(report.read_bytes()).hexdigest(), "preserved": True}
     run["device"] = {"status": args.device, "reason": args.reason}
+
+
+def enforce_held_changes(run, ledger, head):
+    held = {c["sha"] for c in run["commits"] if ledger[c["sha"]]["outcome"] == "held" or
+            ledger[c["sha"]].get("requires_decision")}
+    if not held: return
+    worktree = run["worktree"]
+    for sha in held:
+        if ancestor(sha, head, cwd=worktree):
+            raise RuntimeError("A held change is included in release ancestry")
+    messages = git("log", "--format=%B", f"{run['base']}..{head}", cwd=worktree)
+    for sha in held:
+        if re.search(r"(?:cherry picked from commit\s+|Upstream-Commit:\s*)" + re.escape(sha), messages, re.I):
+            raise RuntimeError("A held change was cherry-picked or adapted without clearing its decision")
+    equivalents = {line[2:] for line in git("cherry", head, run["upstream"], cwd=worktree).splitlines() if line.startswith("- ")}
+    if held & equivalents:
+        raise RuntimeError("A held change's patch is present in the candidate")
 
 
 def gate(run, state):
@@ -292,10 +333,7 @@ def gate(run, state):
                   ledger[c["sha"]].get("run") == run["id"]]
     if not integrated:
         raise RuntimeError("No new upstream changes integrated; no release needed")
-    # Held changes must not become incorporated by a full merge.
-    for c in run["commits"]:
-        if ledger[c["sha"]]["outcome"] == "held" and ancestor(c["sha"], head, cwd=worktree):
-            raise RuntimeError("A held change is included in release ancestry")
+    enforce_held_changes(run, ledger, head)
     if not ancestor(run["dev"], head, cwd=worktree) or not ancestor(run["base"], head, cwd=worktree):
         raise RuntimeError("Release would omit development or published functionality")
     remote = git("ls-remote", ORIGIN, "refs/heads/dev", cwd=worktree).split()[0]
@@ -347,6 +385,34 @@ def preserve(run):
     print(f"Preserved {branch}; no development branch, release or tag changed")
 
 
+def retire_build_outputs(run, root, state):
+    """Only this task's completed run; retain evidence and held ARM32 test APK."""
+    tree = Path(run["worktree"]).resolve()
+    expected_parent = (root / ".worktrees").resolve()
+    if (tree.parent != expected_parent or not
+            (re.fullmatch(r"upstream-\d{8}T\d{6}Z-[a-f0-9]{6}", tree.name) or tree.name == "upstream-automation")):
+        raise RuntimeError("Refuse cleanup outside this task's known worktree names")
+    build = (tree / "app/build").resolve()
+    if build != tree / "app/build" or not build.is_relative_to(tree):
+        raise RuntimeError("Refuse redirected build cleanup target")
+    if not build.exists(): return
+    evidence = state / "evidence" / run["id"]
+    evidence.mkdir(parents=True, exist_ok=True)
+    for name in ("test-results", "reports"):
+        source = build / name
+        if source.is_dir(): shutil.copytree(source, evidence / name, dirs_exist_ok=True)
+    held_apk = build / "outputs/apk/full/debug/app-full-armeabi-v7a-debug.apk"
+    # A successful published run can retrieve signed APKs from its release.
+    if held_apk.is_file() and not (run.get("publication") or {}).get("verified"):
+        target = state / "artifacts" / run["id"]
+        target.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(held_apk, target / held_apk.name)
+    before = shutil.disk_usage(root).free
+    shutil.rmtree(build)
+    run["storage"] = {"reclaimed_bytes": shutil.disk_usage(root).free - before,
+                      "free_bytes": shutil.disk_usage(root).free, "evidence": str(evidence)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
@@ -391,6 +457,13 @@ def main():
         if (not run["dry_run"] or not Path(args.report).is_file() or not run["validation"] or
                 run["validation"]["head"] != git("rev-parse", "HEAD", cwd=run["worktree"])):
             raise RuntimeError("A completed dry-run validation and report are required")
+        head = run["validation"]["head"]
+        compatibility = run.get("compatibility") or {}
+        if (compatibility.get("head") != head or (run.get("device") or {}).get("status") not in ("passed", "not-required")):
+            raise RuntimeError("Dry-run compatibility and required device evidence are incomplete")
+        evidence = Path(compatibility["report"])
+        if not evidence.is_file() or hashlib.sha256(evidence.read_bytes()).hexdigest() != compatibility["sha256"]:
+            raise RuntimeError("Dry-run compatibility evidence changed")
         save(state / "publication-enabled.json", {"dry_run": run["id"], "report": str(Path(args.report).resolve())})
     elif args.action == "finish":
         report = Path(args.report).resolve()
@@ -400,6 +473,7 @@ def main():
         ledger = Path(run["worktree"]) / LEDGER
         if ledger.exists() and not run["dry_run"]:
             save(state / "review-ledger.json", json.loads(ledger.read_text()))
+        retire_build_outputs(run, root, state)
         run["report"] = str(report); run["finished_utc"] = datetime.now(timezone.utc).isoformat()
     save(state / "runs" / f"{run['id']}.json", run)
     if args.action == "finish": (state / "lock.json").unlink()

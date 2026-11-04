@@ -59,10 +59,10 @@ internal object Labels {
 }
 
 /** Application id of the release build of the app, the app under test of the profile collection. */
-internal const val DEFAULT_TARGET_PACKAGE = "com.nuvio.tv"
+internal const val DEFAULT_TARGET_PACKAGE = "io.github.abbaskip.nuvioreseq"
 
 /** Application id of the benchmark build of the app, it carries the `.debug` suffix. */
-internal const val BENCHMARK_TARGET_PACKAGE = "com.nuvio.tv.debug"
+internal const val BENCHMARK_TARGET_PACKAGE = "io.github.abbaskip.nuvioreseq.debug"
 
 /** Application id of this test module, never a valid app-under-test package. */
 internal const val TEST_MODULE_PACKAGE = "com.nuvio.tv.baselineprofile"
@@ -96,48 +96,14 @@ internal fun instrumentationArg(name: String, default: String? = null): String? 
  * instrumentation is the benchmark APK itself (`com.nuvio.tv.baselineprofile`), never the app
  * under test. The target context is therefore only usable when it names a real app.
  *
- * The resolution is deterministic, the order is:
- * 1. the `androidx.benchmark.targetPackageName` runner argument, which the baseline profile
- *    gradle plugin fills with the application id of the tested APK,
- * 2. the target context of the instrumentation, when it is not the test module itself,
- * 3. the installed package that matches the package the caller expects for the variant under
- *    test (the release build for the profile collection, the `.debug` build for the benchmarks),
- * 4. the installed package that carries the `.debug` suffix of the benchmark build type,
- * 5. the first installed package in sorted order.
+ * Require the package selected for the requested ReSeq journey.
  *
  * @param expected the package id the caller knows the app under test has.
  */
 internal fun resolveTargetPackage(device: UiDevice, expected: String): String {
-    val target = runCatching {
-        InstrumentationRegistry.getInstrumentation().targetContext.packageName
-    }.getOrNull()
-    if (!target.isNullOrBlank() && target != TEST_MODULE_PACKAGE) {
-        Log.i(LOG_TAG, "Resolved target package from the instrumentation target: $target")
-        return target
-    }
-
-    val pluginTarget = instrumentationArg(TARGET_PACKAGE_ARGUMENT)
-    if (!pluginTarget.isNullOrBlank() && pluginTarget != TEST_MODULE_PACKAGE) {
-        Log.i(LOG_TAG, "Resolved target package from $TARGET_PACKAGE_ARGUMENT: $pluginTarget")
-        return pluginTarget
-    }
-
-    val installed = runCatching {
-        device.executeShellCommand("pm list packages com.nuvio.tv")
-            .lineSequence()
-            .map { it.trim().removePrefix("package:") }
-            .filter { it.startsWith("com.nuvio.tv") && it != TEST_MODULE_PACKAGE }
-            .sorted()
-            .toList()
-    }.getOrDefault(emptyList())
-
-    val resolved = installed.firstOrNull { it == expected }
-        ?: installed.firstOrNull { it == BENCHMARK_TARGET_PACKAGE }
-        ?: installed.firstOrNull { it.endsWith(".debug") }
-        ?: installed.firstOrNull()
-        ?: DEFAULT_TARGET_PACKAGE
-    Log.i(LOG_TAG, "Resolved target package: $resolved (expected: $expected, installed: $installed)")
-    return resolved
+    val installed = device.executeShellCommand("pm path $expected").trim()
+    require(installed.startsWith("package:")) { "Expected ReSeq test target $expected is not installed" }
+    return expected
 }
 
 /** Waits for a node whose text or content description contains [text]. */
@@ -353,10 +319,13 @@ internal fun UiDevice.seedAddonCatalog(packageName: String) {
     val manifest = instrumentationArg("addonManifestUrl") ?: return
     runCatching {
         executeShellCommand(
-            "am start -a android.intent.action.VIEW -d '$manifest' $packageName"
+            "am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE " +
+                "-d '$manifest' -p $packageName"
         )
     }
-    Thread.sleep(2_000)
+    // The deep link opens the addons screen and installs the manifest without further
+    // confirmation; give the install + toast time to settle before the flow moves on.
+    Thread.sleep(5_000)
 }
 
 /**
@@ -369,8 +338,6 @@ internal fun UiDevice.seedAddonCatalog(packageName: String) {
  * hardcoded one would leak a personal configuration into the repository.
  */
 internal fun UiDevice.prepareHome(packageName: String) {
-    seedAddonCatalog(packageName)
-
     // The drawer entries only exist once the setup is done, so this is the cheap probe.
     val alreadyConfigured = awaitAnyText(Labels.LIBRARY, Labels.SETTINGS, timeoutMs = 2_000)
 
@@ -403,8 +370,14 @@ internal fun UiDevice.prepareHome(packageName: String) {
         waitForIdle()
     }
 
-    // Wait for the app to own the screen and for the first row to land.
-    wait(Until.hasObject(By.pkg(packageName)), 10_000)
+    // The addon seeding runs AFTER onboarding: on a fresh install the deep link only reaches
+    // the addon-install flow once the setup is done - before that it dies behind the
+    // onboarding screens. The run reinstalls the app under test, so the addon has to be
+    // seeded on every run. When the manifest arg is absent this is a no-op.
+    seedAddonCatalog(packageName)
+
+    // The seeding opens the addons screen; leave it so the journeys start from home.
+    goBack()
     awaitAnyText(Labels.LIBRARY, Labels.SETTINGS, timeoutMs = CONTENT_TIMEOUT_MS)
     waitForIdle()
     Thread.sleep(2_000)

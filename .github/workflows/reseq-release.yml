@@ -112,13 +112,16 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.name }}
           APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+          ARTIFACTS_ONLY: ${{ inputs.artifacts_only }}
         run: |
           mkdir -p build/previous-release
           gh release download --repo "$GITHUB_REPOSITORY" --pattern '*universal.apk' --dir build/previous-release
           mapfile -t previous < <(find build/previous-release -name '*.apk')
           test "${#previous[@]}" -eq 1
           tools="$ANDROID_HOME/build-tools/36.0.0"
-          python3 scripts/prepare_release_apks.py --apk-dir app/build/outputs/apk/full/release --output-dir build/release --version "$VERSION" --apksigner "$tools/apksigner" --aapt "$tools/aapt" --reference-apk "${previous[0]}"
+          test_args=()
+          if [[ "$ARTIFACTS_ONLY" == true ]]; then test_args+=(--allow-same-version); fi
+          python3 scripts/prepare_release_apks.py --apk-dir app/build/outputs/apk/full/release --output-dir build/release --version "$VERSION" --apksigner "$tools/apksigner" --aapt "$tools/aapt" --reference-apk "${previous[0]}" "${test_args[@]}"
           python3 scripts/verify_apk_services.py --properties local.properties --apk-dir build/release --report build/service-verification.json
           cp build/service-verification.json build/release/service-verification.json
       - name: Assemble reviewed notes and download guidance

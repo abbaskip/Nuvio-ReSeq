@@ -62,7 +62,7 @@ def identity(aapt: str, apk: Path) -> tuple[str, int, str]:
 
 
 def stage(apk_dir: Path, output_dir: Path, version: str, apksigner: str, aapt: str,
-          reference_apk: Path | None = None) -> list[Path]:
+          reference_apk: Path | None = None, allow_same_version: bool = False) -> list[Path]:
     metadata = json.loads((apk_dir / "output-metadata.json").read_text(encoding="utf-8"))
     outputs = {}
     for element in metadata["elements"]:
@@ -80,7 +80,8 @@ def stage(apk_dir: Path, output_dir: Path, version: str, apksigner: str, aapt: s
         raise ValueError(f"Unexpected release identity: {expected_identity}")
     if reference_apk:
         previous = identity(aapt, reference_apk)
-        if previous[0] != PACKAGE or previous[1] >= expected_identity[1]:
+        same_test_version = allow_same_version and previous == expected_identity
+        if previous[0] != PACKAGE or (previous[1] >= expected_identity[1] and not same_test_version):
             raise ValueError("Release must upgrade the previous package/version code")
         if certificate(apksigner, reference_apk) != expected_signer:
             raise ValueError("Release certificate differs from the previous published APK")
@@ -114,6 +115,8 @@ if __name__ == "__main__":
     parser.add_argument("--apksigner", required=True)
     parser.add_argument("--aapt", required=True)
     parser.add_argument("--reference-apk", type=Path)
+    parser.add_argument("--allow-same-version", action="store_true",
+                        help="Allow an equal-version device test build; never allow a downgrade")
     args = parser.parse_args()
     for asset in stage(**vars(args)):
         print(asset)

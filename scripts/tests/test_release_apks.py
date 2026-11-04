@@ -72,6 +72,36 @@ class ReleaseApksTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'signing'):
                 stage(self.root, self.root / 'staged', '0.1.0-beta.5', 'signer', 'aapt')
 
+    def test_same_version_requires_explicit_test_build_option(self):
+        self.metadata()
+        with patch('prepare_release_apks.identity', return_value=(PACKAGE, 10007, '0.1.0-beta.5')), \
+             patch('prepare_release_apks.certificate', return_value='permanent-signer'):
+            with self.assertRaisesRegex(ValueError, 'upgrade'):
+                stage(self.root, self.root / 'staged', '0.1.0-beta.5', 'signer', 'aapt', self.root / 'previous.apk')
+            assets = stage(self.root, self.root / 'staged', '0.1.0-beta.5', 'signer', 'aapt',
+                           self.root / 'previous.apk', allow_same_version=True)
+            self.assertEqual(5, len([p for p in assets if p.suffix == '.apk']))
+
+    def test_test_build_option_still_rejects_downgrades_and_identity_changes(self):
+        self.metadata()
+        current = (PACKAGE, 10007, '0.1.0-beta.5')
+        for previous in ((PACKAGE, 10008, '0.1.0-beta.6'),
+                         (PACKAGE, 10007, 'different-name'), ('other.package', 10007, current[2])):
+            with self.subTest(previous=previous), \
+                 patch('prepare_release_apks.identity', side_effect=[current, previous]), \
+                 patch('prepare_release_apks.certificate', return_value='permanent-signer'):
+                with self.assertRaisesRegex(ValueError, 'upgrade'):
+                    stage(self.root, self.root / 'staged', current[2], 'signer', 'aapt',
+                          self.root / 'previous.apk', allow_same_version=True)
+
+    def test_same_version_test_build_still_requires_previous_signer(self):
+        self.metadata()
+        with patch('prepare_release_apks.identity', return_value=(PACKAGE, 10007, '0.1.0-beta.5')), \
+             patch('prepare_release_apks.certificate', side_effect=['permanent-signer', 'different-signer']):
+            with self.assertRaisesRegex(ValueError, 'certificate'):
+                stage(self.root, self.root / 'staged', '0.1.0-beta.5', 'signer', 'aapt',
+                      self.root / 'previous.apk', allow_same_version=True)
+
     def test_legacy_numbered_signer_output(self):
         digest = 'ab' * 32
         with patch('prepare_release_apks.command', return_value=f'Signer #1 certificate SHA-256 digest: {digest}\n'):

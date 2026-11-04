@@ -85,8 +85,8 @@ def begin(args, root, state):
     with lock.open("x", encoding="utf-8") as stream:
         json.dump({"run": run_id, "started_utc": datetime.now(timezone.utc).isoformat()}, stream)
     try:
-        if not args.setup_worktree and shutil.disk_usage(root).free < 4 * 1024**3:
-            raise RuntimeError("Less than 4 GiB free; make room before creating another build worktree")
+        if not args.setup_worktree and shutil.disk_usage(root).free < 3 * 1024**3:
+            raise RuntimeError("Less than 3 GiB free; make room before creating another build worktree")
         if active_releases():
             raise RuntimeError("An existing release workflow is active; defer this run")
         # Explicit URLs prevent accidentally monitoring the renamed fork as upstream.
@@ -326,13 +326,24 @@ def publish(run, state, args):
     print(json.dumps(run["publication"], indent=2))
 
 
+def preserve(run):
+    worktree = Path(run["worktree"])
+    branch = git("branch", "--show-current", cwd=worktree)
+    if branch != run["branch"] or not (branch.startswith("automation/upstream-") or branch == "codex/upstream-automation"):
+        raise RuntimeError("Only this run's isolated branch may be preserved")
+    if git("status", "--porcelain", cwd=worktree):
+        raise RuntimeError("Commit reviewed source/ledger first; private logs must remain ignored")
+    git("push", ORIGIN, f"HEAD:refs/heads/{branch}", cwd=worktree)
+    print(f"Preserved {branch}; no development branch, release or tag changed")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
     p = sub.add_parser("begin"); p.add_argument("--dry-run", action="store_true")
     p.add_argument("--setup-worktree", action="store_true", help="Rehearse in this already isolated clean setup worktree")
     sub.add_parser("status")
-    for name in ("review", "configure", "git", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable"):
+    for name in ("review", "configure", "git", "preserve", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable"):
         p = sub.add_parser(name); p.add_argument("--run", required=True)
         if name == "review":
             p.add_argument("--commit", required=True); p.add_argument("--outcome", choices=STATUSES, required=True)
@@ -357,6 +368,7 @@ def main():
     elif args.action == "configure": configure(run, args, root)
     elif args.action == "git": worktree_git(run, args.git_args)
     elif args.action == "probe-device": probe_device(run)
+    elif args.action == "preserve": preserve(run)
     elif args.action == "validate":
         # Persist invalidation before running tools; a failed retry must never reuse a pass.
         run["validation"] = run["compatibility"] = run["device"] = None

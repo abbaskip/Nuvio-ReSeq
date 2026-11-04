@@ -93,3 +93,4 @@ status-page/
 /.upstream-sync/
 !scripts/upstream_sync.py
 !docs/UPSTREAM_SYNC.md
+!docs/UPSTREAM_SYNC_INITIAL_REVIEW.md

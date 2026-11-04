@@ -41,8 +41,9 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
    commits unless their dependencies, ReSeq implementation or user decision
    changed; surface their existing hold and continue independent work. Retain
    held branches/reports. For a run with no code changes, persist ledger changes
-   in a review-only branch pushed to origin and carry that branch's ledger into
-   subsequent runs before reviewing; never claim review-only work was released.
+   in a review-only branch (`preserve --run ID` pushes only that run's branch).
+   `finish` also saves non-integrated decisions in shared local state; `begin`
+   carries them into subsequent worktrees. Never claim review-only work released.
 3. Compare functionality, not just textual conflicts. ReSeq TVDB uses selected
    numbering directly in provider searches, then maps canonical tracker identity
    separately, including split/combined/extended/cross-series episodes. Upstream
@@ -147,7 +148,7 @@ failure/held report and call `finish`; then start a new run. Don't remove a lock
 just because it is old. Existing release workflow concurrency serializes release
 jobs; the gate also defers while manual releases are active. Recheck for a newly
 published newer version immediately before completing any resumed release.
-New worktrees require at least 4 GiB free at preflight. Remove only this task's
+New worktrees require at least 3 GiB free at preflight. Remove only this task's
 completed, unneeded build outputs after retaining reports/evidence and needed
 APKs. Never delete another worktree or another developer's outputs to make room.
 
@@ -158,7 +159,8 @@ Read prior reports and review-only branches before reprocessing a held backlog.
 The task is enabled after the initial dry run, while publication remains gated
 by the shared `publication-enabled.json` marker. Enable only using `enable --run
 DRY_RUN_ID --report PATH` after a complete passing dry run. A dry run cannot push
-integration changes through the coordinator or dispatch a release.
+changes to `dev` through the coordinator or dispatch a release. Review branches
+can be preserved without publishing.
 
 Local scheduled tasks need the PC on, the desktop app running and project files
 available. Windows was on Sydney's DST-aware timezone at setup. Its High

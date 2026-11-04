@@ -204,6 +204,7 @@ class LiveTvPreferences @Inject constructor(
         val channelNumbers = stringPreferencesKey("channel_numbers")
         val groupNames = stringPreferencesKey("group_names")
         val groupOrder = stringPreferencesKey("group_order")
+        val favoriteGroups = stringSetPreferencesKey("favorite_groups")
         val customGroups = stringPreferencesKey("custom_groups")
         val epgOverrides = stringPreferencesKey("epg_overrides")
         /** Channel key → PictureShape name, for channels set away from Auto. */
@@ -229,7 +230,7 @@ class LiveTvPreferences @Inject constructor(
         Keys.vodGroupOrder, Keys.vodSorts, Keys.sportsMine
     )
     private val personalSetKeys: List<Preferences.Key<Set<String>>> = listOf(
-        Keys.hiddenChannels, Keys.hiddenGroups, Keys.vodHiddenCategories
+        Keys.hiddenChannels, Keys.hiddenGroups, Keys.vodHiddenCategories, Keys.favoriteGroups
     )
 
     @JvmName("myString")
@@ -460,6 +461,7 @@ class LiveTvPreferences @Inject constructor(
             channelNumbers = decodeStringMap(p[Keys.channelNumbers]).mapNotNull { (k, v) -> v.toIntOrNull()?.let { k to it } }.toMap(),
             groupNames = decodeStringMap(p[Keys.groupNames]),
             groupOrder = decodeStringList(p[Keys.groupOrder]),
+            favoriteGroups = p[Keys.favoriteGroups] ?: emptySet(),
             customGroups = decodeCustomGroups(p[Keys.customGroups]),
             epgOverrides = decodeStringMap(p[Keys.epgOverrides]).mapNotNull { (k, v) ->
                 val parts = v.split(EPG_SEP, limit = 2)
@@ -666,6 +668,26 @@ class LiveTvPreferences @Inject constructor(
             val m = decodeStringMap(p[Keys.groupNames]).toMutableMap()
             if (name.isNullOrBlank()) m.remove(groupId) else m[groupId] = name.trim()
             p[Keys.groupNames] = encodeStringMap(m)
+        }
+    }
+
+    suspend fun toggleFavoriteGroup(groupId: String) {
+        val profile = currentProfile
+        seedProfile(profile)
+        val key = my(Keys.favoriteGroups, profile)
+        store.edit { p ->
+            val current = p[key].orEmpty()
+            p[key] = if (groupId in current) current - groupId else current + groupId
+        }
+    }
+
+    suspend fun setGroupOrder(ids: List<String>) {
+        val profile = currentProfile
+        seedProfile(profile)
+        val key = my(Keys.groupOrder, profile)
+        store.edit { p ->
+            val old = decodeStringList(p[key])
+            p[key] = encodeStringList(ids.distinct() + old.filterNot { it in ids })
         }
     }
 
@@ -905,7 +927,7 @@ class LiveTvPreferences @Inject constructor(
     suspend fun setChannelOrder(groupId: String, keys: List<String>) {
         store.edit { p ->
             val m = decodeListMap(p[my(Keys.channelOrder)]).toMutableMap()
-            m[groupId] = keys
+            m[groupId] = keys.distinct() + m[groupId].orEmpty().filterNot { it in keys }
             p[my(Keys.channelOrder)] = encodeListMap(m)
         }
     }

@@ -443,6 +443,7 @@ data class LiveUserState(
     val channelNumbers: Map<String, Int> = emptyMap(),
     val groupNames: Map<String, String> = emptyMap(),
     val groupOrder: List<String> = emptyList(),
+    val favoriteGroups: Set<String> = emptySet(),
     val customGroups: List<CustomGroup> = emptyList(),
     /** Channel key -> EPG assigned by hand from the long-press menu. */
     val epgOverrides: Map<String, EpgAssignment> = emptyMap(),
@@ -514,7 +515,8 @@ data class ChannelGroup(
     /** The playlist a playlist group comes from (null for special and your own groups). */
     val sourceId: String? = null,
     /** Needs the parental PIN (and its channels are kept out of other lists). */
-    val locked: Boolean = false
+    val locked: Boolean = false,
+    val favorite: Boolean = false
 ) {
     companion object {
         const val ALL = "__all__"

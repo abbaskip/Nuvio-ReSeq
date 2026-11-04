@@ -203,6 +203,7 @@ private fun PlayerUiState.canHandleNextEpisodeOnEnd(): Boolean {
     return playbackEnded &&
         error == null &&
         pendingExitReason == null &&
+        !showEpisodesPanel && !showSourcesPanel &&
         postPlayMode?.blocksNaturalCompletion() != true &&
         next.hasAired &&
         !(next.released.isNullOrBlank() && next.available == false)

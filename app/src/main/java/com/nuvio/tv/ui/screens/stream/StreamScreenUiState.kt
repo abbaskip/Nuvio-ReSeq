@@ -13,6 +13,7 @@ data class StreamScreenUiState(
     val externalPlayerOverlayVisible: Boolean = false,
     val directAutoPlayMessage: String? = null,
     val directAutoPlayProgress: Float? = null,
+    val autoPlayFallback: com.nuvio.tv.core.player.StreamAutoPlayFallbackProgress? = null,
     val videoId: String = "",
     val contentType: String = "",
     val title: String = "",
@@ -48,6 +49,7 @@ sealed class StreamScreenEvent {
     data class OnAddonFilterSelected(val addonName: String?) : StreamScreenEvent()
     data class OnStreamSelected(val stream: Stream) : StreamScreenEvent()
     data object OnAutoPlayConsumed : StreamScreenEvent()
+    data object OnCancelSourceAutoPlay : StreamScreenEvent()
     data object OnRefresh : StreamScreenEvent()
     data object OnRetry : StreamScreenEvent()
     data object OnBackPress : StreamScreenEvent()

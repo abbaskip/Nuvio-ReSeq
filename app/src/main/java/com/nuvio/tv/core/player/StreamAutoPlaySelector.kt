@@ -50,7 +50,7 @@ object StreamAutoPlaySelector {
         return directDebridEntries + orderedAddons + pluginEntries
     }
 
-    private fun isPlayable(stream: Stream): Boolean {
+    internal fun isPlayable(stream: Stream): Boolean {
         // External URL streams (e.g. error pages, web links) are not playable.
         if (stream.isExternal()) return false
         if (stream.serverTarget != null) return true

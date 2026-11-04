@@ -109,6 +109,7 @@ internal fun EpisodesSidePanel(
     onEpisodeSelected: (Video) -> Unit,
     onEpisodeManualPlay: (Video) -> Unit,
     onStreamSelected: (Stream) -> Unit,
+    onCancelAutoPlay: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LaunchedEffect(
@@ -153,6 +154,9 @@ internal fun EpisodesSidePanel(
                 Spacer(modifier = Modifier.height(NuvioTheme.spacing.lg))
 
                 if (uiState.showEpisodeStreams) {
+                    uiState.autoPlayFallback?.let {
+                        com.nuvio.tv.ui.components.SourceAutoPlayFallback(it, onCancelAutoPlay)
+                    }
                     EpisodeStreamsView(
                         uiState = uiState,
                         onBackToEpisodes = onBackToEpisodes,

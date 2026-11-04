@@ -109,6 +109,20 @@ internal fun PlaybackStreamSelectionSection(
     }
 
     if (settings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL) {
+        SettingsToggleRow(
+            title = stringResource(R.string.autoplay_immediate_title),
+            subtitle = stringResource(R.string.autoplay_immediate_sub),
+            checked = settings.streamAutoPlayImmediateEnabled,
+            onToggle = { onUpdate { setStreamAutoPlayImmediateEnabled(!settings.streamAutoPlayImmediateEnabled) } }
+        )
+        if (settings.streamAutoPlayImmediateEnabled) {
+            SettingsActionRow(
+                title = stringResource(R.string.autoplay_immediate_addons),
+                subtitle = null,
+                value = selectionSummary(settings.streamAutoPlayImmediateAddons.size, stringResource(R.string.autoplay_immediate_none)),
+                onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_IMMEDIATE_ADDONS) }
+            )
+        }
         val allowAddons = settings.streamAutoPlayAddonsEnabled ?: (effectiveAutoPlaySource != StreamAutoPlaySource.ENABLED_PLUGINS_ONLY)
         val allowPlugins = settings.streamAutoPlayPluginsEnabled ?: (effectiveAutoPlaySource != StreamAutoPlaySource.INSTALLED_ADDONS_ONLY)
         SettingsToggleRow("Autoplay from Addons", null, allowAddons, { onUpdate { setStreamAutoPlayAddonsEnabled(!allowAddons) } })
@@ -158,6 +172,28 @@ internal fun PlaybackStreamSelectionSection(
         },
         onValueChange = { seconds -> onUpdate { setStreamAutoPlayTimeoutSeconds(seconds) } }
     )
+
+    if (settings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL) {
+        val timedWait = timeoutSeconds != PlayerSettings.STREAM_AUTOPLAY_TIMEOUT_UNLIMITED
+        SettingsToggleRow(
+            title = stringResource(R.string.autoplay_any_source_fallback),
+            subtitle = stringResource(if (timedWait) R.string.autoplay_any_source_fallback_sub else R.string.autoplay_fallback_needs_timed_wait),
+            checked = settings.streamAutoPlayAnySourceFallbackEnabled && timedWait,
+            enabled = timedWait,
+            onToggle = { onUpdate { setStreamAutoPlayAnySourceFallbackEnabled(!settings.streamAutoPlayAnySourceFallbackEnabled) } }
+        )
+        if (settings.streamAutoPlayAnySourceFallbackEnabled && timedWait) {
+            val fallbackSeconds = PlayerSettings.normalizeAutoPlayFallbackSeconds(timeoutSeconds, settings.streamAutoPlayAnySourceFallbackSeconds)
+            SliderSettingsItem(
+                title = stringResource(R.string.autoplay_any_source_after),
+                subtitle = stringResource(R.string.autoplay_any_source_after_sub),
+                values = PlayerSettings.STREAM_AUTOPLAY_FALLBACK_TIMEOUT_VALUES.filter { it > timeoutSeconds },
+                selected = fallbackSeconds,
+                valueText = "${fallbackSeconds}s",
+                onValueChange = { seconds -> onUpdate { setStreamAutoPlayAnySourceFallbackSeconds(seconds) } }
+            )
+        }
+    }
 
     SettingsToggleRow(
         title = stringResource(R.string.autoplay_preload_next_episode),
@@ -363,6 +399,14 @@ internal fun AutoPlaySettingsDialogs(
             items = installedAddonNames,
             selectedItems = settings.streamAutoPlaySelectedAddons,
             onSelectionSaved = { selected -> onUpdate { setStreamAutoPlaySelectedAddons(selected) } },
+            onDismiss = onDismiss
+        )
+        PlaybackDialog.STREAM_AUTO_PLAY_IMMEDIATE_ADDONS -> StreamAutoPlayProviderSelectionDialog(
+            title = stringResource(R.string.autoplay_immediate_addons),
+            allLabel = stringResource(R.string.autoplay_immediate_none),
+            items = installedAddonNames,
+            selectedItems = settings.streamAutoPlayImmediateAddons,
+            onSelectionSaved = { selected -> onUpdate { setStreamAutoPlayImmediateAddons(selected) } },
             onDismiss = onDismiss
         )
         PlaybackDialog.STREAM_AUTO_PLAY_PLUGINS -> StreamAutoPlayProviderSelectionDialog(

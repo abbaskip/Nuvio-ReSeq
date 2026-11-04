@@ -1858,9 +1858,11 @@ fun PlayerRuntimeController.onEvent(
             showEpisodesPanel()
         }
         PlayerEvent.OnDismissEpisodesPanel -> {
+            cancelSourceAutoPlay()
             dismissEpisodesPanel()
         }
         PlayerEvent.OnBackFromEpisodeStreams -> {
+            cancelSourceAutoPlay()
             _uiState.update {
                 it.copy(
                     showEpisodeStreams = false,
@@ -1872,6 +1874,7 @@ fun PlayerRuntimeController.onEvent(
             selectEpisodesSeason(event.season)
         }
         is PlayerEvent.OnEpisodeSelected -> {
+            cancelSourceAutoPlay()
             loadStreamsForEpisode(
                 video = event.video,
                 forceRefresh = false,
@@ -1879,14 +1882,17 @@ fun PlayerRuntimeController.onEvent(
             )
         }
         PlayerEvent.OnReloadEpisodeStreams -> {
+            cancelSourceAutoPlay()
             reloadEpisodeStreams()
         }
         is PlayerEvent.OnEpisodeAddonFilterSelected -> {
             filterEpisodeStreamsByAddon(event.addonName)
         }
         is PlayerEvent.OnEpisodeStreamSelected -> {
+            cancelSourceAutoPlay()
             switchToEpisodeStream(event.stream)
         }
+        PlayerEvent.OnCancelSourceAutoPlay -> cancelSourceAutoPlay()
         PlayerEvent.OnShowSourcesPanel -> {
             showSourcesPanel()
         }

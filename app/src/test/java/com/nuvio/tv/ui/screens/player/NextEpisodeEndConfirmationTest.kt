@@ -81,6 +81,8 @@ class NextEpisodeEndConfirmationTest {
     @Test
     fun `confirmation does not interrupt a source search or another blocking prompt`() {
         listOf(
+            ended.copy(showEpisodesPanel = true),
+            ended.copy(showSourcesPanel = true),
             ended.copy(postPlayMode = PostPlayMode.AutoPlay(next, searching = true)),
             ended.copy(postPlayMode = PostPlayMode.StillWatching(next)),
             ended.copy(pendingExitReason = PlayerExitReason.StillWatchingPrompt)

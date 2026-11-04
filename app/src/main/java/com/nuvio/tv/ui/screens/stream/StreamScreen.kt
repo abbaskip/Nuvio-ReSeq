@@ -289,6 +289,7 @@ fun StreamScreen(
     }
 
     BackHandler {
+        viewModel.onEvent(StreamScreenEvent.OnBackPress)
         onBackPress()
     }
 
@@ -458,6 +459,8 @@ fun StreamScreen(
 
                 // Right side - Streams container
                 RightStreamSection(
+                    autoPlayFallback = uiState.autoPlayFallback,
+                    onCancelAutoPlay = { viewModel.onEvent(StreamScreenEvent.OnCancelSourceAutoPlay) },
                     isLoading = uiState.isLoading,
                     resumeText = resumeText,
                     error = uiState.error,
@@ -474,6 +477,7 @@ fun StreamScreen(
                     sharedStream = sharedStream,
                     partySource = partySource,
                     onSharedStreamSelected = { stream ->
+                        viewModel.onEvent(StreamScreenEvent.OnStreamSelected(stream))
                         scope.coroutineLaunch {
                             val playbackInfo = viewModel.resolveStreamForPlayback(stream, saveLastLink = false)
                             if (playbackInfo != null) {
@@ -484,6 +488,7 @@ fun StreamScreen(
                         }
                     },
                     onStreamSelected = { stream ->
+                        viewModel.onEvent(StreamScreenEvent.OnStreamSelected(stream))
                         val currentIndex = uiState.filteredStreams.indexOfFirst {
                             it.url == stream.url &&
                                 it.infoHash == stream.infoHash &&
@@ -755,6 +760,8 @@ private fun LeftContentSection(
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun RightStreamSection(
+    autoPlayFallback: com.nuvio.tv.core.player.StreamAutoPlayFallbackProgress?,
+    onCancelAutoPlay: () -> Unit,
     isLoading: Boolean,
     resumeText: String?,
     error: String?,
@@ -923,6 +930,9 @@ private fun RightStreamSection(
                 }
 
                 // Addon filter chips
+                autoPlayFallback?.let {
+                    com.nuvio.tv.ui.components.SourceAutoPlayFallback(it, onCancelAutoPlay)
+                }
                 Box(modifier = Modifier.height(NuvioTheme.spacing.huge)) {
                     androidx.compose.animation.AnimatedVisibility(
                         visible = sourceChips.isNotEmpty() || (!isLoading && availableAddons.isNotEmpty()),

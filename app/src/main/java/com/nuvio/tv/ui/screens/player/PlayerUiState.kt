@@ -204,6 +204,7 @@ data class PlayerUiState(
     val postPlayDismissedForCurrentEpisode: Boolean = false,
     val streamAutoPlayMode: StreamAutoPlayMode = StreamAutoPlayMode.MANUAL,
     val streamAutoPlayNextEpisodeEnabled: Boolean = false,
+    val autoPlayFallback: com.nuvio.tv.core.player.StreamAutoPlayFallbackProgress? = null,
     val streamAutoPlayPreferBingeGroupForNextEpisode: Boolean = false,
     // Stream source badge
     val showStreamSourceIndicator: Boolean = false,
@@ -381,6 +382,7 @@ sealed class PlayerEvent {
     data object OnSkipIntro : PlayerEvent()
     data object OnDismissSkipIntro : PlayerEvent()
     data object OnPlayNextEpisode : PlayerEvent()
+    data object OnCancelSourceAutoPlay : PlayerEvent()
     data object OnDismissNextEpisodeCard : PlayerEvent()
     data object OnStillWatchingContinue : PlayerEvent()
     data object OnDismissStillWatchingPrompt : PlayerEvent()

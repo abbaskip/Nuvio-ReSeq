@@ -152,7 +152,7 @@ internal fun PlayerRuntimeController.buildSourceRequestKey(type: String, videoId
     return "$type|$videoId|${season ?: -1}|${episode ?: -1}|$selection"
 }
 
-private fun PlayerRuntimeController.vodContentContext(video: Video? = null) = com.nuvio.tv.domain.model.StreamContentContext(
+internal fun PlayerRuntimeController.vodContentContext(video: Video? = null) = com.nuvio.tv.domain.model.StreamContentContext(
     contentId.orEmpty(), contentName ?: title, com.nuvio.tv.core.tracking.extractTrackingYear(year),
     video?.title ?: currentEpisodeTitle, if (video == null) currentTvdbContext() else video.tvdbPlaybackContext())
 
@@ -1195,6 +1195,15 @@ internal fun PlayerRuntimeController.loadStreamsForEpisode(
     episodeStreamsJob = newScope.launch {
         val playerSettings = if (manualSelection) null else playerSettingsDataStore.playerSettings.first()
         val autoPlaySettings = playerSettings?.takeIf { it.streamAutoPlayMode != StreamAutoPlayMode.MANUAL }
+        if (autoPlaySettings != null && com.nuvio.tv.core.player.TieredStreamAutoPlay.isEnabled(autoPlaySettings)) {
+            nextEpisodeAutoPlayJob?.cancel()
+            nextEpisodeAutoPlayJob = coroutineContext[kotlinx.coroutines.Job]
+            val addonOrder = streamAddonsFor(video.id).map { it.displayName }
+            playNextEpisodeWithTiers(video, autoPlaySettings, addonOrder,
+                serverStreams.preferredSourceNames(type, video.id), bingeGroupOnly = false,
+                userInitiated = true, pickerInitiallyVisible = true, forceRefresh = forceRefresh)
+            return@launch
+        }
         val state = _uiState.value
         val hasCachedPayload = state.episodeAllStreams.isNotEmpty() || state.episodeStreamsError != null
         if (!forceRefresh && requestKey == episodeStreamsCacheRequestKey && hasCachedPayload) {
@@ -1936,6 +1945,11 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean) {
             val installedAddons = streamAddonsFor(nextVideo.id)
             val installedAddonOrder = installedAddons.map { it.displayName }
             val preferredServerNames = serverStreams.preferredSourceNames(type, nextVideo.id)
+            if (com.nuvio.tv.core.player.TieredStreamAutoPlay.isEnabled(nextSelection.settings)) {
+                playNextEpisodeWithTiers(nextVideo, nextSelection.settings, installedAddonOrder,
+                    preferredServerNames, bingeGroupOnlyManualMode, userInitiated)
+                return@launch
+            }
             val effectiveMode = nextSelection.settings.streamAutoPlayMode
             val effectiveSource = nextSelection.settings.streamAutoPlaySource
             val effectiveSelectedAddons = nextSelection.settings.streamAutoPlaySelectedAddons

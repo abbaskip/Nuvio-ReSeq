@@ -361,6 +361,10 @@ data class PlayerSettings(
     val streamAutoPlayPreferBingeGroupForNextEpisode: Boolean = true,
     val streamAutoPlayReuseBingeGroup: Boolean = false,
     val streamAutoPlayTimeoutSeconds: Int = 10,
+    val streamAutoPlayImmediateEnabled: Boolean = false,
+    val streamAutoPlayImmediateAddons: Set<String> = emptySet(),
+    val streamAutoPlayAnySourceFallbackEnabled: Boolean = false,
+    val streamAutoPlayAnySourceFallbackSeconds: Int = 30,
     val preloadNextEpisodeSources: Boolean = false,
     val stillWatchingEnabled: Boolean = false,
     val stillWatchingEpisodeThreshold: Int = DEFAULT_STILL_WATCHING_EPISODE_THRESHOLD,
@@ -427,6 +431,15 @@ data class PlayerSettings(
 
         val STREAM_AUTOPLAY_TIMEOUT_VALUES: List<Int> =
             listOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, STREAM_AUTOPLAY_TIMEOUT_UNLIMITED)
+
+        val STREAM_AUTOPLAY_FALLBACK_TIMEOUT_VALUES = listOf(5, 10, 15, 20, 25, 30, 45, 60, 90, 120, 180, 240, 300)
+
+        fun normalizeAutoPlayFallbackSeconds(approvedSeconds: Int, requestedSeconds: Int): Int {
+            if (approvedSeconds == STREAM_AUTOPLAY_TIMEOUT_UNLIMITED) return 30
+            return STREAM_AUTOPLAY_FALLBACK_TIMEOUT_VALUES
+                .filter { it > approvedSeconds.coerceIn(0, 30) }
+                .minBy { kotlin.math.abs(it.toLong() - requestedSeconds.toLong()) }
+        }
 
         fun applyLegacyTimeoutSentinelMigration(stored: Int?): Int {
             val raw = stored ?: 3
@@ -691,6 +704,10 @@ class PlayerSettingsDataStore @Inject constructor(
     private val streamAutoPlayPreferBingeGroupForNextEpisodeKey = booleanPreferencesKey("stream_auto_play_prefer_bingegroup_next_episode")
     private val streamAutoPlayReuseBingeGroupKey = booleanPreferencesKey("stream_auto_play_reuse_binge_group")
     private val streamAutoPlayTimeoutSecondsKey = intPreferencesKey("stream_auto_play_timeout_seconds")
+    private val streamAutoPlayImmediateEnabledKey = booleanPreferencesKey("stream_auto_play_immediate_enabled")
+    private val streamAutoPlayImmediateAddonsKey = stringSetPreferencesKey("stream_auto_play_immediate_addons")
+    private val streamAutoPlayAnySourceFallbackEnabledKey = booleanPreferencesKey("stream_auto_play_any_source_fallback_enabled")
+    private val streamAutoPlayAnySourceFallbackSecondsKey = intPreferencesKey("stream_auto_play_any_source_fallback_seconds")
     private val preloadNextEpisodeSourcesKey = booleanPreferencesKey("preload_next_episode_sources")
     private val stillWatchingEnabledKey = booleanPreferencesKey("still_watching_enabled")
     private val stillWatchingEpisodeThresholdKey = intPreferencesKey("still_watching_episode_threshold")
@@ -1088,6 +1105,14 @@ class PlayerSettingsDataStore @Inject constructor(
                 streamAutoPlayPlaylistsEnabled = prefs[streamAutoPlayPlaylistsEnabledKey] ?: false,
                 streamAutoPlaySelectedAddons = prefs[streamAutoPlaySelectedAddonsKey] ?: emptySet(),
                 streamAutoPlaySelectedPlugins = prefs[streamAutoPlaySelectedPluginsKey] ?: emptySet(),
+                streamAutoPlayImmediateEnabled = prefs[streamAutoPlayImmediateEnabledKey] ?: false,
+                streamAutoPlayImmediateAddons = prefs[streamAutoPlayImmediateAddonsKey] ?: emptySet(),
+                streamAutoPlayAnySourceFallbackEnabled = (prefs[streamAutoPlayAnySourceFallbackEnabledKey] ?: false) &&
+                    PlayerSettings.applyLegacyTimeoutSentinelMigration(prefs[streamAutoPlayTimeoutSecondsKey]) != PlayerSettings.STREAM_AUTOPLAY_TIMEOUT_UNLIMITED,
+                streamAutoPlayAnySourceFallbackSeconds = PlayerSettings.normalizeAutoPlayFallbackSeconds(
+                    PlayerSettings.applyLegacyTimeoutSentinelMigration(prefs[streamAutoPlayTimeoutSecondsKey]),
+                    prefs[streamAutoPlayAnySourceFallbackSecondsKey] ?: 30
+                ),
                 streamAutoPlayRegex = prefs[streamAutoPlayRegexKey] ?: "",
                 postPlayRecommendationsEnabled = prefs[postPlayRecommendationsEnabledKey] ?: true,
                 postPlayMovieThresholdPercent = (prefs[postPlayMovieThresholdPercentKey]
@@ -1521,7 +1546,40 @@ class PlayerSettingsDataStore @Inject constructor(
 
     suspend fun setStreamAutoPlayTimeoutSeconds(seconds: Int) {
         store().edit { prefs ->
-            prefs[streamAutoPlayTimeoutSecondsKey] = PlayerSettings.applyLegacyTimeoutSentinelMigration(seconds)
+            val approved = PlayerSettings.applyLegacyTimeoutSentinelMigration(seconds)
+            prefs[streamAutoPlayTimeoutSecondsKey] = approved
+            prefs[streamAutoPlayAnySourceFallbackSecondsKey] = PlayerSettings.normalizeAutoPlayFallbackSeconds(
+                approved, prefs[streamAutoPlayAnySourceFallbackSecondsKey] ?: 30
+            )
+            if (approved == PlayerSettings.STREAM_AUTOPLAY_TIMEOUT_UNLIMITED) {
+                prefs[streamAutoPlayAnySourceFallbackEnabledKey] = false
+            }
+        }
+    }
+
+    suspend fun setStreamAutoPlayImmediateEnabled(enabled: Boolean) {
+        store().edit { it[streamAutoPlayImmediateEnabledKey] = enabled }
+    }
+
+    suspend fun setStreamAutoPlayImmediateAddons(addons: Set<String>) {
+        store().edit { it[streamAutoPlayImmediateAddonsKey] = addons.filter(String::isNotBlank).toSet() }
+    }
+
+    suspend fun setStreamAutoPlayAnySourceFallbackEnabled(enabled: Boolean) {
+        store().edit { prefs ->
+            val approved = PlayerSettings.applyLegacyTimeoutSentinelMigration(prefs[streamAutoPlayTimeoutSecondsKey])
+            prefs[streamAutoPlayAnySourceFallbackEnabledKey] = enabled && approved != PlayerSettings.STREAM_AUTOPLAY_TIMEOUT_UNLIMITED
+            prefs[streamAutoPlayAnySourceFallbackSecondsKey] = PlayerSettings.normalizeAutoPlayFallbackSeconds(
+                approved, prefs[streamAutoPlayAnySourceFallbackSecondsKey] ?: 30
+            )
+        }
+    }
+
+    suspend fun setStreamAutoPlayAnySourceFallbackSeconds(seconds: Int) {
+        store().edit { prefs ->
+            prefs[streamAutoPlayAnySourceFallbackSecondsKey] = PlayerSettings.normalizeAutoPlayFallbackSeconds(
+                PlayerSettings.applyLegacyTimeoutSentinelMigration(prefs[streamAutoPlayTimeoutSecondsKey]), seconds
+            )
         }
     }
 

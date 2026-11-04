@@ -17,6 +17,8 @@ import com.nuvio.tv.core.torrent.TorrentService
 import com.nuvio.tv.core.torrent.TorrentState
 import com.nuvio.tv.core.player.StreamAutoPlayPolicy
 import com.nuvio.tv.core.player.StreamAutoPlaySelector
+import com.nuvio.tv.core.player.TieredStreamAutoPlay
+import com.nuvio.tv.core.player.StreamAutoPlaySnapshot
 import com.nuvio.tv.core.tracking.TrackingMediaKind
 import com.nuvio.tv.core.tracking.TrackingMediaReference
 import com.nuvio.tv.core.tracking.TrackingScrobbleAction
@@ -114,6 +116,7 @@ class StreamScreenViewModel @Inject constructor(
     private val mixSession: com.nuvio.tv.core.player.TvMixSession? = null
 ) : ViewModel() {
     private var autoPlayHandledForSession = false
+    private var tieredAutoPlayJob: kotlinx.coroutines.Job? = null
     private var directAutoPlayModeInitializedForSession = false
     private var directAutoPlayFlowEnabledForSession = false
     private var isTorrentStreamStarted = false
@@ -368,8 +371,10 @@ class StreamScreenViewModel @Inject constructor(
         when (event) {
             is StreamScreenEvent.OnAddonFilterSelected -> filterByAddon(event.addonName)
             is StreamScreenEvent.OnStreamSelected -> {
+                cancelPendingSourceAutoPlay()
                 cancelStreamsLoad()
             }
+            StreamScreenEvent.OnCancelSourceAutoPlay -> cancelPendingSourceAutoPlay()
             StreamScreenEvent.OnAutoPlayConsumed -> {
                 if (autoPlayHandledForSession &&
                     _uiState.value.autoPlayStream == null &&
@@ -378,6 +383,7 @@ class StreamScreenViewModel @Inject constructor(
                     return
                 }
                 autoPlayHandledForSession = true
+                tieredAutoPlayJob?.cancel()
                 directAutoPlayFlowEnabledForSession = false
                 // Don't dismiss overlay if external player is active - it should
                 // stay visible until user returns from external player.
@@ -386,6 +392,7 @@ class StreamScreenViewModel @Inject constructor(
                     it.copy(
                         autoPlayStream = null,
                         autoPlayPlaybackInfo = null,
+                        autoPlayFallback = null,
                         isDirectAutoPlayFlow = false,
                         showDirectAutoPlayOverlay = if (keepOverlay) true else false,
                         directAutoPlayMessage = null
@@ -404,7 +411,10 @@ class StreamScreenViewModel @Inject constructor(
                 loadStreams(forceRefresh = true)
             }
             StreamScreenEvent.OnRetry -> loadStreams()
-            StreamScreenEvent.OnBackPress -> { /* Handle in screen */ }
+            StreamScreenEvent.OnBackPress -> {
+                cancelPendingSourceAutoPlay()
+                cancelStreamsLoad()
+            }
             StreamScreenEvent.OnResume -> {
                 hostInForeground.value = true
                 if (!externalPlaybackTracker.isTracking) {
@@ -420,12 +430,26 @@ class StreamScreenViewModel @Inject constructor(
     }
 
     fun cancelStreamsLoad() {
+        tieredAutoPlayJob?.cancel()
+        tieredAutoPlayJob = null
         streamLoadScope?.cancel()
         streamLoadScope = null
         streamLoadJob = null
         streamBadgePresentationJob?.cancel()
         streamBadgePresentationRequestId += 1
-        updateUiStateIfChanged { it.copy(isLoading = false) }
+        updateUiStateIfChanged { it.copy(isLoading = false, autoPlayFallback = null) }
+    }
+
+    private fun cancelPendingSourceAutoPlay() {
+        autoPlayHandledForSession = true
+        tieredAutoPlayJob?.cancel()
+        tieredAutoPlayJob = null
+        directAutoPlayFlowEnabledForSession = false
+        updateUiStateIfChanged {
+            it.copy(autoPlayFallback = null, autoPlayStream = null, autoPlayPlaybackInfo = null, isDirectAutoPlayFlow = false,
+                showDirectAutoPlayOverlay = false, directAutoPlayMessage = null)
+        }
+        externalPlaybackTracker.releaseAutoNextOverlay(forceRelease = true)
     }
 
     private fun shouldUseDirectAutoPlayFlow(
@@ -436,6 +460,9 @@ class StreamScreenViewModel @Inject constructor(
     }
 
     private fun loadStreams(forceRefresh: Boolean = false) {
+        tieredAutoPlayJob?.cancel()
+        tieredAutoPlayJob = null
+        updateUiStateIfChanged { it.copy(autoPlayFallback = null) }
         streamRepository.setLocalPluginSearchPaused(false)
         streamLoadScope?.cancel()
         streamLoadScope = null
@@ -454,6 +481,9 @@ class StreamScreenViewModel @Inject constructor(
             val mixContinuation = mixSession?.continuationFor(playbackProfileId, contentId, videoId)
             val nextSelection = mixContinuation?.let { StreamAutoPlayPolicy.nextEpisodeSelection(storedSettings) }
             val playerSettings = nextSelection?.settings ?: storedSettings
+            val useTieredAutoPlay = !manualSelection && TieredStreamAutoPlay.isEnabled(playerSettings)
+            val tieredSearchComplete = MutableStateFlow(false)
+            val tieredSearchHasPayload = MutableStateFlow(false)
             val continuationBingeGroup = mixContinuation?.preferredBingeGroup
                 ?.takeIf { storedSettings.streamAutoPlayPreferBingeGroupForNextEpisode }
             if (manualSelection || nextSelection?.automatic == false) {
@@ -464,7 +494,7 @@ class StreamScreenViewModel @Inject constructor(
                 directAutoPlayFlowEnabledForSession = shouldUseDirectAutoPlayFlow(
                     playerPreference = playerSettings.playerPreference,
                     streamAutoPlayMode = playerSettings.streamAutoPlayMode
-                )
+                ) || useTieredAutoPlay
                 // In MANUAL mode, still enable direct auto-play if a persisted
                 // binge group exists - same behavior as playNextEpisode in the player.
                 if (!directAutoPlayFlowEnabledForSession &&
@@ -481,7 +511,7 @@ class StreamScreenViewModel @Inject constructor(
 
             if (
                 playerSettings.streamAutoPlayMode == StreamAutoPlayMode.REGEX_MATCH &&
-                !StreamAutoPlayPolicy.isRegexSelectionConfigured(playerSettings.streamAutoPlayRegex)
+                !StreamAutoPlayPolicy.isRegexSelectionConfigured(playerSettings.streamAutoPlayRegex) && !useTieredAutoPlay
             ) {
                 directAutoPlayFlowEnabledForSession = false
                 autoPlayHandledForSession = true
@@ -625,7 +655,7 @@ class StreamScreenViewModel @Inject constructor(
                 // Early binge group match: if we have a persisted binge group, try to
                 // match it immediately on every emission without waiting for all addons.
                 // When a persisted filename is available, prefer binge group + filename first.
-                val earlyBingeGroupMatch = if (!autoPlayHandledForSession && !resolvedAutoPlayTarget && persistedBingeGroup != null) {
+                val earlyBingeGroupMatch = if (!useTieredAutoPlay && !autoPlayHandledForSession && !resolvedAutoPlayTarget && persistedBingeGroup != null) {
                     val nextFilename = if (persistedFilename != null) {
                         val extracted = com.nuvio.tv.core.player.FilenameEpisodeMatcher.extractSeasonEpisode(persistedFilename)
                         if (extracted != null) {
@@ -679,7 +709,7 @@ class StreamScreenViewModel @Inject constructor(
                 // configured timeout has elapsed. This gives slower addons a
                 // chance to return higher-quality streams before the selector
                 // picks from whatever is available.
-                val shouldAutoSelect = !autoPlayHandledForSession && !resolvedAutoPlayTarget && isAllLoaded
+                val shouldAutoSelect = !useTieredAutoPlay && !autoPlayHandledForSession && !resolvedAutoPlayTarget && isAllLoaded
                 val selectedAutoPlayStream = if (earlyBingeGroupMatch != null) {
                     earlyBingeGroupMatch
                 } else if (!shouldAutoSelect) {
@@ -746,6 +776,43 @@ class StreamScreenViewModel @Inject constructor(
                 scheduleStreamBadgePresentation(mergedAddonStreams)
             }
 
+            suspend fun runTieredAutoPlay(snapshots: kotlinx.coroutines.flow.Flow<StreamAutoPlaySnapshot>) {
+                if (resolvedAutoPlayTarget || autoPlayHandledForSession) return
+                var pickerRevealed = false
+                val selected = TieredStreamAutoPlay.awaitSelection(
+                    settings = playerSettings,
+                    snapshots = snapshots,
+                    installedAddonNames = installedAddonOrder.toSet(),
+                    preferredBingeGroup = persistedBingeGroup,
+                    bingeGroupOnly = nextSelection?.bingeGroupOnly == true,
+                    canSelect = { hostInForeground.value && !autoPlayHandledForSession },
+                    onProgress = { decision ->
+                        if (!autoPlayHandledForSession && decision.showPicker) {
+                            directAutoPlayFlowEnabledForSession = false
+                            updateUiStateIfChanged {
+                                it.copy(isDirectAutoPlayFlow = false, showDirectAutoPlayOverlay = false,
+                                    directAutoPlayMessage = null, autoPlayFallback = decision.progress)
+                            }
+                            if (!pickerRevealed) {
+                                pickerRevealed = true
+                                externalPlaybackTracker.releaseAutoNextOverlay(forceRelease = true)
+                            }
+                        }
+                    },
+                )
+                ensureActive()
+                if (selected != null && !autoPlayHandledForSession) {
+                    resolvedAutoPlayTarget = true
+                    directAutoPlayFlowEnabledForSession = true
+                    updateUiStateIfChanged {
+                        it.copy(autoPlayStream = selected, autoPlayFallback = null,
+                            isDirectAutoPlayFlow = true, showDirectAutoPlayOverlay = true)
+                    }
+                } else {
+                    updateUiStateIfChanged { it.copy(autoPlayFallback = null, isLoading = false) }
+                }
+            }
+
             if (shouldAttemptEmbeddedMetaStreamLookup()) {
                 getEmbeddedStreamsFromMeta()?.let { embeddedAddonStreams ->
                     Log.d(
@@ -754,6 +821,12 @@ class StreamScreenViewModel @Inject constructor(
                     )
                     applySuccess(listOf(embeddedAddonStreams), isAllLoaded = true)
                     updateSourceChipsForEmbedded(embeddedAddonStreams.addonName)
+                    if (useTieredAutoPlay && !resolvedAutoPlayTarget && !autoPlayHandledForSession) {
+                        tieredAutoPlayJob = launch {
+                            runTieredAutoPlay(kotlinx.coroutines.flow.flowOf(StreamAutoPlaySnapshot(_uiState.value.allStreams, complete = true)))
+                        }
+                        tieredAutoPlayJob?.join()
+                    }
                     if (directAutoPlayFlowEnabledForSession && !resolvedAutoPlayTarget) {
                         directAutoPlayFlowEnabledForSession = false
                         updateUiStateIfChanged {
@@ -794,7 +867,7 @@ class StreamScreenViewModel @Inject constructor(
                 debridPreparationLaunched = true
                 // Off the main thread: each prepared link rewrites the whole stream list,
                 // and the badge job can make that update retry many times.
-                viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+                newScope.launch(kotlinx.coroutines.Dispatchers.Default) {
                     directDebridStreamPreparer.prepare(
                         streams = _uiState.value.allStreams,
                         season = season,
@@ -802,6 +875,7 @@ class StreamScreenViewModel @Inject constructor(
                         playerSettings = playerSettings,
                         installedAddonNames = installedAddonOrder.toSet()
                     ) { original, prepared ->
+                        if (streamLoadScope !== newScope) return@prepare
                         updateUiStateIfChanged { state ->
                             val updatedGroups = directDebridStreamPreparer.replacePreparedStream(
                                 groups = state.addonStreams,
@@ -850,9 +924,10 @@ class StreamScreenViewModel @Inject constructor(
                         is NetworkResult.Success -> {
                             lastSuccessData = result.data
                             applySuccess(result.data, isAllLoaded = false)
+                            tieredSearchHasPayload.value = true
                             launchDirectDebridPreparationIfNeeded(result.data)
 
-                            if (autoSelectTriggered || resolvedAutoPlayTarget || autoPlayHandledForSession) {
+                            if (useTieredAutoPlay || autoSelectTriggered || resolvedAutoPlayTarget || autoPlayHandledForSession) {
                                 // Already resolved — nothing more to do.
                             } else if (timeoutElapsed) {
                                 // Timeout elapsed: run full auto-select (binge
@@ -946,12 +1021,13 @@ class StreamScreenViewModel @Inject constructor(
                     }
                 }
                 // All addons finished — run auto-select if not yet triggered
-                if (!autoSelectTriggered) {
+                tieredSearchComplete.value = true
+                if (!useTieredAutoPlay && !autoSelectTriggered) {
                     autoSelectTriggered = true
                     lastSuccessData?.let { applySuccess(it, isAllLoaded = true) }
                 }
                 markRemainingSourceChipsAsError()
-                if (directAutoPlayFlowEnabledForSession && !resolvedAutoPlayTarget) {
+                if (!useTieredAutoPlay && directAutoPlayFlowEnabledForSession && !resolvedAutoPlayTarget) {
                     directAutoPlayFlowEnabledForSession = false
                     // All addons finished with no instant stream to auto-play: drop the loader and
                     // reveal the manual picker now instead of holding until the hard timeout. Clear
@@ -976,44 +1052,60 @@ class StreamScreenViewModel @Inject constructor(
             // - unlimited: check each addon response as it arrives; if a match
             //   is found use it immediately; otherwise keep waiting until all
             //   addons finish or the hard timeout (60s) forces a fallback.
-            val timeoutMs = playerSettings.streamAutoPlayTimeoutSeconds * 1_000L
-            if (PlayerSettings.isBoundedTimeout(playerSettings.streamAutoPlayTimeoutSeconds)) {
-                delay(timeoutMs)
-            }
-            timeoutElapsed = true
-            val directDebridLoadedByTimeout = !directDebridAvailable ||
-                lastSuccessData?.any { it.addonName in directDebridSourceNames } == true
-            if (!autoSelectTriggered && lastSuccessData != null && directDebridLoadedByTimeout) {
-                applySuccess(lastSuccessData, isAllLoaded = true)
-                if (resolvedAutoPlayTarget) {
-                    autoSelectTriggered = true
+            if (useTieredAutoPlay && !resolvedAutoPlayTarget && !autoPlayHandledForSession) {
+                streamLoadInner.invokeOnCompletion { tieredSearchComplete.value = true }
+                tieredAutoPlayJob = launch {
+                    runTieredAutoPlay(combine(
+                        _uiState.map { it.allStreams }.distinctUntilChanged(), tieredSearchComplete, tieredSearchHasPayload
+                    ) { streams, complete, fresh -> StreamAutoPlaySnapshot(if (fresh) streams else emptyList(), complete) })
                 }
-            }
-
-            // For instant/bounded timeout: if streams arrived but no auto-play
-            // target was resolved, tear down the overlay immediately so the
-            // user sees the stream picker.
-            // For unlimited: keep the overlay — we continue checking as more
-            // addons respond until the hard timeout below.
-            if (directFlowActive && !resolvedAutoPlayTarget && lastSuccessData != null && !isUnlimitedTimeout) {
-                // If torrents are still pending cache check, the next emission
-                // will carry the result — don't tear down yet.
-                val hasCheckingTorrents = lastSuccessData?.any { group ->
-                    group.streams.any { s ->
-                        s.isTorrent() && s.debridCacheStatus?.state == com.nuvio.tv.domain.model.StreamDebridCacheState.CHECKING
-                    }
-                } == true
-                if (!hasCheckingTorrents) {
+                tieredAutoPlayJob?.join()
+                if (!resolvedAutoPlayTarget && !autoPlayHandledForSession) {
                     autoPlayHandledForSession = true
-                    directAutoPlayFlowEnabledForSession = false
-                    updateUiStateIfChanged {
-                        it.copy(
-                            isDirectAutoPlayFlow = false,
-                            showDirectAutoPlayOverlay = false,
-                            directAutoPlayMessage = null
-                        )
+                    streamLoadInner.cancel()
+                    markRemainingSourceChipsAsError()
+                }
+            } else {
+                val timeoutMs = playerSettings.streamAutoPlayTimeoutSeconds * 1_000L
+                if (PlayerSettings.isBoundedTimeout(playerSettings.streamAutoPlayTimeoutSeconds)) {
+                    delay(timeoutMs)
+                }
+                timeoutElapsed = true
+                val directDebridLoadedByTimeout = !directDebridAvailable ||
+                    lastSuccessData?.any { it.addonName in directDebridSourceNames } == true
+                if (!autoSelectTriggered && lastSuccessData != null && directDebridLoadedByTimeout) {
+                    applySuccess(lastSuccessData, isAllLoaded = true)
+                    if (resolvedAutoPlayTarget) {
+                        autoSelectTriggered = true
                     }
                 }
+
+                // For instant/bounded timeout: if streams arrived but no auto-play
+                // target was resolved, tear down the overlay immediately so the
+                // user sees the stream picker.
+                // For unlimited: keep the overlay — we continue checking as more
+                // addons respond until the hard timeout below.
+                if (directFlowActive && !resolvedAutoPlayTarget && lastSuccessData != null && !isUnlimitedTimeout) {
+                    // If torrents are still pending cache check, the next emission
+                    // will carry the result — don't tear down yet.
+                    val hasCheckingTorrents = lastSuccessData?.any { group ->
+                        group.streams.any { s ->
+                            s.isTorrent() && s.debridCacheStatus?.state == com.nuvio.tv.domain.model.StreamDebridCacheState.CHECKING
+                        }
+                    } == true
+                    if (!hasCheckingTorrents) {
+                        autoPlayHandledForSession = true
+                        directAutoPlayFlowEnabledForSession = false
+                        updateUiStateIfChanged {
+                            it.copy(
+                                isDirectAutoPlayFlow = false,
+                                showDirectAutoPlayOverlay = false,
+                                directAutoPlayMessage = null
+                            )
+                        }
+                    }
+                }
+
             }
 
             // Hard wall-clock fallback: if the upstream stream flow never terminates

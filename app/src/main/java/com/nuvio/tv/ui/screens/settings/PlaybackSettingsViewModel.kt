@@ -552,6 +552,22 @@ class PlaybackSettingsViewModel @Inject constructor(
         playerSettingsDataStore.setStreamAutoPlayTimeoutSeconds(seconds)
     }
 
+    suspend fun setStreamAutoPlayImmediateEnabled(enabled: Boolean) {
+        playerSettingsDataStore.setStreamAutoPlayImmediateEnabled(enabled)
+    }
+
+    suspend fun setStreamAutoPlayImmediateAddons(addons: Set<String>) {
+        playerSettingsDataStore.setStreamAutoPlayImmediateAddons(addons)
+    }
+
+    suspend fun setStreamAutoPlayAnySourceFallbackEnabled(enabled: Boolean) {
+        playerSettingsDataStore.setStreamAutoPlayAnySourceFallbackEnabled(enabled)
+    }
+
+    suspend fun setStreamAutoPlayAnySourceFallbackSeconds(seconds: Int) {
+        playerSettingsDataStore.setStreamAutoPlayAnySourceFallbackSeconds(seconds)
+    }
+
     suspend fun setPreloadNextEpisodeSources(enabled: Boolean) {
         playerSettingsDataStore.setPreloadNextEpisodeSources(enabled)
     }

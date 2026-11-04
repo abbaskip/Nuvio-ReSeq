@@ -440,6 +440,8 @@ fun PlayerScreen(
         uiState.pendingExitReason,
         shouldConfirmNextEpisodeOnEnd,
         shouldAutoPlayNextEpisodeOnEnd,
+        uiState.showEpisodesPanel,
+        uiState.showSourcesPanel,
         postPlayRecommendationState.blocksNaturalCompletion
     ) {
         val explicitReason = uiState.pendingExitReason
@@ -449,6 +451,7 @@ fun PlayerScreen(
             !postPlayRecommendationState.blocksNaturalCompletion &&
             !shouldConfirmNextEpisodeOnEnd &&
             !shouldAutoPlayNextEpisodeOnEnd &&
+            !uiState.showEpisodesPanel && !uiState.showSourcesPanel &&
             explicitReason == null
         when {
             explicitReason == PlayerExitReason.StillWatchingPrompt -> {
@@ -1899,6 +1902,7 @@ fun PlayerScreen(
                         viewModel.onEvent(PlayerEvent.OnEpisodeSelected(it, manualSelection = true))
                     },
                     onStreamSelected = { viewModel.onEvent(PlayerEvent.OnEpisodeStreamSelected(it)) },
+                    onCancelAutoPlay = { viewModel.onEvent(PlayerEvent.OnCancelSourceAutoPlay) },
                     modifier = Modifier.align(Alignment.CenterEnd)
                 )
             }

@@ -26,6 +26,7 @@ object StreamAutoPlayPolicy {
 
     fun isEffectivelyEnabled(playerSettings: PlayerSettings): Boolean {
         if (playerSettings.streamReuseLastLinkEnabled) return true
+        if (TieredStreamAutoPlay.isEnabled(playerSettings)) return true
         val addons = playerSettings.streamAutoPlayAddonsEnabled
             ?: (playerSettings.streamAutoPlaySource != com.nuvio.tv.data.local.StreamAutoPlaySource.ENABLED_PLUGINS_ONLY)
         val plugins = com.nuvio.tv.core.build.AppFeaturePolicy.pluginsEnabled && (playerSettings.streamAutoPlayPluginsEnabled

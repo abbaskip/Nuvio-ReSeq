@@ -218,10 +218,10 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "2f16ec05032e0d17c4746854ca7bb709d5d22b18": {
-      "outcome": "held",
-      "reason": "Translation updates and replacement-file follow-ups. Apply final net resources while retaining all ReSeq-only strings; resolve Portuguese conflicts and validate placeholders/RTL rather than overwriting resources wholesale.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "integrated",
+      "reason": "Polish playback and accessibility labels",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "eed08f0079533428c21d17c2e1baa2de31b6c9b9": {
       "outcome": "held",
@@ -268,34 +268,34 @@
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "dc9a9fb6651e038220e73e47bbaccaac4733e0e2": {
-      "outcome": "held",
-      "reason": "Translation updates and replacement-file follow-ups. Apply final net resources while retaining all ReSeq-only strings; resolve Portuguese conflicts and validate placeholders/RTL rather than overwriting resources wholesale.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "integrated",
+      "reason": "Bulgarian wording corrections",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "3c33a58918b931a85dd12f7ac4ef5069413a6f98": {
-      "outcome": "held",
-      "reason": "Translation updates and replacement-file follow-ups. Apply final net resources while retaining all ReSeq-only strings; resolve Portuguese conflicts and validate placeholders/RTL rather than overwriting resources wholesale.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "integrated",
+      "reason": "Portuguese party resources",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "aeb3ed62937bfb0d2c28a3b3b8ac5948834b1534": {
-      "outcome": "held",
-      "reason": "Translation updates and replacement-file follow-ups. Apply final net resources while retaining all ReSeq-only strings; resolve Portuguese conflicts and validate placeholders/RTL rather than overwriting resources wholesale.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "irrelevant",
+      "reason": "Temporary deletion superseded by subsequent full resource replacement",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "b4b6cb2b71c1384ba22bf0f2bf3d06ae0e0ef520": {
-      "outcome": "held",
-      "reason": "Translation updates and replacement-file follow-ups. Apply final net resources while retaining all ReSeq-only strings; resolve Portuguese conflicts and validate placeholders/RTL rather than overwriting resources wholesale.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "integrated",
+      "reason": "Three-way resource merge retaining ReSeq identity and all fork-only keys",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "49d83006a90fb3462ee54de18b1e64520818601d": {
-      "outcome": "held",
-      "reason": "Translation updates and replacement-file follow-ups. Apply final net resources while retaining all ReSeq-only strings; resolve Portuguese conflicts and validate placeholders/RTL rather than overwriting resources wholesale.",
-      "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "outcome": "integrated",
+      "reason": "Portuguese server resources",
+      "run": "20261104T105340Z-9770b7",
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
     },
     "99fbd65d8c16928d1fe11bf3f9812c4b5aaaca8f": {
       "outcome": "irrelevant",

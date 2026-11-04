@@ -1,6 +1,7 @@
 package com.nuvio.tv.ui.screens.player
 
 import com.nuvio.tv.data.local.NextEpisodeThresholdMode
+import com.nuvio.tv.data.local.StreamAutoPlayMode
 import com.nuvio.tv.data.repository.SkipInterval
 import com.nuvio.tv.core.util.isEpisodeReleaseAired
 import com.nuvio.tv.core.util.parseEpisodeReleaseLocalDate
@@ -71,7 +72,7 @@ object PlayerNextEpisodeRules {
                 val userThresholdFromEndMs = durationMs - userTriggerMs
                 return if (isHeuristic && sceneDurationMs < userThresholdFromEndMs) {
                     // Short heuristic scene (shorter than user threshold window):
-                    // card is not needed - autoplay will handle it at playback end.
+                    // card is not needed - the next-episode action runs at playback end.
                     false
                 } else if (isHeuristic) {
                     positionMs >= userTriggerMs
@@ -180,4 +181,29 @@ object PlayerNextEpisodeRules {
             durationMs - (clampedMinutes * 60_000f).toLong()
         }
     }
+}
+
+internal fun PlayerUiState.shouldConfirmNextEpisodeOnEnd(): Boolean {
+    return canHandleNextEpisodeOnEnd() &&
+        if (streamAutoPlayNextEpisodeEnabled) {
+            postPlayDismissedForCurrentEpisode
+        } else {
+            streamAutoPlayMode != StreamAutoPlayMode.MANUAL ||
+                streamAutoPlayPreferBingeGroupForNextEpisode
+        }
+}
+
+internal fun PlayerUiState.shouldAutoPlayNextEpisodeOnEnd(): Boolean =
+    canHandleNextEpisodeOnEnd() &&
+        streamAutoPlayNextEpisodeEnabled &&
+        !postPlayDismissedForCurrentEpisode
+
+private fun PlayerUiState.canHandleNextEpisodeOnEnd(): Boolean {
+    val next = nextEpisode ?: return false
+    return playbackEnded &&
+        error == null &&
+        pendingExitReason == null &&
+        postPlayMode?.blocksNaturalCompletion() != true &&
+        next.hasAired &&
+        !(next.released.isNullOrBlank() && next.available == false)
 }

@@ -205,8 +205,6 @@ private fun AutoPlayBody(
             val statusText = when {
                 !isPlayable && !nextEpisode.unairedMessage.isNullOrBlank() -> nextEpisode.unairedMessage
                 mode.searching -> stringResource(R.string.next_episode_finding_source)
-                !mode.sourceName.isNullOrBlank() && mode.countdownSec != null ->
-                    stringResource(R.string.next_episode_playing_via, mode.sourceName, mode.countdownSec)
                 else -> null
             }
             if (statusText != null) {

@@ -310,13 +310,8 @@ fun PlayerScreen(
     val nextEpisodeForEndPrompt = uiState.nextEpisode?.takeIf {
         it.hasAired && !(it.released.isNullOrBlank() && it.available == false)
     }
-    val shouldConfirmNextEpisodeOnEnd =
-        uiState.playbackEnded &&
-            uiState.error == null &&
-            (uiState.streamAutoPlayMode != StreamAutoPlayMode.MANUAL ||
-                uiState.streamAutoPlayPreferBingeGroupForNextEpisode) &&
-            !uiState.streamAutoPlayNextEpisodeEnabled &&
-            nextEpisodeForEndPrompt != null
+    val shouldConfirmNextEpisodeOnEnd = uiState.shouldConfirmNextEpisodeOnEnd()
+    val shouldAutoPlayNextEpisodeOnEnd = uiState.shouldAutoPlayNextEpisodeOnEnd()
     val returnToDetailsFromEndPrompt = {
         viewModel.stopAndRelease()
         val (focusSeason, focusEpisode) = uiState.returnFocusSeasonEpisode(completed = true)
@@ -331,19 +326,23 @@ fun PlayerScreen(
     val continueToNextEpisodeFromEndPrompt = {
         val next = nextEpisodeForEndPrompt
         if (next != null) {
-            viewModel.stopAndRelease()
-            val cb = currentOnPlaybackEnded
-            if (cb != null) {
-                cb(next.videoId, next.season, next.episode, null)
+            if (uiState.streamAutoPlayNextEpisodeEnabled) {
+                viewModel.onEvent(PlayerEvent.OnPlayNextEpisode)
             } else {
-                val (focusSeason, focusEpisode) = uiState.returnFocusSeasonEpisode(completed = true)
-                currentOnBackPress(
-                    uiState.currentVideoId,
-                    focusSeason,
-                    focusEpisode,
-                    false,
-                    true
-                )
+                viewModel.stopAndRelease()
+                val cb = currentOnPlaybackEnded
+                if (cb != null) {
+                    cb(next.videoId, next.season, next.episode, null)
+                } else {
+                    val (focusSeason, focusEpisode) = uiState.returnFocusSeasonEpisode(completed = true)
+                    currentOnBackPress(
+                        uiState.currentVideoId,
+                        focusSeason,
+                        focusEpisode,
+                        false,
+                        true
+                    )
+                }
             }
         }
     }
@@ -440,6 +439,7 @@ fun PlayerScreen(
         uiState.error,
         uiState.pendingExitReason,
         shouldConfirmNextEpisodeOnEnd,
+        shouldAutoPlayNextEpisodeOnEnd,
         postPlayRecommendationState.blocksNaturalCompletion
     ) {
         val explicitReason = uiState.pendingExitReason
@@ -448,6 +448,7 @@ fun PlayerScreen(
             uiState.postPlayMode?.blocksNaturalCompletion() != true &&
             !postPlayRecommendationState.blocksNaturalCompletion &&
             !shouldConfirmNextEpisodeOnEnd &&
+            !shouldAutoPlayNextEpisodeOnEnd &&
             explicitReason == null
         when {
             explicitReason == PlayerExitReason.StillWatchingPrompt -> {
@@ -3008,7 +3009,7 @@ private fun PlayerControlsOverlay(
                     val hasAudioControl = uiState.audioTracks.isNotEmpty()
                     val showNextEpisodeButton = uiState.nextEpisode?.hasAired == true &&
                         (uiState.postPlayMode as? PostPlayMode.AutoPlay)?.let {
-                            !it.searching && it.countdownSec == null
+                            !it.searching
                         } != false
 
                     ControlButton(

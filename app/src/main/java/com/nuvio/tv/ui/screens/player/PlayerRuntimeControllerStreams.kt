@@ -1880,7 +1880,7 @@ internal fun PlayerRuntimeController.cancelNextEpisodePreload() {
     nextEpisodePreloadTriggered = false
 }
 
-internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean = false) {
+internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean) {
     if (isPartyControlLocked) {
         if (userInitiated) partyBlocksControl()
         return
@@ -1895,9 +1895,7 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean = fa
         return
     }
     val activeAutoPlay = state.postPlayMode as? PostPlayMode.AutoPlay
-    if (activeAutoPlay != null &&
-        (activeAutoPlay.searching || activeAutoPlay.countdownSec != null)
-    ) {
+    if (activeAutoPlay?.searching == true) {
         return
     }
 
@@ -2120,21 +2118,6 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean = fa
                 resolveDirectDebridStreamIfNeeded(it, nextVideo.season, nextVideo.episode)
             }
             if (streamToPlay != null) {
-                val sourceName = (streamToPlay.name?.takeIf { it.isNotBlank() } ?: streamToPlay.addonName).trim()
-                for (remaining in 3 downTo 1) {
-                    _uiState.update { current ->
-                        val episodeForMode = current.nextEpisode ?: nextInfo
-                        current.copy(
-                            postPlayMode = PostPlayMode.AutoPlay(
-                                nextEpisode = episodeForMode,
-                                searching = false,
-                                sourceName = sourceName,
-                                countdownSec = remaining,
-                            ),
-                        )
-                    }
-                    delay(1000)
-                }
                 _uiState.update {
                     it.copy(
                         postPlayMode = null,

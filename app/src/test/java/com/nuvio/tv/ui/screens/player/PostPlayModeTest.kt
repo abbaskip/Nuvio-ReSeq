@@ -30,8 +30,6 @@ class PostPlayModeTest {
         val mode = PostPlayMode.AutoPlay(
             nextEpisode = episodeA,
             searching = true,
-            sourceName = "ExampleAddon",
-            countdownSec = 2,
         )
 
         val updated = mode.copyWithNextEpisode(episodeAEnriched)
@@ -40,8 +38,6 @@ class PostPlayModeTest {
         updated as PostPlayMode.AutoPlay
         assertEquals(episodeAEnriched, updated.nextEpisode)
         assertEquals(true, updated.searching)
-        assertEquals("ExampleAddon", updated.sourceName)
-        assertEquals(2, updated.countdownSec)
     }
 
     @Test
@@ -74,13 +70,9 @@ class PostPlayModeTest {
     }
 
     @Test
-    fun `blocksNaturalCompletion is true for AutoPlay only while searching or counting down`() {
+    fun `blocksNaturalCompletion is true for AutoPlay while searching`() {
         assertTrue(
             PostPlayMode.AutoPlay(nextEpisode = episodeA, searching = true).blocksNaturalCompletion()
-        )
-        assertTrue(
-            PostPlayMode.AutoPlay(nextEpisode = episodeA, sourceName = "X", countdownSec = 1)
-                .blocksNaturalCompletion()
         )
     }
 

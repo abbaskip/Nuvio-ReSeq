@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.*
 import kotlinx.coroutines.withContext
 import org.junit.After
@@ -33,6 +34,7 @@ class OnDemandLibrarySearchTest {
     @Before fun setup() {
         Dispatchers.setMain(StandardTestDispatcher())
         every { repository.version } returns version
+        every { repository.artworkUpdates } returns MutableSharedFlow<Map<String, String?>>()
         every { preferences.playlists } returns playlists
         every { preferences.settings } returns settings
         every { preferences.userState } returns user

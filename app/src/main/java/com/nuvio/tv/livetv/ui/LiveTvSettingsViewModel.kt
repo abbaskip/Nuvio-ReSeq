@@ -23,8 +23,39 @@ class LiveTvSettingsViewModel @Inject constructor(
     val driveSync: com.nuvio.tv.livetv.sync.LiveTvDriveSync,
     val onDemand: com.nuvio.tv.livetv.ondemand.OnDemandRepository,
     private val posterResolver: com.nuvio.tv.livetv.data.LiveTvPosterResolver,
-    private val matcher247: com.nuvio.tv.livetv.data.LiveTv247Matcher
+    private val matcher247: com.nuvio.tv.livetv.data.LiveTv247Matcher,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+    private val posterStore: com.nuvio.tv.livetv.data.LiveTvPosterStore,
+    private val updateStorage: com.nuvio.tv.updater.UpdateStorageMaintenance,
+    private val streamLinks: com.nuvio.tv.data.local.StreamLinkCacheDataStore
 ) : ViewModel() {
+    val storage = kotlinx.coroutines.flow.MutableStateFlow<com.nuvio.tv.livetv.data.IptvStorageSnapshot?>(null)
+    val storageBusy = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val storageMessage = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
+    fun measureStorage(clean: Boolean = false) {
+        if (storageBusy.value) return
+        storageBusy.value = true
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val before = com.nuvio.tv.livetv.data.IptvStorageReport.scan(context)
+                if (clean) {
+                    repository.maintainStorage()
+                    onDemand.maintainStorage()
+                    posterStore.prune()
+                    streamLinks.pruneAllProfiles()
+                    updateStorage.clean()
+                }
+                val after = com.nuvio.tv.livetv.data.IptvStorageReport.scan(context)
+                storage.value = after
+                storageMessage.value = if (clean) "${com.nuvio.tv.livetv.data.IptvStorageSnapshot.size((before.totalBytes - after.totalBytes).coerceAtLeast(0))} reclaimed. Recordings and source selections kept."
+                    else "Includes database journals. Recordings are never removed by cleanup."
+                if (clean && onDemand.shrinkingNeedsSpace()) storageMessage.value += " More free space is needed to finish shrinking the catalogue."
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { storageMessage.value = "Couldn't complete storage maintenance. Try again when imports and playback finish." }
+            finally { storageBusy.value = false }
+        }
+    }
 
     val playlists: StateFlow<List<PlaylistSource>> =
         prefs.playlists.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -70,7 +101,11 @@ class LiveTvSettingsViewModel @Inject constructor(
 
     fun savePlaylist(source: PlaylistSource) = viewModelScope.launch {
         val before = playlists.value.firstOrNull { it.id == source.id }
-        repository.updatePlaylist(source)
+        val onlyImportOptions = before != null && source.copy(vodMovies = before.vodMovies, vodSeries = before.vodSeries,
+            vodMovieCategories = before.vodMovieCategories, vodSeriesCategories = before.vodSeriesCategories,
+            vodSourceOnly = before.vodSourceOnly) == before
+        if (onlyImportOptions) prefs.updatePlaylists { values -> values.map { if (it.id == source.id) source else it } }
+        else repository.updatePlaylist(source)
         // Movies & series just switched on: import this provider now, whenever it was last
         // imported (switched off earlier, it had its titles removed but still counted as
         // "imported recently", so nothing came back for up to a day).

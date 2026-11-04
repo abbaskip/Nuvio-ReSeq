@@ -146,6 +146,12 @@ class OnDemandRepository @Inject constructor(
     private val infoLocks = ConcurrentHashMap<String, Mutex>()
     private val detailRequests = kotlinx.coroutines.sync.Semaphore(4)
     private val infoCache = com.nuvio.tv.livetv.data.boundedCache<String, VodInfo>(300)
+    private val artworkGate = kotlinx.coroutines.sync.Semaphore(2)
+    private val artworkAttempts = ConcurrentHashMap<String, Long>()
+    private val artworkInFlight = ConcurrentHashMap.newKeySet<Triple<String, VodKind, String>>()
+    private val _artworkUpdates = kotlinx.coroutines.flow.MutableSharedFlow<Map<String, String?>>(extraBufferCapacity = 16)
+    val artworkUpdates: kotlinx.coroutines.flow.SharedFlow<Map<String, String?>> = _artworkUpdates
+    fun requestArtwork(items: List<VodItem>) = queueArtwork(items)
     /** The last import problem, shown in settings (cleared by a clean import). */
     @Volatile private var lastProblem: String? = null
 
@@ -186,7 +192,7 @@ class OnDemandRepository @Inject constructor(
         // import it straight away. One that's gone is dropped the same way.
         scope.launch {
             prefs.playlists
-                .map { list -> list.filter { it.enabled && it.isXtream && it.importVod }.map { it.id }.toSet() }
+                .map { list -> list.filter { it.enabled && it.isXtream && it.importVod }.map { it.id + it.vodImportPolicy() }.toSet() }
                 .distinctUntilChanged()
                 .drop(1)
                 .collect { refreshSoon() }
@@ -215,6 +221,13 @@ class OnDemandRepository @Inject constructor(
         val playlists = prefs.playlists.first().filter { it.enabled && it.isXtream && it.importVod }
         val keep = playlists.map { it.id }.toSet()
         val dropped = runCatching { db.removeExcept(keep) }.getOrDefault(emptySet())
+        try {
+            for (source in playlists) if (db.configureImport(source)) prefs.setOnDemandImportTime(source.id, 0L)
+        } catch (error: android.database.sqlite.SQLiteException) {
+            Log.w(TAG, "Could not apply catalogue options: ${error.javaClass.simpleName}")
+            _status.value = OnDemandStatus(false, "Couldn't apply import options. The existing catalogue was kept. Free some storage and try again.")
+            return@withLock
+        }
         // A provider switched off forgets when it was last imported, so switching it back on
         // imports it again straight away (it used to wait up to a day, with On Demand gone from
         // the menu in the meantime).
@@ -232,12 +245,12 @@ class OnDemandRepository @Inject constructor(
             _status.value = OnDemandStatus(true, "Importing movies and series from ${pl.name}…")
             lastProblem = null
             // Movies and series import separately, so a problem with one keeps the other.
-            val movies = runCatching { importKind(pl, VodKind.MOVIE) }
+            val movies = runCatching { if (pl.vodMovies) importKind(pl, VodKind.MOVIE) }
                 .onFailure { Log.w(TAG, "Movies import failed: ${catalogProblem(it)}"); lastProblem = "Couldn't import movies from ${pl.name}: ${catalogProblem(it)}" }
             _version.value++
             if (!force) com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()
             if (!force) com.nuvio.tv.livetv.data.BackgroundWork.awaitNoHeavy()
-            val series = runCatching { importKind(pl, VodKind.SERIES) }
+            val series = runCatching { if (pl.vodSeries) importKind(pl, VodKind.SERIES) }
                 .onFailure { Log.w(TAG, "Series import failed: ${catalogProblem(it)}"); lastProblem = "Couldn't import series from ${pl.name}: ${catalogProblem(it)}" }
             val ok = movies.isSuccess && series.isSuccess && lastProblem == null
             lastProblem?.let { problemByPlaylist[pl.id] = it } ?: problemByPlaylist.remove(pl.id)
@@ -253,7 +266,26 @@ class OnDemandRepository @Inject constructor(
         // A problem stays visible in Settings → Live TV → On Demand (no more silent failures).
         // Every login's problem, not only the last one imported.
         problemByPlaylist.keys.retainAll(keep)
+        if (!com.nuvio.tv.livetv.data.BackgroundWork.isNuvioPlaying) runCatching { db.compact() }
         _status.value = OnDemandStatus(false, problemByPlaylist.values.joinToString("\n").ifBlank { null })
+    }
+
+    suspend fun maintainStorage(): Long = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()
+            db.compact()
+        }
+    }
+    suspend fun shrinkingNeedsSpace(): Boolean = withContext(Dispatchers.IO) { db.shrinkingNeedsSpace() }
+
+    suspend fun importCategories(playlistId: String, kind: VodKind): List<Pair<String, String>> = withContext(Dispatchers.IO) {
+        val source = playlist(playlistId) ?: return@withContext emptyList()
+        val action = if (kind == VodKind.MOVIE) "get_vod_categories" else "get_series_categories"
+        val result = ArrayList<Pair<String, String>>()
+        readXtreamCatalog(getText("${source.xtreamApiUrl()}&action=$action", source.userAgent).reader(), "category_id") { fields ->
+            result += fields.getValue("category_id") to fields["category_name"].orEmpty().ifBlank { "Other" }
+        }
+        result.distinctBy { it.first }
     }
 
     /**
@@ -347,12 +379,32 @@ class OnDemandRepository @Inject constructor(
         fun progress() {
             if (++n % 500 == 0) _status.value = OnDemandStatus(true, "Importing $what from ${pl.name}… ${"%,d".format(n)}")
         }
+        fun stored(item: VodItem) = if (pl.vodSourceOnly) item.copy(icon = null, genre = null) else item
+
+        // An explicit import selection is separate from profile-specific hidden groups.
+        val selected = pl.vodCategories(kind == VodKind.SERIES)
+        if (selected != null) {
+            val chosen = selected.sorted().map { id -> id to (categories.firstOrNull { it.first == id }?.second ?: "Other") }
+            var problem: Throwable? = null
+            val saved = db.replace(pl.id, kind, chosen, onBatchCommitted = ::catalogBatchCommitted) { emit ->
+                for ((id, _) in chosen) {
+                    streamItems(pl, kind, "$api&action=$listAction&category_id=${enc(id)}", onStop = { problem = it }) {
+                        val entry = if (it.categoryId.isBlank()) it.copy(categoryId = id) else it
+                        if (entry.categoryId in selected) { emit(stored(entry)); progress() }
+                    }
+                    if (problem != null) break
+                }
+                problem == null
+            }
+            problem?.let { reportStop(pl, what, saved, it); if (saved == 0) throw it }
+            return
+        }
 
         // 1. The whole list in one go (fastest).
         var stoppedEarly: Throwable? = null
         val saved = db.replace(pl.id, kind, categories, onBatchCommitted = ::catalogBatchCommitted) { emit ->
             streamItems(pl, kind, "$api&action=$listAction", onStop = { stoppedEarly = it }) {
-                emit(it); progress()
+                emit(stored(it)); progress()
             }
             stoppedEarly == null
         }
@@ -379,7 +431,7 @@ class OnDemandRepository @Inject constructor(
                 streamItems(
                     pl, kind, "$api&action=$listAction&category_id=${enc(catId)}",
                     onStop = { problem = it }
-                ) { emit(it); progress() }
+                ) { emit(stored(it)); progress() }
                 if (problem != null) failedCategories++
                 // Stop on rate limits instead of keeping the provider busy refusing requests.
                 if (problem?.message == "HTTP 429") break
@@ -471,9 +523,10 @@ class OnDemandRepository @Inject constructor(
         runCatching { db.categories(kind) }.getOrDefault(emptyList())
     }
 
-    suspend fun items(kind: VodKind, category: VodCategory?, hidden: Set<String>, newestFirst: Boolean, limit: Int, offset: Int, sort: VodSort = VodSort.DEFAULT, genre: String? = null, merge: Boolean = true, seed: Long = 0) =
+    suspend fun items(kind: VodKind, category: VodCategory?, hidden: Set<String>, newestFirst: Boolean, limit: Int, offset: Int, sort: VodSort = VodSort.DEFAULT, genre: String? = null, merge: Boolean = true, seed: Long = 0, prefetchArtwork: Boolean = true) =
         withContext(Dispatchers.IO) {
             runCatching { db.items(kind, category, hidden, newestFirst, limit, offset, sort, genre, merge, seed) }.getOrDefault(emptyList())
+                .also { if (prefetchArtwork) queueArtwork(it) }
         }
 
     /** One version of a title you can pick: where it's from and what it is. */
@@ -528,13 +581,13 @@ class OnDemandRepository @Inject constructor(
     }
 
     suspend fun search(kind: VodKind, text: String, hidden: Set<String>, sort: VodSort = VodSort.DEFAULT, merge: Boolean = true) = withContext(Dispatchers.IO) {
-        runCatching { db.search(kind, text, hidden, sort = sort, merge = merge) }.getOrDefault(emptyList())
+        runCatching { db.search(kind, text, hidden, sort = sort, merge = merge) }.getOrDefault(emptyList()).also(::queueArtwork)
     }
 
     /** Searches the full imported library for one login, a page at a time. */
     suspend fun searchPlaylist(playlistId: String, kind: VodKind?, text: String, hidden: Set<String>,
         merge: Boolean, limit: Int, offset: Int): List<VodItem> = withContext(Dispatchers.IO) {
-        db.search(kind, text, hidden, limit = limit, merge = merge, playlistId = playlistId, offset = offset)
+        db.search(kind, text, hidden, limit = limit, merge = merge, playlistId = playlistId, offset = offset).also(::queueArtwork)
     }
 
     private suspend fun playlist(id: String): PlaylistSource? = prefs.playlists.first().firstOrNull { it.id == id }
@@ -614,6 +667,52 @@ class OnDemandRepository @Inject constructor(
 
     suspend fun cachedPoster(item: VodItem): Pair<String, Long>? = withContext(Dispatchers.IO) {
         runCatching { db.cachedPoster(item.uid) }.getOrNull()
+    }
+
+    /** Source-only catalogues keep every candidate. Artwork addresses are a bounded browsing cache. */
+    private fun queueArtwork(items: List<VodItem>) {
+        if (items.isEmpty()) return
+        scope.launch(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
+            val sources = prefs.playlists.first().associateBy { it.id }
+            items.filter { it.icon == null && it.artworkCheckedAt < System.currentTimeMillis() - 24 * 60 * 60_000L }
+                .groupBy { Triple(it.playlistId, it.kind, it.categoryId) }.forEach { (group, page) ->
+                    val source = sources[group.first]?.takeIf { it.enabled && it.importVod && it.vodSourceOnly } ?: return@forEach
+                    if (!artworkInFlight.add(group)) return@forEach
+                    try {
+                    val requestKey = group.toString() + page.map { it.id }.sorted().joinToString("\u0000")
+                    val now = System.currentTimeMillis()
+                    val previous = artworkAttempts[requestKey]
+                    if (previous != null && now - previous < 5 * 60_000L) return@forEach
+                    artworkAttempts[requestKey] = now
+                    if (artworkAttempts.size > 500) artworkAttempts.keys.take(100).forEach { artworkAttempts.remove(it) }
+                    artworkGate.withPermit {
+                        val wanted = page.mapTo(HashSet()) { it.id }
+                        val urls = page.associate { it.id to null as String? }.toMutableMap()
+                        var nearby = 0
+                        var reachedPage = false
+                        val action = if (group.second == VodKind.MOVIE) "get_vod_streams" else "get_series"
+                        var stopped = false
+                        streamItems(source, group.second, "${source.xtreamApiUrl()}&action=$action&category_id=${enc(group.third)}",
+                            onStop = { stopped = true }) {
+                            if (it.id in wanted) { urls[it.id] = it.icon; reachedPage = true }
+                            else if (reachedPage && nearby++ < 40) urls[it.id] = it.icon
+                        }
+                        val current = prefs.playlists.first().firstOrNull { it.id == source.id }
+                        if (!stopped && current?.vodSourceOnly == true && current.enabled && current.importVod &&
+                            current.vodImportPolicy() == source.vodImportPolicy() && current.xtreamServer == source.xtreamServer &&
+                            current.xtreamUsername == source.xtreamUsername && current.xtreamPassword == source.xtreamPassword) {
+                            db.cacheBrowseArtwork(source.id, group.second, urls)
+                            _artworkUpdates.emit(urls.mapKeys { "${group.second.key}:${source.id}:${it.key}" })
+                        }
+                    }
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                        throw cancelled
+                    } catch (error: Exception) {
+                        // Artwork is disposable. A full disk or provider error must not break playback.
+                        Log.w(TAG, "Could not cache catalogue artwork: ${error.javaClass.simpleName}")
+                    } finally { artworkInFlight.remove(group) }
+                }
+        }
     }
 
     suspend fun cachePoster(item: VodItem, poster: String?, title: String? = null) = withContext(Dispatchers.IO) {

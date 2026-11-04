@@ -41,8 +41,18 @@ data class PlaylistSource(
     val stalkerMac: String = "",
     val stalkerUsername: String = "",
     val stalkerPassword: String = "",
-    val stalkerSerial: String = ""
+    val stalkerSerial: String = "",
+    val vodMovies: Boolean = true,
+    val vodSeries: Boolean = true,
+    /** null imports every category; an empty set explicitly imports none. Shared by all profiles. */
+    val vodMovieCategories: Set<String>? = null,
+    val vodSeriesCategories: Set<String>? = null,
+    /** Preserve the full matching index; cache artwork addresses only for recently browsed titles. */
+    val vodSourceOnly: Boolean = false
 ) {
+    fun vodCategories(series: Boolean): Set<String>? = if (series) vodSeriesCategories else vodMovieCategories
+    fun vodImportPolicy(): String = listOf(vodMovies, vodSeries, vodSourceOnly,
+        vodMovieCategories?.sorted(), vodSeriesCategories?.sorted()).joinToString("|")
     val isStalker: Boolean get() = stalkerPortal.isNotBlank()
 
     val isXtream: Boolean get() = xtreamServer.isNotBlank()
@@ -252,6 +262,8 @@ data class LiveTvSettings(
     val epgRefreshHours: Int = 12,
     val epgPastHours: Int = 24,
     val epgFutureDays: Int = 3,
+    /** Detailed synopses/cast are optional; channel assignments and programme identity stay intact. */
+    val epgDescriptions: Boolean = true,
     val use24HourClock: Boolean = false,
     val autoReconnect: Boolean = true,
     /** A channel that won't play: switch to another channel by the same name (from another group or playlist). */

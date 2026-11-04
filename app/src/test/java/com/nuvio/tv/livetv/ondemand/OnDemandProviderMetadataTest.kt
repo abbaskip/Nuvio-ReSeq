@@ -9,6 +9,7 @@ import com.nuvio.tv.livetv.model.LiveUserState
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -19,6 +20,7 @@ import org.junit.Test
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class OnDemandProviderMetadataTest {
     private val repository = mockk<OnDemandRepository>(relaxed = true)
+    private val artwork = MutableSharedFlow<Map<String, String?>>(extraBufferCapacity = 1)
     private val preferences = mockk<LiveTvPreferences>()
     private val history = mockk<WatchProgressRepository>()
     private val watched = mockk<WatchedSeriesStateHolder>()
@@ -33,13 +35,14 @@ class OnDemandProviderMetadataTest {
         every { preferences.userState } returns MutableStateFlow(LiveUserState())
         every { preferences.playlists } returns MutableStateFlow(emptyList())
         every { repository.version } returns MutableStateFlow(0)
+        every { repository.artworkUpdates } returns artwork
         every { repository.genreUpdates } returns MutableStateFlow(0)
         every { repository.status } returns MutableStateFlow(OnDemandStatus())
         every { history.observeWatchedMovieIds() } returns MutableStateFlow(emptySet())
         every { watched.fullyWatchedSeriesIds } returns MutableStateFlow(emptySet())
         coEvery { repository.categories(any()) } answers { if (firstArg<VodKind>() == VodKind.SERIES) listOf(category) else emptyList() }
         coEvery { repository.genres(any()) } returns emptyList()
-        coEvery { repository.items(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } answers {
+        coEvery { repository.items(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } answers {
             if (firstArg<VodKind>() == VodKind.SERIES) items.drop(arg(5)).take(arg(4)) else emptyList()
         }
     }
@@ -87,6 +90,16 @@ class OnDemandProviderMetadataTest {
         assertEquals("tmdb:1", vm.optionsTarget(card.id)?.first?.id)
         assertTrue(vm.isWatched(card, emptySet<String>() to setOf("tmdb:1")))
         assertFalse(vm.isWatched(card, emptySet<String>() to setOf("tmdb:2")))
+        coVerify(exactly = 0) { repository.info(any()) }
+    }
+
+    @Test fun `lazy artwork updates keep catalogue identity page order and source metadata`() = runTest {
+        val vm = viewModel(); vm.loadHome(); vm.home.first { !it.loading }
+        val before = vm.home.value.rows.single().items
+        artwork.emit(mapOf(items.first().uid to "https://provider.example/refreshed.jpg"))
+        val updated = vm.home.first { it.rows.singleOrNull()?.items?.firstOrNull()?.poster == "https://provider.example/refreshed.jpg" }
+        assertEquals(before.map { it.id }, updated.rows.single().items.map { it.id })
+        assertEquals(before.first().releaseInfo, updated.rows.single().items.first().releaseInfo)
         coVerify(exactly = 0) { repository.info(any()) }
     }
 }

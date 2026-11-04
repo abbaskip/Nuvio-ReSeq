@@ -28,7 +28,10 @@ class UpdateInstallResultReceiver : BroadcastReceiver() {
         Log.i(TAG, "Session $sessionId status=$status background=$background dm=$withDexMetadata message=$message")
 
         when (status) {
-            PackageInstaller.STATUS_SUCCESS -> Unit
+            PackageInstaller.STATUS_SUCCESS -> apkFile?.takeIf {
+                it.lastModified() == intent.getLongExtra(EXTRA_APK_MODIFIED, -1) &&
+                    it.length() == intent.getLongExtra(EXTRA_APK_SIZE, -1)
+            }?.let { UpdateFiles(File(context.filesDir, "updates")).completed(it) }
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 if (background) {
                     runCatching { context.packageManager.packageInstaller.abandonSession(sessionId) }
@@ -62,6 +65,8 @@ class UpdateInstallResultReceiver : BroadcastReceiver() {
 
     companion object {
         private const val EXTRA_APK_PATH = "com.nuvio.tv.updater.APK_PATH"
+        private const val EXTRA_APK_MODIFIED = "com.nuvio.tv.updater.APK_MODIFIED"
+        private const val EXTRA_APK_SIZE = "com.nuvio.tv.updater.APK_SIZE"
         private const val EXTRA_BACKGROUND = "com.nuvio.tv.updater.BACKGROUND"
         private const val EXTRA_WITH_DEX_METADATA = "com.nuvio.tv.updater.WITH_DEX_METADATA"
 
@@ -74,6 +79,8 @@ class UpdateInstallResultReceiver : BroadcastReceiver() {
         ): PendingIntent {
             val intent = Intent(context, UpdateInstallResultReceiver::class.java)
                 .putExtra(EXTRA_APK_PATH, apkFile.absolutePath)
+                .putExtra(EXTRA_APK_MODIFIED, apkFile.lastModified())
+                .putExtra(EXTRA_APK_SIZE, apkFile.length())
                 .putExtra(EXTRA_BACKGROUND, background)
                 .putExtra(EXTRA_WITH_DEX_METADATA, withDexMetadata)
             // The installer adds the status extras, so the intent has to stay mutable.

@@ -5,6 +5,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DriveBackupPayloadTest {
+    @Test fun importOptionsKeepAllEmptyAndSelectedCategoryMeanings() {
+        val list = """[{"id":"one","vodMovies":false,"vodSeries":true,"vodSourceOnly":true,"vodMovieCategories":[],"vodSeriesCategories":["en"]},{"id":"legacy"}]"""
+        val data = driveBackupData(JSONObject().put("format", 1).put("data", JSONObject().put("playlists",
+            JSONObject().put("t", "str").put("v", list))))
+        assertEquals(list, data.getJSONObject("playlists").getString("v"))
+    }
+    @Test(expected = IllegalArgumentException::class) fun malformedImportCategoriesCannotPartiallyRestore() {
+        driveBackupData(JSONObject().put("format", 1).put("data", JSONObject().put("playlists",
+            JSONObject().put("t", "str").put("v", """[{"id":"one","vodSeriesCategories":[12]}]"""))))
+    }
     @Test(expected = IllegalArgumentException::class) fun streamSourceSectionsRequireTheKnownVersion() {
         driveBackupData(JSONObject("""{"format":1,"data":{"reseq_sources_version":{"t":"i","v":2}}}"""))
     }

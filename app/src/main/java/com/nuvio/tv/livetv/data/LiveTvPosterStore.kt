@@ -42,6 +42,15 @@ class LiveTvPosterStore @Inject constructor(@ApplicationContext context: Context
     /** Forgets everything (Settings: clear poster & show info). */
     fun clear() { runCatching { writableDatabase.delete("posters", null, null) } }
 
+    fun prune() {
+        val db = writableDatabase
+        val now = System.currentTimeMillis()
+        db.delete("posters", "checked < ? OR ((poster IS NULL OR poster='') AND checked < ?)",
+            arrayOf((now - FOUND_MS).toString(), (now - MISS_MS).toString()))
+        db.execSQL("DELETE FROM posters WHERE k IN (SELECT k FROM posters ORDER BY checked DESC LIMIT -1 OFFSET 5000)")
+        SqliteCompact.compactIfWasteful(db, "poster lookup")
+    }
+
     fun put(key: String, poster: String?) {
         runCatching {
             writableDatabase.insertWithOnConflict("posters", null, ContentValues().apply {

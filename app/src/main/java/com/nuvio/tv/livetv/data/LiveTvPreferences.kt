@@ -45,7 +45,7 @@ class LiveTvPreferences @Inject constructor(
             context.preferencesDataStoreFile("live_tv").apply {
                 parentFile?.mkdirs()
                 // Match Nuvio's first-read safeguard without replacing existing preferences.
-                createNewFile()
+                if (!exists()) createNewFile()
             }
         }
     )
@@ -60,7 +60,7 @@ class LiveTvPreferences @Inject constructor(
             context.preferencesDataStoreFile("live_tv_device").apply {
                 parentFile?.mkdirs()
                 // Match Nuvio's first-read safeguard without replacing existing preferences.
-                createNewFile()
+                if (!exists()) createNewFile()
             }
         }
     )
@@ -92,6 +92,7 @@ class LiveTvPreferences @Inject constructor(
         val epgRefresh = intPreferencesKey("epg_refresh_hours")
         val epgPast = intPreferencesKey("epg_past_hours")
         val epgFuture = intPreferencesKey("epg_future_days")
+        val epgDescriptions = booleanPreferencesKey("epg_descriptions")
         val clock24 = booleanPreferencesKey("clock_24h")
         val autoReconnect = booleanPreferencesKey("auto_reconnect")
         val autoBackupChannel = booleanPreferencesKey("auto_backup_channel")
@@ -329,6 +330,7 @@ class LiveTvPreferences @Inject constructor(
             epgRefreshHours = p[Keys.epgRefresh] ?: d.epgRefreshHours,
             epgPastHours = p[Keys.epgPast] ?: d.epgPastHours,
             epgFutureDays = p[Keys.epgFuture] ?: d.epgFutureDays,
+            epgDescriptions = p[Keys.epgDescriptions] ?: d.epgDescriptions,
             use24HourClock = p[Keys.clock24] ?: d.use24HourClock,
             autoReconnect = p[Keys.autoReconnect] ?: d.autoReconnect,
             autoBackupChannel = p[Keys.autoBackupChannel] ?: d.autoBackupChannel,
@@ -551,6 +553,7 @@ class LiveTvPreferences @Inject constructor(
         p[Keys.epgRefresh] = s.epgRefreshHours
         p[Keys.epgPast] = s.epgPastHours
         p[Keys.epgFuture] = s.epgFutureDays
+        p[Keys.epgDescriptions] = s.epgDescriptions
         p[Keys.clock24] = s.use24HourClock
         p[Keys.autoReconnect] = s.autoReconnect
         p[Keys.autoBackupChannel] = s.autoBackupChannel
@@ -1186,7 +1189,12 @@ class LiveTvPreferences @Inject constructor(
                     logoSource = o.optString("logoSource").ifBlank { "playlist" },
                     stalkerPortal = o.optString("stalkerPortal"), stalkerMac = o.optString("stalkerMac"),
                     stalkerUsername = o.optString("stalkerUsername"), stalkerPassword = o.optString("stalkerPassword"),
-                    stalkerSerial = o.optString("stalkerSerial")
+                    stalkerSerial = o.optString("stalkerSerial"),
+                    vodMovies = o.optBoolean("vodMovies", true),
+                    vodSeries = o.optBoolean("vodSeries", true),
+                    vodSourceOnly = o.optBoolean("vodSourceOnly", false),
+                    vodMovieCategories = o.optJSONArray("vodMovieCategories")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() },
+                    vodSeriesCategories = o.optJSONArray("vodSeriesCategories")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() }
                 )
             }
         }.getOrDefault(emptyList())
@@ -1205,6 +1213,9 @@ class LiveTvPreferences @Inject constructor(
                     .put("lastUpdatedMs", s.lastUpdatedMs).put("lastError", s.lastError ?: "")
                     .put("channelCount", s.channelCount)
                     .put("importVod", s.importVod)
+                    .put("vodMovies", s.vodMovies).put("vodSeries", s.vodSeries).put("vodSourceOnly", s.vodSourceOnly)
+                    .put("vodMovieCategories", s.vodMovieCategories?.let { JSONArray(it.sorted()) })
+                    .put("vodSeriesCategories", s.vodSeriesCategories?.let { JSONArray(it.sorted()) })
                     .put("importLive", s.importLive)
                     .put("streamFormat", s.streamFormat)
                     .put("serverTimezone", s.serverTimezone)

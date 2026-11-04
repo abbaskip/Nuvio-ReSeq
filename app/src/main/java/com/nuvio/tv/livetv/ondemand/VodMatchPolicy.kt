@@ -105,6 +105,6 @@ internal object VodMatchPolicy {
         }
         title = title.replace(coordinates, " ").replace(edition, " ")
         title = title.replace(part) { " part" + (it.groups[1]?.value ?: it.groups[2]?.value) + " " }
-        return normalized(title).replace(Regex("""^(?:episode|ep)\d+(?=[a-z])"""), "")
+        return normalized(OnDemandDatabase.withoutLanguageDecoration(title)).replace(Regex("""^(?:episode|ep)\d+(?=[a-z])"""), "")
     }
 }

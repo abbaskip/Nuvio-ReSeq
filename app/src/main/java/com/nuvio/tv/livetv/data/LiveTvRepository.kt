@@ -75,8 +75,37 @@ class LiveTvRepository @Inject constructor(
         .build()
 
     private val baseDir = File(context.filesDir, "livetv")
-    private val playlistDir = File(baseDir, "playlists")
-    private val epgDir = File(baseDir, "epg")
+    private val playlistDir = File(context.cacheDir, "livetv_sources/playlists")
+    private val epgDir = File(context.cacheDir, "livetv_sources/epg")
+    private var sourceStorageReady = false
+    private fun sourceFile(directory: File, legacy: String, name: String): File {
+        val cached = File(directory, name)
+        val old = File(File(baseDir, legacy), name)
+        return if (old.exists() && (!cached.exists() || old.lastModified() > cached.lastModified())) old else cached
+    }
+
+    private fun prepareSourceStorage() {
+        if (sourceStorageReady) return
+        for ((name, destination) in listOf("playlists" to playlistDir, "epg" to epgDir)) {
+            if (!destination.mkdirs() && !destination.isDirectory) return
+            File(baseDir, name).listFiles()?.filter { it.isFile }?.forEach { old ->
+                val target = File(destination, old.name)
+                if (!target.exists() || old.lastModified() > target.lastModified()) {
+                    val stamp = old.lastModified()
+                    if (!old.renameTo(target)) {
+                        val temporary = File(destination, old.name + ".migration")
+                        try {
+                            old.copyTo(temporary, overwrite = true)
+                            temporary.setLastModified(stamp)
+                            if (temporary.renameTo(target)) old.delete()
+                        } catch (_: java.io.IOException) { /* Keep the original when space is low. */ }
+                        finally { temporary.delete() }
+                    }
+                } else old.delete()
+            }
+        }
+        sourceStorageReady = true
+    }
 
     private val _channels = MutableStateFlow<List<LiveChannel>>(emptyList())
     val channels: StateFlow<List<LiveChannel>> = _channels.asStateFlow()
@@ -155,6 +184,16 @@ class LiveTvRepository @Inject constructor(
 
     fun refreshEpgOnly() {
         scope.launch { refreshInternal(forcePlaylists = false, forceEpg = true) }
+    }
+
+    suspend fun maintainStorage() = withContext(Dispatchers.IO) {
+        BackgroundWork.awaitIdle()
+        mutex.withLock {
+            prepareSourceStorage()
+            guideDb.dropStagesExcept(emptyList())
+            sweepLeftoverFiles()
+            guideDb.compact()
+        }
     }
 
     // Automatic updates run at low priority, so the screen and video stay smooth meanwhile.
@@ -302,7 +341,7 @@ class LiveTvRepository @Inject constructor(
 
     private suspend fun loadFromCache() {
         if (_epgLogos.value.isEmpty()) _epgLogos.value = withContext(Dispatchers.IO) { readEpgLogos() }
-        mutex.withLock { rebuildLocked() }
+        mutex.withLock { guideDb.dropStagesExcept(emptyList()); rebuildLocked() }
     }
 
     // ---------------------------------------------------------------- logos from the guide
@@ -520,7 +559,9 @@ class LiveTvRepository @Inject constructor(
         var count = 0
         fun sweep(dir: File, idOf: (String) -> String, keep: Set<String>) {
             dir.listFiles()?.forEach { f ->
-                if (!f.isFile || f.lastModified() > oldEnough) return@forEach
+                if (!f.isFile) return@forEach
+                if (f.name.endsWith(".prev") || f.name.endsWith(".tmp")) { if (f.delete()) count++; return@forEach }
+                if (f.lastModified() > oldEnough) return@forEach
                 if (idOf(f.name) in keep) return@forEach
                 val size = f.length()
                 if (f.delete()) { freed += size; count++ }
@@ -538,6 +579,8 @@ class LiveTvRepository @Inject constructor(
         automatic: Boolean
     ) {
         val settings = prefs.currentSettings()
+        prepareSourceStorage()
+        guideDb.retainDescriptions = settings.epgDescriptions
         val now = System.currentTimeMillis()
         val playlists = prefs.currentPlaylists().filter { it.liveEnabled }
         var changed = false
@@ -563,13 +606,14 @@ class LiveTvRepository @Inject constructor(
                 val result = runCatching {
                     if (pl.isXtream || pl.isStalker) {
                         val old = if (file.exists()) File(file.parentFile, file.name + ".prev").also { file.copyTo(it, overwrite = true) } else null
+                        try {
                         if (pl.isStalker) stalker.writePlaylist(pl, file) else downloadXtream(pl, file)
                         // Xtream lists are rebuilt each time: unchanged if identical to before.
                         val unchanged = old != null && sameDecoded(old, file)
-                        old?.delete()
                         if (!unchanged) markChanged(file)
                         LIVE_REPORT.add(if (unchanged) "Playlist \"${pl.name}\": no changes" else "Playlist \"${pl.name}\": new content")
                         !unchanged
+                        } finally { old?.delete() }
                     } else download(pl.resolvedUrl(), file, pl.userAgent, progressLabel = "Downloading playlist \"${pl.name}\"")
                 }
                 // M3U links from Xtream providers (get.php with a login): the account's details.
@@ -660,6 +704,8 @@ class LiveTvRepository @Inject constructor(
     }
 
     private suspend fun rebuildLocked() {
+        prepareSourceStorage()
+        guideDb.retainDescriptions = prefs.currentSettings().epgDescriptions
         // Reading the saved channels and guide takes a second or two and changes nothing, so no
         // "Loading channels…" bubble for it (people took it for a full reload every time). The
         // bubble only shows if the playlists really have to be read again.
@@ -1377,7 +1423,7 @@ class LiveTvRepository @Inject constructor(
         val overrides = prefs.userState.first().epgOverrides
         val sb = StringBuilder()
         sb.append(GUIDE_CACHE_VERSION).append('|')
-        sb.append(settings.epgPastHours).append('|').append(settings.epgFutureDays).append('|')
+        sb.append(settings.epgDescriptions).append('|'); sb.append(settings.epgPastHours).append('|').append(settings.epgFutureDays).append('|')
         targets.forEach { t ->
             val f = epgFile(t.fileId)
             sb.append(t.fileId).append(':').append(f.length()).append(':').append(contentStamp(f)).append(',')
@@ -1407,7 +1453,7 @@ class LiveTvRepository @Inject constructor(
         }
         return JSONObject()
             .put("fp", fingerprint)
-            .put("base", "$GUIDE_CACHE_VERSION|${settings.epgPastHours}|${settings.epgFutureDays}|${overrides.hashCode()}")
+            .put("base", "$GUIDE_CACHE_VERSION|${settings.epgDescriptions}|${settings.epgPastHours}|${settings.epgFutureDays}|${overrides.hashCode()}")
             .put("targets", org.json.JSONArray(targets.map { targetStamp(it) }))
             .put("playlists", playlists)
             .toString()
@@ -2260,8 +2306,8 @@ class LiveTvRepository @Inject constructor(
 
     // ---------------------------------------------------------------- IO helpers
 
-    private fun playlistFile(id: String) = File(playlistDir, "$id.m3u")
-    private fun epgFile(id: String) = File(epgDir, "$id.xml")
+    private fun playlistFile(id: String) = sourceFile(playlistDir, "playlists", "$id.m3u")
+    private fun epgFile(id: String) = sourceFile(epgDir, "epg", "$id.xml")
 
     /**
      * Downloads [url] to [target]. Returns false when nothing changed: the server said "not
@@ -2685,12 +2731,15 @@ class LiveTvRepository @Inject constructor(
             val zipped = file.inputStream().use { val a = it.read(); val b = it.read(); a == 0x1f && b == 0x8b }
             if (zipped) return
             val tmp = File(file.parentFile, file.name + ".zip.tmp")
-            file.inputStream().use { input -> fastGzip(tmp.outputStream()).use { out -> input.copyTo(out, 64 * 1024) } }
-            val modified = file.lastModified()
-            if (!stampFile(file).exists()) markChanged(file)
-            if (!tmp.renameTo(file)) { tmp.copyTo(file, overwrite = true); tmp.delete() }
-            file.setLastModified(modified)
-            LIVE_REPORT.add("Saved \"${file.name}\" zipped to save space")
+            try {
+                file.inputStream().use { input -> fastGzip(tmp.outputStream()).use { out -> input.copyTo(out, 64 * 1024) } }
+                val modified = file.lastModified()
+                if (!stampFile(file).exists()) markChanged(file)
+                // Both files are in the same directory. Keep the original if atomic replacement fails.
+                if (!tmp.renameTo(file)) return
+                file.setLastModified(modified)
+                LIVE_REPORT.add("Saved \"${file.name}\" zipped to save space")
+            } finally { tmp.delete() }
         }.onFailure { Log.w(TAG, "Couldn't zip ${file.name}", it) }
     }
 

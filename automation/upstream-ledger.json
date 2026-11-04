@@ -3,189 +3,324 @@
   "commits": {
     "42cfca0ecc2395cf6cb5959a7cf2ccb3943efff3": {
       "outcome": "held",
-      "reason": "Small stream-divider/shuffle visual adjustment. Preserve TV Mix and detail action focus; retain for focused UI review and validation rather than silently dropping upstream UI improvements.",
+      "reason": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending."
+      }
     },
     "2ba905a8ddd58699b7b8226e467318cda5756606": {
       "outcome": "held",
-      "reason": "Small stream-divider/shuffle visual adjustment. Preserve TV Mix and detail action focus; retain for focused UI review and validation rather than silently dropping upstream UI improvements.",
+      "reason": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending."
+      }
     },
     "facf25ec382026f7aa27477a81f578176e1ac5c7": {
       "outcome": "held",
-      "reason": "MDBList anime mapping overlaps with ReSeq canonical TVDB tracking. Preserve providerDefault/canonical references, avoid double remapping, and use the profile-aware TMDB service; require default-path plus split/combined/cross-series tests.",
+      "reason": "Shared raw provider metadata only, scoped caches by profile, guarded canonical TVDB writes and selected orders, and preserved the runtime TMDB credential path. New canonical-reference and Trakt metadata regressions. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Shared raw provider metadata only, scoped caches by profile, guarded canonical TVDB writes and selected orders, and preserved the runtime TMDB credential path. New canonical-reference and Trakt metadata regressions."
+      }
     },
     "c8f175cd876df462649daa79cc48338bdc87d2b0": {
       "outcome": "held",
-      "reason": "Useful selected-addon-chip focus fix. Preserve ReSeq atomic source paging and rapid remote navigation; require focused regression/device checks.",
+      "reason": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending."
+      }
     },
     "d8238f5852b00ea54c283839bf175794d6545fff": {
       "outcome": "held",
-      "reason": "Useful benchmark/profile tooling batch. Review source tooling independently; upstream generated profiles do not represent all ReSeq routes. Regenerate ReSeq profiles with an idle device instead of blindly replacing them.",
+      "reason": "Ported benchmark tooling and documentation to ReSeq package IDs. Real benchmark journeys need an idle test device. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Ported benchmark tooling and documentation to ReSeq package IDs. Real benchmark journeys need an idle test device."
+      }
     },
     "c8b855b460462e14b479c043db0312112117cca7": {
       "outcome": "held",
-      "reason": "Useful benchmark/profile tooling batch. Review source tooling independently; upstream generated profiles do not represent all ReSeq routes. Regenerate ReSeq profiles with an idle device instead of blindly replacing them.",
+      "reason": "Ported journey and documentation changes. Upstream-generated ART rules are not representative of ReSeq. Regeneration remains blocked pending a dedicated idle device. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Ported journey and documentation changes. Upstream-generated ART rules are not representative of ReSeq. Regeneration remains blocked pending a dedicated idle device."
+      }
     },
     "d9746a0baaaa3a81add6da1c095442c618da5c63": {
       "outcome": "held",
-      "reason": "Useful benchmark/profile tooling batch. Review source tooling independently; upstream generated profiles do not represent all ReSeq routes. Regenerate ReSeq profiles with an idle device instead of blindly replacing them.",
+      "reason": "Ported journey and documentation changes. Upstream-generated ART rules are not representative of ReSeq. Regeneration remains blocked pending a dedicated idle device. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Ported journey and documentation changes. Upstream-generated ART rules are not representative of ReSeq. Regeneration remains blocked pending a dedicated idle device."
+      }
     },
     "1292f469e7c525f821279589cb5c8811d8401c24": {
       "outcome": "held",
-      "reason": "Useful benchmark/profile tooling batch. Review source tooling independently; upstream generated profiles do not represent all ReSeq routes. Regenerate ReSeq profiles with an idle device instead of blindly replacing them.",
+      "reason": "Ported benchmark tooling and documentation to ReSeq package IDs. Real benchmark journeys need an idle test device. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Ported benchmark tooling and documentation to ReSeq package IDs. Real benchmark journeys need an idle test device."
+      }
     },
     "b71ccb1f6f805d6b0b778f4370aa58e38435dbe3": {
       "outcome": "held",
-      "reason": "Useful Continue Watching watched action overlaps with TVDB tracker identity/progress projections. Route through canonical component-aware history operations; test combined episodes and TV Mix before enabling.",
+      "reason": "Kept Add to Mix, propagated verified TVDB component sets through Next Up cache and completion, and guarded uncertain coverage. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Kept Add to Mix, propagated verified TVDB component sets through Next Up cache and completion, and guarded uncertain coverage."
+      }
     },
     "7242ff8b63afdd011570647ed48403b4bba219c7": {
       "outcome": "held",
-      "reason": "Useful stream reuse/provider-grouping improvements. Preserve atomic paging, addon filters, current-stream identity and ReSeq focus; validate grouping and cache integration before promotion.",
+      "reason": "Saved upstream stream metadata inside the ReSeq cache-key wrapper so TVDB and source identity survive link reuse. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Saved upstream stream metadata inside the ReSeq cache-key wrapper so TVDB and source identity survive link reuse."
+      }
     },
     "2b4b640a85de7d6fd554f9ec0e5187529d88c8dc": {
       "outcome": "held",
-      "reason": "Useful stream reuse/provider-grouping improvements. Preserve atomic paging, addon filters, current-stream identity and ReSeq focus; validate grouping and cache integration before promotion.",
+      "reason": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change."
+      }
     },
     "424a61c7ac307d77c75cb26ea71d443d785bbb6f": {
       "outcome": "held",
-      "reason": "Subtitle lookup uses the current stream state rather than separate mutable torrent fields. Check prerequisite reused-link state changes and ReSeq atomic player state before integration.",
+      "reason": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change."
+      }
     },
     "ae868099630c7187f04313890483c0cc4bae52cf": {
       "outcome": "held",
-      "reason": "Trailer fullscreen/back behaviour improvement. ReSeq has retained playback surfaces and TV navigation; validate back/focus and player resource behaviour on an idle device.",
+      "reason": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Detail action styling, selected addon chip focus and trailer Back behaviour applied with existing ReSeq actions preserved. Remote/touch acceptance pending."
+      }
     },
     "cac9fea5805bf1b75bb98c3bf4d674a7d7a2bc4e": {
       "outcome": "held",
-      "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "665f19260b7a4949e6ebe0a5e002ac01303af10b": {
       "outcome": "held",
-      "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "5601777bd58aeae240b528827f4e7f7d32997dea": {
       "outcome": "held",
-      "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "fdf8d3f023b68c6cc3a7ae2af97b8e1f0c553594": {
       "outcome": "held",
-      "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "fcc0f38baab6ebe28c06f89b7c50fd05cf70e32c": {
       "outcome": "held",
-      "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "665c3c14da2c4b0c380443a394c54959289f9310": {
       "outcome": "held",
-      "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "cc4e60e4f887cafa31a20a0c59224b753ed6100f": {
       "outcome": "held",
-      "reason": "Useful stream reuse/provider-grouping improvements. Preserve atomic paging, addon filters, current-stream identity and ReSeq focus; validate grouping and cache integration before promotion.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "4f1e27b79454ab697070c16f2f491aebeeacee52": {
       "outcome": "held",
-      "reason": "Useful stream reuse/provider-grouping improvements. Preserve atomic paging, addon filters, current-stream identity and ReSeq focus; validate grouping and cache integration before promotion.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "9cd91e83398719fd1aa0be886ce7a773faf172b0": {
       "outcome": "held",
-      "reason": "Independent RTL value-ordering corrections and follow-ups. Preserve ReSeq subtitle sign/offset semantics and slider remote/touch behaviour; hold until focused checks and lint policy are resolved.",
+      "reason": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+      }
     },
     "1a96f01ff0729b19b6bb93667c9357402f79b35e": {
       "outcome": "held",
-      "reason": "Independent RTL value-ordering corrections and follow-ups. Preserve ReSeq subtitle sign/offset semantics and slider remote/touch behaviour; hold until focused checks and lint policy are resolved.",
+      "reason": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+      }
     },
     "50f9e39e811423a46ff519c766a9cc2f45c2215b": {
       "outcome": "held",
-      "reason": "Independent RTL value-ordering corrections and follow-ups. Preserve ReSeq subtitle sign/offset semantics and slider remote/touch behaviour; hold until focused checks and lint policy are resolved.",
+      "reason": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+      }
     },
     "e985a0fa869854bc3cd53c908b0f2a5ffb270e52": {
       "outcome": "held",
-      "reason": "Independent RTL value-ordering corrections and follow-ups. Preserve ReSeq subtitle sign/offset semantics and slider remote/touch behaviour; hold until focused checks and lint policy are resolved.",
+      "reason": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+      }
     },
     "fb6feae978420a55299aa635bccdb012d20d824f": {
       "outcome": "held",
-      "reason": "Independent RTL value-ordering corrections and follow-ups. Preserve ReSeq subtitle sign/offset semantics and slider remote/touch behaviour; hold until focused checks and lint policy are resolved.",
+      "reason": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+      }
     },
     "567aee0d77bb53ffe2e374599608fd715f962d3a": {
       "outcome": "held",
-      "reason": "Independent RTL value-ordering corrections and follow-ups. Preserve ReSeq subtitle sign/offset semantics and slider remote/touch behaviour; hold until focused checks and lint policy are resolved.",
+      "reason": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "RTL formatting is limited to values. The 7.2 VPN classifier remains intact. RTL and remote navigation acceptance pending."
+      }
     },
     "5cc28ccdc898c3d949a57d797360e0f38a3394b3": {
       "outcome": "integrated",
@@ -201,101 +336,181 @@
     },
     "2e05d6feed0cb488d9544b81110203412f35b4ed": {
       "outcome": "held",
-      "reason": "Compatible logo-loading deduplication candidate. Retain ReSeq branding and verify all web configuration servers; held for lint-policy resolution and validation.",
+      "reason": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending."
+      }
     },
     "d1984d15cd7dbdc1fe21d480e3f9745d0e4bcb39": {
       "outcome": "held",
-      "reason": "Advanced-settings scroll/focus correction. Check Android TV D-pad and tablet touch behaviour; independent of episode/playback design, held for validation.",
+      "reason": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending."
+      }
     },
     "09295b14587157d6f2c693cde0fe4e7a0b6a07b6": {
       "outcome": "held",
-      "reason": "Hide Unreleased Content sync trigger fixes settings being overwritten remotely. Preserve ReSeq profile scoping and Drive/cloud conflict rules; add persistence/sync regression before integration.",
+      "reason": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending."
+      }
     },
     "2f16ec05032e0d17c4746854ca7bb709d5d22b18": {
       "outcome": "integrated",
       "reason": "Polish playback and accessibility labels",
       "run": "20261104T105340Z-9770b7",
-      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders."
+      }
     },
     "eed08f0079533428c21d17c2e1baa2de31b6c9b9": {
       "outcome": "held",
-      "reason": "Review the complete low-RAM memory change and its follow-up reverts as one batch. Preserve ReSeq Live TV/player memory and diagnostics; require budget tests and relevant device playback evidence.",
+      "reason": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+      }
     },
     "077ee8b4f0b445fe1e2e7df0bfa6feae6dba70a9": {
       "outcome": "held",
-      "reason": "Review the complete low-RAM memory change and its follow-up reverts as one batch. Preserve ReSeq Live TV/player memory and diagnostics; require budget tests and relevant device playback evidence.",
+      "reason": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+      }
     },
     "53f07bb1b0b9500a1753fcb49288925b1f07cf80": {
       "outcome": "held",
-      "reason": "Review the complete low-RAM memory change and its follow-up reverts as one batch. Preserve ReSeq Live TV/player memory and diagnostics; require budget tests and relevant device playback evidence.",
+      "reason": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+      }
     },
     "35269a980b7e81d9a042bf1487123d9845ab1b64": {
       "outcome": "held",
-      "reason": "Review the complete low-RAM memory change and its follow-up reverts as one batch. Preserve ReSeq Live TV/player memory and diagnostics; require budget tests and relevant device playback evidence.",
+      "reason": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+      }
     },
     "fd999d937a519b6dd8c6ae5fb8e65c307337d126": {
       "outcome": "held",
-      "reason": "Review the complete low-RAM memory change and its follow-up reverts as one batch. Preserve ReSeq Live TV/player memory and diagnostics; require budget tests and relevant device playback evidence.",
+      "reason": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+      }
     },
     "570edd1f03edcef30aa1a47f977c578660507494": {
       "outcome": "held",
-      "reason": "Review the complete low-RAM memory change and its follow-up reverts as one batch. Preserve ReSeq Live TV/player memory and diagnostics; require budget tests and relevant device playback evidence.",
+      "reason": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Full six-commit sequence through #4287. Final logic retains stored buffer preferences and actual maxMemory diagnostics and narrows the reduced budget to low-memory hardware."
+      }
     },
     "ed4bc05bf0e7d0b7d97747da6d190d4012c8baa1": {
       "outcome": "held",
-      "reason": "Functional overlap with ReSeq source tiers, TV Mix deadlines and TVDB episode searches. Adopt plugin identity/cache improvements only through existing tier policy; require isolation, fallback, remix and canonical-numbering regressions.",
+      "reason": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context. Candidate implementation awaits release validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Integrated the final plugin, cache, playback and grouping changes together in 76ffd5b01. Preferred variants remain subject to enabled ReSeq source kinds; full searches retain fallback, IPTV revision and TVDB context."
+      }
     },
     "dc9a9fb6651e038220e73e47bbaccaac4733e0e2": {
       "outcome": "integrated",
       "reason": "Bulgarian wording corrections",
       "run": "20261104T105340Z-9770b7",
-      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders."
+      }
     },
     "3c33a58918b931a85dd12f7ac4ef5069413a6f98": {
       "outcome": "integrated",
       "reason": "Portuguese party resources",
       "run": "20261104T105340Z-9770b7",
-      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders."
+      }
     },
     "aeb3ed62937bfb0d2c28a3b3b8ac5948834b1534": {
       "outcome": "irrelevant",
       "reason": "Temporary deletion superseded by subsequent full resource replacement",
       "run": "20261104T105340Z-9770b7",
-      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Transient file deletion superseded by b4b6cb2b7; deleting the complete fork resource would lose ReSeq customizations."
+      }
     },
     "b4b6cb2b71c1384ba22bf0f2bf3d06ae0e0ef520": {
       "outcome": "integrated",
       "reason": "Three-way resource merge retaining ReSeq identity and all fork-only keys",
       "run": "20261104T105340Z-9770b7",
-      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
+      "backlog_review": {
+        "classification": "adapted",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Merged final Brazilian Portuguese file by three-way comparison. Verified every ReSeq-only key and value and retained fork branding."
+      }
     },
     "49d83006a90fb3462ee54de18b1e64520818601d": {
       "outcome": "integrated",
       "reason": "Portuguese server resources",
       "run": "20261104T105340Z-9770b7",
-      "base": "f2b84c31ad033b88a98edc74add99c59fa149476"
+      "base": "f2b84c31ad033b88a98edc74add99c59fa149476",
+      "backlog_review": {
+        "classification": "direct",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Cherry-picked into isolated translation candidate. All changed keys exist in default resources with matching placeholders."
+      }
     },
     "99fbd65d8c16928d1fe11bf3f9812c4b5aaaca8f": {
       "outcome": "irrelevant",
@@ -332,12 +547,17 @@
       "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
     },
     "441e12eec73ad223848ad828539d7fe3285fb99f": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerObservers.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerUiState.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "ee22329e913580e071eac16ba2bf30585656ab47": {
       "outcome": "irrelevant",
@@ -346,28 +566,43 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "7b0904c150bb5cc59a85a44bb6dfcae6f4211482": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/full/java/com/nuvio/tv/core/plugin/PluginManager.kt, app/src/main/java/com/nuvio/tv/data/local/PluginDataStore.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/playstore/java/com/nuvio/tv/core/plugin/PluginManager.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "bb17891ae115c58658f4ce862079b6755ebd5978": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt, app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "9c1b9a192cf8dd08b6342432e7caec36f0261334": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreen.kt, app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": true,
-      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution."
+      "decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "761f9fa0d1b54513c6b30bb7008d742ab195c38b": {
       "outcome": "irrelevant",
@@ -394,16 +629,26 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "0a9733a95415079e8fe14dd789f1a53bf0488329": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerScreen.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "3c6b9506b411e3ded6247f42fe04c0e96725e1eb": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/player/SubtitleSelectionOverlay.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "8803fc64565f68e58acd2af273cbe42433301736": {
       "outcome": "irrelevant",
@@ -412,10 +657,15 @@
       "base": "3b93c191c6eb250014db6bff71896bc601d78254"
     },
     "a7e176c428042047cb168384a2f34cb277311108": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/addon/AddonManagerViewModel.kt, app/src/main/java/com/nuvio/tv/ui/screens/settings/LayoutSettingsViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "8f2f5caea8300bcdd2554522bb78a07f1ffeb0fc": {
       "outcome": "irrelevant",
@@ -430,10 +680,15 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "842985dd518d327164163feb80d4d46de01c1ab6": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/settings/LayoutSettingsViewModel.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "1dae72df13361e7bfbfaf4889285960be499ceb6": {
       "outcome": "irrelevant",
@@ -442,10 +697,15 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "92ae40e54b9a6574088fba752c3412bec79361e6": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/NuvioApplication.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     },
     "a102f6bf57b839db329d72a0e88d76ff67dc1f03": {
       "outcome": "irrelevant",
@@ -468,10 +728,15 @@
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
     },
     "31400cf86396fbd512b4f49c7288d6a5c090377f": {
-      "outcome": "held",
-      "reason": "Merge contains final resolution changes in app/src/main/java/com/nuvio/tv/ui/screens/detail/MetaDetailsScreen.kt. Parent feature commits are triaged separately. Compare the resolved upstream state against ReSeq identity, source tiers, settings and focus; hold for adaptation and regression validation.",
+      "outcome": "irrelevant",
+      "reason": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
       "run": "20261104T071715Z-378778",
-      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85"
+      "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+      "backlog_review": {
+        "classification": "unnecessary",
+        "branch": "codex/backlog-functional-nov4",
+        "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch."
+      }
     }
   }
 }

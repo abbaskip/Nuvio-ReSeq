@@ -336,13 +336,13 @@
     },
     "2e05d6feed0cb488d9544b81110203412f35b4ed": {
       "outcome": "held",
-      "reason": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending. Candidate implementation awaits release validation.",
+      "reason": "Consolidated identical web configuration logo readers. Open the original bundled drawable by its Android resource URI to return its encoded image bytes without an invalid raw-resource argument. Candidate awaits final validation.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "backlog_review": {
-        "classification": "direct",
+        "classification": "adapted",
         "branch": "codex/backlog-functional-nov4",
-        "evidence": "Applied shared logo helper, scroll and settings persistence corrections to ReSeq settings. Navigation and persistence acceptance pending."
+        "evidence": "Consolidated identical web configuration logo readers. Open the original bundled drawable by its Android resource URI to return its encoded image bytes without an invalid raw-resource argument."
       }
     },
     "d1984d15cd7dbdc1fe21d480e3f9745d0e4bcb39": {

@@ -570,12 +570,23 @@ private fun SportsHub(
     onQuickWatch: (SportsEvent) -> Unit,
     onPick: () -> Unit
 ) {
-    // Back opens the side menu first, like the guide and On Demand (it used to go straight to
-    // Home). With the menu open, Back is left to the app. A game page, Pick Your Teams and the
-    // pop-ups handle Back themselves first.
+    // Back from the feed returns directly to the Sports menu. Nested pages handle Back first.
     val openSidebar = com.nuvio.tv.LocalOpenSidebar.current
     val sidebarOpen = com.nuvio.tv.LocalSidebarExpanded.current
-    BackHandler(enabled = !sidebarOpen) { openSidebar() }
+    val firstChip = remember { FocusRequester() }
+    val filtersState = rememberLazyListState()
+    val menuScope = androidx.compose.runtime.rememberCoroutineScope()
+    var filtersFocused by remember { mutableStateOf(false) }
+    var daysFocused by remember { mutableStateOf(false) }
+    BackHandler(enabled = !sidebarOpen) {
+        if (filtersFocused || daysFocused) openSidebar()
+        else menuScope.launch {
+            // Followed sports can scroll the first button out of the lazy row.
+            filtersState.scrollToItem(0)
+            androidx.compose.runtime.withFrameNanos { }
+            firstChip.requestFocus()
+        }
+    }
 
     // ---- what this day holds
     val dayStart = viewModel.repo.dayStart(day)
@@ -629,31 +640,44 @@ private fun SportsHub(
     val columns = if (videoOn) 1 else 2
 
     val firstContent = remember { FocusRequester() }
-    val firstChip = remember { FocusRequester() }
     var focusedOnce by remember { mutableStateOf(false) }
     val hasContent = shown.isNotEmpty()
-    LaunchedEffect(hasContent, day, effectiveChip) {
+    suspend fun enterTimeline() {
+        if (!hasContent) {
+            runCatching { firstChip.requestFocus() }
+            return
+        }
+        val index = if (effectiveChip == CHIP_ALL) SportsEventListings.entryIndex(shown) else 0
+        // Each lazy item is a row of one or two cards, after the heading and optional hint.
+        listState.scrollToItem(1 + (if (hasChannels) 0 else 1) + index / columns)
+        delay(160)
+        runCatching { requesterFor(shown[index].id).requestFocus() }
+            .onFailure { runCatching { firstChip.requestFocus() } }
+    }
+    LaunchedEffect(hasContent, day, effectiveChip, loading, contentJump) {
         delay(120)
         // My Teams' rows put the highlight where it belongs themselves.
-        if (rowsPage) return@LaunchedEffect
+        if (contentJump > 0 || rowsPage || effectiveChip == CHIP_TABLES || (loading && events.isEmpty())) return@LaunchedEffect
         if (!focusedOnce) {
-            focusedOnce = true
             val back = returnTo?.let { requesterFor(it) }
             onReturned()
-            runCatching { (back ?: if (hasContent) firstContent else firstChip).requestFocus() }
-                .onFailure { runCatching { if (hasContent) firstContent.requestFocus() else firstChip.requestFocus() }.onFailure { runCatching { firstChip.requestFocus() } } }
+            if (back != null) {
+                runCatching { back.requestFocus() }
+                    .onFailure { runCatching { if (hasContent) firstContent.requestFocus() else firstChip.requestFocus() }.onFailure { runCatching { firstChip.requestFocus() } } }
+            } else enterTimeline()
+            focusedOnce = true
         }
     }
 
     // Only a problem is worth a line (scores update quietly in the background), and it sits in
     // the bottom corner so nothing on the page moves when it comes and goes.
-    // A filter picked: return to the start of its timeline.
-    LaunchedEffect(contentJump) {
-        if (contentJump == 0 || rowsPage) return@LaunchedEffect
-        listState.scrollToItem(0)
-        delay(160)
+    // A filter picked: enter at live sport, without removing earlier events from the feed.
+    var handledContentJump by remember { mutableIntStateOf(0) }
+    LaunchedEffect(contentJump, hasContent, loading) {
+        if (contentJump == handledContentJump || rowsPage || effectiveChip == CHIP_TABLES || (loading && events.isEmpty())) return@LaunchedEffect
+        enterTimeline()
+        handledContentJump = contentJump
         focusedOnce = true
-        runCatching { (if (hasContent) firstContent else firstChip).requestFocus() }
     }
     val status: String? = problem
     val statusLine: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {
@@ -686,7 +710,7 @@ private fun SportsHub(
                 val dayFmt = remember { SimpleDateFormat("EEE d", Locale.getDefault()) }
                 LazyRow(
                     Modifier.weight(1f)
-                        .onFocusChanged { if (!it.hasFocus) showPickedDay() }
+                        .onFocusChanged { daysFocused = it.hasFocus; if (!it.hasFocus) showPickedDay() }
                         .keepFocusWhileHeld(vertical = false),
                     state = tabsState,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -707,13 +731,21 @@ private fun SportsHub(
         }
     }
     val filters: @Composable (Modifier) -> Unit = { m ->
-        LazyRow(m.keepFocusWhileHeld(vertical = false), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)) {
+        LazyRow(m.onFocusChanged { filtersFocused = it.hasFocus }.keepFocusWhileHeld(vertical = false), state = filtersState, horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)) {
             // ↑ from the filters on All Events: the day you're looking at (on screen: it's the one picked).
             val upTo = if (!rowsPage && effectiveChip != CHIP_TV_NOW) Modifier.focusProperties {
                 up = if (tabsState.layoutInfo.visibleItemsInfo.any { it.key == day }) dayTabReq(day) else FocusRequester.Default
             } else Modifier
-            item(key = CHIP_MINE) { FilterIcon("★", "My Sports", effectiveChip == CHIP_MINE, Modifier.focusRequester(firstChip).then(upTo), withLabel = true) { pickChip(CHIP_MINE) } }
-            // Verified fixtures in start-time order, with results and upcoming dates.
+            item(key = CHIP_MINE) {
+                FilterIcon("★", "My Sports", effectiveChip == CHIP_MINE,
+                    Modifier.focusRequester(firstChip).then(upTo).onPreviewKeyEvent { e ->
+                        if (e.key == Key.DirectionLeft && e.type == KeyEventType.KeyDown && !sidebarOpen) {
+                            openSidebar()
+                            true
+                        } else false
+                    }, withLabel = true) { pickChip(CHIP_MINE) }
+            }
+            // Today's verified fixtures flow from finished to live to upcoming, then by start time.
             item(key = CHIP_ALL) {
                 FilterIcon(
                     "▦", if (liveCount > 0) "All Events · $liveCount live" else "All Events",
@@ -752,7 +784,7 @@ private fun SportsHub(
             previewFocus = previewFocus,
             emptyChip = effectiveChip,
             anyToday = dayEvents.isNotEmpty(),
-            onShowAll = { onChip(CHIP_ALL) },
+            onShowAll = { pickChip(CHIP_ALL) },
             onPick = onPick,
             onOpen = onOpen,
             onQuickWatch = onQuickWatch
@@ -922,7 +954,7 @@ private fun GameList(
             )
         }
         if (loading) {
-            item(key = "ph_label") { SectionHeader(if (emptyChip == CHIP_TV_NOW) "SPORT ON TV NOW" else "EVENTS BY START TIME") }
+            item(key = "ph_label") { SectionHeader(if (emptyChip == CHIP_TV_NOW) "SPORT ON TV NOW" else "ALL EVENTS") }
             items(3, key = { "ph_$it" }) { PlaceholderCard() }
             return@LazyColumn
         }
@@ -960,7 +992,7 @@ private fun GameList(
         }
         if (shown.isNotEmpty()) {
             item(key = "timeline_label") {
-                SectionHeader(if (emptyChip == CHIP_TV_NOW) "SPORT ON TV NOW" else "EVENTS BY START TIME", count = shown.size)
+                SectionHeader(if (emptyChip == CHIP_TV_NOW) "SPORT ON TV NOW" else "ALL EVENTS", count = shown.size)
             }
             cardRows("event_", shown)
         }

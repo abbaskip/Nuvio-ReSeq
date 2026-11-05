@@ -12,6 +12,27 @@ class SportsEventListingsTest {
     private fun event(id: String, at: Long, state: GameState, source: EventSource = EventSource.ESPN) =
         SportsEvent(id, "basketball/nba", at, true, state, id, null, null, null, null, source = source)
 
+    @Test fun `timeline opens on first live event and retains finished and delayed fixtures`() {
+        val fixtures = listOf(
+            event("result", now - 3 * hour, GameState.POST),
+            event("delayed", now - 2 * hour, GameState.PRE),
+            event("live", now - hour, GameState.LIVE),
+            event("later-live", now, GameState.LIVE),
+            event("upcoming", now + hour, GameState.PRE))
+        val timeline = SportsEventListings.allEvents(fixtures.reversed(), day, day + 24 * hour, now)
+        assertEquals(1, SportsEventListings.entryIndex(timeline))
+        assertEquals(listOf(fixtures[0], fixtures[2], fixtures[3], fixtures[1], fixtures[4]), timeline)
+    }
+
+    @Test fun `timeline opens on upcoming event when none are live and handles past or empty days`() {
+        val result = event("result", now - hour, GameState.POST)
+        val postponed = event("postponed", now, GameState.OFF)
+        val upcoming = event("upcoming", now + hour, GameState.PRE)
+        assertEquals(2, SportsEventListings.entryIndex(listOf(result, postponed, upcoming)))
+        assertEquals(0, SportsEventListings.entryIndex(listOf(result, postponed)))
+        assertEquals(0, SportsEventListings.entryIndex(emptyList()))
+    }
+
     @Test fun `only provider fixtures appear in All Events even when guide show names a match`() {
         val events = EventSource.entries.map { source -> event(source.name, now, GameState.LIVE, source) }
         val result = SportsEventListings.allEvents(events, day, day + 24 * hour, now)
@@ -19,20 +40,27 @@ class SportsEventListingsTest {
         assertFalse(result.any { it.source == EventSource.GUIDE })
     }
 
-    @Test fun `results live events and upcoming fixtures share strict start time order`() {
+    @Test fun `today groups finished live and upcoming and moves newly finished games before long running live sport`() {
         val team = TeamInfo("basketball/nba", "1", "Team", "Team", "TM", null, null, null, null)
         val finished = event("result", day + hour, GameState.POST).copy(
             away = Side(team, "101", null, false, false),
             home = Side(team.copy(id = "2"), "105", null, true, true))
         val upcoming = event("upcoming", now + hour, GameState.PRE, EventSource.THESPORTSDB)
         val live = event("live", now - hour, GameState.LIVE)
-        // A league or source must not outrank an earlier start time.
+        val allDayLive = event("test-cricket", day - 48 * hour, GameState.LIVE).copy(
+            leagueId = "guide/cricket", hasTime = false, endMs = day + 18 * hour)
+        // Start time determines order within each status, regardless of sport or provider.
         val laterLive = event("later-live", now, GameState.LIVE, EventSource.FIXTURES).copy(leagueId = "racing/f1")
-        val result = SportsEventListings.allEvents(listOf(upcoming, laterLive, live, finished), day, day + 24 * hour, now)
-        assertEquals(listOf(finished, live, laterLive, upcoming), result)
+        val fixtures = listOf(upcoming, laterLive, live, allDayLive, finished)
+        val result = SportsEventListings.allEvents(fixtures, day, day + 24 * hour, now)
+        assertEquals(listOf(finished, allDayLive, live, laterLive, upcoming), result)
         assertEquals(listOf("101", "105"), result.first().sides.map { it.score })
         assertTrue(result.first().hasScore)
         assertSame(finished, result.first()) // Original IDs/data still open the normal details page.
+        val newlyFinished = live.copy(state = GameState.POST)
+        val updated = fixtures.map { if (it.id == live.id) newlyFinished else it }
+        assertEquals(listOf(finished, newlyFinished, allDayLive, laterLive, upcoming),
+            SportsEventListings.allEvents(updated, day, day + 24 * hour, now))
     }
 
     @Test fun `date navigation excludes neighbouring fixtures but retains overnight live event today`() {

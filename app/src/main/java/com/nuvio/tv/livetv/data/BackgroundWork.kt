@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.update
  * player closes. Updates you start yourself (Update now) aren't held back.
  */
 object BackgroundWork {
+    val liveChannelOpen = MutableStateFlow(false)
+
     @Volatile private var lastNavigationNanos = 0L
 
     fun onNavigation() { lastNavigationNanos = System.nanoTime() }

@@ -200,7 +200,7 @@ class SportsRepository @Inject constructor(
     /** Event id -> the channels showing it, best first. */
     val matches: StateFlow<Map<String, List<ChannelMatch>>> = _matches.asStateFlow()
 
-    private val _loading = MutableStateFlow(false)
+    private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
     private val _matching = MutableStateFlow(false)
     /** Looking through your channels and guide (the first time takes a few seconds). */
@@ -235,12 +235,27 @@ class SportsRepository @Inject constructor(
         if (started) return
         started = true
         scope.launch {
+            // Opening Sports needs the catalogue even when a live channel occupies the preview.
+            sportsCatalogueAllowed(backgroundAllowed, viewers).first { it }
+            _loading.value = true
+            try {
+                withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
+                    loadCache()
+                    if (baseFeed.enabled && appliedBaseAt == 0L) {
+                        baseFeed.refresh()?.let { applyBaseFeed(it) }
+                        if (appliedBaseAt == 0L) _problem.value = "Sports schedule unavailable. Try refreshing."
+                    }
+                }
+            } catch (e: Exception) {
+                currentCoroutineContext().ensureActive()
+                _problem.value = "Sports schedule unavailable. Try refreshing."
+                Log.w(TAG, "Sports catalogue load failed", e)
+            } finally {
+                cacheLoaded.value = true
+                _loading.value = false
+            }
             backgroundAllowed.collectLatest { allowed ->
                 if (!allowed) return@collectLatest
-                if (!cacheLoaded.value) {
-                    withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) { loadCache() }
-                    cacheLoaded.value = true
-                }
                 // Structured children are cancelled together as soon as tuning/full screen starts.
                 coroutineScope {
                     launch { matchLoop() }
@@ -392,6 +407,7 @@ class SportsRepository @Inject constructor(
                 events.map { SportsBaseFeed.scheduled(it, entry.fetchedAt) }
             }.getOrDefault(emptyList())
         }
+        _problem.value = null
         baseData.value = parsed
         appliedBaseAt = snapshot.generatedAt
         _updatedAt.value = snapshot.generatedAt

@@ -98,7 +98,7 @@ object XmltvParser {
                             val program = readProgramme(parser, windowStartMs, windowEndMs)
                             if (program != null) {
                                 if (onPrograms != null) {
-                                    if (bufId != channelId) { flush(); bufId = channelId }
+                                    if (bufId != channelId || buf.size >= 256) { flush(); bufId = channelId }
                                     buf.add(program)
                                 } else {
                                     programs.getOrPut(channelId!!) { ArrayList() }.add(program)
@@ -118,6 +118,8 @@ object XmltvParser {
             }
             event = parser.next()
         }
+        } catch (cancel: kotlinx.coroutines.CancellationException) {
+            throw cancel
         } catch (e: Exception) {
             // A guide broken partway (bad characters, cut off): keep everything read up to there
             // instead of throwing the whole guide away.
@@ -126,7 +128,7 @@ object XmltvParser {
             if (!wantedResolved) wanted = null
         }
         // The last channel's shows (also when the guide broke partway: what was read is kept).
-        runCatching { flush() }
+        flush()
         val sorted = programs.mapValues { (_, list) -> list.sortedBy { it.startMs } }
         return XmltvResult(channels, sorted, error, seenIds)
     }

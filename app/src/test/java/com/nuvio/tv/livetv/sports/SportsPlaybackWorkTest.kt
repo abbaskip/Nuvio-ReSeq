@@ -15,6 +15,18 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SportsPlaybackWorkTest {
+    @Test fun `opening Sports unlocks the catalogue while bulk work is suspended`() = runTest {
+        val background = MutableStateFlow(false)
+        val viewers = MutableStateFlow(0)
+        val catalogue = sportsCatalogueAllowed(background, viewers)
+        assertFalse(catalogue.first())
+        viewers.value = 1
+        assertTrue(catalogue.first())
+        viewers.value = 0
+        background.value = true
+        assertTrue(catalogue.first())
+    }
+
     @Test fun `selected but inactive preview permits page lookup and scores while bulk work stays stopped`() = runTest {
         val foreground = MutableStateFlow(true)
         val viewers = MutableStateFlow(1)

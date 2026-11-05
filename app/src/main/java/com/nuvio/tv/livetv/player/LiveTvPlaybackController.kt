@@ -105,6 +105,10 @@ class LiveTvPlaybackController @Inject constructor(
     val state: StateFlow<LivePlaybackState> = _state.asStateFlow()
 
     private var currentChannel: LiveChannel? = null
+        set(value) {
+            field = value
+            com.nuvio.tv.livetv.data.BackgroundWork.liveChannelOpen.value = value != null
+        }
 
     // ---------------------------------------------------------------- pause and rewind
 

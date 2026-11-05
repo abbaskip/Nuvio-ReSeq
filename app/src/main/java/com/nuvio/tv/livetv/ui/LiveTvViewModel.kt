@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -830,7 +831,7 @@ class LiveTvViewModel @Inject constructor(
      * favorites or settings change, not every time the clock or the guide moves on (it used to
      * sort through every channel twice a minute while Home was open).
      */
-    private val homeRowChannels = combine(displayChannels, userState, settings) { channels, user, s ->
+    private val homeRowChannels = combine(displayChannels, userState.distinctUntilChanged { a, b -> sameForLists(a, b) }, settings) { channels, user, s ->
         if (!s.homeRowEnabled || channels.isEmpty()) return@combine emptyList<LiveChannel>() to s
         val groupId = when (s.homeRowSource) {
             "favorites", "" -> ChannelGroup.FAVORITES
@@ -839,6 +840,7 @@ class LiveTvViewModel @Inject constructor(
         }
         buildUi(channels, user, s, groupId, "", true, exactGroup = true).channels to s
     }.flowOn(Dispatchers.Default).distinctUntilChanged()
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     val homeRow: StateFlow<List<HomeRowEntry>> = combine(
         homeRowChannels,
@@ -870,18 +872,10 @@ class LiveTvViewModel @Inject constructor(
      * groups), loaded first at start-up so the row fills in straight away.
      */
     private val homeRowKeys: kotlinx.coroutines.flow.Flow<List<String>> =
-        combine(displayChannels, userState, settings) { channels, user, s ->
-            if (!s.homeRowEnabled || channels.isEmpty()) emptyList()
-            else {
-                val groupId = when (s.homeRowSource) {
-                    "favorites", "" -> ChannelGroup.FAVORITES
-                    "recent" -> ChannelGroup.RECENT
-                    else -> s.homeRowSource
-                }
-                val limit = if (s.homeRowLimit > 0) s.homeRowLimit * 3 else 200
-                buildUi(channels, user, s, groupId, "", true, exactGroup = true).channels.take(limit).map { it.key }
-            }
-        }.flowOn(Dispatchers.Default).distinctUntilChanged()
+        homeRowChannels.map { (channels, settings) ->
+            val limit = if (settings.homeRowLimit > 0) settings.homeRowLimit * 3 else 200
+            channels.take(limit).map { it.key }
+        }.distinctUntilChanged()
 
     /** Home screen: play [channel] (the guide then opens on the row's group behind it). */
     fun playFromHome(channel: LiveChannel) {

@@ -18,6 +18,9 @@ import com.nuvio.tv.core.network.consumeCancellableResponse
 import okhttp3.Call
 import okhttp3.Response
 
+internal fun sportsCatalogueAllowed(background: Flow<Boolean>, viewers: Flow<Int>): Flow<Boolean> =
+    combine(background, viewers) { idle, count -> idle || count > 0 }.distinctUntilChanged()
+
 /** Targeted page requests may run while browsing with a stable preview. */
 internal fun sportsBrowsingAllowed(
     foreground: Flow<Boolean>,

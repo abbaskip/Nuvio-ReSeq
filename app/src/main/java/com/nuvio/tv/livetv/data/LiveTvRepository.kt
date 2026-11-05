@@ -693,7 +693,7 @@ class LiveTvRepository @Inject constructor(
         // "Update guide now" always matches the guides again, even when the files came back
         // unchanged: a guide matched wrong or stored empty was otherwise kept until a file
         // changed, so pressing Update did nothing for it.
-        if (changed || forceEpg || guideHoles || (_programs.value.isEmpty() && (!guideInDb || storedGuideEmpty))) {
+        if (changed || forceEpg || deferredGuide.exists() || guideHoles || (_programs.value.isEmpty() && (!guideInDb || storedGuideEmpty))) {
             storedGuideEmpty = false
             guideHoles = false
             outOfTheWay()
@@ -729,12 +729,23 @@ class LiveTvRepository @Inject constructor(
         // The guide as it was last matched, if nothing it depends on has changed: the guide
         // fills in straight away instead of re-reading every guide file at each start.
         t0 = System.currentTimeMillis()
-        if (!loadGuideFromDb(settings, targets, guidePreRead.await())) {
+        val previous = guidePreRead.await()
+        if (!loadGuideFromDb(settings, targets, previous)) {
             if (dropRemovedPlaylistsFromGuide(settings, targets)) {
                 LIVE_REPORT.add("Guide kept: turned-off playlists' channels taken out in ${System.currentTimeMillis() - t0} ms")
             } else {
                 buildPrograms(settings, targets)
-                LIVE_REPORT.add("Guide re-read from guide files in ${System.currentTimeMillis() - t0} ms")
+                if (deferredGuide.exists() && previous != null && targets.isNotEmpty() && !guideInDb) {
+                    // Serve the committed guide while the replacement waits. Channel keys include
+                    // their playlist, so a removed playlist cannot supply another channel's rows.
+                    loadedFrom = previous.from
+                    loadedTo = previous.to
+                    lightPrograms = true
+                    guideInDb = true
+                    _programs.value = previous.window
+                    _guideGeneration.value++
+                }
+                LIVE_REPORT.add("Guide refresh checked in ${System.currentTimeMillis() - t0} ms")
             }
         } else {
             LIVE_REPORT.add("Stored guide used: ${_programs.value.size} channels with listings in ${System.currentTimeMillis() - t0} ms")
@@ -1746,10 +1757,52 @@ class LiveTvRepository @Inject constructor(
         _channels.value = out
     }
 
+    private val deferredGuide get() = File(baseDir, "guide_refresh_pending")
+    private var retryGuideJob: kotlinx.coroutines.Job? = null
+    private class DeferGuide(message: String) : kotlinx.coroutines.CancellationException(message)
+
+    private fun checkGuideBudget() {
+        if (BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying)
+            throw DeferGuide("Guide update queued until playback finishes")
+        val runtime = Runtime.getRuntime()
+        val limit = runtime.maxMemory() * 0.85
+        if (runtime.totalMemory() - runtime.freeMemory() > limit) {
+            System.gc()
+            if (runtime.totalMemory() - runtime.freeMemory() > limit)
+                throw DeferGuide("Guide update queued until memory is available")
+        }
+    }
+
+    private fun scheduleGuideRetry() {
+        if (retryGuideJob?.isActive == true) return
+        retryGuideJob = scope.launch {
+            while (deferredGuide.exists()) {
+                delay(30_000)
+                kotlinx.coroutines.flow.combine(BackgroundWork.liveChannelOpen, BackgroundWork.nuvioPlaying) { live, vod -> !live && !vod }.first { it }
+                mutex.withLock {
+                    if (deferredGuide.exists()) {
+                        try { buildPrograms(prefs.currentSettings(), collectEpgTargets()) }
+                        finally { _status.value = LiveTvStatus(loading = false, loadedOnce = true) }
+                    }
+                }
+            }
+        }
+    }
+
     private suspend fun buildPrograms(settings: LiveTvSettings, targets: List<EpgTarget>) {
         val t0 = System.currentTimeMillis()
         BackgroundWork.guideBuilding.value = true
-        try { BackgroundWork.heavy { buildProgramsInner(settings, targets) } } finally { BackgroundWork.guideBuilding.value = false }
+        try {
+            checkGuideBudget()
+            BackgroundWork.heavy { buildProgramsInner(settings, targets) }
+            deferredGuide.delete()
+        } catch (defer: DeferGuide) {
+            baseDir.mkdirs()
+            deferredGuide.createNewFile()
+            LIVE_REPORT.add(defer.message.orEmpty())
+            scheduleGuideRetry()
+            return
+        } finally { BackgroundWork.guideBuilding.value = false }
         LIVE_REPORT.add("Guide matched and stored: ${_programs.value.size} channels in ${System.currentTimeMillis() - t0} ms")
     }
 
@@ -1806,20 +1859,10 @@ class LiveTvRepository @Inject constructor(
         // so a guide full of placeholders can't hide real listings from another guide.
         data class Candidate(val score: Long, val sourceId: String, val xmltvId: String)
         val best = HashMap<String, Candidate>()
-        val pinned = HashMap<String, List<EpgProgram>>()
+        val pinned = HashMap<String, EpgAssignment>()
         val sourceLists = ArrayList<EpgSourceChannels>()
         val sourceMeta = ArrayList<Triple<EpgTarget, String, List<EpgChannelEntry>>>()
-        // The hours shown first, kept as they're read (short form): the rest of each guide goes
-        // straight to the database instead of into memory.
         val (winFrom, winTo) = defaultWindow()
-        val windowCopies = HashMap<String, List<EpgProgram>>()
-        fun keepWindow(src: String, xid: String, list: List<EpgProgram>) {
-            val w = list.filter { it.stopMs > winFrom && it.startMs < winTo }
-                .map { EpgProgram(startMs = it.startMs, stopMs = it.stopMs, title = it.title, episode = it.episode, icon = it.icon) }
-            if (w.isEmpty()) return
-            val k = "$src\u0000$xid"
-            windowCopies[k] = windowCopies[k].orEmpty() + w
-        }
         // What a guide's stored copy depends on besides the file: the channels it was matched for,
         // hand-picked guides and the hours kept. Unchanged, a guide file isn't read again.
         val matchStamp = run {
@@ -1832,10 +1875,9 @@ class LiveTvRepository @Inject constructor(
             val file = epgFile(target.fileId)
             if (!file.exists()) { LIVE_REPORT.add("Guide \"${target.name}\": no file downloaded yet"); continue }
             val src = target.fileId
-            val stageStamp = targetStamp(target) + "|" + matchStamp
-            // Reusing a guide read earlier (when its file hasn't changed) is switched off for now:
-            // it meant keeping every guide's copy, about twice the storage.
-            val reuse = false
+            val stageStamp = targetStamp(target) + "|" + matchStamp + "|" + (now / HOUR)
+            checkGuideBudget()
+            val reuse = guideDb.stageInfo(src)?.first == stageStamp
             val step = if (targets.size > 1) " (${order + 1} of ${targets.size})" else ""
             val pinnedHere = overrides.filterValues { it.sourceId == target.fileId }
             val idHits = HashMap<String, MutableSet<LiveChannel>>()
@@ -1852,24 +1894,12 @@ class LiveTvRepository @Inject constructor(
             val meta: Map<String, EpgDatabase.StagedMeta>
             if (reuse) {
                 val staged = runCatching { guideDb.stagedChannels(src) to guideDb.stagedMeta(src) }.getOrNull()
-                if (staged == null) { LIVE_REPORT.add("Guide \"${target.name}\": stored copy couldn't be read"); continue }
+                if (staged == null) throw DeferGuide("Staged guide unavailable. Keeping the previous listings.")
                 entries = staged.first.map { (id, names, icon) -> EpgChannelEntry(id, names, icon) }
                 meta = staged.second
                 if (entries.any { it.names.isNotEmpty() }) matchList(entries.map { it.id to it.names })
                 LIVE_REPORT.add("Guide \"${target.name}\": file unchanged, used the copy read before (${meta.size} channels)")
             } else {
-                // Memory nearly full (a huge playlist): reading another guide would freeze the
-                // app, so it's left for later and the report says so.
-                if (order > 0) {
-                    val rt = Runtime.getRuntime()
-                    fun used() = rt.totalMemory() - rt.freeMemory()
-                    if (used() > rt.maxMemory() * 0.85) System.gc()
-                    if (used() > rt.maxMemory() * 0.85) {
-                        LIVE_REPORT.add("Guide \"${target.name}\" skipped: memory nearly full (${used() / 1048576} of ${rt.maxMemory() / 1048576} MB)")
-                        setStatus(loading = true, message = "Not enough memory for guide \"${target.name}\" — skipped")
-                        continue
-                    }
-                }
                 // How far through each guide file it is, so a big guide doesn't look frozen.
                 val fileSize = file.length().coerceAtLeast(1L)
                 var shownAt = 0L
@@ -1877,13 +1907,14 @@ class LiveTvRepository @Inject constructor(
                     val now = System.currentTimeMillis()
                     if (now - shownAt > 750) {
                         shownAt = now
+                        checkGuideBudget()
                         setStatus(loading = true, message = "Reading guide \"${target.name}\"$step… ${(done * 100 / fileSize).coerceIn(0, 99)}%")
                     }
                 }
                 val readStart = System.currentTimeMillis()
                 val writer = runCatching { guideDb.startStage(src) }
                     .onFailure { Log.w(TAG, "Couldn't start storing ${target.name}", it) }.getOrNull()
-                if (writer == null) { LIVE_REPORT.add("Guide \"${target.name}\": couldn't be stored"); continue }
+                if (writer == null) throw DeferGuide("Guide storage unavailable. Keeping the previous listings.")
                 val parsed = runCatching {
                     openMaybeGzip(file, showProgress).use { input ->
                         XmltvParser.parse(
@@ -1897,8 +1928,12 @@ class LiveTvRepository @Inject constructor(
                             // Each channel's shows go to the database as soon as they're read.
                             onPrograms = { xid, list ->
                                 val cleaned = cleanListings(list)
-                                writer.add(xid, cleaned) { isPlaceholder(it) }
-                                keepWindow(src, xid, cleaned)
+                                try {
+                                    writer.add(xid, cleaned) { isPlaceholder(it) }
+                                } catch (e: android.database.SQLException) {
+                                    Log.w(TAG, "Could not stage guide listings", e)
+                                    throw DeferGuide("Guide storage unavailable. Keeping the previous listings.")
+                                }
                             },
                             selectChannels = { xmlChannels ->
                                 matchList(xmlChannels.values.map { it.id to it.displayNames })
@@ -1909,6 +1944,7 @@ class LiveTvRepository @Inject constructor(
                     }
                 }.onFailure {
                     writer.abort()
+                    if (it is kotlinx.coroutines.CancellationException) throw it
                     Log.w(TAG, "EPG parse ${target.name} failed", it)
                     val start = runCatching {
                         openMaybeGzip(file).use { inp -> String(inp.readNBytesCompat(120), Charsets.UTF_8) }
@@ -1926,14 +1962,9 @@ class LiveTvRepository @Inject constructor(
                 }
                 meta = runCatching { writer.finish(stageStamp, entries.map { Triple(it.id, it.names, it.icon) }) }
                     .onFailure { writer.abort(); Log.w(TAG, "Couldn't store ${target.name}", it) }
-                    .getOrNull() ?: run { LIVE_REPORT.add("Guide \"${target.name}\": couldn't be stored"); continue }
+                    .getOrNull() ?: throw DeferGuide("Guide storage unavailable. Keeping the previous listings.")
                 LIVE_REPORT.add("Guide \"${target.name}\": read and set aside in ${(System.currentTimeMillis() - readStart) / 1000} s (${meta.values.sumOf { it.count }} listings)")
             }
-            // A reused guide's window copies come from its stored copy.
-            if (reuse) runCatching {
-                guideDb.stagedWindow(src, winFrom, winTo).forEach { (xid, list) -> keepWindow(src, xid, list) }
-            }
-
             setStatus(loading = true, message = "Matching guide \"${target.name}\"$step…")
             val label = runCatching { java.net.URI(target.url).host?.removePrefix("www.") }.getOrNull()
                 ?.takeIf { it.isNotBlank() } ?: target.name
@@ -1958,8 +1989,7 @@ class LiveTvRepository @Inject constructor(
             }
 
             if (pinnedHere.isNotEmpty()) {
-                val lists = runCatching { guideDb.stagedProgramsFor(src, pinnedHere.values.map { it.xmltvId }) }.getOrDefault(emptyMap())
-                pinnedHere.forEach { (key, a) -> pinned[key] = lists[a.xmltvId].orEmpty() }
+                pinned.putAll(pinnedHere.filterValues { !it.isNone })
             }
 
             if (idHits.isEmpty() && nameHits.isEmpty()) {
@@ -2029,42 +2059,42 @@ class LiveTvRepository @Inject constructor(
         sourceMeta.forEach { (target, label, entries) ->
             sourceLists += EpgSourceChannels(target.fileId, target.name, label, entries, usedBySource[target.fileId].orEmpty())
         }
-        _autoMatches.value = auto
-        _epgSources.value = sourceLists
-        saveSourceLists(targets, sourceLists)
-        // Each channel's logo in the guide it's matched to (or assigned), for playlists that
-        // prefer the guide's logos, and for channels whose playlist has none.
-        val iconsBySource = sourceMeta.associate { (target, _, entries) ->
-            target.fileId to entries.mapNotNull { e -> e.icon?.takeIf { it.isNotBlank() }?.let { e.id to it } }.toMap()
-        }
-        val logos = HashMap<String, String>()
-        (auto + overrides).forEach { (key, a) -> iconsBySource[a.sourceId]?.get(a.xmltvId)?.let { logos[key] = it } }
-        _epgLogos.value = logos
-        saveEpgLogos(logos)
-        epgDetailsPending = false
         // The guide shown: from the staged guides, the chosen one for each channel (hand-picked
         // ones as given), all in one step.
-        val choice = auto.filterKeys { it !in pinned }
+        checkGuideBudget()
+        val choice = auto + pinned
         val storeStart = System.currentTimeMillis()
         val stored = runCatching {
             val fp = guideFingerprint(settings, targets)
-            guideDb.replaceAllFromStage(fp, choice, pinned, auto, guideParts(settings, targets, fp), windowStart, windowEnd)
+            guideDb.replaceAllFromStage(fp, choice, emptyMap(), auto, guideParts(settings, targets, fp), windowStart, windowEnd)
         }.onFailure { Log.w(TAG, "Couldn't store the guide", it) }.isSuccess
         LIVE_REPORT.add("Guide: best guide per channel stored in ${(System.currentTimeMillis() - storeStart) / 1000} s")
         // The guides' working copies aren't kept once the guide is built (they'd double the storage).
-        runCatching { guideDb.dropStagesExcept(emptyList()) }
-        // The hours around now, in memory (short form: details come from the database).
-        val window = HashMap<String, List<EpgProgram>>()
-        choice.forEach { (key, a) ->
-            windowCopies["${a.sourceId}\u0000${a.xmltvId}"]?.sortedBy { it.startMs }?.let { window[key] = it }
-        }
-        pinned.forEach { (key, list) ->
-            val w = list.filter { it.stopMs > winFrom && it.startMs < winTo }
-            if (w.isNotEmpty()) window[key] = w
-        }
-        windowCopies.clear()
-        _programs.value = window
         if (stored) {
+            runCatching { guideDb.dropStagesExcept(emptyList()) }
+            _autoMatches.value = auto
+            _epgSources.value = sourceLists
+            saveSourceLists(targets, sourceLists)
+            // Each channel's logo in the guide it's matched to (or assigned), for playlists that
+            // prefer the guide's logos, and for channels whose playlist has none.
+            val iconsBySource = sourceMeta.associate { (target, _, entries) ->
+                target.fileId to entries.mapNotNull { e -> e.icon?.takeIf { it.isNotBlank() }?.let { e.id to it } }.toMap()
+            }
+            val logos = HashMap<String, String>()
+            (auto + overrides).forEach { (key, a) -> iconsBySource[a.sourceId]?.get(a.xmltvId)?.let { logos[key] = it } }
+            _epgLogos.value = logos
+            saveEpgLogos(logos)
+            epgDetailsPending = false
+            // Playlist variants often share one XMLTV channel. Read and retain one window
+            // per assignment even if dozens of playlist channels display that schedule.
+            val representatives = HashMap<EpgAssignment, String>()
+            choice.forEach { (key, assignment) -> representatives.putIfAbsent(assignment, key) }
+            val windows = guideDb.range(winFrom, winTo, light = true, channels = representatives.values)
+            _programs.value = buildMap {
+                choice.forEach { (key, assignment) ->
+                    windows[representatives[assignment]]?.let { put(key, it) }
+                }
+            }
             lightPrograms = true
             fullRangeChannels.clear(); _guideGeneration.value++
             loadedFrom = winFrom
@@ -2074,11 +2104,7 @@ class LiveTvRepository @Inject constructor(
             if (skipped.isNotEmpty()) LIVE_REPORT.add("Guide: ${skipped.size} hidden channels left out")
             scheduleCompact()
         } else {
-            // Not stored: only the hours around now are available until the next update.
-            LIVE_REPORT.add("Guide couldn't be stored: only the hours around now are shown")
-            guideInDb = false
-            loadedFrom = Long.MIN_VALUE
-            loadedTo = Long.MAX_VALUE
+            throw DeferGuide("Guide update could not be saved. Keeping the previous listings.")
         }
     }
 

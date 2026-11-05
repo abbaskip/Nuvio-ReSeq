@@ -1,6 +1,9 @@
 {
   "schema": 1,
-  "hold": true,
-  "reason": "Maintainer requested three-package consolidation and validation on 5 November 2026, with no beta publication yet.",
-  "clear_when": "The maintainer explicitly requests publication of the planned combined beta."
+  "hold": false,
+  "reason": "Maintainer confirmed the signed Onn beta works and explicitly requested public publication of beta 7.7 on 5 November 2026.",
+  "clear_when": "The maintainer explicitly requests publication of the planned combined beta.",
+  "release": "v0.1.0-beta.7.7",
+  "accepted_source": "84675344e68b5f760741db53dcb7d66878aa83ab",
+  "evidence": "docs/BETA_7_7_PROMOTION.md"
 }

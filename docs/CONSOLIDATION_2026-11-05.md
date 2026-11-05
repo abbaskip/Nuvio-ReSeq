@@ -1,4 +1,6 @@
-# Three-package consolidation — unreleased candidate
+# Three-package consolidation — historical rehearsal report
+
+Release promotion on 5 November 2026: the maintainer subsequently accepted the signed combined Onn build and explicitly approved beta 7.7 publication. See [the release promotion and overlap reconciliation](BETA_7_7_PROMOTION.md). The rehearsal instructions and restrictions below record the earlier phase.
 
 Maintainer instruction: back up storage, consolidate functional upstream, storage/VOD and IPTV favourite-group/reordering packages onto current dev, validate together, and do not publish a beta yet. Source preparation and backup pushes are authorised. No version increment, tag or release publication is part of this rehearsal.
 

@@ -107,4 +107,71 @@ class LintBudgetTest(unittest.TestCase):
             self.assertNotEqual(set(original), set(other))
 
 
+class VerifiedVersionAdviceTest(unittest.TestCase):
+    old = "A newer version of example:library than 1.0.0 is available: 2.0.0"
+    newer = "A newer version of example:library than 1.0.0 is available: 2.1.0"
+
+    def scenario(self, message=None, severity=2, count=1, detector="GradleDependency", retired=False, bad_hash=False):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            released, current_report = root / "released.xml", root / "current.xml"
+            def report(path, text, level):
+                xml = ET.Element("issues")
+                ET.SubElement(xml, "issue", id=detector, severity=level, message=text)
+                ET.ElementTree(xml).write(path)
+            report(released, self.old, "Warning")
+            report(current_report, message or self.newer, "Error" if severity >= 3 else "Warning")
+            old = finding(2, details={"message": lint.digest(self.old)})
+            old["id"] = detector
+            budget = baseline({"same-source": old})
+            budget["origin"]["report_sha256"] = "incorrect" if bad_hash else lint.hashlib.sha256(released.read_bytes()).hexdigest()
+            if retired: budget["active"].clear()
+            current = finding(severity, count, {"message": lint.digest(message or self.newer)})
+            current["id"] = detector
+            source = {"same-source": current}
+            frozen_budget, frozen_source = copy.deepcopy(budget), copy.deepcopy(source)
+            adjusted, changes = lint.verified_version_advice(source, budget, current_report, released)
+            self.assertEqual(frozen_budget, budget)
+            self.assertEqual(frozen_source, source)
+            return adjusted, changes, budget
+
+    def test_verified_suggested_version_drift_keeps_complete_advice_and_exact_allowance(self):
+        adjusted, changes, budget = self.scenario()
+        self.assertTrue(lint.compare(adjusted, budget)["passed"])
+        self.assertEqual("2.0.0", changes[0]["previous_available"])
+        self.assertEqual("2.1.0", changes[0]["available"])
+        self.assertEqual(budget, lint.ratchet(adjusted, budget))
+        lint.monotonic(lint.ratchet(adjusted, budget), budget)
+
+    def test_changed_declared_version_or_dependency_is_not_normalized(self):
+        for message in (self.newer.replace("1.0.0", "1.1.0"), self.newer.replace("example:library", "other:library")):
+            adjusted, changes, budget = self.scenario(message=message)
+            self.assertFalse(lint.compare(adjusted, budget)["passed"])
+            self.assertFalse(changes)
+
+    def test_changed_warning_details_outside_version_are_not_normalized(self):
+        adjusted, changes, budget = self.scenario(message=self.newer + " (security action required)")
+        self.assertFalse(lint.compare(adjusted, budget)["passed"])
+        self.assertFalse(changes)
+
+    def test_severity_and_count_still_block(self):
+        for severity, count in ((3, 1), (2, 2)):
+            adjusted, _, budget = self.scenario(severity=severity, count=count)
+            self.assertFalse(lint.compare(adjusted, budget)["passed"])
+
+    def test_retired_finding_cannot_obtain_a_new_error_exemption(self):
+        adjusted, changes, budget = self.scenario(severity=3, retired=True)
+        self.assertFalse(lint.compare(adjusted, budget)["passed"])
+        self.assertFalse(changes)
+
+    def test_another_detector_is_never_normalized(self):
+        adjusted, changes, budget = self.scenario(detector="ResourceType")
+        self.assertFalse(lint.compare(adjusted, budget)["passed"])
+        self.assertFalse(changes)
+
+    def test_modified_reference_cannot_prove_advisory_drift(self):
+        with self.assertRaisesRegex(ValueError, "immutable provenance"):
+            self.scenario(bad_hash=True)
+
+
 if __name__ == "__main__": unittest.main()

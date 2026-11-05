@@ -131,6 +131,47 @@ def compare(current, baseline):
             "findings": sum(x["count"] for x in current.values())}
 
 
+def verified_version_advice(current, baseline, report, released_report):
+    """Opt-in proposal: distinguish remote version advice from source/severity/count changes.
+
+    The immutable released XML proves the exact old message. No seed or allowance
+    changes; only the suggested version may vary on an existing warning at the
+    same source fingerprint. The complete XML and explicit drift list stay visible.
+    """
+    if hashlib.sha256(released_report.read_bytes()).hexdigest() != baseline["origin"]["report_sha256"]:
+        raise ValueError("Released lint report does not match immutable provenance")
+    ids = {"GradleDependency", "NewerVersionAvailable"}
+    pattern = re.compile(r"^A newer version of (\S+) than (\S+) is available: ([0-9][0-9A-Za-z.+_-]*)$")
+    def messages(path):
+        xml = ET.parse(path).getroot()
+        if xml.tag != "issues": raise ValueError("Not an Android lint report")
+        return {digest(i.get("message", "")): i.get("message", "") for i in xml.findall("issue")
+                if i.get("id") in ids and i.get("severity") == "Warning"}
+    old_messages, new_messages = messages(released_report), messages(report)
+    adjusted = json.loads(json.dumps(current))
+    changes = []
+    for key, finding in adjusted.items():
+        allowed = baseline["active"].get(key)
+        if not allowed or finding["id"] not in ids or finding["severity"] != LEVEL["Warning"]:
+            continue
+        if allowed["severity"] != LEVEL["Warning"]:
+            continue
+        old_hash = allowed["details"].get("message")
+        new_hash = finding["details"].get("message")
+        if old_hash == new_hash: continue
+        # A retired or otherwise different seed record cannot obtain an exemption.
+        seed = baseline["seed"].get(key, {})
+        if seed.get("details", {}).get("message") != old_hash: continue
+        old = pattern.fullmatch(old_messages.get(old_hash, ""))
+        new = pattern.fullmatch(new_messages.get(new_hash, ""))
+        if not old or not new or old.groups()[:2] != new.groups()[:2]: continue
+        finding["details"] = json.loads(json.dumps(allowed["details"]))
+        changes.append({"id": finding["id"], "paths": finding["paths"],
+                        "artifact": new[1], "declared": new[2],
+                        "previous_available": old[3], "available": new[3]})
+    return adjusted, changes
+
+
 def ratchet(current, baseline):
     verdict = compare(current, baseline)
     if not verdict["passed"]: raise ValueError("Cannot ratchet a failing lint report")
@@ -184,8 +225,11 @@ def main():
     parser.add_argument("--release-tag")
     parser.add_argument("--summary", type=Path)
     parser.add_argument("--previous-ref")
+    parser.add_argument("--released-report", type=Path,
+                        help="Opt-in verified external version-advisory comparison; complete warnings remain visible")
     args = parser.parse_args()
     current, ignored = findings(args.report, args.project)
+    advice = []
     if args.action == "capture":
         if not args.release_tag or not re.fullmatch(r"v\d+\.\d+\.\d+-beta\.\d+(?:\.\d+)?", args.release_tag):
             raise ValueError("An explicit released ReSeq tag is required")
@@ -202,9 +246,12 @@ def main():
     else:
         baseline = json.loads(args.baseline.read_text())
         check_history(args.project, baseline, args.previous_ref)
+        if args.released_report:
+            current, advice = verified_version_advice(current, baseline, args.report, args.released_report)
         verdict = compare(current, baseline)
         if args.action == "ratchet": write(args.baseline, ratchet(current, baseline))
     verdict["ignored_non_source_findings"] = ignored
+    if advice: verdict["external_version_advice"] = advice
     if args.summary: write(args.summary, verdict)
     print(json.dumps({k:v for k,v in verdict.items() if k != "failures"}))
     if not verdict["passed"]:

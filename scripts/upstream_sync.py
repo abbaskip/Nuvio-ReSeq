@@ -242,6 +242,7 @@ def validation(run):
         raise RuntimeError("Validation requires 6 GiB free for build outputs and a safety reserve")
     gradle = str(worktree / ("gradlew.bat" if os.name == "nt" else "gradlew"))
     lint_report = worktree / "app/build/reports/lint-results-fullDebug.xml"
+    released_lint = root_dir() / ".upstream-sync/evidence/lint-reference-beta7.1/lint-results-fullDebug.xml"
     lint_report.unlink(missing_ok=True)
     commands = [[sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-v"],
                 [gradle,
@@ -253,11 +254,13 @@ def validation(run):
                  "--max-workers=2", "--console=plain"],
                 [sys.executable, "scripts/lint_guard.py", "check", "--project", ".",
                  "--report", str(lint_report), "--baseline", "automation/lint-baseline.json",
-                 "--previous-ref", run["base"], "--summary", str(output / "lint-verdict.json")],
+                 "--previous-ref", run["base"], "--released-report", str(released_lint),
+                 "--summary", str(output / "lint-verdict.json")],
                 [sys.executable, "scripts/verify_apk_services.py", "--properties", "local.properties",
                  "--apk-dir", "app/build/outputs/apk/full/debug", "--report", str(output / "apk-services.json")],
                 [sys.executable, "scripts/lint_guard.py", "ratchet", "--project", ".", "--report", str(lint_report),
-                 "--baseline", "automation/lint-baseline.json", "--previous-ref", run["base"]]]
+                 "--baseline", "automation/lint-baseline.json", "--previous-ref", run["base"],
+                 "--released-report", str(released_lint)]]
     env = dict(os.environ, PYTHONPATH="scripts")
     for index, argv in enumerate(commands):
         log = output / f"validation-{index}.log"

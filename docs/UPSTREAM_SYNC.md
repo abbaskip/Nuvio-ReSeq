@@ -243,6 +243,15 @@ released tag. Do not recapture from integrated code or overwrite the seed. Keep
 the full report: neither the diagnostic init script nor this budget suppresses
 lint output. The normal standalone lint task retains its default error behaviour.
 
+On 5 November the maintainer approved verified external version-advisory handling.
+Validation and ratcheting pass the retained beta 7.1 raw XML with `--released-report`.
+Its SHA256 must match the immutable seed. Only an existing Warning from
+`GradleDependency` or `NewerVersionAvailable`, with unchanged artifact and declared
+version, may change its recommended available version. Complete warnings remain
+visible and the verdict records those advisory changes. Counts, severity, other
+details, retired findings and all error budgets retain their existing protections.
+Missing or modified reference evidence fails closed; never recapture it to pass.
+
 ## Morning report
 
 Use this format, omitting Decisions required when there is no genuine decision:

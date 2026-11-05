@@ -2012,7 +2012,7 @@ fun LiveTvGuideScreen(
                             scope.launch { delay(80); runCatching { groupsFocus.requestFocus() } }
                         })
                         if (!g.special) {
-                            add((if (g.id in user.favoriteGroups) "Remove from favourite groups" else "Add to favourite groups") to {
+                            add((if (user.isFavoriteGroup(g)) "Remove from favourite groups" else "Add to favourite groups") to {
                                 viewModel.toggleFavoriteGroup(g.id); groupMenu = null
                             })
                             add("Manage group order" to { startGroupOrder() })

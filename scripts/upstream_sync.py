@@ -310,12 +310,26 @@ def enforce_held_changes(run, ledger, head):
         raise RuntimeError("A held change's patch is present in the candidate")
 
 
+def assert_release_allowed(worktree):
+    marker = worktree / "automation/publication-hold.json"
+    if not marker.exists(): return
+    try:
+        value = json.loads(marker.read_text())
+        if value.get("schema") != 1 or type(value.get("hold")) is not bool:
+            raise ValueError("Invalid publication hold")
+    except (ValueError, OSError) as error:
+        raise RuntimeError("Malformed publication hold; no release allowed") from error
+    if value["hold"]:
+        raise RuntimeError("Maintainer publication hold is active; artifact-only validation remains permitted")
+
+
 def gate(run, state):
     if run["dry_run"]:
         raise RuntimeError("Dry runs cannot publish")
     if not (state / "publication-enabled.json").exists():
         raise RuntimeError("Initial dry run has not enabled publication")
     worktree = Path(run["worktree"])
+    assert_release_allowed(worktree)
     head = git("rev-parse", "HEAD", cwd=worktree)
     if git("status", "--porcelain", cwd=worktree) or git("ls-files", "-u", cwd=worktree):
         raise RuntimeError("Uncommitted changes or conflicts")

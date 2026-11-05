@@ -9,6 +9,28 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_explicit_publication_hold_prevents_git_push_and_workflow_dispatch(self):
+        from argparse import Namespace
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sync.save(root / "automation/publication-hold.json", {"schema": 1, "hold": True})
+            sync.save(root / "publication-enabled.json", {"dry_run": "previously-passed"})
+            with patch.object(sync, "git") as git, patch.object(sync, "command") as command:
+                with self.assertRaisesRegex(RuntimeError, "publication hold is active"):
+                    sync.publish({"dry_run": False, "worktree": str(root)}, root, Namespace(notes="notes.md"))
+                git.assert_not_called()
+                command.assert_not_called()
+
+    def test_hold_requires_an_explicit_boolean_and_legacy_absence_is_supported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sync.assert_release_allowed(root)
+            sync.save(root / "automation/publication-hold.json", {"schema": 1, "hold": "false"})
+            with self.assertRaisesRegex(RuntimeError, "Malformed publication hold"):
+                sync.assert_release_allowed(root)
+            sync.save(root / "automation/publication-hold.json", {"schema": 1, "hold": False})
+            sync.assert_release_allowed(root)
+
     def test_new_publications_still_wait_for_all_active_release_jobs(self):
         jobs={"workflow_runs":[{"id":1,"status":"in_progress","head_sha":"ours"},
                                {"id":2,"status":"queued","head_sha":"other"},

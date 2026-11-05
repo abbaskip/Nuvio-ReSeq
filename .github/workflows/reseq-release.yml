@@ -50,6 +50,9 @@ jobs:
         env:
           ARTIFACTS_ONLY: ${{ inputs.artifacts_only }}
         run: |
+          if [[ "$ARTIFACTS_ONLY" != true ]]; then
+            python3 -c "from pathlib import Path; from scripts.upstream_sync import assert_release_allowed; assert_release_allowed(Path('.'))"
+          fi
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import re
           from pathlib import Path

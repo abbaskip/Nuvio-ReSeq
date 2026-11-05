@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "hold": true,
+  "reason": "Maintainer requested three-package consolidation and validation on 5 November 2026, with no beta publication yet.",
+  "clear_when": "The maintainer explicitly requests publication of the planned combined beta."
+}

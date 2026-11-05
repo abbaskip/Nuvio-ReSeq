@@ -411,6 +411,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         kind: VodKind,
         categories: List<Pair<String, String>>,
         onBatchCommitted: () -> Unit = {},
+        requireUniqueIds: Boolean = false,
         readItems: ((VodItem) -> Unit) -> Boolean
     ): Int {
         val db = writableDatabase
@@ -468,6 +469,13 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
                             com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation()
                         }
                         transaction {
+                            if (complete && requireUniqueIds) {
+                                val unique = db.rawQuery("SELECT COUNT(*) FROM import_seen WHERE session=?", arrayOf(session)).use {
+                                    it.moveToFirst()
+                                    it.getLong(0)
+                                }
+                                check(unique == count.toLong()) { "Overlapping pages in portal listing." }
+                            }
                             if (complete) {
                                 val obsolete = "pl = ? AND kind = ? AND NOT EXISTS (SELECT 1 FROM import_seen s WHERE s.session = ? AND s.id = items.id)"
                                 val obsoleteArgs = arrayOf(playlistId, kind.key, session)

@@ -1,6 +1,9 @@
 package com.nuvio.tv.livetv.ondemand
 
 import android.util.Log
+import com.nuvio.tv.livetv.data.StalkerPortalClient
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import kotlinx.coroutines.runBlocking
 import com.nuvio.tv.livetv.data.LiveTvPreferences
 import com.nuvio.tv.livetv.data.XtreamCatalogException
 import com.nuvio.tv.livetv.data.readXtreamCatalog
@@ -81,7 +84,8 @@ data class VodEpisode(
     val tech: VodTech? = null,
     val imdbId: String? = null,
     val tmdbId: Long? = null,
-    val tvdbId: Long? = null
+    val tvdbId: Long? = null,
+    val portalCoordinates: Boolean = false
 )
 
 /** What the provider says about a movie or series (for the fallback detail screen). */
@@ -108,8 +112,10 @@ data class OnDemandStatus(val loading: Boolean = false, val message: String? = n
 @Singleton
 class OnDemandRepository @Inject constructor(
     private val db: OnDemandDatabase,
-    private val prefs: LiveTvPreferences
+    private val prefs: LiveTvPreferences,
+    portal: StalkerPortalClient = StalkerPortalClient()
 ) {
+    private val stalker = StalkerVod(portal)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutex = Mutex()
     private val http = OkHttpClient.Builder()
@@ -180,7 +186,7 @@ class OnDemandRepository @Inject constructor(
             // Learn each provider's title tags (for catalogs imported before this existed).
             runCatching {
                 db.loadPrefixes()
-                prefs.playlists.first().filter { it.isXtream && it.importVod }.forEach { pl ->
+                prefs.playlists.first().filter { it.supportsVod && it.importVod }.forEach { pl ->
                     if (!db.hasLearnedPrefixes(pl.id)) db.learnPrefixes(pl.id)
                 }
                 _version.value++
@@ -192,7 +198,7 @@ class OnDemandRepository @Inject constructor(
         // import it straight away. One that's gone is dropped the same way.
         scope.launch {
             prefs.playlists
-                .map { list -> list.filter { it.enabled && it.isXtream && it.importVod }.map { it.id + it.vodImportPolicy() }.toSet() }
+                .map { list -> list.filter { it.enabled && it.supportsVod && it.importVod }.map { it.id + it.vodImportPolicy() }.toSet() }
                 .distinctUntilChanged()
                 .drop(1)
                 .collect { refreshSoon() }
@@ -218,7 +224,7 @@ class OnDemandRepository @Inject constructor(
      * With [onlyId], only that provider is imported (the others are kept as they are).
      */
     suspend fun refresh(force: Boolean, onlyId: String? = null) = mutex.withLock {
-        val playlists = prefs.playlists.first().filter { it.enabled && it.isXtream && it.importVod }
+        val playlists = prefs.playlists.first().filter { it.enabled && it.supportsVod && it.importVod }
         val keep = playlists.map { it.id }.toSet()
         val dropped = runCatching { db.removeExcept(keep) }.getOrDefault(emptySet())
         try {
@@ -280,6 +286,7 @@ class OnDemandRepository @Inject constructor(
 
     suspend fun importCategories(playlistId: String, kind: VodKind): List<Pair<String, String>> = withContext(Dispatchers.IO) {
         val source = playlist(playlistId) ?: return@withContext emptyList()
+        if (source.isStalker) return@withContext stalker.categories(source, kind)
         val action = if (kind == VodKind.MOVIE) "get_vod_categories" else "get_series_categories"
         val result = ArrayList<Pair<String, String>>()
         readXtreamCatalog(getText("${source.xtreamApiUrl()}&action=$action", source.userAgent).reader(), "category_id") { fields ->
@@ -352,9 +359,36 @@ class OnDemandRepository @Inject constructor(
         }
     }
 
-    private fun importKind(pl: PlaylistSource, kind: VodKind) {
+    private suspend fun importPortal(pl: PlaylistSource, kind: VodKind) {
+        val categories = stalker.categories(pl, kind)
+        val selected = pl.vodCategories(kind == VodKind.SERIES)
+        val included = categories.filter { selected == null || it.first in selected }
+        // SQLite statements stay on the importing worker between asynchronous portal requests.
+        val job = kotlinx.coroutines.currentCoroutineContext()[kotlinx.coroutines.Job]
+        var problem: Exception? = null
+        val saved = db.replace(pl.id, kind, included, onBatchCommitted = ::catalogBatchCommitted, requireUniqueIds = true) { emit ->
+            try {
+                runBlocking(job ?: kotlin.coroutines.EmptyCoroutineContext) {
+                    for (category in selected?.sorted() ?: listOf(null)) {
+                        stalker.catalog(pl, kind, category) { emit(it); true }
+                    }
+                }
+                true
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (databaseError: android.database.sqlite.SQLiteException) {
+                throw databaseError
+            } catch (error: Exception) {
+                problem = error
+                false
+            }
+        }
+        problem?.let { reportStop(pl, kind.key, saved, it); if (saved == 0) throw it }
+    }
+
+    private suspend fun importKind(pl: PlaylistSource, kind: VodKind) {
         val t0 = System.currentTimeMillis()
-        try { importKindInner(pl, kind) } finally {
+        try { if (pl.isStalker) importPortal(pl, kind) else importKindInner(pl, kind) } finally {
             com.nuvio.tv.livetv.model.LiveTvLoadReport.add(
                 "On Demand \"${pl.name}\": ${if (kind == VodKind.MOVIE) "movies" else "series"} import finished in ${(System.currentTimeMillis() - t0) / 1000} s"
             )
@@ -600,9 +634,31 @@ class OnDemandRepository @Inject constructor(
         runCatching { db.item(parts[1], kind, parts[2]) }.getOrNull()
     }
 
+    internal suspend fun resolvePortalMarker(marker: String): StalkerPortalClient.Link = withContext(Dispatchers.IO) {
+        require(marker.startsWith(StalkerVod.PREFIX))
+        val ref = ("http://" + marker.removePrefix(StalkerVod.PREFIX)).toHttpUrl()
+        val item = requireNotNull(itemByUid(ref.pathSegments.single())) { "Portal title no longer available." }
+        val source = requireNotNull(playlist(item.playlistId)?.takeIf { it.isStalker && it.enabled && it.importVod })
+        val series = item.kind == VodKind.SERIES
+        check((if (series) source.vodSeries else source.vodMovies) &&
+            source.vodCategories(series)?.contains(item.categoryId) != false) { "Portal category is excluded." }
+        val user = prefs.userState.first()
+        val category = listOf(item.kind.key, item.playlistId, item.categoryId).joinToString(":")
+        val name = db.categoryName(item.playlistId, item.kind, item.categoryId).orEmpty()
+        check(category !in user.vodHiddenCategories &&
+            !com.nuvio.tv.livetv.parental.ParentalControls.isLocked("vod:$category", name, prefs.settings.first(), user.lockedGroups)) {
+            "Portal category is unavailable."
+        }
+        val season = ref.queryParameter("s")?.toIntOrNull()
+        val episode = ref.queryParameter("e")?.toIntOrNull()
+        require((season != null) == series && (episode != null) == series)
+        stalker.resolve(source, item, season, episode, ref.queryParameter("entry"))
+    }
+
     /** Movie link: /movie/user/pass/<id>.<ext> */
     suspend fun movieUrl(item: VodItem): String? {
         val pl = playlist(item.playlistId) ?: return null
+        if (pl.isStalker) return StalkerVod.marker(item)
         return "${pl.xtreamBase()}/movie/${enc(pl.xtreamUsername)}/${enc(pl.xtreamPassword)}/${item.id}.${item.ext ?: "mp4"}"
     }
 
@@ -610,10 +666,17 @@ class OnDemandRepository @Inject constructor(
     suspend fun info(item: VodItem): VodInfo? = withContext(Dispatchers.IO) {
         val pl = playlist(item.playlistId) ?: return@withContext null
         val cacheKey = item.uid + ":" + _version.value + ":" + java.security.MessageDigest.getInstance("SHA-256").digest(
-            listOf(pl.xtreamServer, pl.xtreamUsername, pl.xtreamPassword, pl.userAgent).joinToString("\u0000").toByteArray()).joinToString("") { "%02x".format(it) }
+            listOf(pl.xtreamServer, pl.xtreamUsername, pl.xtreamPassword, pl.userAgent, pl.stalkerPortal, pl.stalkerMac, pl.stalkerUsername, pl.stalkerPassword, pl.stalkerSerial).joinToString("\u0000").toByteArray()).joinToString("") { "%02x".format(it) }
         infoCache[cacheKey]?.let { return@withContext it }
         infoLocks.getOrPut(cacheKey) { Mutex() }.withLock {
         infoCache[cacheKey]?.let { return@withLock it }
+        if (pl.isStalker) {
+            return@withLock try {
+                stalker.info(pl, item).also { if (it.episodes.size <= 200) infoCache[cacheKey] = it }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) { null }
+        }
         val api = pl.xtreamApiUrl()
         val action = if (item.kind == VodKind.MOVIE) "get_vod_info&vod_id=${item.id}" else "get_series_info&series_id=${item.id}"
         val json = runCatching { JSONObject(getText("$api&action=$action", pl.userAgent, detailHttp)) }.getOrNull() ?: return@withLock null
@@ -692,7 +755,9 @@ class OnDemandRepository @Inject constructor(
                         var reachedPage = false
                         val action = if (group.second == VodKind.MOVIE) "get_vod_streams" else "get_series"
                         var stopped = false
-                        streamItems(source, group.second, "${source.xtreamApiUrl()}&action=$action&category_id=${enc(group.third)}",
+                        if (source.isStalker) {
+                            for (item in page) urls[item.id] = stalker.browseArtwork(source, item)
+                        } else streamItems(source, group.second, "${source.xtreamApiUrl()}&action=$action&category_id=${enc(group.third)}",
                             onStop = { stopped = true }) {
                             if (it.id in wanted) { urls[it.id] = it.icon; reachedPage = true }
                             else if (reachedPage && nearby++ < 40) urls[it.id] = it.icon
@@ -700,7 +765,10 @@ class OnDemandRepository @Inject constructor(
                         val current = prefs.playlists.first().firstOrNull { it.id == source.id }
                         if (!stopped && current?.vodSourceOnly == true && current.enabled && current.importVod &&
                             current.vodImportPolicy() == source.vodImportPolicy() && current.xtreamServer == source.xtreamServer &&
-                            current.xtreamUsername == source.xtreamUsername && current.xtreamPassword == source.xtreamPassword) {
+                            current.xtreamUsername == source.xtreamUsername && current.xtreamPassword == source.xtreamPassword &&
+                            current.stalkerPortal == source.stalkerPortal && current.stalkerMac == source.stalkerMac &&
+                            current.stalkerUsername == source.stalkerUsername && current.stalkerPassword == source.stalkerPassword &&
+                            current.stalkerSerial == source.stalkerSerial) {
                             db.cacheBrowseArtwork(source.id, group.second, urls)
                             _artworkUpdates.emit(urls.mapKeys { "${group.second.key}:${source.id}:${it.key}" })
                         }
@@ -753,7 +821,7 @@ class OnDemandRepository @Inject constructor(
 
     /** Indexed title lookup; no catalogue import or broad scan is required to open an episode. */
     internal suspend fun integratedSources(target: VodStreamTarget, playlistId: String): List<OnDemandSource> = withContext(Dispatchers.IO) {
-        val pl = playlist(playlistId)?.takeIf { it.enabled && it.isXtream && it.importVod } ?: return@withContext emptyList()
+        val pl = playlist(playlistId)?.takeIf { it.enabled && it.supportsVod && it.importVod } ?: return@withContext emptyList()
         prefixMutex.withLock {
             if (!prefixesReady) { db.loadPrefixes(); prefixesReady = true }
         }

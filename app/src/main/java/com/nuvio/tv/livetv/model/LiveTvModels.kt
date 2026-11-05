@@ -18,9 +18,9 @@ data class PlaylistSource(
     val lastUpdatedMs: Long = 0L,
     val lastError: String? = null,
     val channelCount: Int = 0,
-    /** Xtream: also import the provider's movies and series (On Demand). */
+    /** Also import the provider's movies and series (On Demand). */
     val importVod: Boolean = false,
-    /** Xtream: import the live TV channels (off = On Demand only). */
+    /** Import the live TV channels (off = On Demand only). */
     val importLive: Boolean = true,
     /** Xtream live stream format: "auto" (what the provider allows), "ts" or "m3u8". */
     val streamFormat: String = "auto",
@@ -57,8 +57,10 @@ data class PlaylistSource(
 
     val isXtream: Boolean get() = xtreamServer.isNotBlank()
 
+    val supportsVod: Boolean get() = isXtream || isStalker
+
     /** Whether this source's live channels (and their guide) are loaded. */
-    val liveEnabled: Boolean get() = enabled && (!isXtream || importLive)
+    val liveEnabled: Boolean get() = enabled && (!supportsVod || importLive)
 
     fun resolvedUrl(): String {
         if (!isXtream) return tidyLink(url)

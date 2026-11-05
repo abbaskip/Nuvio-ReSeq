@@ -208,10 +208,10 @@ class LiveTvRepository @Inject constructor(
         return id
     }
 
-    suspend fun addStalker(name: String, portal: String, mac: String, user: String, pass: String, serial: String) {
+    suspend fun addStalker(name: String, portal: String, mac: String, user: String, pass: String, serial: String, vod: Boolean = false, live: Boolean = true) {
         val source = PlaylistSource(UUID.randomUUID().toString(), name.ifBlank { "Stalker" }, "",
             stalkerPortal = portal.trim(), stalkerMac = mac.trim().uppercase(),
-            stalkerUsername = user.trim(), stalkerPassword = pass, stalkerSerial = serial.trim())
+            stalkerUsername = user.trim(), stalkerPassword = pass, stalkerSerial = serial.trim(), importVod = vod, importLive = live)
         StalkerPortalClient.endpoint(source.stalkerPortal)
         prefs.updatePlaylists { it + source }
         scope.launch { refreshInternal(forcePlaylists = false, forceEpg = false, forceIds = setOf(source.id)) }

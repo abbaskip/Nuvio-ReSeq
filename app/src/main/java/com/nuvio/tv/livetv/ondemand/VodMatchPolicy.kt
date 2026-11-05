@@ -54,7 +54,9 @@ internal object VodMatchPolicy {
         // number wins over an unreliable API episode_num (or the array-position fallback).
         return candidates.mapNotNull { candidate ->
             if (contradicts(target, candidate)) return@mapNotNull null
-            val numbered = filenameCoordinates(candidate.title) ?: return@mapNotNull null
+            // A Stalker season command accepts an explicit episode selector supplied by the portal.
+            val numbered = filenameCoordinates(candidate.title) ?: if (candidate.portalCoordinates)
+                EpisodeCoordinates(candidate.season, candidate.episode) else return@mapNotNull null
             if (numbered != wanted) return@mapNotNull null
             candidate.copy(season = numbered.season, episode = numbered.episode)
         }

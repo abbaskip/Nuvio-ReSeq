@@ -48,7 +48,7 @@ class OnDemandLibrarySearch @Inject constructor(
     private val preferences: LiveTvPreferences
 ) {
     suspend fun request(query: String, kind: VodKind?): VodSearchRequest {
-        val playlists = preferences.playlists.first().filter { it.enabled && it.importVod && it.isXtream }
+        val playlists = preferences.playlists.first().filter { it.enabled && it.importVod && it.supportsVod }
         val user = preferences.userState.first()
         val settings = preferences.settings.first()
         val categories = repository.categories(VodKind.MOVIE) + repository.categories(VodKind.SERIES)

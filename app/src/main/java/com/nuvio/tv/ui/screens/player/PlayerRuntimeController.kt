@@ -233,6 +233,7 @@ class PlayerRuntimeController(
     internal var currentVideoWidth: Int? = null
     internal var currentVideoHeight: Int? = null
     internal var currentVideoBitrate: Int? = null
+    internal var portalPlayback: Pair<String, String>? = null // stable reference and last resolved URL
     internal var currentStreamUrl: String
     internal var reportedServerUrl: String? = null
     internal var serverAudioChosenByUser = false

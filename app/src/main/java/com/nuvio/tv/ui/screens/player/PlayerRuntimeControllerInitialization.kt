@@ -175,6 +175,29 @@ internal fun PlayerRuntimeController.initializePlayer(
 
     scope.launch {
         try {
+            val marker = if (url.startsWith(com.nuvio.tv.livetv.ondemand.StalkerVod.PREFIX)) url
+                else portalPlayback?.takeIf { it.second == url }?.first
+            val portalLink = marker?.let {
+                try {
+                    com.nuvio.tv.livetv.ondemand.onDemandRepository(context).resolvePortalMarker(it)
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    if (currentStreamUrl == url) _uiState.update {
+                        it.copy(error = "Could not open this portal title. Refresh the playlist and try again.", showLoadingOverlay = false)
+                    }
+                    return@launch
+                }
+            }
+            if (portalLink != null) {
+                if (currentStreamUrl != url) return@launch
+                portalPlayback = marker to portalLink.url
+                currentStreamUrl = portalLink.url
+                currentHeaders = portalLink.headers
+                _uiState.update { it.copy(currentStreamUrl = portalLink.url) }
+            } else portalPlayback = null
+            val url = portalLink?.url ?: url
+            val headers = portalLink?.headers ?: headers
             if (allowEngineFailover) {
                 startupEngineFailoverTriggered = false
             }

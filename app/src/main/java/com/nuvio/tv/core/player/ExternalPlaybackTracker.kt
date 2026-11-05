@@ -435,15 +435,24 @@ class ExternalPlaybackTracker @Inject constructor(
             }
             val position = positionDeferred.await()
             val skipSegmentsJson = skipSegmentsDeferred.await()
+            val portalLink = if (url.startsWith(com.nuvio.tv.livetv.ondemand.StalkerVod.PREFIX)) {
+                try {
+                    com.nuvio.tv.livetv.ondemand.onDemandRepository(context).resolvePortalMarker(url)
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    return@coroutineScope false
+                }
+            } else null
             if (shouldCancelPendingAutoLaunch(autoLaunch)) {
                 Log.d(AUTO_NEXT_TAG, "auto launch cancelled during player preparation")
                 false
             } else {
                 withContext(Dispatchers.Main.immediate) {
                     val intentSent = doLaunch(
-                        url = url,
+                        url = portalLink?.url ?: url,
                         title = title,
-                        headers = headers,
+                        headers = portalLink?.headers ?: headers,
                         resumePositionMs = position,
                         startFromBeginning = startFromBeginning,
                         subtitles = subtitles,

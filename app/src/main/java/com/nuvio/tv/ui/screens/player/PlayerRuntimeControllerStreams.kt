@@ -992,7 +992,7 @@ internal fun PlayerRuntimeController.switchToSourceStream(
     showStreamSourceIndicator(stream)
     resetPostPlayOverlayState(clearEpisode = false)
 
-    _exoPlayer?.let { player ->
+    _exoPlayer?.takeUnless { playbackUrl.startsWith(com.nuvio.tv.livetv.ondemand.StalkerVod.PREFIX) }?.let { player ->
         scope.launch {
             try {
                 val playerSettings = playerSettingsDataStore.playerSettings.first()

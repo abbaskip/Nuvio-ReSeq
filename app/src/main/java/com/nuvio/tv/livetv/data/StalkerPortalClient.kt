@@ -61,7 +61,7 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
             sessions[key]?.takeIf { it.expires > now() } ?: authenticate(source).also { sessions[key] = it }
         }
 
-    private suspend fun request(source: PlaylistSource, type: String, action: String,
+    internal suspend fun request(source: PlaylistSource, type: String, action: String,
         parameters: Map<String, String> = emptyMap()): Any =
         request(source, type, action, parameters) { response -> readResponse(response, action) }
 
@@ -166,6 +166,10 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
     }
 
     private fun readResponse(response: Response, action: String): Any {
+        if (action == "get_ordered_list" || action == "get_categories") {
+            val source = response.body?.source() ?: error("Empty portal response.")
+            check(!source.request(4L * 1024 * 1024 + 1)) { "Portal catalogue page is too large." }
+        }
         val body = runCatching { JSONObject(response.body?.string().orEmpty()) }.getOrNull()
             ?: error("The server did not return a Stalker portal response.")
         val result = body.opt("js")
@@ -370,7 +374,7 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
         error("The portal returned an incomplete playback link. Refresh the playlist or check the portal account.")
     }
 
-    private fun playbackUrl(command: String): String? {
+    internal fun playbackUrl(command: String): String? {
         val link = command.trim().replaceFirst(Regex("^(?:ffmpeg|ffrt[0-9]*|auto)\\s+", RegexOption.IGNORE_CASE), "").trim()
         val url = runCatching { link.toHttpUrl() }.getOrNull() ?: return null
         val host = url.host.lowercase().trimEnd('.')

@@ -20,7 +20,7 @@ class IptvStreamSources @Inject constructor(
 ) {
     fun sources(): Flow<List<Addon>> = combine(addons.getInstalledAddons(), live.playlists,
         live.settings, preferences.mixedStreamSources) { installed, playlists, settings, saved ->
-        val eligible = if (settings.onDemandInStreams) playlists.filter { it.enabled && it.isXtream && it.importVod } else emptyList()
+        val eligible = if (settings.onDemandInStreams) playlists.filter { it.enabled && it.supportsVod && it.importVod } else emptyList()
         mixedSources(installed, eligible, saved.first, saved.second, settings.onDemandStreamsPosition)
     }
 

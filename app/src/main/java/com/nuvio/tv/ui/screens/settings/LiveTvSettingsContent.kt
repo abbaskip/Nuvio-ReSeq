@@ -366,10 +366,10 @@ internal fun LiveTvSettingsContent(
                         SettingsActionRow(
                             title = pl.name + if (pl.isStalker) " (Stalker)" else if (pl.isXtream) " (Xtream)" else "",
                             subtitle = when {
-                                pl.isXtream && pl.enabled && !pl.importLive && pl.importVod -> "Movies & series only (TV channels off)"
-                                pl.isXtream && pl.enabled && !pl.importLive && !pl.importVod -> "Nothing included: turn on TV channels or movies & series under Edit"
+                                pl.supportsVod && pl.enabled && !pl.importLive && pl.importVod -> "Movies & series only (TV channels off)"
+                                pl.supportsVod && pl.enabled && !pl.importLive && !pl.importVod -> "Nothing included: turn on TV channels or movies & series under Edit"
                                 else -> sourceStatus(pl.enabled, pl.lastUpdatedMs, pl.lastError, "${pl.channelCount} channels") +
-                                    (if (pl.isXtream && pl.importVod && pl.enabled) " · + movies & series" else "")
+                                    (if (pl.supportsVod && pl.importVod && pl.enabled) " · + movies & series" else "")
                             } + (account?.expiryLabel()?.let { " · Expires $it" } ?: ""),
                             value = when {
                                 !pl.enabled -> "Off"
@@ -590,7 +590,7 @@ internal fun LiveTvSettingsContent(
                     focusFirst = firstFocus(LiveTvPage.ON_DEMAND)
                 ) {
                     Text(
-                        text = "Movies and series from Xtream logins with movies & series switched on below.",
+                        text = "Movies and series from Xtream logins and Stalker portals with movies & series switched on below.",
                         style = MaterialTheme.typography.bodySmall,
                         color = NuvioTheme.colors.TextSecondary,
                         modifier = Modifier.padding(horizontal = NuvioTheme.spacing.lg, vertical = NuvioTheme.spacing.sm)
@@ -603,7 +603,7 @@ internal fun LiveTvSettingsContent(
                         onClick = { viewModel.onDemand.refreshNow() }
                     )
                     // One switch per Xtream login (logins added before On Demand start switched off).
-                    playlists.filter { it.isXtream }.forEach { pl ->
+                    playlists.filter { it.supportsVod }.forEach { pl ->
                         var importSettings by remember(pl.id) { mutableStateOf(false) }
                         SettingsToggleRow(
                             "Movies & Series from ${pl.name}",
@@ -1537,6 +1537,9 @@ internal fun LiveTvSettingsContent(
                 FormField("MAC address", "00:1A:79:00:00:00"), FormField("Username (if required)", ""),
                 FormField("Password (if required)", ""), FormField("Serial number (if required)", "")),
             onDismiss = close,
+            toggleLive = "Include TV channels" to true,
+            toggle2 = "Include movies & series (On Demand)" to false,
+            onSaveAll = { v, _, vod, live -> viewModel.addStalker(v[0], v[1], v[2], v[3], v[4], v[5], vod, live); close() },
             onSave = { v, _ -> if (v[1].isNotBlank() && v[2].isNotBlank()) viewModel.addStalker(v[0], v[1], v[2], v[3], v[4], v[5]); close() }
         )
         LiveDialog.AddXtream -> SourceFormDialog(
@@ -1608,6 +1611,14 @@ internal fun LiveTvSettingsContent(
                         FormField("Password (if required)", "", src.stalkerPassword), FormField("Serial number (if required)", "", src.stalkerSerial)),
                     toggle = "Load built-in guide" to src.useEmbeddedEpg,
                     onDismiss = close,
+                    toggleLive = "Include TV channels" to src.importLive,
+                    toggle2 = "Include movies & series (On Demand)" to src.importVod,
+                    onSaveAll = { v, t, vod, live ->
+                        viewModel.savePlaylist(src.copy(name = v[0], stalkerPortal = v[1].trim(),
+                            stalkerMac = v[2].trim().uppercase(), stalkerUsername = v[3], stalkerPassword = v[4],
+                            stalkerSerial = v[5], useEmbeddedEpg = t, importVod = vod, importLive = live))
+                        close()
+                    },
                     onSave = { v, t -> viewModel.savePlaylist(src.copy(name = v[0], stalkerPortal = v[1].trim(),
                         stalkerMac = v[2].trim().uppercase(), stalkerUsername = v[3], stalkerPassword = v[4], stalkerSerial = v[5], useEmbeddedEpg = t)); close() }
                 )

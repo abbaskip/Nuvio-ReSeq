@@ -15,13 +15,26 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.json.JSONObject
+import java.io.File
 
 class LiveTvGroupPreferencesTest {
     @get:Rule val temp = TemporaryFolder()
+    private fun context(): Context {
+        val files = temp.newFolder()
+        // Initialise empty fixture files before asynchronous startup collectors read them.
+        // Windows createNewFile briefly takes an exclusive handle; racing it with the
+        // first DataStore read otherwise makes this persistence test nondeterministic.
+        val directory = File(files, "datastore").apply { mkdirs() }
+        listOf("live_tv", "live_tv_device").forEach {
+            File(directory, "$it.preferences_pb").createNewFile()
+        }
+        return mockk<Context>().also { context ->
+            every { context.applicationContext } returns context
+            every { context.filesDir } returns files
+        }
+    }
     @Test fun `storage import policy and favourite group channel orders survive one backup restore`() = runBlocking {
-        val context = mockk<Context>()
-        every { context.applicationContext } returns context
-        every { context.filesDir } returns temp.newFolder()
+        val context = context()
         val active = MutableStateFlow(1)
         val profiles = mockk<ProfileManager>()
         every { profiles.activeProfileId } returns active
@@ -50,9 +63,7 @@ class LiveTvGroupPreferencesTest {
         assertEquals(source.vodImportPolicy(), prefs.currentPlaylists().single().vodImportPolicy())
     }
     @Test fun `favourite groups toggle persist and stay profile scoped`() = runBlocking {
-        val context = mockk<Context>()
-        every { context.applicationContext } returns context
-        every { context.filesDir } returns temp.newFolder()
+        val context = context()
         val active = MutableStateFlow(1)
         val profiles = mockk<ProfileManager>()
         every { profiles.activeProfileId } returns active
@@ -68,9 +79,7 @@ class LiveTvGroupPreferencesTest {
         assertTrue(prefs.userState.first().favoriteGroups.isEmpty())
     }
     @Test fun `saving group order retains unavailable groups and removes duplicates`() = runBlocking {
-        val context = mockk<Context>()
-        every { context.applicationContext } returns context
-        every { context.filesDir } returns temp.newFolder()
+        val context = context()
         val profiles = mockk<ProfileManager>()
         every { profiles.activeProfileId } returns MutableStateFlow(1)
         val prefs = LiveTvPreferences(context, profiles)
@@ -80,9 +89,7 @@ class LiveTvGroupPreferencesTest {
     }
 
     @Test fun `unfavouriting a legacy single-playlist group removes the old alias`() = runBlocking {
-        val context = mockk<Context>()
-        every { context.applicationContext } returns context
-        every { context.filesDir } returns temp.newFolder()
+        val context = context()
         val profiles = mockk<ProfileManager>()
         every { profiles.activeProfileId } returns MutableStateFlow(1)
         val prefs = LiveTvPreferences(context, profiles)

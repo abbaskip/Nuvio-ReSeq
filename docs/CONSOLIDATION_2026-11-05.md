@@ -20,3 +20,5 @@ Functional protection flags remain release safeguards pending this combined acce
 Status: source integration complete; combined validation in progress. Publication prohibited by the maintainer's current instruction and this coordinator run's dry-run mode.
 
 Integration correction: new favourite-group and ordering writes use stable playlist-specific preference keys across the single/multiple-live-playlist ID transition. Legacy custom orders remain readable; un-favouriting removes a legacy alias. Built-in/custom scopes are unchanged, and same-named groups from different playlists remain independent. Added regression cases for this transition and compatibility.
+
+Onn acceptance correction: initial source-chip tests reproduced an externally selected off-screen add-on remaining invisible while result focus was below the row. The All/Refresh guard now applies only when the chip row actually owns focus. The same tests verify visibility, focus retention after late add-on arrival and RTL D-pad direction. Initial ordering/configuration and negative-offset RTL glyph/remote checks passed; full retest follows the correction.

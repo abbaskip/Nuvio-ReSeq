@@ -313,7 +313,9 @@ internal fun AddonFilterChips(
         }
     ) }
     LaunchedEffect(selectedAddon, orderedNames) {
-        if (refreshHasFocus || focusedChipIndex == 0) return@LaunchedEffect
+        // Preserve an actively focused All/Refresh chip, while tracking external
+        // selection changes when focus is in the results below the row.
+        if (refreshHasFocus || (chipRowHasFocus && focusedChipIndex == 0)) return@LaunchedEffect
         val maxIndex = if (hasRefresh) orderedNames.size + 1 else orderedNames.size
         if (focusedChipIndex > maxIndex) {
             focusedChipIndex = maxIndex.coerceAtLeast(if (hasRefresh) 1 else 0)

@@ -191,6 +191,7 @@ internal fun PlayerRuntimeController.initializePlayer(
             }
             if (portalLink != null) {
                 if (currentStreamUrl != url) return@launch
+                if (url == marker) portalRefusalRetried = false
                 portalPlayback = marker to portalLink.url
                 currentStreamUrl = portalLink.url
                 currentHeaders = portalLink.headers
@@ -1515,6 +1516,29 @@ internal fun PlayerRuntimeController.initializePlayer(
                         cancelFirstFrameWatchdog()
                         val detailedError = error.toDisplayMessage(context)
                         cancelStableProgressReset()
+
+                        if (portalPlayback?.second == url && currentStreamUrl == url) {
+                            val status = error.findCause<androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException>()?.responseCode
+                            if (status in setOf(401, 403, 410, 460)) {
+                                if (portalRefusalRetried) {
+                                    cancelNextEpisodeAutoPlayOnFatalError()
+                                    _uiState.update { it.copy(error = detailedError, isBuffering = false, showLoadingOverlay = false) }
+                                    return
+                                }
+                                portalRefusalRetried = true
+                                val position = currentPosition
+                                val paused = userPausedManually
+                                errorRetryJob?.cancel()
+                                errorRetryJob = scope.launch {
+                                    if (currentStreamUrl != url) return@launch
+                                    showRecoveryOverlay()
+                                    releasePlayer(flushPlaybackState = false)
+                                    if (position > 0) _uiState.update { it.copy(pendingSeekPosition = position) }
+                                    reinitializeCurrentStream(startPaused = paused)
+                                }
+                                return
+                            }
+                        }
 
                         if (Vc1VideoFormatHeuristics.isVc1PlaybackFailure(
                                 error = error,

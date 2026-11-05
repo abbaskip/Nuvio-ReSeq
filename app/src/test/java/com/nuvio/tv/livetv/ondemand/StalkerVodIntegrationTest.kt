@@ -44,6 +44,7 @@ class StalkerVodIntegrationTest {
                 override fun dispatch(request: RecordedRequest): MockResponse {
                     val url = request.requestUrl!!
                     calls += url
+                    if (url.encodedPath == "/play/1") return MockResponse().setResponseCode(460)
                     if (url.encodedPath.startsWith("/play/")) {
                         return if (request.getHeader("User-Agent") == StalkerPortalClient.USER_AGENT &&
                             request.getHeader("Authorization") == null && request.getHeader("Cookie") == null)
@@ -108,9 +109,16 @@ class StalkerVodIntegrationTest {
                     while (db.item("p", VodKind.MOVIE, "2")?.icon == null) kotlinx.coroutines.delay(20)
                 }
                 val ref = repo.movieUrl(movie)!!
-                assertEquals("http://media.example.test:${server.port}/play/1", repo.resolvePortalMarker(ref).url)
-                assertEquals("http://media.example.test:${server.port}/play/2", repo.resolvePortalMarker(ref).url)
+                val mediaClient = OkHttpClient.Builder().dns { listOf(java.net.InetAddress.getLoopbackAddress()) }.build()
+                fun open(link: StalkerPortalClient.Link): okhttp3.Response {
+                    val request = okhttp3.Request.Builder().url(link.url)
+                    link.headers.forEach { (name, value) -> request.header(name, value) }
+                    return mediaClient.newCall(request.build()).execute()
+                }
+                open(repo.resolvePortalMarker(ref)).use { assertEquals(460, it.code) }
+                val fresh = repo.resolvePortalMarker(ref)
                 assertEquals("movie 2", calls.last().queryParameter("cmd"))
+                open(fresh).use { assertEquals("fixture media", it.body.string()) }
                 val target = VodStreamTarget(VodKind.SERIES, "123", "Show", null, providerCoordinates = EpisodeCoordinates(2, 5))
                 assertTrue(repo.integratedSources(target.copy(providerCoordinates = null), "p").isEmpty())
                 val episode = repo.integratedSources(target, "p").single()
@@ -119,10 +127,7 @@ class StalkerVodIntegrationTest {
                 assertEquals("season command", calls.last().queryParameter("cmd"))
                 assertEquals("5", calls.last().queryParameter("series"))
                 assertEquals(setOf("User-Agent"), resolved.headers.keys)
-                val mediaClient = OkHttpClient.Builder().dns { listOf(java.net.InetAddress.getLoopbackAddress()) }.build()
-                val mediaRequest = okhttp3.Request.Builder().url(resolved.url)
-                resolved.headers.forEach { (name, value) -> mediaRequest.header(name, value) }
-                mediaClient.newCall(mediaRequest.build()).execute().use { assertEquals("fixture media", it.body.string()) }
+                open(resolved).use { assertEquals("fixture media", it.body.string()) }
                 repeated = true
                 repo.refresh(force = true)
                 assertNotNull(repo.status.value.message)

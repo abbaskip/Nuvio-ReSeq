@@ -23,6 +23,49 @@ class StalkerPortalClientTest {
     }
     private fun marker(cmd: String = "ffmpeg http://localhost/ch/42_") = "reseq-stalker://test-playlist/42?cmd=" + URLEncoder.encode(cmd, "UTF-8")
 
+    @Test fun `VOD uses fresh explicitly static movie URLs without exchanging their tokens`() = runBlocking {
+        MockWebServer().use { server ->
+            val client = StalkerPortalClient(OkHttpClient(), { 0L })
+            val movie = org.json.JSONObject().put("use_http_tmp_link", 0)
+                .put("url", "ffmpeg https://media.example.test/movie.mp4?token=a+b%2Fc")
+            val direct = client.resolveVodCommand(source(server), movie, null)
+            assertEquals("https://media.example.test/movie.mp4?token=a+b%2Fc", direct.url)
+            assertEquals(0, server.requestCount)
+            movie.put("use_load_balancing", 1)
+            login(server)
+            body(server, """{"url":"https://media.example.test/fresh.mp4"}""")
+            assertEquals("https://media.example.test/fresh.mp4", client.resolveVodCommand(source(server), movie, null).url)
+            repeat(2) { server.takeRequest() }
+            assertEquals("vod", server.takeRequest().requestUrl!!.queryParameter("type"))
+        }
+    }
+
+    @Test fun `episode resolution renews an expired session and retries an incomplete link once without losing the selector`() = runBlocking {
+        MockWebServer().use { server ->
+            val client = StalkerPortalClient(OkHttpClient(), { 0L })
+            val command = "ffmpeg http://localhost/season?x=1&type=other"
+            val encoded = URLEncoder.encode(command, "UTF-8")
+            val row = org.json.JSONObject().put("mc_cmd", encoded).put("use_http_tmp_link", 0)
+            login(server)
+            server.enqueue(MockResponse().setResponseCode(401))
+            login(server, "renewed")
+            body(server, """{"cmd":"https://media.example.test/play?stream="}""")
+            body(server, """{"stream_url":"https://media.example.test/episode.mp4"}""")
+            val link = client.resolveVodCommand(source(server), row, 5)
+            assertEquals("https://media.example.test/episode.mp4", link.url)
+            assertEquals(setOf("User-Agent"), link.headers.keys)
+            val attempts = List(server.requestCount) { server.takeRequest().requestUrl!! }
+                .filter { it.queryParameter("action") == "create_link" }
+            assertEquals(listOf(encoded, encoded, command), attempts.map { it.queryParameter("cmd") })
+            assertEquals(listOf("undefined", "undefined", null), attempts.map { it.queryParameter("forced_storage") })
+            assertTrue(attempts.all { it.queryParameter("series") == "5" && it.queryParameterValues("type") == listOf("vod") })
+
+            repeat(2) { body(server, """{"cmd":"http://localhost/placeholder"}""") }
+            assertTrue(runCatching { client.resolveVodCommand(source(server), row, 5) }.isFailure)
+            assertEquals(9, server.requestCount)
+        }
+    }
+
     @Test fun `a refused cached direct URL recovers from the fresh listing without create link`() = runBlocking {
         MockWebServer().use { server ->
             val http = OkHttpClient.Builder().dns { listOf(java.net.InetAddress.getLoopbackAddress()) }.build()

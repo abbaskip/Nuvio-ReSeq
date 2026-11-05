@@ -341,32 +341,40 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
             return resolve(source, "reseq-stalker://${source.id}/$id?cmd=${encode(command)}&resolve=$mode")
         }
         val command = uri.queryParameter("cmd")?.takeIf { it.isNotBlank() } ?: error("Missing portal channel command.")
+        return resolveCommand(source, command, vod = false, direct = uri.queryParameter("resolve") == "0")
+    }
+
+    internal fun vodCommand(row: JSONObject): String? = sequenceOf("cmd", "mc_cmd", "url")
+        .map { row.optString(it) }.firstOrNull { it.isNotBlank() && it != "null" }
+
+    internal suspend fun resolveVodCommand(source: PlaylistSource, row: JSONObject, episode: Int?): Link {
+        val command = vodCommand(row) ?: error("Missing portal title command.")
+        // A shared season command needs the episode selector even when it looks like a media URL.
+        return resolveCommand(source, command, vod = true, direct = episode == null && resolutionMode(row) == "0", episode = episode)
+    }
+
+    private suspend fun resolveCommand(source: PlaylistSource, command: String, vod: Boolean, direct: Boolean,
+        episode: Int? = null): Link {
         fun link(url: String) = Link(url, mapOf("User-Agent" to source.userAgent.ifBlank { USER_AGENT }))
-        if (uri.queryParameter("resolve") == "0") {
-            val direct = playbackUrl(command)
-                ?: runCatching { playbackUrl(URLDecoder.decode(command, "UTF-8")) }.getOrNull()
-            if (direct != null) {
-                LiveTvLoadReport.add("Stalker: direct channel playback selected")
-                return link(direct)
+        fun decoded() = runCatching { URLDecoder.decode(command, "UTF-8") }.getOrDefault(command)
+        if (direct) {
+            (playbackUrl(command) ?: playbackUrl(decoded()))?.let {
+                LiveTvLoadReport.add("Stalker: direct playback selected")
+                return link(it)
             }
         }
 
-        suspend fun create(cmd: String, legacyStorage: Boolean): String? {
-            val parameters = linkedMapOf("cmd" to cmd, "series" to "", "disable_ad" to "0")
-            if (legacyStorage) parameters["forced_storage"] = "0"
-            val data = request(source, "itv", "create_link", parameters) as? JSONObject ?: return null
-            return sequenceOf("cmd", "url", "stream_url").mapNotNull { playbackUrl(data.optString(it)) }.firstOrNull()
+        suspend fun create(cmd: String, storage: String?): String? {
+            val parameters = mutableMapOf("cmd" to cmd, "disable_ad" to "0")
+            if (!vod || episode != null) parameters["series"] = episode?.toString().orEmpty()
+            if (storage != null) parameters["forced_storage"] = storage
+            val result = request(source, if (vod) "vod" else "itv", "create_link", parameters) as? JSONObject
+                ?: return null
+            return sequenceOf("cmd", "url", "stream_url").mapNotNull { playbackUrl(result.optString(it)) }.firstOrNull()
         }
-        create(command, legacyStorage = true)?.let { return link(it) }
+        create(command, if (vod) "undefined" else "0")?.let { return link(it) }
         LiveTvLoadReport.add("Stalker: incomplete playback link; retrying with MAG command decoding and default storage")
-
-        // Some panels store percent-encoded commands and expect the single form decode
-        // performed by their MAG client. Normal query encoding otherwise preserves those
-        // escapes, and create_link can return HTTP 200 with an empty stream identifier.
-        // Retry once with that interpretation and the portal's default storage selection.
-        // Query parameters are still encoded by OkHttp: embedded '&' cannot inject fields.
-        val compatible = runCatching { URLDecoder.decode(command, "UTF-8") }.getOrDefault(command)
-        create(compatible, legacyStorage = false)?.let {
+        create(decoded(), null)?.let {
             LiveTvLoadReport.add("Stalker: compatibility playback link resolved")
             return link(it)
         }
@@ -374,7 +382,7 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
         error("The portal returned an incomplete playback link. Refresh the playlist or check the portal account.")
     }
 
-    internal fun playbackUrl(command: String): String? {
+    private fun playbackUrl(command: String): String? {
         val link = command.trim().replaceFirst(Regex("^(?:ffmpeg|ffrt[0-9]*|auto)\\s+", RegexOption.IGNORE_CASE), "").trim()
         val url = runCatching { link.toHttpUrl() }.getOrNull() ?: return null
         val host = url.host.lowercase().trimEnd('.')

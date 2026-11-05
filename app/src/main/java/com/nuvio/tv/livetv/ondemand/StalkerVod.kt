@@ -116,7 +116,7 @@ internal class StalkerVod(private val portal: StalkerPortalClient) {
             check(episodes.size < 20_000) { "Portal series is too large." }
             val episodeRow = entry.optJSONArray("series") == null
             val title = if (episodeRow) entry.field("name") else null
-            if (entry.field("cmd") != null) episodes += VodEpisode(season, number, "${entry.field("id")}:$number",
+            if (portal.vodCommand(entry) != null) episodes += VodEpisode(season, number, "${entry.field("id")}:$number",
                 entry.field("container_extension").orEmpty(), title ?: "Episode $number",
                 if (episodeRow) entry.field("description") else null, null, marker(item, season, number, entry.field("id")),
                 imdbId = if (episodeRow) entry.field("imdb_id")?.takeIf { it.matches(Regex("tt[0-9]+")) } else null,
@@ -130,22 +130,16 @@ internal class StalkerVod(private val portal: StalkerPortalClient) {
     }
 
     suspend fun resolve(source: PlaylistSource, item: VodItem, season: Int?, number: Int?, entryId: String?): StalkerPortalClient.Link {
-        var command: String? = null
-        if (item.kind == VodKind.MOVIE) command = find(source, item)?.field("cmd")
+        var entry: JSONObject? = null
+        if (item.kind == VodKind.MOVIE) entry = find(source, item)
         else episodes(source, item) { s, n, row ->
             if (s == season && n == number && row.field("id") == entryId) {
-                check(command == null) { "Ambiguous portal episode." }
-                command = row.field("cmd")
+                check(entry == null) { "Ambiguous portal episode." }
+                entry = row
             }
             true
         }
-        val parameters = mutableMapOf("cmd" to requireNotNull(command) { "Portal title unavailable." },
-            "forced_storage" to "undefined", "disable_ad" to "0")
-        if (number != null) parameters["series"] = number.toString()
-        val result = portal.request(source, "vod", "create_link", parameters) as? JSONObject
-        val url = listOf("cmd", "url", "stream_url").firstNotNullOfOrNull { portal.playbackUrl(result?.optString(it).orEmpty()) }
-            ?: error("Portal returned no playable link.")
-        return StalkerPortalClient.Link(url, mapOf("User-Agent" to source.userAgent.ifBlank { StalkerPortalClient.USER_AGENT }))
+        return portal.resolveVodCommand(source, requireNotNull(entry) { "Portal title unavailable." }, number)
     }
 
     companion object {

@@ -4,6 +4,27 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LiveTvOrderingTest {
+    @Test fun `adding another playlist retains favourite and order without selecting its same named group`() {
+        val saved = groupPreferenceKey("Sport", "one")
+        val user = com.nuvio.tv.livetv.model.LiveUserState(
+            favoriteGroups = setOf(saved), groupOrder = listOf(saved),
+            channelOrder = mapOf(saved to listOf("channel-b", "channel-a")))
+        val original = com.nuvio.tv.livetv.model.ChannelGroup("one::Sport", "Sport", 2, sourceId = "one")
+        val second = original.copy(id = "two::Sport", sourceId = "two")
+        assertEquals(saved, groupPreferenceKey(original.id, original.sourceId))
+        org.junit.Assert.assertTrue(user.isFavoriteGroup(original))
+        org.junit.Assert.assertFalse(user.isFavoriteGroup(second))
+        assertEquals(listOf("channel-b", "channel-a"), user.channelOrderFor(original.id, original.sourceId))
+        assertEquals(null, user.channelOrderFor(second.id, second.sourceId))
+        assertEquals(saved, groupPreferenceKey("Sport", "one"))
+    }
+
+    @Test fun `legacy custom orders remain readable and built in scopes are unchanged`() {
+        val legacy = com.nuvio.tv.livetv.model.LiveUserState(channelOrder = mapOf("Sport" to listOf("old")))
+        assertEquals(listOf("old"), legacy.channelOrderFor("Sport", "one"))
+        assertEquals("__fav__", groupPreferenceKey("__fav__", "one"))
+        assertEquals("custom:mine", groupPreferenceKey("custom:mine", "one"))
+    }
     private val order = listOf("A", "B", "C", "D", "E", "F")
     @Test fun `non adjacent selection becomes stable block moving up`() {
         assertEquals(listOf("B", "D", "A", "C", "E", "F"), moveOrderedItems(order, linkedSetOf("D", "B"), OrderMove.UP))

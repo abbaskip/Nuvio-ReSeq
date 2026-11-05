@@ -291,7 +291,8 @@ class LiveTvViewModel @Inject constructor(
 
         /** Your order from "Reorder channels" wins; channels you haven't placed follow as sorted. */
         fun ordered(groupId: String, list: List<LiveChannel>): List<LiveChannel> {
-            val order = user.channelOrder[groupId] ?: return sorted(list)
+            val sourceId = visible.firstOrNull { it.groupId == groupId }?.sourceId
+            val order = user.channelOrderFor(groupId, sourceId) ?: return sorted(list)
             val byKeyHere = list.associateBy { it.key }
             val placed = order.mapNotNull { byKeyHere[it] }
             val placedKeys = placed.mapTo(HashSet()) { it.key }
@@ -345,10 +346,12 @@ class LiveTvViewModel @Inject constructor(
             )
             // Your order (Reorder groups), playlist order for anything not moved.
             else -> regular.withIndex()
-                .sortedWith(compareBy<IndexedValue<ChannelGroup>>({ orderIndex[it.value.id] ?: Int.MAX_VALUE }, { it.index }))
+                .sortedWith(compareBy<IndexedValue<ChannelGroup>>({
+                    orderIndex[groupPreferenceKey(it.value.id, it.value.sourceId)] ?: orderIndex[it.value.id] ?: Int.MAX_VALUE
+                }, { it.index }))
                 .map { it.value }
         }
-        groups += orderedRegular.map { it.copy(favorite = it.id in user.favoriteGroups) }
+        groups += orderedRegular.map { it.copy(favorite = user.isFavoriteGroup(it)) }
             .sortedByDescending { it.favorite }
         // Keep a long-press recovery route even if every regular group is hidden and
         // the user has switched off all optional built-in group rows.
@@ -1075,13 +1078,19 @@ class LiveTvViewModel @Inject constructor(
     fun saveGroupOrder(ids: List<String>) {
         // Reordering by hand means "my order" from now on.
         if (ids.isEmpty()) return
+        val groupById = uiState.value.groups.associateBy { it.id }
+        val stableIds = ids.map { id -> groupPreferenceKey(id, groupById[id]?.sourceId) }
         viewModelScope.launch {
-            prefs.setGroupOrder(ids)
+            prefs.setGroupOrder(stableIds)
             prefs.updateSettings { it.copy(groupSort = "custom") }
         }
     }
 
-    fun toggleFavoriteGroup(groupId: String) = viewModelScope.launch { prefs.toggleFavoriteGroup(groupId) }
+    fun toggleFavoriteGroup(groupId: String) {
+        val sourceId = uiState.value.groups.firstOrNull { it.id == groupId }?.sourceId
+        val stableId = groupPreferenceKey(groupId, sourceId)
+        viewModelScope.launch { prefs.toggleFavoriteGroup(stableId, groupId) }
+    }
 
     fun createGroupWith(name: String, channel: LiveChannel?) = viewModelScope.launch {
         val id = prefs.createCustomGroup(name)
@@ -1207,7 +1216,8 @@ class LiveTvViewModel @Inject constructor(
 
     fun saveOrder(groupId: String, keys: List<String>) = viewModelScope.launch {
         if (!canReorder(groupId)) return@launch
-        prefs.setChannelOrder(groupId, keys)
+        val sourceId = uiState.value.groups.firstOrNull { it.id == groupId }?.sourceId
+        prefs.setChannelOrder(groupPreferenceKey(groupId, sourceId), keys)
         when {
             groupId == ChannelGroup.FAVORITES -> prefs.setFavoritesOrder(keys)
             groupId.startsWith(ChannelGroup.CUSTOM_PREFIX) -> prefs.setCustomGroupOrder(groupId, keys)

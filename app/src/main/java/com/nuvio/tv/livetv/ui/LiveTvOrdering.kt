@@ -1,5 +1,20 @@
 package com.nuvio.tv.livetv.ui
 
+import com.nuvio.tv.livetv.model.ChannelGroup
+import com.nuvio.tv.livetv.model.LiveUserState
+
+/** Guide IDs gain a playlist prefix when a second source is enabled; preferences must not change. */
+internal fun groupPreferenceKey(id: String, sourceId: String?): String =
+    if (sourceId == null || id.startsWith("__") || id.startsWith(ChannelGroup.CUSTOM_PREFIX) ||
+        id.startsWith("$sourceId::")) id else "$sourceId::$id"
+
+internal fun LiveUserState.isFavoriteGroup(group: ChannelGroup): Boolean =
+    groupPreferenceKey(group.id, group.sourceId) in favoriteGroups || group.id in favoriteGroups
+
+/** Read older saved orders without rewriting preferences or guessing between duplicate group names. */
+internal fun LiveUserState.channelOrderFor(id: String, sourceId: String?): List<String>? =
+    channelOrder[groupPreferenceKey(id, sourceId)] ?: channelOrder[id]
+
 /** Movement is relative to the first/last selected row, never selection click order. */
 internal enum class OrderMove { UP, DOWN, TOP, BOTTOM }
 

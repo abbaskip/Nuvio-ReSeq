@@ -671,13 +671,14 @@ class LiveTvPreferences @Inject constructor(
         }
     }
 
-    suspend fun toggleFavoriteGroup(groupId: String) {
+    suspend fun toggleFavoriteGroup(groupId: String, legacyId: String? = null) {
         val profile = currentProfile
         seedProfile(profile)
         val key = my(Keys.favoriteGroups, profile)
         store.edit { p ->
             val current = p[key].orEmpty()
-            p[key] = if (groupId in current) current - groupId else current + groupId
+            val aliases = setOfNotNull(groupId, legacyId)
+            p[key] = if (current.any { it in aliases }) current - aliases else current + groupId
         }
     }
 

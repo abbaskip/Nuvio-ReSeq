@@ -1719,7 +1719,8 @@ fun LiveTvGuideScreen(
             fun startChannelOrder(move: OrderMove? = null) {
                 menuTarget = null
                 val groupId = ui.selectedGroupId
-                val alphabetical = settings.channelSort == com.nuvio.tv.livetv.model.ChannelSort.NAME && user.channelOrder[groupId] == null
+                val sourceId = ui.groups.firstOrNull { it.id == groupId }?.sourceId
+                val alphabetical = settings.channelSort == com.nuvio.tv.livetv.model.ChannelSort.NAME && user.channelOrderFor(groupId, sourceId) == null
                 val initial = channels.map { it.key }
                 val begin: () -> Unit = {
                     if (move != null) {

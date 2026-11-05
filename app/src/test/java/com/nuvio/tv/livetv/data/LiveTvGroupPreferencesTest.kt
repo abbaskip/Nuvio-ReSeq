@@ -78,4 +78,18 @@ class LiveTvGroupPreferencesTest {
         prefs.setGroupOrder(listOf("b", "a", "b"))
         assertEquals(listOf("b", "a", "hidden"), withTimeout(5000) { prefs.userState.first() }.groupOrder)
     }
+
+    @Test fun `unfavouriting a legacy single-playlist group removes the old alias`() = runBlocking {
+        val context = mockk<Context>()
+        every { context.applicationContext } returns context
+        every { context.filesDir } returns temp.newFolder()
+        val profiles = mockk<ProfileManager>()
+        every { profiles.activeProfileId } returns MutableStateFlow(1)
+        val prefs = LiveTvPreferences(context, profiles)
+        prefs.toggleFavoriteGroup("Sport")
+        prefs.toggleFavoriteGroup("one::Sport", "Sport")
+        assertTrue(prefs.userState.first().favoriteGroups.isEmpty())
+        prefs.toggleFavoriteGroup("one::Sport", "Sport")
+        assertEquals(setOf("one::Sport"), prefs.userState.first().favoriteGroups)
+    }
 }

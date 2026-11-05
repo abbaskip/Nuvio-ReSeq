@@ -18,3 +18,5 @@ Validation required before promotion: full JVM/tooling suites, both app variants
 Functional protection flags remain release safeguards pending this combined acceptance and explicit metadata reconciliation. No new upstream commits arriving after these package inputs are included in this consolidation. Retain the existing ReSeq ART profile until new profile collection is separately completed.
 
 Status: source integration complete; combined validation in progress. Publication prohibited by the maintainer's current instruction and this coordinator run's dry-run mode.
+
+Integration correction: new favourite-group and ordering writes use stable playlist-specific preference keys across the single/multiple-live-playlist ID transition. Legacy custom orders remain readable; un-favouriting removes a legacy alias. Built-in/custom scopes are unchanged, and same-named groups from different playlists remain independent. Added regression cases for this transition and compatibility.

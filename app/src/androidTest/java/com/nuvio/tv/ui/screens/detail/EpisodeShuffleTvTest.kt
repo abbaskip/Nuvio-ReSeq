@@ -24,6 +24,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.nuvio.tv.TvHiltTestActivity
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
@@ -311,13 +312,13 @@ class EpisodeShuffleTvTest {
                     if (settings.enabled) { settings = settings.copy(enabled = false); stops++ } else opens++
                 })
         }
-        compose.onNodeWithText("Stop shuffle").performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        compose.onNodeWithContentDescription("Stop shuffle").performSemanticsAction(SemanticsActions.RequestFocus) { it() }
         capture("shuffle-detail-controls")
         val down = SystemClock.uptimeMillis()
         instrumentation.sendKeySync(KeyEvent(down, down, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER, 0))
         instrumentation.sendKeySync(KeyEvent(down, SystemClock.uptimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER, 1))
         instrumentation.sendKeySync(KeyEvent(down, SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER, 0))
-        compose.onNodeWithText("Shuffle").assertIsFocused().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Shuffle").assertIsFocused().assertIsDisplayed()
         compose.runOnIdle { assertEquals(1, stops); assertEquals(0, opens) }
         capture("shuffle-controls-off")
         instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_MENU)

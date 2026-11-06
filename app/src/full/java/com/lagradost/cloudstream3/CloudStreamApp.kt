@@ -5,6 +5,7 @@ package com.lagradost.cloudstream3
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import com.lagradost.cloudstream3.utils.DataStore
 import java.lang.ref.WeakReference
 
 /**
@@ -46,37 +47,50 @@ open class CloudStreamApp {
             return null
         }
 
-        // --- DataStore stubs (no-op, matching real CloudStreamApp API) ---
+        @JvmStatic
+        fun removeKeys(folder: String): Int? = with(DataStore) { context?.removeKeys(folder) }
 
         @JvmStatic
-        fun removeKeys(folder: String): Int? = null
+        fun <T> setKey(path: String, value: T) {
+            with(DataStore) {
+                if (value == null) context?.removeKey(path) else context?.setKey(path, value)
+            }
+        }
 
         @JvmStatic
-        fun <T> setKey(path: String, value: T) {}
+        fun <T> setKey(folder: String, path: String, value: T) =
+            setKey(DataStore.getFolderName(folder, path), value)
 
         @JvmStatic
-        fun <T> setKey(folder: String, path: String, value: T) {}
+        fun <T : Any> setKeyClass(path: String, value: T) = setKey(path, value)
 
         @JvmStatic
-        inline fun <reified T : Any> getKey(path: String, defVal: T?): T? = defVal
+        fun <T : Any> getKeyClass(path: String, valueType: Class<T>): T? =
+            with(DataStore) { context?.getKey(path, valueType) }
 
         @JvmStatic
-        inline fun <reified T : Any> getKey(path: String): T? = null
+        inline fun <reified T : Any> getKey(path: String, defVal: T?): T? =
+            getKeyClass(path, T::class.java) ?: defVal
 
         @JvmStatic
-        inline fun <reified T : Any> getKey(folder: String, path: String): T? = null
+        inline fun <reified T : Any> getKey(path: String): T? = getKeyClass(path, T::class.java)
 
         @JvmStatic
-        inline fun <reified T : Any> getKey(folder: String, path: String, defVal: T?): T? = defVal
+        inline fun <reified T : Any> getKey(folder: String, path: String): T? =
+            getKeyClass(DataStore.getFolderName(folder, path), T::class.java)
 
         @JvmStatic
-        fun getKeys(folder: String): List<String>? = null
+        inline fun <reified T : Any> getKey(folder: String, path: String, defVal: T?): T? =
+            getKey<T>(folder, path) ?: defVal
 
         @JvmStatic
-        fun removeKey(folder: String, path: String) {}
+        fun getKeys(folder: String): List<String>? = with(DataStore) { context?.getKeys(folder) }
 
         @JvmStatic
-        fun removeKey(path: String) {}
+        fun removeKey(folder: String, path: String) = removeKey(DataStore.getFolderName(folder, path))
+
+        @JvmStatic
+        fun removeKey(path: String) { with(DataStore) { context?.removeKey(path) } }
 
         @JvmStatic
         fun openBrowser(url: String, fallbackWebView: Boolean = false) {}

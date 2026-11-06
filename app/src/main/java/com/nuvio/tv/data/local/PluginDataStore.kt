@@ -180,6 +180,42 @@ class PluginDataStore @Inject constructor(
         }
     }
 
+    /** Capture the writable profile before starting a potentially long repository download. */
+    internal fun writablePluginProfile(): Int? =
+        if (sharedPluginWriteBlocked()) null else effectiveProfileId()
+
+    /** Commit repository metadata and successful downloads together, preserving previous installs and toggles. */
+    internal suspend fun storeExternalDownloads(
+        profileId: Int,
+        repo: PluginRepository,
+        downloads: List<ScraperInfo>,
+        refresh: Boolean
+    ): PluginRepository {
+        val repoAdapter = moshi.adapter<List<PluginRepository>>(repoListType)
+        val scraperAdapter = moshi.adapter<List<ScraperInfo>>(scraperListType)
+        var saved = repo
+        store(profileId).edit { prefs ->
+            val repositories = prefs[repositoriesKey]?.let(repoAdapter::fromJson).orEmpty().toMutableList()
+            val index = repositories.indexOfFirst { it.id == repo.id }
+            check(!refresh || index >= 0) { "Repository was removed during refresh" }
+            val oldScrapers = prefs[scrapersKey]?.let(scraperAdapter::fromJson).orEmpty()
+            val byId = downloads.associateBy { it.id }.toMutableMap()
+            val merged = oldScrapers.map { old ->
+                byId.remove(old.id)?.copy(enabled = old.enabled) ?: old
+            } + byId.values
+            saved = (repositories.getOrNull(index) ?: repo).copy(
+                name = repo.name,
+                description = repo.description,
+                lastUpdated = System.currentTimeMillis(),
+                scraperCount = merged.count { it.repositoryId == repo.id }
+            )
+            if (index >= 0) repositories[index] = saved else repositories.add(saved)
+            prefs[repositoriesKey] = repoAdapter.toJson(repositories)
+            prefs[scrapersKey] = scraperAdapter.toJson(merged)
+        }
+        return saved
+    }
+
     suspend fun setScraperEnabled(scraperId: String, enabled: Boolean) {
         val current = scrapers.first().toMutableList()
         val index = current.indexOfFirst { it.id == scraperId }

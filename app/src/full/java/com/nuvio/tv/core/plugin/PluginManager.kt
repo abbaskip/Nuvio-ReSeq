@@ -1,10 +1,11 @@
 package com.nuvio.tv.core.plugin
 
 import android.util.Log
-import com.nuvio.tv.core.plugin.cloudstream.toNuvioType
-import com.nuvio.tv.core.plugin.cloudstream.tvTypeFromString
+import com.nuvio.tv.core.plugin.cloudstream.cloudStreamContentTypes
+import com.nuvio.tv.core.plugin.cloudstream.unwrapCloudStreamUrl
 import com.nuvio.tv.core.plugin.cloudstream.ExternalExtensionLoader
 import com.nuvio.tv.core.plugin.cloudstream.ExternalExtensionRunner
+import com.nuvio.tv.core.plugin.cloudstream.ExternalRepoParseResult
 import com.nuvio.tv.core.plugin.cloudstream.ExternalRepoParser
 import com.nuvio.tv.data.local.PluginDataStore
 import com.nuvio.tv.data.local.PluginSyncProfile
@@ -101,7 +102,7 @@ class PluginManager @Inject constructor(
      * External repos often use schemes like "cloudstreamrepo://" or "stremio://".
      */
     private fun sanitizeScheme(url: String): String {
-        val trimmed = url.trim()
+        val trimmed = unwrapCloudStreamUrl(url)
         // Replace any non-http(s) scheme with https://
         val schemeEnd = trimmed.indexOf("://")
         if (schemeEnd > 0) {
@@ -427,9 +428,24 @@ class PluginManager @Inject constructor(
         return Result.success(repo)
     }
 
+    // Keep files and persisted versions aligned if sync and a manual import/refresh overlap.
+    private val externalInstallMutex = Mutex()
+
     private suspend fun addExternalRepository(
         repoUrl: String,
-        parseResult: com.nuvio.tv.core.plugin.cloudstream.ExternalRepoParseResult
+        parseResult: ExternalRepoParseResult
+    ): Result<PluginRepository> {
+        val profileId = dataStore.writablePluginProfile()
+            ?: return Result.failure(Exception("This profile shares its plugin list"))
+        return externalInstallMutex.withLock {
+            withContext(PluginSyncProfile(profileId)) { installExternalRepository(repoUrl, parseResult, profileId) }
+        }
+    }
+
+    private suspend fun installExternalRepository(
+        repoUrl: String,
+        parseResult: ExternalRepoParseResult,
+        profileId: Int
     ): Result<PluginRepository> {
         // Prevent duplicate repos by URL
         val existingRepo = dataStore.repositories.first()
@@ -450,12 +466,11 @@ class PluginManager @Inject constructor(
             type = RepositoryType.EXTERNAL_DEX
         )
 
-        dataStore.addRepository(repo)
-        downloadDexExtensions(repo.id, parseResult.plugins)
-
-        Log.d(TAG, "External repository added: ${repo.name} with ${parseResult.plugins.size} extensions")
+        val installed = downloadDexExtensions(repo.id, parseResult.plugins)
+        if (installed.isEmpty()) return Result.failure(Exception("No extensions could be installed"))
+        val installedRepo = dataStore.storeExternalDownloads(profileId, repo, installed, refresh = false)
         triggerRemoteSync()
-        return Result.success(repo)
+        return Result.success(installedRepo)
     }
     
     /**
@@ -599,23 +614,17 @@ class PluginManager @Inject constructor(
     }
 
     private suspend fun refreshExternalRepository(repo: PluginRepository): Result<Unit> {
-        val parseResult = externalRepoParser.tryParse(repo.url)
-            ?: return Result.failure(Exception("Failed to parse external repository"))
-
-        // Evict stale class loaders for old scrapers
-        val oldScrapers = dataStore.scrapers.first().filter { it.repositoryId == repo.id }
-        oldScrapers.forEach { externalExtensionLoader.evictCache(it.id) }
-
-        val updatedRepo = repo.copy(
-            name = parseResult.name,
-            lastUpdated = System.currentTimeMillis(),
-            scraperCount = parseResult.plugins.size
-        )
-        dataStore.updateRepository(updatedRepo)
-
-        downloadDexExtensions(repo.id, parseResult.plugins)
-
-        return Result.success(Unit)
+        val profileId = dataStore.writablePluginProfile()
+            ?: return Result.failure(Exception("This profile shares its plugin list"))
+        return externalInstallMutex.withLock {
+            val parseResult = externalRepoParser.tryParse(repo.url)
+                ?: return@withLock Result.failure(Exception("Failed to parse external repository"))
+            val installed = downloadDexExtensions(repo.id, parseResult.plugins)
+            if (installed.isEmpty()) return@withLock Result.failure(Exception("No extension could be refreshed"))
+            val updated = repo.copy(name = parseResult.name, description = parseResult.description)
+            dataStore.storeExternalDownloads(profileId, updated, installed, refresh = true)
+            Result.success(Unit)
+        }
     }
     
     /**
@@ -1155,15 +1164,13 @@ class PluginManager @Inject constructor(
     /**
      * Download .cs3 DEX extensions in parallel and register them as scrapers.
      * Uses a semaphore to limit concurrent downloads and avoid overwhelming
-     * the network. Scrapers are saved incrementally in batches.
+     * the network. Results retain the order from the repository list.
      */
     private suspend fun downloadDexExtensions(
         repoId: String,
         plugins: List<ExternalPluginEntry>
-    ) = withContext(Dispatchers.IO) {
-        val existingScrapers = dataStore.scrapers.first().toMutableList()
+    ): List<ScraperInfo> = withContext(Dispatchers.IO) {
         val downloadSemaphore = Semaphore(MAX_PARALLEL_DOWNLOADS)
-        val newScrapers = java.util.Collections.synchronizedList(mutableListOf<ScraperInfo>())
 
         // Download all extensions in parallel with limited concurrency
         val jobs = plugins.map { plugin ->
@@ -1172,27 +1179,20 @@ class PluginManager @Inject constructor(
                     try {
                         val scraperId = "$repoId:${plugin.internalName}"
 
-                        val file = externalExtensionLoader.downloadExtension(scraperId, plugin.url)
+                        val file = externalExtensionLoader.downloadExtension(scraperId, plugin.url, plugin.fileHash)
                         if (file == null) {
                             Log.e(TAG, "Failed to download extension: ${plugin.name}")
-                            return@withPermit
+                            return@withPermit null
                         }
 
-                        val supportedTypes = plugin.tvTypes
-                            ?.mapNotNull { tvTypeFromString(it) }
-                            ?.map { it.toNuvioType() }
-                            ?.distinct()
-                            ?.ifEmpty { listOf("movie", "tv") }
-                            ?: listOf("movie", "tv")
-
-                        val scraper = ScraperInfo(
+                        ScraperInfo(
                             id = scraperId,
                             repositoryId = repoId,
                             name = plugin.name,
                             description = plugin.description ?: "",
                             version = plugin.version.toString(),
                             filename = plugin.url,
-                            supportedTypes = supportedTypes,
+                            supportedTypes = cloudStreamContentTypes(plugin.tvTypes),
                             enabled = true,
                             manifestEnabled = plugin.status == 1,
                             logo = plugin.iconUrl,
@@ -1200,25 +1200,17 @@ class PluginManager @Inject constructor(
                             formats = null,
                             type = RepositoryType.EXTERNAL_DEX
                         )
-
-                        newScrapers.add(scraper)
-                        Log.d(TAG, "Downloaded DEX extension: ${plugin.name} (${file.length()} bytes)")
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Log.e(TAG, "Error downloading extension ${plugin.name}: ${e.message}", e)
+                        null
                     }
                 }
             }
         }
 
-        jobs.awaitAll()
-
-        // Merge new scrapers into existing list
-        val newScraperIds = newScrapers.map { it.id }.toSet()
-        existingScrapers.removeAll { it.id in newScraperIds }
-        existingScrapers.addAll(newScrapers)
-        dataStore.saveScrapers(existingScrapers)
-
-        Log.d(TAG, "Downloaded ${newScrapers.size}/${plugins.size} extensions for repo $repoId")
+        jobs.awaitAll().filterNotNull()
     }
 
     companion object {

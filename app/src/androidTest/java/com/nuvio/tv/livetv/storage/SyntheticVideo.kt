@@ -5,6 +5,10 @@ import android.media.MediaCodecInfo
 import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertNull
 import java.io.File
 
 /** Six seconds of generated grey frames; no downloaded or real provider media. */
@@ -65,5 +69,42 @@ internal object SyntheticVideo {
             muxer.release()
         }
         return file
+    }
+
+    suspend fun assertPlays(url: String) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val frames = java.util.concurrent.atomic.AtomicInteger()
+        val frameError = java.util.concurrent.atomic.AtomicReference<Exception?>()
+        val thread = android.os.HandlerThread("synthetic-video-frames").apply { start() }
+        val reader = android.media.ImageReader.newInstance(160, 96, android.graphics.ImageFormat.YUV_420_888, 2)
+        reader.setOnImageAvailableListener({ source ->
+            try { source.acquireLatestImage()?.use { frames.incrementAndGet() } }
+            catch (error: Exception) { frameError.set(error) }
+        }, android.os.Handler(thread.looper))
+        var player: androidx.media3.exoplayer.ExoPlayer? = null
+        try {
+            instrumentation.runOnMainSync {
+                val active = androidx.media3.exoplayer.ExoPlayer.Builder(instrumentation.targetContext).build()
+                player = active
+                active.setVideoSurface(reader.surface)
+                active.setMediaItem(androidx.media3.common.MediaItem.fromUri(url))
+                active.prepare(); active.playWhenReady = true
+            }
+            withTimeout(20_000) {
+                var progressed = false
+                while (!progressed) {
+                    instrumentation.runOnMainSync {
+                        val active = checkNotNull(player)
+                        assertNull("Matched source playback must not fail", active.playerError)
+                        assertNull("Decoded frames must be readable", frameError.get())
+                        progressed = active.currentPosition >= 1000 && frames.get() > 0
+                    }
+                    if (!progressed) delay(100)
+                }
+            }
+        } finally {
+            instrumentation.runOnMainSync { player?.release() }
+            reader.close(); thread.quitSafely()
+        }
     }
 }

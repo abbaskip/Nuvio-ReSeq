@@ -15,7 +15,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -139,17 +139,28 @@ class TmdbSettingsViewModelTest {
 
     @Test
     fun `changing profile during validation cannot persist or display the old profile key`() = runTest(dispatcher) {
+        val started = CompletableDeferred<Unit>()
+        val responseReady = CompletableDeferred<Unit>()
         coEvery { api.getMovieGenres(any(), any()) } coAnswers {
-            withContext(NonCancellable) { delay(1000) }
+            started.complete(Unit)
+            withContext(NonCancellable) { responseReady.await() }
             Response.success(TmdbGenresResponse(emptyList()))
         }
         val vm = viewModel()
-        runCurrent()
+        vm.uiState.first { it.profileId == 1 }
+        val scopeJob = vm.viewModelScope.coroutineContext[Job]!!
+        val observers = scopeJob.children.toSet()
         var saved = false
         vm.saveApiKey(key) { saved = true }
-        runCurrent()
-        profiles.value = 2
-        advanceUntilIdle()
+        val validation = scopeJob.children.single { it !in observers }
+        try {
+            started.await()
+            profiles.value = 2
+            vm.uiState.first { it.profileId == 2 }
+        } finally {
+            responseReady.complete(Unit)
+        }
+        validation.join()
         assertFalse(saved)
         assertTrue(credentials.access(1).apiKey.isBlank())
         assertTrue(credentials.access(2).apiKey.isBlank())

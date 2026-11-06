@@ -240,7 +240,7 @@ class ExternalExtensionLoader @Inject constructor(
             }
             extractorRegistry.registerAll(extractors)
             diagnostics?.addStep("Loaded ${providers.size} providers, ${extractors.size} extractors")
-            if (providers.isNotEmpty() || extractors.isNotEmpty()) {
+            if (providers.isNotEmpty() || extractors.isNotEmpty() || (plugin as? Plugin)?.openSettings != null) {
                 loaded[scraperId] = LoadedExtension(plugin, providers.toList(), extractors)
             }
             return providers
@@ -251,6 +251,13 @@ class ExternalExtensionLoader @Inject constructor(
             reportLoadFailure(scraperId, e, diagnostics)
         }
         return emptyList()
+    }
+
+    /** Use the same plugin instance that registered the providers and attached its resources. */
+    @Synchronized
+    fun settingsCallback(scraperId: String): ((Context) -> Unit)? {
+        loadExtension(scraperId)
+        return (loaded[scraperId]?.plugin as? Plugin)?.openSettings
     }
 
     private fun reportLoadFailure(id: String, error: Throwable, diagnostics: TestDiagnostics?) {

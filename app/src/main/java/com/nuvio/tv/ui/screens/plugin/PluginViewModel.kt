@@ -77,6 +77,13 @@ class PluginViewModel @Inject constructor(
         }
     }
 
+    suspend fun hasExtensionSettings(scraperId: String): Boolean =
+        !isReadOnly && pluginManager.hasExtensionSettings(scraperId)
+
+    fun openExtensionSettings(activity: android.app.Activity, scraperId: String) {
+        if (!isReadOnly) pluginManager.openExtensionSettings(activity, scraperId)
+    }
+
     fun onEvent(event: PluginUiEvent) {
         when (event) {
             is PluginUiEvent.AddRepository -> addRepository(event.url)

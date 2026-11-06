@@ -117,16 +117,16 @@ class PluginManager @Inject constructor(
     /**
      * Check if the input looks like a short code rather than a URL.
      * Short codes are alphanumeric strings without slashes, dots (other than in a domain),
-     * or protocol schemes — e.g. "cspr", "0094", "megarepo".
+     * or protocol schemes â€” e.g. "cspr", "0094", "megarepo".
      */
     private fun isShortCode(input: String): Boolean {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) return false
-        // Has a scheme → not a short code
+        // Has a scheme â†’ not a short code
         if (trimmed.contains("://")) return false
-        // Has path separators or dots → likely a URL or domain
+        // Has path separators or dots â†’ likely a URL or domain
         if (trimmed.contains("/") || trimmed.contains(".")) return false
-        // Only alphanumeric + hyphens + underscores → short code
+        // Only alphanumeric + hyphens + underscores â†’ short code
         return trimmed.all { it.isLetterOrDigit() || it == '-' || it == '_' }
     }
 
@@ -200,7 +200,7 @@ class PluginManager @Inject constructor(
      */
     private fun canonicalizeRepoUrl(url: String): String {
         val trimmed = sanitizeScheme(url).trimEnd('/')
-        // If URL already ends with a .json file, it's likely an external repo URL — keep as-is
+        // If URL already ends with a .json file, it's likely an external repo URL â€” keep as-is
         if (trimmed.substringAfterLast("/").endsWith(".json", ignoreCase = true)) {
             return trimmed
         }
@@ -332,7 +332,7 @@ class PluginManager @Inject constructor(
             // If the URL points to a specific .json file (not manifest.json),
             // try external format first to avoid a wasted 404 on the NuvioTV path.
             if (isExplicitJsonFile) {
-                Log.d(TAG, "URL ends in .json — trying external format first: $sanitizedUrl")
+                Log.d(TAG, "URL ends in .json â€” trying external format first: $sanitizedUrl")
                 val externalResult = externalRepoParser.tryParse(sanitizedUrl)
                 if (externalResult != null) {
                     return@withContext addExternalRepository(sanitizedUrl, externalResult)
@@ -383,7 +383,7 @@ class PluginManager @Inject constructor(
                     if (externalResult != null) {
                         return@withContext addExternalRepository(sanitizedUrl, externalResult)
                     }
-                    // Hint was wrong or parse failed — fall through to auto-detect
+                    // Hint was wrong or parse failed â€” fall through to auto-detect
                     Log.w(TAG, "addRepositoryWithTypeHint: EXTERNAL_DEX hint failed, falling back to auto-detect")
                 }
                 RepositoryType.NUVIO_JS -> {
@@ -395,7 +395,7 @@ class PluginManager @Inject constructor(
                     }
                     Log.w(TAG, "addRepositoryWithTypeHint: NUVIO_JS hint failed, falling back to auto-detect")
                 }
-                null -> { /* No hint — use auto-detect */ }
+                null -> { /* No hint â€” use auto-detect */ }
             }
 
             // Fall back to full auto-detection
@@ -991,6 +991,14 @@ class PluginManager @Inject constructor(
     /**
      * Test a scraper with sample data, returning results along with diagnostic steps.
      */
+    suspend fun hasExtensionSettings(scraperId: String): Boolean = withContext(Dispatchers.IO) {
+        externalExtensionLoader.settingsCallback(scraperId) != null
+    }
+
+    fun openExtensionSettings(activity: android.app.Activity, scraperId: String) {
+        com.nuvio.tv.core.plugin.cloudstream.ExtensionSettingsActivity.open(activity, scraperId)
+    }
+
     suspend fun testScraper(scraperId: String): Result<Pair<List<LocalScraperResult>, TestDiagnostics>> {
         val diagnostics = TestDiagnostics()
         val scraper = dataStore.scrapers.first().find { it.id == scraperId }

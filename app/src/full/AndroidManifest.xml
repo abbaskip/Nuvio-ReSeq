@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <application>
+        <activity android:name=".core.plugin.cloudstream.ExtensionSettingsActivity"
+            android:exported="false" android:theme="@style/Theme.ReSeq.ExtensionSettings" />
         <receiver android:name=".updater.UpdateReplacedReceiver" android:exported="false">
             <intent-filter><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter>
         </receiver>

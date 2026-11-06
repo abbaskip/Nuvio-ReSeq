@@ -189,6 +189,7 @@ android {
     flavorDimensions += "distribution"
     productFlavors {
         create("full") {
+            proguardFile("proguard-cloudstream-settings.pro")
             dimension = "distribution"
             buildConfigField("boolean", "FEATURE_PLUGINS_ENABLED", "true")
             buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "true")
@@ -566,6 +567,10 @@ dependencies {
     add("fullImplementation", "com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
     add("fullImplementation", libs.nicehttp)
     add("fullImplementation", libs.conscrypt.android)
+    // StreamPlay and other recent CS3 packages call runBlockingK. 1.11 also retains the older ABI.
+    add("fullImplementation", "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    // Downloaded CloudStream settings fragments use Material Views (including bottom sheets).
+    add("fullImplementation", "com.google.android.material:material:1.12.0")
     add("fullImplementation", "com.github.recloudstream.cloudstream:library:${libs.versions.cloudstream.get()}") {
         exclude(group = "org.mozilla", module = "rhino")
         exclude(group = "com.github.AmarullisVFX", module = "newpipeextractor")

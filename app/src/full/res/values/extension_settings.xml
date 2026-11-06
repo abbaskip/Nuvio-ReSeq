@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.ReSeq.ExtensionSettings" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+    <string name="plugin_extension_settings_failed">This extension could not open its settings.</string>
+</resources>

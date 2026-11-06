@@ -80,6 +80,9 @@ class PluginManager {
         episode: Int?
     ): List<LocalScraperResult> = emptyList()
 
+    suspend fun hasExtensionSettings(scraperId: String) = false
+    fun openExtensionSettings(activity: android.app.Activity, scraperId: String) = Unit
+
     suspend fun testScraper(scraperId: String): Result<Pair<List<LocalScraperResult>, TestDiagnostics>> =
         Result.failure(UnsupportedOperationException("Plugins are not available in this build."))
 }

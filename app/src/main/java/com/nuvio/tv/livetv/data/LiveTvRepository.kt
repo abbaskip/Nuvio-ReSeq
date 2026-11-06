@@ -30,6 +30,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -51,6 +52,26 @@ data class LiveTvStatus(
     /** Busy, but nothing worth announcing (reading the saved channels at start-up). */
     val quiet: Boolean = false
 )
+
+/** Wakes the periodic check on app open, coalescing returns while that refresh is in progress. */
+internal suspend fun runPlaylistUpdateChecks(
+    openRequested: MutableStateFlow<Boolean>,
+    initialDelayMs: Long,
+    intervalMs: Long,
+    check: suspend (forcePlaylists: Boolean) -> Unit
+) {
+    var waitMs = initialDelayMs
+    while (true) {
+        withTimeoutOrNull(waitMs) { openRequested.first { it } }
+        val onOpen = openRequested.value
+        try {
+            check(onOpen)
+        } finally {
+            if (onOpen) openRequested.value = false
+        }
+        waitMs = intervalMs
+    }
+}
 
 @Singleton
 class LiveTvRepository @Inject constructor(
@@ -126,10 +147,12 @@ class LiveTvRepository @Inject constructor(
     val status: StateFlow<LiveTvStatus> = _status.asStateFlow()
 
     private var initialized = false
+    private val playlistRefreshOnOpen = MutableStateFlow(false)
     /** The start-up update check has run (later checks may start). */
     @Volatile private var firstCheckDone = false
 
     /** Loads cached data immediately, then refreshes anything older than the configured interval. */
+    @Synchronized
     fun ensureLoaded(updateCheckDelayMs: Long = 0L) {
         if (initialized) return
         initialized = true
@@ -147,18 +170,21 @@ class LiveTvRepository @Inject constructor(
             scheduleCompact()
             // Checking for playlist / guide updates uses the network and a lot of processing,
             // so when this starts with the app it waits a little, out of Nuvio's way.
-            if (updateCheckDelayMs > 0) delay(updateCheckDelayMs)
-            refreshStale()
-            firstCheckDone = true
-            // Then keep checking while the app stays open. TV boxes keep the app running for
-            // days (Home only sends it to the background), and the check used to happen only
-            // when the app started: the guide ran out after a day or two and never refreshed
-            // until the box restarted or someone pressed Update now.
-            while (true) {
-                delay(STALE_CHECK_MS)
-                runCatching { refreshStale() }.onFailure { Log.w(TAG, "Update check failed", it) }
+            runPlaylistUpdateChecks(playlistRefreshOnOpen, updateCheckDelayMs, STALE_CHECK_MS) { onOpen ->
+                try {
+                    refreshAutomatically(forcePlaylists = onOpen)
+                } catch (e: Exception) {
+                    kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                    Log.w(TAG, "Update check failed", e)
+                }
+                firstCheckDone = true
             }
         }
+    }
+
+    fun requestPlaylistRefreshOnOpen() {
+        playlistRefreshOnOpen.value = true
+        ensureLoaded()
     }
 
     /** Opening Live TV: update anything past its update time (the playlist or guide interval). */
@@ -166,7 +192,7 @@ class LiveTvRepository @Inject constructor(
         // Not before the start-up check (the saved channels may not be read yet).
         if (!firstCheckDone) return
         if (mutex.isLocked) return // an update is already running
-        scope.launch { runCatching { refreshStale() } }
+        scope.launch { runCatching { refreshAutomatically() } }
     }
 
     fun refreshAll(force: Boolean = true) {
@@ -197,7 +223,9 @@ class LiveTvRepository @Inject constructor(
     }
 
     // Automatic updates run at low priority, so the screen and video stay smooth meanwhile.
-    private suspend fun refreshStale() = withContext(BackgroundWork.quiet) { refreshInternal(forcePlaylists = false, forceEpg = false) }
+    private suspend fun refreshAutomatically(forcePlaylists: Boolean = false) = withContext(BackgroundWork.quiet) {
+        mutex.withLock { refreshLocked(forcePlaylists, forceEpg = false, forceIds = emptySet(), automatic = true) }
+    }
 
     // ---------------------------------------------------------------- sources CRUD
 
@@ -1110,7 +1138,7 @@ class LiveTvRepository @Inject constructor(
                 holeRefreshTried = true
                 guideHoles = true
                 LIVE_REPORT.add("Stored guide has no listings now for $missing of ${matched.size} matched channels: updating the guides")
-                scope.launch { runCatching { refreshStale() } }
+                scope.launch { runCatching { refreshAutomatically() } }
             }
             if (_programs.value.isEmpty() && _channels.value.isNotEmpty() && targets.isNotEmpty()) {
                 storedGuideEmpty = true
@@ -1118,7 +1146,7 @@ class LiveTvRepository @Inject constructor(
                 // refreshing kept being matched again and again, still empty. At most every 3 hours.
                 guideHoles = !checkedRecently
                 LIVE_REPORT.add("Stored guide has no listings for now: reading the guides again")
-                scope.launch { runCatching { refreshStale() } }
+                scope.launch { runCatching { refreshAutomatically() } }
             }
           } finally {
             rangeBusy.set(false)

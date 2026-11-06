@@ -158,9 +158,14 @@ class TmdbCollectionSourceResolver @Inject constructor(
                 ?.toIntOrNull()
     }
 
+    private fun <T> retrofit2.Response<T>.collectionBody(): T? {
+        if (code() == 401) error(string(R.string.tmdb_collection_auth_error))
+        return body()
+    }
+
     private suspend fun resolveList(source: TmdbCollectionSource, language: String, page: Int): CatalogRow {
         val id = source.tmdbId ?: error(string(R.string.tmdb_error_missing_list_id))
-        val body = tmdbApi.getListDetails(id, BuildConfig.TMDB_API_KEY, language, page).body()
+        val body = tmdbApi.getListDetails(id, BuildConfig.TMDB_API_KEY, language, page).collectionBody()
             ?: error(string(R.string.tmdb_error_list_not_found))
         val items = body.items.orEmpty()
             .mapNotNull { it.toPreview() }
@@ -176,7 +181,7 @@ class TmdbCollectionSourceResolver @Inject constructor(
 
     private suspend fun resolveCollection(source: TmdbCollectionSource, language: String): CatalogRow {
         val id = source.tmdbId ?: error(string(R.string.tmdb_error_missing_collection_id))
-        val body = tmdbApi.getCollectionDetails(id, BuildConfig.TMDB_API_KEY, language).body()
+        val body = tmdbApi.getCollectionDetails(id, BuildConfig.TMDB_API_KEY, language).collectionBody()
             ?: error(string(R.string.tmdb_error_collection_not_found))
         val items = body.parts.orEmpty()
             .mapNotNull {
@@ -209,7 +214,7 @@ class TmdbCollectionSourceResolver @Inject constructor(
 
     private suspend fun resolvePersonCredits(source: TmdbCollectionSource, language: String): CatalogRow {
         val id = source.tmdbId ?: error(string(R.string.tmdb_error_missing_person_id))
-        val body = tmdbApi.getPersonCombinedCredits(id, BuildConfig.TMDB_API_KEY, language).body()
+        val body = tmdbApi.getPersonCombinedCredits(id, BuildConfig.TMDB_API_KEY, language).collectionBody()
             ?: error(string(R.string.tmdb_error_person_credits_not_found))
         val items = when (source.sourceType) {
             TmdbCollectionSourceType.DIRECTOR -> body.crew.orEmpty()
@@ -264,7 +269,7 @@ class TmdbCollectionSourceResolver @Inject constructor(
                 withoutCompanies = filters.withoutCompanies,
                 withoutGenres = filters.withoutGenres,
                 withoutWatchProviders = filters.withoutWatchProviders
-            ).body()
+            )
             TmdbCollectionMediaType.TV -> tmdbApi.discoverTv(
                 apiKey = BuildConfig.TMDB_API_KEY,
                 language = language,
@@ -298,8 +303,8 @@ class TmdbCollectionSourceResolver @Inject constructor(
                 withoutCompanies = filters.withoutCompanies,
                 withoutGenres = filters.withoutGenres,
                 withoutWatchProviders = filters.withoutWatchProviders
-            ).body()
-        } ?: error(string(R.string.tmdb_error_discover_no_data))
+            )
+        }.collectionBody() ?: error(string(R.string.tmdb_error_discover_no_data))
         val items = response.results.orEmpty().mapNotNull { it.toPreview(mediaType) }.distinctBy { it.id }
         return row(
             source = source.copy(mediaType = mediaType),

@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -34,6 +35,18 @@ class TmdbCollectionSourceResolverTest {
     private val context = mockk<Context>(relaxed = true)
     private val settings = mockk<TmdbSettingsDataStore> {
         every { this@mockk.settings } returns MutableStateFlow(TmdbSettings(language = "en"))
+    }
+
+    @Test
+    fun `unauthorized TMDB collection directs the viewer to profile key settings`() = runTest {
+        val api = mockk<TmdbApi>()
+        coEvery { api.getCollectionDetails(10, any(), "en") } returns Response.error(401, "{}".toResponseBody())
+        every { context.getString(com.nuvio.tv.R.string.tmdb_collection_auth_error) } returns "Check your profile key"
+        val resolver = TmdbCollectionSourceResolver(context, api, settings)
+        val result = resolver.resolve(TmdbCollectionSource(TmdbCollectionSourceType.COLLECTION, "Films", 10))
+            .first { it is NetworkResult.Error } as NetworkResult.Error
+
+        assertEquals("Check your profile key", result.message)
     }
 
     @Test

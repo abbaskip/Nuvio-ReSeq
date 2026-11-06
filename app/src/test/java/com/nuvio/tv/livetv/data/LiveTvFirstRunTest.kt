@@ -45,5 +45,11 @@ class LiveTvFirstRunTest {
         job.cancelAndJoin()
         val prefs = preferences(dir)
         assertEquals(17, withTimeout(5_000) { prefs.settings.first() }.epgRefreshHours)
+        assertFalse(prefs.currentSettings().updatePlaylistsOnOpen)
+        prefs.updateSettings { it.copy(updatePlaylistsOnOpen = true) }
+        prefs.updateSettings { it.copy(playlistRefreshHours = 6) }
+        assertTrue(prefs.currentSettings().updatePlaylistsOnOpen)
+        prefs.updateSettings { it.copy(updatePlaylistsOnOpen = false) }
+        assertFalse(prefs.currentSettings().updatePlaylistsOnOpen)
     }
 }

@@ -19,6 +19,7 @@ data class UpdateUiState(
     val errorMessage: String? = null,
     val feedbackMessage: String? = null,
     val updateBannerEnabled: Boolean = false,
+    val checkFrequency: UpdateCheckFrequency = UpdateCheckFrequency.NEVER,
     val autoInstallEnabled: Boolean = false,
     val autoInstallSupported: Boolean = false,
     val autoInstallNoticeEnabled: Boolean = false
@@ -38,6 +39,7 @@ class UpdateViewModel @Inject constructor() : ViewModel() {
     fun consumeFeedbackMessage() = Unit
 
     fun setUpdateBannerEnabled(enabled: Boolean) = Unit
+    fun setCheckFrequency(frequency: UpdateCheckFrequency) = Unit
 
 
     fun downloadUpdate() = Unit

@@ -910,6 +910,14 @@ private fun FollowLayoutContent(
 ) {
     val homeState = uiState.followLayoutHomeState
 
+    val sources = uiState.tabs.filterNot { it.isAllTab }
+    if (sources.isNotEmpty() && sources.all { it.error != null && it.catalogRow == null }) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = sources.first().error.orEmpty(), color = NuvioTheme.colors.TextSecondary)
+        }
+        return
+    }
+
     if (homeState == null || (homeState.isLoading && homeState.catalogRows.isEmpty())) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             LoadingIndicator()

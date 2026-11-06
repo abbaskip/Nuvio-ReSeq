@@ -301,6 +301,12 @@ open class MainActivity : ComponentActivity() {
     lateinit var driveSync: dagger.Lazy<com.nuvio.tv.livetv.sync.LiveTvDriveSync>
 
     @Inject
+    lateinit var liveTvPreferences: com.nuvio.tv.livetv.data.LiveTvPreferences
+
+    @Inject
+    lateinit var liveTvRepository: dagger.Lazy<com.nuvio.tv.livetv.data.LiveTvRepository>
+
+    @Inject
     lateinit var androidTvChannelSyncService: com.nuvio.tv.core.sync.androidtv.AndroidTvChannelSyncService
 
     @Inject
@@ -1401,6 +1407,16 @@ open class MainActivity : ComponentActivity() {
         // tracked; onActivityResult keeps it for a completion or dismisses it otherwise.
         externalPlaybackTracker.raiseAutoNextOverlayOnReturn()
         super.onStart()
+        lifecycleScope.launch {
+            try {
+                if (liveTvPreferences.currentSettings().updatePlaylistsOnOpen &&
+                    liveTvPreferences.currentPlaylists().any { it.liveEnabled }) {
+                    liveTvRepository.get().requestPlaylistRefreshOnOpen()
+                }
+            } catch (e: java.io.IOException) {
+                Log.w("LiveTvStartup", "Could not read playlist update settings", e)
+            }
+        }
         startupSyncService.startPeriodicSurfacePulls()
         androidTvChannelSyncService.onForegroundChanged(true)
     }

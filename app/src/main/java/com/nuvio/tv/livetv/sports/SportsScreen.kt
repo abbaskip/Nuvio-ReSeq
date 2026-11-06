@@ -1633,7 +1633,7 @@ private fun ChannelPickerDialog(
     onDismiss: () -> Unit
 ) {
     var q by remember { mutableStateOf(initial) }
-    val all = remember { viewModel.repo.channelsForPicker() }
+    val all by viewModel.repo.channelsForPicker.collectAsStateWithLifecycle()
     val list = remember(q, all) {
         val n = SportsCatalog.norm(q).trim()
         if (n.length < 2) emptyList()

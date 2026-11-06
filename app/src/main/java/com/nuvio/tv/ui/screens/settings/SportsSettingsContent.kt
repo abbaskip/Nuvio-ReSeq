@@ -308,8 +308,9 @@ private fun LeaguesDialog(s: SportsSettings, onToggle: (League) -> Unit, onDismi
 @Composable
 private fun GroupsDialog(viewModel: SportsViewModel, chosen: Set<String>, onToggle: (String) -> Unit, onDismiss: () -> Unit) {
     val first = remember { FocusRequester() }
-    val groups = remember {
-        viewModel.repo.channelsForPicker()
+    val channels by viewModel.repo.channelsForPicker.collectAsStateWithLifecycle()
+    val groups = remember(channels) {
+        channels
             .filter { it.group.isNotBlank() }
             .groupingBy { it.group }.eachCount()
             .entries

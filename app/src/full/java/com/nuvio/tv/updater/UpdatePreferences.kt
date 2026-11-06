@@ -10,6 +10,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import com.nuvio.tv.updater.model.AppUpdate
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,6 +28,8 @@ class UpdatePreferences @Inject constructor(
 
     private val ignoredTagKey = stringPreferencesKey("ignored_release_tag")
     private val lastCheckAtKey = longPreferencesKey("last_check_at_ms")
+    private val frequencyKey = stringPreferencesKey("update_check_frequency")
+    private val checkedReleaseKey = stringPreferencesKey("checked_release")
     private val updateBannerEnabledKey = booleanPreferencesKey("update_banner_enabled")
     private val autoInstallEnabledKey = booleanPreferencesKey("auto_install_enabled")
     private val downloadedTagKey = stringPreferencesKey("downloaded_release_tag")
@@ -35,8 +41,11 @@ class UpdatePreferences @Inject constructor(
         prefs[ignoredTagKey]
     }
 
-    val lastCheckAtMs: Flow<Long> = dataStore.data.map { prefs ->
-        prefs[lastCheckAtKey] ?: 0L
+    val checkFrequency: Flow<UpdateCheckFrequency> = dataStore.data.map { prefs ->
+        UpdateCheckFrequency.entries.firstOrNull { it.name == prefs[frequencyKey] }
+            ?: if (prefs[updateBannerEnabledKey] == false && prefs[autoInstallEnabledKey] != true) {
+                UpdateCheckFrequency.NEVER
+            } else UpdateCheckFrequency.ALWAYS
     }
 
     val updateBannerEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -69,9 +78,26 @@ class UpdatePreferences @Inject constructor(
         }
     }
 
-    suspend fun setLastCheckAtMs(value: Long) {
+    suspend fun setCheckFrequency(value: UpdateCheckFrequency) {
+        dataStore.edit { it[frequencyKey] = value.name }
+    }
+
+    suspend fun cachedCheck(frequency: UpdateCheckFrequency): Result<AppUpdate>? {
+        val prefs = dataStore.data.first()
+        if (frequency.isDue(prefs[lastCheckAtKey] ?: 0L, System.currentTimeMillis())) return null
+        val encoded = prefs[checkedReleaseKey] ?: return null
+        val release = try {
+            Json.decodeFromString<AppUpdate?>(encoded)
+        } catch (_: IllegalArgumentException) {
+            return null
+        }
+        return if (release != null) Result.success(release) else Result.failure(NoEligibleUpdateException())
+    }
+
+    suspend fun recordCheck(release: AppUpdate?) {
         dataStore.edit { prefs ->
-            prefs[lastCheckAtKey] = value
+            prefs[lastCheckAtKey] = System.currentTimeMillis()
+            prefs[checkedReleaseKey] = Json.encodeToString(release)
         }
     }
 

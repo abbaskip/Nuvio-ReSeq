@@ -1,5 +1,6 @@
 package com.nuvio.tv.updater.model
 
+@kotlinx.serialization.Serializable
 data class AppUpdate(
     val tag: String,
     val title: String,

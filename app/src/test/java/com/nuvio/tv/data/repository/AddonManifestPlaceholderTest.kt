@@ -11,6 +11,9 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -19,8 +22,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.Response
@@ -53,6 +58,53 @@ class AddonManifestPlaceholderTest {
         const val PLACEHOLDER_VERSION = ""
         /** Mirrors AddonRepositoryImpl.MANIFEST_CACHE_TTL_MS, which is private. */
         const val MANIFEST_CACHE_TTL_MS = 6 * 60 * 60 * 1000L
+    }
+
+    @Test
+    fun `collection opened before manifests load can resolve its installed addon`() = runTest {
+        val repository = newRepository(reachable = true, dispatcher = StandardTestDispatcher(testScheduler)).repository
+        assertTrue(repository.getInstalledAddons().first().isEmpty())
+
+        val lookup = async(start = CoroutineStart.UNDISPATCHED) {
+            repository.awaitInstalledAddons(setOf("test-addon"))
+        }
+
+        assertEquals("test-addon", lookup.await().single().id)
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test
+    fun `collection waits past an unrelated cached manifest but a cached source is usable immediately`() = runTest {
+        val urls = MutableStateFlow(listOf(addonUrl))
+        val gate = CompletableDeferred<Unit>()
+        val repository = newRepository(
+            reachable = true,
+            dispatcher = UnconfinedTestDispatcher(testScheduler),
+            installedUrls = urls,
+            secondManifestGate = gate
+        ).repository
+        urls.value = listOf(addonUrl, "https://second.example")
+        val lookup = async(start = CoroutineStart.UNDISPATCHED) {
+            repository.awaitInstalledAddons(setOf("second-addon"))
+        }
+        val fullList = async(start = CoroutineStart.UNDISPATCHED) { repository.awaitInstalledAddons() }
+        assertFalse(lookup.isCompleted)
+        assertFalse(fullList.isCompleted)
+        assertEquals("test-addon", repository.awaitInstalledAddons(setOf("test-addon")).single().id)
+
+        gate.complete(Unit)
+        assertTrue(lookup.await().any { it.id == "second-addon" })
+        assertEquals(setOf("test-addon", "second-addon"), fullList.await().map { it.id }.toSet())
+    }
+
+    @Test
+    fun `collection lookup finishes when the profile has no installed addons`() = runTest {
+        val repository = newRepository(
+            installedUrls = flowOf(emptyList()),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        ).repository
+        assertTrue(repository.awaitInstalledAddons(setOf("missing")).isEmpty())
+        assertTrue(repository.awaitInstalledAddons().isEmpty())
     }
 
     @Test
@@ -238,7 +290,9 @@ class AddonManifestPlaceholderTest {
         userSetNames: kotlinx.coroutines.flow.Flow<Map<String, String>> = flowOf(emptyMap()),
         reachable: Boolean = false,
         dispatcher: CoroutineDispatcher = Dispatchers.IO,
-        clock: () -> Long = System::currentTimeMillis
+        clock: () -> Long = System::currentTimeMillis,
+        installedUrls: kotlinx.coroutines.flow.Flow<List<String>> = flowOf(listOf(addonUrl)),
+        secondManifestGate: CompletableDeferred<Unit>? = null
     ): Harness {
         val manifestCalls = AtomicInteger()
         val isReachable = AtomicBoolean(reachable)
@@ -246,13 +300,15 @@ class AddonManifestPlaceholderTest {
         coEvery { api.getManifest(any()) } coAnswers {
             manifestCalls.incrementAndGet()
             if (!isReachable.get()) throw IOException("offline")
-            Response.success(
-                AddonManifestDto(id = "test-addon", name = REAL_NAME, version = REAL_VERSION)
-            )
+            val id = if (firstArg<String>() == "https://second.example/manifest.json") {
+                secondManifestGate?.await()
+                "second-addon"
+            } else "test-addon"
+            Response.success(AddonManifestDto(id = id, name = REAL_NAME, version = REAL_VERSION))
         }
 
         val preferences = mockk<AddonPreferences>()
-        every { preferences.installedAddonUrls } returns flowOf(listOf(addonUrl))
+        every { preferences.installedAddonUrls } returns installedUrls
         every { preferences.userSetNames } returns userSetNames
         every { preferences.addonEnabledStates } returns flowOf(emptyMap())
         coEvery { preferences.removeAddon(any()) } returns true

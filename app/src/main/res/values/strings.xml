@@ -276,6 +276,7 @@
     <string name="collections_editor_tmdb_without_watch_providers_placeholder">8|337|350</string>
     <string name="collections_editor_tmdb_quick_watch_providers">Quick watch providers</string>
     <string name="tmdb_error_load_source">Could not load TMDB source</string>
+    <string name="tmdb_collection_auth_error">TMDB could not authorize this request. Check the API key for this profile in Settings → Integrations → TMDB.</string>
     <string name="tmdb_error_list_not_found">TMDB list not found</string>
     <string name="tmdb_error_collection_not_found">TMDB collection not found</string>
     <string name="tmdb_error_company_not_found">TMDB company not found</string>
@@ -3452,6 +3453,14 @@
     <string name="stream_resume_from_time">Resume from %1$s</string>
     <string name="stream_resume_from_percent">Resume from %1$d%%</string>
     <string name="about_check_for_updates">Check for updates</string>
+    <string name="about_update_check_frequency">App update check frequency</string>
+    <string name="about_update_check_frequency_summary">Choose how often Nuvio checks for a new version.</string>
+    <string name="about_update_check_always">Always</string>
+    <string name="about_update_check_daily">Daily</string>
+    <string name="about_update_check_two_days">2 Days</string>
+    <string name="about_update_check_three_days">3 Days</string>
+    <string name="about_update_check_weekly">Weekly</string>
+    <string name="about_update_check_never">Never</string>
     <string name="about_check_for_updates_subtitle">Look for a newer version of Nuvio ReSeq.</string>
     <string name="vod_search_title">Search On Demand</string>
     <string name="vod_search_hint">Search IPTV movies and series</string>

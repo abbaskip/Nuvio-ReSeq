@@ -13,6 +13,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.tv.updater.UpdateViewModel
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import com.nuvio.tv.ui.screens.detail.requestFocusAfterFrames
+import com.nuvio.tv.updater.UpdateCheckFrequency
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Arrangement
@@ -176,6 +186,7 @@ fun AboutSettingsContent(
                                     enabled = !updateState.isChecking,
                                     onClick = { updater.checkForUpdates(force = true, showNoUpdateFeedback = true) }
                                 )
+                                UpdateCheckFrequencyRow(updateState.checkFrequency, updater::setCheckFrequency)
                             }
 
                             if (AppFeaturePolicy.supportNuvioEnabled) {
@@ -198,6 +209,44 @@ fun AboutSettingsContent(
                 }
                 SettingsVerticalScrollIndicators(state = aboutScrollState)
             }
+        }
+    }
+}
+
+@Composable
+private fun UpdateCheckFrequencyRow(current: UpdateCheckFrequency, onSelect: (UpdateCheckFrequency) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedFocus = remember { FocusRequester() }
+    Box(modifier = Modifier.fillMaxWidth()) {
+        SettingsActionRow(
+            title = stringResource(R.string.about_update_check_frequency),
+            subtitle = stringResource(R.string.about_update_check_frequency_summary),
+            value = stringResource(current.label),
+            trailingIcon = Icons.Default.KeyboardArrowDown,
+            onClick = { expanded = true }
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = NuvioTheme.colors.BackgroundCard
+        ) {
+            UpdateCheckFrequency.entries.forEach { option ->
+                val isSelected = current == option
+                var focused by remember { mutableStateOf(false) }
+                DropdownMenuItem(
+                    modifier = Modifier.width(180.dp)
+                        .then(if (isSelected) Modifier.focusRequester(selectedFocus) else Modifier)
+                        .onFocusChanged { focused = it.hasFocus }
+                        .background(if (focused) NuvioTheme.colors.FocusBackground else Color.Transparent)
+                        .semantics { selected = isSelected },
+                    text = { Text(stringResource(option.label), color = NuvioTheme.colors.TextPrimary) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    }
+                )
+            }
+            LaunchedEffect(Unit) { selectedFocus.requestFocusAfterFrames() }
         }
     }
 }

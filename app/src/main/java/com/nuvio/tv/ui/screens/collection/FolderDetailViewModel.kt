@@ -15,6 +15,7 @@ import com.nuvio.tv.data.trailer.TrailerService
 import com.nuvio.tv.data.local.CollectionsDataStore
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.domain.model.AddonCatalogCollectionSource
+import com.nuvio.tv.domain.model.Addon
 import com.nuvio.tv.domain.model.CatalogRow
 import com.nuvio.tv.domain.model.CollectionSource
 import com.nuvio.tv.domain.model.CollectionFolder
@@ -100,7 +101,13 @@ data class FolderTab(
     val isLoading: Boolean = true,
     val error: String? = null,
     val isAllTab: Boolean = false
-)
+) {
+    fun withLoadError(message: String, append: Boolean): FolderTab = copy(
+        catalogRow = if (append) catalogRow?.copy(isLoading = false) else null,
+        isLoading = false,
+        error = message
+    )
+}
 
 data class FolderDetailGridFocusState(
     val verticalScrollIndex: Int = 0,
@@ -248,7 +255,10 @@ class FolderDetailViewModel @Inject constructor(
                 return@launch
             }
 
-            val addons = addonRepository.getInstalledAddons().first().enabledAddons()
+            val requiredAddonIds = folder.sources.filterIsInstance<AddonCatalogCollectionSource>()
+                .map { it.addonId }.toSet()
+            val addons = if (requiredAddonIds.isEmpty()) emptyList()
+                else addonRepository.awaitInstalledAddons(requiredAddonIds).enabledAddons()
             val homeLayout = layoutPreferenceDataStore.selectedLayout.first()
             val homeImdbRatingsVisibility = layoutPreferenceDataStore.homeImdbRatingsVisibility.first()
             val posterLabelsEnabled = layoutPreferenceDataStore.posterLabelsEnabled.first()
@@ -379,7 +389,7 @@ class FolderDetailViewModel @Inject constructor(
             rebuildFollowLayoutState()
 
             folder.sources.forEachIndexed { index, source ->
-                loadSourceForTab(index + tabOffset, source)
+                loadSourceForTab(index + tabOffset, source, addons)
             }
         }
     }
@@ -396,7 +406,17 @@ class FolderDetailViewModel @Inject constructor(
             tab.catalogRow?.takeIf { !it.isLoading }
         }
 
-        if (loadedRows.isEmpty()) return
+        if (loadedRows.isEmpty()) {
+            if (!anyLoading) {
+                val error = sourceTabs.firstNotNullOfOrNull { it.error }
+                _uiState.update { s ->
+                    val tabs = s.tabs.toMutableList()
+                    tabs[0] = tabs[0].copy(isLoading = false, catalogRow = null, error = error)
+                    s.copy(tabs = tabs)
+                }
+            }
+            return
+        }
 
         val currentAllRow = state.tabs.getOrNull(0)?.catalogRow
 
@@ -433,6 +453,7 @@ class FolderDetailViewModel @Inject constructor(
             val tabs = s.tabs.toMutableList()
             tabs[0] = tabs[0].copy(
                 catalogRow = mergedRow,
+                error = null,
                 isLoading = false
             )
             s.copy(tabs = tabs)
@@ -737,30 +758,20 @@ class FolderDetailViewModel @Inject constructor(
         return result
     }
 
-    private fun loadSourceForTab(tabIndex: Int, source: CollectionSource) {
+    private fun loadSourceForTab(tabIndex: Int, source: CollectionSource, addons: List<Addon>) {
         when (source) {
-            is AddonCatalogCollectionSource -> loadAddonCatalogForTab(tabIndex, source)
+            is AddonCatalogCollectionSource -> loadAddonCatalogForTab(tabIndex, source, addons)
             is TmdbCollectionSource -> loadTmdbSourceForTab(tabIndex, source, page = 1, append = false)
             is TraktCollectionSource -> loadTraktSourceForTab(tabIndex, source, page = 1, append = false)
         }
     }
 
-    private fun loadAddonCatalogForTab(tabIndex: Int, source: AddonCatalogCollectionSource) {
+    private fun loadAddonCatalogForTab(tabIndex: Int, source: AddonCatalogCollectionSource, addons: List<Addon>) {
         viewModelScope.launch {
-            val addons = addonRepository.getInstalledAddons().first().enabledAddons()
             val addon = addons.find { it.id == source.addonId }
 
             if (addon == null) {
-                _uiState.update { state ->
-                    val tabs = state.tabs.toMutableList()
-                    if (tabIndex < tabs.size) {
-                        tabs[tabIndex] = tabs[tabIndex].copy(
-                            isLoading = false,
-                            error = appContext.getString(R.string.addon_error_not_found)
-                        )
-                    }
-                    state.copy(tabs = tabs)
-                }
+                sourceLoadFailed(tabIndex, appContext.getString(R.string.addon_error_not_found))
                 return@launch
             }
 
@@ -798,7 +809,8 @@ class FolderDetailViewModel @Inject constructor(
                 skipStep = skipStep,
                 extraArgs = extraArgs,
                 supportsSkip = supportsSkip,
-                posterScreen = com.nuvio.tv.core.poster.CustomPosterScreen.COLLECTIONS
+                posterScreen = com.nuvio.tv.core.poster.CustomPosterScreen.COLLECTIONS,
+                savedSourceType = source.type
             ).collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
@@ -816,15 +828,7 @@ class FolderDetailViewModel @Inject constructor(
                         rebuildFollowLayoutState()
                     }
                     is NetworkResult.Error -> {
-                        _uiState.update { state ->
-                            val tabs = state.tabs.toMutableList()
-                            if (tabIndex < tabs.size) {
-                                tabs[tabIndex] = tabs[tabIndex].copy(isLoading = false, error = result.message)
-                            }
-                            state.copy(tabs = tabs)
-                        }
-                        rebuildAllTab()
-                        rebuildFollowLayoutState()
+                        sourceLoadFailed(tabIndex, result.message)
                     }
                     NetworkResult.Loading -> {}
                 }
@@ -888,7 +892,8 @@ class FolderDetailViewModel @Inject constructor(
                 skipStep = row.skipStep,
                 extraArgs = row.extraArgs,
                 supportsSkip = row.supportsSkip,
-                posterScreen = com.nuvio.tv.core.poster.CustomPosterScreen.COLLECTIONS
+                posterScreen = com.nuvio.tv.core.poster.CustomPosterScreen.COLLECTIONS,
+                savedSourceType = (tab.source as? AddonCatalogCollectionSource)?.type
             ).collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
@@ -1026,6 +1031,17 @@ class FolderDetailViewModel @Inject constructor(
         }
     }
 
+    private fun sourceLoadFailed(tabIndex: Int, message: String, append: Boolean = false) {
+        _uiState.update { state ->
+            val tabs = state.tabs.toMutableList()
+            val tab = tabs.getOrNull(tabIndex) ?: return@update state
+            tabs[tabIndex] = tab.withLoadError(message, append)
+            state.copy(tabs = tabs)
+        }
+        rebuildAllTab()
+        rebuildFollowLayoutState()
+    }
+
     private fun loadTmdbSourceForTab(tabIndex: Int, source: TmdbCollectionSource, page: Int, append: Boolean) {
         if (append) {
             _uiState.update { s ->
@@ -1068,20 +1084,7 @@ class FolderDetailViewModel @Inject constructor(
                         rebuildFollowLayoutState()
                     }
                     is NetworkResult.Error -> {
-                        _uiState.update { s ->
-                            val tabs = s.tabs.toMutableList()
-                            val current = tabs.getOrNull(tabIndex)
-                            if (current != null) {
-                                tabs[tabIndex] = current.copy(
-                                    isLoading = false,
-                                    error = result.message,
-                                    catalogRow = current.catalogRow?.copy(isLoading = false)
-                                )
-                            }
-                            s.copy(tabs = tabs)
-                        }
-                        rebuildAllTab()
-                        rebuildFollowLayoutState()
+                        sourceLoadFailed(tabIndex, result.message, append)
                     }
                     NetworkResult.Loading -> {}
                 }
@@ -1131,20 +1134,7 @@ class FolderDetailViewModel @Inject constructor(
                         rebuildFollowLayoutState()
                     }
                     is NetworkResult.Error -> {
-                        _uiState.update { s ->
-                            val tabs = s.tabs.toMutableList()
-                            val current = tabs.getOrNull(tabIndex)
-                            if (current != null) {
-                                tabs[tabIndex] = current.copy(
-                                    isLoading = false,
-                                    error = result.message,
-                                    catalogRow = current.catalogRow?.copy(isLoading = false)
-                                )
-                            }
-                            s.copy(tabs = tabs)
-                        }
-                        rebuildAllTab()
-                        rebuildFollowLayoutState()
+                        sourceLoadFailed(tabIndex, result.message, append)
                     }
                     NetworkResult.Loading -> {}
                 }

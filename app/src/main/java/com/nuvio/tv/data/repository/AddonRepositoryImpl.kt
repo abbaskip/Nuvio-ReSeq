@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharingStarted
@@ -223,8 +225,10 @@ class AddonRepositoryImpl(
         }
     }
 
+    private data class InstalledAddons(val addons: List<Addon>, val complete: Boolean)
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val installedAddonsFlow: kotlinx.coroutines.flow.StateFlow<List<Addon>> =
+    private val installedAddonsFlow =
         combine(
             preferences.installedAddonUrls,
             preferences.userSetNames,
@@ -234,7 +238,7 @@ class AddonRepositoryImpl(
         .flatMapLatest { (urls, userNames, enabledStates) ->
             flow {
                 if (urls.isEmpty()) {
-                    emit(emptyList())
+                    emit(InstalledAddons(emptyList(), complete = true))
                     return@flow
                 }
 
@@ -246,14 +250,8 @@ class AddonRepositoryImpl(
                         ?.copy(enabled = enabled)
                         ?: if (!enabled) placeholderAddon(canonical, userNames, enabled) else null
                 }
-                if (cached.isNotEmpty()) {
-                    emit(applyDisplayNames(cached, userNames, enabledByUrl))
-                }
-
-                val hasCacheMiss = urls.any { url ->
-                    val canonical = canonicalizeUrl(url)
-                    (enabledByUrl[canonical] ?: true) && getCachedManifest(canonical) == null
-                }
+                val hasCacheMiss = cached.size < urls.size
+                emit(InstalledAddons(applyDisplayNames(cached, userNames, enabledByUrl), complete = !hasCacheMiss))
                 if (hasCacheMiss) {
                     val fresh = coroutineScope {
                         urls.map { url ->
@@ -281,9 +279,7 @@ class AddonRepositoryImpl(
                         }.awaitAll()
                     }
 
-                    if (fresh != cached) {
-                        emit(applyDisplayNames(fresh, userNames, enabledByUrl))
-                    }
+                    emit(InstalledAddons(applyDisplayNames(fresh, userNames, enabledByUrl), complete = true))
                 } else if (isCacheStale() && urls.isNotEmpty()) {
                     scheduleManifestRefresh(
                         urls.filter { url -> enabledByUrl[canonicalizeUrl(url)] ?: true }
@@ -291,9 +287,15 @@ class AddonRepositoryImpl(
                 }
             }.flowOn(dispatcher)
         }
-        .stateIn(syncScope, SharingStarted.Eagerly, emptyList<Addon>())
+        .stateIn(syncScope, SharingStarted.Eagerly, InstalledAddons(emptyList(), complete = false))
 
-    override fun getInstalledAddons(): Flow<List<Addon>> = installedAddonsFlow
+    override fun getInstalledAddons(): Flow<List<Addon>> =
+        installedAddonsFlow.map { it.addons }.distinctUntilChanged()
+
+    override suspend fun awaitInstalledAddons(requiredIds: Set<String>): List<Addon> =
+        installedAddonsFlow.first { snapshot ->
+            snapshot.complete || (requiredIds.isNotEmpty() && snapshot.addons.map { it.id }.containsAll(requiredIds))
+        }.addons
 
     override suspend fun fetchAddon(baseUrl: String): NetworkResult<Addon> {
         val cleanBaseUrl = canonicalizeUrl(baseUrl)

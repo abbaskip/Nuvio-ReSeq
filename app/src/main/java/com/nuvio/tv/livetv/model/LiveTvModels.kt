@@ -261,6 +261,7 @@ data class LiveTvSettings(
     val openFullscreenOnSelect: Boolean = false,
     val infoBannerSeconds: Int = 5,
     val playlistRefreshHours: Int = 24,
+    val updatePlaylistsOnOpen: Boolean = false,
     val epgRefreshHours: Int = 12,
     val epgPastHours: Int = 24,
     val epgFutureDays: Int = 3,

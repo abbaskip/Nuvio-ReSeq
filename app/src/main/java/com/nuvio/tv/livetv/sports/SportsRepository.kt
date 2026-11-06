@@ -61,7 +61,6 @@ class SportsRepository @Inject constructor(
     private val channelStore: LiveTvChannelStore,
     private val guideDb: EpgDatabase,
     private val playback: LiveTvPlaybackController,
-    private val liveSession: com.nuvio.tv.livetv.ui.LiveTvSession,
     private val gemini: dagger.Lazy<SportsGemini>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -306,6 +305,7 @@ class SportsRepository @Inject constructor(
         if (on) {
             queueGeminiMatching()
             liveRepo.ensureLoaded(updateCheckDelayMs = 20_000)
+            liveRepo.refreshIfStale()
             kick.value++
             // Nothing matched yet (or not for a while): do it now, don't wait for the next round.
             if (_matches.value.isEmpty() || System.currentTimeMillis() - lastMatchAt > 3 * MINUTE) matchKick.value++
@@ -930,12 +930,12 @@ class SportsRepository @Inject constructor(
         }.distinctUntilChanged()
         // User/channel/guide changes invalidate a pass; incoming fixtures only queue the next one.
         val trigger = combine(
-            channelStore.displayChannels.map { it.size to it.firstOrNull()?.key }.distinctUntilChanged(),
+            // Providers rotate fixture names on existing channels without changing the channel count.
+            channelStore.displayChannels,
             settings.map { listOf(it.networkChannels, it.eventChannels, it.teamChannels, it.leagueChannels, it.blocked, it.bestChannelFirst, it.hiddenLeagues, it.excludedSportsNodes, it.region, it.preferredGroups, it.backgroundGeminiMatching) }.distinctUntilChanged(),
             follows,
-            combine(liveRepo.status.map { it.loading }, com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding, liveRepo.guideGeneration) { loading, building, generation -> Triple(loading, building, generation) }.distinctUntilChanged(),
-            liveSession.currentPlaylistId
-        ) { a, b, c, d, e -> listOf(a, b, c, d, e) }
+            combine(liveRepo.status.map { it.loading }, com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding, liveRepo.guideGeneration) { loading, building, generation -> Triple(loading, building, generation) }.distinctUntilChanged()
+        ) { _, _, _, _ -> Unit }
         var lastRun = 0L
         launch {
             // …and every 15 minutes (shows move on; new guide listings).
@@ -1023,7 +1023,6 @@ class SportsRepository @Inject constructor(
             addAll(sp.networkChannels.values); addAll(sp.teamChannels.values); addAll(sp.leagueChannels.values)
         }
         return channelStore.displayChannels.value.filter { ch ->
-            (liveSession.currentPlaylistId.value == null || ch.sourceId == liveSession.currentPlaylistId.value) &&
             (ch.key in picked || (ch.key !in user.hiddenChannels && ch.groupId !in user.hiddenGroups)) &&
                 !ParentalControls.isLocked(ch.groupId, ch.group, live, user.lockedGroups) &&
                 !(ParentalControls.enabled(live) && live.lockAdultContent && ParentalControls.isAdult(ch.name))
@@ -1586,7 +1585,7 @@ class SportsRepository @Inject constructor(
     /** The channel to tune for a reminder or "watch now": the best match, if any. */
     fun bestChannel(eventId: String): ChannelMatch? = _matches.value[eventId]?.firstOrNull()
 
-    fun channelsForPicker(): List<LiveChannel> = channelStore.displayChannels.value.filter { liveSession.currentPlaylistId.value == null || it.sourceId == liveSession.currentPlaylistId.value }
+    val channelsForPicker: StateFlow<List<LiveChannel>> = channelStore.displayChannels
 
     // ------------------------------------------------------------------ days
 

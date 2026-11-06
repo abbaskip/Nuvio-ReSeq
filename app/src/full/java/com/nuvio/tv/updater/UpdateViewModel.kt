@@ -36,6 +36,7 @@ data class UpdateUiState(
     val errorMessage: String? = null,
     val feedbackMessage: String? = null,
     val updateBannerEnabled: Boolean = true,
+    val checkFrequency: UpdateCheckFrequency = UpdateCheckFrequency.ALWAYS,
     val autoInstallEnabled: Boolean = false,
     val autoInstallSupported: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
     val autoInstallNoticeEnabled: Boolean = true,
@@ -70,14 +71,14 @@ class UpdateViewModel @Inject constructor(
             downloadStore.clearIfInstalled()
             consumeAutoInstalledUpdate()
             syncBackgroundJobs()
-            if (enabled && !BuildConfig.IS_DEBUG_BUILD) {
+            if (!BuildConfig.IS_DEBUG_BUILD) {
                 checkForUpdates(force = false, showNoUpdateFeedback = false)
             }
         }
     }
 
     fun checkForUpdates(force: Boolean, showNoUpdateFeedback: Boolean) {
-        if (!force && !_uiState.value.updateBannerEnabled) return
+        if (!force && _uiState.value.checkFrequency == UpdateCheckFrequency.NEVER) return
 
         updateCheckJob?.cancel()
         updateCheckJob = viewModelScope.launch {
@@ -92,8 +93,11 @@ class UpdateViewModel @Inject constructor(
             }
 
             val dismissedTag = updatePreferences.ignoredTag.first()
-            val result = updateRepository.getLatestUpdate()
-            updatePreferences.setLastCheckAtMs(System.currentTimeMillis())
+            val result = updateRepository.getLatestUpdate(force)
+            if (result == null || (!force && _uiState.value.checkFrequency == UpdateCheckFrequency.NEVER)) {
+                _uiState.update { it.copy(isChecking = false) }
+                return@launch
+            }
 
             result
                 .onSuccess { update ->
@@ -103,7 +107,8 @@ class UpdateViewModel @Inject constructor(
                     val installedUpdate = _uiState.value.installedUpdate?.let { installed ->
                         if (installed.tag == update.tag) update else installed
                     }
-                    if (remoteNewer && downloadedFile == null && update.tag != dismissedTag && !BuildConfig.IS_DEBUG_BUILD) {
+                    if (remoteNewer && downloadedFile == null && update.tag != dismissedTag && !BuildConfig.IS_DEBUG_BUILD &&
+                        _uiState.value.autoInstallEnabled && _uiState.value.checkFrequency != UpdateCheckFrequency.NEVER) {
                         UpdateJobService.scheduleCheckNow(context)
                     }
                     val shouldShow = UpdateBannerPolicy.shouldShow(
@@ -203,6 +208,13 @@ class UpdateViewModel @Inject constructor(
             if (enabled && changed && !BuildConfig.IS_DEBUG_BUILD) {
                 checkForUpdates(force = false, showNoUpdateFeedback = false)
             }
+        }
+    }
+
+    fun setCheckFrequency(frequency: UpdateCheckFrequency) {
+        viewModelScope.launch {
+            updatePreferences.setCheckFrequency(frequency)
+            syncBackgroundJobs()
         }
     }
 
@@ -319,12 +331,14 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
-    // Background checks run while the banner or automatic installs are on; the idle install job only with the latter.
-    private fun syncBackgroundJobs() {
+    private suspend fun syncBackgroundJobs() {
+        val frequency = updatePreferences.checkFrequency.first()
+        _uiState.update { it.copy(checkFrequency = frequency) }
         if (BuildConfig.IS_DEBUG_BUILD) return
         val state = _uiState.value
-        if (state.updateBannerEnabled || state.autoInstallEnabled) {
-            UpdateJobService.schedulePeriodicCheck(context)
+        val interval = frequency.backgroundIntervalMs
+        if (interval != null) {
+            UpdateJobService.schedulePeriodicCheck(context, interval)
         } else {
             UpdateJobService.cancelPeriodicCheck(context)
         }

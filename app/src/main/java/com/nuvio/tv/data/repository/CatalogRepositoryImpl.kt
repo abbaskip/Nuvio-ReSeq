@@ -13,6 +13,8 @@ import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.data.remote.api.AddonApi
 import com.nuvio.tv.domain.model.CatalogRow
 import com.nuvio.tv.domain.model.ContentType
+import com.nuvio.tv.domain.model.catalogTypeKey
+import com.nuvio.tv.domain.model.catalogTypesMatch
 import com.nuvio.tv.domain.repository.CatalogRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -32,6 +34,7 @@ class CatalogRepositoryImpl @Inject constructor(
 ) : CatalogRepository {
     companion object {
         private const val TAG = "CatalogRepository"
+        private val typePathErrors = setOf(400, 404, 422)
     }
 
     override fun getCatalog(
@@ -45,7 +48,8 @@ class CatalogRepositoryImpl @Inject constructor(
         skipStep: Int,
         extraArgs: Map<String, String>,
         supportsSkip: Boolean,
-        posterScreen: com.nuvio.tv.core.poster.CustomPosterScreen
+        posterScreen: com.nuvio.tv.core.poster.CustomPosterScreen,
+        savedSourceType: String?
     ): Flow<NetworkResult<CatalogRow>> = flow {
         emit(NetworkResult.Loading)
 
@@ -62,13 +66,28 @@ class CatalogRepositoryImpl @Inject constructor(
             return@flow
         }
 
-        val url = buildCatalogUrl(addonBaseUrl, type, catalogId, skip, extraArgs)
         Log.d(
             TAG,
-            "Fetching catalog addonId=$addonId addonName=$addonName type=$type catalogId=$catalogId skip=$skip skipStep=$skipStep supportsSkip=$supportsSkip url=$url"
+            "Fetching catalog addonId=$addonId type=$type catalogId=$catalogId skip=$skip"
         )
 
-        when (val result = safeApiCall(context) { api.getCatalog(url) }) {
+        val page = safeApiCall(context) {
+            suspend fun requestPage(requestType: String) =
+                api.getCatalog(buildCatalogUrl(addonBaseUrl, requestType, catalogId, skip, extraArgs))
+
+            var response = requestPage(type)
+            if (response.code() !in typePathErrors) return@safeApiCall response
+            // Older folders used the saved spelling; older standalone rows used the standard lowercase type.
+            val savedType = savedSourceType?.trim()?.takeIf { catalogTypesMatch(it, type) }
+            for (alternate in listOfNotNull(savedType, catalogTypeKey(type)).distinct()) {
+                if (alternate == type) continue
+                response.errorBody()?.close()
+                response = requestPage(alternate)
+                if (response.code() !in typePathErrors) break
+            }
+            response
+        }
+        when (val result = page) {
             is NetworkResult.Success -> {
                 val rawItemCount = result.data.metas.size
                 val posterPattern = layoutPreferenceDataStore.customPosterUrlPattern
@@ -108,7 +127,7 @@ class CatalogRepositoryImpl @Inject constructor(
             is NetworkResult.Error -> {
                 Log.w(
                     TAG,
-                    "Catalog fetch failed addonId=$addonId type=$type catalogId=$catalogId code=${result.code} message=${result.message} url=$url"
+                    "Catalog fetch failed addonId=$addonId type=$type catalogId=$catalogId code=${result.code} message=${result.message}"
                 )
                 emit(result)
             }

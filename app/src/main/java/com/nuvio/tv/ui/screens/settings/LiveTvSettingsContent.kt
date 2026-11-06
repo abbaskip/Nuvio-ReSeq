@@ -416,6 +416,12 @@ internal fun LiveTvSettingsContent(
                         onClick = { dialog = LiveDialog.AddEpg }
                     )
                     SubHeading("Updates")
+                    SettingsToggleRow(
+                        "Update Playlists When Nuvio Opens",
+                        "Refresh enabled playlists on launch and when you return to Nuvio.",
+                        s.updatePlaylistsOnOpen,
+                        { update { it.copy(updatePlaylistsOnOpen = !it.updatePlaylistsOnOpen) } }
+                    )
                     SettingsActionRow(
                         title = "Update Everything Now",
                         subtitle = "Downloads the latest channels and listings instead of waiting for the next automatic update",

@@ -25,7 +25,6 @@ private const val TAG = "UpdateJobs"
 private const val JOB_ID_CHECK = 10_020
 private const val JOB_ID_INSTALL = 10_021
 private const val JOB_ID_CHECK_NOW = 10_022
-private const val CHECK_INTERVAL_MS = 12 * 60 * 60_000L
 
 /**
  * Background update work. The periodic job checks for a new release and downloads it, so the banner can offer an
@@ -80,12 +79,10 @@ class UpdateJobService : JobService() {
     private suspend fun checkAndDownload(entryPoint: UpdateJobEntryPoint) {
         val preferences = entryPoint.updatePreferences()
         val autoInstallEnabled = preferences.autoInstallEnabled.first()
-        if (!preferences.updateBannerEnabled.first() && !autoInstallEnabled) return
 
         val downloadStore = entryPoint.updateDownloadStore()
         downloadStore.clearIfInstalled()
-        val update = entryPoint.updateRepository().getLatestUpdate().getOrThrow()
-        preferences.setLastCheckAtMs(System.currentTimeMillis())
+        val update = entryPoint.updateRepository().getLatestUpdate()?.getOrThrow() ?: return
         if (!VersionUtils.isRemoteNewer(update.tag, BuildConfig.VERSION_NAME)) return
         if (update.tag == preferences.ignoredTag.first()) return
 
@@ -111,12 +108,12 @@ class UpdateJobService : JobService() {
         fun canInstallSilently(context: Context): Boolean =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ApkInstaller.canRequestPackageInstalls(context)
 
-        fun schedulePeriodicCheck(context: Context) {
+        fun schedulePeriodicCheck(context: Context, intervalMs: Long) {
             val scheduler = context.jobScheduler()
-            if (scheduler.allPendingJobs.any { it.id == JOB_ID_CHECK }) return
+            if (scheduler.allPendingJobs.any { it.id == JOB_ID_CHECK && it.intervalMillis == intervalMs }) return
             val job = JobInfo.Builder(JOB_ID_CHECK, ComponentName(context, UpdateJobService::class.java))
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setPeriodic(CHECK_INTERVAL_MS)
+                .setPeriodic(intervalMs)
                 .setPersisted(true)
                 .build()
             scheduler.schedule(job)
@@ -132,6 +129,7 @@ class UpdateJobService : JobService() {
 
         fun cancelPeriodicCheck(context: Context) {
             context.jobScheduler().cancel(JOB_ID_CHECK)
+            context.jobScheduler().cancel(JOB_ID_CHECK_NOW)
         }
 
         fun scheduleIdleInstall(context: Context) {

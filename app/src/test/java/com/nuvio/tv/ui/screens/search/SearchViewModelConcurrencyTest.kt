@@ -10,6 +10,7 @@ import com.nuvio.tv.domain.model.CatalogDescriptor
 import com.nuvio.tv.domain.model.CatalogExtra
 import com.nuvio.tv.domain.model.CatalogRow
 import com.nuvio.tv.domain.model.ContentType
+import com.nuvio.tv.domain.model.DiscoverLocation
 import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.domain.model.PosterShape
 import com.nuvio.tv.domain.repository.AddonRepository
@@ -17,6 +18,7 @@ import com.nuvio.tv.domain.repository.CatalogRepository
 import com.nuvio.tv.domain.repository.WatchProgressRepository
 import com.nuvio.tv.ui.components.posteroptions.PosterOptionsController
 import io.mockk.every
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -109,13 +111,35 @@ class SearchViewModelConcurrencyTest {
         coVerify(exactly = 1) { history.saveRecentSearch("Deep Cover", 8) }
     }
 
+    @Test
+    fun `Discover opened during startup shows the catalogue when its manifest arrives`() = runTest {
+        val addon = searchableAddon()
+        val manifests = CompletableDeferred<List<Addon>>()
+        val repository = mockk<AddonRepository> {
+            every { getInstalledAddons() } returns flowOf(emptyList())
+            coEvery { awaitInstalledAddons(emptySet()) } coAnswers { manifests.await() }
+        }
+        val vm = newViewModel(repository, ImmediateCatalogRepository(addon), discoverLocation = DiscoverLocation.IN_SIDEBAR)
+        runCurrent()
+        vm.ensureDiscoverLoaded()
+        runCurrent()
+        assertFalse(vm.uiState.value.discoverInitialized)
+
+        manifests.complete(listOf(addon))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.discoverInitialized)
+        assertEquals(listOf("top"), vm.uiState.value.discoverCatalogs.map { it.catalogId })
+        assertTrue(vm.uiState.value.discoverResults.isNotEmpty())
+    }
+
     private fun newViewModel(
         addonRepository: AddonRepository,
         catalogRepository: CatalogRepository,
-        history: SearchHistoryDataStore = mockk(relaxed = true)
+        history: SearchHistoryDataStore = mockk(relaxed = true),
+        discoverLocation: DiscoverLocation = DiscoverLocation.OFF
     ): SearchViewModel {
         val layoutPreferences = mockk<LayoutPreferenceDataStore>()
-        every { layoutPreferences.discoverLocation } returns flowOf(com.nuvio.tv.domain.model.DiscoverLocation.OFF)
+        every { layoutPreferences.discoverLocation } returns flowOf(discoverLocation)
         every { layoutPreferences.posterCardWidthDp } returns flowOf(126)
         every { layoutPreferences.posterLabelsEnabled } returns flowOf(true)
         every { layoutPreferences.catalogAddonNameEnabled } returns flowOf(true)
@@ -183,9 +207,10 @@ class SearchViewModelConcurrencyTest {
             skipStep: Int,
             extraArgs: Map<String, String>,
             supportsSkip: Boolean,
-            posterScreen: com.nuvio.tv.core.poster.CustomPosterScreen
+            posterScreen: com.nuvio.tv.core.poster.CustomPosterScreen,
+            savedSourceType: String?
         ): Flow<NetworkResult<CatalogRow>> = flow {
-            val query = extraArgs.getValue("search")
+            val query = extraArgs["search"] ?: catalogName
             queries += query
             emit(NetworkResult.Loading)
             emit(NetworkResult.Success(row(addon, query)))

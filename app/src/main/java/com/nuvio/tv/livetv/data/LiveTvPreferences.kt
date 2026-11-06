@@ -89,6 +89,7 @@ class LiveTvPreferences @Inject constructor(
         val fullscreenOnSelect = booleanPreferencesKey("fullscreen_on_select")
         val bannerSeconds = intPreferencesKey("banner_seconds")
         val playlistRefresh = intPreferencesKey("playlist_refresh_hours")
+        val updatePlaylistsOnOpen = booleanPreferencesKey("update_playlists_on_open")
         val epgRefresh = intPreferencesKey("epg_refresh_hours")
         val epgPast = intPreferencesKey("epg_past_hours")
         val epgFuture = intPreferencesKey("epg_future_days")
@@ -328,6 +329,7 @@ class LiveTvPreferences @Inject constructor(
             openFullscreenOnSelect = p[Keys.fullscreenOnSelect] ?: d.openFullscreenOnSelect,
             infoBannerSeconds = p[Keys.bannerSeconds] ?: d.infoBannerSeconds,
             playlistRefreshHours = p[Keys.playlistRefresh] ?: d.playlistRefreshHours,
+            updatePlaylistsOnOpen = p[Keys.updatePlaylistsOnOpen] ?: d.updatePlaylistsOnOpen,
             epgRefreshHours = p[Keys.epgRefresh] ?: d.epgRefreshHours,
             epgPastHours = p[Keys.epgPast] ?: d.epgPastHours,
             epgFutureDays = p[Keys.epgFuture] ?: d.epgFutureDays,
@@ -552,6 +554,7 @@ class LiveTvPreferences @Inject constructor(
         p[Keys.fullscreenOnSelect] = s.openFullscreenOnSelect
         p[Keys.bannerSeconds] = s.infoBannerSeconds
         p[Keys.playlistRefresh] = s.playlistRefreshHours
+        p[Keys.updatePlaylistsOnOpen] = s.updatePlaylistsOnOpen
         p[Keys.epgRefresh] = s.epgRefreshHours
         p[Keys.epgPast] = s.epgPastHours
         p[Keys.epgFuture] = s.epgFutureDays

@@ -38,7 +38,7 @@ class FixtureSettingsFragment : androidx.fragment.app.DialogFragment() {
     }
 }
 
-internal fun writeResourceFixture(file: File) {
+internal fun writeResourceFixture(file: File, pluginClass: Class<out Plugin> = ResourceFixturePlugin::class.java, marker: String = "fixture") {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     // Package the fixture's already-compiled Android bytecode with the standard .cs3 manifest.
     ZipFile(instrumentation.context.applicationInfo.sourceDir).use { source ->
@@ -50,10 +50,10 @@ internal fun writeResourceFixture(file: File) {
                 out.closeEntry()
             }
             out.putNextEntry(ZipEntry("manifest.json"))
-            out.write("""{"pluginClassName":"${ResourceFixturePlugin::class.java.name}","requiresResources":true}""".toByteArray())
+            out.write("""{"pluginClassName":"${pluginClass.name}","requiresResources":true}""".toByteArray())
             out.closeEntry()
             out.putNextEntry(ZipEntry("assets/cs-marker"))
-            out.write("fixture".toByteArray())
+            out.write(marker.toByteArray())
         }
     }
 }

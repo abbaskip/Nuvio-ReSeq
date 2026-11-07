@@ -1292,6 +1292,7 @@ private fun ScraperCard(
     var showResults by remember { mutableStateOf(false) }
     var isTestFocused by remember { mutableStateOf(false) }
     var isToggleFocused by remember { mutableStateOf(false) }
+    val settingsFocus = remember { FocusRequester() }
     var isSettingsFocused by remember { mutableStateOf(false) }
     val isCardFocused = isSettingsFocused || isTestFocused || isToggleFocused
     val cardBorderColor by animateColorAsState(
@@ -1368,7 +1369,9 @@ private fun ScraperCard(
                     if (onSettings != null) {
                         Button(
                             onClick = onSettings,
-                            modifier = Modifier.onFocusChanged { isSettingsFocused = it.isFocused },
+                            modifier = Modifier
+                                .focusRequester(settingsFocus)
+                                .onFocusChanged { isSettingsFocused = it.isFocused },
                             colors = ButtonDefaults.colors(
                                 containerColor = NuvioTheme.colors.Surface,
                                 contentColor = NuvioTheme.colors.TextPrimary,
@@ -1384,7 +1387,7 @@ private fun ScraperCard(
                         onClick = onTest,
                         enabled = !isTesting && scraper.enabled,
                         modifier = Modifier
-                            .focusProperties { left = FocusRequester.Cancel }
+                            .focusProperties { left = if (onSettings != null) settingsFocus else FocusRequester.Cancel }
                             .onFocusChanged { isTestFocused = it.isFocused }
                             .semantics { role = Role.Button },
                         colors = ButtonDefaults.colors(

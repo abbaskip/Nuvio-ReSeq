@@ -1,5 +1,8 @@
 package com.nuvio.tv.core.plugin
 
+import com.lagradost.cloudstream3.plugins.PluginData
+import com.lagradost.cloudstream3.plugins.PluginManager as CloudStreamPluginManager
+import com.nuvio.tv.domain.model.StreamContentContext
 import android.util.Log
 import com.nuvio.tv.core.plugin.cloudstream.cloudStreamContentTypes
 import com.nuvio.tv.core.plugin.cloudstream.unwrapCloudStreamUrl
@@ -715,20 +718,7 @@ class PluginManager @Inject constructor(
         
         Log.d(TAG, "Executing ${enabledScraperList.size} scrapers for $mediaType:$tmdbId")
 
-        // Preload all extractors from EXTERNAL_DEX repos before any scraper runs
-        val dexScraperIds = enabledScraperList
-            .filter { it.type == RepositoryType.EXTERNAL_DEX }
-            .map { it.id }
-        if (dexScraperIds.isNotEmpty()) {
-            // Also load ALL dex scrapers from the same repos (not just enabled ones)
-            // since extractors can live in any .cs3 file
-            val allDexIds = dataStore.scrapers.first()
-                .filter { it.type == RepositoryType.EXTERNAL_DEX }
-                .map { it.id }
-            withContext(Dispatchers.IO) {
-                externalExtensionLoader.ensureExtractorsLoaded(allDexIds)
-            }
-        }
+        preloadDexExtractors(enabledScraperList)
 
         val results = enabledScraperList.mapIndexed { index, scraper ->
             async(scraperOrchestrationDispatcher) {
@@ -754,9 +744,12 @@ class PluginManager @Inject constructor(
         season: Int? = null,
         episode: Int? = null,
         priorityBingeGroup: String? = null,
-        preferredPluginOnly: Boolean = false
+        preferredPluginOnly: Boolean = false,
+        content: StreamContentContext? = null
     ): Flow<Pair<ScraperInfo, List<LocalScraperResult>>> = channelFlow {
-        val enabledList = enabledScrapers.first().filter { it.supportsType(mediaType) }
+        val enabledList = enabledScrapers.first().filter {
+            it.supportsType(mediaType) && (!tmdbId.startsWith("tt") || it.type == RepositoryType.EXTERNAL_DEX)
+        }
         
         if (enabledList.isEmpty() || !dataStore.pluginsEnabled.first()) {
             return@channelFlow
@@ -774,7 +767,7 @@ class PluginManager @Inject constructor(
             Log.d(TAG, "Trying preferred plugin first: ${preferred.name}")
             preloadDexExtractors(listOf(preferred))
             val results = try {
-                executeScraperWithSingleFlight(preferred, tmdbId, mediaType, season, episode)
+                executeScraperWithSingleFlight(preferred, tmdbId, mediaType, season, episode, content)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -797,7 +790,8 @@ class PluginManager @Inject constructor(
             tmdbId = tmdbId,
             mediaType = mediaType,
             season = season,
-            episode = episode
+            episode = episode,
+            content = content
         ) { scraper, results ->
             send(scraper to results)
         }
@@ -805,13 +799,23 @@ class PluginManager @Inject constructor(
 
     private suspend fun preloadDexExtractors(scrapers: List<ScraperInfo>) {
         if (scrapers.none { it.type == RepositoryType.EXTERNAL_DEX }) return
-        val allDexIds = dataStore.scrapers.first()
-            .filter { it.type == RepositoryType.EXTERNAL_DEX }
-            .map { it.id }
-        if (allDexIds.isEmpty()) return
-        withContext(Dispatchers.IO) {
-            externalExtensionLoader.ensureExtractorsLoaded(allDexIds)
-        }
+        // Extractors can be supplied by a separate installed package or repository.
+        val ids = registerInstalledExtensions().map { it.id }
+        withContext(Dispatchers.IO) { externalExtensionLoader.ensureExtractorsLoaded(ids) }
+    }
+
+    private suspend fun registerInstalledExtensions(): List<ScraperInfo> {
+        val extensions = dataStore.scrapers.first().filter { it.type == RepositoryType.EXTERNAL_DEX }
+        CloudStreamPluginManager.setOnline(extensions.map { extension ->
+            PluginData(
+                internalName = extension.id.removePrefix("${extension.repositoryId}:"),
+                url = extension.filename,
+                isOnline = true,
+                filePath = externalExtensionLoader.extensionFile(extension.id).absolutePath,
+                version = extension.version.toIntOrNull() ?: 0
+            )
+        })
+        return extensions
     }
 
     private fun CoroutineScope.launchPluginScrapers(
@@ -820,6 +824,7 @@ class PluginManager @Inject constructor(
         mediaType: String,
         season: Int?,
         episode: Int?,
+        content: StreamContentContext?,
         onResult: suspend (ScraperInfo, List<LocalScraperResult>) -> Unit
     ) {
         scrapers.forEachIndexed { index, scraper ->
@@ -828,7 +833,7 @@ class PluginManager @Inject constructor(
                     kotlinx.coroutines.delay(index * 60L)
                 }
                 try {
-                    val results = executeScraperWithSingleFlight(scraper, tmdbId, mediaType, season, episode)
+                    val results = executeScraperWithSingleFlight(scraper, tmdbId, mediaType, season, episode, content)
                     if (results.isNotEmpty()) onResult(scraper, results)
                 } catch (e: CancellationException) {
                     throw e
@@ -847,9 +852,10 @@ class PluginManager @Inject constructor(
         tmdbId: String,
         mediaType: String,
         season: Int?,
-        episode: Int?
+        episode: Int?,
+        content: StreamContentContext? = null
     ): List<LocalScraperResult> {
-        val cacheKey = "${scraper.id}:$tmdbId:$mediaType:$season:$episode"
+        val cacheKey = "${scraper.id}:$tmdbId:$mediaType:$season:$episode:${content?.title}:${content?.year}"
         
         // Check if already in flight
         val existing = inFlightScrapers[cacheKey]
@@ -865,7 +871,7 @@ class PluginManager @Inject constructor(
         return coroutineScope {
             val deferred = async {
                 scraperSemaphore.withPermit {
-                    executeScraper(scraper, tmdbId, mediaType, season, episode)
+                    executeScraper(scraper, tmdbId, mediaType, season, episode, content)
                 }
             }
             
@@ -890,10 +896,11 @@ class PluginManager @Inject constructor(
         tmdbId: String,
         mediaType: String,
         season: Int?,
-        episode: Int?
+        episode: Int?,
+        content: StreamContentContext? = null
     ): List<LocalScraperResult> {
         return when (scraper.type) {
-            RepositoryType.EXTERNAL_DEX -> executeExternalDexScraper(scraper, tmdbId, mediaType, season, episode)
+            RepositoryType.EXTERNAL_DEX -> executeExternalDexScraper(scraper, tmdbId, mediaType, season, episode, content)
             RepositoryType.NUVIO_JS -> executeJsScraper(scraper, tmdbId, mediaType, season, episode)
         }
     }
@@ -964,7 +971,8 @@ class PluginManager @Inject constructor(
         tmdbId: String,
         mediaType: String,
         season: Int?,
-        episode: Int?
+        episode: Int?,
+        content: StreamContentContext? = null
     ): List<LocalScraperResult> {
         return try {
             Log.d(TAG, "Executing DEX scraper: ${scraper.name}")
@@ -973,7 +981,7 @@ class PluginManager @Inject constructor(
                 // Wrap on the low-priority pool for the same reason as the JS
                 // path: keep their CPU footprint out of ExoPlayer's way.
                 withContext(pluginDispatcher) {
-                    externalExtensionRunner.execute(scraper.id, tmdbId, mediaType, season, episode)
+                    externalExtensionRunner.execute(scraper.id, tmdbId, mediaType, season, episode, content)
                 }
             }
             if (results == null) {
@@ -992,6 +1000,7 @@ class PluginManager @Inject constructor(
      * Test a scraper with sample data, returning results along with diagnostic steps.
      */
     suspend fun hasExtensionSettings(scraperId: String): Boolean = withContext(Dispatchers.IO) {
+        registerInstalledExtensions()
         externalExtensionLoader.settingsCallback(scraperId) != null
     }
 
@@ -1009,20 +1018,13 @@ class PluginManager @Inject constructor(
 
         diagnostics.addStep("Scraper: ${scraper.name} (type=${scraper.type})")
 
-        // Use a popular movie for testing (The Matrix - 603)
-        val testTmdbId = "603"
-        val testMediaType = if (scraper.supportsType("movie")) "movie" else "series"
-        diagnostics.addStep("Test: TMDB $testTmdbId ($testMediaType)")
-
-        // Preload extractors from ALL .cs3 files in the same repo(s)
-        if (scraper.type == RepositoryType.EXTERNAL_DEX) {
-            val allDexIds = dataStore.scrapers.first()
-                .filter { it.type == RepositoryType.EXTERNAL_DEX }
-                .map { it.id }
-            withContext(Dispatchers.IO) {
-                externalExtensionLoader.ensureExtractorsLoaded(allDexIds, diagnostics)
-            }
-        }
+        val movie = scraper.supportsType("movie")
+        val testTmdbId = if (movie) "603" else "1396"
+        val testMediaType = if (movie) "movie" else "series"
+        val testContent = if (movie) StreamContentContext(testTmdbId, "The Matrix", 1999)
+            else StreamContentContext(testTmdbId, "Breaking Bad", 2008)
+        diagnostics.addStep("Test: ${testContent.title} (TMDB $testTmdbId, $testMediaType)")
+        preloadDexExtractors(listOf(scraper))
 
         val testSeason = if (testMediaType == "movie") null else 1
         val testEpisode = if (testMediaType == "movie") null else 1
@@ -1031,7 +1033,7 @@ class PluginManager @Inject constructor(
             val results = when (scraper.type) {
                 RepositoryType.EXTERNAL_DEX -> {
                     externalExtensionRunner.executeWithDiagnostics(
-                        scraper.id, testTmdbId, testMediaType, testSeason, testEpisode, diagnostics
+                        scraper.id, testTmdbId, testMediaType, testSeason, testEpisode, diagnostics, testContent
                     )
                 }
                 RepositoryType.NUVIO_JS -> {

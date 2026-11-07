@@ -50,6 +50,7 @@ scripts/*
 !scripts/release_beta.py
 !scripts/prepare_release_apks.py
 !scripts/verify_apk_services.py
+!scripts/verify_cs3_runtime.py
 !scripts/ci_app_config.py
 !scripts/tests/
 !scripts/tests/*.py

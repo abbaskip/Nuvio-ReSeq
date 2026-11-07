@@ -1,5 +1,6 @@
 package com.nuvio.tv.data.repository
 
+import com.nuvio.tv.domain.model.StreamContentContext
 import android.content.Context
 import android.util.Log
 import com.nuvio.tv.R
@@ -378,7 +379,7 @@ class StreamRepositoryImpl @Inject constructor(
 
                         val tmdbId = tmdbService.ensureTmdbId(videoId, type)
                         Log.d(TAG, "Video ID: $videoId -> TMDB ID: $tmdbId (type: $type)")
-                        val pluginRequest = buildPluginRequest(tmdbId, type, videoId)
+                        val pluginRequest = buildPluginRequest(tmdbId, type, videoId, contentContext)
                             ?: return@launch
                         val (pluginSeason, pluginEpisode) = resolvePluginSeasonEpisode(
                             videoId = videoId,
@@ -390,6 +391,7 @@ class StreamRepositoryImpl @Inject constructor(
                                 pluginId = pluginRequest.id,
                                 mediaType = pluginRequest.mediaType,
                                 pluginSource = pluginRequest.source,
+                                content = contentContext,
                                 season = pluginSeason,
                                 episode = pluginEpisode,
                                 priorityBingeGroup = priorityBingeGroup,
@@ -437,7 +439,8 @@ class StreamRepositoryImpl @Inject constructor(
                     type = type,
                     id = videoId,
                     attemptedAddonNames = attemptedAddonNames,
-                    failures = attemptedFailures.toList()
+                    failures = attemptedFailures.toList(),
+                    hasCompatiblePlugins = hasCompatiblePlugins
                 )
                 if (errorMessage != null) {
                     emit(NetworkResult.Error(errorMessage))
@@ -496,7 +499,7 @@ class StreamRepositoryImpl @Inject constructor(
         val source: String
     )
 
-    private fun buildPluginRequest(tmdbId: String?, type: String, videoId: String): PluginRequest? {
+    private fun buildPluginRequest(tmdbId: String?, type: String, videoId: String, content: StreamContentContext?): PluginRequest? {
         if (tmdbId != null) {
             return PluginRequest(
                 id = tmdbId,
@@ -505,6 +508,12 @@ class StreamRepositoryImpl @Inject constructor(
             )
         }
 
+        // IMDb requests can still run a CS3 provider's title search if ID conversion is unavailable.
+        val imdbId = videoId.removePrefix("movie:").removePrefix("series:").removePrefix("imdb:")
+            .substringBefore(':').substringBefore('/')
+        if (!content?.title.isNullOrBlank() && imdbId.matches(Regex("tt[0-9]+"))) {
+            return PluginRequest(imdbId, normalizeTmdbPluginType(type), "IMDb")
+        }
         if (!videoId.canRunLocalPlugins()) return null
 
         return PluginRequest(
@@ -579,6 +588,7 @@ class StreamRepositoryImpl @Inject constructor(
         pluginId: String,
         mediaType: String,
         pluginSource: String,
+        content: StreamContentContext?,
         season: Int?,
         episode: Int?,
         priorityBingeGroup: String?,
@@ -608,7 +618,8 @@ class StreamRepositoryImpl @Inject constructor(
                 season = season,
                 episode = episode,
                 priorityBingeGroup = priorityBingeGroup,
-                preferredPluginOnly = preferredPluginOnly
+                preferredPluginOnly = preferredPluginOnly,
+                content = content
             ).collect { (scraper, results) ->
                 if (results.isNotEmpty()) {
                     val addonName = scraper.pluginAddonName(groupByRepository, repositoriesById)
@@ -859,10 +870,12 @@ class StreamRepositoryImpl @Inject constructor(
         type: String,
         id: String,
         attemptedAddonNames: List<String>,
-        failures: List<StreamAttemptFailure>
+        failures: List<StreamAttemptFailure>,
+        hasCompatiblePlugins: Boolean
     ): String? {
         if (attemptedAddonNames.isEmpty()) {
-            return context.getString(R.string.error_stream_no_supported_addon, type)
+            return if (hasCompatiblePlugins) context.getString(R.string.stream_no_streams)
+                else context.getString(R.string.error_stream_no_supported_addon, type)
         }
 
         val triedAddons = attemptedAddonNames.joinToString(", ")

@@ -566,6 +566,8 @@ dependencies {
     add("fullImplementation", "com.fasterxml.jackson.core:jackson-databind:2.17.0")
     add("fullImplementation", "com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
     add("fullImplementation", libs.nicehttp)
+    // CS3 packages call the 0.2.4 nextElementSibling() ABI directly.
+    add("fullImplementation", libs.ksoup)
     add("fullImplementation", libs.conscrypt.android)
     // StreamPlay and other recent CS3 packages call runBlockingK. 1.11 also retains the older ABI.
     add("fullImplementation", "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")

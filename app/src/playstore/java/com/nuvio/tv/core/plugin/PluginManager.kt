@@ -1,5 +1,6 @@
 package com.nuvio.tv.core.plugin
 
+import com.nuvio.tv.domain.model.StreamContentContext
 import com.nuvio.tv.domain.model.LocalScraperResult
 import com.nuvio.tv.domain.model.PluginRepository
 import com.nuvio.tv.domain.model.RemotePluginInfo
@@ -69,7 +70,8 @@ class PluginManager {
         season: Int? = null,
         episode: Int? = null,
         priorityBingeGroup: String? = null,
-        preferredPluginOnly: Boolean = false
+        preferredPluginOnly: Boolean = false,
+        content: StreamContentContext? = null
     ): Flow<Pair<ScraperInfo, List<LocalScraperResult>>> = emptyFlow()
 
     suspend fun executeScraper(

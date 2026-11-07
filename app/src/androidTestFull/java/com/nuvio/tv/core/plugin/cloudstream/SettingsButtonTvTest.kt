@@ -64,6 +64,19 @@ class SettingsButtonTvTest {
                 instrumentation.sendKeyDownUpSync(if (inProvider) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_DOWN)
             }
             org.junit.Assert.assertEquals("D-pad focus path: $visited", settings, visited.last())
+            fun move(key: Int) {
+                instrumentation.sendKeyDownUpSync(key)
+                compose.waitForIdle()
+            }
+            val test = context.getString(R.string.plugin_test_btn)
+            move(KeyEvent.KEYCODE_DPAD_RIGHT)
+            compose.onNodeWithText(test).assertIsFocused()
+            move(KeyEvent.KEYCODE_DPAD_RIGHT)
+            compose.onNodeWithContentDescription(context.getString(R.string.cd_enable_scraper, scraper.name)).assertIsFocused()
+            move(KeyEvent.KEYCODE_DPAD_LEFT)
+            compose.onNodeWithText(test).assertIsFocused()
+            move(KeyEvent.KEYCODE_DPAD_LEFT)
+            compose.onNodeWithText(settings).assertIsFocused()
             instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_CENTER)
             compose.waitUntil(10_000) {
                 instrumentation.uiAutomation.rootInActiveWindow

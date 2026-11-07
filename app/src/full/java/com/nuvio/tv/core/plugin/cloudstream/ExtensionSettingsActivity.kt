@@ -77,7 +77,11 @@ class ExtensionSettingsActivity : AppCompatActivity() {
 
     private fun failed(e: Throwable) {
         if (e is VirtualMachineError || e is ThreadDeath) throw e
-        Log.w("ExtensionSettings", "Settings callback failed: ${e.javaClass.simpleName}")
+        if (e is LinkageError) {
+            Log.w("ExtensionSettings", "Settings callback linkage failure", e)
+        } else {
+            Log.w("ExtensionSettings", "Settings callback failed: ${e.javaClass.simpleName}")
+        }
         Toast.makeText(this, R.string.plugin_extension_settings_failed, Toast.LENGTH_SHORT).show()
         finish()
     }

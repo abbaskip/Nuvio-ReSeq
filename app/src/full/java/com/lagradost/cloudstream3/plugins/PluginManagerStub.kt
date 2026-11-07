@@ -2,15 +2,22 @@
 
 package com.lagradost.cloudstream3.plugins
 
-/** Stub for CloudStream PluginManager referenced by some extensions. */
-object PluginManager {
-    data class PluginData(
-        val name: String = "",
-        val url: String = "",
-        val internalName: String = "",
-        val version: Int = 0
-    )
+/** Binary interface used by CS3 extensions to look up installed companion packages. */
+data class PluginData(
+    val internalName: String,
+    val url: String?,
+    val isOnline: Boolean,
+    val filePath: String,
+    val version: Int
+)
 
-    fun getPluginsOnline(): Array<PluginData> = emptyArray()
+object PluginManager {
+    @Volatile private var online: Array<PluginData> = emptyArray()
+
+    internal fun setOnline(plugins: List<PluginData>) {
+        online = plugins.toTypedArray()
+    }
+
+    fun getPluginsOnline(): Array<PluginData> = online.copyOf()
     fun unloadPlugin(filePath: String) {}
 }

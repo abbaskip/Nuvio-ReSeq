@@ -1,5 +1,6 @@
 package com.nuvio.tv.core.plugin.cloudstream
 
+import com.nuvio.tv.domain.model.StreamContentContext
 import android.util.Log
 import com.lagradost.cloudstream3.AnimeLoadResponse
 import com.lagradost.cloudstream3.AnimeSearchResponse
@@ -60,9 +61,10 @@ class ExternalExtensionRunner @Inject constructor(
         tmdbId: String,
         mediaType: String,
         season: Int?,
-        episode: Int?
+        episode: Int?,
+        content: StreamContentContext? = null
     ): List<LocalScraperResult> = withContext(Dispatchers.IO) {
-        executeProviders(scraperId, tmdbId, mediaType, season, episode, diagnostics = null)
+        executeProviders(scraperId, tmdbId, mediaType, season, episode, diagnostics = null, content = content)
     }
 
     suspend fun executeWithDiagnostics(
@@ -71,9 +73,10 @@ class ExternalExtensionRunner @Inject constructor(
         mediaType: String,
         season: Int?,
         episode: Int?,
-        diagnostics: TestDiagnostics
+        diagnostics: TestDiagnostics,
+        content: StreamContentContext? = null
     ): List<LocalScraperResult> = withContext(Dispatchers.IO) {
-        executeProviders(scraperId, tmdbId, mediaType, season, episode, diagnostics)
+        executeProviders(scraperId, tmdbId, mediaType, season, episode, diagnostics, content)
     }
 
     private suspend fun executeProviders(
@@ -82,7 +85,8 @@ class ExternalExtensionRunner @Inject constructor(
         mediaType: String,
         season: Int?,
         episode: Int?,
-        diagnostics: TestDiagnostics?
+        diagnostics: TestDiagnostics?,
+        content: StreamContentContext?
     ): List<LocalScraperResult> = coroutineScope {
         val apis = extensionLoader.loadExtension(scraperId, diagnostics)
         if (apis.isEmpty()) {
@@ -99,7 +103,7 @@ class ExternalExtensionRunner @Inject constructor(
                         val trace = steps[index]
                         try {
                             trace?.addStep("Using MainAPI: ${api.name} (${api.javaClass.simpleName})")
-                            results[index] = executeInternal(api, tmdbId, mediaType, season, episode, trace)
+                            results[index] = executeInternal(api, tmdbId, mediaType, season, episode, trace, content)
                             trace?.addStep("Found ${results[index].size} playable streams")
                         } catch (e: CancellationException) {
                             throw e
@@ -134,12 +138,13 @@ class ExternalExtensionRunner @Inject constructor(
         mediaType: String,
         season: Int?,
         episode: Int?,
-        diagnostics: TestDiagnostics?
+        diagnostics: TestDiagnostics?,
+        content: StreamContentContext?
     ): List<LocalScraperResult> {
-        if (api is TmdbProvider) {
+        if (api is TmdbProvider && tmdbId.toIntOrNull() != null) {
             return executeTmdbProvider(api, tmdbId, mediaType, season, episode, diagnostics)
         }
-        return executeSearchBased(api, tmdbId, mediaType, season, episode, diagnostics)
+        return executeSearchBased(api, tmdbId, mediaType, season, episode, diagnostics, content)
     }
 
     /**
@@ -270,21 +275,28 @@ class ExternalExtensionRunner @Inject constructor(
         mediaType: String,
         season: Int?,
         episode: Int?,
-        diagnostics: TestDiagnostics?
+        diagnostics: TestDiagnostics?,
+        content: StreamContentContext?
     ): List<LocalScraperResult> {
         val contentType = when (mediaType.lowercase()) {
             "movie" -> ContentType.MOVIE
             else -> ContentType.SERIES
         }
-        diagnostics?.addStep("Fetching TMDB title for $tmdbId")
-        val enrichment = tmdbMetadataService.fetchEnrichment(tmdbId, contentType)
-        if (enrichment == null) {
-            Log.e(TAG, "Failed to fetch TMDB enrichment for $tmdbId")
+        val selectedTitle = content?.title?.trim()?.takeIf { it.isNotEmpty() }
+        val initialSearch = selectedTitle?.let { trySearch(api, it) }
+        val selectedMatch = selectedTitle?.let {
+            findBestMatch(initialSearch?.items.orEmpty(), listOf(it), content?.year, mediaType)
+        }
+        // Keep TMDB aliases for searches that didn't match the selected catalogue title.
+        val enrichment = if (tmdbId.toIntOrNull() != null && selectedMatch == null &&
+            initialSearch?.hostUnreachable != true && initialSearch?.unsupported != true) {
+            tmdbMetadataService.fetchEnrichment(tmdbId, contentType)
+        } else null
+        val title = enrichment?.localizedTitle?.takeIf { it.isNotBlank() } ?: selectedTitle ?: run {
+            diagnostics?.addStep("No catalogue title or TMDB metadata available for $tmdbId")
             return emptyList()
         }
-
-        val title = enrichment.localizedTitle ?: return emptyList()
-        val year = enrichment.releaseInfo?.take(4)?.toIntOrNull()
+        val year = content?.year ?: enrichment?.releaseInfo?.take(4)?.toIntOrNull()
 
         // Build candidate titles for multi-language matching: primary localized title,
         // TMDB original title (often non-English for foreign content), plus alt titles
@@ -293,10 +305,11 @@ class ExternalExtensionRunner @Inject constructor(
         // each one against a Spanish/Portuguese/English provider wastes requests.
         val candidateTitles = buildList {
             add(title)
-            enrichment.originalTitle
+            selectedTitle?.takeUnless { equalsIgnoreCase(it, title) }?.let(::add)
+            enrichment?.originalTitle
                 ?.takeIf { it.isNotBlank() && !equalsIgnoreCase(it, title) }
                 ?.let(::add)
-            enrichment.alternativeTitles
+            enrichment?.alternativeTitles.orEmpty()
                 .asSequence()
                 .filter { it.isNotBlank() && isLatinScript(it) }
                 .distinctBy { it.lowercase() }
@@ -308,7 +321,7 @@ class ExternalExtensionRunner @Inject constructor(
         Log.d(TAG, "SearchBased ${api.name}: searching for \"$title\" (${candidateTitles.size} candidates)")
 
         diagnostics?.addStep("Searching for $title ($year)")
-        var outcome = trySearch(api, title)
+        var outcome = initialSearch?.takeIf { title == selectedTitle } ?: trySearch(api, title)
         var searchResults = outcome.items
         var hostDead = outcome.hostUnreachable
         var unsupported = outcome.unsupported

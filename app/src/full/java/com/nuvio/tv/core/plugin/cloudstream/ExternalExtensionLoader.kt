@@ -126,6 +126,8 @@ class ExternalExtensionLoader @Inject constructor(
     private val codeCacheDir: File
         get() = File(context.codeCacheDir, "cs_dex_cache").also { it.mkdirs() }
 
+    fun extensionFile(scraperId: String): File = File(extensionsDir, "${safeFileName(scraperId)}.cs3")
+
     /** Sanitize scraper ID for use as a filename (colons are not safe on all filesystems). */
     private fun safeFileName(scraperId: String): String =
         scraperId.replace(':', '_').replace('/', '_')
@@ -137,7 +139,7 @@ class ExternalExtensionLoader @Inject constructor(
     suspend fun downloadExtension(scraperId: String, downloadUrl: String, fileHash: String? = null): File? = withContext(Dispatchers.IO) {
         com.nuvio.tv.core.runtime.PluginRuntimeHooks.ensureCloudstreamInitialized()
         try {
-            val targetFile = File(extensionsDir, "${safeFileName(scraperId)}.cs3")
+            val targetFile = extensionFile(scraperId)
 
             val request = Request.Builder()
                 .url(downloadUrl)
@@ -181,7 +183,7 @@ class ExternalExtensionLoader @Inject constructor(
             return it
         }
         com.nuvio.tv.core.runtime.PluginRuntimeHooks.ensureCloudstreamInitialized()
-        val file = File(extensionsDir, "${safeFileName(scraperId)}.cs3")
+        val file = extensionFile(scraperId)
         if (!file.isFile) {
             diagnostics?.addStep("Missing extension: ${file.name}")
             return emptyList()
@@ -265,16 +267,18 @@ class ExternalExtensionLoader @Inject constructor(
         diagnostics?.addStep("Load error: ${error.javaClass.simpleName}: ${error.message?.take(160)}")
     }
 
-    @Synchronized
     fun ensureExtractorsLoaded(scraperIds: List<String>, diagnostics: TestDiagnostics? = null) {
         // Broken packages should not be rescanned on every search. An actual provider request can retry.
-        scraperIds.filter { preloaded.add(it) }.forEach { loadExtension(it, diagnostics) }
+        // Release the registry lock between packages so visible rows can resolve their Settings button.
+        for (id in scraperIds) synchronized(this) {
+            if (preloaded.add(id)) loadExtension(id, diagnostics)
+        }
     }
 
     @Synchronized
     fun deleteExtension(scraperId: String) {
         evictCache(scraperId)
-        File(extensionsDir, "${safeFileName(scraperId)}.cs3").delete()
+        extensionFile(scraperId).delete()
     }
 
     @Synchronized

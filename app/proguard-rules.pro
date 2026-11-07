@@ -140,11 +140,15 @@
 # rename or remove any class that extensions may reference.
 -keep class kotlin.** { *; }
 -keep class kotlinx.coroutines.** { *; }
+# CS3 packages call both JSON libraries directly from dynamically loaded DEX.
+-keep class kotlinx.serialization.** { *; }
+-keep class com.google.gson.** { *; }
 
 -keep class okhttp3.** { *; }
 -keepclassmembers class okhttp3.** { *; }
 -keep class okio.** { *; }
 -keepclassmembers class okio.** { *; }
+-keep class com.fleeksoft.ksoup.** { *; }
 -keep class org.jsoup.** { *; }
 -keepclassmembers class org.jsoup.** { *; }
 -keep class com.fasterxml.jackson.** { *; }

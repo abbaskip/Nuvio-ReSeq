@@ -171,6 +171,9 @@ internal object EmbeddedSubtitleTimelineLoader {
                 // The owning load was cancelled (e.g. its player closed). Load for this caller
                 // unless this caller itself is the one being cancelled.
                 currentCoroutineContext().ensureActive()
+                synchronized(cacheLock) {
+                    if (inFlight[cacheKey] === activeLoad) inFlight.remove(cacheKey)
+                }
                 load(sourceUrl, sourceHeaders)
             }
         }
@@ -179,10 +182,10 @@ internal object EmbeddedSubtitleTimelineLoader {
             return loadAndCache(cacheKey, sourceUrl, sourceHeaders)
                 .also(ownedLoad::complete)
         } finally {
-            ownedLoad.cancel()
             synchronized(cacheLock) {
                 if (inFlight[cacheKey] === ownedLoad) inFlight.remove(cacheKey)
             }
+            ownedLoad.cancel()
         }
     }
 

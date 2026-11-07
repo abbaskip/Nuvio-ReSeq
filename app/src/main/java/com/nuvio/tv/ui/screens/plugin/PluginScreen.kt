@@ -2,6 +2,7 @@
 
 package com.nuvio.tv.ui.screens.plugin
 
+import androidx.compose.ui.semantics.selected
 import com.nuvio.tv.ui.theme.NuvioPrimitives
 import com.nuvio.tv.ui.theme.NuvioTheme
 
@@ -249,6 +250,14 @@ fun PluginScreenContent(
                         viewModel.onEvent(PluginUiEvent.SetGroupStreamsByRepository(it))
                     }
                 )
+            }
+
+            if (uiState.scrapers.any { it.type == RepositoryType.EXTERNAL_DEX }) {
+                item {
+                    CloudStreamPreferences(uiState, viewModel.isReadOnly,
+                        onLanguage = { viewModel.onEvent(PluginUiEvent.ToggleSourceLanguage(it)) },
+                        onDns = { viewModel.onEvent(PluginUiEvent.CycleExtensionDns) })
+                }
             }
 
             // Repositories section
@@ -1667,4 +1676,63 @@ private fun MessageOverlay(
 private fun formatDate(timestamp: Long): String {
     val locale = Locale.getDefault()
     return SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(locale, "dMMMy"), locale).format(Date(timestamp))
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+internal fun CloudStreamPreferences(
+    state: PluginUiState,
+    readOnly: Boolean,
+    onLanguage: (String?) -> Unit,
+    onDns: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(NuvioTheme.colors.BackgroundCard, RoundedCornerShape(18.dp))
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(stringResource(R.string.plugin_source_languages_title), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.plugin_source_languages_description), style = MaterialTheme.typography.bodyMedium)
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            @Composable
+            fun Choice(label: String, selected: Boolean, action: () -> Unit) {
+                Button(
+                    onClick = action,
+                    enabled = !readOnly,
+                    modifier = Modifier.semantics { this.selected = selected },
+                    colors = ButtonDefaults.colors(
+                        containerColor = if (selected) NuvioTheme.colors.Secondary else NuvioTheme.colors.Surface,
+                        contentColor = if (selected) NuvioTheme.colors.OnSecondary else NuvioTheme.colors.TextPrimary
+                    )
+                ) {
+                    Text(label)
+                }
+            }
+            Choice(stringResource(R.string.plugin_all_source_languages), state.sourceLanguages.isEmpty()) {
+                onLanguage(null)
+            }
+            val languages = (state.installedLanguages.keys + state.sourceLanguages)
+                .sortedBy { com.nuvio.tv.core.plugin.SourceLanguages.displayName(it) }
+            languages.forEach { code ->
+                val name = com.nuvio.tv.core.plugin.SourceLanguages.displayName(code)
+                val label = "$name · ${state.installedLanguages[code] ?: 0}"
+                Choice(label, code in state.sourceLanguages) { onLanguage(code) }
+            }
+        }
+        val dnsName = when (state.extensionDns) {
+            "CLOUDFLARE" -> "Cloudflare"
+            "GOOGLE" -> "Google"
+            "QUAD9" -> "Quad9"
+            else -> stringResource(R.string.plugin_dns_system)
+        }
+        Text(stringResource(R.string.plugin_dns_description), style = MaterialTheme.typography.bodyMedium)
+        Button(onClick = onDns, enabled = !readOnly) {
+            Text(stringResource(R.string.plugin_dns_choice, dnsName))
+        }
+    }
 }

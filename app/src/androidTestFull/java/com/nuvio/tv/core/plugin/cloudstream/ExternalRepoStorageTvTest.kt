@@ -44,4 +44,30 @@ class ExternalRepoStorageTvTest {
             factory.clearProfile(FIXTURE_PROFILE)
         }
     }
+
+    @Test fun sourcePreferencesRemainIsolatedAndSurviveReopening() = runBlocking(PluginSyncProfile(FIXTURE_PROFILE)) {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val context = StorageTestContext(app)
+        val factory = ProfileDataStoreFactory(context)
+        val profiles = EntryPointAccessors.fromApplication(app, IptvStorageTestEntryPoint::class.java).profileManager()
+        fun reopen() = PluginDataStore(context, Moshi.Builder().build(), factory, profiles)
+        try {
+            val store = reopen()
+            assertEquals(emptySet<String>(), store.sourceLanguages.first())
+            assertEquals("SYSTEM", store.extensionDns.first())
+            store.setSourceLanguages(setOf("hi", "en"))
+            store.setExtensionDns("GOOGLE")
+            assertEquals(setOf("hi", "en"), reopen().sourceLanguages.first())
+            assertEquals("GOOGLE", reopen().extensionDns.first())
+            kotlinx.coroutines.withContext(PluginSyncProfile(FIXTURE_PROFILE + 1)) {
+                assertEquals(emptySet<String>(), store.sourceLanguages.first())
+                assertEquals("SYSTEM", store.extensionDns.first())
+            }
+            store.setSourceLanguages(emptySet())
+            assertEquals(emptySet<String>(), reopen().sourceLanguages.first())
+        } finally {
+            factory.clearProfile(FIXTURE_PROFILE)
+            factory.clearProfile(FIXTURE_PROFILE + 1)
+        }
+    }
 }

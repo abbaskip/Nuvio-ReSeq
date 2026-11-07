@@ -3468,4 +3468,10 @@
     <string name="vod_search_no_results">Try another title or switch between All, Movies and Series.</string>
     <string name="vod_search_playlist">IPTV · %1$s</string>
     <string name="vod_search_scope_description">Search in On Demand searches the imported movies and series from every enabled IPTV playlist, with separate results for each playlist.</string>
+    <string name="plugin_source_languages_title">Source languages</string>
+    <string name="plugin_source_languages_description">Choose which languages’ CloudStream sources search for streams. Sources with an unspecified or multilingual language are always included.</string>
+    <string name="plugin_all_source_languages">All languages</string>
+    <string name="plugin_dns_system">TV system DNS</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">Choose the resolver used for CloudStream extension requests. Press OK to switch providers.</string>
 </resources>

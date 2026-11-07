@@ -1,6 +1,7 @@
 package com.nuvio.tv.data.local
 
 import android.content.Context
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -253,6 +254,25 @@ class PluginDataStore @Inject constructor(
         store().edit { prefs ->
             prefs[groupStreamsByRepositoryKey] = enabled
         }
+    }
+
+    private val sourceLanguagesKey = stringSetPreferencesKey("cloudstream_languages")
+    private val extensionDnsKey = stringPreferencesKey("cloudstream_dns")
+
+    // An empty selection includes every source, including installations made before this setting existed.
+    val sourceLanguages: Flow<Set<String>> = profileState { pid ->
+        factory.get(pid, FEATURE).data.map { it[sourceLanguagesKey] ?: emptySet() }
+    }
+    val extensionDns: Flow<String> = profileState { pid ->
+        factory.get(pid, FEATURE).data.map { it[extensionDnsKey] ?: "SYSTEM" }
+    }
+    suspend fun setSourceLanguages(languages: Set<String>) {
+        if (sharedPluginWriteBlocked()) return
+        store().edit { it[sourceLanguagesKey] = languages }
+    }
+    suspend fun setExtensionDns(mode: String) {
+        if (sharedPluginWriteBlocked()) return
+        store().edit { it[extensionDnsKey] = mode }
     }
 
     // Scraper code storage

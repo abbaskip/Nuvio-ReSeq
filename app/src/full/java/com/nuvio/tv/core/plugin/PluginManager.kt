@@ -38,6 +38,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -249,6 +250,27 @@ class PluginManager @Inject constructor(
     private val syncScope = kotlinx.coroutines.CoroutineScope(
         kotlinx.coroutines.SupervisorJob() + Dispatchers.IO
     )
+
+    val sourceLanguages = dataStore.sourceLanguages
+    val extensionDns = dataStore.extensionDns
+    val searchConfiguration: Flow<String> = combine(sourceLanguages, extensionDns) { languages, dns ->
+        "${languages.sorted()}:$dns"
+    }
+
+    init {
+        syncScope.launch { extensionDns.collect { com.nuvio.tv.core.runtime.ExtensionDns.select(it) } }
+    }
+    suspend fun setSourceLanguages(languages: Set<String>) = dataStore.setSourceLanguages(languages.mapNotNull(SourceLanguages::normalize).toSet())
+    suspend fun setExtensionDns(mode: String) = dataStore.setExtensionDns(mode)
+    suspend fun installedSourceLanguages(): Map<String, Int> = withContext(Dispatchers.IO) {
+        val counts = mutableMapOf<String, Int>()
+        dataStore.scrapers.first().filter { it.type == RepositoryType.EXTERNAL_DEX }.forEach { scraper ->
+            externalExtensionLoader.loadExtension(scraper.id).forEach { api ->
+                SourceLanguages.normalize(api.lang)?.let { code -> counts[code] = (counts[code] ?: 0) + 1 }
+            }
+        }
+        counts
+    }
 
     var isSyncingFromRemote = false
 
@@ -800,6 +822,7 @@ class PluginManager @Inject constructor(
     private suspend fun preloadDexExtractors(scrapers: List<ScraperInfo>) {
         if (scrapers.none { it.type == RepositoryType.EXTERNAL_DEX }) return
         // Extractors can be supplied by a separate installed package or repository.
+        com.nuvio.tv.core.runtime.ExtensionDns.select(extensionDns.first())
         val ids = registerInstalledExtensions().map { it.id }
         withContext(Dispatchers.IO) { externalExtensionLoader.ensureExtractorsLoaded(ids) }
     }
@@ -855,7 +878,7 @@ class PluginManager @Inject constructor(
         episode: Int?,
         content: StreamContentContext? = null
     ): List<LocalScraperResult> {
-        val cacheKey = "${scraper.id}:$tmdbId:$mediaType:$season:$episode:${content?.title}:${content?.year}"
+        val cacheKey = "${scraper.id}:$tmdbId:$mediaType:$season:$episode:${content?.title}:${content?.year}:${searchConfiguration.first()}"
         
         // Check if already in flight
         val existing = inFlightScrapers[cacheKey]

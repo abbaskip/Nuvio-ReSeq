@@ -91,7 +91,8 @@ class StreamRepositoryImpl @Inject constructor(
         val groupPluginsByRepository: Boolean,
         val pluginRepositories: List<PluginRepository>,
         val debridSettings: DebridSettings,
-        val iptvRevision: String
+        val iptvRevision: String,
+        val pluginSearchConfiguration: String
     )
 
     override fun getStreamsFromAllAddons(
@@ -185,7 +186,7 @@ class StreamRepositoryImpl @Inject constructor(
                 .withoutRawCredentials()
                 .toString(),
             serverRevision = serverStreams.revision
-        ).let { (it + sourceConfiguration.iptvRevision + contentContext.toString()).sha256() },
+        ).let { (it + sourceConfiguration.iptvRevision + sourceConfiguration.pluginSearchConfiguration + contentContext.toString()).sha256() },
         searchMode = when {
             continuePluginOnly -> "continuePluginOnly"
             preferredPluginOnly -> "preferredPluginOnly"
@@ -211,6 +212,7 @@ class StreamRepositoryImpl @Inject constructor(
             val pluginRepositories = if (groupPluginsByRepository) pluginManager.repositories.first() else emptyList()
             val debridSettings = debridSettingsDataStore.settings.first()
 
+            val pluginSearchConfiguration = if (pluginsEnabled) pluginManager.searchConfiguration.first() else ""
             val iptvRevision = iptvStreams?.revision().orEmpty()
             if (profileManager.activeProfileId.value != profileId) continue
 
@@ -222,7 +224,8 @@ class StreamRepositoryImpl @Inject constructor(
                 groupPluginsByRepository = groupPluginsByRepository,
                 pluginRepositories = pluginRepositories,
                 debridSettings = debridSettings,
-                iptvRevision = iptvRevision
+                iptvRevision = iptvRevision,
+                pluginSearchConfiguration = pluginSearchConfiguration
             )
         }
     }

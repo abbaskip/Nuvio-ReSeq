@@ -24,6 +24,7 @@ import com.nuvio.tv.core.plugin.matchPluginEpisodeIndex
 import com.nuvio.tv.core.tmdb.TmdbMetadataService
 import com.nuvio.tv.domain.model.ContentType
 import com.nuvio.tv.domain.model.LocalScraperResult
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -54,7 +55,8 @@ private const val MAX_ALT_TITLES = 8
 @Singleton
 class ExternalExtensionRunner @Inject constructor(
     private val extensionLoader: ExternalExtensionLoader,
-    private val tmdbMetadataService: TmdbMetadataService
+    private val tmdbMetadataService: TmdbMetadataService,
+    private val pluginDataStore: com.nuvio.tv.data.local.PluginDataStore? = null
 ) {
     suspend fun execute(
         scraperId: String,
@@ -88,9 +90,13 @@ class ExternalExtensionRunner @Inject constructor(
         diagnostics: TestDiagnostics?,
         content: StreamContentContext?
     ): List<LocalScraperResult> = coroutineScope {
-        val apis = extensionLoader.loadExtension(scraperId, diagnostics)
+        val languages = pluginDataStore?.sourceLanguages?.first().orEmpty()
+        val loadedApis = extensionLoader.loadExtension(scraperId, diagnostics)
+        val apis = if (languages.isEmpty()) loadedApis else loadedApis.filter {
+            com.nuvio.tv.core.plugin.SourceLanguages.allows(it.lang, languages)
+        }
         if (apis.isEmpty()) {
-            diagnostics?.addStep("No MainAPI available after load")
+            diagnostics?.addStep(if (loadedApis.isEmpty()) "No MainAPI available after load" else "No sources match selected languages")
             return@coroutineScope emptyList()
         }
         val slots = Semaphore(3)

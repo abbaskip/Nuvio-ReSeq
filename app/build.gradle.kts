@@ -565,6 +565,7 @@ dependencies {
     add("fullImplementation", libs.jsoup)
     add("fullImplementation", "com.fasterxml.jackson.core:jackson-databind:2.17.0")
     add("fullImplementation", "com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
+    add("fullImplementation", libs.okhttp.dnsoverhttps)
     add("fullImplementation", libs.nicehttp)
     // CS3 packages call the 0.2.4 nextElementSibling() ABI directly.
     add("fullImplementation", libs.ksoup)

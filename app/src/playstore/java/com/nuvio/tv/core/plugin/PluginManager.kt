@@ -19,6 +19,13 @@ class PluginManager {
     val groupStreamsByRepository: Flow<Boolean> = flowOf(false)
     val enabledScrapers: Flow<List<ScraperInfo>> = flowOf(emptyList())
 
+    val sourceLanguages: Flow<Set<String>> = flowOf(emptySet())
+    val extensionDns: Flow<String> = flowOf("SYSTEM")
+    val searchConfiguration: Flow<String> = flowOf("")
+    suspend fun setSourceLanguages(languages: Set<String>) = Unit
+    suspend fun setExtensionDns(mode: String) = Unit
+    suspend fun installedSourceLanguages(): Map<String, Int> = emptyMap()
+
     var isSyncingFromRemote: Boolean = false
 
     fun flushPendingSync() = Unit

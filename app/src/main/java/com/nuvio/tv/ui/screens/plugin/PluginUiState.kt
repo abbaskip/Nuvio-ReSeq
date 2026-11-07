@@ -7,6 +7,9 @@ import com.nuvio.tv.domain.model.PluginRepository
 import com.nuvio.tv.domain.model.ScraperInfo
 
 data class PluginUiState(
+    val sourceLanguages: Set<String> = emptySet(),
+    val installedLanguages: Map<String, Int> = emptyMap(),
+    val extensionDns: String = "SYSTEM",
     val pluginsEnabled: Boolean = true,
     val groupStreamsByRepository: Boolean = false,
     val repositories: List<PluginRepository> = emptyList(),
@@ -43,6 +46,8 @@ data class PendingScraperEnableInfo(
 )
 
 sealed interface PluginUiEvent {
+    data class ToggleSourceLanguage(val language: String?) : PluginUiEvent
+    object CycleExtensionDns : PluginUiEvent
     data class AddRepository(val url: String) : PluginUiEvent
     data class RemoveRepository(val repoId: String) : PluginUiEvent
     data class RefreshRepository(val repoId: String) : PluginUiEvent

@@ -75,4 +75,26 @@ class MultiProviderRunnerTest {
         every { headers } returns emptyMap()
         every { referer } returns ""
     }
+
+    @Test fun languageSelectionFiltersEachApiInsideOnePackage() = runBlocking {
+        val loader = mockk<ExternalExtensionLoader>()
+        val store = mockk<com.nuvio.tv.data.local.PluginDataStore>()
+        val french = mockk<TmdbProvider> { every { name } returns "French"; every { lang } returns "fr-FR" }
+        val english = mockk<TmdbProvider> { every { name } returns "English"; every { lang } returns "en" }
+        val universal = mockk<TmdbProvider> { every { name } returns "Universal"; every { lang } returns "multi" }
+        every { loader.loadExtension("fixture", null) } returns listOf(french, english, universal)
+        every { store.sourceLanguages } returns kotlinx.coroutines.flow.flowOf(setOf("en"))
+        for (api in listOf(english, universal)) {
+            coEvery { api.load(any()) } returns mockk<MovieLoadResponse> { every { dataUrl } returns "film" }
+            coEvery { api.loadLinks("film", false, any(), any()) } answers {
+                arg<(ExtractorLink) -> Unit>(3)(movieLink("https://example.org/" + api.name + ".mp4"))
+                true
+            }
+        }
+        val runner = ExternalExtensionRunner(loader, mockk(), store)
+        assertEquals(2, runner.execute("fixture", "12", "movie", null, null).size)
+        coVerify(exactly = 0) { french.load(any()) }
+        coVerify(exactly = 1) { english.load(any()) }
+        coVerify(exactly = 1) { universal.load(any()) }
+    }
 }

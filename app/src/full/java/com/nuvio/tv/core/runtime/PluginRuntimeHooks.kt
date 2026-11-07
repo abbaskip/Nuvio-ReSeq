@@ -50,7 +50,7 @@ object PluginRuntimeHooks {
 
             try {
                 app.baseClient = OkHttpClient.Builder()
-                    .dns(com.nuvio.tv.core.network.IPv4FirstDns())
+                    .dns(ExtensionDns)
                     .cookieJar(NuvioApplication.extensionCookieJar)
                     .followRedirects(true)
                     .followSslRedirects(true)
@@ -66,6 +66,10 @@ object PluginRuntimeHooks {
             
             isCloudstreamInitialized = true
         }
+    }
+
+    fun onExtensionDnsChanged() {
+        if (isCloudstreamInitialized) app.baseClient.connectionPool.evictAll()
     }
 
     fun onActivityCreate(activity: Activity) {

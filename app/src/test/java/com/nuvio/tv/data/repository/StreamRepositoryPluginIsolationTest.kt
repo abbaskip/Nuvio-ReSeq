@@ -330,6 +330,24 @@ class StreamRepositoryPluginIsolationTest {
         coVerify(exactly = 0) { h.api.getStreams(match { it.contains("iptv-playlist:") }) }
     }
 
+    @Test fun `changing language or DNS starts a fresh stream search`() = runTest {
+        val harness = newHarness(listOf(compatibleScraper()))
+        val configuration = MutableStateFlow("[]:SYSTEM")
+        every { harness.pluginManager.searchConfiguration } returns configuration
+        coEvery { harness.tmdbService.ensureTmdbId("tt1341338", "movie") } returns null
+        suspend fun search() = harness.repository.getStreamsFromAllAddons(
+            type = "movie", videoId = "tt1341338", season = null, episode = null).toList()
+        search()
+        search()
+        coVerify(exactly = 1) { harness.api.getStreams(any()) }
+        configuration.value = "[en]:SYSTEM"
+        search()
+        coVerify(exactly = 2) { harness.api.getStreams(any()) }
+        configuration.value = "[en]:CLOUDFLARE"
+        search()
+        coVerify(exactly = 3) { harness.api.getStreams(any()) }
+    }
+
     private fun newHarness(enabledScrapers: List<ScraperInfo>,
         iptvSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources? = null,
         iptvStreams: com.nuvio.tv.livetv.ondemand.IptvVodStreams? = null): Harness {
@@ -352,6 +370,7 @@ class StreamRepositoryPluginIsolationTest {
 
         val pluginManager = mockk<PluginManager>(relaxed = true)
         every { pluginManager.enabledScrapers } returns flowOf(enabledScrapers)
+        every { pluginManager.searchConfiguration } returns kotlinx.coroutines.flow.flowOf("")
         every { pluginManager.pluginsEnabled } returns flowOf(enabledScrapers.isNotEmpty())
         every { pluginManager.groupStreamsByRepository } returns flowOf(false)
         every { pluginManager.repositories } returns flowOf(emptyList())

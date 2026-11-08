@@ -61,6 +61,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import com.nuvio.tv.core.usenet.UsenetPlayback
+import com.nuvio.tv.core.usenet.UsenetFailure
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -125,6 +127,7 @@ class StreamScreenViewModel @Inject constructor(
     private var streamLoadCompleted = false
     private var sourceChipErrorDismissJob: Job? = null
     private var pendingCacheSaveJob: Job? = null
+    private var usenetPrepareJob: Job? = null
     private var streamBadgePresentationJob: Job? = null
     private var streamFilterExpandJob: Job? = null
     private var streamFilterFullList: List<Stream> = emptyList()
@@ -1465,7 +1468,33 @@ class StreamScreenViewModel @Inject constructor(
     }
 
     suspend fun resolveStreamForPlayback(stream: Stream, saveLastLink: Boolean = true): StreamPlaybackInfo? {
+        usenetPrepareJob?.let { previous ->
+            previous.cancel()
+            usenetPrepareJob = null
+            updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = false, directAutoPlayMessage = null) }
+        }
         stream.serverTarget?.let { target -> return prepareServerStream(stream, target) }
+        if (stream.usenet != null) {
+            val preparing = kotlin.coroutines.coroutineContext[Job]
+            usenetPrepareJob = preparing
+            updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = true,
+                directAutoPlayMessage = context.getString(R.string.usenet_opening), playbackErrorMessage = null) }
+            return try {
+                val resolved = UsenetPlayback.resolve(stream)
+                updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = it.isDirectAutoPlayFlow, directAutoPlayMessage = null) }
+                getStreamForPlayback(resolved, saveLastLink)
+            } catch (error: UsenetFailure) {
+                showDirectDebridPlaybackError(error.message.orEmpty(), refreshStreams = false)
+                null
+            } finally {
+                if (usenetPrepareJob === preparing) {
+                    usenetPrepareJob = null
+                    if (preparing?.isCancelled == true) updateUiStateIfChanged {
+                        it.copy(showDirectAutoPlayOverlay = false, directAutoPlayMessage = null)
+                    }
+                }
+            }
+        }
         if (stream.youTubeIdToResolve() != null) {
             return resolveYouTubeStreamForPlayback(stream)
         }

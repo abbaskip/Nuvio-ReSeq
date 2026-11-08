@@ -492,7 +492,7 @@ fun StreamScreen(
                             it.url == stream.url &&
                                 it.infoHash == stream.infoHash &&
                                 it.ytId == stream.ytId &&
-                                it.serverTarget == stream.serverTarget &&
+                                it.usenet == stream.usenet && it.serverTarget == stream.serverTarget &&
                                 it.addonName == stream.addonName
                         }
                         if (currentIndex >= 0) {

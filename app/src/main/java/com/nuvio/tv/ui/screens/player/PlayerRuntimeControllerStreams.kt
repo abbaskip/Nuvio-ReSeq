@@ -5,6 +5,8 @@ import com.nuvio.tv.domain.model.displaySeason
 import com.nuvio.tv.domain.model.episodeSequenceComparator
 import com.nuvio.tv.domain.model.hasResolvedSource
 
+import com.nuvio.tv.core.usenet.UsenetFailure
+import com.nuvio.tv.core.usenet.UsenetPlayback
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -328,6 +330,7 @@ private fun mergeSourceStreams(cached: List<Stream>, fresh: List<Stream>): List<
 
 private fun Stream.mergeKey(): String =
     infoHash?.lowercase()?.let { hash -> "$addonName|$hash:${fileIdx ?: ""}" }
+        ?: usenet?.let { "$addonName|${it.identity}|${fileIdx ?: ""}" }
         ?: "$addonName|${getStreamUrl() ?: externalUrl ?: ytId ?: "${name}:${title}"}"
 
 private fun PlayerRuntimeController.launchSourceDebridPreparationIfNeeded(
@@ -780,6 +783,26 @@ private fun PlayerRuntimeController.persistTorrentStreamForReuse(stream: Stream)
     }
 }
 
+private fun PlayerRuntimeController.prepareUsenetStream(stream: Stream, fromEpisodePanel: Boolean, play: (Stream) -> Unit) {
+    debridResolveJob?.cancel()
+    _uiState.update {
+        if (fromEpisodePanel) it.copy(isLoadingEpisodeStreams = true, episodeStreamsError = null)
+        else it.copy(isLoadingSourceStreams = true, sourceStreamsError = null)
+    }
+    usenetPrepareJob = scope.launch {
+        try {
+            val resolved = UsenetPlayback.resolve(stream)
+            usenetPrepareJob = null
+            play(resolved)
+        } catch (error: UsenetFailure) {
+            _uiState.update {
+                if (fromEpisodePanel) it.copy(isLoadingEpisodeStreams = false, episodeStreamsError = error.message)
+                else it.copy(isLoadingSourceStreams = false, sourceStreamsError = error.message)
+            }
+        }
+    }
+}
+
 private fun PlayerRuntimeController.openExternalStreamInBrowser(
     stream: Stream,
     fromEpisodePanel: Boolean
@@ -842,6 +865,8 @@ internal fun PlayerRuntimeController.switchToSourceStream(
     sourceStreamsScope = null
     sourceStreamsJob = null
     streamRepository.setLocalPluginSearchPaused(true)
+    usenetPrepareJob?.cancel()
+    usenetPrepareJob = null
     if (openExternalStreamInBrowser(stream = stream, fromEpisodePanel = false)) {
         return
     }
@@ -858,6 +883,11 @@ internal fun PlayerRuntimeController.switchToSourceStream(
                 _uiState.update { it.copy(isLoadingSourceStreams = false) }
             }
         }
+        return
+    }
+
+    if (stream.usenet != null) {
+        prepareUsenetStream(stream, fromEpisodePanel = false) { switchToSourceStream(it) }
         return
     }
 
@@ -1507,6 +1537,8 @@ internal fun PlayerRuntimeController.switchToEpisodeStream(
     forcedTargetVideo: Video? = null,
     isAutoPlay: Boolean = false
 ) {
+    usenetPrepareJob?.cancel()
+    usenetPrepareJob = null
     if (openExternalStreamInBrowser(stream = stream, fromEpisodePanel = true)) {
         return
     }
@@ -1523,6 +1555,11 @@ internal fun PlayerRuntimeController.switchToEpisodeStream(
                 _uiState.update { it.copy(isLoadingEpisodeStreams = false) }
             }
         }
+        return
+    }
+
+    if (stream.usenet != null) {
+        prepareUsenetStream(stream, fromEpisodePanel = true) { switchToEpisodeStream(it, forcedTargetVideo, isAutoPlay) }
         return
     }
 

@@ -31,7 +31,8 @@ data class Stream(
     val subtitles: List<Subtitle> = emptyList(),
     val serverTarget: ServerPlaybackTarget? = null,
     val pluginSourceName: String? = null,
-    val iptvPlaylistId: String? = null
+    val iptvPlaylistId: String? = null,
+    @Transient val usenet: UsenetSource? = null
 ) {
     /**
      * Returns the primary stream source URL
@@ -150,7 +151,7 @@ data class Stream(
     fun stableKey(occurrence: Int = 0): String = buildString {
         append(addonName)
         append('\u0000')
-        append(url ?: infoHash ?: clientResolve?.infoHash ?: ytId ?: externalUrl ?: serverTarget?.key() ?: "")
+        append(url ?: infoHash ?: clientResolve?.infoHash ?: ytId ?: externalUrl ?: serverTarget?.key() ?: usenet?.identity ?: "")
         append('\u0000')
         append(getEffectiveFileIdx() ?: "")
         append('\u0000')
@@ -166,6 +167,19 @@ data class Stream(
         append('\u0000')
         append(occurrence)
     }
+}
+
+/** Provider URLs can contain credentials. Keep only the digest in UI keys and diagnostics. */
+data class UsenetSource(val nzbUrl: String, val servers: List<String>, val filters: List<String>) {
+    val identity by lazy {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        for (field in listOf(nzbUrl) + servers + filters) {
+            digest.update(field.toByteArray(Charsets.UTF_8))
+            digest.update(0)
+        }
+        digest.digest().joinToString("") { "%02x".format(it) }
+    }
+    override fun toString() = "UsenetSource(redacted)"
 }
 
 @Immutable

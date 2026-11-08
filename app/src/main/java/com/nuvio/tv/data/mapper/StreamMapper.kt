@@ -9,6 +9,7 @@ import com.nuvio.tv.data.remote.dto.StreamClientResolveDto
 import com.nuvio.tv.data.remote.dto.StreamDto
 import com.nuvio.tv.domain.model.ProxyHeaders
 import com.nuvio.tv.domain.model.Stream
+import com.nuvio.tv.domain.model.UsenetSource
 import com.nuvio.tv.domain.model.StreamBehaviorHints
 import com.nuvio.tv.domain.model.Subtitle
 import com.nuvio.tv.domain.model.StreamClientResolve
@@ -23,6 +24,15 @@ fun StreamDto.toDomain(addonName: String, addonLogo: String?): Stream = Stream(
     title = title,
     description = description,
     url = url,
+    usenet = nzbUrl?.takeIf { it.isNotBlank() && url.isNullOrBlank() && externalUrl.isNullOrBlank() }?.let {
+        val filters = when (val hint = fileMustInclude) {
+            null -> emptyList()
+            is String -> listOf(hint)
+            is List<*> -> hint.map { value -> value as? String ?: "" }
+            else -> listOf("")
+        }
+        UsenetSource(it, (servers as? List<*>)?.filterIsInstance<String>().orEmpty(), filters)
+    },
     ytId = ytId,
     infoHash = infoHash,
     fileIdx = fileIdx,

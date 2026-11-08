@@ -371,7 +371,7 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         val isPlaystore = variant.productFlavors.any { it.second == "playstore" }
-        variant.applicationId.set(if (isPlaystore) "io.github.abbaskip.nuvioreseq.playstore.debug" else "io.github.abbaskip.nuvioreseq.iptvdebug")
+        variant.applicationId.set(if (isPlaystore) "io.github.abbaskip.nuvioreseq.playstore.debug" else "io.github.abbaskip.nuvioreseq.usenettest")
     }
     // Only the full flavor ships the in-app updater.
     onVariants(selector().withFlavor("distribution" to "full")) { variant ->
@@ -588,6 +588,9 @@ dependencies {
     add("fullImplementation", libs.crypto.js)
     // QR code + local server for addon management
     implementation(libs.nanohttpd)
+    implementation("com.google.re2j:re2j:1.8")
+    // Decode bounded 7z metadata. Video payloads stay on the seekable NNTP path.
+    implementation("org.tukaani:xz:1.10")
     implementation(libs.zxing.core)
 
 

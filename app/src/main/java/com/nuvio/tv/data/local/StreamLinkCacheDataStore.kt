@@ -3,6 +3,7 @@ package com.nuvio.tv.data.local
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.nuvio.tv.core.usenet.UsenetHttpSession
 import com.nuvio.tv.core.profile.ProfileManager
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
@@ -64,6 +65,10 @@ class StreamLinkCacheDataStore @Inject constructor(
         addonLogo: String? = null,
         streamDescription: String? = null
     ) {
+        if (UsenetHttpSession.isSessionUrl(url)) {
+            store().edit { it.remove(cachePrefKey(contentKey)) }
+            return
+        }
         val payload = JSONObject().apply {
             put("url", url)
             put("streamName", streamName)

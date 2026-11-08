@@ -40,6 +40,8 @@ class TsSegmenterRewindTest {
         assertFalse(playlist.contains("PLAYLIST-TYPE:EVENT"))
         val durations = playlist.lineSequence().filter { it.startsWith("#EXTINF:") }
             .map { it.substringAfter(':').substringBefore(',').toDouble() }.toList()
+        assertTrue(playlist.lineSequence().filter { it.startsWith("#EXTINF:") }
+            .all { it.matches(Regex("""#EXTINF:\d+\.\d{3},""")) })
         assertTrue(durations.isNotEmpty())
         assertTrue(durations.all { it <= 3.0 })
         assertTrue(segmenter.trimmedSec >= 6.0)

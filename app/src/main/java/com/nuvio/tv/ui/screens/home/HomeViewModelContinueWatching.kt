@@ -1231,12 +1231,24 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
     }
 }
 
-private fun deduplicateInProgress(items: List<WatchProgress>): List<WatchProgress> {
-    val (series, nonSeries) = items.partition { isSeriesTypeCW(it.contentType) }
-    val latestPerShow = series
-        .sortedByDescending { it.lastWatched }
-        .distinctBy { it.contentId }
-    return (nonSeries + latestPerShow).sortedByDescending { it.lastWatched }
+internal fun deduplicateInProgress(items: List<WatchProgress>): List<WatchProgress> {
+    val visible = ArrayList<WatchProgress>()
+    val latest = LinkedHashMap<String, WatchProgress>()
+    for (item in items) {
+        if (!isSeriesTypeCW(item.contentType)) {
+            visible.add(item)
+            continue
+        }
+        val previous = latest[item.contentId]
+        if (previous == null || item.lastWatched > previous.lastWatched) {
+            // Stable timestamp ties use the input order of the winning episodes.
+            if (previous != null) latest.remove(item.contentId)
+            latest[item.contentId] = item
+        }
+    }
+    visible.addAll(latest.values)
+    visible.sortByDescending { it.lastWatched }
+    return visible
 }
 
 private fun shouldTreatAsInProgressForContinueWatching(progress: WatchProgress): Boolean {

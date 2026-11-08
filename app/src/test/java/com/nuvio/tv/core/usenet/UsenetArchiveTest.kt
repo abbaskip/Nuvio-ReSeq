@@ -98,6 +98,20 @@ class UsenetArchiveTest {
         assertArrayEquals(original.copyOfRange(173, 1788), file.bytesAt(173, 1615))
     }
 
+    @Test fun encryptedRangesPreserveCallerOffsetsAndTailBytes() {
+        val file = select("visible.rar" to resource("visible.rar"), password = "FixtureOnly5")
+        val expected = resource("test-pattern.mp4")
+        for (position in listOf(0, 16, 17, expected.size - 5)) {
+            val destination = ByteArray(70) { -1 }
+            val count = file.read(position.toLong(), destination, 3, 64)
+            val reference = ByteArray(70) { -1 }
+            val end = minOf(position + 64, expected.size)
+            expected.copyInto(reference, 3, position, end)
+            assertEquals(end - position, count)
+            assertArrayEquals(reference, destination)
+        }
+    }
+
     private fun packet(name: String, content: ByteArray): ByteArray {
         fun md5(data: ByteArray) = MessageDigest.getInstance("MD5").digest(data)
         val filename = name.toByteArray()

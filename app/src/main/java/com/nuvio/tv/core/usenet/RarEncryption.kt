@@ -76,6 +76,9 @@ internal class RarPlaintext(private val source: UsenetFile, private val base: Lo
         val cipher = Cipher.getInstance("AES/CBC/NoPadding")
         val vector = if (previous == 0) IvParameterSpec(iv) else IvParameterSpec(encrypted, 0, 16)
         cipher.init(Cipher.DECRYPT_MODE, key, vector)
+        if (skip == 0 && encrypted.size - previous == count && cipher.getOutputSize(count) == count) {
+            return cipher.doFinal(encrypted, previous, count, buffer, offset)
+        }
         val plaintext = cipher.doFinal(encrypted, previous, encrypted.size - previous)
         plaintext.copyInto(buffer, offset, skip, skip + count)
         return count

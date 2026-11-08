@@ -462,10 +462,12 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         }
         if (cachedOnly) return emptyList()
         val leagueWords = leagues.flatMap { l -> l.guideWords.map { it to l } }
+        // Recompute comparison text for each scan, keeping the original labels for display.
+        val followedLabels = scanKey.words.map { it to norm(it).trim() }
         // Identify legacy competitions independently of visibility, as the taxonomy does.
         val fallbackWords = (SportsCatalog.leagues + leagues).distinctBy { it.id }
             .filter { l -> !l.id.startsWith("taxonomy/") && SportsTaxonomy.roots.none { SportsTaxonomy.sport(it.id) == l.sport } }
-            .flatMap { l -> l.guideWords.map { it to l } }
+            .flatMap { l -> l.guideWords.map { norm(it).trim() to l } }
         val hits = ArrayList<Pair<String, EpgProgram>>()
         fun classify(p: EpgProgram): SportsTaxonomy.Node? {
             val key = p.title to p.description
@@ -473,8 +475,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             return classifiedText[key]
         }
         val allowedIds = leagues.mapTo(HashSet()) { it.id }
-        val otherWords = (leagueWords.filterNot { it.second.id.startsWith("taxonomy/") }.map { it.first } + followedWords)
-            .map { norm(it).trim() }.distinct()
+        val otherWords = (leagueWords.filterNot { it.second.id.startsWith("taxonomy/") }.map { norm(it.first).trim() } +
+            followedLabels.map { it.second }).distinct()
         val otherIndex = otherWords.groupBy { it.substringBefore(' ') }
         val includedText = com.nuvio.tv.livetv.data.boundedCache<Pair<String, String?>, Boolean>(8192)
         var visited = 0
@@ -507,7 +509,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             val classified = classify(p)
             val league = if (classified != null) leagues.firstOrNull { it.id == "taxonomy/" + classified.id }
                 else fallbackWords.filter { (w, _) ->
-                    hasWord(nt, norm(w).trim()) || hasWord(nd, norm(w).trim()) }
+                    hasWord(nt, w) || hasWord(nd, w) }
                     .maxByOrNull { (_, l) ->
                         // Explicit names beat generic aliases such as "Grand Prix".
                         val names = listOf(l.name, l.short).map { norm(it).trim() }.filter { it.isNotEmpty() }
@@ -528,7 +530,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             // named after the show or league (those run old shows all day).
             if (!saysLive && (league?.liveByDefault != true || league.guideWords.any { hasWord(nameNorm(ch.name), norm(it).trim()) }) &&
                 !MATCHUP.containsMatchIn(" $nt $nd ")) continue
-            val word = followedWords.firstOrNull { w -> hasWord(nt, norm(w).trim()) || hasWord(nd, norm(w).trim()) }
+            val word = followedLabels.firstOrNull { (_, w) -> hasWord(nt, w) || hasWord(nd, w) }?.first
             if (league == null && word == null) continue
             val clean = cleanTitle(p.title)
             val g = (league?.id ?: OTHER_ID) + "|" + norm(clean).trim() + "|" + (p.startMs / (15 * MINUTE))

@@ -71,6 +71,28 @@ class SportsGuideCacheTest {
         verify(exactly = 3) { db.visitPrograms(any(), any(), any()) }
     }
 
+    @Test fun followedLabelsAndProgrammeTextRefreshIndependently() {
+        val db = mockk<EpgDatabase>()
+        var revision = "first"
+        var title = "Live: Falcons vs Owls"
+        every { db.fingerprint() } returns "same-guide"
+        every { db.contentRevision() } answers { revision }
+        val start = 1_793_318_400_000L
+        every { db.visitPrograms(any(), any(), any()) } answers {
+            thirdArg<(String, EpgProgram) -> Unit>().invoke("c", EpgProgram(start, start + 3_600_000, title))
+        }
+        val channel = LiveChannel("c", "playlist", "Test", "Local", null, null, null, "sports", "Sports", 1, "https://example.invalid")
+        val matcher = SportsMatcher(db)
+        fun scan(vararg labels: String) = matcher.guideEvents(start, start + 86_400_000, emptyList(),
+            labels.toList(), mapOf("c" to channel), 0, start)
+        assertEquals("FÁLCONS", scan("FÁLCONS", "Owls").single().word)
+        assertEquals("Owls", scan("Owls", "FÁLCONS").single().word)
+        title = "Live: Eagles vs Bears"
+        revision = "second"
+        assertTrue(scan("Owls", "FÁLCONS").isEmpty())
+        assertEquals("Eagles", scan("Eagles").single().word)
+    }
+
     @Test fun `completed discovery survives process restart but guide channels and settings invalidate it`() {
         val db = mockk<EpgDatabase>()
         var revision = "committed"

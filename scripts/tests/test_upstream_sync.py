@@ -9,6 +9,13 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_incomplete_candidate_cannot_overwrite_integrated_or_held_history(self):
+        previous = {"commits": {"a": {"outcome": "integrated"}, "b": {"outcome": "held"}}}
+        for sha in previous["commits"]:
+            with self.subTest(sha=sha), self.assertRaisesRegex(RuntimeError, "historical review"):
+                sync.require_ledger_continuity(previous, {"commits": {sha: previous["commits"][sha]}})
+        sync.require_ledger_continuity(previous, previous)
+
     def test_preserved_candidate_is_reused_until_merged_and_moving_ref_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

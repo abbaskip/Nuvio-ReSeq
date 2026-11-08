@@ -110,6 +110,12 @@ def pending_candidate(state, root, base):
     return None if ancestor(pending["head"], base, cwd=root) else pending
 
 
+def require_ledger_continuity(previous, current):
+    missing = previous["commits"].keys() - current["commits"].keys()
+    if missing:
+        raise RuntimeError(f"Candidate lost {len(missing)} historical review records; reconcile from the preserved branch")
+
+
 def begin(args, root, state):
     if not (state / "review-ledger.json").is_file():
         raise RuntimeError("Missing shared review ledger; recover durable state before starting")
@@ -151,9 +157,11 @@ def begin(args, root, state):
         # Review-only and held runs need durable decisions even when dev is unchanged.
         shared = state / "review-ledger.json"
         if shared.exists():
-            for sha, decision in json.loads(shared.read_text())["commits"].items():
+            previous = json.loads(shared.read_text())
+            for sha, decision in previous["commits"].items():
                 if sha not in ledger["commits"] and decision["outcome"] != "integrated":
                     ledger["commits"][sha] = decision
+            require_ledger_continuity(previous, ledger)
             if ledger["commits"]:
                 save(ledger_path, ledger)
         commits = upstream_inventory(base, upstream, root, ledger)
@@ -528,8 +536,10 @@ def main():
             raise RuntimeError("Release still active; retain the lock and resume monitoring")
         ledger = Path(run["worktree"]) / LEDGER
         if ledger.exists() and not run["dry_run"]:
-            save(state / "evidence" / run["id"] / "review-ledger.json", json.loads(ledger.read_text()))
-            save(state / "review-ledger.json", json.loads(ledger.read_text()))
+            current = json.loads(ledger.read_text())
+            require_ledger_continuity(json.loads((state / "review-ledger.json").read_text()), current)
+            save(state / "evidence" / run["id"] / "review-ledger.json", current)
+            save(state / "review-ledger.json", current)
         retire_build_outputs(run, root, state)
         run["finished_head"] = git("rev-parse", "HEAD", cwd=run["worktree"])
         run["report"] = str(report); run["finished_utc"] = datetime.now(timezone.utc).isoformat()

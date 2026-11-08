@@ -24,11 +24,11 @@ object BackgroundWork {
         if (System.nanoTime() - lastNavigationNanos in 0..250_000_000L) Thread.sleep(16)
     }
 
-    /** Driven by the player controller, including pause, buffering and overlapping sessions. */
-    val nuvioPlaying = com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen
+    /** Includes trailer buffering and playback as well as full player sessions. */
+    val nuvioPlaying = com.nuvio.tv.core.player.PlayerSessionTracker.playbackActive
 
     val isNuvioPlaying: Boolean
-        get() = com.nuvio.tv.core.player.PlayerSessionTracker.hasOpenSession
+        get() = com.nuvio.tv.core.player.PlayerSessionTracker.hasPlayback
 
     /** Only for synchronous background workers, outside database transactions. */
     fun awaitPlaybackIdleBlocking() {

@@ -14,25 +14,38 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Sessions are counted because the next player can open before the previous one is cleared.
  */
 object PlayerSessionTracker {
-    private val openSessions = MutableStateFlow(0)
-
-    /** Synchronous worker checkpoints must not wait for a UI collector to observe the session. */
-    val hasOpenSession: Boolean get() = openSessions.value > 0
-
-    val isSessionOpen: Flow<Boolean> = openSessions.map { it > 0 }.distinctUntilChanged()
-
-    fun open(): Session {
-        openSessions.update { it + 1 }
-        return Session()
+    private data class Counts(val players: Int = 0, val trailers: Int = 0) {
+        val hasPlayback: Boolean get() = players > 0 || trailers > 0
     }
 
-    class Session internal constructor() {
+    private val openSessions = MutableStateFlow(Counts())
+
+    /** Synchronous worker checkpoints must not wait for a UI collector to observe the session. */
+    val hasOpenSession: Boolean get() = openSessions.value.players > 0
+
+    val isSessionOpen: Flow<Boolean> = openSessions.map { it.players > 0 }.distinctUntilChanged()
+
+    // Background work yields to previews too. Watch-progress refresh still follows full players.
+    val hasPlayback: Boolean get() = openSessions.value.hasPlayback
+    val playbackActive: Flow<Boolean> = openSessions.map { it.hasPlayback }.distinctUntilChanged()
+
+    fun open(): Session {
+        openSessions.update { it.copy(players = it.players + 1) }
+        return Session { openSessions.update { it.copy(players = it.players - 1) } }
+    }
+
+    fun openTrailer(): Session {
+        openSessions.update { it.copy(trailers = it.trailers + 1) }
+        return Session { openSessions.update { it.copy(trailers = it.trailers - 1) } }
+    }
+
+    class Session internal constructor(private val onClose: () -> Unit) {
         private val closed = AtomicBoolean(false)
 
         /** Safe to call more than once; only the first call closes the session. */
         fun close() {
             if (closed.compareAndSet(false, true)) {
-                openSessions.update { (it - 1).coerceAtLeast(0) }
+                onClose()
             }
         }
     }

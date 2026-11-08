@@ -12,6 +12,24 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
 class BackgroundPlaybackHoldTest {
+    @Test fun `trailer holds background work across handoff to full playback`() = runTest {
+        val preview = PlayerSessionTracker.openTrailer()
+        try {
+            assertFalse(PlayerSessionTracker.isSessionOpen.first())
+            assertTrue(BackgroundWork.isNuvioPlaying)
+            assertTrue(BackgroundWork.nuvioPlaying.first())
+            val worker = async(start = CoroutineStart.UNDISPATCHED) { BackgroundWork.awaitIdle() }
+            val movie = PlayerSessionTracker.open()
+            try {
+                preview.close()
+                assertTrue(BackgroundWork.isNuvioPlaying)
+                assertFalse(worker.isCompleted)
+            } finally { movie.close() }
+            worker.await()
+            assertFalse(BackgroundWork.isNuvioPlaying)
+        } finally { preview.close() }
+    }
+
     @Test fun `real player sessions hold work without any navigation overlay`() = runTest {
         val previous = PlayerSessionTracker.open()
         val next = PlayerSessionTracker.open()

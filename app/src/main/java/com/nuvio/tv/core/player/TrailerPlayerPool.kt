@@ -55,6 +55,7 @@ class TrailerPlayerPool @Inject constructor(
     }
 
     private var _player: ExoPlayer? = null
+    private var trailerSession: PlayerSessionTracker.Session? = null
     private val yielded = AtomicBoolean(false)
     private val released = AtomicBoolean(false)
     private val settingsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -135,6 +136,12 @@ class TrailerPlayerPool @Inject constructor(
             }
         }
         _isTrailerPlaying.value = false
+        closeTrailerSession()
+    }
+
+    private fun closeTrailerSession() {
+        trailerSession?.close()
+        trailerSession = null
     }
 
     /**
@@ -151,6 +158,7 @@ class TrailerPlayerPool @Inject constructor(
                 runCatching { player.release() }
             }
             _player = null
+            closeTrailerSession()
         }
     }
 
@@ -177,6 +185,7 @@ class TrailerPlayerPool @Inject constructor(
                 runCatching { player.release() }
             }
             _player = null
+            closeTrailerSession()
         }
     }
 
@@ -231,6 +240,16 @@ class TrailerPlayerPool @Inject constructor(
             .apply {
                 repeatMode = Player.REPEAT_MODE_OFF
                 addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (this@apply !== _player) return
+                        when (playbackState) {
+                            Player.STATE_BUFFERING, Player.STATE_READY -> {
+                                if (trailerSession == null) trailerSession = PlayerSessionTracker.openTrailer()
+                            }
+                            Player.STATE_IDLE, Player.STATE_ENDED -> closeTrailerSession()
+                        }
+                    }
+
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
                         _isTrailerPlaying.value = isPlaying
                     }

@@ -1424,6 +1424,662 @@
         "evidence": "Automatic remerge reproduces the recorded merge exactly. Parent edits are accounted for separately. No independent resolution patch.",
         "status": "closed without a separate patch"
       }
+    },
+    "23c229109f02825236fc4822c4cca23a756162f6": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Update Slovak subtitles strings in strings.xml",
+      "integration_commit": "db79aa095236aacb8cedb703a2f81e044ec6f15f"
+    },
+    "747f7610cca01ac7d23dfd2b1139b77758f5949b": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "19886da732003cb784635aaa0b80112d0821828a": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Update strings.xml",
+      "integration_commit": "b4d9e75a8a639dee0256ed7ed62f068fa2108791"
+    },
+    "c1c3ca78fea0de14e3f11675568892d4566528ca": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "9e311d710d0deb3ae46e363e4012cee86baf0744": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): sync ASS/SSA add-on subtitles drawn by libass",
+      "integration_commit": "274f2fc35f53b413f7ea85235ee7c31610fb2825"
+    },
+    "af4aa462531a467442975bcfede1163c0834ddf0": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "6194be92582e758aff8f6df4c20ece2666bca815": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): match ASS/SSA subtitles by their dialogue",
+      "integration_commit": "bbf99bb90700ad6f81c298ab3e97c24178a904a6"
+    },
+    "17707bad97c591206df6551bb791925b4be7b80e": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): keep the add-on subtitle the user chose for the series",
+      "integration_commit": "f56de9421bdf7acf3e0fa8bd589f0a1202a04ca5"
+    },
+    "8da2078532aecd3698bc6de405ad19f189052253": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): stay silent unless the subtitle does not fit the video",
+      "integration_commit": "4776e722e3be88ba8fbdeaf5ea9d3af4eb79db50"
+    },
+    "3d65d94d6faebc54cd495121f83d16588afef477": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): shorten the Polish synced label",
+      "integration_commit": "fefc4a1ae3fc0bff2919c29691783e155b1c2806"
+    },
+    "f860daeb455a1919463639d30de23a936c9ca7c2": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): confirm a no-fit only from full references",
+      "integration_commit": "ed4b74e146e31ce09f52163292ee99879b145d5a"
+    },
+    "00754edfb7ad55fb8abef0f7bc663e7c8b816402": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): let only ASS/SSA candidates compete on the libass path",
+      "integration_commit": "00d5149c4b2d2814ff3cab4ceac3bf13bcde64a5"
+    },
+    "995f57ab02c9a9616010e4fa7a527c8be7987561": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: refactor(autosync): compile the ASS override block regex once",
+      "integration_commit": "905a7827c292ebb2f65176fef911ff7022b0f90d"
+    },
+    "fd95a7cafa9d2ce1111c7e8c417593ce6cf018aa": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): bump nuvio-libass to v0.0.13 and swap tracks with replaceTrack",
+      "integration_commit": "10bcfe1743eb18b18729d3074d2c2ed57bffddd9"
+    },
+    "38f820e46b70bc945da79f3742dece0c5481471a": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): fall back to SRT/VTT when no ASS/SSA subtitle fits",
+      "integration_commit": "64398dd5c59fb72b4e299accc5ec8d300ed40495"
+    },
+    "1cb85edbc36c2293c7bbe7311b407ff05a9f42e3": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): reapply the synced result after a player rebuild",
+      "integration_commit": "6f6f09727302a08b13c2a03f8b2e429dceb8c689"
+    },
+    "e0d4adcc1ab278de230a0a9c06060c931cdd9b96": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "212940d5d236aa3f2f0593fd329f974f10b4bab8": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(profiles): let Back leave the profile PIN screen",
+      "integration_commit": "db63cdfab92cd1278ff773cdc52e3cdbb752d30c"
+    },
+    "6c858a1020f013359e2f4ae6f50a9a1c73301524": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "e985563f54ef760d43b93c0ffd587d0e222613f8": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Translate missing Latin American Spanish strings",
+      "integration_commit": "d3b552e8ff1f56fd5acd3a01ff2e342efd1277f0"
+    },
+    "a4d4f50545d8c2e66c8f03f690546f0eadc980da": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Translate new Watch party chat note",
+      "integration_commit": "39e967a2ea209d346e2cbc8511b168c4de3425f7"
+    },
+    "4b74d724a82dda115944e71e02c4288daf156873": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Preserve resource formatting in Spanish strings",
+      "integration_commit": "39814f92727cd64bce9434e8816a54d320c633ed"
+    },
+    "1b6acb8ee06082edd1ee558f87ebd85ef8c7d288": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Translate new Watch party chat note",
+      "integration_commit": "81e08fd3f7ac31009397e4e80e10284735918c68"
+    },
+    "14a6d759f7525a13f799c8cf87eabc4bdf12e0ec": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "f4c482e640dc857d598dda431834dde0f201fcd4": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Fix player episode selection delay",
+      "integration_commit": "f78b48b51df95a42fa247a85ba26f1155b3f1e1f"
+    },
+    "8f3112655d3d128c4888b9c69e37d44f2d001fb2": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "bc4dfde92cb471cff8a506f6d40222127b96bae6": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: update latest missing strings",
+      "integration_commit": "fe5a12f2c1ca382185a7f4c257736f92f9e20cda"
+    },
+    "bae406453157a2b0ec6e33895c97c518cb2e0aa4": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "3412e2803d4beff2719ee4c0c681c35dcdc99a88": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: feat(player): make background decoder release opt-in",
+      "integration_commit": "b5725e97c86454bd913a5786dbf479ef0da3c663"
+    },
+    "eee447a99419143a80d9dadba6c9805eb3625122": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "bbf2d4388ff314f9ecff9c7bc29c25feec544ac7": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(nav): drop stale streams screen on back after binge skip",
+      "integration_commit": "514e1e1df2cb09d74e5ba2b977ae6645ee185161"
+    },
+    "ca8bdce45b956ccd8ae35ece45e1e3c9d1873265": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "held",
+      "reason": "Showing every positive position changes the existing 2% Continue Watching threshold and tracker projections. Preserve the existing threshold pending a product decision.",
+      "requires_decision": true,
+      "decision_context": "Showing every positive position changes the existing 2% Continue Watching threshold and tracker projections. Preserve the existing threshold pending a product decision."
+    },
+    "a6a826687e9fcdcd80271154a4d899e43d84bd16": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "f07acf60384dd08d9cffcc8566b239fa8d4e557e": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "held",
+      "reason": "Read-side same-number preference can select a different episode when selected-order and addon numbering collide. Exercise canonical split/alternate identity fixtures before adopting this policy."
+    },
+    "4b7da3744d19f57cf70983d226b7dc87e93aa6aa": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "1206736fd4322e1e8d4bd962188cf7e91ec9c1d5": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Upstream version metadata only. ReSeq maintains its separate beta version and update channel."
+    },
+    "eb3ee01d9a72dba56eebdc01e6abfdf374ba07fc": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: update latest missing strings",
+      "integration_commit": "888176f24bfe24ae4aa86f4152e69f4b095bcab7"
+    },
+    "ffa71adfc41cd3168a9dfbbb27b5d931bb551532": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "0501488d77493de4c8b1a4acf032245f43754697": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(i18n): update Bengali localization and sync missing strings",
+      "integration_commit": "81c1b4d01211a4bc44ac09e39bed0188ee1d06b0"
+    },
+    "d4f2e9d7f9fc7a3edda1c6da3daa02b1fbb68cc3": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "439bc8b833150b03abc9c0676764cd9d776b2d0f": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: i18n: add French strings for decoder release and autosync no-fit toast",
+      "integration_commit": "dcacf42c54c258c8ecc1dcdb51349601c8cda987"
+    },
+    "0e320e3c397c51d26923d6fcc7906a4b886e82c5": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "3c7fed5b457f4fd3106e2598634c5129a35d2cfc": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: i18n(hu): Add translation for latest strings",
+      "integration_commit": "55e8cc9dc5bf2e97e5cdb541fde10f578d8d0a27"
+    },
+    "6e0dd55a0678e230a765ee45a532ad2677685fd0": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "105490c2d9d8bd8cc51cb062024b0f4e39b92e04": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "held",
+      "reason": "Forced natural end triggers tracking and next episode while audio is ended and reported duration has elapsed. Validate a long video tail, inaccurate durations and NNTP seeks before adopting it."
+    },
+    "fe8dd2e444ae44a93e36c7adfc550e7ace12a487": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "19b8a0c2f40ba99b81c05d22e56d9ae4a2da9220": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(player): keep restored subtitle preference and let AutoSync search further",
+      "integration_commit": "fb0c0bdcd422a365317013123147a3b0be0eeb8d"
+    },
+    "248ed08bf24a29a1eaf2f0191394457019987e45": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "6312eb2a8ba2a256d743186f2d446a313d5fd67f": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(skip-intro): drop open-ended Anime-Skip segments and prefer AniSkip",
+      "integration_commit": "cf52e07a238d2b840694b824f69cca8cbcdb3063"
+    },
+    "a3192c3d227a38377d5dc0c896705ea0d83f25b5": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(skip-intro): pick the most complete Anime-Skip entry for an episode",
+      "integration_commit": "93cefd952fac8f04d01a4b07537db1b5f96d70b3"
+    },
+    "01f7c3cea2b9858c2e84367c3503e053ac7f471a": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "c03870e3ecd13cd46cb60d55e1e8fbf95e10d7d0": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Update Japanese strings.xml translation",
+      "integration_commit": "892c9f5ca942597bb125cc43507d396d9b32d598"
+    },
+    "73ebee1e8c1d0a21f5cbd2da8cdf88bcbfe0064a": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Update strings.xml",
+      "integration_commit": "1923df5c6c4434ad74812c7ff68176c9ec00e9e1"
+    },
+    "0b37c38e64e355dd5576585e0cef617e207def0b": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "cb06272bd87097204f7f4e5856ac4352610fba33": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(skip-intro): query Anime-Skip for Kitsu/MAL even without an IntroDB mapping",
+      "integration_commit": "bcd62c1eddcea0d017f0684575d47616707ac4e5"
+    },
+    "c6e9c6395d6a4f73608f740873509902a27ffda3": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Add missing Turkish translations and update rewritten strings",
+      "integration_commit": "b44588a0a6a147ff9bcf79da1fa3677b5ee241ea"
+    },
+    "149e56ce65591de12529c78908d8540e0c4be396": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "5d925b21089b652612f1d2dd5eb680013235e549": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Auto-scroll truncated hero descriptions on Home",
+      "integration_commit": "729b47f13e6611c775b3c405d5c04c27ca7089c1"
+    },
+    "2670d72de41dcd7122a12e994ad08fa83c23da3f": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Address review feedback on auto-scrolling hero descriptions",
+      "integration_commit": "d1cab2fc6739fe50946dcd15fa338f0e52e05942"
+    },
+    "42843eabcac1b56744440057780f8fa7655298f0": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Fix stuck carousel hold and visible jump on trailer pause",
+      "integration_commit": "852e63edcdf0647d77dd69de154bb9c90b3cbeb2"
+    },
+    "136392bd9399d32168097f8af1be579204ed3cff": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "fe5c314bdca956696155f2b649de7070c2d03ba4": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Upstream version metadata only. ReSeq maintains its separate beta version and update channel."
+    },
+    "1c0fada0f336ad898f49bca4d45e3d117d96e276": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(updater): add corruption handler to update_settings DataStore",
+      "integration_commit": "8a03d1626ce16fdb8d8e790add76213c348cb9f0"
+    },
+    "8a70d4b5863bf90e632952f44723106c09dda89d": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "c7c6c1e442ab69f5a53e10ff8374605268231505": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: update latest missing strings",
+      "integration_commit": "5a443f81f8cd169db822fca5c7fa91fcaf3c5729"
+    },
+    "155945acd60e1324de079e0f6e65008ba0ab6ceb": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "eae207ac30ea9cb25c096202ade12d0524771839": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: chore(i18n): complete Greek locale parity (night mode, LFE downmix, decoder release)",
+      "integration_commit": "fa27a6a02ef6d7e4af7d2fe7d38419e0dd21af97"
+    },
+    "3b4c9d82a9fe8a0e6283f9543510002ca4035ded": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "cbc51b211273242368ace36a7eea879b50295109": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: i18n: add French strings for hero description auto-scroll",
+      "integration_commit": "6c8e85d4eef43d477319976650f69f0f1bb427cb"
+    },
+    "f7dce128daa0bf6d0778fe3f141ca5978a8ad493": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "0f2c2b0870c4bb6ae215a30e3589365c6a05fc56": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: i18n(sv) Add missing translation",
+      "integration_commit": "9259104319bd8bfe4e8fb3619fd2eb57dbd48a70"
+    },
+    "e5c5a5d5233d515df9a7edec63c566a2e709d9b3": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "b1bf4bd836ba2024ab2b177cde379a99a6205ec7": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "held",
+      "reason": "Write-side same-number preference changes tracker identity when two valid orders contain the same number. Preserve the approved TVDB canonical mapping and test collision fixtures alongside the read-side change."
+    },
+    "60f85970c26f536f8ce0d1d7a2296db2dd2194ec": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "2ed5bda7661ddeadbfa38f7cc867f4f80e0148a2": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: i18n(pl): add hero description auto-scroll strings",
+      "integration_commit": "8727d186189284f5410de9467d984cd0e797990d"
+    },
+    "43fa2bb9bdd207f4649107f72d17be40c8e53ef2": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: Keep AppCompatActivity in ProGuard rules for CloudStream extensions",
+      "integration_commit": "d7fac84b67791a852c1bc3487fd3394d8217e490"
+    },
+    "476d1d95a072f6096df6c2e76fddc95d07eb9041": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(jobs): stop crashing when the job scheduler rejects or fails a request",
+      "integration_commit": "9e4a80c5294e36c2d8047a6a3ea25755322245c9"
+    },
+    "18c256fb6a8c0eb40092b589593a94e8f2f32947": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(player): end parallel reads at a short chunk instead of recursing",
+      "integration_commit": "6021f3d0c405f5fb4467c61e6cec89d32613defc"
+    },
+    "26949b898d50984334b1e0c896642e850b00f6ce": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(player): skip subtitle width measuring when the cue list empties",
+      "integration_commit": "c999b5966f63071c02c04c2203542261a70fff15"
+    },
+    "2fb930767f383e1129c30e106f38b0d96af0ce27": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(autosync): stop timeline load waiters from retrying a cancelled load forever",
+      "integration_commit": "18c2ca7a28442253e2e0560b0fbae9ec6f0e7e0c"
+    },
+    "3eb236c40c7ca039d6a8b0c80a0a9d39b9350d34": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(player): read a stored playback speed of any number type",
+      "integration_commit": "a7ac686bde170bcd068025daa837bb697fd26bfb"
+    },
+    "0f2fe22b9ae475616f3bb4c852df409833952faa": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(updater): fall back to the system installer when the confirm screen is missing",
+      "integration_commit": "1081fc574edc79d63ec6a07fbe36647c540b7487"
+    },
+    "179469c8b1257a564810857b947cd78c6d576d16": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(updater): open security settings when the unknown sources screen is missing",
+      "integration_commit": "9eaa82f486e34ef5b9449140808cf979071ed211"
+    },
+    "fce6ad835b77cb303eece4a5ca0f6f8ac29c8466": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: guard the system installer fallback",
+      "integration_commit": "3f5ecf62544c0195292f806954475da76ea20aff"
+    },
+    "1a5a5eadfab982587f30ea395ab866e781ffeba4": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(nav): accept a missing title on the stream and player routes",
+      "integration_commit": "18173223cfc3b85c152254cee51c93674d61362c"
+    },
+    "3dcd45d66709e333b4e2227fd55c013a9fa12300": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(collections): hide file export below Android 10",
+      "integration_commit": "255ad5d57ea4c80fc6dfc20fb3d7ff5818443d55"
+    },
+    "4692380a9d89ea81ba0910054c92fb5733815c34": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(auth): ignore storage errors in the diagnostics report queue",
+      "integration_commit": "d40a0e5c3737a8c8f4866fbc0f7eb5dd02b3cbda"
+    },
+    "39e9fa1e47d6d2735560ff6503b2b5f3256786ab": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(collections): keep editor source keys unique for repeated sources",
+      "integration_commit": "a49e9e9ce23b15f858539cbd986711440b0eecc3"
+    },
+    "5a6f9a0b7a4815cf3deb148fed0c5a54fd6c01fd": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: fix(settings): drop duplicate catalogs from the hero catalog picker",
+      "integration_commit": "fb6b7642835ce4a6d61f4faa26d3d051bca612ed"
+    },
+    "861d8673db43dc123459692694919762236ea9dd": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "f7f3a976d6ea49502774b6058bfee3868c7a7c05": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: i18n(hu): Add Hungarian auto-scroll strings",
+      "integration_commit": "49092dcae040909e01564b8de7f51675e0b0606f"
+    },
+    "3eeb8b3d02025897a0a26915ff00bb0cd9ec7878": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Upstream version metadata only. ReSeq maintains its separate beta version and update channel."
+    },
+    "a935bcf479ba65e57ac1caaa484bcb7f9d1e6e9b": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "ac3e850dd78881325d247c764bf03c77847d1c6e": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "0034a8e4408fd5eab2776b1c16b88cadf626190c": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "integrated",
+      "reason": "Applied to isolated beta 9 candidate with provenance: i18n(hu): restore consistent Hungarian voice and wording",
+      "integration_commit": "3bf5f174d3d0d1c0b5a833416e0ced38c118ebe8"
+    },
+    "bf665981019ce092a8173bc469b085e69860f377": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "7bc69ea4249d44c46f91b5b48cdf8fd72c03ed57": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "held",
+      "reason": "Forced subtitles and AutoSync become enabled for profiles without saved values. Existing controls already support opt-in; retain ReSeq defaults pending a product decision.",
+      "requires_decision": true,
+      "decision_context": "Forced subtitles and AutoSync become enabled for profiles without saved values. Existing controls already support opt-in; retain ReSeq defaults pending a product decision."
+    },
+    "9b778ac4741d0efad4f826c3bae7eeaf8307794b": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Merge reproduces its parents with no independent resolution in git show --remerge-diff. Constituent changes reviewed individually."
+    },
+    "12d96bced9821bdf4bc233039ffb1ccd1795e55b": {
+      "run": "20261108T221656Z-e8f1f6",
+      "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+      "outcome": "irrelevant",
+      "reason": "Upstream version metadata only. ReSeq maintains its separate beta version and update channel."
     }
   }
 }

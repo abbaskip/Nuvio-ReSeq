@@ -135,8 +135,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10037
-        versionName = "0.1.0-beta.8.3"
+        versionCode = 10038
+        versionName = "0.1.0-beta.9"
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")
@@ -371,7 +371,7 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         val isPlaystore = variant.productFlavors.any { it.second == "playstore" }
-        variant.applicationId.set(if (isPlaystore) "io.github.abbaskip.nuvioreseq.playstore.debug" else "io.github.abbaskip.nuvioreseq.usenettest")
+        variant.applicationId.set(if (isPlaystore) "io.github.abbaskip.nuvioreseq.playstore.debug" else "io.github.abbaskip.nuvioreseq.iptvdebug")
     }
     // Only the full flavor ships the in-app updater.
     onVariants(selector().withFlavor("distribution" to "full")) { variant ->

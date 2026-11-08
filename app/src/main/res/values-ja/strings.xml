@@ -1228,7 +1228,7 @@
     <string name="web_custom_poster_loading">読み込み中…</string>
     <string name="web_custom_poster_placeholders_info">プレースホルダー: {id}はすべてのコンテンツIDを渡します。{imdb_id}、{tmdb_id}、{tvdb_id}、{kitsu_id}は単一のIDタイプを対象とします - 利用できない場合は元のポスターが保持されます。{imdb_id|tmdb_id|kitsu_id}はサポートするIDタイプを宣言します - 一致するものが使用されるか、元のポスターが保持されます。プレースホルダーをオプションにするには ? を追加します(スキップする代わりに空に解決されます): {imdb_id?}。その他のプレースホルダー: {id_type}、{typed_id}、{type}、{shape}。</string>
 
-    
+
     <string name="mdblist_name">MDBList</string>
     <string name="mdblist_tracking_description">デバイス間で視聴履歴と再生進行状況を同期</string>
     <string name="mdblist_connected_as">%1$s として接続中</string>

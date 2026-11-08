@@ -9,6 +9,25 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_preserved_candidate_is_reused_until_merged_and_moving_ref_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pending = {"head": "a" * 40, "branch": "automation/upstream-20261108T221656Z-e8f1f6",
+                       "runs": ["20261108T221656Z-e8f1f6"]}
+            sync.save(root / "pending-integration.json", pending)
+            with patch.object(sync, "git", return_value=pending["head"]), patch.object(sync, "ancestor") as merged:
+                merged.return_value = False
+                self.assertEqual(sync.pending_candidate(root, root, "dev"), pending)
+                merged.return_value = True
+                self.assertIsNone(sync.pending_candidate(root, root, "dev"))
+            with patch.object(sync, "git", return_value="b" * 40), self.assertRaisesRegex(RuntimeError, "moved"):
+                sync.pending_candidate(root, root, "dev")
+
+    def test_legacy_device_probe_fails_without_issuing_a_command(self):
+        with patch.object(sync, "command") as command, self.assertRaisesRegex(RuntimeError, "disabled"):
+            sync.probe_device({})
+        command.assert_not_called()
+
     def test_explicit_publication_hold_prevents_git_push_and_workflow_dispatch(self):
         from argparse import Namespace
         with tempfile.TemporaryDirectory() as directory:

@@ -83,11 +83,12 @@ class UsenetPlaybackTest {
         override fun close() = listener.close()
     }
 
-    private fun exercise(files: List<Pair<String, ByteArray>>) {
+    private fun exercise(files: List<Pair<String, ByteArray>>, password: String? = null) {
         val expected = resource("test-pattern.mp4")
         val bodies = mutableMapOf<String, ByteArray>()
         val xml = buildString {
             append("<!DOCTYPE nzb PUBLIC '-//newzBin//DTD NZB 1.1//EN' 'http://invalid.invalid/nzb.dtd'><nzb>")
+            if (password != null) append("<head><meta type='password'>$password</meta></head>")
             files.forEachIndexed { i, (name, bytes) ->
                 append("<file subject='[fixture] &quot;" + name + "&quot; yEnc'><segments>")
                 var pos = 0
@@ -164,6 +165,18 @@ class UsenetPlaybackTest {
     @Test fun seeksAcrossLegacyRar4Volumes() =
         exercise(listOf("old.rar" to resource("old.rar"), "old.r00" to resource("old.r00")))
 
+    @Test fun playsSplitSevenZipThroughAddonAndHttpRanges() {
+        val bytes = resource("stored.7z")
+        exercise(listOf("release.7z.002" to bytes.copyOfRange(4096, bytes.size),
+            "release.7z.001" to bytes.copyOfRange(0, 4096)))
+    }
+
+    @Test fun seeksAcrossEncryptedHeadersPayloadAndVolumes() =
+        exercise((1..3).reversed().map { "locked.part$it.rar" to resource("locked.part$it.rar") }, "FixtureOnly5")
+
+    @Test fun playsShuffledRar5VolumesWithUnrelatedSubjects() =
+        exercise(listOf("09ff34" to resource("pattern.part2.rar"), "837124" to resource("pattern.part1.rar")))
+
     @Test fun rejectsCorruptArticle() {
         val bytes = article(byteArrayOf(1, 2, 3), 0, 3).toString(Charsets.ISO_8859_1)
         val bad = bytes.replace(Regex("pcrc32=[a-f0-9]+"), "pcrc32=0")
@@ -187,7 +200,7 @@ class UsenetPlaybackTest {
 
     @Test fun incompleteEarlierFileDoesNotShiftEpisodeIndex() {
         val files = NzbManifest.parse("""<nzb><file subject="S01E01.mp4"><segments><segment number="2">tail</segment></segments></file>
-            <file subject="S01E02.mp4"><segments><segment number="1">complete</segment></segments></file></nzb>""")
+            <file subject="S01E02.mp4"><segments><segment number="1">complete</segment></segments></file></nzb>""").files
         val cache = ArticleCache { id, _ ->
             assertEquals("complete", id)
             Article(0, 1, byteArrayOf(1))

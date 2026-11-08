@@ -1482,7 +1482,7 @@ class StreamScreenViewModel @Inject constructor(
             updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = true,
                 directAutoPlayMessage = context.getString(R.string.usenet_opening), playbackErrorMessage = null) }
             return try {
-                val resolved = UsenetPlayback.resolve(stream)
+                val resolved = UsenetPlayback.resolve(stream, videoId, season, episode)
                 pendingUsenetPlayback.replace(requireNotNull(resolved.url))
                 updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = it.isDirectAutoPlayFlow, directAutoPlayMessage = null) }
                 getStreamForPlayback(resolved, saveLastLink)
@@ -2127,7 +2127,10 @@ class StreamScreenViewModel @Inject constructor(
                 rememberPlayedPlugin(playbackInfo.bingeGroup)
             }
         } finally {
-            if (!launched) abortExternalHandoff()
+            if (!launched) {
+                pendingUsenetPlayback.release(url)
+                abortExternalHandoff()
+            }
         }
     }
 

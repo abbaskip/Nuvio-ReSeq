@@ -783,7 +783,7 @@ private fun PlayerRuntimeController.persistTorrentStreamForReuse(stream: Stream)
     }
 }
 
-private fun PlayerRuntimeController.prepareUsenetStream(stream: Stream, fromEpisodePanel: Boolean, play: (Stream) -> Unit) {
+private fun PlayerRuntimeController.prepareUsenetStream(stream: Stream, fromEpisodePanel: Boolean, target: Video? = null, play: (Stream) -> Unit) {
     debridResolveJob?.cancel()
     _uiState.update {
         if (fromEpisodePanel) it.copy(isLoadingEpisodeStreams = true, episodeStreamsError = null)
@@ -791,7 +791,11 @@ private fun PlayerRuntimeController.prepareUsenetStream(stream: Stream, fromEpis
     }
     usenetPrepareJob = scope.launch {
         try {
-            val resolved = UsenetPlayback.resolve(stream)
+            val state = _uiState.value
+            val resolved = if (fromEpisodePanel) UsenetPlayback.resolve(stream,
+                target?.id ?: state.episodeStreamsForVideoId, target?.season ?: state.episodeStreamsSeason,
+                target?.episode ?: state.episodeStreamsEpisode)
+            else UsenetPlayback.resolve(stream, currentVideoId, currentSeason, currentEpisode)
             usenetPrepareJob = null
             play(resolved)
         } catch (error: UsenetFailure) {
@@ -1559,7 +1563,7 @@ internal fun PlayerRuntimeController.switchToEpisodeStream(
     }
 
     if (stream.usenet != null) {
-        prepareUsenetStream(stream, fromEpisodePanel = true) { switchToEpisodeStream(it, forcedTargetVideo, isAutoPlay) }
+        prepareUsenetStream(stream, fromEpisodePanel = true, target = forcedTargetVideo) { switchToEpisodeStream(it, forcedTargetVideo, isAutoPlay) }
         return
     }
 

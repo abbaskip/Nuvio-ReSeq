@@ -12,7 +12,7 @@ internal object NzbDownload {
     private val client by lazy { OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
         .callTimeout(30, java.util.concurrent.TimeUnit.SECONDS).build() }
 
-    fun fetch(url: String, headers: Map<String, String>, preparation: UsenetPreparation): List<NzbFile> {
+    fun fetch(url: String, headers: Map<String, String>, preparation: UsenetPreparation): NzbDocument {
         var request = Request.Builder().url(url).apply {
             headers.forEach { (name, value) ->
                 if (name.lowercase() !in setOf("host", "content-length", "connection", "accept-encoding")) header(name, value)

@@ -26,12 +26,39 @@ internal object UsenetPlayback {
         cleanup.execute { session.close() }
     }
 
-    suspend fun resolve(stream: Stream): Stream = suspendCancellableCoroutine { continuation ->
+    // Prefer the episode coordinates sent to the add-on. TVDB display and tracking order can differ.
+    internal fun requestEpisode(videoId: String?, season: Int?, episode: Int?): Pair<Int?, Int?> {
+        if (episode == null) return null to null
+        val parts = videoId.orEmpty().split(':')
+        val prefixSize = if (parts.first().startsWith("tt") || parts.first().toLongOrNull() != null) 1 else 2
+        if (parts.size >= prefixSize + 2) {
+            val s = parts[parts.lastIndex - 1].toIntOrNull()
+            val e = parts.last().toIntOrNull()
+            if (s != null && s >= 0 && e != null && e > 0) return s to e
+        }
+        return season to episode
+    }
+
+    suspend fun resolve(stream: Stream, videoId: String? = null, season: Int? = null, episode: Int? = null): Stream {
+        val (requestedSeason, requestedEpisode) = requestEpisode(videoId, season, episode)
+        var awaitingHandoff: Stream? = null
+        try {
+            val result = kotlinx.coroutines.withTimeoutOrNull(120_000L) {
+                resolveWithinDeadline(stream, requestedSeason, requestedEpisode).also { awaitingHandoff = it }
+            } ?: throw UsenetFailure("Timed out preparing this Usenet release.")
+            awaitingHandoff = null
+            return result
+        } finally {
+            awaitingHandoff?.url?.let(::release)
+        }
+    }
+
+    private suspend fun resolveWithinDeadline(stream: Stream, season: Int?, episode: Int?): Stream = suspendCancellableCoroutine { continuation ->
         val preparation = UsenetPreparation()
         continuation.invokeOnCancellation { preparation.close() }
         Dispatchers.IO.asExecutor().execute {
             try {
-                val prepared = prepare(stream, preparation) { continuation.context.ensureActive() }
+                val prepared = prepare(stream, season, episode, preparation) { continuation.context.ensureActive() }
                 continuation.resume(prepared, onCancellation = { _, value, _ -> value.url?.let(::release) })
             } catch (error: Exception) {
                 preparation.close()
@@ -42,20 +69,20 @@ internal object UsenetPlayback {
         }
     }
 
-    private fun prepare(stream: Stream, preparation: UsenetPreparation, checkActive: () -> Unit): Stream {
+    private fun prepare(stream: Stream, season: Int?, episode: Int?, preparation: UsenetPreparation, checkActive: () -> Unit): Stream {
         val source = requireNotNull(stream.usenet)
-        val files = NzbDownload.fetch(source.nzbUrl, stream.behaviorHints?.proxyHeaders?.request.orEmpty(), preparation)
+        val document = NzbDownload.fetch(source.nzbUrl, stream.behaviorHints?.proxyHeaders?.request.orEmpty(), preparation)
         checkActive()
         val articles = NewsArticles(source.servers)
         preparation.own(articles)
-        var preparing = true
+        var preparationCheck: (() -> Unit)? = checkActive
         val cache = ArticleCache { id, next ->
-            if (preparing) checkActive()
+            preparationCheck?.invoke()
             articles.fetch(id, next)
         }
-        val file = UsenetSelection.select(files, cache, stream.fileIdx, source.filters, checkActive)
+        val file = UsenetSelection.select(document.files, cache, stream.fileIdx, source.filters, season, episode, document.password, checkActive)
         checkActive()
-        preparing = false
+        preparationCheck = null
         val session = UsenetHttpSession(file, articles)
         preparation.own(java.io.Closeable { cleanup.execute { session.close() } })
         session.start()

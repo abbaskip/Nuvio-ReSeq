@@ -23,6 +23,21 @@ internal class UsenetHttpSession(val file: UsenetFile, private val articles: Clo
         if (bounds == null) return newFixedLengthResponse(Response.Status.RANGE_NOT_SATISFIABLE, MIME_PLAINTEXT, "").apply {
             addHeader("Content-Range", "bytes */" + file.size)
         }
+        // Verify the start of the range before committing a successful HTTP response. Retain the
+        // bytes so the player gets them without a second NNTP read. HEAD stays metadata-only.
+        val prefix = if (session.method == Method.GET) ByteArray(minOf(8192L, bounds.last - bounds.first + 1).toInt())
+            else byteArrayOf()
+        val available = try {
+            if (prefix.isEmpty()) 0 else file.read(bounds.first, prefix, 0, prefix.size).also {
+                ensureUsenet(it > 0, "Usenet video ended early.")
+            }
+        } catch (error: java.io.IOException) {
+            val status = if (error is MissingUsenetArticle) Response.Status.GONE else Response.Status.SERVICE_UNAVAILABLE
+            return newFixedLengthResponse(status, MIME_PLAINTEXT,
+                if (error is UsenetFailure) error.message.orEmpty() else "Could not read the Usenet video.").apply {
+                addHeader("Cache-Control", "no-store")
+            }
+        }
         val stream = object : InputStream() {
             var position = bounds.first
             override fun read(): Int {
@@ -33,7 +48,12 @@ internal class UsenetHttpSession(val file: UsenetFile, private val articles: Clo
                 if (length == 0) return 0
                 if (position > bounds.last || session.method == Method.HEAD) return -1
                 lastRead = System.nanoTime()
-                val count = file.read(position, buffer, offset, minOf(length.toLong(), bounds.last - position + 1).toInt())
+                val prefixOffset = position - bounds.first
+                val count = if (prefixOffset < available) {
+                    val n = minOf(length, available - prefixOffset.toInt())
+                    prefix.copyInto(buffer, offset, prefixOffset.toInt(), prefixOffset.toInt() + n)
+                    n
+                } else file.read(position, buffer, offset, minOf(length.toLong(), bounds.last - position + 1).toInt())
                 ensureUsenet(count > 0, "Usenet video ended early.")
                 position += count
                 return count

@@ -31,6 +31,99 @@ class UsenetReliabilityTest {
         assertEquals(3, requests.get())
     }
 
+    @Test fun accountWithOneSlotHandsItsAuthenticatedSocketToAnOverlappingSession() {
+        ServerSocket(0, 4, InetAddress.getByName("127.0.0.1")).use { listener ->
+            val endpoint = "nntp://127.0.0.1:" + listener.localPort + "/1"
+            val entered = CountDownLatch(1)
+            val sendFirst = CountDownLatch(1)
+            val attempts = AtomicInteger()
+            val server = thread(isDaemon = true) {
+                while (!listener.isClosed) {
+                    val peer = try { listener.accept() } catch (_: java.net.SocketException) { break }
+                    attempts.incrementAndGet()
+                    thread(isDaemon = true) {
+                        peer.use { socket ->
+                            val input = socket.getInputStream().bufferedReader()
+                            val output = socket.getOutputStream()
+                            output.write("200 ready\r\n".toByteArray())
+                            while (true) {
+                                val cmd = input.readLine() ?: break
+                                if (cmd == "BODY <hold>") {
+                                    entered.countDown()
+                                    sendFirst.await(3, TimeUnit.SECONDS)
+                                }
+                                output.write(("222 body\r\n=ybegin line=128 size=1 name=x\r\n" +
+                                    "+\r\n=yend size=1\r\n.\r\n").toByteArray())
+                            }
+                        }
+                    }
+                }
+            }
+            val workers = java.util.concurrent.Executors.newFixedThreadPool(2)
+            try {
+                NewsArticles(listOf(endpoint)).use { first ->
+                    NewsArticles(listOf(endpoint)).use { second ->
+                        val held = workers.submit<Article> { first.fetch("hold") }
+                        assertTrue(entered.await(2, TimeUnit.SECONDS))
+                        val overlap = workers.submit<Article> { second.fetch("next") }
+                        sendFirst.countDown()
+                        held.get(3, TimeUnit.SECONDS)
+                        overlap.get(3, TimeUnit.SECONDS)
+                        first.close()
+                        second.fetch("last")
+                        assertEquals(1, attempts.get())
+                    }
+                }
+            } finally {
+                sendFirst.countDown()
+                workers.shutdownNow()
+                listener.close()
+                server.join(1000)
+            }
+        }
+    }
+
+    @Test fun slowlyTrickledGreetingCannotExtendTheArticleDeadline() {
+        ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { listener ->
+            val peer = thread(isDaemon = true) {
+                listener.accept().use { socket ->
+                    try {
+                        repeat(50) {
+                            socket.getOutputStream().write(50)
+                            Thread.sleep(30)
+                        }
+                    } catch (_: IOException) { }
+                }
+            }
+            NewsArticles(listOf("nntp://127.0.0.1:" + listener.localPort), readBudgetMs = 300).use { reader ->
+                val error = assertThrows(UsenetFailure::class.java) { reader.fetch("fixture") }
+                assertTrue(error.message.orEmpty().contains("Timed out"))
+            }
+            peer.join(1000)
+        }
+    }
+
+    @Test fun missingAtTheStartOfAPlayerRangeReturnsGoneWithoutBreakingHead() {
+        val file = object : UsenetFile {
+            override val name = "movie.mkv"
+            override val size = 2048L
+            override fun read(position: Long, buffer: ByteArray, offset: Int, length: Int): Int {
+                throw MissingUsenetArticle()
+            }
+        }
+        UsenetHttpSession(file, java.io.Closeable {}).use { session ->
+            session.start()
+            fun status(method: String): Int {
+                val connection = java.net.URL(session.url).openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = method
+                connection.setRequestProperty("Range", "bytes=1024-")
+                return try { connection.responseCode } finally { connection.disconnect() }
+            }
+            assertEquals(206, status("HEAD"))
+            assertEquals(410, status("GET"))
+        }
+    }
+
     @Test fun closeInterruptsBlockedProviderGreeting() {
         ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { listener ->
             val accepted = CountDownLatch(1)
@@ -97,7 +190,7 @@ class UsenetReliabilityTest {
             UsenetPreparation().use { owner ->
                 val files = NzbDownload.fetch("http://127.0.0.1:" + server.listeningPort + "/a?token=a%2Bb",
                     mapOf("Authorization" to "fixture"), owner)
-                assertEquals("episode.mp4", files.single().name)
+                assertEquals("episode.mp4", files.files.single().name)
                 assertTrue(authenticated)
                 assertEquals("token=a%2Bb", query)
             }
@@ -152,7 +245,7 @@ class UsenetReliabilityTest {
     }
 
     @Test fun preservesXmlEncodingAndRejectsEntitiesInUtf16() {
-        assertEquals("episode.mp4", NzbManifest.parse(("\uFEFF" + xml).toByteArray(Charsets.UTF_16LE)).single().name)
+        assertEquals("episode.mp4", NzbManifest.parse(("\uFEFF" + xml).toByteArray(Charsets.UTF_16LE)).files.single().name)
         val unsafe = """<!DOCTYPE nzb [<!ENTITY x "bad">]>""" + xml
         assertThrows(UsenetFailure::class.java) { NzbManifest.parse(unsafe.toByteArray(Charsets.UTF_16LE)) }
     }

@@ -589,6 +589,8 @@ dependencies {
     // QR code + local server for addon management
     implementation(libs.nanohttpd)
     implementation("com.google.re2j:re2j:1.8")
+    // Decode bounded 7z metadata. Video payloads stay on the seekable NNTP path.
+    implementation("org.tukaani:xz:1.10")
     implementation(libs.zxing.core)
 
 

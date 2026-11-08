@@ -308,12 +308,12 @@ class AddonRepositoryImpl(
             is NetworkResult.Success -> {
                 val addon = result.data.toDomain(cleanBaseUrl)
                 if (putCachedManifestIfChanged(cleanBaseUrl, addon)) {
-                    Log.d(TAG, "Updated addon manifest cache url=$cleanBaseUrl version=${addon.version} configVersion=${addon.configVersion}")
+                    Log.d(TAG, "Updated addon manifest cache version=${addon.version} configVersion=${addon.configVersion}")
                 }
                 NetworkResult.Success(addon)
             }
             is NetworkResult.Error -> {
-                Log.w(TAG, "Failed to fetch addon manifest for url=$manifestUrl code=${result.code} message=${result.message}")
+                Log.w(TAG, "Failed to fetch addon manifest code=${result.code}")
                 result
             }
             NetworkResult.Loading -> NetworkResult.Loading

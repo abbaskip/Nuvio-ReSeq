@@ -2,7 +2,7 @@ name: Upstream candidate emulator
 on:
   push:
     branches: [automation/sydney-sync-host]
-    paths: [automation/emulator-candidate.txt]
+    paths: [automation/emulator-candidate.txt, .github/workflows/upstream-emulator.yml]
 permissions:
   contents: read
 jobs:
@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 65
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          persist-credentials: false
       - name: Check out the preserved candidate
         run: |
-          candidate=$(cat automation/emulator-candidate.txt)
+          git init
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          candidate=$(git show FETCH_HEAD:automation/emulator-candidate.txt)
           [[ "$candidate" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags --depth=1 origin "$candidate"
           git checkout --detach FETCH_HEAD

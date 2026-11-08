@@ -4,11 +4,16 @@ import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.IOException
+import java.net.ConnectException
+import java.net.InetAddress
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URI
 import java.net.URLDecoder
 import java.util.zip.CRC32
+import javax.net.ssl.SSLException
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
@@ -107,12 +112,11 @@ private class NewsServer(val host: String, val port: Int, val tls: Boolean, val 
 }
 
 private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory) : Closeable {
-    private var socket = Socket()
+    private var socket = connect(server)
     private val input: BufferedInputStream
     private var pending: String? = null
     init {
         try {
-            socket.connect(InetSocketAddress(server.host, server.port), 8_000)
             socket.soTimeout = 12_000
             if (server.tls) {
                 val secure = tlsFactory.createSocket(socket, server.host, server.port, true) as SSLSocket
@@ -130,6 +134,23 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory) :
         } catch (e: Exception) {
             close()
             throw e
+        }
+    }
+    private companion object {
+        fun connect(server: NewsServer): Socket {
+            val addresses = InetAddress.getAllByName(server.host)
+            var failure: IOException? = null
+            for (address in addresses.take(4)) {
+                val candidate = Socket()
+                try {
+                    candidate.connect(InetSocketAddress(address, server.port), 4_000)
+                    return candidate
+                } catch (error: IOException) {
+                    candidate.close()
+                    failure = error
+                }
+            }
+            throw failure ?: UnknownHostException()
         }
     }
     private fun status() = input.newsLine().take(3).toIntOrNull()
@@ -168,17 +189,28 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
             // An idle socket can have been dropped by the server. Reconnect once in that case.
             val attempts = if (connection != null) 2 else 1
             repeat(attempts) {
+                var readingArticle = false
                 try {
                     if (connection?.canFetch(id) == false) {
                         connection?.close()
                         connection = null
                     }
                     val active = connection ?: NewsConnection(servers[index], tlsFactory).also { connection = it }
+                    readingArticle = true
                     val article = active.fetch(id, next)
                     preferred = index
                     return article
                 } catch (error: IOException) {
-                    (error as? UsenetFailure)?.let { lastFailure = it.message }
+                    lastFailure = when (error) {
+                        is UsenetFailure -> error.message
+                        is UnknownHostException -> "Could not resolve the NNTP provider hostname."
+                        is SSLException -> "The secure connection to the NNTP provider failed. Check the TLS setting and port."
+                        is SocketTimeoutException -> if (readingArticle) "Timed out reading a Usenet article."
+                            else "Timed out connecting or signing in to the NNTP provider."
+                        is ConnectException -> "Could not reach the NNTP provider on port ${servers[index].port}."
+                        else -> if (readingArticle) "The connection dropped while reading a Usenet article."
+                            else "The connection to the NNTP provider failed during startup."
+                    }
                     runCatching { connection?.close() }
                     connection = null
                 }

@@ -251,7 +251,12 @@ private fun PlaybackNavHost(
         }
 
         composable(Screen.LiveTv.route) { entry ->
-            val vm: com.nuvio.tv.livetv.ui.LiveTvViewModel = androidx.hilt.navigation.compose.hiltViewModel(entry)
+            // Reuse Home's live state so its selected channel/group survives opening the guide.
+            // Live TV can also be the start destination, with no Home entry on the back stack.
+            val liveTvOwner = androidx.compose.runtime.remember(entry) {
+                runCatching { navController.getBackStackEntry(Screen.Home.route) }.getOrNull() ?: entry
+            }
+            val vm: com.nuvio.tv.livetv.ui.LiveTvViewModel = androidx.hilt.navigation.compose.hiltViewModel(liveTvOwner)
             com.nuvio.tv.livetv.ui.LiveTvGuideScreen(
                 viewModel = vm,
                 onOpenFullscreen = { com.nuvio.tv.livetv.ui.LiveTvFullscreen.request() },
@@ -395,51 +400,65 @@ private fun PlaybackNavHost(
                 }
             }
 
-            HomeScreen(
-                onNavigateToMix = { id, manage -> navController.navigate("tv-mix/$id?manage=$manage") },
-                onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
-                    val heroBackdrop = HeroBackdropState.consumeAndClear()
-                    navController.navigate(
-                        Screen.Detail.createRoute(
-                            itemId = itemId,
-                            itemType = itemType,
-                            addonBaseUrl = addonBaseUrl,
-                            heroBackdropUrl = heroBackdrop
+            CompositionLocalProvider(
+                com.nuvio.tv.livetv.home.LocalLiveTvHomeActions provides
+                    com.nuvio.tv.livetv.home.LiveTvHomeActions(
+                        onHome = true,
+                        openFullscreen = {
+                            com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
+                            navController.navigate(Screen.LiveTv.route) { launchSingleTop = true }
+                        },
+                        openGuide = {
+                            navController.navigate(Screen.LiveTv.route) { launchSingleTop = true }
+                        }
+                    )
+            ) {
+                HomeScreen(
+                    onNavigateToMix = { id, manage -> navController.navigate("tv-mix/$id?manage=$manage") },
+                    onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
+                        val heroBackdrop = HeroBackdropState.consumeAndClear()
+                        navController.navigate(
+                            Screen.Detail.createRoute(
+                                itemId = itemId,
+                                itemType = itemType,
+                                addonBaseUrl = addonBaseUrl,
+                                heroBackdropUrl = heroBackdrop
+                            )
                         )
-                    )
-                },
-                onContinueWatchingClick = onContinueWatchingClick@{ item ->
-                    if (!playbackAvailability.canStream(item)) {
-                        Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
-                        return@onContinueWatchingClick
+                    },
+                    onContinueWatchingClick = onContinueWatchingClick@{ item ->
+                        if (!playbackAvailability.canStream(item)) {
+                            Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
+                            return@onContinueWatchingClick
+                        }
+                        navController.navigate(createContinueWatchingRoute(item))
+                    },
+                    onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginning@{ item ->
+                        if (!playbackAvailability.canStream(item)) {
+                            Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
+                            return@onContinueWatchingStartFromBeginning
+                        }
+                        navController.navigate(
+                            createContinueWatchingRoute(item, startFromBeginning = true)
+                        )
+                    },
+                    onContinueWatchingPlayManually = onContinueWatchingPlayManually@{ item ->
+                        if (!playbackAvailability.canStream(item)) {
+                            Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
+                            return@onContinueWatchingPlayManually
+                        }
+                        navController.navigate(
+                            createContinueWatchingRoute(item, manualSelection = true)
+                        )
+                    },
+                    onNavigateToCatalogSeeAll = { catalogId, addonId, type ->
+                        navController.navigate(Screen.CatalogSeeAll.createRoute(catalogId, addonId, type))
+                    },
+                    onNavigateToFolderDetail = { collectionId, folderId ->
+                        navController.navigate(Screen.FolderDetail.createRoute(collectionId, folderId))
                     }
-                    navController.navigate(createContinueWatchingRoute(item))
-                },
-                onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginning@{ item ->
-                    if (!playbackAvailability.canStream(item)) {
-                        Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
-                        return@onContinueWatchingStartFromBeginning
-                    }
-                    navController.navigate(
-                        createContinueWatchingRoute(item, startFromBeginning = true)
-                    )
-                },
-                onContinueWatchingPlayManually = onContinueWatchingPlayManually@{ item ->
-                    if (!playbackAvailability.canStream(item)) {
-                        Toast.makeText(context, R.string.playback_unavailable_message, Toast.LENGTH_SHORT).show()
-                        return@onContinueWatchingPlayManually
-                    }
-                    navController.navigate(
-                        createContinueWatchingRoute(item, manualSelection = true)
-                    )
-                },
-                onNavigateToCatalogSeeAll = { catalogId, addonId, type ->
-                    navController.navigate(Screen.CatalogSeeAll.createRoute(catalogId, addonId, type))
-                },
-                onNavigateToFolderDetail = { collectionId, folderId ->
-                    navController.navigate(Screen.FolderDetail.createRoute(collectionId, folderId))
-                }
-            )
+                )
+            }
         }
 
         composable(

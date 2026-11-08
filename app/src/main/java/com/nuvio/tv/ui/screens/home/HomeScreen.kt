@@ -3,7 +3,6 @@ package com.nuvio.tv.ui.screens.home
 import com.nuvio.tv.ui.theme.NuvioTheme
 
 import androidx.activity.compose.ReportDrawnWhen
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import android.util.Log
 import androidx.compose.animation.core.tween
@@ -12,6 +11,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.CompositionLocalProvider
+import com.nuvio.tv.livetv.home.LiveTvHomeRow
+import com.nuvio.tv.livetv.home.LiveTvHomeHint
+import com.nuvio.tv.livetv.home.LocalLiveTvHintHere
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -268,193 +272,199 @@ fun HomeScreen(
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        when {
-            !uiState.layoutPreferencesReady -> {
-                Unit
-            }
-
-            uiState.isLoading && !hasAnyContent -> {
-                Unit
-            }
-
-            uiState.error == noAddonsError && uiState.catalogRows.isEmpty() -> {
-                if (!homeStableGateReleased) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        LiveTvHomeRow(above = true)
+        CompositionLocalProvider(LocalLiveTvHintHere provides true) {
+            LiveTvHomeHint(modifier = Modifier.padding(start = 36.dp, top = 8.dp))
+        }
+        Box(
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        ) {
+            when {
+                !uiState.layoutPreferencesReady -> {
                     Unit
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.home_no_addons),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = NuvioTheme.colors.TextSecondary
-                        )
-                    }
                 }
-            }
 
-            uiState.error == noCatalogAddonsError && uiState.catalogRows.isEmpty() && !hasCollectionContent && !hasHeroContent -> {
-                if (!homeStableGateReleased) {
+                uiState.isLoading && !hasAnyContent -> {
                     Unit
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.home_no_catalog_addons),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = NuvioTheme.colors.TextSecondary
-                        )
-                    }
                 }
-            }
 
-            uiState.error != null && uiState.catalogRows.isEmpty() -> {
-                ErrorState(
-                    message = uiState.error ?: stringResource(R.string.error_generic),
-                    onRetry = { viewModel.onEvent(HomeEvent.OnRetry) }
-                )
-            }
-
-            !uiState.isLoading && !hasAnyContent -> {
-                // Don't show "no catalogs" until the stable gate has released —
-                // addons may still be loading from remote after a cache clear.
-                if (!homeStableGateReleased) {
-                    Unit
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.web_no_catalogs),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = NuvioTheme.colors.TextSecondary
-                        )
-                    }
-                }
-            }
-
-            else -> {
-                // On first launch, wait for stable content before revealing home.
-                // Once released, never go back to loading (homeStableGateReleased is rememberSaveable).
-                if (!homeStableGateReleased) {
-                    Unit
-                } else if (!modernPresentationReady) {
-                    Unit
-                } else {
-                    // Flip showHomeContentWithAnimation on the next frame so
-                    // AnimatedVisibility can run its enter transition.
-                    LaunchedEffect(Unit) {
-                        if (!showHomeContentWithAnimation) {
-                            kotlinx.coroutines.yield()
-                            showHomeContentWithAnimation = true
-                        }
-                    }
-                    LaunchedEffect(showHomeContentWithAnimation) {
-                        if (showHomeContentWithAnimation) {
-                            hasShownInitialHomeContent = true
-                        }
-                    }
-                    // Keep loading visible during the single-frame gap before animation starts.
-                    if (!showHomeContentWithAnimation) {
+                uiState.error == noAddonsError && uiState.catalogRows.isEmpty() -> {
+                    if (!homeStableGateReleased) {
                         Unit
-                    }
-                    AnimatedVisibility(
-                        visible = showHomeContentWithAnimation,
-                        enter = if (hasShownInitialHomeContent) {
-                            EnterTransition.None
-                        } else {
-                            fadeIn(animationSpec = tween(320)) +
-                                slideInVertically(
-                                    initialOffsetY = { it / 24 },
-                                    animationSpec = tween(320)
-                                )
-                        }
-                    ) {
-                        when (uiState.homeLayout) {
-                            HomeLayout.CLASSIC -> ClassicHomeRoute(
-                                viewModel = viewModel,
-                                uiState = uiState,
-                                posterCardStyle = posterCardStyle,
-                                onNavigateToDetail = onNavigateToDetailStable,
-                                onContinueWatchingClick = onContinueWatchingClickStable,
-                                onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
-                                onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
-                                showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
-                                onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAllStable,
-                                onNavigateToFolderDetail = onNavigateToFolderDetailStable,
-                                isCatalogItemWatched = isCatalogItemWatched,
-                                onCatalogItemLongPress = onCatalogItemLongPress
-                            )
-
-                            HomeLayout.GRID -> GridHomeRoute(
-                                viewModel = viewModel,
-                                uiState = uiState,
-                                posterCardStyle = posterCardStyle,
-                                onNavigateToDetail = onNavigateToDetailStable,
-                                onContinueWatchingClick = onContinueWatchingClickStable,
-                                onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
-                                onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
-                                showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
-                                onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAllStable,
-                                onNavigateToFolderDetail = onNavigateToFolderDetailStable,
-                                isCatalogItemWatched = isCatalogItemWatched,
-                                onCatalogItemLongPress = onCatalogItemLongPress
-                            )
-
-                            HomeLayout.MODERN -> ModernHomeRoute(
-                                viewModel = viewModel,
-                                uiState = uiState,
-                                onNavigateToDetail = onNavigateToDetailStable,
-                                onContinueWatchingClick = onContinueWatchingClickStable,
-                                onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
-                                onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
-                                showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
-                                onNavigateToFolderDetail = onNavigateToFolderDetailStable,
-                                isCatalogItemWatched = isCatalogItemWatched,
-                                onCatalogItemLongPress = onCatalogItemLongPress
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.home_no_addons),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = NuvioTheme.colors.TextSecondary
                             )
                         }
                     }
                 }
-            }
-        }
 
-        if (showHomeLoader) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                LoadingIndicator()
-            }
-        }
+                uiState.error == noCatalogAddonsError && uiState.catalogRows.isEmpty() && !hasCollectionContent && !hasHeroContent -> {
+                    if (!homeStableGateReleased) {
+                        Unit
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.home_no_catalog_addons),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = NuvioTheme.colors.TextSecondary
+                            )
+                        }
+                    }
+                }
 
-        val startupAuthNotice = uiState.startupAuthNotice
-        if (startupAuthNotice != null) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = NuvioTheme.spacing.xl)
-                    .background(
-                        color = Color(0xFF5A1C1C),
-                        shape = RoundedCornerShape(10.dp)
+                uiState.error != null && uiState.catalogRows.isEmpty() -> {
+                    ErrorState(
+                        message = uiState.error ?: stringResource(R.string.error_generic),
+                        onRetry = { viewModel.onEvent(HomeEvent.OnRetry) }
                     )
-                    .padding(horizontal = 18.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = when (startupAuthNotice) {
-                        StartupAuthNotice.NUVIO -> stringResource(R.string.auth_notice_nuvio_logged_out)
-                        StartupAuthNotice.TRAKT -> stringResource(R.string.auth_notice_trakt_logged_out)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = NuvioTheme.colors.TextPrimary
-                )
+                }
+
+                !uiState.isLoading && !hasAnyContent -> {
+                    // Don't show "no catalogs" until the stable gate has released —
+                    // addons may still be loading from remote after a cache clear.
+                    if (!homeStableGateReleased) {
+                        Unit
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.web_no_catalogs),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = NuvioTheme.colors.TextSecondary
+                            )
+                        }
+                    }
+                }
+
+                else -> {
+                    // On first launch, wait for stable content before revealing home.
+                    // Once released, never go back to loading (homeStableGateReleased is rememberSaveable).
+                    if (!homeStableGateReleased) {
+                        Unit
+                    } else if (!modernPresentationReady) {
+                        Unit
+                    } else {
+                        // Flip showHomeContentWithAnimation on the next frame so
+                        // AnimatedVisibility can run its enter transition.
+                        LaunchedEffect(Unit) {
+                            if (!showHomeContentWithAnimation) {
+                                kotlinx.coroutines.yield()
+                                showHomeContentWithAnimation = true
+                            }
+                        }
+                        LaunchedEffect(showHomeContentWithAnimation) {
+                            if (showHomeContentWithAnimation) {
+                                hasShownInitialHomeContent = true
+                            }
+                        }
+                        // Keep loading visible during the single-frame gap before animation starts.
+                        if (!showHomeContentWithAnimation) {
+                            Unit
+                        }
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = showHomeContentWithAnimation,
+                            enter = if (hasShownInitialHomeContent) {
+                                EnterTransition.None
+                            } else {
+                                fadeIn(animationSpec = tween(320)) +
+                                    slideInVertically(
+                                        initialOffsetY = { it / 24 },
+                                        animationSpec = tween(320)
+                                    )
+                            }
+                        ) {
+                            when (uiState.homeLayout) {
+                                HomeLayout.CLASSIC -> ClassicHomeRoute(
+                                    viewModel = viewModel,
+                                    uiState = uiState,
+                                    posterCardStyle = posterCardStyle,
+                                    onNavigateToDetail = onNavigateToDetailStable,
+                                    onContinueWatchingClick = onContinueWatchingClickStable,
+                                    onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
+                                    onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
+                                    showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
+                                    onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAllStable,
+                                    onNavigateToFolderDetail = onNavigateToFolderDetailStable,
+                                    isCatalogItemWatched = isCatalogItemWatched,
+                                    onCatalogItemLongPress = onCatalogItemLongPress
+                                )
+
+                                HomeLayout.GRID -> GridHomeRoute(
+                                    viewModel = viewModel,
+                                    uiState = uiState,
+                                    posterCardStyle = posterCardStyle,
+                                    onNavigateToDetail = onNavigateToDetailStable,
+                                    onContinueWatchingClick = onContinueWatchingClickStable,
+                                    onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
+                                    onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
+                                    showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
+                                    onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAllStable,
+                                    onNavigateToFolderDetail = onNavigateToFolderDetailStable,
+                                    isCatalogItemWatched = isCatalogItemWatched,
+                                    onCatalogItemLongPress = onCatalogItemLongPress
+                                )
+
+                                HomeLayout.MODERN -> ModernHomeRoute(
+                                    viewModel = viewModel,
+                                    uiState = uiState,
+                                    onNavigateToDetail = onNavigateToDetailStable,
+                                    onContinueWatchingClick = onContinueWatchingClickStable,
+                                    onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
+                                    onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
+                                    showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
+                                    onNavigateToFolderDetail = onNavigateToFolderDetailStable,
+                                    isCatalogItemWatched = isCatalogItemWatched,
+                                    onCatalogItemLongPress = onCatalogItemLongPress
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (showHomeLoader) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
+            }
+
+            val startupAuthNotice = uiState.startupAuthNotice
+            if (startupAuthNotice != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = NuvioTheme.spacing.xl)
+                        .background(
+                            color = Color(0xFF5A1C1C),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .padding(horizontal = 18.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = when (startupAuthNotice) {
+                            StartupAuthNotice.NUVIO -> stringResource(R.string.auth_notice_nuvio_logged_out)
+                            StartupAuthNotice.TRAKT -> stringResource(R.string.auth_notice_trakt_logged_out)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = NuvioTheme.colors.TextPrimary
+                    )
+                }
             }
         }
     }

@@ -260,6 +260,14 @@ class ExternalPlaybackTracker @Inject constructor(
     private var nextEpisodeSnapshot: ExternalNextEpisodeSnapshot = ExternalNextEpisodeSnapshot.Unknown
     private var autoNextEnabledForPendingLaunch: Boolean? = null
     private var pendingCloudSessionToken: String? = null
+    // Activity results outlive the stream-results screen during external autoplay.
+    private val externalUsenetUrl = java.util.concurrent.atomic.AtomicReference<String?>()
+
+    private fun rememberExternalUsenet(url: String?) {
+        val next = url?.takeIf(com.nuvio.tv.core.usenet.UsenetHttpSession::isSessionUrl)
+        externalUsenetUrl.getAndSet(next)?.takeIf { it != next }?.let(com.nuvio.tv.core.usenet.UsenetPlayback::release)
+    }
+
     @Volatile
     private var ownsTorrentStream = false
     val isOwningTorrentStream: Boolean get() = ownsTorrentStream
@@ -459,8 +467,10 @@ class ExternalPlaybackTracker @Inject constructor(
                         skipSegmentsJson = skipSegmentsJson,
                         context = context
                     )
-                    if (intentSent) this@ExternalPlaybackTracker.ownsTorrentStream =
-                        pendingOwnsTorrentStream
+                    if (intentSent) {
+                        this@ExternalPlaybackTracker.ownsTorrentStream = pendingOwnsTorrentStream
+                        rememberExternalUsenet(url)
+                    }
                     intentSent
                 }
             }
@@ -1385,6 +1395,7 @@ class ExternalPlaybackTracker @Inject constructor(
 
     /** Stop tracking and clean up resources. */
     fun stopTracking() {
+        rememberExternalUsenet(null)
         zidooMonitorJob?.cancel()
         zidooMonitorJob = null
         if (ownsTorrentStream) {

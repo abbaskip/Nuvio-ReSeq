@@ -91,7 +91,7 @@ class TieredStreamAutoPlay(
             current.addonName == candidate.addonName && current.getStreamUrl() == candidate.getStreamUrl() &&
                 current.infoHash == candidate.infoHash && current.fileIdx == candidate.fileIdx &&
                 current.clientResolve == candidate.clientResolve && current.iptvPlaylistId == candidate.iptvPlaylistId &&
-                current.ytId == candidate.ytId && current.serverTarget == candidate.serverTarget &&
+                current.usenet == candidate.usenet && current.ytId == candidate.ytId && current.serverTarget == candidate.serverTarget &&
                 StreamAutoPlaySelector.isPlayable(current)
         } }
         val selected = when {

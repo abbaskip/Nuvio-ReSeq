@@ -3476,4 +3476,5 @@
     <string name="plugin_dns_system">TV system DNS</string>
     <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
     <string name="plugin_dns_description">Choose the resolver used for CloudStream extension requests. Press OK to switch providers.</string>
+    <string name="usenet_opening">Opening Usenet video…</string>
 </resources>

@@ -56,6 +56,7 @@ import androidx.media3.session.MediaSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Job
+import com.nuvio.tv.core.usenet.UsenetPlayback
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -235,7 +236,11 @@ class PlayerRuntimeController(
     internal var currentVideoBitrate: Int? = null
     internal var portalRefusalRetried = false
     internal var portalPlayback: Pair<String, String>? = null // stable reference and last resolved URL
-    internal var currentStreamUrl: String
+    internal var currentStreamUrl: String = initialStreamUrl
+        set(value) {
+            if (field != value) UsenetPlayback.release(field)
+            field = value
+        }
     internal var reportedServerUrl: String? = null
     internal var serverAudioChosenByUser = false
     internal var currentStreamResponseHeaders: Map<String, String> = emptyMap()
@@ -264,6 +269,7 @@ class PlayerRuntimeController(
     fun getCurrentHeaders(): Map<String, String> = currentHeaders
 
     fun stopAndRelease() {
+        usenetPrepareJob?.cancel()
         leavePartyPlayback()
         // Cache counters only reach the card on a natural finish, so capture them when the user exits too.
         val diagnostics = lastPlaybackDiagnosticsForReport
@@ -464,6 +470,7 @@ class PlayerRuntimeController(
     internal var subtitleTimingRefreshJob: Job? = null
     internal var nextEpisodeAutoPlayJob: Job? = null
     internal var debridResolveJob: Job? = null
+    internal var usenetPrepareJob: Job? = null
     internal var stillWatchingPromptJob: Job? = null
     internal var startupLoadingReportJob: Job? = null
     internal var sourceStreamsJob: Job? = null
@@ -838,6 +845,8 @@ class PlayerRuntimeController(
     }
 
     fun onCleared() {
+        usenetPrepareJob?.cancel()
+        UsenetPlayback.release(currentStreamUrl)
         playerSession.close()
         stopServerPlayback()
         releasePlayer()

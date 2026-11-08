@@ -61,6 +61,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import com.nuvio.tv.core.usenet.UsenetPlayback
+import com.nuvio.tv.core.usenet.UsenetFailure
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -125,6 +127,8 @@ class StreamScreenViewModel @Inject constructor(
     private var streamLoadCompleted = false
     private var sourceChipErrorDismissJob: Job? = null
     private var pendingCacheSaveJob: Job? = null
+    private var usenetPrepareJob: Job? = null
+    private val pendingUsenetPlayback = com.nuvio.tv.core.usenet.PendingUsenetPlayback(UsenetPlayback::release)
     private var streamBadgePresentationJob: Job? = null
     private var streamFilterExpandJob: Job? = null
     private var streamFilterFullList: List<Stream> = emptyList()
@@ -1465,7 +1469,35 @@ class StreamScreenViewModel @Inject constructor(
     }
 
     suspend fun resolveStreamForPlayback(stream: Stream, saveLastLink: Boolean = true): StreamPlaybackInfo? {
+        pendingUsenetPlayback.release()
+        usenetPrepareJob?.let { previous ->
+            previous.cancel()
+            usenetPrepareJob = null
+            updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = false, directAutoPlayMessage = null) }
+        }
         stream.serverTarget?.let { target -> return prepareServerStream(stream, target) }
+        if (stream.usenet != null) {
+            val preparing = kotlin.coroutines.coroutineContext[Job]
+            usenetPrepareJob = preparing
+            updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = true,
+                directAutoPlayMessage = context.getString(R.string.usenet_opening), playbackErrorMessage = null) }
+            return try {
+                val resolved = UsenetPlayback.resolve(stream, videoId, season, episode)
+                pendingUsenetPlayback.replace(requireNotNull(resolved.url))
+                updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = it.isDirectAutoPlayFlow, directAutoPlayMessage = null) }
+                getStreamForPlayback(resolved, saveLastLink)
+            } catch (error: UsenetFailure) {
+                showDirectDebridPlaybackError(error.message.orEmpty(), refreshStreams = false)
+                null
+            } finally {
+                if (usenetPrepareJob === preparing) {
+                    usenetPrepareJob = null
+                    if (preparing?.isCancelled == true) updateUiStateIfChanged {
+                        it.copy(showDirectAutoPlayOverlay = false, directAutoPlayMessage = null)
+                    }
+                }
+            }
+        }
         if (stream.youTubeIdToResolve() != null) {
             return resolveYouTubeStreamForPlayback(stream)
         }
@@ -1631,7 +1663,10 @@ class StreamScreenViewModel @Inject constructor(
         pluginManager.recordPluginProviderPlay(bingeGroup)
     }
 
-    fun onInternalPlayerLaunching() {
+    fun releasePendingUsenetPlayback() = pendingUsenetPlayback.release()
+
+    fun onInternalPlayerLaunching(url: String?) {
+        pendingUsenetPlayback.handoff(url)
         streamRepository.setLocalPluginSearchPaused(true)
         updateUiStateIfChanged {
             it.copy(showDirectAutoPlayOverlay = false, directAutoPlayMessage = null)
@@ -1679,6 +1714,7 @@ class StreamScreenViewModel @Inject constructor(
         if (externalPlayerLaunchTimeMs == Long.MAX_VALUE) return
         if (System.currentTimeMillis() - externalPlayerLaunchTimeMs < 500L) return
         externalPlayerLaunched = false
+        pendingUsenetPlayback.externalPlayerReturned()
         externalPlayerLaunchTimeMs = 0L
         if (isTorrentStreamStarted) {
             torrentService.stopStream()
@@ -1815,6 +1851,8 @@ class StreamScreenViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        usenetPrepareJob?.cancel()
+        pendingUsenetPlayback.release()
         if (isTorrentStreamStarted && !externalPlaybackTracker.isOwningTorrentStream) {
             torrentService.stopStream()
             isTorrentStreamStarted = false
@@ -2084,9 +2122,15 @@ class StreamScreenViewModel @Inject constructor(
                 ownsTorrentStream = isTorrentStreamStarted,
                 context = context
             )
-            if (launched) rememberPlayedPlugin(playbackInfo.bingeGroup)
+            if (launched) {
+                pendingUsenetPlayback.handoffExternal(url)
+                rememberPlayedPlugin(playbackInfo.bingeGroup)
+            }
         } finally {
-            if (!launched) abortExternalHandoff()
+            if (!launched) {
+                pendingUsenetPlayback.release(url)
+                abortExternalHandoff()
+            }
         }
     }
 
@@ -2094,6 +2138,7 @@ class StreamScreenViewModel @Inject constructor(
         if (externalPlaybackTracker.isOwningTorrentStream) return
         streamRepository.setLocalPluginSearchPaused(false)
         externalPlayerLaunched = false
+        pendingUsenetPlayback.externalPlayerReturned()
         externalPlayerLaunchTimeMs = 0L
         if (isTorrentStreamStarted) {
             torrentService.stopStream()

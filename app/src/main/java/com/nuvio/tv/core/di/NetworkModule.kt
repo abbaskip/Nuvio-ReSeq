@@ -159,6 +159,11 @@ object NetworkModule {
             init(null, arrayOf<TrustManager>(trustAllManager), SecureRandom())
         }
         return okHttpClient.newBuilder()
+            .apply {
+                // Configured add-ons can encode NNTP credentials in any URL path segment.
+                interceptors().removeAll { it is HttpLoggingInterceptor || it is SentryNetworkBreadcrumbInterceptor }
+            }
+            .addInterceptor(SentryNetworkBreadcrumbInterceptor(hostOnly = true))
             .cache(Cache(File(context.cacheDir, "addon_http_cache"), 50L * 1024 * 1024))
             .sslSocketFactory(sslContext.socketFactory, trustAllManager)
             .hostnameVerifier { _, _ -> true }

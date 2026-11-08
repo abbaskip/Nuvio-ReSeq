@@ -21,8 +21,13 @@ data class StreamDto(
     @Json(name = "behaviorHints") val behaviorHints: BehaviorHintsDto? = null,
     @Json(name = "sources") val sources: List<String>? = null,
     @Json(name = "subtitles") val subtitles: List<SubtitleDto>? = null,
-    @Json(name = "clientResolve") val clientResolve: StreamClientResolveDto? = null
-)
+    @Json(name = "clientResolve") val clientResolve: StreamClientResolveDto? = null,
+    @Json(name = "nzbUrl") val nzbUrl: String? = null,
+    @Json(name = "servers") val servers: Any? = null,
+    @Json(name = "fileMustInclude") val fileMustInclude: Any? = null
+) {
+    override fun toString() = "StreamDto(redacted)"
+}
 
 @JsonClass(generateAdapter = true)
 data class StreamClientResolveDto(

@@ -3,9 +3,28 @@ package com.nuvio.tv.domain.model
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DiscoveryQueryTest {
+    @Test
+    fun `title contains is a trimmed literal case insensitive filter`() {
+        val query = DiscoveryQuery(titleContains = "  STAR TREK  ")
+        assertTrue(query.matchesTitle("Star Trek: Discovery"))
+        assertTrue(query.matchesTitle("The Star Trek Story"))
+        assertFalse(query.matchesTitle("Star Wars"))
+        assertTrue(DiscoveryQuery(titleContains = " \t ").matchesTitle("Anything"))
+        assertTrue(DiscoveryQuery(titleContains = "[REC]").matchesTitle("[REC] 2"))
+        assertFalse(DiscoveryQuery(titleContains = ".*").matchesTitle("Anything"))
+    }
+
+    @Test
+    fun `local title text preserves all provider filters without sending an unsupported parameter`() {
+        val query = DiscoveryQuery(genres = setOf(18), minimumRating = "7", hideWatched = true)
+        assertEquals(query.tmdbParameters(), query.copy(titleContains = "Alien").tmdbParameters())
+        assertNull(query.copy(titleContains = "Alien").validationError())
+    }
+
     @Test
     fun `certifications are regional saved filters and never sent for television`() {
         val query = DiscoveryQuery(certificationCountry = "AU", certification = "MA15+")

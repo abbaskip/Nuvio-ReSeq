@@ -162,6 +162,13 @@ fun AdvancedDiscoverScreen(
                         Modifier.fillMaxWidth(), onClick = { picker = "type" })
                 }
                 item {
+                    DiscoveryField(stringResource(R.string.advanced_discover_title_contains), query.titleContains,
+                        placeholder = stringResource(R.string.advanced_discover_any)) {
+                        viewModel.edit(query.copy(titleContains = it))
+                    }
+                    DiscoveryNote(stringResource(R.string.advanced_discover_title_contains_hint))
+                }
+                item {
                     DiscoveryButton(stringResource(R.string.advanced_discover_genres_value, query.genres.size), Modifier.fillMaxWidth(),
                         enabled = state.genres.isNotEmpty(), onClick = { picker = "genres" })
                 }
@@ -257,7 +264,11 @@ fun AdvancedDiscoverScreen(
                     DiscoveryButton(stringResource(R.string.advanced_discover_configure_tmdb), onClick = onOpenTmdbSettings)
                 }
                 if (state.applied != null) {
-                    DiscoveryNote(stringResource(R.string.advanced_discover_result_count, state.items.size, state.totalResults))
+                    if (state.applied!!.titleContains.isNotBlank()) {
+                        DiscoveryNote(stringResource(R.string.advanced_discover_title_matches_loaded, state.items.size))
+                    } else {
+                        DiscoveryNote(stringResource(R.string.advanced_discover_result_count, state.items.size, state.totalResults))
+                    }
                     if (state.applied != query) DiscoveryNote(stringResource(R.string.advanced_discover_pending_changes))
                 }
                 state.items.getOrNull(focusedIndex)?.let { focused ->
@@ -299,6 +310,11 @@ fun AdvancedDiscoverScreen(
                             }, filterKey = state.resultRevision.toString()
                         )
                     }
+                }
+                if (state.applied?.titleContains?.isNotBlank() == true && state.items.isNotEmpty() &&
+                    state.hasMore && state.error == null) {
+                    DiscoveryButton(stringResource(R.string.advanced_discover_load_more),
+                        enabled = !state.loading && !state.filteringWatched, onClick = viewModel::loadMore)
                 }
             }
         }

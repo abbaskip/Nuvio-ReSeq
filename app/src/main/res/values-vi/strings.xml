@@ -3435,4 +3435,5 @@
     <string name="autosync_label_synced">Đã tự động đồng bộ</string>
     <string name="stream_resume_from_time">Xem tiếp từ %1$s</string>
     <string name="stream_resume_from_percent">Xem tiếp từ %1$d%%</string>
+    <string name="usenet_opening">Đang mở video Usenet…</string>
 </resources>

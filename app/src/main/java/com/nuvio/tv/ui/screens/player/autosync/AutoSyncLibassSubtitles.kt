@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package com.nuvio.tv.ui.screens.player.autosync
 
 import androidx.media3.common.Format
@@ -26,6 +24,7 @@ import kotlinx.coroutines.withContext
  * reload of the same stream) libass gets the synced copy instead of the original. It is forgotten
  * whenever the add-on sidecar state resets (another subtitle, a new stream).
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal object AutoSyncLibassSubtitles {
     private val retimedByHandler =
         Collections.synchronizedMap(WeakHashMap<AssHandler, MutableMap<String, ByteArray>>())
@@ -82,6 +81,7 @@ internal object AutoSyncLibassSubtitles {
 }
 
 /** Feeds libass the synced copy of a subtitle when Media3 loads it after AutoSync applied it. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class RetimedAssSubtitleParser(
     private val delegate: SubtitleParser,
     private val retimedBody: () -> ByteArray?,

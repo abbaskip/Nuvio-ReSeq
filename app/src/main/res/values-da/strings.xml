@@ -2696,4 +2696,10 @@
     <string name="profile_default_name">Profil %1$d</string>
     <string name="detail_tmdb_fallback_title">TMDB %1$d</string>
     <string name="collections_editor_tmdb_collection_fallback">TMDB Collection %1$d</string>
+    <string name="playback_release_decoder_on_background">Frigiv dekoderen i baggrunden</string>
+    <string name="playback_release_decoder_on_background_sub">Frigiver videodekoderen, når Nuvio går i baggrunden. Slå indstillingen til ved dekoderfejl, når du vender tilbage. Afspilleren genindlæses, når du vender tilbage, også efter pauseskærmen.</string>
+    <string name="layout_hero_description_auto_scroll">Rul automatisk gennem beskrivelser</string>
+    <string name="layout_hero_description_auto_scroll_sub">Rul langsomt gennem lange beskrivelser på startskærmen i stedet for at afkorte dem.</string>
+    <string name="autosync_toast_no_fit">Synkronisering mislykkedes: Underteksterne passer ikke til denne version af videoen.</string>
+    <string name="usenet_opening">Åbner Usenet-video…</string>
 </resources>

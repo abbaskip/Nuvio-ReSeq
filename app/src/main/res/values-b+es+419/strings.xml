@@ -3431,4 +3431,9 @@
     <string name="autosync_label_synced">Sincronizado automáticamente</string>
     <string name="stream_resume_from_time">Reanudar desde %1$s</string>
     <string name="stream_resume_from_percent">Reanudar desde el %1$d%%</string>
-    </resources>
+        <string name="playback_release_decoder_on_background">Liberar el decodificador en segundo plano</string>
+    <string name="playback_release_decoder_on_background_sub">Libera el decodificador de video cuando Nuvio pasa a segundo plano. Activa esta opción si hay errores del decodificador al volver. El reproductor se recarga al regresar, también después del protector de pantalla.</string>
+    <string name="layout_hero_description_auto_scroll">Desplazar las descripciones automáticamente</string>
+    <string name="layout_hero_description_auto_scroll_sub">Desplaza lentamente las descripciones largas de la pantalla de inicio en lugar de cortarlas.</string>
+    <string name="usenet_opening">Abriendo video de Usenet…</string>
+</resources>

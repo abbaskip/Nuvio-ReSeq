@@ -994,4 +994,10 @@
     <string name="update_ignore">नज़रअंदाज़ करें</string>
     <string name="playback_player_auto">ऑटो (सामग्री के लिए सर्वश्रेष्ठ)</string>
     <string name="playback_player_auto_desc">ExoPlayer मूवीज़ और टीवी शोज़ के लिए · MPV एनीमे के लिए</string>
+    <string name="playback_release_decoder_on_background">बैकग्राउंड में डिकोडर खाली करें</string>
+    <string name="playback_release_decoder_on_background_sub">Nuvio के बैकग्राउंड में जाने पर वीडियो डिकोडर खाली करता है। लौटने पर डिकोडर की गड़बड़ी हो तो इसे चालू करें। लौटने पर प्लेयर फिर से लोड होता है, स्क्रीनसेवर के बाद भी।</string>
+    <string name="layout_hero_description_auto_scroll">विवरण अपने आप स्क्रॉल करें</string>
+    <string name="layout_hero_description_auto_scroll_sub">होम स्क्रीन पर लंबे विवरण काटने के बजाय उन्हें धीरे-धीरे स्क्रॉल करें।</string>
+    <string name="autosync_toast_no_fit">सिंक नहीं हो सका: ये सबटाइटल वीडियो के इस संस्करण से मेल नहीं खाते।</string>
+    <string name="usenet_opening">Usenet वीडियो खोला जा रहा है…</string>
 </resources>

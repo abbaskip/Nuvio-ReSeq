@@ -1488,4 +1488,10 @@
     <string name="collections_tab_all">Sve</string>
     <string name="collections_tab_combined">Kombinovano</string>
 
+    <string name="playback_release_decoder_on_background">Oslobodi dekoder u pozadini</string>
+    <string name="playback_release_decoder_on_background_sub">Oslobađa videodekoder kada Nuvio pređe u pozadinu. Uključite ako se nakon povratka javi greška dekodera. Plejer se ponovo učitava pri povratku, čak i nakon čuvara ekrana.</string>
+    <string name="layout_hero_description_auto_scroll">Automatsko pomjeranje opisa</string>
+    <string name="layout_hero_description_auto_scroll_sub">Polako pomjera duge opise na početnom ekranu umjesto da ih skrati.</string>
+    <string name="autosync_toast_no_fit">Sinhronizacija nije uspjela: titlovi ne odgovaraju ovoj verziji videa.</string>
+    <string name="usenet_opening">Otvaranje videa s Useneta…</string>
 </resources>

@@ -3113,4 +3113,10 @@
     <string name="stream_test_video_bitrate">Средний битрейт видео: %1$s</string>
     <string name="stream_test_error_connection">Ошибка соединения. Возможно, ссылка на последний воспроизведённый поток устарела или недоступна. Воспроизведите видео заново и повторите попытку.</string>
 
+    <string name="playback_release_decoder_on_background">Освобождать декодер в фоне</string>
+    <string name="playback_release_decoder_on_background_sub">Освобождает видеодекодер при переходе Nuvio в фон. Включите, если после возврата возникает ошибка декодера. При возврате плеер загружается заново, в том числе после заставки.</string>
+    <string name="layout_hero_description_auto_scroll">Автопрокрутка описаний</string>
+    <string name="layout_hero_description_auto_scroll_sub">Длинные описания на главном экране медленно прокручиваются, а не обрезаются.</string>
+    <string name="autosync_toast_no_fit">Не удалось синхронизировать: субтитры не соответствуют этой версии видео.</string>
+    <string name="usenet_opening">Открытие видео из Usenet…</string>
 </resources>

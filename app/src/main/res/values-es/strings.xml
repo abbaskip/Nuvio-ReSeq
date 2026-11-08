@@ -3429,4 +3429,10 @@ Utilizas esta función bajo tu entera responsabilidad. P2P se puede desactivar e
     <string name="stream_resume_from_time">Reanudar desde %1$s</string>
     <string name="stream_resume_from_percent">Reanudar desde %1$d%%</string>
 
+    <string name="playback_release_decoder_on_background">Liberar el decodificador en segundo plano</string>
+    <string name="playback_release_decoder_on_background_sub">Libera el decodificador de vídeo cuando Nuvio pasa a segundo plano. Activa esta opción si hay errores del decodificador al volver. El reproductor vuelve a cargar el vídeo al regresar, incluso después del salvapantallas.</string>
+    <string name="layout_hero_description_auto_scroll">Desplazar las descripciones automáticamente</string>
+    <string name="layout_hero_description_auto_scroll_sub">Desplaza lentamente las descripciones largas de la pantalla de inicio en lugar de cortarlas.</string>
+    <string name="autosync_toast_no_fit">No se pudo sincronizar: los subtítulos no corresponden a esta versión del vídeo.</string>
+    <string name="usenet_opening">Abriendo vídeo de Usenet…</string>
 </resources>

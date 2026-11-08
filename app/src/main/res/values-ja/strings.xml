@@ -3433,4 +3433,7 @@
     <string name="autosync_label_synced">自動同期済み</string>
     <string name="stream_resume_from_time">%1$s から再開</string>
     <string name="stream_resume_from_percent">%1$d%% から再開</string>
+    <string name="layout_hero_description_auto_scroll">説明を自動スクロール</string>
+    <string name="layout_hero_description_auto_scroll_sub">ホーム画面の長い説明を省略せず、ゆっくりスクロールして表示します。</string>
+    <string name="usenet_opening">Usenet の動画を開いています…</string>
 </resources>

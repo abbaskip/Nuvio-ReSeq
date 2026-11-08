@@ -3219,4 +3219,7 @@
     <string name="autosync_label_synced">অটো-সিঙ্ক হয়েছে</string>
     <string name="stream_resume_from_time">%1$s থেকে পুনরায় দেখুন</string>
     <string name="stream_resume_from_percent">%1$d%% থেকে পুনরায় দেখুন</string>
+    <string name="layout_hero_description_auto_scroll">বিবরণ স্বয়ংক্রিয়ভাবে স্ক্রল করুন</string>
+    <string name="layout_hero_description_auto_scroll_sub">হোম স্ক্রিনে দীর্ঘ বিবরণ কেটে না দিয়ে ধীরে ধীরে স্ক্রল করে দেখায়।</string>
+    <string name="usenet_opening">Usenet ভিডিও খোলা হচ্ছে…</string>
 </resources>

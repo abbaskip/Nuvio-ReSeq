@@ -3419,4 +3419,5 @@ Próbálj meg egy másik forrást. [%1$s]</string>
     <string name="stream_resume_from_time">Folytatás innen: %1$s</string>
     <string name="stream_resume_from_percent">Folytatás innen: %1$d%%</string>
 
+    <string name="usenet_opening">Usenet-videó megnyitása…</string>
 </resources>

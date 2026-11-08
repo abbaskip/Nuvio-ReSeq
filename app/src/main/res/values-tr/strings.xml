@@ -3449,4 +3449,7 @@
     <string name="audio_downmix_lfe_level_half">%50</string>
     <string name="audio_downmix_lfe_level_full">%100</string>
     <string name="autosync_toast_no_fit">Eşitleme başarısız: Bu altyazı videonun bu sürümüyle uyuşmuyor.</string>
+    <string name="layout_hero_description_auto_scroll">Açıklamaları otomatik kaydır</string>
+    <string name="layout_hero_description_auto_scroll_sub">Ana ekrandaki uzun açıklamaları kesmek yerine yavaşça kaydırır.</string>
+    <string name="usenet_opening">Usenet videosu açılıyor…</string>
 </resources>

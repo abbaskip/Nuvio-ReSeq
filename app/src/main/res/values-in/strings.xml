@@ -2443,4 +2443,10 @@
     <string name="trakt_comments_error_request_failed">Permintaan komentar Trakt gagal</string>
     <string name="trakt_library_error_fetch_list_items">Gagal mengambil item daftar</string>
 
+    <string name="playback_release_decoder_on_background">Lepaskan dekoder di latar belakang</string>
+    <string name="playback_release_decoder_on_background_sub">Melepaskan dekoder video saat Nuvio berjalan di latar belakang. Aktifkan jika terjadi kesalahan dekoder saat kembali. Pemutar dimuat ulang saat kembali, termasuk setelah screensaver.</string>
+    <string name="layout_hero_description_auto_scroll">Gulir deskripsi secara otomatis</string>
+    <string name="layout_hero_description_auto_scroll_sub">Menggulir deskripsi panjang di layar utama secara perlahan agar teks tidak terpotong.</string>
+    <string name="autosync_toast_no_fit">Sinkronisasi gagal: subtitle tidak cocok dengan versi video ini.</string>
+    <string name="usenet_opening">Membuka video Usenet…</string>
 </resources>

@@ -3435,4 +3435,5 @@
     <string name="autosync_label_synced">Synchronisé automatiquement</string>
     <string name="stream_resume_from_time">Reprendre à %1$s</string>
     <string name="stream_resume_from_percent">Reprendre à %1$d&#160;%%</string>
+    <string name="usenet_opening">Ouverture de la vidéo Usenet…</string>
 </resources>

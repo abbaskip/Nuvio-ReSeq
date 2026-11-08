@@ -3342,4 +3342,5 @@
   <string name="autosync_label_synced">Αυτόματα συγχρονισμένος</string>
   <string name="stream_resume_from_time">Συνέχεια από %1$s</string>
   <string name="stream_resume_from_percent">Συνέχεια από %1$d%%</string>
+    <string name="usenet_opening">Άνοιγμα βίντεο από το Usenet…</string>
 </resources>

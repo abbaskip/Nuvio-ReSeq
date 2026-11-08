@@ -3362,4 +3362,10 @@
     <string name="autosync_label_synced">Sincronizzato automaticamente</string>
     <string name="stream_resume_from_time">Riprendi da %1$s</string>
     <string name="stream_resume_from_percent">Riprendi dal %1$d%%</string>
+    <string name="playback_release_decoder_on_background">Rilascia il decodificatore in background</string>
+    <string name="playback_release_decoder_on_background_sub">Libera il decodificatore video quando Nuvio passa in background. Attiva questa opzione se al ritorno compare un errore del decodificatore. Il lettore si ricarica al ritorno, anche dopo il salvaschermo.</string>
+    <string name="layout_hero_description_auto_scroll">Scorrimento automatico delle descrizioni</string>
+    <string name="layout_hero_description_auto_scroll_sub">Fa scorrere lentamente le descrizioni lunghe nella schermata iniziale anziché troncarle.</string>
+    <string name="autosync_toast_no_fit">Sincronizzazione non riuscita: i sottotitoli non corrispondono a questa versione del video.</string>
+    <string name="usenet_opening">Apertura del video Usenet…</string>
 </resources>

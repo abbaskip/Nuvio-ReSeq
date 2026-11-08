@@ -3028,4 +3028,10 @@
     <string name="web_stream_badge_imported">استُورد رابط الشارة.</string>
     <string name="web_stream_badge_importing">جارٍ الاستيراد\u2026</string>
     <string name="web_stream_badge_load_error">تعذر تحميل إعدادات شارات البث</string>
+    <string name="playback_release_decoder_on_background">تحرير وحدة فك الترميز في الخلفية</string>
+    <string name="playback_release_decoder_on_background_sub">يحرر وحدة فك ترميز الفيديو عندما ينتقل Nuvio إلى الخلفية. فعّل هذا الخيار إذا حدث خطأ في فك الترميز عند العودة. يُعاد تحميل المشغّل عند العودة، بما في ذلك بعد شاشة التوقف.</string>
+    <string name="layout_hero_description_auto_scroll">تمرير الأوصاف تلقائيًا</string>
+    <string name="layout_hero_description_auto_scroll_sub">يمرر الأوصاف الطويلة ببطء على الشاشة الرئيسية بدلًا من اقتطاعها.</string>
+    <string name="autosync_toast_no_fit">تعذرت المزامنة: لا تتطابق الترجمة مع هذه النسخة من الفيديو.</string>
+    <string name="usenet_opening">جارٍ فتح فيديو من Usenet…</string>
 </resources>

@@ -2268,4 +2268,10 @@
     <string name="trakt_comments_error_request_failed">Trakt comments request failed</string>
     <string name="trakt_library_error_fetch_list_items">Failed to fetch list items</string>
 
+    <string name="playback_release_decoder_on_background">Decoder im Hintergrund freigeben</string>
+    <string name="playback_release_decoder_on_background_sub">Gibt den Videodecoder frei, wenn Nuvio in den Hintergrund wechselt. Bei Decoderfehlern nach der Rückkehr aktivieren. Der Player lädt beim Zurückkehren neu, auch nach dem Bildschirmschoner.</string>
+    <string name="layout_hero_description_auto_scroll">Beschreibungen automatisch scrollen</string>
+    <string name="layout_hero_description_auto_scroll_sub">Lange Beschreibungen auf der Startseite langsam durchscrollen, statt sie abzuschneiden.</string>
+    <string name="autosync_toast_no_fit">Synchronisierung fehlgeschlagen: Diese Untertitel passen nicht zu dieser Videofassung.</string>
+    <string name="usenet_opening">Usenet-Video wird geöffnet…</string>
 </resources>

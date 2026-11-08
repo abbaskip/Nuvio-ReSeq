@@ -2170,4 +2170,10 @@
     <string name="trakt_comments_error_request_failed">Zahteva za komentarje Trakt ni uspela</string>
     <string name="trakt_library_error_fetch_list_items">Pridobivanje elementov seznama ni uspelo</string>
 
+    <string name="playback_release_decoder_on_background">Sprosti dekodirnik v ozadju</string>
+    <string name="playback_release_decoder_on_background_sub">Sprosti video dekodirnik, ko Nuvio preide v ozadje. Vklopite ob napaki dekodirnika po vrnitvi. Predvajalnik se ob vrnitvi znova naloži, tudi po ohranjevalniku zaslona.</string>
+    <string name="layout_hero_description_auto_scroll">Samodejno pomikanje opisov</string>
+    <string name="layout_hero_description_auto_scroll_sub">Dolgi opisi na začetnem zaslonu se počasi pomikajo, namesto da bi bili odrezani.</string>
+    <string name="autosync_toast_no_fit">Sinhronizacija ni uspela: podnapisi ne ustrezajo tej različici videa.</string>
+    <string name="usenet_opening">Odpiranje videa iz Useneta…</string>
 </resources>

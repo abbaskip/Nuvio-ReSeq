@@ -2831,4 +2831,10 @@
     <string name="stream_test_video_bitrate">Průměrný datový tok videa: %1$s</string>
     <string name="stream_test_error_connection">Připojení selhalo. Platnost posledního přehraného odkazu na stream mohla vypršet, nebo je nedostupný. Přehrajte prosím video znovu a zkuste to opět.</string>
 
+    <string name="playback_release_decoder_on_background">Uvolnit dekodér na pozadí</string>
+    <string name="playback_release_decoder_on_background_sub">Uvolní dekodér videa, když Nuvio přejde na pozadí. Zapněte při chybě dekodéru po návratu. Přehrávač se při návratu znovu načte, i po spořiči obrazovky.</string>
+    <string name="layout_hero_description_auto_scroll">Automaticky posouvat popisy</string>
+    <string name="layout_hero_description_auto_scroll_sub">Dlouhé popisy na hlavní obrazovce se pomalu posouvají místo oříznutí.</string>
+    <string name="autosync_toast_no_fit">Synchronizace selhala: titulky neodpovídají této verzi videa.</string>
+    <string name="usenet_opening">Otevírání videa z Usenetu…</string>
 </resources>

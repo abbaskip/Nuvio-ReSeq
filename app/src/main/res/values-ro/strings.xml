@@ -826,4 +826,10 @@
     <string name="update_ignore">Ignoră</string>
       <string name="playback_player_auto">Automat (Cel mai bun pentru conținut)</string>
     <string name="playback_player_auto_desc">ExoPlayer pentru Filme și Seriale · MPV pentru Anime</string>
+    <string name="playback_release_decoder_on_background">Eliberează decodorul în fundal</string>
+    <string name="playback_release_decoder_on_background_sub">Eliberează decodorul video când Nuvio trece în fundal. Activează opțiunea dacă apare o eroare de decodare la revenire. Playerul se reîncarcă la revenire, inclusiv după economizorul de ecran.</string>
+    <string name="layout_hero_description_auto_scroll">Derulează automat descrierile</string>
+    <string name="layout_hero_description_auto_scroll_sub">Derulează lent descrierile lungi de pe ecranul principal în loc să le trunchieze.</string>
+    <string name="autosync_toast_no_fit">Sincronizarea a eșuat: subtitrările nu se potrivesc cu această versiune a videoclipului.</string>
+    <string name="usenet_opening">Se deschide videoclipul de pe Usenet…</string>
 </resources>

@@ -3430,4 +3430,10 @@
     <string name="autosync_label_synced">Sincronizado automaticamente</string>
     <string name="stream_resume_from_time">Continuar a partir de %1$s</string>
     <string name="stream_resume_from_percent">Continuar a partir de %1$d%%</string>
+    <string name="playback_release_decoder_on_background">Liberar o decodificador em segundo plano</string>
+    <string name="playback_release_decoder_on_background_sub">Libera o decodificador de vídeo quando o Nuvio vai para segundo plano. Ative se houver erro no decodificador ao voltar. O player recarrega ao retornar, inclusive após o protetor de tela.</string>
+    <string name="layout_hero_description_auto_scroll">Rolar descrições automaticamente</string>
+    <string name="layout_hero_description_auto_scroll_sub">Rola devagar as descrições longas na tela inicial em vez de cortá-las.</string>
+    <string name="autosync_toast_no_fit">Falha na sincronização: as legendas não correspondem a esta versão do vídeo.</string>
+    <string name="usenet_opening">Abrindo vídeo da Usenet…</string>
 </resources>

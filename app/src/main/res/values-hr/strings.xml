@@ -3297,4 +3297,10 @@
     <string name="shuffle_save_failed">Nije moguće ažurirati nasumičnu reprodukciju. Pokušaj ponovno.</string>
     <string name="shuffle_change_selection">Odaberi epizode</string>
     <string name="shuffle_badge">Nasumična reprodukcija epizoda uključena</string>
+    <string name="playback_release_decoder_on_background">Oslobodi dekoder u pozadini</string>
+    <string name="playback_release_decoder_on_background_sub">Oslobađa videodekoder kad Nuvio prijeđe u pozadinu. Uključite ako se nakon povratka pojavi pogreška dekodera. Reproduktor se ponovno učitava pri povratku, čak i nakon čuvara zaslona.</string>
+    <string name="layout_hero_description_auto_scroll">Automatsko pomicanje opisa</string>
+    <string name="layout_hero_description_auto_scroll_sub">Polako pomiče duge opise na početnom zaslonu umjesto da ih skrati.</string>
+    <string name="autosync_toast_no_fit">Sinkronizacija nije uspjela: titlovi ne odgovaraju ovoj verziji videozapisa.</string>
+    <string name="usenet_opening">Otvaranje videozapisa s Useneta…</string>
 </resources>

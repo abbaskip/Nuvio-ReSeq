@@ -3166,4 +3166,10 @@
     <string name="stream_test_video_bitrate">Prosečni video bitrejt: %1$s</string>
     <string name="stream_test_error_connection">Povezivanje nije uspelo. Veza poslednje puštenog strima je možda istekla ili je nedostupna. Pustite video ponovo i pokušajte opet.</string>
 
+    <string name="playback_release_decoder_on_background">Oslobodi dekoder u pozadini</string>
+    <string name="playback_release_decoder_on_background_sub">Oslobađa video-dekoder kada Nuvio pređe u pozadinu. Uključite ako se nakon povratka javi greška dekodera. Plejer se ponovo učitava pri povratku, čak i nakon čuvara ekrana.</string>
+    <string name="layout_hero_description_auto_scroll">Automatsko pomeranje opisa</string>
+    <string name="layout_hero_description_auto_scroll_sub">Polako pomera duge opise na početnom ekranu umesto da ih skrati.</string>
+    <string name="autosync_toast_no_fit">Sinhronizacija nije uspela: titlovi ne odgovaraju ovoj verziji snimka.</string>
+    <string name="usenet_opening">Otvaranje videa sa Useneta…</string>
 </resources>

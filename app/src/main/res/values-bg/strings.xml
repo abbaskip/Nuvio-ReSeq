@@ -3403,4 +3403,10 @@
     <string name="autosync_label_synced">Автоматично синхронизирано</string>
     <string name="stream_resume_from_time">Възобновяване от %1$s</string>
     <string name="stream_resume_from_percent">Възобновяване от %1$d%%</string>
+    <string name="playback_release_decoder_on_background">Освобождаване на декодера във фонов режим</string>
+    <string name="playback_release_decoder_on_background_sub">Освобождава видеодекодера, когато Nuvio премине във фонов режим. Включете при грешка на декодера след връщане. Плейърът се зарежда отново при връщане, включително след скрийнсейвър.</string>
+    <string name="layout_hero_description_auto_scroll">Автоматично превъртане на описанията</string>
+    <string name="layout_hero_description_auto_scroll_sub">Дългите описания на началния екран се превъртат бавно, вместо да се съкращават.</string>
+    <string name="autosync_toast_no_fit">Синхронизирането е неуспешно: субтитрите не съответстват на тази версия на видеото.</string>
+    <string name="usenet_opening">Отваряне на видео от Usenet…</string>
 </resources>

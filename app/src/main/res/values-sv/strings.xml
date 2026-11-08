@@ -1761,4 +1761,10 @@
     <string name="servers_subtitle_switch_failed">Det gick inte att byta undertextspår.</string>
     <string name="party_phone_chat_note">Öppna Watch Party på din telefon med den här profilen för att chatta.</string>
 
+    <string name="playback_release_decoder_on_background">Frigör avkodaren i bakgrunden</string>
+    <string name="playback_release_decoder_on_background_sub">Frigör videoavkodaren när Nuvio går till bakgrunden. Aktivera detta om ett avkodningsfel uppstår när du återvänder. Spelaren laddas om när du återvänder, även efter skärmsläckaren.</string>
+    <string name="layout_hero_description_auto_scroll">Rulla beskrivningar automatiskt</string>
+    <string name="layout_hero_description_auto_scroll_sub">Rulla långa beskrivningar på startskärmen långsamt i stället för att klippa av dem.</string>
+    <string name="autosync_toast_no_fit">Synkroniseringen misslyckades: undertexterna passar inte den här versionen av videon.</string>
+    <string name="usenet_opening">Öppnar Usenet-video…</string>
 </resources>

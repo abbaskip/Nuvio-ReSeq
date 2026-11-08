@@ -3519,4 +3519,5 @@
     <string name="cd_emoji_option">Emoji %1$s</string>
     <string name="cd_trailer_controls">Sterowanie zwiastunem</string>
     <string name="cd_seek_bar">Pasek przewijania</string>
+    <string name="usenet_opening">Otwieranie filmu z Usenetu…</string>
 </resources>

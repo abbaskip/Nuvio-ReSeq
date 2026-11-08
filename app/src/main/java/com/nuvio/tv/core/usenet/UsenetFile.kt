@@ -10,10 +10,19 @@ internal interface UsenetFile {
 internal class ArticleCache(private val fetch: (String, String?) -> Article) {
     private val entries = LinkedHashMap<String, Article>(16, 0.75f, true)
     private var used = 0
+    private val missing = LinkedHashSet<String>()
     operator fun get(id: String): Article = load(id, null)
     @Synchronized fun load(id: String, next: String?): Article {
         entries[id]?.let { return it }
-        val article = fetch(id, next?.takeUnless(entries::containsKey))
+        if (id in missing) throw MissingUsenetArticle()
+        val article = try {
+            fetch(id, next?.takeUnless(entries::containsKey))
+        } catch (error: MissingUsenetArticle) {
+            // Only definitive absence across all providers is remembered. Transport failures remain retryable.
+            if (missing.size >= 4096) missing.remove(missing.first())
+            missing.add(id)
+            throw error
+        }
         entries[id] = article
         used += article.bytes.size
         val iterator = entries.values.iterator()

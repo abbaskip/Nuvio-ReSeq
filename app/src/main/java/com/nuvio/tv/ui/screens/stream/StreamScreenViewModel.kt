@@ -128,6 +128,7 @@ class StreamScreenViewModel @Inject constructor(
     private var sourceChipErrorDismissJob: Job? = null
     private var pendingCacheSaveJob: Job? = null
     private var usenetPrepareJob: Job? = null
+    private val pendingUsenetPlayback = com.nuvio.tv.core.usenet.PendingUsenetPlayback(UsenetPlayback::release)
     private var streamBadgePresentationJob: Job? = null
     private var streamFilterExpandJob: Job? = null
     private var streamFilterFullList: List<Stream> = emptyList()
@@ -1468,6 +1469,7 @@ class StreamScreenViewModel @Inject constructor(
     }
 
     suspend fun resolveStreamForPlayback(stream: Stream, saveLastLink: Boolean = true): StreamPlaybackInfo? {
+        pendingUsenetPlayback.release()
         usenetPrepareJob?.let { previous ->
             previous.cancel()
             usenetPrepareJob = null
@@ -1481,6 +1483,7 @@ class StreamScreenViewModel @Inject constructor(
                 directAutoPlayMessage = context.getString(R.string.usenet_opening), playbackErrorMessage = null) }
             return try {
                 val resolved = UsenetPlayback.resolve(stream)
+                pendingUsenetPlayback.replace(requireNotNull(resolved.url))
                 updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = it.isDirectAutoPlayFlow, directAutoPlayMessage = null) }
                 getStreamForPlayback(resolved, saveLastLink)
             } catch (error: UsenetFailure) {
@@ -1660,7 +1663,10 @@ class StreamScreenViewModel @Inject constructor(
         pluginManager.recordPluginProviderPlay(bingeGroup)
     }
 
-    fun onInternalPlayerLaunching() {
+    fun releasePendingUsenetPlayback() = pendingUsenetPlayback.release()
+
+    fun onInternalPlayerLaunching(url: String?) {
+        pendingUsenetPlayback.handoff(url)
         streamRepository.setLocalPluginSearchPaused(true)
         updateUiStateIfChanged {
             it.copy(showDirectAutoPlayOverlay = false, directAutoPlayMessage = null)
@@ -1708,6 +1714,7 @@ class StreamScreenViewModel @Inject constructor(
         if (externalPlayerLaunchTimeMs == Long.MAX_VALUE) return
         if (System.currentTimeMillis() - externalPlayerLaunchTimeMs < 500L) return
         externalPlayerLaunched = false
+        pendingUsenetPlayback.externalPlayerReturned()
         externalPlayerLaunchTimeMs = 0L
         if (isTorrentStreamStarted) {
             torrentService.stopStream()
@@ -1844,6 +1851,8 @@ class StreamScreenViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        usenetPrepareJob?.cancel()
+        pendingUsenetPlayback.release()
         if (isTorrentStreamStarted && !externalPlaybackTracker.isOwningTorrentStream) {
             torrentService.stopStream()
             isTorrentStreamStarted = false
@@ -2113,7 +2122,10 @@ class StreamScreenViewModel @Inject constructor(
                 ownsTorrentStream = isTorrentStreamStarted,
                 context = context
             )
-            if (launched) rememberPlayedPlugin(playbackInfo.bingeGroup)
+            if (launched) {
+                pendingUsenetPlayback.handoffExternal(url)
+                rememberPlayedPlugin(playbackInfo.bingeGroup)
+            }
         } finally {
             if (!launched) abortExternalHandoff()
         }
@@ -2123,6 +2135,7 @@ class StreamScreenViewModel @Inject constructor(
         if (externalPlaybackTracker.isOwningTorrentStream) return
         streamRepository.setLocalPluginSearchPaused(false)
         externalPlayerLaunched = false
+        pendingUsenetPlayback.externalPlayerReturned()
         externalPlayerLaunchTimeMs = 0L
         if (isTorrentStreamStarted) {
             torrentService.stopStream()

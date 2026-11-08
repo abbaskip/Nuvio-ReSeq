@@ -206,8 +206,11 @@ fun StreamScreen(
     }
 
     fun launchInternalPlayer(playbackInfo: StreamPlaybackInfo) {
-        viewModel.onInternalPlayerLaunching()
-        scope.coroutineLaunch { onStreamSelected(viewModel.attachTvdbContext(playbackInfo)) }
+        scope.coroutineLaunch {
+            val prepared = viewModel.attachTvdbContext(playbackInfo)
+            viewModel.onInternalPlayerLaunching(prepared.url)
+            onStreamSelected(prepared)
+        }
     }
 
     fun routePlayback(playbackInfo: StreamPlaybackInfo) {
@@ -275,8 +278,11 @@ fun StreamScreen(
                     viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
                 }
                 else -> {
-                    viewModel.onInternalPlayerLaunching()
-                    scope.coroutineLaunch { onAutoPlayResolved(viewModel.attachTvdbContext(playbackInfo)) }
+                    scope.coroutineLaunch {
+                        val prepared = viewModel.attachTvdbContext(playbackInfo)
+                        viewModel.onInternalPlayerLaunching(prepared.url)
+                        onAutoPlayResolved(prepared)
+                    }
                 }
             }
             return
@@ -371,8 +377,9 @@ fun StreamScreen(
                     viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
                 }
                 else -> {
-                    viewModel.onInternalPlayerLaunching()
-                    onAutoPlayResolved(viewModel.attachTvdbContext(playbackInfo))
+                    val prepared = viewModel.attachTvdbContext(playbackInfo)
+                    viewModel.onInternalPlayerLaunching(prepared.url)
+                    onAutoPlayResolved(prepared)
                     viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
                 }
             }
@@ -544,6 +551,7 @@ fun StreamScreen(
                     pendingPlaybackInfo = null
                 },
                 onDismiss = {
+                    viewModel.releasePendingUsenetPlayback()
                     showPlayerChoiceDialog = false
                     pendingPlaybackInfo = null
                 }

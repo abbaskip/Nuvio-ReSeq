@@ -111,8 +111,8 @@ private class NewsServer(val host: String, val port: Int, val tls: Boolean, val 
     }
 }
 
-private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory) : Closeable {
-    private var socket = connect(server)
+private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, register: (Socket) -> Unit) : Closeable {
+    private var socket = connect(server, register)
     private val input: BufferedInputStream
     private var pending: String? = null
     init {
@@ -121,6 +121,7 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory) :
             if (server.tls) {
                 val secure = tlsFactory.createSocket(socket, server.host, server.port, true) as SSLSocket
                 socket = secure
+                register(secure)
                 secure.sslParameters = secure.sslParameters.apply { endpointIdentificationAlgorithm = "HTTPS" }
                 secure.startHandshake()
             }
@@ -137,12 +138,13 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory) :
         }
     }
     private companion object {
-        fun connect(server: NewsServer): Socket {
+        fun connect(server: NewsServer, register: (Socket) -> Unit): Socket {
             val addresses = InetAddress.getAllByName(server.host)
             var failure: IOException? = null
             for (address in addresses.take(4)) {
                 val candidate = Socket()
                 try {
+                    register(candidate)
                     candidate.connect(InetSocketAddress(address, server.port), 4_000)
                     return candidate
                 } catch (error: IOException) {
@@ -164,7 +166,9 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory) :
 
     fun fetch(id: String, next: String?): Article {
         if (pending == null) send("BODY <$id>")
-        ensureUsenet(status() == 222, "Usenet article unavailable.")
+        val response = status()
+        if (response == 430 || response == 423) throw MissingUsenetArticle()
+        ensureUsenet(response == 222, "Usenet provider could not return the article.")
         // Pipeline a single article on sequential playback, without increasing the provider's connection count.
         pending = next
         if (next != null) send("BODY <$next>")
@@ -173,29 +177,42 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory) :
     override fun close() = socket.close()
 }
 
+internal class MissingUsenetArticle : UsenetFailure("Usenet article unavailable on every configured provider.")
+
 /** One authenticated connection at a time, including for parallel player range requests. */
 internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SSLSocketFactory = SSLSocketFactory.getDefault() as SSLSocketFactory) : Closeable {
     private val servers = serverUrls.take(8).mapNotNull(NewsServer::parse)
     private var connection: NewsConnection? = null
     private var preferred = 0
-    private var closed = false
+    @Volatile private var closed = false
+    private val socketLock = Any()
+    private var activeSocket: Socket? = null
+    private fun registerSocket(socket: Socket) = synchronized(socketLock) {
+        if (closed) {
+            socket.close()
+            throw UsenetFailure("Usenet session expired.")
+        }
+        activeSocket = socket
+    }
     init { ensureUsenet(servers.isNotEmpty(), "The add-on supplied no usable NNTP server.") }
 
     @Synchronized fun fetch(id: String, next: String? = null): Article {
         ensureUsenet(!closed, "Usenet session expired.")
         var lastFailure: String? = null
+        var missingProviders = 0
         for (step in servers.indices) {
             val index = (preferred + step) % servers.size
             // An idle socket can have been dropped by the server. Reconnect once in that case.
             val attempts = if (connection != null) 2 else 1
-            repeat(attempts) {
+            for (attempt in 0 until attempts) {
+                ensureUsenet(!closed, "Usenet session expired.")
                 var readingArticle = false
                 try {
                     if (connection?.canFetch(id) == false) {
                         connection?.close()
                         connection = null
                     }
-                    val active = connection ?: NewsConnection(servers[index], tlsFactory).also { connection = it }
+                    val active = connection ?: NewsConnection(servers[index], tlsFactory, ::registerSocket).also { connection = it }
                     readingArticle = true
                     val article = active.fetch(id, next)
                     preferred = index
@@ -213,14 +230,19 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
                     }
                     runCatching { connection?.close() }
                     connection = null
+                    if (error is MissingUsenetArticle) {
+                        missingProviders++
+                        break
+                    }
                 }
             }
         }
+        if (missingProviders == servers.size) throw MissingUsenetArticle()
         throw UsenetFailure(lastFailure ?: "Could not connect to the Usenet provider.")
     }
-    @Synchronized override fun close() {
+    override fun close() = synchronized(socketLock) {
         closed = true
-        runCatching { connection?.close() }
-        connection = null
+        runCatching { activeSocket?.close() }
+        activeSocket = null
     }
 }

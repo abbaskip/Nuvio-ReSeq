@@ -7,7 +7,7 @@ import java.io.IOException
 import java.io.StringReader
 import javax.xml.parsers.SAXParserFactory
 
-internal class UsenetFailure(message: String) : IOException(message)
+internal open class UsenetFailure(message: String) : IOException(message)
 internal fun ensureUsenet(condition: Boolean, message: String) {
     if (!condition) throw UsenetFailure(message)
 }
@@ -19,6 +19,21 @@ internal object NzbManifest {
     private val quoted = Regex("\"([^\"]+)\"")
     private val unquoted = Regex("""(?i)([^\s"]+\.(?:mkv|mp4|webm|avi|m4v|mov|m2ts|ts|rar|r\d\d))\b""")
     private val messageId = Regex("[!-~]{1,500}")
+
+    fun parse(bytes: ByteArray): List<NzbFile> {
+        ensureUsenet(bytes.size <= MAX_BYTES, "NZB exceeds the size limit.")
+        val encoding = when {
+            bytes.take(2) == listOf(0xff.toByte(), 0xfe.toByte()) -> "UTF-16LE"
+            bytes.take(2) == listOf(0xfe.toByte(), 0xff.toByte()) -> "UTF-16BE"
+            bytes.size >= 4 && bytes[0] == 0.toByte() && bytes[1] == '<'.code.toByte() -> "UTF-16BE"
+            bytes.size >= 4 && bytes[0] == '<'.code.toByte() && bytes[1] == 0.toByte() -> "UTF-16LE"
+            else -> Regex("""encoding\s*=\s*["']([^"']+)["']""").find(
+                String(bytes, 0, minOf(bytes.size, 256), Charsets.ISO_8859_1))?.groupValues?.get(1) ?: "UTF-8"
+        }
+        val text = try { String(bytes, java.nio.charset.Charset.forName(encoding)) }
+            catch (_: Exception) { throw UsenetFailure("Unsupported NZB text encoding.") }
+        return parse(text.removePrefix("\uFEFF"))
+    }
 
     fun parse(xml: String): List<NzbFile> {
         ensureUsenet(xml.length <= MAX_BYTES && "<!ENTITY" !in xml, "Unsupported NZB document.")
@@ -34,6 +49,7 @@ internal object NzbManifest {
             override fun resolveEntity(publicId: String?, systemId: String?) = InputSource(StringReader(""))
             override fun startElement(uri: String?, local: String?, name: String, attrs: Attributes) {
                 ensureUsenet(++depth <= 32, "Invalid NZB structure.")
+                if (depth == 1) ensureUsenet(name == "nzb", "Invalid NZB root element.")
                 when (name) {
                     "file" -> {
                         ensureUsenet(subject == null && files.size < 4096, "Invalid NZB file list.")

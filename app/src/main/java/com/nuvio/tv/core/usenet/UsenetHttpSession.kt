@@ -54,8 +54,8 @@ internal class UsenetHttpSession(val file: UsenetFile, private val articles: Clo
         }
     }
     override fun close() {
-        stop()
         articles.close()
+        stop()
     }
 
     companion object {

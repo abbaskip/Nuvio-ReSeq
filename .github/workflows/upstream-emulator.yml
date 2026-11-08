@@ -2,11 +2,15 @@ name: Upstream candidate emulator
 on:
   push:
     branches: [automation/sydney-sync-host]
-    paths: [automation/emulator-candidate.txt, .github/workflows/upstream-emulator.yml]
+    paths: [automation/emulator-candidate.txt, automation/emulator-base.txt, .github/workflows/upstream-emulator.yml]
 permissions:
   contents: read
 jobs:
   emulator:
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [candidate, base]
     runs-on: ubuntu-latest
     timeout-minutes: 65
     steps:
@@ -15,7 +19,7 @@ jobs:
           git init
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
-          candidate=$(git show FETCH_HEAD:automation/emulator-candidate.txt)
+          candidate=$(git show FETCH_HEAD:automation/emulator-${{ matrix.revision }}.txt)
           [[ "$candidate" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags --depth=1 origin "$candidate"
           git checkout --detach FETCH_HEAD
@@ -26,14 +30,16 @@ jobs:
           java-version: '21'
       - name: Build fixture-only instrumentation
         run: |
+          printf '%s\n' 'NUVIO_SUPABASE_URL=https://fixture.invalid' 'NUVIO_SUPABASE_ANON_KEY=unused-fixture-only' > local.dev.properties
           ./gradlew :app:assembleFullDebug :app:assembleFullDebugAndroidTest -PuseLocalFfmpegDecoder=false --max-workers=2
       - name: Allow this runner to use its virtual CPU
         run: sudo setfacl -m u:"$(id -un)":rw /dev/kvm
       - uses: reactivecircus/android-emulator-runner@324029e2f414c084d8b15ba075288885e74aef9c
         with:
           api-level: 34
-          arch: x86_64
-          target: google_apis
+          arch: x86
+          profile: tv_1080p
+          target: android-tv
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -skin 1920x1080
           script: ./gradlew :app:connectedFullDebugAndroidTest -PuseLocalFfmpegDecoder=false --max-workers=2 -Pandroid.testInstrumentationRunnerArguments.class=com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest,com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest,com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest,com.nuvio.tv.ui.screens.home.TvMixHomeTvTest,com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest

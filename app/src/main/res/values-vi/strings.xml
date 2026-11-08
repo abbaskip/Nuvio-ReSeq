@@ -3436,4 +3436,20 @@
     <string name="stream_resume_from_time">Xem tiếp từ %1$s</string>
     <string name="stream_resume_from_percent">Xem tiếp từ %1$d%%</string>
     <string name="usenet_opening">Đang mở video Usenet…</string>
+    <string name="plugin_extension_settings_failed">Tiện ích không thể mở phần cài đặt.</string>
+    <string name="tmdb_collection_auth_error">TMDB từ chối yêu cầu. Kiểm tra khóa API của hồ sơ trong Cài đặt → Tích hợp → TMDB.</string>
+    <string name="about_update_check_frequency">Tần suất kiểm tra cập nhật</string>
+    <string name="about_update_check_frequency_summary">Chọn tần suất Nuvio tìm phiên bản mới.</string>
+    <string name="about_update_check_always">Luôn luôn</string>
+    <string name="about_update_check_daily">Hằng ngày</string>
+    <string name="about_update_check_two_days">2 ngày</string>
+    <string name="about_update_check_three_days">3 ngày</string>
+    <string name="about_update_check_weekly">Hằng tuần</string>
+    <string name="about_update_check_never">Không bao giờ</string>
+    <string name="plugin_source_languages_title">Ngôn ngữ nguồn</string>
+    <string name="plugin_source_languages_description">Chọn ngôn ngữ của nguồn CloudStream. Nguồn đa ngôn ngữ hoặc không chỉ định ngôn ngữ luôn được bao gồm.</string>
+    <string name="plugin_all_source_languages">Tất cả ngôn ngữ</string>
+    <string name="plugin_dns_system">DNS hệ thống TV</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Chọn dịch vụ DNS cho yêu cầu CloudStream. Nhấn OK để đổi.</string>
 </resources>

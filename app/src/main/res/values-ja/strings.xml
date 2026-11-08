@@ -3436,4 +3436,20 @@
     <string name="layout_hero_description_auto_scroll">説明を自動スクロール</string>
     <string name="layout_hero_description_auto_scroll_sub">ホーム画面の長い説明を省略せず、ゆっくりスクロールして表示します。</string>
     <string name="usenet_opening">Usenet の動画を開いています…</string>
+    <string name="plugin_extension_settings_failed">この拡張機能の設定を開けませんでした。</string>
+    <string name="tmdb_collection_auth_error">TMDB がリクエストを拒否しました。設定 → 連携 → TMDB で、このプロフィールの API キーを確認してください。</string>
+    <string name="about_update_check_frequency">アプリの更新確認間隔</string>
+    <string name="about_update_check_frequency_summary">Nuvio が新しいバージョンを確認する頻度を選びます。</string>
+    <string name="about_update_check_always">常に</string>
+    <string name="about_update_check_daily">毎日</string>
+    <string name="about_update_check_two_days">2日</string>
+    <string name="about_update_check_three_days">3日</string>
+    <string name="about_update_check_weekly">毎週</string>
+    <string name="about_update_check_never">確認しない</string>
+    <string name="plugin_source_languages_title">ソースの言語</string>
+    <string name="plugin_source_languages_description">CloudStream のソースの言語を選びます。多言語のソースと言語未指定のソースは常に含まれます。</string>
+    <string name="plugin_all_source_languages">すべての言語</string>
+    <string name="plugin_dns_system">テレビのシステム DNS</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">CloudStream のリクエストに使う DNS を選びます。OK で切り替えます。</string>
 </resources>

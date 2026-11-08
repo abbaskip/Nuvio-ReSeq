@@ -3457,4 +3457,20 @@
     <string name="layout_hero_description_auto_scroll_sub">Dlhé popisy na domovskej obrazovke sa namiesto orezania pomaly posúvajú.</string>
     <string name="autosync_toast_no_fit">Synchronizácia zlyhala: titulky nezodpovedajú tejto verzii videa.</string>
     <string name="usenet_opening">Otvára sa video z Usenetu…</string>
+    <string name="plugin_extension_settings_failed">Rozšírenie nemohlo otvoriť nastavenia.</string>
+    <string name="tmdb_collection_auth_error">TMDB odmietlo požiadavku. Skontrolujte kľúč API profilu v Nastavenia → Integrácie → TMDB.</string>
+    <string name="about_update_check_frequency">Frekvencia kontroly aktualizácií</string>
+    <string name="about_update_check_frequency_summary">Vyberte, ako často Nuvio hľadá novú verziu.</string>
+    <string name="about_update_check_always">Vždy</string>
+    <string name="about_update_check_daily">Denne</string>
+    <string name="about_update_check_two_days">2 dni</string>
+    <string name="about_update_check_three_days">3 dni</string>
+    <string name="about_update_check_weekly">Týždenne</string>
+    <string name="about_update_check_never">Nikdy</string>
+    <string name="plugin_source_languages_title">Jazyky zdrojov</string>
+    <string name="plugin_source_languages_description">Vyberte jazyky zdrojov CloudStream. Viacjazyčné zdroje a zdroje bez uvedeného jazyka zostávajú zahrnuté.</string>
+    <string name="plugin_all_source_languages">Všetky jazyky</string>
+    <string name="plugin_dns_system">Systémové DNS televízora</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Vyberte DNS pre požiadavky CloudStream. Zmeníte ho tlačidlom OK.</string>
 </resources>

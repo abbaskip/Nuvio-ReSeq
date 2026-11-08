@@ -3144,4 +3144,20 @@
     <string name="layout_hero_description_auto_scroll_sub">Laat lange beschrijvingen op het startscherm langzaam voorbijschuiven in plaats van ze af te kappen.</string>
     <string name="autosync_toast_no_fit">Synchronisatie mislukt: de ondertitels passen niet bij deze versie van de video.</string>
     <string name="usenet_opening">Usenet-video openen…</string>
+    <string name="plugin_extension_settings_failed">Deze extensie kon de instellingen niet openen.</string>
+    <string name="tmdb_collection_auth_error">TMDB heeft het verzoek geweigerd. Controleer de API-sleutel van dit profiel onder Instellingen → Integraties → TMDB.</string>
+    <string name="about_update_check_frequency">Frequentie van updatecontroles</string>
+    <string name="about_update_check_frequency_summary">Kies hoe vaak Nuvio naar een nieuwe versie zoekt.</string>
+    <string name="about_update_check_always">Altijd</string>
+    <string name="about_update_check_daily">Dagelijks</string>
+    <string name="about_update_check_two_days">2 dagen</string>
+    <string name="about_update_check_three_days">3 dagen</string>
+    <string name="about_update_check_weekly">Wekelijks</string>
+    <string name="about_update_check_never">Nooit</string>
+    <string name="plugin_source_languages_title">Brontalen</string>
+    <string name="plugin_source_languages_description">Kies de talen van CloudStream-bronnen. Meertalige bronnen en bronnen zonder opgegeven taal blijven inbegrepen.</string>
+    <string name="plugin_all_source_languages">Alle talen</string>
+    <string name="plugin_dns_system">Systeem-DNS van de tv</string>
+    <string name="plugin_dns_choice">CloudStream-DNS · %1$s</string>
+    <string name="plugin_dns_description">Kies de resolver voor CloudStream-verzoeken. Druk op OK om te wisselen.</string>
 </resources>

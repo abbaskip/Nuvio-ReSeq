@@ -3420,4 +3420,20 @@ Próbálj meg egy másik forrást. [%1$s]</string>
     <string name="stream_resume_from_percent">Folytatás innen: %1$d%%</string>
 
     <string name="usenet_opening">Usenet-videó megnyitása…</string>
+    <string name="plugin_extension_settings_failed">A bővítmény nem tudta megnyitni a beállításait.</string>
+    <string name="tmdb_collection_auth_error">A TMDB elutasította a kérést. Ellenőrizd a profil API-kulcsát a Beállítások → Integrációk → TMDB menüben.</string>
+    <string name="about_update_check_frequency">Frissítéskeresés gyakorisága</string>
+    <string name="about_update_check_frequency_summary">Válaszd ki, milyen gyakran keressen új verziót a Nuvio.</string>
+    <string name="about_update_check_always">Mindig</string>
+    <string name="about_update_check_daily">Naponta</string>
+    <string name="about_update_check_two_days">2 naponta</string>
+    <string name="about_update_check_three_days">3 naponta</string>
+    <string name="about_update_check_weekly">Hetente</string>
+    <string name="about_update_check_never">Soha</string>
+    <string name="plugin_source_languages_title">Források nyelve</string>
+    <string name="plugin_source_languages_description">Válaszd ki a CloudStream-források nyelveit. A többnyelvű és meg nem adott nyelvű források mindig szerepelnek.</string>
+    <string name="plugin_all_source_languages">Minden nyelv</string>
+    <string name="plugin_dns_system">A TV rendszerének DNS-e</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">Válassz DNS-szolgáltatót a CloudStream-kérésekhez. Váltáshoz nyomd meg az OK gombot.</string>
 </resources>

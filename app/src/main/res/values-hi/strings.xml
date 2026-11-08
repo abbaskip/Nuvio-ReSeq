@@ -1000,4 +1000,20 @@
     <string name="layout_hero_description_auto_scroll_sub">होम स्क्रीन पर लंबे विवरण काटने के बजाय उन्हें धीरे-धीरे स्क्रॉल करें।</string>
     <string name="autosync_toast_no_fit">सिंक नहीं हो सका: ये सबटाइटल वीडियो के इस संस्करण से मेल नहीं खाते।</string>
     <string name="usenet_opening">Usenet वीडियो खोला जा रहा है…</string>
+    <string name="plugin_extension_settings_failed">यह एक्सटेंशन अपनी सेटिंग नहीं खोल सका।</string>
+    <string name="tmdb_collection_auth_error">TMDB ने अनुरोध अस्वीकार कर दिया। सेटिंग → इंटीग्रेशन → TMDB में इस प्रोफ़ाइल की API कुंजी जाँचें।</string>
+    <string name="about_update_check_frequency">ऐप अपडेट जाँच की आवृत्ति</string>
+    <string name="about_update_check_frequency_summary">चुनें कि Nuvio कितनी बार नया संस्करण खोजे।</string>
+    <string name="about_update_check_always">हमेशा</string>
+    <string name="about_update_check_daily">हर दिन</string>
+    <string name="about_update_check_two_days">2 दिन</string>
+    <string name="about_update_check_three_days">3 दिन</string>
+    <string name="about_update_check_weekly">हर सप्ताह</string>
+    <string name="about_update_check_never">कभी नहीं</string>
+    <string name="plugin_source_languages_title">स्रोतों की भाषाएँ</string>
+    <string name="plugin_source_languages_description">CloudStream स्रोतों की भाषाएँ चुनें। बहुभाषी स्रोत और बिना तय भाषा वाले स्रोत हमेशा शामिल रहते हैं।</string>
+    <string name="plugin_all_source_languages">सभी भाषाएँ</string>
+    <string name="plugin_dns_system">टीवी सिस्टम DNS</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">CloudStream अनुरोधों के लिए DNS रिज़ॉल्वर चुनें। बदलने के लिए OK दबाएँ।</string>
 </resources>

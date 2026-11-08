@@ -3303,4 +3303,20 @@
     <string name="layout_hero_description_auto_scroll_sub">Polako pomiče duge opise na početnom zaslonu umjesto da ih skrati.</string>
     <string name="autosync_toast_no_fit">Sinkronizacija nije uspjela: titlovi ne odgovaraju ovoj verziji videozapisa.</string>
     <string name="usenet_opening">Otvaranje videozapisa s Useneta…</string>
+    <string name="plugin_extension_settings_failed">Proširenje nije moglo otvoriti postavke.</string>
+    <string name="tmdb_collection_auth_error">TMDB je odbio zahtjev. Provjerite API ključ profila u Postavke → Integracije → TMDB.</string>
+    <string name="about_update_check_frequency">Učestalost provjere ažuriranja</string>
+    <string name="about_update_check_frequency_summary">Odaberite koliko često Nuvio traži novu verziju.</string>
+    <string name="about_update_check_always">Uvijek</string>
+    <string name="about_update_check_daily">Svakodnevno</string>
+    <string name="about_update_check_two_days">2 dana</string>
+    <string name="about_update_check_three_days">3 dana</string>
+    <string name="about_update_check_weekly">Tjedno</string>
+    <string name="about_update_check_never">Nikad</string>
+    <string name="plugin_source_languages_title">Jezici izvora</string>
+    <string name="plugin_source_languages_description">Odaberite jezike izvora CloudStream. Višejezični izvori i izvori bez navedenog jezika uvijek su uključeni.</string>
+    <string name="plugin_all_source_languages">Svi jezici</string>
+    <string name="plugin_dns_system">Sistemski DNS televizora</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">Odaberite DNS za zahtjeve CloudStream. Pritisnite OK za promjenu.</string>
 </resources>

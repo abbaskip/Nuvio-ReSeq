@@ -3436,4 +3436,20 @@
     <string name="stream_resume_from_time">Reprendre à %1$s</string>
     <string name="stream_resume_from_percent">Reprendre à %1$d&#160;%%</string>
     <string name="usenet_opening">Ouverture de la vidéo Usenet…</string>
+    <string name="plugin_extension_settings_failed">Cette extension ne peut pas ouvrir ses paramètres.</string>
+    <string name="tmdb_collection_auth_error">TMDB a refusé la demande. Vérifiez la clé API de ce profil dans Paramètres → Intégrations → TMDB.</string>
+    <string name="about_update_check_frequency">Fréquence de recherche des mises à jour</string>
+    <string name="about_update_check_frequency_summary">Choisissez la fréquence de recherche des mises à jour de Nuvio.</string>
+    <string name="about_update_check_always">Toujours</string>
+    <string name="about_update_check_daily">Chaque jour</string>
+    <string name="about_update_check_two_days">2 jours</string>
+    <string name="about_update_check_three_days">3 jours</string>
+    <string name="about_update_check_weekly">Chaque semaine</string>
+    <string name="about_update_check_never">Jamais</string>
+    <string name="plugin_source_languages_title">Langues des sources</string>
+    <string name="plugin_source_languages_description">Choisissez les langues des sources CloudStream. Les sources multilingues ou sans langue définie restent incluses.</string>
+    <string name="plugin_all_source_languages">Toutes les langues</string>
+    <string name="plugin_dns_system">DNS système du téléviseur</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Choisissez le résolveur des requêtes CloudStream. Appuyez sur OK pour changer.</string>
 </resources>

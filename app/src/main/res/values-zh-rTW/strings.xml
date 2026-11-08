@@ -3233,4 +3233,20 @@
     <string name="layout_hero_description_auto_scroll_sub">緩慢捲動主畫面上的長簡介，而不截斷文字。</string>
     <string name="autosync_toast_no_fit">同步失敗：字幕與這個版本的影片不符。</string>
     <string name="usenet_opening">正在開啟 Usenet 影片…</string>
+    <string name="plugin_extension_settings_failed">此擴充功能無法開啟其設定。</string>
+    <string name="tmdb_collection_auth_error">TMDB 拒絕了要求。請在設定 → 整合 → TMDB 中檢查此設定檔的 API 金鑰。</string>
+    <string name="about_update_check_frequency">應用程式更新檢查頻率</string>
+    <string name="about_update_check_frequency_summary">選擇 Nuvio 檢查新版本的頻率。</string>
+    <string name="about_update_check_always">一律</string>
+    <string name="about_update_check_daily">每天</string>
+    <string name="about_update_check_two_days">2 天</string>
+    <string name="about_update_check_three_days">3 天</string>
+    <string name="about_update_check_weekly">每週</string>
+    <string name="about_update_check_never">從不</string>
+    <string name="plugin_source_languages_title">來源語言</string>
+    <string name="plugin_source_languages_description">選擇 CloudStream 來源的語言。一律包含多語言來源及未指定語言的來源。</string>
+    <string name="plugin_all_source_languages">所有語言</string>
+    <string name="plugin_dns_system">電視系統 DNS</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">選擇 CloudStream 要求使用的 DNS 服務。按 OK 切換。</string>
 </resources>

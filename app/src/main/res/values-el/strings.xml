@@ -3343,4 +3343,20 @@
   <string name="stream_resume_from_time">Συνέχεια από %1$s</string>
   <string name="stream_resume_from_percent">Συνέχεια από %1$d%%</string>
     <string name="usenet_opening">Άνοιγμα βίντεο από το Usenet…</string>
+    <string name="plugin_extension_settings_failed">Η επέκταση δεν μπόρεσε να ανοίξει τις ρυθμίσεις.</string>
+    <string name="tmdb_collection_auth_error">Το TMDB απέρριψε το αίτημα. Ελέγξτε το κλειδί API του προφίλ στις Ρυθμίσεις → Ενσωματώσεις → TMDB.</string>
+    <string name="about_update_check_frequency">Συχνότητα ελέγχου ενημερώσεων</string>
+    <string name="about_update_check_frequency_summary">Επιλέξτε πόσο συχνά το Nuvio αναζητά νέα έκδοση.</string>
+    <string name="about_update_check_always">Πάντα</string>
+    <string name="about_update_check_daily">Καθημερινά</string>
+    <string name="about_update_check_two_days">2 ημέρες</string>
+    <string name="about_update_check_three_days">3 ημέρες</string>
+    <string name="about_update_check_weekly">Εβδομαδιαία</string>
+    <string name="about_update_check_never">Ποτέ</string>
+    <string name="plugin_source_languages_title">Γλώσσες πηγών</string>
+    <string name="plugin_source_languages_description">Επιλέξτε γλώσσες πηγών CloudStream. Οι πολύγλωσσες πηγές και όσες δεν δηλώνουν γλώσσα περιλαμβάνονται πάντα.</string>
+    <string name="plugin_all_source_languages">Όλες οι γλώσσες</string>
+    <string name="plugin_dns_system">DNS συστήματος τηλεόρασης</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Επιλέξτε DNS για τα αιτήματα CloudStream. Πατήστε OK για αλλαγή.</string>
 </resources>

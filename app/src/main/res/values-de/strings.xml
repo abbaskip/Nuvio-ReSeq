@@ -2274,4 +2274,20 @@
     <string name="layout_hero_description_auto_scroll_sub">Lange Beschreibungen auf der Startseite langsam durchscrollen, statt sie abzuschneiden.</string>
     <string name="autosync_toast_no_fit">Synchronisierung fehlgeschlagen: Diese Untertitel passen nicht zu dieser Videofassung.</string>
     <string name="usenet_opening">Usenet-Video wird geöffnet…</string>
+    <string name="plugin_extension_settings_failed">Diese Erweiterung konnte ihre Einstellungen nicht öffnen.</string>
+    <string name="tmdb_collection_auth_error">TMDB hat die Anfrage abgelehnt. Prüfe den API-Schlüssel dieses Profils unter Einstellungen → Integrationen → TMDB.</string>
+    <string name="about_update_check_frequency">Prüfhäufigkeit für App-Updates</string>
+    <string name="about_update_check_frequency_summary">Wähle, wie oft Nuvio nach Updates sucht.</string>
+    <string name="about_update_check_always">Immer</string>
+    <string name="about_update_check_daily">Täglich</string>
+    <string name="about_update_check_two_days">2 Tage</string>
+    <string name="about_update_check_three_days">3 Tage</string>
+    <string name="about_update_check_weekly">Wöchentlich</string>
+    <string name="about_update_check_never">Nie</string>
+    <string name="plugin_source_languages_title">Quellensprachen</string>
+    <string name="plugin_source_languages_description">Wähle die Sprachen der CloudStream-Quellen. Quellen ohne Sprachangabe und mehrsprachige Quellen bleiben enthalten.</string>
+    <string name="plugin_all_source_languages">Alle Sprachen</string>
+    <string name="plugin_dns_system">System-DNS des Fernsehers</string>
+    <string name="plugin_dns_choice">CloudStream-DNS · %1$s</string>
+    <string name="plugin_dns_description">Wähle den DNS-Dienst für CloudStream-Anfragen. Mit OK wechseln.</string>
 </resources>

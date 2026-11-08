@@ -2261,4 +2261,20 @@
     <string name="layout_hero_description_auto_scroll_sub">முகப்புத் திரையில் நீளமான விளக்கங்களை வெட்டாமல் மெதுவாக உருட்டிக் காட்டும்.</string>
     <string name="autosync_toast_no_fit">ஒத்திசைக்க முடியவில்லை: இந்த வசனங்கள் வீடியோவின் இந்தப் பதிப்புடன் பொருந்தவில்லை.</string>
     <string name="usenet_opening">Usenet வீடியோ திறக்கப்படுகிறது…</string>
+    <string name="plugin_extension_settings_failed">இந்த நீட்டிப்பால் அதன் அமைப்புகளைத் திறக்க முடியவில்லை.</string>
+    <string name="tmdb_collection_auth_error">TMDB கோரிக்கையை நிராகரித்தது. அமைப்புகள் → ஒருங்கிணைப்புகள் → TMDB இல் இந்தச் சுயவிவரத்தின் API விசையைச் சரிபார்க்கவும்.</string>
+    <string name="about_update_check_frequency">செயலி புதுப்பிப்புச் சரிபார்ப்பு இடைவெளி</string>
+    <string name="about_update_check_frequency_summary">Nuvio எத்தனை முறை புதிய பதிப்பைத் தேட வேண்டும் என்பதைத் தேர்ந்தெடுக்கவும்.</string>
+    <string name="about_update_check_always">எப்போதும்</string>
+    <string name="about_update_check_daily">தினமும்</string>
+    <string name="about_update_check_two_days">2 நாட்கள்</string>
+    <string name="about_update_check_three_days">3 நாட்கள்</string>
+    <string name="about_update_check_weekly">வாரந்தோறும்</string>
+    <string name="about_update_check_never">ஒருபோதும் இல்லை</string>
+    <string name="plugin_source_languages_title">மூலங்களின் மொழிகள்</string>
+    <string name="plugin_source_languages_description">CloudStream மூலங்களின் மொழிகளைத் தேர்ந்தெடுக்கவும். பலமொழி மூலங்களும் மொழி குறிப்பிடாத மூலங்களும் எப்போதும் சேர்க்கப்படும்.</string>
+    <string name="plugin_all_source_languages">அனைத்து மொழிகளும்</string>
+    <string name="plugin_dns_system">டிவி அமைப்பின் DNS</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">CloudStream கோரிக்கைகளுக்கான DNS சேவையைத் தேர்ந்தெடுக்கவும். மாற்ற OK அழுத்தவும்.</string>
 </resources>

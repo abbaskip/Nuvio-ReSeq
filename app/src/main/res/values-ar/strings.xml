@@ -3034,4 +3034,20 @@
     <string name="layout_hero_description_auto_scroll_sub">يمرر الأوصاف الطويلة ببطء على الشاشة الرئيسية بدلًا من اقتطاعها.</string>
     <string name="autosync_toast_no_fit">تعذرت المزامنة: لا تتطابق الترجمة مع هذه النسخة من الفيديو.</string>
     <string name="usenet_opening">جارٍ فتح فيديو من Usenet…</string>
+    <string name="plugin_extension_settings_failed">تعذر على هذه الإضافة فتح إعداداتها.</string>
+    <string name="tmdb_collection_auth_error">رفض TMDB الطلب. تحقق من مفتاح API لهذا الملف الشخصي في الإعدادات → التكاملات → TMDB.</string>
+    <string name="about_update_check_frequency">تكرار التحقق من تحديث التطبيق</string>
+    <string name="about_update_check_frequency_summary">اختر عدد مرات بحث Nuvio عن إصدار جديد.</string>
+    <string name="about_update_check_always">دائمًا</string>
+    <string name="about_update_check_daily">يوميًا</string>
+    <string name="about_update_check_two_days">يومان</string>
+    <string name="about_update_check_three_days">3 أيام</string>
+    <string name="about_update_check_weekly">أسبوعيًا</string>
+    <string name="about_update_check_never">أبدًا</string>
+    <string name="plugin_source_languages_title">لغات المصادر</string>
+    <string name="plugin_source_languages_description">اختر لغات مصادر CloudStream. تُضمَّن دائمًا المصادر متعددة اللغات أو التي لا تحدد لغة.</string>
+    <string name="plugin_all_source_languages">جميع اللغات</string>
+    <string name="plugin_dns_system">DNS نظام التلفاز</string>
+    <string name="plugin_dns_choice">DNS ‏CloudStream · %1$s</string>
+    <string name="plugin_dns_description">اختر خدمة DNS لطلبات CloudStream. اضغط OK للتبديل.</string>
 </resources>

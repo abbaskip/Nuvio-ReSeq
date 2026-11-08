@@ -2895,4 +2895,20 @@
     <string name="layout_hero_description_auto_scroll_sub">Lëviz ngadalë përshkrimet e gjata në ekranin kryesor në vend që t’i presë.</string>
     <string name="autosync_toast_no_fit">Sinkronizimi dështoi: titrat nuk përputhen me këtë version të videos.</string>
     <string name="usenet_opening">Po hapet videoja nga Usenet…</string>
+    <string name="plugin_extension_settings_failed">Shtesa nuk mundi të hapte cilësimet.</string>
+    <string name="tmdb_collection_auth_error">TMDB e refuzoi kërkesën. Kontrollo çelësin API të profilit te Cilësimet → Integrimet → TMDB.</string>
+    <string name="about_update_check_frequency">Shpeshtësia e kontrollit për përditësime</string>
+    <string name="about_update_check_frequency_summary">Zgjidh sa shpesh kërkon Nuvio një version të ri.</string>
+    <string name="about_update_check_always">Gjithmonë</string>
+    <string name="about_update_check_daily">Çdo ditë</string>
+    <string name="about_update_check_two_days">2 ditë</string>
+    <string name="about_update_check_three_days">3 ditë</string>
+    <string name="about_update_check_weekly">Çdo javë</string>
+    <string name="about_update_check_never">Kurrë</string>
+    <string name="plugin_source_languages_title">Gjuhët e burimeve</string>
+    <string name="plugin_source_languages_description">Zgjidh gjuhët e burimeve CloudStream. Burimet shumëgjuhëshe ose pa gjuhë të përcaktuar përfshihen gjithmonë.</string>
+    <string name="plugin_all_source_languages">Të gjitha gjuhët</string>
+    <string name="plugin_dns_system">DNS i sistemit të televizorit</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Zgjidh shërbimin DNS për kërkesat CloudStream. Shtyp OK për ta ndryshuar.</string>
 </resources>

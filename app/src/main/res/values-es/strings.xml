@@ -3435,4 +3435,20 @@ Utilizas esta función bajo tu entera responsabilidad. P2P se puede desactivar e
     <string name="layout_hero_description_auto_scroll_sub">Desplaza lentamente las descripciones largas de la pantalla de inicio en lugar de cortarlas.</string>
     <string name="autosync_toast_no_fit">No se pudo sincronizar: los subtítulos no corresponden a esta versión del vídeo.</string>
     <string name="usenet_opening">Abriendo vídeo de Usenet…</string>
+    <string name="plugin_extension_settings_failed">Esta extensión no pudo abrir sus ajustes.</string>
+    <string name="tmdb_collection_auth_error">TMDB rechazó la solicitud. Comprueba la clave API del perfil en Ajustes → Integraciones → TMDB.</string>
+    <string name="about_update_check_frequency">Frecuencia de búsqueda de actualizaciones</string>
+    <string name="about_update_check_frequency_summary">Elige cada cuánto busca Nuvio nuevas versiones.</string>
+    <string name="about_update_check_always">Siempre</string>
+    <string name="about_update_check_daily">A diario</string>
+    <string name="about_update_check_two_days">2 días</string>
+    <string name="about_update_check_three_days">3 días</string>
+    <string name="about_update_check_weekly">Semanalmente</string>
+    <string name="about_update_check_never">Nunca</string>
+    <string name="plugin_source_languages_title">Idiomas de las fuentes</string>
+    <string name="plugin_source_languages_description">Elige los idiomas de las fuentes CloudStream. Se incluyen siempre las fuentes multilingües o sin idioma indicado.</string>
+    <string name="plugin_all_source_languages">Todos los idiomas</string>
+    <string name="plugin_dns_system">DNS del sistema del televisor</string>
+    <string name="plugin_dns_choice">DNS de CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Elige el resolvedor para las solicitudes de CloudStream. Pulsa OK para cambiar.</string>
 </resources>

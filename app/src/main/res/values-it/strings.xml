@@ -3368,4 +3368,20 @@
     <string name="layout_hero_description_auto_scroll_sub">Fa scorrere lentamente le descrizioni lunghe nella schermata iniziale anziché troncarle.</string>
     <string name="autosync_toast_no_fit">Sincronizzazione non riuscita: i sottotitoli non corrispondono a questa versione del video.</string>
     <string name="usenet_opening">Apertura del video Usenet…</string>
+    <string name="plugin_extension_settings_failed">Questa estensione non ha potuto aprire le impostazioni.</string>
+    <string name="tmdb_collection_auth_error">TMDB ha rifiutato la richiesta. Controlla la chiave API del profilo in Impostazioni → Integrazioni → TMDB.</string>
+    <string name="about_update_check_frequency">Frequenza di ricerca aggiornamenti</string>
+    <string name="about_update_check_frequency_summary">Scegli quanto spesso Nuvio cerca nuove versioni.</string>
+    <string name="about_update_check_always">Sempre</string>
+    <string name="about_update_check_daily">Ogni giorno</string>
+    <string name="about_update_check_two_days">2 giorni</string>
+    <string name="about_update_check_three_days">3 giorni</string>
+    <string name="about_update_check_weekly">Ogni settimana</string>
+    <string name="about_update_check_never">Mai</string>
+    <string name="plugin_source_languages_title">Lingue delle fonti</string>
+    <string name="plugin_source_languages_description">Scegli le lingue delle fonti CloudStream. Le fonti multilingue o senza lingua indicata restano incluse.</string>
+    <string name="plugin_all_source_languages">Tutte le lingue</string>
+    <string name="plugin_dns_system">DNS di sistema della TV</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Scegli il resolver per le richieste CloudStream. Premi OK per cambiarlo.</string>
 </resources>

@@ -1004,4 +1004,20 @@ Klaida: Bandomoji simuliuojama klaida — tai nėra tikras gedimas. Šaltinis gr
     <string name="layout_hero_description_auto_scroll_sub">Ilgi aprašai pradžios ekrane lėtai slenka, todėl tekstas nenukerpamas.</string>
     <string name="autosync_toast_no_fit">Sinchronizuoti nepavyko: subtitrai netinka šiai vaizdo įrašo versijai.</string>
     <string name="usenet_opening">Atidaromas „Usenet“ vaizdo įrašas…</string>
+    <string name="plugin_extension_settings_failed">Plėtinys negalėjo atverti nustatymų.</string>
+    <string name="tmdb_collection_auth_error">TMDB atmetė užklausą. Patikrinkite profilio API raktą skiltyje Nustatymai → Integracijos → TMDB.</string>
+    <string name="about_update_check_frequency">Atnaujinimų tikrinimo dažnis</string>
+    <string name="about_update_check_frequency_summary">Pasirinkite, kaip dažnai „Nuvio“ ieško naujos versijos.</string>
+    <string name="about_update_check_always">Visada</string>
+    <string name="about_update_check_daily">Kasdien</string>
+    <string name="about_update_check_two_days">2 dienos</string>
+    <string name="about_update_check_three_days">3 dienos</string>
+    <string name="about_update_check_weekly">Kas savaitę</string>
+    <string name="about_update_check_never">Niekada</string>
+    <string name="plugin_source_languages_title">Šaltinių kalbos</string>
+    <string name="plugin_source_languages_description">Pasirinkite „CloudStream“ šaltinių kalbas. Daugiakalbiai šaltiniai ir šaltiniai be nurodytos kalbos visada įtraukiami.</string>
+    <string name="plugin_all_source_languages">Visos kalbos</string>
+    <string name="plugin_dns_system">Televizoriaus sistemos DNS</string>
+    <string name="plugin_dns_choice">„CloudStream“ DNS · %1$s</string>
+    <string name="plugin_dns_description">Pasirinkite DNS tarnybą „CloudStream“ užklausoms. Keiskite paspausdami OK.</string>
 </resources>

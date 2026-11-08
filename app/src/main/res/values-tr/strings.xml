@@ -3452,4 +3452,20 @@
     <string name="layout_hero_description_auto_scroll">Açıklamaları otomatik kaydır</string>
     <string name="layout_hero_description_auto_scroll_sub">Ana ekrandaki uzun açıklamaları kesmek yerine yavaşça kaydırır.</string>
     <string name="usenet_opening">Usenet videosu açılıyor…</string>
+    <string name="plugin_extension_settings_failed">Bu eklenti ayarlarını açamadı.</string>
+    <string name="tmdb_collection_auth_error">TMDB isteği reddetti. Ayarlar → Entegrasyonlar → TMDB bölümünde profilin API anahtarını kontrol edin.</string>
+    <string name="about_update_check_frequency">Uygulama güncelleme denetimi sıklığı</string>
+    <string name="about_update_check_frequency_summary">Nuvio uygulamasının yeni sürümleri ne sıklıkla denetleyeceğini seçin.</string>
+    <string name="about_update_check_always">Her zaman</string>
+    <string name="about_update_check_daily">Her gün</string>
+    <string name="about_update_check_two_days">2 gün</string>
+    <string name="about_update_check_three_days">3 gün</string>
+    <string name="about_update_check_weekly">Her hafta</string>
+    <string name="about_update_check_never">Hiçbir zaman</string>
+    <string name="plugin_source_languages_title">Kaynak dilleri</string>
+    <string name="plugin_source_languages_description">CloudStream kaynaklarının dillerini seçin. Çok dilli veya dili belirtilmemiş kaynaklar her zaman dahildir.</string>
+    <string name="plugin_all_source_languages">Tüm diller</string>
+    <string name="plugin_dns_system">TV sistem DNS ayarı</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">CloudStream istekleri için DNS çözümleyicisini seçin. Değiştirmek için OK tuşuna basın.</string>
 </resources>

@@ -3409,4 +3409,20 @@
     <string name="layout_hero_description_auto_scroll_sub">Дългите описания на началния екран се превъртат бавно, вместо да се съкращават.</string>
     <string name="autosync_toast_no_fit">Синхронизирането е неуспешно: субтитрите не съответстват на тази версия на видеото.</string>
     <string name="usenet_opening">Отваряне на видео от Usenet…</string>
+    <string name="plugin_extension_settings_failed">Разширението не успя да отвори настройките.</string>
+    <string name="tmdb_collection_auth_error">TMDB отказа заявката. Проверете API ключа на профила в Настройки → Интеграции → TMDB.</string>
+    <string name="about_update_check_frequency">Честота на проверка за актуализации</string>
+    <string name="about_update_check_frequency_summary">Изберете колко често Nuvio търси нова версия.</string>
+    <string name="about_update_check_always">Винаги</string>
+    <string name="about_update_check_daily">Ежедневно</string>
+    <string name="about_update_check_two_days">2 дни</string>
+    <string name="about_update_check_three_days">3 дни</string>
+    <string name="about_update_check_weekly">Ежеседмично</string>
+    <string name="about_update_check_never">Никога</string>
+    <string name="plugin_source_languages_title">Езици на източниците</string>
+    <string name="plugin_source_languages_description">Изберете езиците на източниците CloudStream. Многоезичните източници и тези без посочен език винаги са включени.</string>
+    <string name="plugin_all_source_languages">Всички езици</string>
+    <string name="plugin_dns_system">Системен DNS на телевизора</string>
+    <string name="plugin_dns_choice">DNS на CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Изберете DNS за заявките на CloudStream. Натиснете OK за смяна.</string>
 </resources>

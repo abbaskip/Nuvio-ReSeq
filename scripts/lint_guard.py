@@ -140,7 +140,7 @@ def verified_version_advice(current, baseline, report, released_report):
     """
     if hashlib.sha256(released_report.read_bytes()).hexdigest() != baseline["origin"]["report_sha256"]:
         raise ValueError("Released lint report does not match immutable provenance")
-    ids = {"GradleDependency", "NewerVersionAvailable"}
+    ids = {"GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion"}
     pattern = re.compile(r"^A newer version of (\S+) than (\S+) is available: ([0-9][0-9A-Za-z.+_-]*)$")
     def messages(path):
         xml = ET.parse(path).getroot()

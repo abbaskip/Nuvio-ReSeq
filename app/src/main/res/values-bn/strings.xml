@@ -3222,4 +3222,20 @@
     <string name="layout_hero_description_auto_scroll">বিবরণ স্বয়ংক্রিয়ভাবে স্ক্রল করুন</string>
     <string name="layout_hero_description_auto_scroll_sub">হোম স্ক্রিনে দীর্ঘ বিবরণ কেটে না দিয়ে ধীরে ধীরে স্ক্রল করে দেখায়।</string>
     <string name="usenet_opening">Usenet ভিডিও খোলা হচ্ছে…</string>
+    <string name="plugin_extension_settings_failed">এই এক্সটেনশন তার সেটিংস খুলতে পারেনি।</string>
+    <string name="tmdb_collection_auth_error">TMDB অনুরোধটি প্রত্যাখ্যান করেছে। সেটিংস → ইন্টিগ্রেশন → TMDB-তে এই প্রোফাইলের API কী পরীক্ষা করুন।</string>
+    <string name="about_update_check_frequency">অ্যাপ আপডেট পরীক্ষার ব্যবধান</string>
+    <string name="about_update_check_frequency_summary">Nuvio কত ঘন ঘন নতুন সংস্করণ খুঁজবে তা বেছে নিন।</string>
+    <string name="about_update_check_always">সবসময়</string>
+    <string name="about_update_check_daily">প্রতিদিন</string>
+    <string name="about_update_check_two_days">২ দিন</string>
+    <string name="about_update_check_three_days">৩ দিন</string>
+    <string name="about_update_check_weekly">প্রতি সপ্তাহে</string>
+    <string name="about_update_check_never">কখনো নয়</string>
+    <string name="plugin_source_languages_title">উৎসের ভাষা</string>
+    <string name="plugin_source_languages_description">CloudStream উৎসের ভাষা বেছে নিন। বহুভাষিক এবং নির্দিষ্ট ভাষাবিহীন উৎস সবসময় অন্তর্ভুক্ত থাকে।</string>
+    <string name="plugin_all_source_languages">সব ভাষা</string>
+    <string name="plugin_dns_system">টিভি সিস্টেম DNS</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">CloudStream অনুরোধের জন্য DNS সেবা বেছে নিন। বদলাতে OK চাপুন।</string>
 </resources>

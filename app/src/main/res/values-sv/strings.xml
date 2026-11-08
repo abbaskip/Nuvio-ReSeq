@@ -1767,4 +1767,20 @@
     <string name="layout_hero_description_auto_scroll_sub">Rulla långa beskrivningar på startskärmen långsamt i stället för att klippa av dem.</string>
     <string name="autosync_toast_no_fit">Synkroniseringen misslyckades: undertexterna passar inte den här versionen av videon.</string>
     <string name="usenet_opening">Öppnar Usenet-video…</string>
+    <string name="plugin_extension_settings_failed">Tillägget kunde inte öppna sina inställningar.</string>
+    <string name="tmdb_collection_auth_error">TMDB nekade begäran. Kontrollera profilens API-nyckel under Inställningar → Integrationer → TMDB.</string>
+    <string name="about_update_check_frequency">Intervall för uppdateringskontroll</string>
+    <string name="about_update_check_frequency_summary">Välj hur ofta Nuvio söker efter en ny version.</string>
+    <string name="about_update_check_always">Alltid</string>
+    <string name="about_update_check_daily">Dagligen</string>
+    <string name="about_update_check_two_days">2 dagar</string>
+    <string name="about_update_check_three_days">3 dagar</string>
+    <string name="about_update_check_weekly">Varje vecka</string>
+    <string name="about_update_check_never">Aldrig</string>
+    <string name="plugin_source_languages_title">Källspråk</string>
+    <string name="plugin_source_languages_description">Välj språk för CloudStream-källor. Flerspråkiga källor och källor utan angivet språk ingår alltid.</string>
+    <string name="plugin_all_source_languages">Alla språk</string>
+    <string name="plugin_dns_system">TV:ns system-DNS</string>
+    <string name="plugin_dns_choice">CloudStream-DNS · %1$s</string>
+    <string name="plugin_dns_description">Välj DNS-tjänst för CloudStream-förfrågningar. Tryck OK för att byta.</string>
 </resources>

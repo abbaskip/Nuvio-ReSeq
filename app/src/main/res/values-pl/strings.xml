@@ -3520,4 +3520,20 @@
     <string name="cd_trailer_controls">Sterowanie zwiastunem</string>
     <string name="cd_seek_bar">Pasek przewijania</string>
     <string name="usenet_opening">Otwieranie filmu z Usenetu…</string>
+    <string name="plugin_extension_settings_failed">To rozszerzenie nie mogło otworzyć ustawień.</string>
+    <string name="tmdb_collection_auth_error">TMDB odrzuciło żądanie. Sprawdź klucz API profilu w Ustawienia → Integracje → TMDB.</string>
+    <string name="about_update_check_frequency">Częstotliwość sprawdzania aktualizacji</string>
+    <string name="about_update_check_frequency_summary">Wybierz, jak często Nuvio szuka nowej wersji.</string>
+    <string name="about_update_check_always">Zawsze</string>
+    <string name="about_update_check_daily">Codziennie</string>
+    <string name="about_update_check_two_days">2 dni</string>
+    <string name="about_update_check_three_days">3 dni</string>
+    <string name="about_update_check_weekly">Co tydzień</string>
+    <string name="about_update_check_never">Nigdy</string>
+    <string name="plugin_source_languages_title">Języki źródeł</string>
+    <string name="plugin_source_languages_description">Wybierz języki źródeł CloudStream. Źródła wielojęzyczne i bez określonego języka są zawsze uwzględniane.</string>
+    <string name="plugin_all_source_languages">Wszystkie języki</string>
+    <string name="plugin_dns_system">Systemowy DNS telewizora</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Wybierz serwer DNS dla żądań CloudStream. Naciśnij OK, aby zmienić.</string>
 </resources>

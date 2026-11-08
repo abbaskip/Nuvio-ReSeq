@@ -87,9 +87,25 @@ jobs:
       - name: Test Live TV, Sports and updater; build all APKs
         if: ${{ !inputs.artifacts_only || inputs.device_tests }}
         run: |
-          PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -v
+          PYTHONPATH=scripts PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -v
           printf '%s\n' 'allprojects { tasks.withType(Test).configureEach { maxHeapSize = "1536m"; maxParallelForks = 1; forkEvery = 100 } }' > "$RUNNER_TEMP/reseq-tests.gradle"
           ./gradlew :app:testFullReleaseUnitTest --tests 'com.nuvio.tv.ui.navigation.*' --tests 'com.nuvio.tv.livetv.*' --tests 'com.nuvio.tv.updater.*' --tests 'com.nuvio.tv.core.tmdb.*' --tests 'com.nuvio.tv.core.plugin.cloudstream.*' --tests 'com.nuvio.tv.core.plugin.SourceLanguagesTest' --tests 'com.nuvio.tv.data.repository.StreamRepositoryPluginIsolationTest' --tests 'com.nuvio.tv.data.local.SavedDiscoveriesDataStoreTest' --tests 'com.nuvio.tv.data.repository.DiscoveryRepositoryTest' --tests 'com.nuvio.tv.domain.model.DiscoveryQueryTest' --tests 'com.nuvio.tv.ui.screens.search.AdvancedDiscoverViewModelTest' --tests 'com.nuvio.tv.ui.screens.settings.TmdbSettingsViewModelTest' --tests 'com.nuvio.tv.ui.screens.player.SourceStreamPagingTest' --tests '*PlayerSessionTrackerTest' --tests '*HomeCatalog*' --tests '*TvMix*' --tests '*EpisodeShuffle*' --tests '*Tvdb*' --tests '*StreamAutoPlay*' --tests '*Tiered*' --tests '*NextEpisode*' --tests '*PostPlay*' --tests '*NaturalPlaybackCompletion*' --tests '*PlayerBackPress*' --tests '*AutoplaySessionCount*' --tests '*StillWatching*' :app:assembleFullRelease --init-script "$RUNNER_TEMP/reseq-tests.gradle" -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --stacktrace
+      - name: Enforce the upstream released-source lint budget
+        if: ${{ !inputs.artifacts_only }}
+        run: |
+          PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests
+          python3 - <<'PY'
+          import gzip, hashlib, json
+          from pathlib import Path
+          raw = gzip.decompress(Path('automation/lint-reference-beta7.1.xml.gz').read_bytes())
+          baseline = json.loads(Path('automation/lint-baseline.json').read_text())
+          assert hashlib.sha256(raw).hexdigest() == baseline['origin']['report_sha256']
+          Path('build/released-lint.xml').write_bytes(raw)
+          PY
+          ./gradlew :app:lintFullDebug --init-script scripts/lint-report.gradle -PuseLocalFfmpegDecoder=false --max-workers=1
+          python3 scripts/lint_guard.py check --project . --report app/build/reports/lint-results-fullDebug.xml --baseline automation/lint-baseline.json --released-report build/released-lint.xml --summary build/release-lint-verdict.json
+          python3 scripts/lint_guard.py ratchet --project . --report app/build/reports/lint-results-fullDebug.xml --baseline automation/lint-baseline.json --released-report build/released-lint.xml
+          git diff --exit-code -- automation/lint-baseline.json
       - name: Build signed APKs for device-only artifacts without tests
         if: ${{ inputs.artifacts_only && !inputs.device_tests }}
         run: ./gradlew :app:assembleFullRelease -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --stacktrace

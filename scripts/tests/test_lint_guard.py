@@ -164,6 +164,15 @@ class VerifiedVersionAdviceTest(unittest.TestCase):
         self.assertFalse(lint.compare(adjusted, budget)["passed"])
         self.assertFalse(changes)
 
+    def test_agp_advice_preserves_declared_version_and_count_protections(self):
+        adjusted, changes, budget = self.scenario(detector="AndroidGradlePluginVersion")
+        self.assertTrue(lint.compare(adjusted, budget)["passed"])
+        self.assertEqual(len(changes), 1)
+        for message, severity, count in ((self.newer.replace("1.0.0", "1.1.0"), 2, 1),
+                                        (self.newer, 3, 1), (self.newer, 2, 2)):
+            adjusted, _, budget = self.scenario(message, severity, count, detector="AndroidGradlePluginVersion")
+            self.assertFalse(lint.compare(adjusted, budget)["passed"])
+
     def test_another_detector_is_never_normalized(self):
         adjusted, changes, budget = self.scenario(detector="ResourceType")
         self.assertFalse(lint.compare(adjusted, budget)["passed"])

@@ -94,6 +94,30 @@ class LiveTvPortalReconnectTest {
         } finally { f.close(); Dispatchers.resetMain() }
     }
 
+    @Test fun `selecting the same channel during portal recovery keeps the fresh lookup running`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val f = fixture()
+        try {
+            coEvery { f.stalker.resolve(source, channel.url, true) } coAnswers {
+                delay(5_000)
+                StalkerPortalClient.Link("https://media.example.test/fresh.ts", emptyMap())
+            }
+            refuse(f.controller)
+            assertTrue(f.controller.state.value.isBuffering)
+            assertNull(f.controller.state.value.error)
+            advanceTimeBy(2_001)
+            runCurrent()
+            @Suppress("UNCHECKED_CAST")
+            val settingsReady = field(f.controller, "settingsReady") as kotlinx.coroutines.flow.MutableStateFlow<Boolean>
+            settingsReady.value = true
+            f.controller.play(channel)
+            advanceUntilIdle()
+            coVerify(exactly = 1) { f.stalker.resolve(source, channel.url, true) }
+            coVerify(exactly = 0) { f.stalker.resolve(source, channel.url, false) }
+            assertEquals(listOf("https://media.example.test/fresh.ts"), f.opened)
+        } finally { f.close(); Dispatchers.resetMain() }
+    }
+
     @Test fun `ordinary Stalker reconnect obtains a new link without reimporting the channel list`() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val f = fixture()

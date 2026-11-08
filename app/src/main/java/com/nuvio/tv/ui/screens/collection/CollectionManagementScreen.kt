@@ -33,6 +33,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -135,6 +138,21 @@ fun CollectionManagementScreen(
     }
 
     var exportMessage by remember { mutableStateOf<String?>(null) }
+    val exportDocument = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                val json = viewModel.getExportJson()
+                withContext(Dispatchers.IO) {
+                    requireNotNull(context.contentResolver.openOutputStream(uri)).bufferedWriter().use { it.write(json) }
+                }
+                exportMessage = "saved"
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                exportMessage = "failed"
+            }
+        }
+    }
     LaunchedEffect(exportMessage) {
         if (exportMessage != null) {
             kotlinx.coroutines.delay(3000)
@@ -200,6 +218,14 @@ fun CollectionManagementScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm)) {
                 if (uiState.collections.isNotEmpty()) {
                     NuvioButton(onClick = {
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                            try {
+                                exportDocument.launch("nuvio-collections.json")
+                            } catch (_: android.content.ActivityNotFoundException) {
+                                exportMessage = "failed"
+                            }
+                            return@NuvioButton
+                        }
                         scope.launch {
                             try {
                                 val json = viewModel.getExportJson()

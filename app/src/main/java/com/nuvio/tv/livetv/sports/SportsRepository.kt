@@ -2,6 +2,7 @@ package com.nuvio.tv.livetv.sports
 
 import android.content.Context
 import android.util.Log
+import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.livetv.data.EpgDatabase
 import com.nuvio.tv.livetv.data.LiveTvChannelStore
 import com.nuvio.tv.livetv.data.LiveTvPreferences
@@ -214,16 +215,13 @@ class SportsRepository @Inject constructor(
     private val foreground = MutableStateFlow(true)
     private val kick = MutableStateFlow(0)
     internal val browsingAllowed = sportsBrowsingAllowed(
-        foreground, viewers, playback.state, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active,
-        com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying
+        foreground, viewers, playback.state, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active
     ).stateIn(scope, SharingStarted.Eagerly, false)
     internal val channelLookupAllowed = sportsChannelLookupAllowed(
-        foreground, viewers, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active,
-        com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying
+        foreground, viewers, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active
     ).stateIn(scope, SharingStarted.Eagerly, false)
     internal val backgroundAllowed = sportsBackgroundAllowed(
-        foreground, playback.state, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active,
-        com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying
+        foreground, playback.state, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active
     ).stateIn(scope, SharingStarted.Eagerly, false)
 
     private val cacheLoaded = MutableStateFlow(false)
@@ -274,7 +272,7 @@ class SportsRepository @Inject constructor(
             }
         }
         scope.launch {
-            sportsScoresAllowed(foreground, playback.state, com.nuvio.tv.livetv.data.BackgroundWork.nuvioPlaying, viewers)
+            sportsScoresAllowed(foreground, playback.state, viewing = viewers)
                 .combine(cacheLoaded) { allowed, loaded -> allowed && loaded }.distinctUntilChanged()
                 .collectLatest { allowed ->
                     if (!allowed) return@collectLatest
@@ -1110,11 +1108,13 @@ class SportsRepository @Inject constructor(
 
     private suspend fun runMatch() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
         val workContext = currentCoroutineContext()
+        val pacing = SportsMatchPacing()
         val checkpoint = {
             workContext.ensureActive()
-            if (com.nuvio.tv.livetv.data.BackgroundWork.isNuvioPlaying) {
+            if (PlayerSessionTracker.hasOpenSession) {
                 throw kotlinx.coroutines.CancellationException("Player session opened")
             }
+            pacing.checkpoint(PlayerSessionTracker.hasOpenTrailer && viewers.value == 0)
             com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation()
         }
         val live = prefs.settings.first()

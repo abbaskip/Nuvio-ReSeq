@@ -22,6 +22,7 @@ object PlayerSessionTracker {
 
     /** Synchronous worker checkpoints must not wait for a UI collector to observe the session. */
     val hasOpenSession: Boolean get() = openSessions.value.players > 0
+    val hasOpenTrailer: Boolean get() = openSessions.value.trailers > 0
 
     val isSessionOpen: Flow<Boolean> = openSessions.map { it.players > 0 }.distinctUntilChanged()
 

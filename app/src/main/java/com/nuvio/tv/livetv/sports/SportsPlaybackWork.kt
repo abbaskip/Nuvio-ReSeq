@@ -1,5 +1,6 @@
 package com.nuvio.tv.livetv.sports
 
+import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.livetv.player.LivePlaybackState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -21,13 +22,29 @@ import okhttp3.Response
 internal fun sportsCatalogueAllowed(background: Flow<Boolean>, viewers: Flow<Int>): Flow<Boolean> =
     combine(background, viewers) { idle, count -> idle || count > 0 }.distinctUntilChanged()
 
+/** Per bulk scan. Called on the matching worker between batches, including during guide discovery. */
+internal class SportsMatchPacing(
+    private val nanoTime: () -> Long = System::nanoTime,
+    private val sleep: (Long) -> Unit = Thread::sleep
+) {
+    private var sliceStart = nanoTime()
+
+    fun checkpoint(throttled: Boolean) {
+        // Aim for 4 ms of work followed by a 16 ms break while a background scan shares a trailer.
+        if (throttled && nanoTime() - sliceStart >= 4_000_000L) {
+            sleep(16L)
+            sliceStart = nanoTime()
+        }
+    }
+}
+
 /** Targeted page requests may run while browsing with a stable preview. */
 internal fun sportsBrowsingAllowed(
     foreground: Flow<Boolean>,
     viewing: Flow<Int>,
     playback: Flow<LivePlaybackState>,
     fullscreen: Flow<Boolean>,
-    nuvioPlaying: Flow<Boolean>
+    nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen
 ): Flow<Boolean> = combine(foreground, viewing, playback, fullscreen, nuvioPlaying) { front, viewers, live, full, vod ->
     front && !vod && !full && !live.isBuffering &&
         (live.channelKey == null || viewers > 0)
@@ -38,7 +55,7 @@ internal fun sportsChannelLookupAllowed(
     foreground: Flow<Boolean>,
     viewing: Flow<Int>,
     fullscreen: Flow<Boolean>,
-    nuvioPlaying: Flow<Boolean>
+    nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen
 ): Flow<Boolean> = combine(foreground, viewing, fullscreen, nuvioPlaying) { front, viewers, full, vod ->
     front && viewers > 0 && !full && !vod
 }.distinctUntilChanged()
@@ -48,7 +65,7 @@ internal fun sportsBackgroundAllowed(
     foreground: Flow<Boolean>,
     playback: Flow<LivePlaybackState>,
     fullscreen: Flow<Boolean>,
-    nuvioPlaying: Flow<Boolean>
+    nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen
 ): Flow<Boolean> = combine(foreground, playback, fullscreen, nuvioPlaying) { front, live, full, vod ->
     front && !vod && !full && live.channelKey == null && !live.isBuffering
 }.distinctUntilChanged()
@@ -57,7 +74,7 @@ internal fun sportsBackgroundAllowed(
 internal fun sportsScoresAllowed(
     foreground: Flow<Boolean>,
     playback: Flow<LivePlaybackState>,
-    nuvioPlaying: Flow<Boolean>,
+    nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen,
     viewing: Flow<Int> = flowOf(0)
 ): Flow<Boolean> = combine(foreground, playback, nuvioPlaying, viewing) { front, live, vod, viewers ->
     front && !vod && !live.isBuffering && (live.channelKey == null || live.isPlaying || viewers > 0)

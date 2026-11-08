@@ -1,5 +1,6 @@
 package com.nuvio.tv.livetv.sports
 
+import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.livetv.player.LivePlaybackState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -15,6 +16,51 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SportsPlaybackWorkTest {
+    @Test fun `a trailer allows scores lookups and bulk work while full playback still holds them`() = runTest {
+        val foreground = MutableStateFlow(true)
+        val viewers = MutableStateFlow(1)
+        val playback = MutableStateFlow(LivePlaybackState())
+        val fullscreen = MutableStateFlow(false)
+        val scores = sportsScoresAllowed(foreground, playback, viewing = viewers)
+        val lookups = sportsChannelLookupAllowed(foreground, viewers, fullscreen)
+        val browsing = sportsBrowsingAllowed(foreground, viewers, playback, fullscreen)
+        val bulk = sportsBackgroundAllowed(foreground, playback, fullscreen)
+        val trailer = PlayerSessionTracker.openTrailer()
+        try {
+            assertTrue(PlayerSessionTracker.hasOpenTrailer)
+            assertTrue(scores.first())
+            assertTrue(lookups.first())
+            assertTrue(browsing.first())
+            assertTrue(bulk.first())
+            val session = PlayerSessionTracker.open()
+            try {
+                trailer.close()
+                assertFalse(PlayerSessionTracker.hasOpenTrailer)
+                assertFalse(scores.first())
+                assertFalse(lookups.first())
+                assertFalse(browsing.first())
+                assertFalse(bulk.first())
+            } finally { session.close() }
+        } finally { trailer.close() }
+    }
+
+    @Test fun `bulk scan yields between work slices and runs freely when throttling ends`() {
+        var now = 0L
+        val rests = mutableListOf<Long>()
+        val pacing = SportsMatchPacing(nanoTime = { now }, sleep = { ms ->
+            rests.add(ms)
+            now += ms * 1_000_000L
+        })
+        repeat(12) {
+            now += 1_000_000L
+            pacing.checkpoint(true)
+        }
+        assertEquals(listOf(16L, 16L, 16L), rests)
+        now += 20_000_000L
+        pacing.checkpoint(false)
+        assertEquals(3, rests.size)
+    }
+
     @Test fun `opening Sports unlocks the catalogue while bulk work is suspended`() = runTest {
         val background = MutableStateFlow(false)
         val viewers = MutableStateFlow(0)

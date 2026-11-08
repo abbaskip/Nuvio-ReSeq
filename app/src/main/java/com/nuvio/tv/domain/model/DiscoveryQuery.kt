@@ -21,9 +21,13 @@ data class DiscoveryQuery(
     val certification: String = "",
     val seriesStatus: String = "",
     val hideWatched: Boolean = false,
-    val sort: String = "popularity.desc"
+    val sort: String = "popularity.desc",
+    val titleContains: String = ""
 ) {
     val mediaType: String get() = if (television) "tv" else "movie"
+
+    /** Literal text in the displayed title; kept local because Discover has no title query. */
+    fun matchesTitle(title: String): Boolean = title.contains(titleContains.trim(), ignoreCase = true)
 
     fun validationError(): DiscoveryValidationError? {
         fun validDate(value: String): Boolean = value.isBlank() ||

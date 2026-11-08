@@ -6,6 +6,16 @@ This is an agent-assisted compatibility review, not a blind merge bot. No new CI
 service, self-hosted Actions runner, system wake task or personal API credential
 is needed. The existing `reseq-release.yml` remains the only publication path.
 
+The maintained checkout is `C:/Users/abbac/StudioProjects/NuvioTV/sync-host`.
+Run its coordinator from that directory. Its ignored .upstream-sync junction
+points to the sibling project-level .upstream-sync directory containing the
+recovered ledger, runs, reports, raw lint reference and recovery manifest.
+If rebuilding the checkout, restore that connection before running begin.
+The private 9 November recovery snapshot is upstream-sync-recovery-20261109.zip
+in the project root. Preserve branches and per-run decisions across catch-ups.
+Read the last morning report and reconcile any held integration branch with dev
+before replaying work. Never treat a review-branch integration as released.
+
 ## Repository and branch policy
 
 - ReSeq: `abbaskip/Nuvio-ReSeq`, development branch `dev`.
@@ -62,7 +72,7 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
    ReSeq, duplicate controls or silently omit useful upstream features.
 5. Prepare ignored local build properties from approved project configuration
    only. Use `configure --run ID --properties PATH --sdk PATH`; the existing
-   `.worktrees/upstream-automation/local.properties` contains the approved project
+   `sync-host/local.properties` contains the approved project
    service settings retained by the dedicated bootstrap checkout. This helper
    excludes TMDB and signing properties from both files.
    Never read attachments for credentials or copy a personal TMDB key. Debug
@@ -92,30 +102,15 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
    Sports tests, TV Mix tests, Drive payload/conflict tests and updater tests.
    The full unit suite covers these but is not proof of device behaviour or live
    account compatibility. Add regression tests for newly identified risks.
-9. Run `probe-device --run ID` for read-only ADB availability. Target the actual Onn 4K Pro (`jarvis2`,
-   currently `192.168.1.121:5555`); `.102` is another TV. Read power, foreground
-   activity and audio/media playback state. Awake, active playback, another app,
-   a developer test session or uncertain state means potentially in use. Skip
-   installation/launch/input; never wake, stop, log out, clear data or uninstall.
-   Recheck immediately before each disruptive operation. Only test when idle is
-   established. Keep backend/pairing codes, screenshots and account logs private.
-10. Before any installation, use `verify_apk_services.py` on the actual APKs
-    and approved properties (use `--backend-only` for an individual debug APK;
-    full release service verification checks all five variants),
-    not generated BuildConfig or property presence. Verify no personal TMDB
-    credential is included, preserve signature and package/upgrade identity, and
-    use the existing signed release workflow in draft mode for release APKs when
-    needed. Do not install an unsigned/debug-signed replacement over production.
-    After installing, verify Nuvio sign-in actually generates a QR/pairing code
-    without logging out the user's production account. Don't claim sign-in ready
-    without this evidence. Exercise relevant focus, remote/touch navigation,
-    preview/fullscreen, playback/progress, persistence and update behaviour.
-11. Unavailable/busy ADB is not a failed integration. For UI, player, navigation,
-    native decoder, source/autoplay or identity changes, hold publication if
-    automated coverage cannot establish safe behaviour. Prepare configured APKs,
-    hashes, focused instructions and exact commands under the run's build folder.
-    For changes adequately covered by automated tests, explain specifically why
-    a device test is unnecessary. Never convert a skipped test into a pass.
+9. Use host fixtures, CI and network-isolated emulators only. Never discover,
+   inspect or access physical Android devices or use live accounts. The coordinator
+   rejects the legacy probe command before any external command is run.
+10. Verify actual APK project service configuration and signatures. Keep personal
+    TMDB credentials out of builds. Never claim emulator or hardware results from
+    unit tests. Hold publication for missing required acceptance.
+11. Read the tracked beta 9 queue at `docs/NEXT_BETA_FIXES.md`. After upstream work
+    select current working NNTP, then recheck it at publication. Validate all five
+    required inputs on the exact candidate with the existing release gates.
 12. Write a compatibility/test report, then `attest --run ID --report PATH
     --device passed|not-required|held --reason "specific evidence"`. Attestation
     is Codex's evidence-based judgement, not user approval. It must explain all

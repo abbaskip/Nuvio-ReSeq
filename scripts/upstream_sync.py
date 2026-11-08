@@ -97,7 +97,8 @@ def upstream_inventory(base, upstream, cwd, ledger):
 
 
 def begin(args, root, state):
-    state.mkdir(parents=True, exist_ok=True)
+    if not (state / "review-ledger.json").is_file():
+        raise RuntimeError("Missing shared review ledger; recover durable state before starting")
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
     lock = state / "lock.json"
     # No timeout/lease stealing: an interrupted run must be explicitly recovered.
@@ -208,26 +209,7 @@ def worktree_git(run, argv):
 
 
 def probe_device(run):
-    adb = Path(os.environ.get("LOCALAPPDATA", "")) / "Android/Sdk/platform-tools/adb.exe"
-    serial = "192.168.1.121:5555"
-    result = {"serial": serial, "device_tests": "not run", "safe_to_disrupt": False}
-    try:
-        if not adb.is_file(): raise RuntimeError("ADB executable unavailable")
-        if command(str(adb), "-s", serial, "get-state") != "device":
-            raise RuntimeError("Onn device unavailable")
-        model = command(str(adb), "-s", serial, "shell", "getprop", "ro.product.device")
-        if model != "jarvis2": raise RuntimeError("Device identity differs from configured Onn 4K Pro")
-        power = command(str(adb), "-s", serial, "shell", "dumpsys", "power")
-        activities = command(str(adb), "-s", serial, "shell", "dumpsys", "activity", "activities")
-        audio = command(str(adb), "-s", serial, "shell", "dumpsys", "audio")
-        result.update(available=True, model=model, awake="mWakefulness=Awake" in power,
-                      audio_started=bool(re.search(r"state\s*[:=]\s*started", audio, re.I)),
-                      launcher_foreground=bool(re.search(r"(?:topResumedActivity|mResumedActivity).*com\.spocky\.projengmenu", activities)))
-        result["reason"] = "Read-only probe only; availability is not proof of inactivity or a device test pass"
-    except (RuntimeError, subprocess.TimeoutExpired):
-        result.update(available=False, reason="ADB unavailable or device identity could not be established")
-    save(Path(run["worktree"]) / "build/upstream-sync/device-probe.json", result)
-    print(json.dumps(result, indent=2))
+    raise RuntimeError("Physical device access is disabled for upstream sync. Use host tests or isolated emulators.")
 
 
 def validation(run):
@@ -447,7 +429,8 @@ def retry_pending_cleanup(root, state):
         if not old.get("finished_utc") or not (old.get("storage") or {}).get("cleanup_pending"):
             continue
         tree = Path(old["worktree"])
-        if (not tree.is_dir() or not old.get("finished_head") or
+        if (tree.resolve().parent != (root / ".worktrees").resolve() or
+                not tree.is_dir() or not old.get("finished_head") or
                 git("rev-parse", "HEAD", cwd=tree) != old["finished_head"] or
                 git("status", "--porcelain", cwd=tree)):
             continue

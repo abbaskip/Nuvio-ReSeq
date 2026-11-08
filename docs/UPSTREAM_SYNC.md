@@ -17,10 +17,10 @@ Read the last morning report and reconcile any held integration branch with dev
 before replaying work. The coordinator verifies the saved remote branch and starts from that head until dev contains it. Merge a newer development/release base into the isolated candidate before validation. Preserve the review branch before finishing a held run. Never treat a review-branch integration as released.
 
 For hosted emulator validation, preserve the candidate and put its exact SHA in
-automation/emulator-candidate.txt on the coordinator branch. Push that branch and
+automation/emulator-candidate.txt and the fetched base SHA in automation/emulator-base.txt on the coordinator branch. Push that branch and
 verify the terminal Upstream candidate emulator job and the five fixture suites.
 The GitHub-hosted runner uses a fresh virtual device and no application secrets.
-A changed candidate must be validated again.
+Each job uses the Android TV profile and fixture-only backend settings. A changed candidate must be validated again.
 
 ## Repository and branch policy
 

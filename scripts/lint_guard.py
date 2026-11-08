@@ -127,6 +127,7 @@ def compare(current, baseline):
         if worsened:
             failures.append({"kind": "worsened", "fingerprint": key, "id": finding["id"], "paths": finding["paths"]})
     return {"passed": not failures, "failures": failures, "new_warnings": new_warnings,
+            "inherited_errors": sum(x["count"] for key, x in current.items() if key in baseline["active"] and x["severity"] >= 3),
             "errors": sum(x["count"] for x in current.values() if x["severity"] >= 3),
             "findings": sum(x["count"] for x in current.values())}
 

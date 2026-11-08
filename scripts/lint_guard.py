@@ -127,6 +127,7 @@ def compare(current, baseline):
         if worsened:
             failures.append({"kind": "worsened", "fingerprint": key, "id": finding["id"], "paths": finding["paths"]})
     return {"passed": not failures, "failures": failures, "new_warnings": new_warnings,
+            "inherited_errors": sum(x["count"] for key, x in current.items() if key in baseline["active"] and x["severity"] >= 3),
             "errors": sum(x["count"] for x in current.values() if x["severity"] >= 3),
             "findings": sum(x["count"] for x in current.values())}
 
@@ -140,7 +141,7 @@ def verified_version_advice(current, baseline, report, released_report):
     """
     if hashlib.sha256(released_report.read_bytes()).hexdigest() != baseline["origin"]["report_sha256"]:
         raise ValueError("Released lint report does not match immutable provenance")
-    ids = {"GradleDependency", "NewerVersionAvailable"}
+    ids = {"GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion"}
     pattern = re.compile(r"^A newer version of (\S+) than (\S+) is available: ([0-9][0-9A-Za-z.+_-]*)$")
     def messages(path):
         xml = ET.parse(path).getroot()

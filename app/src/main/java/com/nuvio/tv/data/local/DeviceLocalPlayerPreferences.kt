@@ -115,7 +115,7 @@ class DeviceLocalPlayerPreferences @Inject constructor(
     }
 
     val releaseDecoderOnBackground: Flow<Boolean> = store.data.map { prefs ->
-        prefs[releaseDecoderOnBackgroundKey] ?: false
+        prefs[releaseDecoderOnBackgroundKey] ?: true
     }
 
     suspend fun setReleaseDecoderOnBackground(enabled: Boolean) {

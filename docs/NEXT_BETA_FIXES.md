@@ -11,7 +11,12 @@
   APKs built and lint guard passed with 4,100 inherited errors. Before/after
   evidence is durable in `.upstream-sync/evidence/startup-navigation-20261109-4961a804c`.
   This is not proof of the cause or resolution of the separately reported crash
-  or all menu lag; installed version/crash context remains requested. Preserve
+  or all menu lag. A later one-off, explicitly authorised read-only Onn log check
+  confirmed installed beta 9 / 10038: OOM at 18:38 in a background sorting path,
+  then a KeyEvent ANR at 18:40 on 9 November. Private saved logs and a summary are
+  in the evidence directory's `device-followup` folder. Device queries have ended;
+  this exception does not authorise any future device access. Obtain the exact
+  beta 9 R8 mapping and investigate the saved crash locally. Preserve
   that distinction in release notes. Validate the combined exact candidate before
   any future publication; no separate release was authorised by this follow-up.
   No physical-device/ADB access or live-account testing is permitted.

@@ -1,3 +1,7 @@
+# Delivered in published beta 9
+
+All five queued inputs below shipped at 150883f1f44ec436bd377d70dc94f5b47842ef4c. Public release and all five signed APKs verified on 9 November 2026. Preserve this history and check for later owner changes without replaying the delivered snapshots.
+
 # Required changes for the next upstream beta (beta 9)
 
 Maintainer instruction, 8 November 2026: include these two locally implemented,

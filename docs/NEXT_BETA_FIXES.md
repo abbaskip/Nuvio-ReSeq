@@ -1,3 +1,21 @@
+# Beta 9.1 combined candidate
+
+The maintainer authorised publication on 9 November 2026 and requested a scope
+confirmation before building. The six pending groups were confirmed in chat and
+combined on branch `codex/beta9.1-release`, starting from published beta 9.
+The candidate includes fresh-install defaults and scoped Trakt adaptations,
+profile avatar URL resolution, startup navigation fixes, Sports rank reuse and
+bounded NNTP article lookahead. Original source commits are preserved with
+cherry-pick provenance. No new upstream replacements were accepted.
+The coordinator could not begin because GitHub CLI was unauthenticated.
+No shared run or lock was created. Git transport can back up review branches.
+Restore GitHub CLI authentication, then reconcile this candidate with the latest
+remote development and release base, acquire the coordinator lock and repeat
+its exact-commit publication gates before dispatching the existing workflow.
+Physical devices and live accounts remain excluded from automated validation.
+See the candidate release notes and ignored build/validation evidence.
+The following pending descriptions retain the owner implementation history.
+
 # Pending after beta 9
 
 - Sports Hub and Usenet performance follow-up for the next beta. Integrate

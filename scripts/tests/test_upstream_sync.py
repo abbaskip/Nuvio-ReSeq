@@ -9,6 +9,19 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_maintenance_release_request_requires_exact_head_and_reason(self):
+        self.assertFalse(sync.requested_release_matches({}, "head"))
+        self.assertFalse(sync.requested_release_matches({"maintainer_release":{"head":"head"}}, "head"))
+        request = {"maintainer_release":{"head":"head","reason":"Explicit beta 9.1 instruction"}}
+        self.assertTrue(sync.requested_release_matches(request, "head"))
+        self.assertFalse(sync.requested_release_matches(request, "changed"))
+
+    def test_maintenance_release_request_rejects_dirty_source(self):
+        from argparse import Namespace
+        with patch.object(sync, "git", return_value="dirty"):
+            with self.assertRaisesRegex(RuntimeError, "Commit"):
+                sync.request_release({"worktree":"."}, Namespace(reason="Explicit request"))
+
     def test_shipped_adaptation_retains_raw_and_modified_implementation_holds(self):
         sha = "a" * 40
         entry = {"outcome": "integrated", "raw_upstream": {"outcome": "held"},

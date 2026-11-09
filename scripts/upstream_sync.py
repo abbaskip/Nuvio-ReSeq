@@ -345,6 +345,22 @@ def assert_release_allowed(worktree):
         raise RuntimeError("Maintainer publication hold is active; artifact-only validation remains permitted")
 
 
+def requested_release_matches(run, head):
+    request = run.get("maintainer_release") or {}
+    return (request.get("head") == head and bool(request.get("reason")))
+
+
+def request_release(run, args):
+    worktree = Path(run["worktree"])
+    if git("status", "--porcelain", cwd=worktree):
+        raise RuntimeError("Commit the release candidate before recording maintainer authorisation")
+    if not args.reason.strip():
+        raise RuntimeError("Record the maintainer's explicit release instruction")
+    run["maintainer_release"] = {"head": git("rev-parse", "HEAD", cwd=worktree),
+                                 "reason": args.reason.strip(),
+                                 "recorded_utc": datetime.now(timezone.utc).isoformat()}
+
+
 def gate(run, state):
     if run["dry_run"]:
         raise RuntimeError("Dry runs cannot publish")
@@ -369,8 +385,8 @@ def gate(run, state):
         raise RuntimeError("Unreviewed upstream commits remain")
     integrated = [c for c in run["commits"] if ledger[c["sha"]]["outcome"] == "integrated" and
                   ledger[c["sha"]].get("run") == run["id"]]
-    if not integrated:
-        raise RuntimeError("No new upstream changes integrated; no release needed")
+    if not integrated and not requested_release_matches(run, head):
+        raise RuntimeError("No new upstream changes integrated or exact-commit maintainer release requested")
     enforce_held_changes(run, ledger, head)
     if not ancestor(run["dev"], head, cwd=worktree) or not ancestor(run["base"], head, cwd=worktree):
         raise RuntimeError("Release would omit development or published functionality")
@@ -480,8 +496,9 @@ def main():
     p = sub.add_parser("begin"); p.add_argument("--dry-run", action="store_true")
     p.add_argument("--setup-worktree", action="store_true", help="Rehearse in this already isolated clean setup worktree")
     sub.add_parser("status")
-    for name in ("review", "configure", "git", "preserve", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable"):
+    for name in ("review", "configure", "git", "preserve", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable", "request-release"):
         p = sub.add_parser(name); p.add_argument("--run", required=True)
+        if name == "request-release": p.add_argument("--reason", required=True)
         if name == "review":
             p.add_argument("--commit", required=True); p.add_argument("--outcome", choices=STATUSES, required=True)
             p.add_argument("--reason", required=True)
@@ -511,6 +528,7 @@ def main():
         run["validation"] = run["compatibility"] = run["device"] = None
         save(state / "runs" / f"{run['id']}.json", run)
         validation(run)
+    elif args.action == "request-release": request_release(run, args)
     elif args.action == "attest": attest(run, args)
     elif args.action == "gate": print(gate(run, state))
     elif args.action == "publish": publish(run, state, args)

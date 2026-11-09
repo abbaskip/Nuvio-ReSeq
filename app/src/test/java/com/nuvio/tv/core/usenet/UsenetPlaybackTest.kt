@@ -44,7 +44,8 @@ class UsenetPlaybackTest {
         return output.toByteArray()
     }
 
-    private class NewsFixture(private val articles: Map<String, ByteArray>) : Closeable {
+    private class NewsFixture(private val articles: Map<String, ByteArray>, private val latencyMs: Long = 0) : Closeable {
+        private val responses = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
         private val listener = ServerSocket(0, 8, InetAddress.getByName("127.0.0.1"))
         val endpoint = "nntp://fixture:p%3Ass+word@127.0.0.1:" + listener.localPort + "/4"
         val requests = AtomicInteger()
@@ -67,10 +68,14 @@ class UsenetPlaybackTest {
                                     loggedIn && command.startsWith("BODY <") -> {
                                         requests.incrementAndGet()
                                         val body = articles[command.removePrefix("BODY <").removeSuffix(">")]
-                                        if (body == null) line("430 unavailable") else {
-                                            line("222 article")
-                                            out.write(body)
+                                        val respond = Runnable {
+                                            if (body == null) line("430 unavailable") else {
+                                                line("222 article")
+                                                out.write(body)
+                                            }
                                         }
+                                        if (latencyMs == 0L) respond.run() else responses.schedule(respond, latencyMs,
+                                            java.util.concurrent.TimeUnit.MILLISECONDS)
                                     }
                                     else -> line("481 denied")
                                 }
@@ -80,7 +85,86 @@ class UsenetPlaybackTest {
                 }
             }
         }
-        override fun close() = listener.close()
+        override fun close() { listener.close(); responses.shutdownNow() }
+    }
+
+    @Test fun delayedProviderReturnsIdenticalSplitAndSequentialBytesAcrossSeeks() {
+        val count = 48
+        val parts = List(count) { i -> ByteArray(2048) { j -> (i + j).toByte() } }
+        val bytes = parts.reduce { a, b -> a + b }
+        val ids = List(count) { "part-$it@fixture" }
+        for (split in listOf(true, false)) {
+            val bodies = ids.indices.associate { i ->
+                ids[i] to article(parts[i], if (split) 0 else i * 2048, if (split) 2048 else bytes.size)
+            }
+            NewsFixture(bodies, 20).use { provider ->
+                NewsArticles(listOf(provider.endpoint)).use { reader ->
+                    val files = if (split) ids.mapIndexed { i, id ->
+                        NzbFile("movie.mkv." + (i + 1).toString().padStart(3, '0'), listOf(id), 2048)
+                    } else listOf(NzbFile("movie.mkv", ids, bytes.size.toLong()))
+                    val start = System.nanoTime()
+                    val file = UsenetSelection.select(files, ArticleCache { id, next -> reader.fetch(id, next) }, null, emptyList())
+                    val opened = System.nanoTime()
+                    assertArrayEquals(bytes, file.bytesAt(0, bytes.size))
+                    val read = System.nanoTime()
+                    assertArrayEquals(bytes.copyOfRange(3071, 6123), file.bytesAt(3071, 3052))
+                    assertArrayEquals(bytes.takeLast(120).toByteArray(), file.bytesAt(file.size - 120, 120))
+                    assertEquals(count, provider.requests.get())
+                    println("split=$split openMs=" + (opened-start)/1_000_000 + " readMs=" + (read-opened)/1_000_000 +
+                        " bodies=" + provider.requests.get())
+                }
+            }
+        }
+    }
+
+    @Test fun seekAndMissingQueuedReplyCannotChangeTheBytesOfTheNextRequest() {
+        val ids = listOf("first", "second", "third", "after-seek")
+        val bodies = ids.mapIndexed { i, id -> id to article(byteArrayOf(i.toByte()), 0, 1) }.toMap()
+        NewsFixture(bodies).use { provider ->
+            val endpoint = provider.endpoint.substringBeforeLast('/') + "/1"
+            NewsArticles(listOf(endpoint)).use { reader ->
+                assertArrayEquals(byteArrayOf(0), reader.fetch("first", listOf("second", "third")).bytes)
+                assertArrayEquals(byteArrayOf(3), reader.fetch("after-seek", listOf("missing", "second")).bytes)
+                assertThrows(MissingUsenetArticle::class.java) { reader.fetch("missing") }
+                assertArrayEquals(byteArrayOf(1), reader.fetch("second").bytes)
+            }
+        }
+    }
+
+    @Test fun pipelineRefusalRetriesTheSameArticleAndSubsequentReadsSerially() {
+        ServerSocket(0, 2, InetAddress.getByName("127.0.0.1")).use { server ->
+            server.soTimeout = 5000
+            val done = java.util.concurrent.CompletableFuture<Unit>()
+            thread(isDaemon = true) {
+                try {
+                    repeat(2) { attempt ->
+                        server.accept().use { socket ->
+                            socket.soTimeout = 4000
+                            val input = socket.getInputStream().bufferedReader()
+                            val output = socket.getOutputStream()
+                            output.write("200 ready\r\n".toByteArray())
+                            assertEquals("BODY <one>", input.readLine())
+                            if (attempt == 0) {
+                                assertEquals("BODY <two>", input.readLine())
+                                output.write("400 busy\r\n".toByteArray())
+                            } else {
+                                output.write("222 article\r\n".toByteArray())
+                                output.write(article(byteArrayOf(1), 0, 1))
+                                assertEquals("BODY <three>", input.readLine())
+                                output.write("222 article\r\n".toByteArray())
+                                output.write(article(byteArrayOf(3), 0, 1))
+                            }
+                        }
+                    }
+                    done.complete(Unit)
+                } catch (e: Throwable) { done.completeExceptionally(e) }
+            }
+            NewsArticles(listOf("nntp://127.0.0.1:" + server.localPort + "/1")).use { reader ->
+                assertArrayEquals(byteArrayOf(1), reader.fetch("one", listOf("two")).bytes)
+                assertArrayEquals(byteArrayOf(3), reader.fetch("three", listOf("four")).bytes)
+            }
+            done.get(5, java.util.concurrent.TimeUnit.SECONDS)
+        }
     }
 
     private fun exercise(files: List<Pair<String, ByteArray>>, password: String? = null) {

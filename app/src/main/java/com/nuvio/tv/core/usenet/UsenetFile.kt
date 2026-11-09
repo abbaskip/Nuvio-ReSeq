@@ -7,16 +7,16 @@ internal interface UsenetFile {
     fun read(position: Long, buffer: ByteArray, offset: Int, length: Int): Int
 }
 
-internal class ArticleCache(private val fetch: (String, String?) -> Article) {
+internal class ArticleCache(private val fetch: (String, List<String>) -> Article) {
     private val entries = LinkedHashMap<String, Article>(16, 0.75f, true)
     private var used = 0
     private val missing = LinkedHashSet<String>()
-    operator fun get(id: String): Article = load(id, null)
-    @Synchronized fun load(id: String, next: String?): Article {
+    operator fun get(id: String): Article = load(id, emptyList())
+    @Synchronized fun load(id: String, next: List<String>): Article {
         entries[id]?.let { return it }
         if (id in missing) throw MissingUsenetArticle()
         val article = try {
-            fetch(id, next?.takeUnless { it in entries || it in missing })
+            fetch(id, next.filterNot { it == id || it in entries || it in missing })
         } catch (error: MissingUsenetArticle) {
             // Only definitive absence across all providers is remembered. Transport failures remain retryable.
             if (missing.size >= 4096) missing.remove(missing.first())
@@ -34,7 +34,7 @@ internal class ArticleCache(private val fetch: (String, String?) -> Article) {
     }
 }
 
-internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verifyTail: Boolean = true) : UsenetFile {
+internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verifyTail: Boolean = true, nextHeads: List<String> = emptyList()) : UsenetFile {
     override val name = file.name
     private val ids = file.articles
     private data class KnownPart(val index: Int, val end: Long)
@@ -43,7 +43,8 @@ internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verify
     override val size: Long
     init {
         ensureUsenet(ids.isNotEmpty(), "NZB is missing one or more file segments.")
-        val first = cache[ids.first()]
+        val lookAhead = if (verifyTail && ids.size > 1) listOf(ids.last()) else nextHeads
+        val first = cache.load(ids.first(), lookAhead)
         stride = first.bytes.size
         size = first.total
         ensureUsenet(first.start == 0L && stride > 0 && first.end <= size, "NZB is missing the start of a file.")
@@ -67,7 +68,8 @@ internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verify
         var index = if (position == known.end) low else
             (known.index + (position - floor.key) / stride).coerceIn(low.toLong(), high.toLong()).toInt()
         while (low <= high) {
-            val next = if (position == known.end && index == known.index + 1) ids.getOrNull(index + 1) else null
+            val next = if (position == known.end && index == known.index + 1)
+                ids.subList(index + 1, minOf(ids.size, index + 3)) else emptyList()
             val article = cache.load(ids[index], next)
             ensureUsenet(article.total == size && (index != ids.lastIndex || article.end == size), "Inconsistent yEnc file size.")
             val existing = offsets[article.start]

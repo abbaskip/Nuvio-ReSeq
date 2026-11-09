@@ -7,6 +7,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SportsTextNormalizationTest {
+    @Test fun wholeWordSearchAgreesWithPaddedLiteralSearch() {
+        for (text in listOf(" aa aaa a aa ", " canal espanol ", "AB AB ", " AB AB", " foo  bar ", " ", "")) {
+            for (term in listOf("aa", "aaa", "a aa", "canal", "can", "AB", " AB", "bar ", "foo  bar", " ", "")) {
+                assertEquals("$text / $term", term.isNotBlank() && text.contains(" $term "), SportsCatalog.hasWord(text, term))
+            }
+        }
+    }
+
     private fun legacy(text: String): String {
         val plain = Normalizer.normalize(SportsCatalog.plainSmall(text), Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
         return " " + plain.lowercase(Locale.ROOT).replace("&", " and ").replace(Regex("[^a-z0-9]+"), " ").trim().replace(Regex(" +"), " ") + " "

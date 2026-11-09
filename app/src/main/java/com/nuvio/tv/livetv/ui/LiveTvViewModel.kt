@@ -893,11 +893,12 @@ class LiveTvViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             combine(
-                uiState.map { it.channels.map { c -> c.key } }.distinctUntilChanged(),
+                uiState.map { guidePriorityChannelKeys(it.channels) }.distinctUntilChanged(),
                 userState.map { it.favorites }.distinctUntilChanged(),
                 homeRowKeys
             ) { a, b, c -> c + b + a.take(400) }
                 .distinctUntilChanged()
+                .flowOn(Dispatchers.Default)
                 .collectLatest { keys ->
                     delay(1_500)
                     if (keys.isNotEmpty()) repository.rememberPriority(keys)
@@ -905,7 +906,8 @@ class LiveTvViewModel @Inject constructor(
         }
         // The group you open: its listings straight away, if they aren't loaded yet.
         viewModelScope.launch {
-            uiState.map { it.channels.take(400).map { c -> c.key } }.distinctUntilChanged().collect { keys ->
+            uiState.map { guidePriorityChannelKeys(it.channels) }.distinctUntilChanged()
+                .flowOn(Dispatchers.Default).collect { keys ->
                 repository.loadChannelsNow(keys)
             }
         }

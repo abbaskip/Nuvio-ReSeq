@@ -108,6 +108,11 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
     }
     @Volatile private var compactStorage = false
 
+    // SQLiteOpenHelper uses `this` even to return an already-open readable database.
+    // Imports can wait for network or playback between transactions; holding that monitor
+    // would also stall every browsing read. Keep the existing writer serialization separate.
+    private val catalogWriteLock = Any()
+
     override fun onOpen(db: SQLiteDatabase) {
         super.onOpen(db)
         compactStorage = CatalogSchema.isCompact(db)
@@ -221,8 +226,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
      * an empty one, so Newest and Oldest Release had nothing to sort by. Returns how many.
      */
     /** Gives back space left empty by removed titles (see SqliteCompact). */
-    @Synchronized
-    fun compact(): Long {
+    fun compact(): Long = synchronized(catalogWriteLock) {
         val db = writableDatabase
         if (!compactStorage && CatalogSchema.canMigrate(db)) {
             db.beginTransaction()
@@ -405,7 +409,6 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
      * old titles; interrupted imports keep both the old catalog and every committed batch.
      * The producer returns true only after all responses have been read successfully.
      */
-    @Synchronized
     fun replace(
         playlistId: String,
         kind: VodKind,
@@ -413,7 +416,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         onBatchCommitted: () -> Unit = {},
         requireUniqueIds: Boolean = false,
         readItems: ((VodItem) -> Unit) -> Boolean
-    ): Int {
+    ): Int = synchronized(catalogWriteLock) {
         val db = writableDatabase
         val session = java.util.UUID.randomUUID().toString()
         // OR REPLACE on an outer view INSERT would override the triggers' dictionary OR IGNORE.
@@ -519,8 +522,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         return dropped
     }
 
-    @Synchronized
-    fun configureImport(source: com.nuvio.tv.livetv.model.PlaylistSource): Boolean {
+    fun configureImport(source: com.nuvio.tv.livetv.model.PlaylistSource): Boolean = synchronized(catalogWriteLock) {
         val db = writableDatabase
         val old = db.rawQuery("SELECT signature, lean FROM catalog_policy WHERE pl=?", arrayOf(source.id)).use {
             if (it.moveToFirst()) it.getString(0) to (it.getInt(1) != 0) else null
@@ -553,8 +555,7 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         return true
     }
 
-    @Synchronized
-    fun cacheBrowseArtwork(playlistId: String, kind: VodKind, urls: Map<String, String?>, now: Long = System.currentTimeMillis()) {
+    fun cacheBrowseArtwork(playlistId: String, kind: VodKind, urls: Map<String, String?>, now: Long = System.currentTimeMillis()) = synchronized(catalogWriteLock) {
         val db = writableDatabase
         db.beginTransaction()
         try {

@@ -22,6 +22,20 @@ class UpstreamSyncSafetyTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Commit"):
                 sync.request_release({"worktree":"."}, Namespace(reason="Explicit request"))
 
+    def test_review_retains_raw_hold_and_historical_adaptation_evidence(self):
+        from argparse import Namespace
+        with tempfile.TemporaryDirectory() as directory:
+            entry = {"outcome": "integrated", "raw_upstream": {"outcome": "held"},
+                     "accepted_adaptation": {"release_commit": "released"},
+                     "historical_review_before_reconciliation": {"outcome": "held"}}
+            sync.save(Path(directory) / sync.LEDGER, {"schema": 1, "commits": {"abc": entry}})
+            sync.review({"id": "run", "base": "base", "worktree": directory, "commits": [{"sha": "abc"}]},
+                        Namespace(commit="abc", outcome="integrated", reason="Rechecked unchanged adaptation"))
+            saved = json.loads((Path(directory) / sync.LEDGER).read_text())["commits"]["abc"]
+            for key in ("raw_upstream", "accepted_adaptation", "historical_review_before_reconciliation"):
+                self.assertEqual(saved[key], entry[key])
+
+
     def test_shipped_adaptation_retains_raw_and_modified_implementation_holds(self):
         sha = "a" * 40
         entry = {"outcome": "integrated", "raw_upstream": {"outcome": "held"},
@@ -47,6 +61,32 @@ class UpstreamSyncSafetyTest(unittest.TestCase):
             with patch.object(sync, "git", side_effect=lambda *a, **k: "(cherry picked from commit " + sha + ")" if a[0] == "log" else commands(*a, **k)):
                 with self.assertRaisesRegex(RuntimeError, "cherry-picked"): sync.enforce_held_changes(run, {sha: entry}, "head")
 
+
+    def test_incomplete_candidate_cannot_overwrite_integrated_or_held_history(self):
+        previous = {"commits": {"a": {"outcome": "integrated"}, "b": {"outcome": "held"}}}
+        for sha in previous["commits"]:
+            with self.subTest(sha=sha), self.assertRaisesRegex(RuntimeError, "historical review"):
+                sync.require_ledger_continuity(previous, {"commits": {sha: previous["commits"][sha]}})
+        sync.require_ledger_continuity(previous, previous)
+
+    def test_preserved_candidate_is_reused_until_merged_and_moving_ref_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pending = {"head": "a" * 40, "branch": "automation/upstream-20261108T221656Z-e8f1f6",
+                       "runs": ["20261108T221656Z-e8f1f6"]}
+            sync.save(root / "pending-integration.json", pending)
+            with patch.object(sync, "git", return_value=pending["head"]), patch.object(sync, "ancestor") as merged:
+                merged.return_value = False
+                self.assertEqual(sync.pending_candidate(root, root, "dev"), pending)
+                merged.return_value = True
+                self.assertIsNone(sync.pending_candidate(root, root, "dev"))
+            with patch.object(sync, "git", return_value="b" * 40), self.assertRaisesRegex(RuntimeError, "moved"):
+                sync.pending_candidate(root, root, "dev")
+
+    def test_legacy_device_probe_fails_without_issuing_a_command(self):
+        with patch.object(sync, "command") as command, self.assertRaisesRegex(RuntimeError, "disabled"):
+            sync.probe_device({})
+        command.assert_not_called()
 
     def test_explicit_publication_hold_prevents_git_push_and_workflow_dispatch(self):
         from argparse import Namespace

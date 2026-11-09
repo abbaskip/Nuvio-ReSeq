@@ -58,6 +58,23 @@ internal val discoverLocationMigration = object : DataMigration<Preferences> {
 class ProfileDataStoreFactory @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    // Persist installation provenance before opening profile stores. PackageManager timestamps
+    // distinguish an actual new installation from an update with unset preferences.
+    private val freshInstallDefaultsEnabled: Boolean = run {
+        val policy = context.getSharedPreferences("reseq_install_defaults", Context.MODE_PRIVATE)
+        if (policy.contains("enabled")) policy.getBoolean("enabled", false)
+        else {
+            val fresh = runCatching {
+                val info = context.packageManager.getPackageInfo(context.packageName, 0)
+                info.firstInstallTime > 0L && info.firstInstallTime == info.lastUpdateTime
+            }.getOrDefault(false)
+            if (fresh && !policy.edit().putBoolean("enabled", true).commit()) {
+                throw java.io.IOException("Unable to persist installation defaults policy")
+            }
+            fresh
+        }
+    }
+
     private val cache = ConcurrentHashMap<String, ScopedDataStore>()
     private val deletedProfileIds = ConcurrentHashMap.newKeySet<Int>()
     private val lock = Any()
@@ -150,9 +167,15 @@ class ProfileDataStoreFactory @Inject constructor(
         // doesn't exist yet and a race condition occurs. Pre-create an empty file
         // to avoid this edge case (DataStore will overwrite on first write).
         val targetFile = File(dataStoreDir, "$fileName.preferences_pb")
-        if (!targetFile.exists()) {
+        val existingSettingsFile = targetFile.exists()
+        if (!existingSettingsFile) {
             try { targetFile.createNewFile() } catch (_: Exception) { }
         }
+        val feature = fileName.replace(Regex("_p[0-9]+$"), "")
+        val installMigrations = if (freshInstallDefaultsEnabled && !existingSettingsFile &&
+            feature in setOf("player_settings", "layout_settings", "trailer_settings")) {
+            listOf(FreshInstallDefaults(feature))
+        } else emptyList()
         val store = PreferenceDataStoreFactory.create(
             corruptionHandler = androidx.datastore.core.handlers.ReplaceFileCorruptionHandler { ex ->
                 Log.e("ProfileDataStoreFactory", "DataStore corrupted ($fileName): ${ex.message} — attempting shadow copy recovery")
@@ -167,7 +190,7 @@ class ProfileDataStoreFactory @Inject constructor(
                 }
             },
             scope = scope,
-            migrations = migrations,
+            migrations = installMigrations + migrations,
             produceFile = { context.preferencesDataStoreFile(fileName) }
         )
 

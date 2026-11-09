@@ -1726,10 +1726,18 @@
     "ca8bdce45b956ccd8ae35ece45e1e3c9d1873265": {
       "run": "20261108T221656Z-e8f1f6",
       "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
-      "outcome": "held",
-      "reason": "Showing every positive position changes the existing 2% Continue Watching threshold and tracker projections. Preserve the existing threshold pending a product decision.",
-      "requires_decision": true,
-      "decision_context": "Showing every positive position changes the existing 2% Continue Watching threshold and tracker projections. Preserve the existing threshold pending a product decision."
+      "outcome": "irrelevant",
+      "reason": "Maintainer declined this upstream behaviour on 9 November 2026. Keep ReSeq playback completion, Continue Watching threshold and existing subtitle defaults.",
+      "requires_decision": false,
+      "decision_context": "Maintainer explicitly chose to retain existing ReSeq behaviour on 9 November 2026.",
+      "historical_review_before_maintainer_disposition": {
+        "run": "20261108T221656Z-e8f1f6",
+        "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+        "outcome": "held",
+        "reason": "Showing every positive position changes the existing 2% Continue Watching threshold and tracker projections. Preserve the existing threshold pending a product decision.",
+        "requires_decision": true,
+        "decision_context": "Showing every positive position changes the existing 2% Continue Watching threshold and tracker projections. Preserve the existing threshold pending a product decision."
+      }
     },
     "a6a826687e9fcdcd80271154a4d899e43d84bd16": {
       "run": "20261108T221656Z-e8f1f6",
@@ -1741,7 +1749,13 @@
       "run": "20261108T221656Z-e8f1f6",
       "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
       "outcome": "held",
-      "reason": "Read-side same-number preference can select a different episode when selected-order and addon numbering collide. Exercise canonical split/alternate identity fixtures before adopting this policy."
+      "reason": "Read-side same-number preference can select a different episode when selected-order and addon numbering collide. Exercise canonical split/alternate identity fixtures before adopting this policy.",
+      "default_metadata_adaptation": {
+        "branch": "feature/fresh-install-defaults",
+        "scope": "Only series with no selected TVDB order; current profile/order-scoped caches; canonical Trakt references retain bypass.",
+        "validation": "Full JVM regression suite passed, including alternate-order boundaries and upstream same-number/title/index fixtures.",
+        "status": "validated development candidate, unreleased"
+      }
     },
     "4b7da3744d19f57cf70983d226b7dc87e93aa6aa": {
       "run": "20261108T221656Z-e8f1f6",
@@ -1810,8 +1824,16 @@
     "105490c2d9d8bd8cc51cb062024b0f4e39b92e04": {
       "run": "20261108T221656Z-e8f1f6",
       "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
-      "outcome": "held",
-      "reason": "Forced natural end triggers tracking and next episode while audio is ended and reported duration has elapsed. Validate a long video tail, inaccurate durations and NNTP seeks before adopting it."
+      "outcome": "irrelevant",
+      "reason": "Maintainer declined this upstream behaviour on 9 November 2026. Keep ReSeq playback completion, Continue Watching threshold and existing subtitle defaults.",
+      "historical_review_before_maintainer_disposition": {
+        "run": "20261108T221656Z-e8f1f6",
+        "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+        "outcome": "held",
+        "reason": "Forced natural end triggers tracking and next episode while audio is ended and reported duration has elapsed. Validate a long video tail, inaccurate durations and NNTP seeks before adopting it."
+      },
+      "requires_decision": false,
+      "decision_context": "Maintainer explicitly chose to retain existing ReSeq behaviour on 9 November 2026."
     },
     "fe8dd2e444ae44a93e36c7adfc550e7ace12a487": {
       "run": "20261108T221656Z-e8f1f6",
@@ -1994,7 +2016,13 @@
       "run": "20261108T221656Z-e8f1f6",
       "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
       "outcome": "held",
-      "reason": "Write-side same-number preference changes tracker identity when two valid orders contain the same number. Preserve the approved TVDB canonical mapping and test collision fixtures alongside the read-side change."
+      "reason": "Write-side same-number preference changes tracker identity when two valid orders contain the same number. Preserve the approved TVDB canonical mapping and test collision fixtures alongside the read-side change.",
+      "default_metadata_adaptation": {
+        "branch": "feature/fresh-install-defaults",
+        "scope": "Only series with no selected TVDB order; current profile/order-scoped caches; canonical Trakt references retain bypass.",
+        "validation": "Full JVM regression suite passed, including alternate-order boundaries and upstream same-number/title/index fixtures.",
+        "status": "validated development candidate, unreleased"
+      }
     },
     "60f85970c26f536f8ce0d1d7a2296db2dd2194ec": {
       "run": "20261108T221656Z-e8f1f6",
@@ -2154,10 +2182,18 @@
     "7bc69ea4249d44c46f91b5b48cdf8fd72c03ed57": {
       "run": "20261108T221656Z-e8f1f6",
       "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
-      "outcome": "held",
-      "reason": "Forced subtitles and AutoSync become enabled for profiles without saved values. Existing controls already support opt-in; retain ReSeq defaults pending a product decision.",
-      "requires_decision": true,
-      "decision_context": "Forced subtitles and AutoSync become enabled for profiles without saved values. Existing controls already support opt-in; retain ReSeq defaults pending a product decision."
+      "outcome": "irrelevant",
+      "reason": "Maintainer declined this upstream behaviour on 9 November 2026. Keep ReSeq playback completion, Continue Watching threshold and existing subtitle defaults.",
+      "requires_decision": false,
+      "decision_context": "Maintainer explicitly chose to retain existing ReSeq behaviour on 9 November 2026.",
+      "historical_review_before_maintainer_disposition": {
+        "run": "20261108T221656Z-e8f1f6",
+        "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+        "outcome": "held",
+        "reason": "Forced subtitles and AutoSync become enabled for profiles without saved values. Existing controls already support opt-in; retain ReSeq defaults pending a product decision.",
+        "requires_decision": true,
+        "decision_context": "Forced subtitles and AutoSync become enabled for profiles without saved values. Existing controls already support opt-in; retain ReSeq defaults pending a product decision."
+      }
     },
     "9b778ac4741d0efad4f826c3bae7eeaf8307794b": {
       "run": "20261108T221656Z-e8f1f6",

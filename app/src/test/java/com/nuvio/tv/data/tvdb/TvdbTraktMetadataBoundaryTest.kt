@@ -50,17 +50,28 @@ class TvdbTraktMetadataBoundaryTest {
             every { getMetaFromAllAddons(any(), any(), any()) } answers { flowOf(NetworkResult.Success(displayed)) }
         }
         val profiles = mockk<com.nuvio.tv.core.profile.ProfileManager> { every { activeProfileId } returns kotlinx.coroutines.flow.MutableStateFlow(1) }
-        val contaminated = TraktEpisodeMappingService(api, auth, AddonEpisodeListService(decorated, profiles))
+        var selectedOrder = true
+        val orders = mockk<TvdbOrderStore>()
+        coEvery { orders.selected(any(), any()) } answers {
+            if (selectedOrder) TvdbOrderPreference(1, "alternate") else null
+        }
+        val contaminated = TraktEpisodeMappingService(api, auth, AddonEpisodeListService(decorated, profiles), profiles, orders)
         contaminated.prefetchAddonEpisodes(listOf(provider.id))
         displayed = provider // Returning to Provider Default does not flush the upstream mapper's cache.
         val wrong = contaminated.resolveAddonEpisodeMapping(provider.id, "series", 4, 14)
         assertNotNull("The fixture must reproduce cached remapping", wrong)
         assertNotEquals(4 to 14, wrong!!.season to wrong.episode)
 
+        selectedOrder = false
+        assertNull("Default metadata retains an addon episode that exists", contaminated.resolveAddonEpisodeMapping(provider.id, "series", 4, 14))
+        selectedOrder = true
+        assertEquals("Returning to an alternate order retains its mapping",
+            wrong, contaminated.resolveAddonEpisodeMapping(provider.id, "series", 4, 14))
+
         val raw = mockk<MetaRepositoryImpl> {
             every { getMetaFromAllAddons(any(), any(), any()) } returns flowOf(NetworkResult.Success(provider))
         }
-        val isolated = TraktEpisodeMappingService(api, auth, AddonEpisodeListService(raw, profiles))
+        val isolated = TraktEpisodeMappingService(api, auth, AddonEpisodeListService(raw, profiles), profiles, orders)
         isolated.prefetchAddonEpisodes(listOf(provider.id))
         repeat(3) {
             displayed = if (it % 2 == 0) alternate else provider

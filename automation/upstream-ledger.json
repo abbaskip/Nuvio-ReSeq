@@ -244,8 +244,8 @@
       }
     },
     "7242ff8b63afdd011570647ed48403b4bba219c7": {
-      "outcome": "held",
-      "reason": "Saved upstream stream metadata inside the ReSeq cache-key wrapper so TVDB and source identity survive link reuse. Candidate implementation awaits release validation.",
+      "outcome": "integrated",
+      "reason": "Previously approved and shipped ReSeq adaptation, verified against beta 7.7 and current source. Reconciled with explicit maintainer authorisation on 9 November 2026.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": false,
@@ -271,11 +271,56 @@
         "accepted_source": "84675344e68b5f760741db53dcb7d66878aa83ab",
         "evidence": "docs/BETA_7_7_PROMOTION.md",
         "scope": "tested ReSeq adaptation"
+      },
+      "historical_review_before_reconciliation": {
+        "outcome": "held",
+        "reason": "Saved upstream stream metadata inside the ReSeq cache-key wrapper so TVDB and source identity survive link reuse. Candidate implementation awaits release validation.",
+        "run": "20261104T071715Z-378778",
+        "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+        "requires_decision": false,
+        "decision_context": "Maintainer approved beta 7.7 publication after acceptance of the signed combined Onn build. The tested ReSeq adaptations retain canonical identity, enabled source families and complete fallback; raw upstream replacements remain governed by the original outcome.",
+        "backlog_review": {
+          "classification": "adapted",
+          "branch": "codex/backlog-functional-nov4",
+          "evidence": "Saved upstream stream metadata inside the ReSeq cache-key wrapper so TVDB and source identity survive link reuse.",
+          "status": "combined device acceptance complete; approved for beta 7.7 promotion"
+        },
+        "development_integration": {
+          "run": "20261104T233336Z-11b928",
+          "input": "a4f1a08124bdf840d5bfb74b32277d3d4af28cb9",
+          "evidence": "docs/CONSOLIDATION_2026-11-05.md",
+          "status": "combined acceptance complete; maintainer approved beta 7.7 publication",
+          "requirements": "Preserve canonical TVDB identity, enabled ReSeq source families and complete fallback; no upstream replacement of those requirements.",
+          "release_evidence": "docs/BETA_7_7_PROMOTION.md"
+        },
+        "historical_requires_decision": true,
+        "historical_decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+        "release_promotion": {
+          "version": "0.1.0-beta.7.7",
+          "accepted_source": "84675344e68b5f760741db53dcb7d66878aa83ab",
+          "evidence": "docs/BETA_7_7_PROMOTION.md",
+          "scope": "tested ReSeq adaptation"
+        }
+      },
+      "raw_upstream": {
+        "outcome": "held",
+        "reason": "Raw upstream replacement remains unapproved; accepted scope is the shipped ReSeq adaptation only."
+      },
+      "accepted_adaptation": {
+        "release_tag": "v0.1.0-beta.7.7",
+        "release_commit": "bbffa9a634b5be46347beb8e0cb065bb165067e5",
+        "evidence": "docs/BETA_7_7_PROMOTION.md",
+        "reconciled_utc": "2026-11-09",
+        "protected_blobs": {
+          "app/src/main/java/com/nuvio/tv/data/local/StreamLinkCacheDataStore.kt": "61cf495bc9c7124dff665d72637c46f16936842b",
+          "app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt": "9ebe3e8848b0c920dc03394bd53c02dce30c8b0c",
+          "app/src/test/java/com/nuvio/tv/ui/screens/player/CurrentStreamIndexTest.kt": "ced6d70c966041b7a1f20d55453032194596259e"
+        }
       }
     },
     "2b4b640a85de7d6fd554f9ec0e5187529d88c8dc": {
-      "outcome": "held",
-      "reason": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change. Candidate implementation awaits release validation.",
+      "outcome": "integrated",
+      "reason": "Previously approved and shipped ReSeq adaptation, verified against beta 7.7 and current source. Reconciled with explicit maintainer authorisation on 9 November 2026.",
       "run": "20261104T071715Z-378778",
       "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
       "requires_decision": false,
@@ -301,6 +346,51 @@
         "accepted_source": "84675344e68b5f760741db53dcb7d66878aa83ab",
         "evidence": "docs/BETA_7_7_PROMOTION.md",
         "scope": "tested ReSeq adaptation"
+      },
+      "historical_review_before_reconciliation": {
+        "outcome": "held",
+        "reason": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change. Candidate implementation awaits release validation.",
+        "run": "20261104T071715Z-378778",
+        "base": "289a93d49ba2c23e33e8b1279543dc7f34696a85",
+        "requires_decision": false,
+        "decision_context": "Maintainer approved beta 7.7 publication after acceptance of the signed combined Onn build. The tested ReSeq adaptations retain canonical identity, enabled source families and complete fallback; raw upstream replacements remain governed by the original outcome.",
+        "backlog_review": {
+          "classification": "direct",
+          "branch": "codex/backlog-functional-nov4",
+          "evidence": "Applied both follow-ups to reused stream matching and observer state after adapting the parent change.",
+          "status": "combined device acceptance complete; approved for beta 7.7 promotion"
+        },
+        "development_integration": {
+          "run": "20261104T233336Z-11b928",
+          "input": "a4f1a08124bdf840d5bfb74b32277d3d4af28cb9",
+          "evidence": "docs/CONSOLIDATION_2026-11-05.md",
+          "status": "combined acceptance complete; maintainer approved beta 7.7 publication",
+          "requirements": "Preserve canonical TVDB identity, enabled ReSeq source families and complete fallback; no upstream replacement of those requirements.",
+          "release_evidence": "docs/BETA_7_7_PROMOTION.md"
+        },
+        "historical_requires_decision": true,
+        "historical_decision_context": "Functional identity/autoplay/source-tier or overlapping UI hold. Approval on 4 November covers lint policy only; preserve this hold pending explicit design resolution.",
+        "release_promotion": {
+          "version": "0.1.0-beta.7.7",
+          "accepted_source": "84675344e68b5f760741db53dcb7d66878aa83ab",
+          "evidence": "docs/BETA_7_7_PROMOTION.md",
+          "scope": "tested ReSeq adaptation"
+        }
+      },
+      "raw_upstream": {
+        "outcome": "held",
+        "reason": "Raw upstream replacement remains unapproved; accepted scope is the shipped ReSeq adaptation only."
+      },
+      "accepted_adaptation": {
+        "release_tag": "v0.1.0-beta.7.7",
+        "release_commit": "bbffa9a634b5be46347beb8e0cb065bb165067e5",
+        "evidence": "docs/BETA_7_7_PROMOTION.md",
+        "reconciled_utc": "2026-11-09",
+        "protected_blobs": {
+          "app/src/main/java/com/nuvio/tv/data/local/StreamLinkCacheDataStore.kt": "61cf495bc9c7124dff665d72637c46f16936842b",
+          "app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt": "9ebe3e8848b0c920dc03394bd53c02dce30c8b0c",
+          "app/src/test/java/com/nuvio/tv/ui/screens/player/CurrentStreamIndexTest.kt": "ced6d70c966041b7a1f20d55453032194596259e"
+        }
       }
     },
     "424a61c7ac307d77c75cb26ea71d443d785bbb6f": {

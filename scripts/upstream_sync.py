@@ -298,7 +298,8 @@ def attest(run, args):
 
 def enforce_held_changes(run, ledger, head):
     held = {c["sha"] for c in run["commits"] if ledger[c["sha"]]["outcome"] == "held" or
-            ledger[c["sha"]].get("requires_decision")}
+            ledger[c["sha"]].get("requires_decision") or
+            ledger[c["sha"]].get("raw_upstream", {}).get("outcome") == "held"}
     if not held: return
     worktree = run["worktree"]
     for sha in held:
@@ -309,7 +310,25 @@ def enforce_held_changes(run, ledger, head):
         if re.search(r"(?:cherry picked from commit\s+|Upstream-Commit:\s*)" + re.escape(sha), messages, re.I):
             raise RuntimeError("A held change was cherry-picked or adapted without clearing its decision")
     equivalents = {line[2:] for line in git("cherry", head, run["upstream"], cwd=worktree).splitlines() if line.startswith("- ")}
-    if held & equivalents:
+    blocked = held & equivalents
+    for sha in blocked.copy():
+        decision = ledger[sha]
+        adaptation = decision.get("accepted_adaptation") or {}
+        # An accepted shipped adaptation and the raw-upstream hold are separate.
+        # Approval never permits a new ancestor, cherry-pick or modified protected implementation.
+        if (decision["outcome"] != "integrated" or decision.get("requires_decision") or
+                decision.get("raw_upstream", {}).get("outcome") != "held"):
+            continue
+        release = adaptation.get("release_commit")
+        blobs = adaptation.get("protected_blobs") or {}
+        if not release or not blobs or not ancestor(release, run["base"], cwd=worktree):
+            continue
+        prior = {line[2:] for line in git("cherry", run["base"], run["upstream"], cwd=worktree).splitlines()
+                 if line.startswith("- ")}
+        if sha in prior and all(git("rev-parse", f"{head}:{path}", cwd=worktree) == blob
+                                for path, blob in blobs.items()):
+            blocked.remove(sha)
+    if blocked:
         raise RuntimeError("A held change's patch is present in the candidate")
 
 

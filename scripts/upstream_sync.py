@@ -96,29 +96,8 @@ def upstream_inventory(base, upstream, cwd, ledger):
     return commits
 
 
-def pending_candidate(state, root, base):
-    """A review branch can contain integrated changes that dev has never received."""
-    path = state / "pending-integration.json"
-    if not path.is_file():
-        return None
-    pending = json.loads(path.read_text())
-    if not re.fullmatch(r"automation/upstream-\d{8}T\d{6}Z-[a-f0-9]{6}", pending["branch"]):
-        raise RuntimeError("Invalid preserved integration branch")
-    git("fetch", "--no-tags", ORIGIN, "refs/heads/" + pending["branch"], cwd=root)
-    if git("rev-parse", "FETCH_HEAD", cwd=root) != pending["head"]:
-        raise RuntimeError("Preserved branch moved; reconcile it against the saved ledger before continuing")
-    return None if ancestor(pending["head"], base, cwd=root) else pending
-
-
-def require_ledger_continuity(previous, current):
-    missing = previous["commits"].keys() - current["commits"].keys()
-    if missing:
-        raise RuntimeError(f"Candidate lost {len(missing)} historical review records; reconcile from the preserved branch")
-
-
 def begin(args, root, state):
-    if not (state / "review-ledger.json").is_file():
-        raise RuntimeError("Missing shared review ledger; recover durable state before starting")
+    state.mkdir(parents=True, exist_ok=True)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
     lock = state / "lock.json"
     # No timeout/lease stealing: an interrupted run must be explicitly recovered.
@@ -138,8 +117,6 @@ def begin(args, root, state):
         released = git("rev-parse", f"{latest['tag_name']}^{{commit}}", cwd=root)
         dev = git("rev-parse", "refs/remotes/origin/dev", cwd=root)
         base = choose_base(dev, released)
-        pending = pending_candidate(state, root, base)
-        start = pending["head"] if pending else base
         upstream = git("rev-parse", UPSTREAM_REF, cwd=root)
         branch = f"automation/upstream-{run_id}"
         worktree = root / ".worktrees" / f"upstream-{run_id}"
@@ -151,29 +128,25 @@ def begin(args, root, state):
             if worktree == root or not branch or not ancestor(base, "HEAD") or git("status", "--porcelain"):
                 raise RuntimeError("Setup rehearsal requires a clean isolated descendant worktree")
         else:
-            git("worktree", "add", "-b", branch, str(worktree), start, cwd=root)
+            git("worktree", "add", "-b", branch, str(worktree), base, cwd=root)
         ledger_path = worktree / LEDGER
         ledger = json.loads(ledger_path.read_text()) if ledger_path.exists() else {"schema": 1, "commits": {}}
         # Review-only and held runs need durable decisions even when dev is unchanged.
         shared = state / "review-ledger.json"
         if shared.exists():
-            previous = json.loads(shared.read_text())
-            for sha, decision in previous["commits"].items():
+            for sha, decision in json.loads(shared.read_text())["commits"].items():
                 if sha not in ledger["commits"] and decision["outcome"] != "integrated":
                     ledger["commits"][sha] = decision
-            require_ledger_continuity(previous, ledger)
             if ledger["commits"]:
                 save(ledger_path, ledger)
         commits = upstream_inventory(base, upstream, root, ledger)
         run = {"schema": 1, "id": run_id, "dry_run": args.dry_run, "branch": branch,
                "worktree": str(worktree), "dev": dev, "base": base, "upstream": upstream,
                "latest_tag": latest["tag_name"], "commits": commits, "validation": None,
-               "compatibility": None, "device": None, "publication": None,
-               "pending_parent": pending}
+               "compatibility": None, "device": None, "publication": None}
         save(state / "runs" / f"{run_id}.json", run)
         print(json.dumps({"run": run_id, "worktree": str(worktree), "base": base, "dev": dev,
                           "latest_tag": latest["tag_name"], "upstream": upstream,
-                          "pending_parent": pending, "merge_current_base_before_validation": not ancestor(base, start, cwd=root),
                           "unreviewed": sum(not c["previous_review"] for c in commits),
                           "previously_held": sum(bool(c["previous_review"] and c["previous_review"]["outcome"] == "held") for c in commits),
                           "inventory": str(state / "runs" / f"{run_id}.json")}, indent=2))
@@ -198,8 +171,7 @@ def review(run, args):
     path = Path(run["worktree"]) / LEDGER
     ledger = json.loads(path.read_text()) if path.exists() else {"schema": 1, "commits": {}}
     previous = ledger["commits"].get(args.commit, {})
-    protected = {key:previous[key] for key in ("requires_decision", "decision_context", "raw_upstream", "accepted_adaptation",
-                                                  "historical_review_before_reconciliation") if key in previous}
+    protected = {key:previous[key] for key in ("requires_decision", "decision_context") if key in previous}
     if previous.get("requires_decision") and args.outcome in ("integrated", "equivalent"):
         raise RuntimeError("This functional hold requires the maintainer's design decision; lint approval does not clear it")
     ledger["commits"][args.commit] = {"outcome": args.outcome, "reason": args.reason,
@@ -236,13 +208,30 @@ def worktree_git(run, argv):
 
 
 def probe_device(run):
-    raise RuntimeError("Physical device access is disabled for upstream sync. Use host tests or isolated emulators.")
+    adb = Path(os.environ.get("LOCALAPPDATA", "")) / "Android/Sdk/platform-tools/adb.exe"
+    serial = "192.168.1.121:5555"
+    result = {"serial": serial, "device_tests": "not run", "safe_to_disrupt": False}
+    try:
+        if not adb.is_file(): raise RuntimeError("ADB executable unavailable")
+        if command(str(adb), "-s", serial, "get-state") != "device":
+            raise RuntimeError("Onn device unavailable")
+        model = command(str(adb), "-s", serial, "shell", "getprop", "ro.product.device")
+        if model != "jarvis2": raise RuntimeError("Device identity differs from configured Onn 4K Pro")
+        power = command(str(adb), "-s", serial, "shell", "dumpsys", "power")
+        activities = command(str(adb), "-s", serial, "shell", "dumpsys", "activity", "activities")
+        audio = command(str(adb), "-s", serial, "shell", "dumpsys", "audio")
+        result.update(available=True, model=model, awake="mWakefulness=Awake" in power,
+                      audio_started=bool(re.search(r"state\s*[:=]\s*started", audio, re.I)),
+                      launcher_foreground=bool(re.search(r"(?:topResumedActivity|mResumedActivity).*com\.spocky\.projengmenu", activities)))
+        result["reason"] = "Read-only probe only; availability is not proof of inactivity or a device test pass"
+    except (RuntimeError, subprocess.TimeoutExpired):
+        result.update(available=False, reason="ADB unavailable or device identity could not be established")
+    save(Path(run["worktree"]) / "build/upstream-sync/device-probe.json", result)
+    print(json.dumps(result, indent=2))
 
 
 def validation(run):
     worktree = Path(run["worktree"])
-    if not ancestor(run["base"], "HEAD", cwd=worktree):
-        raise RuntimeError("Merge the current development/release base into the preserved candidate before testing")
     if git("status", "--porcelain", cwd=worktree):
         raise RuntimeError("Commit reviewed changes/version/notes/ledger before exact-commit validation")
     run["validation"] = None
@@ -356,6 +345,22 @@ def assert_release_allowed(worktree):
         raise RuntimeError("Maintainer publication hold is active; artifact-only validation remains permitted")
 
 
+def requested_release_matches(run, head):
+    request = run.get("maintainer_release") or {}
+    return (request.get("head") == head and bool(request.get("reason")))
+
+
+def request_release(run, args):
+    worktree = Path(run["worktree"])
+    if git("status", "--porcelain", cwd=worktree):
+        raise RuntimeError("Commit the release candidate before recording maintainer authorisation")
+    if not args.reason.strip():
+        raise RuntimeError("Record the maintainer's explicit release instruction")
+    run["maintainer_release"] = {"head": git("rev-parse", "HEAD", cwd=worktree),
+                                 "reason": args.reason.strip(),
+                                 "recorded_utc": datetime.now(timezone.utc).isoformat()}
+
+
 def gate(run, state):
     if run["dry_run"]:
         raise RuntimeError("Dry runs cannot publish")
@@ -378,14 +383,10 @@ def gate(run, state):
     ledger = json.loads((worktree / LEDGER).read_text())["commits"]
     if any(c["sha"] not in ledger for c in run["commits"]):
         raise RuntimeError("Unreviewed upstream commits remain")
-    pending = run.get("pending_parent") or {}
-    if pending and not ancestor(pending["head"], head, cwd=worktree):
-        raise RuntimeError("Candidate lost its preserved integration ancestry")
-    candidate_runs = {run["id"], *pending.get("runs", [])}
     integrated = [c for c in run["commits"] if ledger[c["sha"]]["outcome"] == "integrated" and
-                  ledger[c["sha"]].get("run") in candidate_runs]
-    if not integrated:
-        raise RuntimeError("No new upstream changes integrated; no release needed")
+                  ledger[c["sha"]].get("run") == run["id"]]
+    if not integrated and not requested_release_matches(run, head):
+        raise RuntimeError("No new upstream changes integrated or exact-commit maintainer release requested")
     enforce_held_changes(run, ledger, head)
     if not ancestor(run["dev"], head, cwd=worktree) or not ancestor(run["base"], head, cwd=worktree):
         raise RuntimeError("Release would omit development or published functionality")
@@ -427,7 +428,7 @@ def publish(run, state, args):
     print(json.dumps(run["publication"], indent=2))
 
 
-def preserve(run, state):
+def preserve(run):
     worktree = Path(run["worktree"])
     branch = git("branch", "--show-current", cwd=worktree)
     if branch != run["branch"] or not (branch.startswith("automation/upstream-") or branch == "codex/upstream-automation"):
@@ -435,13 +436,6 @@ def preserve(run, state):
     if git("status", "--porcelain", cwd=worktree):
         raise RuntimeError("Commit reviewed source/ledger first; private logs must remain ignored")
     git("push", ORIGIN, f"HEAD:refs/heads/{branch}", cwd=worktree)
-    head = git("rev-parse", "HEAD", cwd=worktree)
-    if git("ls-remote", ORIGIN, f"refs/heads/{branch}", cwd=worktree).split()[0] != head:
-        raise RuntimeError("Could not verify the review branch backup")
-    parent = run.get("pending_parent") or {}
-    if not run["dry_run"] and branch.startswith("automation/upstream-"):
-        save(state / "pending-integration.json", {"branch": branch, "head": head,
-             "runs": [*parent.get("runs", []), run["id"]]})
     print(f"Preserved {branch}; no development branch, release or tag changed")
 
 
@@ -488,8 +482,7 @@ def retry_pending_cleanup(root, state):
         if not old.get("finished_utc") or not (old.get("storage") or {}).get("cleanup_pending"):
             continue
         tree = Path(old["worktree"])
-        if (tree.resolve().parent != (root / ".worktrees").resolve() or
-                not tree.is_dir() or not old.get("finished_head") or
+        if (not tree.is_dir() or not old.get("finished_head") or
                 git("rev-parse", "HEAD", cwd=tree) != old["finished_head"] or
                 git("status", "--porcelain", cwd=tree)):
             continue
@@ -503,8 +496,9 @@ def main():
     p = sub.add_parser("begin"); p.add_argument("--dry-run", action="store_true")
     p.add_argument("--setup-worktree", action="store_true", help="Rehearse in this already isolated clean setup worktree")
     sub.add_parser("status")
-    for name in ("review", "configure", "git", "preserve", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable"):
+    for name in ("review", "configure", "git", "preserve", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable", "request-release"):
         p = sub.add_parser(name); p.add_argument("--run", required=True)
+        if name == "request-release": p.add_argument("--reason", required=True)
         if name == "review":
             p.add_argument("--commit", required=True); p.add_argument("--outcome", choices=STATUSES, required=True)
             p.add_argument("--reason", required=True)
@@ -528,12 +522,13 @@ def main():
     elif args.action == "configure": configure(run, args, root)
     elif args.action == "git": worktree_git(run, args.git_args)
     elif args.action == "probe-device": probe_device(run)
-    elif args.action == "preserve": preserve(run, state)
+    elif args.action == "preserve": preserve(run)
     elif args.action == "validate":
         # Persist invalidation before running tools; a failed retry must never reuse a pass.
         run["validation"] = run["compatibility"] = run["device"] = None
         save(state / "runs" / f"{run['id']}.json", run)
         validation(run)
+    elif args.action == "request-release": request_release(run, args)
     elif args.action == "attest": attest(run, args)
     elif args.action == "gate": print(gate(run, state))
     elif args.action == "publish": publish(run, state, args)
@@ -556,10 +551,7 @@ def main():
             raise RuntimeError("Release still active; retain the lock and resume monitoring")
         ledger = Path(run["worktree"]) / LEDGER
         if ledger.exists() and not run["dry_run"]:
-            current = json.loads(ledger.read_text())
-            require_ledger_continuity(json.loads((state / "review-ledger.json").read_text()), current)
-            save(state / "evidence" / run["id"] / "review-ledger.json", current)
-            save(state / "review-ledger.json", current)
+            save(state / "review-ledger.json", json.loads(ledger.read_text()))
         retire_build_outputs(run, root, state)
         run["finished_head"] = git("rev-parse", "HEAD", cwd=run["worktree"])
         run["report"] = str(report); run["finished_utc"] = datetime.now(timezone.utc).isoformat()

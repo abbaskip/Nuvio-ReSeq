@@ -9,18 +9,23 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
-    def test_maintenance_release_request_requires_exact_head_and_reason(self):
-        self.assertFalse(sync.requested_release_matches({}, "head"))
-        self.assertFalse(sync.requested_release_matches({"maintainer_release":{"head":"head"}}, "head"))
-        request = {"maintainer_release":{"head":"head","reason":"Explicit beta 9.1 instruction"}}
-        self.assertTrue(sync.requested_release_matches(request, "head"))
-        self.assertFalse(sync.requested_release_matches(request, "changed"))
+    def test_reseq_runtime_change_is_releasable_without_upstream(self):
+        with patch.object(sync, "git", return_value="app/src/main/java/Feature.kt"):
+            self.assertTrue(sync.has_releasable_changes("base", "head", "."))
 
-    def test_maintenance_release_request_rejects_dirty_source(self):
-        from argparse import Namespace
-        with patch.object(sync, "git", return_value="dirty"):
-            with self.assertRaisesRegex(RuntimeError, "Commit"):
-                sync.request_release({"worktree":"."}, Namespace(reason="Explicit request"))
+    def test_bookkeeping_and_test_changes_do_not_create_release(self):
+        with patch.object(sync, "git", return_value="releases/notes.md\nautomation/upstream-ledger.json\napp/src/test/Test.kt"):
+            self.assertFalse(sync.has_releasable_changes("base", "head", "."))
+
+    def test_version_bump_alone_does_not_create_release(self):
+        with patch.object(sync, "git", side_effect=["app/build.gradle.kts",
+                'versionCode = 1\nversionName = "old"\ndependency = "same"',
+                'versionCode = 2\nversionName = "new"\ndependency = "same"']):
+            self.assertFalse(sync.has_releasable_changes("base", "head", "."))
+
+    def test_build_dependency_change_is_releasable(self):
+        with patch.object(sync, "git", side_effect=["gradle/libs.versions.toml", 'player = "1"', 'player = "2"']):
+            self.assertTrue(sync.has_releasable_changes("base", "head", "."))
 
     def test_review_retains_raw_hold_and_historical_adaptation_evidence(self):
         from argparse import Namespace

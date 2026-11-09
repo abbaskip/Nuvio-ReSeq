@@ -1,22 +1,16 @@
-# Beta 9.1 combined candidate
+# Delivered in beta 9.1
 
-The maintainer authorised publication on 9 November 2026 and requested a scope
-confirmation before building. The six pending groups were confirmed in chat and
-combined on branch `codex/beta9.1-release`, starting from published beta 9.
-The candidate includes fresh-install defaults and scoped Trakt adaptations,
-profile avatar URL resolution, startup navigation fixes, Sports rank reuse and
-bounded NNTP article lookahead. Original source commits are preserved with
-cherry-pick provenance. No new upstream replacements were accepted.
-The coordinator could not begin because GitHub CLI was unauthenticated.
-No shared run or lock was created. Git transport can back up review branches.
-Restore GitHub CLI authentication, then reconcile this candidate with the latest
-remote development and release base, acquire the coordinator lock and repeat
-its exact-commit publication gates before dispatching the existing workflow.
-Physical devices and live accounts remain excluded from automated validation.
-See the candidate release notes and ignored build/validation evidence.
-The following pending descriptions retain the owner implementation history.
+Published and verified at 355741488519bb7ddf3d5909b7b0649d70412621.
+All six pending groups below shipped together. CI run 42617116415 finished
+successfully and all five downloaded signed APKs and metadata were verified.
+The coordinator now permits ReSeq maintenance changes without requiring new
+upstream work, while retaining all review, hold and publication safeguards.
+Evidence is in .upstream-sync/evidence/20261109T120924Z-fcaffc and the report is
+.upstream-sync/reports/2026-11-10-beta9.1.md. Existing owner branches are retained.
+The descriptions below are historical delivery records. Check for later changes
+before preparing a future candidate.
 
-# Pending after beta 9
+# Historical beta 9.1 delivered scope
 
 - Sports Hub and Usenet performance follow-up for the next beta. Integrate
   `fix/startup-navigation-regression` through `3ff87815a`, including its
@@ -74,9 +68,9 @@ The following pending descriptions retain the owner implementation history.
 
 The five inputs under Historical beta 9 delivered scope shipped at 150883f1f44ec436bd377d70dc94f5b47842ef4c. Public release and all five signed APKs verified on 9 November 2026. Preserve this history and check for later owner changes without replaying the delivered snapshots.
 
-## Pending follow-up after beta 9
+## Historical follow-up delivered in beta 9.1
 
-This section is new work and remains pending despite the historical beta 9 delivered marker.
+This section shipped in beta 9.1 after the beta 9 delivery.
 
 Maintainer request on 9 November 2026. Integrate the validated owner branch
 feature/fresh-install-defaults from sync-host/.worktrees/fresh-install-defaults,

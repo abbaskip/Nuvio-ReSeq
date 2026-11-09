@@ -46,7 +46,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -208,7 +207,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -246,7 +244,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -338,7 +335,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -376,7 +372,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -384,7 +379,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -455,7 +449,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -480,7 +473,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -497,7 +489,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -579,7 +570,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -645,7 +635,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -662,7 +651,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -683,7 +671,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -870,7 +857,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -887,7 +873,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -1049,7 +1034,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -1182,7 +1166,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -1257,7 +1240,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -1450,7 +1432,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -1565,7 +1546,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -1697,7 +1677,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -1771,7 +1750,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -1804,31 +1782,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -1917,7 +1888,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -2002,7 +1972,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -2019,7 +1988,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -2091,7 +2059,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -2169,7 +2136,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -2405,7 +2371,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -2456,7 +2421,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -2472,16 +2436,6 @@
       },
       "severity": 3
     },
-    "0724518e617fdf4b3714aeb5607d8dcf75eed30e84bd3dddf4b152a79ab7677d": {
-      "count": 1,
-      "details": {
-        "message": "77b391f5be0b87e15ac54ef0a23febd3ac33fa1f2b33a77065a339cf5a4e4793"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "072a01fdf442177dc2472e2228eeb991fa9820223917fb5c2239642433279009": {
       "count": 1,
       "details": {
@@ -2493,7 +2447,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -2735,7 +2688,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -2828,7 +2780,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -2845,7 +2796,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -2963,7 +2913,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -2998,7 +2947,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -3027,7 +2975,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -3213,7 +3160,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -3395,7 +3341,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -3421,7 +3366,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -3446,7 +3390,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -3649,7 +3592,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -3666,7 +3608,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -3687,7 +3628,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -3863,7 +3803,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -3902,7 +3841,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -3978,7 +3916,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -3986,7 +3923,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -4036,7 +3972,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -4243,8 +4178,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -4273,7 +4207,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -4357,7 +4290,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -4402,7 +4334,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -4453,17 +4384,14 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -4513,7 +4441,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -4559,7 +4486,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -4609,7 +4535,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -4710,7 +4635,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -4844,7 +4768,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -4861,7 +4784,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -4946,7 +4868,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -4954,7 +4875,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -4984,7 +4904,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -5180,8 +5099,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -5369,7 +5287,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -5386,7 +5303,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -5448,7 +5364,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -5482,7 +5397,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -5515,7 +5429,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -5623,31 +5536,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -5703,7 +5609,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -5752,7 +5657,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -5791,7 +5695,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -5855,7 +5758,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -5944,7 +5846,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -6044,7 +5945,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -6233,7 +6133,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -6259,7 +6158,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -6315,7 +6213,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -6345,7 +6242,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -6353,7 +6249,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -6476,7 +6371,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -6676,16 +6570,6 @@
         "3": 1
       },
       "severity": 3
-    },
-    "13ad0be922548fe33e5cbc084991e11ce7837441c22fb34b0ec7fe32a4750c25": {
-      "count": 1,
-      "details": {
-        "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
     },
     "13b1e7e68ac0b4b8b24468b55d16ef1fc0fbf52b5dcbe3d87c70571cc2ba517f": {
       "count": 1,
@@ -6891,7 +6775,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -6917,7 +6800,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -6972,7 +6854,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -7134,7 +7015,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -7195,7 +7075,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -7204,7 +7083,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -7274,7 +7152,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -7375,7 +7252,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -7534,7 +7410,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -7563,7 +7438,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -7625,7 +7499,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -7642,7 +7515,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -8126,7 +7998,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -8135,7 +8006,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -8306,7 +8176,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -8386,7 +8255,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -8411,7 +8279,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -8464,7 +8331,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -8489,16 +8355,6 @@
         "2": 1
       },
       "severity": 2
-    },
-    "1a0e7fc3585a5bd25919c58bd1fe1524e7f1995edf6478d7145bd5de588d2da3": {
-      "count": 1,
-      "details": {
-        "message": "ac4b1d45cca992d124395dd1edaec2c6a010b2ab69d26fba20072114adece022"
-      },
-      "levels": {
-        "1": 1
-      },
-      "severity": 1
     },
     "1a1174736dcc270ab022a38aadf827999a4186f1adeb84113ea861ffd1610e78": {
       "count": 1,
@@ -8554,16 +8410,6 @@
       },
       "severity": 2
     },
-    "1a293410aa8d0517f0553d276251b2843872507e3dd56efb4db900fa796e93ad": {
-      "count": 1,
-      "details": {
-        "message": "63ff464d51aa714454919c309715c3ea97700eed3679170ab20a70bfa42fe5ad"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "1a4a4ba81a49a21a43ee00858c6809db61a7e683a106ce6e68dc387b486b9e5d": {
       "count": 1,
       "details": {
@@ -8608,7 +8454,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -8625,7 +8470,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -8683,7 +8527,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -8709,7 +8552,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -9011,7 +8853,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -9019,7 +8860,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -9181,7 +9021,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -9189,7 +9028,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -9479,7 +9317,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -9518,7 +9355,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -9719,7 +9555,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -9727,7 +9562,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -9773,7 +9607,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -9935,7 +9768,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -10004,7 +9836,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -10157,7 +9988,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -10201,7 +10031,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -10344,7 +10173,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -10361,7 +10189,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -10383,7 +10210,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -10438,7 +10264,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -10589,7 +10414,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -10683,7 +10507,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -10700,7 +10523,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -10823,17 +10645,14 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -11055,7 +10874,6 @@
           "no",
           "ro",
           "sl",
-          "sv",
           "ta"
         ]
       },
@@ -11102,7 +10920,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -11130,8 +10947,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -11366,7 +11182,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -11397,7 +11212,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -11491,7 +11305,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -11518,7 +11331,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -11599,7 +11411,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -11625,7 +11436,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -11886,7 +11696,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -11944,7 +11753,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -12002,7 +11810,6 @@
           "no",
           "ro",
           "sl",
-          "sv",
           "ta"
         ]
       },
@@ -12022,7 +11829,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -12111,7 +11917,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -12176,7 +11981,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -12258,16 +12062,6 @@
         "3": 1
       },
       "severity": 3
-    },
-    "2566611ddb7fba0649ccf8ea5af220c9e367cbd91aa93540a0f8f13a9c4c4daa": {
-      "count": 1,
-      "details": {
-        "message": "bf88453b81bdfd0ce49419a3edee8ade55bfb650ffb91979875b80a7c2b7aeb9"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
     },
     "2571a8fe12ef1ffd771a9ecb5d97e87d126f8a83c2525744b16dcb3b3a507fb4": {
       "count": 1,
@@ -12402,7 +12196,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -12531,7 +12324,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -12548,7 +12340,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -12637,17 +12428,14 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -12734,7 +12522,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -12800,7 +12587,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -12852,7 +12638,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -12869,7 +12654,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -13023,29 +12807,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -13064,7 +12843,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -13122,7 +12900,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -13381,7 +13158,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -13471,7 +13247,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -13536,7 +13311,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -13553,7 +13327,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -13628,7 +13401,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -13693,7 +13465,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -13722,7 +13493,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -14052,7 +13822,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -14254,7 +14023,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -14263,7 +14031,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -14315,7 +14082,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -14347,7 +14113,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -14364,7 +14129,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -14385,7 +14149,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -14467,7 +14230,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -14513,7 +14275,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -14803,7 +14564,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -15025,7 +14785,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -15184,7 +14943,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -15210,7 +14968,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -15277,7 +15034,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -15332,7 +15088,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -15447,7 +15202,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -15464,7 +15218,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -15479,16 +15232,6 @@
       "count": 1,
       "details": {
         "message": "fdf83b49844cf30e375df72bf395866ab9ea304b60dd5eff0c89ff9b60bf5d92"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
-    "2f2e13baf296c1476091179d9b6017bd125a609d6b536688d8e2b2d9a90cb917": {
-      "count": 1,
-      "details": {
-        "message": "bf88453b81bdfd0ce49419a3edee8ade55bfb650ffb91979875b80a7c2b7aeb9"
       },
       "levels": {
         "2": 1
@@ -15665,7 +15408,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -15746,7 +15488,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -15807,7 +15548,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -15905,7 +15645,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -15914,7 +15653,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -15964,7 +15702,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -16036,7 +15773,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -16098,17 +15834,14 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -16138,7 +15871,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -16199,7 +15931,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -16216,7 +15947,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -16298,7 +16028,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -16315,7 +16044,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -16431,7 +16159,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -16448,7 +16175,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -16498,7 +16224,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -16534,7 +16259,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -16636,7 +16360,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -16660,7 +16383,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -16720,7 +16442,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -16728,7 +16449,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -16913,7 +16633,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -16930,7 +16649,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -16999,7 +16717,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -17087,7 +16804,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -17133,7 +16849,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -17264,7 +16979,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -17338,7 +17052,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -17374,7 +17087,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -17401,7 +17113,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -17517,7 +17228,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -17559,7 +17269,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -17769,7 +17478,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -17786,7 +17494,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -17851,7 +17558,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -17868,7 +17574,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -18076,7 +17781,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -18154,7 +17858,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -18171,7 +17874,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -18321,7 +18023,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -18372,7 +18073,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -18380,7 +18080,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -18437,7 +18136,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -18660,8 +18358,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -18728,7 +18425,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -18807,7 +18503,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -18957,7 +18652,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -19052,32 +18746,25 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
           "iw",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -19086,16 +18773,6 @@
         "3": 1
       },
       "severity": 3
-    },
-    "3b0471a83739d06d5d2c10b5c05e69cc78c6bde78a41bcb354c1bc1fb62cbd51": {
-      "count": 1,
-      "details": {
-        "message": "325e36aaf5a2b2a679fbf2ddda94326b583b474c38f8f439598b81a1638abc02"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
     },
     "3b06907fca6c560bbf487b83ca30f4163e5f0f9618890dd4acc75a49eb16bb04": {
       "count": 2,
@@ -19465,7 +19142,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -19482,7 +19158,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -19503,7 +19178,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -19625,7 +19299,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -19651,7 +19324,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -19701,7 +19373,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -19747,7 +19418,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -19814,7 +19484,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -19845,7 +19514,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -20012,7 +19680,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -20084,7 +19751,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -20230,39 +19896,6 @@
       },
       "levels": {
         "3": 20
-      },
-      "severity": 3
-    },
-    "3ec3ef2238c3ec2d2e60dcf9e437c64390cbfe52754044fbc38a538fff06f0b1": {
-      "count": 1,
-      "details": {
-        "missing_locales": [
-          "ar",
-          "bn",
-          "bs",
-          "cs",
-          "da",
-          "de",
-          "hi",
-          "hr",
-          "in",
-          "ja",
-          "lt",
-          "nl",
-          "no",
-          "ro",
-          "ru",
-          "sl",
-          "sq",
-          "sr",
-          "sv",
-          "ta",
-          "uk",
-          "zh"
-        ]
-      },
-      "levels": {
-        "3": 1
       },
       "severity": 3
     },
@@ -20499,7 +20132,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -20665,17 +20297,14 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -20762,7 +20391,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -20887,7 +20515,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -20896,7 +20523,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -21014,7 +20640,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -21071,7 +20696,6 @@
           "no",
           "ro",
           "sl",
-          "sv",
           "ta"
         ]
       },
@@ -21089,7 +20713,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -21114,7 +20737,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -21160,7 +20782,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -21267,7 +20888,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -21291,7 +20911,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -21321,32 +20940,25 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
           "iw",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -21382,7 +20994,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -21525,7 +21136,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -21542,7 +21152,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -21599,7 +21208,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -21700,7 +21308,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -21792,7 +21399,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -21840,7 +21446,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -21974,7 +21579,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -22005,7 +21609,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -22043,16 +21646,6 @@
       },
       "severity": 2
     },
-    "43be801213d9db9b96689a11e6b5aab39b7a9fccd17e9aa6ec6adb2b1fd97960": {
-      "count": 1,
-      "details": {
-        "message": "0731d6ccfd98fd7e11edf644cb1333ca1947122208824d24e6ddbfddf44ad75e"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "43c23eaaf496c1a56ad207245119469724c539979e2d9832cc023d4024fe1cf3": {
       "count": 1,
       "details": {
@@ -22063,7 +21656,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -22234,7 +21826,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -22470,7 +22061,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -22501,7 +22091,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -22755,32 +22344,25 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
           "iw",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -22933,7 +22515,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -22981,7 +22562,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -22998,7 +22578,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -23087,16 +22666,6 @@
       },
       "severity": 2
     },
-    "471dfb60479d9e8bfb788c93974930681b58b2fd01b79e88f3ca51d0c070351d": {
-      "count": 1,
-      "details": {
-        "message": "6c1d46b3fecc2079c1fc7b22c7000899118ae1bb9fa9d85a3426262d4c7634ac"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "4743ce47935e77319f6633101a67e240664d0212ca8239d799410e0489d2df24": {
       "count": 1,
       "details": {
@@ -23138,7 +22707,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -23288,8 +22856,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -23358,7 +22925,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -23375,7 +22941,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -23434,7 +22999,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -23562,7 +23126,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -23608,7 +23171,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -23634,7 +23196,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -23674,7 +23235,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -23682,7 +23242,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -23740,7 +23299,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -23860,7 +23418,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -23869,7 +23426,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -23991,7 +23547,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -24023,8 +23578,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -24053,7 +23607,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -24113,7 +23666,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -24159,7 +23711,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -24211,7 +23762,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -24307,7 +23857,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -24345,7 +23894,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -24861,8 +24409,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -24926,7 +24473,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -24943,7 +24489,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -25051,7 +24596,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -25085,7 +24629,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -25102,7 +24645,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -25198,7 +24740,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -25311,7 +24852,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -25376,7 +24916,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -25478,7 +25017,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -25658,7 +25196,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -25711,7 +25248,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -25720,7 +25256,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -25931,7 +25466,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -25957,7 +25491,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -25990,7 +25523,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -26071,7 +25603,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -26141,7 +25672,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -26177,7 +25707,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -26218,7 +25747,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -26304,7 +25832,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -26328,7 +25855,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -26354,7 +25880,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -26457,7 +25982,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -26465,7 +25989,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -26526,7 +26049,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -26670,7 +26192,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -26741,7 +26262,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -26758,7 +26278,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -26778,7 +26297,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -26979,7 +26497,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -27273,7 +26790,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -27380,7 +26896,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -27437,7 +26952,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -27653,7 +27167,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -27679,7 +27192,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -27710,7 +27222,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -27761,7 +27272,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -27840,7 +27350,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -27865,7 +27374,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -27908,7 +27416,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28113,7 +27620,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28185,7 +27691,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -28263,7 +27768,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -28398,7 +27902,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28448,7 +27951,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28631,7 +28133,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28666,7 +28167,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28730,7 +28230,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28789,7 +28288,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28810,7 +28308,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -28827,7 +28324,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -28903,7 +28399,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -28934,7 +28429,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -28951,7 +28445,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -28973,7 +28466,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -29038,7 +28530,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -29158,7 +28649,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -29166,7 +28656,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -29186,16 +28675,6 @@
       },
       "severity": 3
     },
-    "59d8ba64b01eb46e00ccd46ebdf87fff45f861e5944b048771bb4893c4999922": {
-      "count": 1,
-      "details": {
-        "message": "1e6bc4c530d78064ffa3a95fea2663c2b78cf6ca88a90be2958da5b1e81a4fee"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "59f330082925d7ae9a3faa173632ad56365dfa2b58ed8f3a1eb6bf9643a43a4d": {
       "count": 1,
       "details": {
@@ -29207,7 +28686,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -29311,7 +28789,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -29358,7 +28835,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -29393,7 +28869,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -29693,7 +29168,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -29887,8 +29361,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -29902,7 +29375,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -29919,7 +29391,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -29941,7 +29412,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -29998,7 +29468,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -30047,7 +29516,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -30064,7 +29532,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -30095,7 +29562,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -30129,7 +29595,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -30335,7 +29800,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -30352,7 +29816,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -30431,7 +29894,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -30448,7 +29910,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -30497,7 +29958,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -30643,7 +30103,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -30673,7 +30132,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -30718,8 +30176,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -30795,7 +30252,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -30821,7 +30277,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -30866,7 +30321,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -31019,32 +30473,25 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
           "iw",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -31126,7 +30573,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -31179,7 +30625,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -31241,7 +30686,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -31609,8 +31053,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -31727,7 +31170,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32035,7 +31477,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32133,7 +31574,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -32150,7 +31590,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -32272,7 +31711,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -32280,7 +31718,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -32363,7 +31800,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32435,7 +31871,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -32444,7 +31879,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -32491,7 +31925,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -32536,7 +31969,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32561,7 +31993,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32601,7 +32032,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32652,16 +32082,6 @@
       },
       "severity": 3
     },
-    "63c379983c6e480790d22c5345c88e3426f0e27ac6ea7077af983c4ab80ea2da": {
-      "count": 1,
-      "details": {
-        "message": "0c5cb4cce00acfb62ab95326a5cc419fe333a07394aba0e3bc7b9d3a4e1d5ab1"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "63c59d120dbc905b16d721dd04b74331dd70e2b7026adaa7f31b13f26fe6b5fe": {
       "count": 1,
       "details": {
@@ -32699,7 +32119,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32765,7 +32184,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32792,7 +32210,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32823,7 +32240,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -32892,7 +32308,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -32952,7 +32367,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -32960,7 +32374,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -33010,7 +32423,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -33031,7 +32443,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -33048,7 +32459,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -33107,7 +32517,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -33281,7 +32690,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -33365,7 +32773,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -33454,7 +32861,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -33475,7 +32881,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -33492,7 +32897,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -33514,7 +32918,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -33606,16 +33009,6 @@
       "count": 1,
       "details": {
         "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
-    "661d875519c7d10a63fe1c5cd11e13343938b26fa32117bed6e0661be266e2f1": {
-      "count": 1,
-      "details": {
-        "message": "0d56f453bb15929437d3efa581d4da5f8dc35eecb1ce27087ea4685a7082c6ca"
       },
       "levels": {
         "2": 1
@@ -33769,32 +33162,25 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
           "iw",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -33946,7 +33332,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -34032,7 +33417,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -34049,7 +33433,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -34212,7 +33595,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -34241,7 +33623,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -34277,7 +33658,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -34339,7 +33719,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -34348,7 +33727,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -34511,7 +33889,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -34557,7 +33934,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -34581,7 +33957,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -34651,16 +34026,6 @@
       "count": 1,
       "details": {
         "message": "bd27a1e51082813cc2bd0cea818ea505cf56819b2772b5306211983b746630ac"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
-    "68a9b72c47aa582093fb83eef0ba43ab029e73b1aa9f8f9c8a64ba4c69088ae0": {
-      "count": 1,
-      "details": {
-        "message": "527c0ce4787496c5ffecc8c88d7f1c471bfc9a378bce9d75dda70cf44fbf3f4e"
       },
       "levels": {
         "2": 1
@@ -34750,7 +34115,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -34767,7 +34131,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -34913,7 +34276,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -34941,7 +34303,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -34992,7 +34353,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -35009,7 +34369,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -35031,7 +34390,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -35142,7 +34500,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -35161,16 +34518,6 @@
         "3": 1
       },
       "severity": 3
-    },
-    "69dc738432060958a0fb343b2ac5dd4eb1191a0fcfd5927699d96585c406a470": {
-      "count": 1,
-      "details": {
-        "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
     },
     "69e3a5c477b2901a89a851a7532069905bcffa01e09c5de708aacad97d505b99": {
       "count": 1,
@@ -35438,7 +34785,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -35463,7 +34809,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -35488,7 +34833,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -35639,7 +34983,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -35656,7 +34999,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -35718,7 +35060,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -35746,7 +35087,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -35786,17 +35126,14 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -36285,7 +35622,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -36352,32 +35688,25 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
           "iw",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -36450,7 +35779,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -36467,7 +35795,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -36525,7 +35852,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -36646,7 +35972,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -36698,7 +36023,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -36908,7 +36232,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -36984,7 +36307,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -37023,7 +36345,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -37090,7 +36411,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -37098,7 +36418,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -37195,7 +36514,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -37235,7 +36553,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -37448,7 +36765,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -37473,7 +36789,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -37548,7 +36863,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -37685,31 +36999,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -37751,7 +37058,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -37901,7 +37207,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -37943,7 +37248,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -37951,7 +37255,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -38112,7 +37415,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -38191,7 +37493,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -38301,7 +37602,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -38338,7 +37638,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -38360,7 +37659,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -38377,7 +37675,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -38436,16 +37733,6 @@
         "3": 1
       },
       "severity": 3
-    },
-    "7352de339a1c703983c0fb5a7ed59f311da01c6dac1609ec99d2cd2fadac3994": {
-      "count": 1,
-      "details": {
-        "message": "63ff464d51aa714454919c309715c3ea97700eed3679170ab20a70bfa42fe5ad"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
     },
     "735711263e652de5e547a0c3e5a81ca221b388c6f57554c4bf37dbc23b8011df": {
       "count": 1,
@@ -38579,7 +37866,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -38587,7 +37873,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -38764,7 +38049,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -38810,7 +38094,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -39010,7 +38293,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -39155,7 +38437,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -39175,7 +38456,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -39183,7 +38463,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -39269,7 +38548,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -39379,7 +38657,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -39388,7 +38665,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -39537,7 +38813,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -39655,7 +38930,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -39904,7 +39178,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -40073,7 +39346,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -40171,7 +39443,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -40201,7 +39472,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -40218,7 +39488,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -40271,7 +39540,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -40288,7 +39556,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -40352,7 +39619,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -40442,7 +39708,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -40540,7 +39805,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -40618,17 +39882,14 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -40689,7 +39950,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -40744,7 +40004,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -40761,7 +40020,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -40783,7 +40041,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -40856,7 +40113,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -40930,7 +40186,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -41054,7 +40309,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -41090,17 +40344,14 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -41336,7 +40587,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -41441,7 +40691,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -41562,7 +40811,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -41666,7 +40914,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -41807,7 +41054,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -41910,7 +41156,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -42089,7 +41334,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -42192,7 +41436,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -42257,16 +41500,6 @@
         "3": 1
       },
       "severity": 3
-    },
-    "8027212e82f4f2fda9926dc58149bda5431c92e32f6a3b20b72e000b57dd120b": {
-      "count": 1,
-      "details": {
-        "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
     },
     "8027622d31e3a512d282cabebd84839c6ae078bdb24c9c24448cf11c6f36e42a": {
       "count": 1,
@@ -42364,7 +41597,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -42388,7 +41620,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -42424,7 +41655,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -42531,7 +41761,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -42673,16 +41902,6 @@
       },
       "severity": 3
     },
-    "817c279140e9c6f212f27c66336c44198886bb5c6c91597d3efd53eebdb1dd9b": {
-      "count": 1,
-      "details": {
-        "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "817c2bb4758d6b2f674cffd869dbff6a6ba362b0fa40e1c1e59556c2af493bd1": {
       "count": 1,
       "details": {
@@ -42755,7 +41974,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -42764,7 +41982,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -42913,7 +42130,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -42922,7 +42138,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -42995,7 +42210,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -43111,7 +42325,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -43147,7 +42360,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -43226,7 +42438,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -43339,7 +42550,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -43367,7 +42577,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -43388,7 +42597,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -43405,7 +42613,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -43532,7 +42739,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -43671,7 +42877,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -43708,7 +42913,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -43785,7 +42989,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -43805,17 +43008,14 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -43976,7 +43176,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -43993,7 +43192,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -44014,7 +43212,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -44235,7 +43432,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -44395,31 +43591,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -44522,7 +43711,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -44721,7 +43909,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -44768,7 +43955,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -44810,7 +43996,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -45005,7 +44190,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -45022,7 +44206,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -45073,7 +44256,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -45129,7 +44311,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -45186,7 +44367,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -45255,31 +44435,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -45406,7 +44579,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -45414,7 +44586,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -45518,7 +44689,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -45527,7 +44697,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -45553,7 +44722,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -45570,7 +44738,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -45651,7 +44818,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -45668,7 +44834,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -45837,7 +45002,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -45882,7 +45046,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -45926,7 +45089,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -46054,8 +45216,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -46204,7 +45365,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -46221,7 +45381,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -46362,7 +45521,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -46392,7 +45550,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -46559,7 +45716,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -46617,8 +45773,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -46674,7 +45829,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -46700,7 +45854,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -46717,7 +45870,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -46738,7 +45890,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -46939,7 +46090,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -46977,7 +46127,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -47065,7 +46214,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -47134,7 +46282,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -47217,7 +46364,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -47290,7 +46436,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -47307,7 +46452,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -47337,7 +46481,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -47358,7 +46501,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -47375,7 +46517,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -47457,7 +46598,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -47465,7 +46605,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -47515,7 +46654,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -47625,7 +46763,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -47675,7 +46812,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -47767,7 +46903,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -47892,16 +47027,6 @@
       },
       "severity": 3
     },
-    "90a43fdae4256bc1d29deb12659dc2e59f92d7c196844bf36cb861924822c95e": {
-      "count": 1,
-      "details": {
-        "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "90a7aa31da16ad27b685a3d1b913460dd08433ec67ec443a8cae27ed6cc09b69": {
       "count": 1,
       "details": {
@@ -47953,7 +47078,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -47980,7 +47104,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -48281,7 +47404,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -48372,7 +47494,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -48411,7 +47532,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -48437,7 +47557,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -48596,7 +47715,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -48635,7 +47753,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -48670,7 +47787,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -48738,7 +47854,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -48755,7 +47870,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -48792,7 +47906,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -48865,7 +47978,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -48909,8 +48021,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -49051,7 +48162,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -49068,7 +48178,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -49217,8 +48326,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -49232,29 +48340,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -49295,7 +48398,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -49325,7 +48427,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -49374,7 +48475,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -49563,7 +48663,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -49661,7 +48760,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -49678,7 +48776,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -49898,16 +48995,6 @@
       },
       "severity": 2
     },
-    "966f6b15bd5806b65424396ea3604b163cc392f810f640658ec506545f34e94c": {
-      "count": 1,
-      "details": {
-        "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "9670fb183a0dfe2d765a651cb4f9c2f7533253e75c475f57f9668b0522222877": {
       "count": 1,
       "details": {
@@ -49918,7 +49005,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -50023,7 +49109,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -50053,17 +49138,14 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -50203,7 +49285,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -50241,7 +49322,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -50250,7 +49330,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -50312,7 +49391,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -50321,7 +49399,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -50365,8 +49442,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -50717,7 +49793,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -50792,7 +49867,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -50884,7 +49958,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -51004,7 +50077,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -51093,7 +50165,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -51101,7 +50172,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -51172,7 +50242,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -51269,7 +50338,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -51286,7 +50354,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -51548,7 +50615,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -51729,7 +50795,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -51972,8 +51037,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -51992,7 +51056,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -52187,7 +51250,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -52277,7 +51339,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -52334,31 +51395,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -52377,7 +51431,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -52479,7 +51532,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -52574,7 +51626,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -52678,7 +51729,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -52695,7 +51745,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -52971,7 +52020,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -53080,7 +52128,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -53130,7 +52177,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -53155,7 +52201,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -53228,7 +52273,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -53254,7 +52298,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -53271,7 +52314,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -53369,7 +52411,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -53386,7 +52427,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -53469,7 +52509,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -53486,7 +52525,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -53707,7 +52745,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -53804,7 +52841,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -53812,7 +52848,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -54117,7 +53152,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -54142,7 +53176,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -54166,7 +53199,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -54200,7 +53232,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -54298,8 +53329,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -54438,7 +53468,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -54560,7 +53589,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -54625,7 +53653,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -54642,7 +53669,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -54723,7 +53749,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -54789,7 +53814,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -54816,7 +53840,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -54861,7 +53884,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -54894,7 +53916,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -54903,7 +53924,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -54931,8 +53951,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -55185,7 +54204,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -55202,7 +54220,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -55276,7 +54293,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -55314,7 +54330,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -55586,7 +54601,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -55630,7 +54644,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -55698,7 +54711,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -55718,7 +54730,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -55727,7 +54738,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -55752,7 +54762,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -55760,7 +54769,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -55854,7 +54862,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -55960,7 +54967,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -56067,7 +55073,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -56084,7 +55089,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -56143,31 +55147,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -56203,7 +55200,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -56229,7 +55225,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -56324,7 +55319,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -56395,7 +55389,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -56481,7 +55474,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -56573,8 +55565,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -56665,7 +55656,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -56741,7 +55731,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -56837,7 +55826,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -56854,7 +55842,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -57012,7 +55999,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -57065,7 +56051,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -57185,7 +56170,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -57509,7 +56493,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -57526,7 +56509,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -57600,7 +56582,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -57617,7 +56598,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -57649,7 +56629,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -57712,7 +56691,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -57869,7 +56847,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -57886,7 +56863,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -57916,7 +56892,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -57941,7 +56916,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -57974,31 +56948,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -58075,7 +57042,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -58258,7 +57224,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -58267,7 +57232,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -58297,7 +57261,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -58457,7 +57420,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -58516,7 +57478,6 @@
           "no",
           "ro",
           "sl",
-          "sv",
           "ta"
         ]
       },
@@ -58541,7 +57502,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -58558,7 +57518,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -58580,7 +57539,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -58833,7 +57791,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -58941,7 +57898,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -59194,7 +58150,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -59369,7 +58324,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -59386,7 +58340,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -59402,7 +58355,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -59410,7 +58362,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -59459,7 +58410,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -59750,8 +58700,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -59778,7 +58727,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -59811,8 +58759,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -59907,7 +58854,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -59957,7 +58903,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -59983,7 +58928,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -60009,7 +58953,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -60045,7 +58988,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -60053,7 +58995,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -60133,7 +59074,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -60348,7 +59288,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -60416,7 +59355,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -60615,7 +59553,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -60824,7 +59761,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -60880,16 +59816,6 @@
         "3": 1
       },
       "severity": 3
-    },
-    "b6398388ff23a9c1a5b681c2874103a3c0f16f2fcbf3152fab4d38628c7734c4": {
-      "count": 1,
-      "details": {
-        "message": "63ff464d51aa714454919c309715c3ea97700eed3679170ab20a70bfa42fe5ad"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
     },
     "b64246e242568a7ab5b03c0ac3983f5a0da64dcd7293ffb4864f4f9cdf68ad79": {
       "count": 1,
@@ -61044,16 +59970,6 @@
       },
       "severity": 2
     },
-    "b68d0ca1374ea57fc0275d6350ad11e38bb636714a99782c5674cf5e2a258d5e": {
-      "count": 1,
-      "details": {
-        "message": "f397465ce847c3f9dcdd7811a5e5c342128cc457acb64b5505f8666e5438b65a"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "b6920c169160a76ad43702788ad1bfe735018bf81864be0621262abd9f901c17": {
       "count": 1,
       "details": {
@@ -61083,7 +59999,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -61194,7 +60109,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -61218,7 +60132,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -61257,8 +60170,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -61281,7 +60193,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -61289,7 +60200,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -61355,7 +60265,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -61623,7 +60532,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -61658,7 +60566,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -61666,7 +60573,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -61827,7 +60733,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -61852,7 +60757,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -61935,7 +60839,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -62035,7 +60938,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -62107,7 +61009,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -62133,17 +61034,14 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -62218,7 +61116,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -62239,7 +61136,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -62256,7 +61152,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -62305,7 +61200,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -62481,7 +61375,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -62761,7 +61654,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -62850,7 +61742,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -62972,7 +61863,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63015,7 +61905,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63041,7 +61930,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -63104,7 +61992,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -63203,7 +62090,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63275,7 +62161,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63361,7 +62246,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63499,7 +62383,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -63555,7 +62438,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63792,7 +62674,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63835,7 +62716,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63876,7 +62756,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63942,7 +62821,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63967,7 +62845,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -63981,16 +62858,6 @@
         "3": 1
       },
       "severity": 3
-    },
-    "bf472fce1761884d4c00b6122d85fdc25981a97fc4ccf0a5a6cc3008c565bb51": {
-      "count": 1,
-      "details": {
-        "message": "a7424e5e9ec05925bd0d9e9f590eb24ad2aecb5aff56ef67cb65f3385d5313a0"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
     },
     "bf4ef9e3a9a11c76747746b362e6ce82c12acf343289d39cad090b81a9fbd539": {
       "count": 1,
@@ -64023,7 +62890,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -64047,7 +62913,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -64056,7 +62921,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -64106,7 +62970,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -64177,7 +63040,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -64320,7 +63182,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -64355,7 +63216,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -64392,39 +63252,6 @@
       },
       "severity": 3
     },
-    "c06bb0741736254d9326c139f1bf80a013150e81c43a4714e39a9a8d184a5b6b": {
-      "count": 1,
-      "details": {
-        "missing_locales": [
-          "ar",
-          "bn",
-          "bs",
-          "cs",
-          "da",
-          "de",
-          "hi",
-          "hr",
-          "in",
-          "ja",
-          "lt",
-          "nl",
-          "no",
-          "ro",
-          "ru",
-          "sl",
-          "sq",
-          "sr",
-          "sv",
-          "ta",
-          "uk",
-          "zh"
-        ]
-      },
-      "levels": {
-        "3": 1
-      },
-      "severity": 3
-    },
     "c06d37b288d74b6d3f2a31927d92d1fb5135b151e32fb54a296d32ae36810711": {
       "count": 1,
       "details": {
@@ -64439,16 +63266,6 @@
       "count": 1,
       "details": {
         "message": "bf88453b81bdfd0ce49419a3edee8ade55bfb650ffb91979875b80a7c2b7aeb9"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
-    "c07f608b0e491e8d3d60fa90f8dfaf0976c7e885de0cc8e9771d4251938a33d2": {
-      "count": 1,
-      "details": {
-        "message": "01ad7542ad390785c9f21243d5ec65a923a877c7f88bce75975532e36caca7db"
       },
       "levels": {
         "2": 1
@@ -64720,7 +63537,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -64768,7 +63584,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -64776,7 +63591,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -64920,7 +63734,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -65099,7 +63912,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -65116,7 +63928,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -65209,7 +64020,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -65331,7 +64141,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -65403,7 +64212,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -65433,16 +64241,6 @@
           "ro",
           "sv"
         ]
-      },
-      "levels": {
-        "3": 1
-      },
-      "severity": 3
-    },
-    "c4bd605ee16562b19f6743bf6fba4b0ec1179801f9e99b7882126dc940de5ce0": {
-      "count": 1,
-      "details": {
-        "message": "42a05ec5828fb1a5f4e0f3ecdf799b394e3dcf836a822149a7c638c4d1ae651d"
       },
       "levels": {
         "3": 1
@@ -65511,7 +64309,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -65558,7 +64355,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -65641,7 +64437,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -65658,7 +64453,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -65680,7 +64474,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -66030,7 +64823,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -66066,7 +64858,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -66111,7 +64902,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -66120,7 +64910,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -66216,7 +65005,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -66233,7 +65021,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -66420,7 +65207,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -66603,7 +65389,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -66887,7 +65672,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -67055,7 +65839,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -67078,8 +65861,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -67128,7 +65910,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -67345,7 +66126,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -67430,7 +66210,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -67480,7 +66259,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -67597,17 +66375,14 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -67674,7 +66449,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -67691,7 +66465,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -67754,7 +66527,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -67964,7 +66736,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -68006,8 +66777,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -68031,7 +66801,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -68048,7 +66817,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -68116,7 +66884,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -68168,7 +66935,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -68185,7 +66951,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -68391,7 +67156,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -68399,7 +67163,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -68425,7 +67188,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -68442,7 +67204,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -68464,7 +67225,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -68621,7 +67381,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -68629,7 +67388,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -68861,16 +67619,6 @@
       },
       "severity": 3
     },
-    "cf04054f4b82984733d954623c9da641b52d00857d42ef45598dfa38dcca7d45": {
-      "count": 1,
-      "details": {
-        "message": "5c8e1ae196ddf410fdf959dc61abee2ff8dc7d985839a131b5868f02c937a5d2"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "cf04e96cc192f4004b53a15157af266d80761801c1fc15b64428fec9a9a14c5f": {
       "count": 1,
       "details": {
@@ -69049,7 +67797,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -69097,8 +67844,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -69142,7 +67888,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -69159,7 +67904,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -69245,8 +67989,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -69279,7 +68022,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -69288,7 +68030,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -69319,7 +68060,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -69365,7 +68105,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -69408,7 +68147,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -69485,16 +68223,6 @@
       },
       "severity": 3
     },
-    "d0e3015d5ebbf6d1cfaa2f2a6e4239a026dcd02fcd3d41809add87e121276e82": {
-      "count": 1,
-      "details": {
-        "message": "a7424e5e9ec05925bd0d9e9f590eb24ad2aecb5aff56ef67cb65f3385d5313a0"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "d0f26bdf8ef563527746ccfa239f0c30767b4e2699554c307423ab12c3d52cc3": {
       "count": 1,
       "details": {
@@ -69511,7 +68239,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -69528,7 +68255,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -69652,7 +68378,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -69669,7 +68394,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -69746,7 +68470,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -69927,7 +68650,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -69978,31 +68700,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -70188,7 +68903,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -70211,7 +68925,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -70228,7 +68941,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -70285,7 +68997,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -70302,7 +69013,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -70402,7 +69112,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -70515,7 +69224,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -70565,7 +69273,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -70603,7 +69310,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -70751,7 +69457,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -70776,7 +69481,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -70793,7 +69497,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -70936,7 +69639,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -71002,7 +69704,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -71074,7 +69775,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -71083,7 +69783,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -71160,7 +69859,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -71246,7 +69944,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -71364,7 +70061,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -71410,7 +70106,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -71495,7 +70190,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -71581,7 +70275,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -71619,7 +70312,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -71636,7 +70328,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -71675,7 +70366,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -71701,7 +70391,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -71718,7 +70407,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -71884,7 +70572,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -71923,7 +70610,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -72071,7 +70757,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -72141,7 +70826,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -72171,7 +70855,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -72179,7 +70862,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -72385,8 +71067,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -72465,7 +71146,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -72541,7 +71221,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -72549,7 +71228,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -72860,7 +71538,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -73058,7 +71735,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -73075,7 +71751,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -73190,7 +71865,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -73395,7 +72069,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -73403,7 +72076,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -73443,7 +72115,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -73487,7 +72158,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -73571,7 +72241,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -73589,7 +72258,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -73605,7 +72273,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -73613,7 +72280,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -73729,16 +72395,6 @@
       },
       "severity": 2
     },
-    "dc09e721db299a02adb201f6241e24550529e86c660949e2d39ac8104b72a2e1": {
-      "count": 1,
-      "details": {
-        "message": "63ff464d51aa714454919c309715c3ea97700eed3679170ab20a70bfa42fe5ad"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
     "dc2ffea03b226ee26bfe02b81787335467d8d5a2dc2adba0db20ddb94b9945f3": {
       "count": 1,
       "details": {
@@ -73750,7 +72406,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -73808,7 +72463,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -73877,7 +72531,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -73897,7 +72550,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -73906,7 +72558,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -74001,7 +72652,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -74018,7 +72668,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -74087,7 +72736,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -74115,8 +72763,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -74206,7 +72853,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -74223,7 +72869,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -74285,7 +72930,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -74374,7 +73018,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -74391,7 +73034,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -74489,7 +73131,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -74577,7 +73218,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -74606,7 +73246,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -74659,7 +73298,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -74713,7 +73351,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -74807,8 +73444,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -75005,7 +73641,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -75065,7 +73700,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -75238,7 +73872,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -75296,7 +73929,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -75313,7 +73945,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -75359,16 +73990,6 @@
       },
       "severity": 3
     },
-    "e094b39b49262f821514c0253eac030243e685e2faf8cb33cb8e934509b8044b": {
-      "count": 1,
-      "details": {
-        "message": "63ec9593ce9e4c40a7189a51369976c7883eb9a8d775ae1fb9c609cd3aeafeb9"
-      },
-      "levels": {
-        "3": 1
-      },
-      "severity": 3
-    },
     "e09973199e5bf2faaead8e9ee06d70fa7c819af4699350e70472b53544eb2f29": {
       "count": 1,
       "details": {
@@ -75380,7 +74001,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -75429,7 +74049,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -75455,7 +74074,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -75516,7 +74134,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -75533,7 +74150,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -75559,7 +74175,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -75567,7 +74182,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -75684,7 +74298,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -75754,7 +74367,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -75816,7 +74428,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -75852,7 +74463,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -75910,7 +74520,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -75957,8 +74566,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -75994,8 +74602,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -76034,7 +74641,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -76108,7 +74714,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -76168,7 +74773,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -76185,7 +74789,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -76468,7 +75071,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -76554,7 +75156,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -76571,7 +75172,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -76674,7 +75274,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -76720,7 +75319,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -76760,7 +75358,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -76785,7 +75382,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -76847,7 +75443,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -76864,7 +75459,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -76886,7 +75480,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -76922,7 +75515,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -76942,7 +75534,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -76951,7 +75542,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -77054,7 +75644,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -77062,7 +75651,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -77182,7 +75770,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -77238,7 +75825,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -77284,7 +75870,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -77352,7 +75937,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -77392,7 +75976,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -77559,7 +76142,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -77576,7 +76158,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -77608,7 +76189,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -77630,7 +76210,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -77647,7 +76226,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -77689,7 +76267,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -77734,7 +76311,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -77798,7 +76374,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -77970,7 +76545,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -78139,7 +76713,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -78232,7 +76805,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -78253,7 +76825,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -78270,7 +76841,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -78316,17 +76886,14 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -78402,7 +76969,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -78424,7 +76990,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -78441,7 +77006,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -78527,7 +77091,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -78823,7 +77386,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -79024,7 +77586,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -79119,7 +77680,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -79278,7 +77838,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -79382,16 +77941,6 @@
       "count": 1,
       "details": {
         "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
-    "ebce42c5390fa61877f5f98a7b43357d52890c28108084c99322a85e37cf1c13": {
-      "count": 1,
-      "details": {
-        "message": "a755779390212607c4184c620c1335eedc8987b01cb0a1bc97e32676609a6843"
       },
       "levels": {
         "2": 1
@@ -79665,39 +78214,6 @@
       },
       "severity": 3
     },
-    "ed029701f9afa838f023cc0f727110cedf6b3ba68797c24df3638d014407be8b": {
-      "count": 1,
-      "details": {
-        "missing_locales": [
-          "ar",
-          "bn",
-          "bs",
-          "cs",
-          "da",
-          "de",
-          "hi",
-          "hr",
-          "in",
-          "ja",
-          "lt",
-          "nl",
-          "no",
-          "ro",
-          "ru",
-          "sl",
-          "sq",
-          "sr",
-          "sv",
-          "ta",
-          "uk",
-          "zh"
-        ]
-      },
-      "levels": {
-        "3": 1
-      },
-      "severity": 3
-    },
     "ed0596524f6d9184c39a61010e6f4fdc61c3b023bd92c16704b802bfa42553e8": {
       "count": 1,
       "details": {
@@ -79708,7 +78224,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -79861,7 +78376,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -79896,7 +78410,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -80041,7 +78554,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -80049,7 +78561,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -80374,7 +78885,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -80400,7 +78910,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -80426,7 +78935,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -80468,7 +78976,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -80587,7 +79094,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -80604,7 +79110,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -80646,7 +79151,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -80702,7 +79206,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -80851,7 +79354,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -80892,31 +79394,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -80986,7 +79481,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -80995,7 +79489,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -81053,7 +79546,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -81110,7 +79602,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -81206,7 +79697,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -81223,7 +79713,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -81317,7 +79806,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -81402,7 +79890,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -81427,7 +79914,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -81485,7 +79971,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -81593,7 +80078,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -81683,7 +80167,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -81801,7 +80284,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -81827,7 +80309,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -81854,7 +80335,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -81989,7 +80469,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -82006,7 +80485,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -82092,7 +80570,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -82109,7 +80586,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -82149,7 +80625,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -82211,7 +80686,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -82220,7 +80694,6 @@
           "hr",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -82265,7 +80738,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -82273,7 +80745,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -82327,16 +80798,6 @@
       "count": 1,
       "details": {
         "message": "14706fd98c93030f66c8d72553a0f81d1869c417cd153930cdcba516cd909324"
-      },
-      "levels": {
-        "2": 1
-      },
-      "severity": 2
-    },
-    "f4b59926b01ebf6c70db9ad2c203875aa8cfb051dd4d3f249706e6ac5e516fe3": {
-      "count": 1,
-      "details": {
-        "message": "e7465da4e017a07b75461673b02a11502c3a1690f985ff3f84a56d02ac4f5a01"
       },
       "levels": {
         "2": 1
@@ -82405,7 +80866,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -82449,7 +80909,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -82485,7 +80944,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -82552,7 +81010,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -82588,7 +81045,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -82826,7 +81282,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -82846,7 +81301,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -82854,7 +81308,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -83038,7 +81491,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -83079,7 +81531,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -83137,7 +81588,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -83164,7 +81614,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -83201,7 +81650,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -83370,7 +81818,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -83549,7 +81996,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -83649,7 +82095,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -83666,7 +82111,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -83795,8 +82239,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -84040,7 +82483,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -84322,7 +82764,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -84339,7 +82780,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -84450,31 +82890,24 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
-          "el",
-          "es",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
           "ro",
           "ru",
-          "sk",
           "sl",
           "sq",
           "sr",
           "sv",
           "ta",
-          "tr",
           "uk",
           "zh"
         ]
@@ -84494,7 +82927,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -84550,7 +82982,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -84598,7 +83029,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -84737,7 +83167,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -84762,7 +83191,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -84820,7 +83248,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -84882,7 +83309,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -84943,7 +83369,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -84969,7 +83394,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -84998,7 +83422,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -85088,7 +83511,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -85096,7 +83518,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -85291,7 +83712,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -85383,17 +83803,14 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -85433,8 +83850,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -85453,7 +83869,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -85564,7 +83979,6 @@
         "missing_locales": [
           "ar",
           "bg",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -85581,7 +83995,6 @@
           "sl",
           "sq",
           "sr",
-          "sv",
           "ta",
           "uk",
           "zh"
@@ -85603,7 +84016,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -85674,7 +84086,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -85781,7 +84192,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -85898,7 +84308,6 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
@@ -85906,7 +84315,6 @@
           "hi",
           "hr",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -86033,17 +84441,14 @@
       "details": {
         "missing_locales": [
           "ar",
-          "bn",
           "bs",
           "cs",
           "da",
           "de",
           "hi",
           "hr",
-          "hu",
           "in",
           "it",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -86119,7 +84524,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "nl",
           "no",
@@ -86390,8 +84794,7 @@
           "hi",
           "lt",
           "no",
-          "ro",
-          "sv"
+          "ro"
         ]
       },
       "levels": {
@@ -86480,7 +84883,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -86525,7 +84927,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -86616,7 +85017,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -86708,7 +85108,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",
@@ -86817,7 +85216,6 @@
           "de",
           "hi",
           "in",
-          "ja",
           "lt",
           "no",
           "ro",

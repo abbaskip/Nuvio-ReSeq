@@ -1,5 +1,20 @@
 # Pending after beta 9
 
+- Open performance faults, confirmed again on 9 November: Sports/background heap
+  exhaustion and slow Usenet preparation/buffering are not resolved by the small
+  navigation follow-up below. The published beta 9 APK was examined locally:
+  the crash's failing allocation is in Sports channel preference/language word
+  matching during sorting. Its already-full heap still needs retained-memory
+  analysis; do not equate the failed tiny allocation with the retained-memory
+  root cause. The beta 7.8 guide-import memory safeguards remain shipped and intact.
+  A second user's Usenet report corroborates slow "Opening Usenet Video", worse
+  with large releases, and buffering. Latest NNTP owner 71ead3fd8 is shipped;
+  current archive metadata scans and serialized article reads remain performance
+  limitations. Measure large fixtures/delayed local providers before choosing
+  bounded read-ahead or lazy indexing; preserve validation, selection and account
+  limits. Full findings: the evidence directory below, `device-followup/local-analysis.md`.
+  No crash fix, throughput improvement or hardware validation is claimed.
+
 - Startup navigation follow-up: isolated branch `fix/startup-navigation-regression`,
   backed up at `4961a804c`, in `.worktrees/startup-navigation-regression`.
   Fixes a reproduced catalog-reader stall while an import waits for network or

@@ -1,3 +1,13 @@
+# Pending after beta 9
+
+- Profile avatars: integrate local branch `fix/profile-avatar-url` from
+  `.worktrees/profile-avatar-fix` before the next build. The user requested this
+  fix on 9 November: the backend returns 42 relative avatar paths, but the default
+  configuration leaves their base URL blank when `AVATAR_PUBLIC_BASE_URL` is
+  omitted. Derive `/storage/v1/object/public/avatars` from the configured backend
+  in that case, preserving explicit overrides. Do not install while the user's
+  current playback continues. This fix has not been released or device-validated.
+
 # Delivered in published beta 9
 
 All five queued inputs below shipped at 150883f1f44ec436bd377d70dc94f5b47842ef4c. Public release and all five signed APKs verified on 9 November 2026. Preserve this history and check for later owner changes without replaying the delivered snapshots.

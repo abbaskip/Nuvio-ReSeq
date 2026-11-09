@@ -198,7 +198,8 @@ def review(run, args):
     path = Path(run["worktree"]) / LEDGER
     ledger = json.loads(path.read_text()) if path.exists() else {"schema": 1, "commits": {}}
     previous = ledger["commits"].get(args.commit, {})
-    protected = {key:previous[key] for key in ("requires_decision", "decision_context") if key in previous}
+    protected = {key:previous[key] for key in ("requires_decision", "decision_context", "raw_upstream", "accepted_adaptation",
+                                                  "historical_review_before_reconciliation") if key in previous}
     if previous.get("requires_decision") and args.outcome in ("integrated", "equivalent"):
         raise RuntimeError("This functional hold requires the maintainer's design decision; lint approval does not clear it")
     ledger["commits"][args.commit] = {"outcome": args.outcome, "reason": args.reason,

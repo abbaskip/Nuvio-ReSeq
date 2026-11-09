@@ -9,6 +9,20 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_review_retains_raw_hold_and_historical_adaptation_evidence(self):
+        from argparse import Namespace
+        with tempfile.TemporaryDirectory() as directory:
+            entry = {"outcome": "integrated", "raw_upstream": {"outcome": "held"},
+                     "accepted_adaptation": {"release_commit": "released"},
+                     "historical_review_before_reconciliation": {"outcome": "held"}}
+            sync.save(Path(directory) / sync.LEDGER, {"schema": 1, "commits": {"abc": entry}})
+            sync.review({"id": "run", "base": "base", "worktree": directory, "commits": [{"sha": "abc"}]},
+                        Namespace(commit="abc", outcome="integrated", reason="Rechecked unchanged adaptation"))
+            saved = json.loads((Path(directory) / sync.LEDGER).read_text())["commits"]["abc"]
+            for key in ("raw_upstream", "accepted_adaptation", "historical_review_before_reconciliation"):
+                self.assertEqual(saved[key], entry[key])
+
+
     def test_shipped_adaptation_retains_raw_and_modified_implementation_holds(self):
         sha = "a" * 40
         entry = {"outcome": "integrated", "raw_upstream": {"outcome": "held"},

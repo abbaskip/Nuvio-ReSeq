@@ -55,10 +55,16 @@ class FreshInstallDefaultsTest {
     @Test fun trailerSurfacesAndTimingAreSeededIndependently() = runTest {
         val home = FreshInstallDefaults("layout_settings").migrate(emptyPreferences())
         val detail = FreshInstallDefaults("trailer_settings").migrate(emptyPreferences())
+        assertEquals(true, home[booleanPreferencesKey("focused_poster_backdrop_expand_enabled")])
+        assertEquals(true, home[booleanPreferencesKey("focused_poster_backdrop_trailer_enabled")])
+        assertEquals(false, home[booleanPreferencesKey("focused_poster_backdrop_trailer_muted")])
         assertEquals(2, home[intPreferencesKey("focused_poster_backdrop_expand_delay_seconds")])
         assertEquals("HERO_MEDIA", home[stringPreferencesKey("focused_poster_backdrop_trailer_playback_target")])
+        assertEquals(true, home[booleanPreferencesKey("random_episode_enabled")])
+        assertEquals("SHOW_ALL", home[stringPreferencesKey("detail_imdb_ratings_visibility")])
+        assertEquals(true, detail[booleanPreferencesKey("trailer_enabled")])
         assertEquals(false, home[booleanPreferencesKey("modern_hero_full_screen_backdrop")])
-        assertEquals(6, detail[intPreferencesKey("trailer_delay_seconds")])
+        assertEquals(5, detail[intPreferencesKey("trailer_delay_seconds")])
         assertEquals(false, detail[booleanPreferencesKey("trailer_play_in_background")])
         val edited = home.toMutablePreferences().apply {
             this[intPreferencesKey("focused_poster_backdrop_expand_delay_seconds")] = 9

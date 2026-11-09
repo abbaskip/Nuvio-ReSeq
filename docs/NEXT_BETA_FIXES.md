@@ -21,7 +21,7 @@ checking its latest committed head and tests before integration.
 Fresh installs enable installed Stremio add-ons and IPTV at the 8-second approved
 tier; plugins are off there but remain eligible at the 25-second any-source
 fallback. Home trailers start after 2 seconds in hero media, with fullscreen
-backdrop disabled. Details trailers start after 6 seconds in fullscreen.
+backdrop and mute disabled; focused-poster expansion and autoplay are enabled. Shuffle is enabled and episode ratings are shown by default. Details trailers start after 5 seconds in fullscreen.
 Existing installs, restored preferences and user edits retain their settings.
 
 The branch also adapts Trakt commits f07acf603 and b1bf4bd83 for default-metadata

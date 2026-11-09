@@ -12,7 +12,31 @@
 
 All five queued inputs below shipped at 150883f1f44ec436bd377d70dc94f5b47842ef4c. Public release and all five signed APKs verified on 9 November 2026. Preserve this history and check for later owner changes without replaying the delivered snapshots.
 
-# Required changes for the next upstream beta (beta 9)
+## Pending follow-up after beta 9
+
+Maintainer request on 9 November 2026. Integrate the validated owner branch
+feature/fresh-install-defaults from sync-host/.worktrees/fresh-install-defaults,
+checking its latest committed head and tests before integration.
+
+Fresh installs enable installed Stremio add-ons and IPTV at the 8-second approved
+tier; plugins are off there but remain eligible at the 25-second any-source
+fallback. Home trailers start after 2 seconds in hero media, with fullscreen
+backdrop disabled. Details trailers start after 6 seconds in fullscreen.
+Existing installs, restored preferences and user edits retain their settings.
+
+The branch also adapts Trakt commits f07acf603 and b1bf4bd83 for default-metadata
+series only, using profile/order-scoped mapping caches. Selected TVDB orders and
+canonical references retain their existing paths. The raw broad upstream
+implementations remain held. Preserve the scoped adaptation review evidence.
+
+Apply the maintainer dispositions from the branch ledger before resurfacing old
+decisions: 105490c2d forced completion was declined; ca8bdce45 Continue Watching
+threshold and 7bc69ea42 subtitle/AutoSync defaults retain current ReSeq behaviour.
+Their original records are preserved as history. These are resolved preferences.
+Validate the combined exact release candidate as usual. No separate publication
+was requested with this implementation task.
+
+# Historical beta 9 delivered scope
 
 Maintainer instruction, 8 November 2026: include these two locally implemented,
 uncommitted and unreleased Beta 8.3 fixes with the next upstream integration beta.

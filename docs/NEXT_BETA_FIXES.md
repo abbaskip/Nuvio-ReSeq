@@ -10,9 +10,11 @@
 
 # Delivered in published beta 9
 
-All five queued inputs below shipped at 150883f1f44ec436bd377d70dc94f5b47842ef4c. Public release and all five signed APKs verified on 9 November 2026. Preserve this history and check for later owner changes without replaying the delivered snapshots.
+The five inputs under Historical beta 9 delivered scope shipped at 150883f1f44ec436bd377d70dc94f5b47842ef4c. Public release and all five signed APKs verified on 9 November 2026. Preserve this history and check for later owner changes without replaying the delivered snapshots.
 
 ## Pending follow-up after beta 9
+
+This section is new work and remains pending despite the historical beta 9 delivered marker.
 
 Maintainer request on 9 November 2026. Integrate the validated owner branch
 feature/fresh-install-defaults from sync-host/.worktrees/fresh-install-defaults,

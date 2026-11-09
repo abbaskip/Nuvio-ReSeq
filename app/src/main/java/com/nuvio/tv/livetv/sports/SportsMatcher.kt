@@ -738,19 +738,43 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         /** A quick pass must not erase verified guide results while the full refresh is pending. */
         internal fun keepGuideMatches(previous: Map<String, List<ChannelMatch>>, fresh: Map<String, List<ChannelMatch>>,
             retainedEvents: Set<String>, input: Input): Map<String, List<ChannelMatch>> {
-            val channels = input.channels.associateBy { it.key }
-            val retained = previous.filterKeys { it in retainedEvents }.mapValues { (eventId, matches) ->
-                val guide = matches.mapNotNull { match ->
-                    if (!match.sure) return@mapNotNull null
-                    val channel = channels[match.channel.key] ?: return@mapNotNull null
-                    val programme = match.program ?: return@mapNotNull null
-                    if ("$eventId|${channel.key}" in input.settings.blocked) return@mapNotNull null
-                    match.copy(channel = channel, catchup = CatchupUrlBuilder.isAvailable(channel.catchup, programme.startMs, input.now))
+            // Only index channels referenced by a retained guide match. For duplicate channel
+            // keys the last catalog entry wins, as in the original full-playlist index.
+            if (previous.keys.none { it in retainedEvents }) return fresh
+            val channels = HashMap<String, LiveChannel?>()
+            for ((eventId, matches) in previous) if (eventId in retainedEvents) {
+                for (match in matches) if (match.sure && match.program != null) channels[match.channel.key] = null
+            }
+            if (channels.isNotEmpty()) for (channel in input.channels) {
+                if (channels.containsKey(channel.key)) channels[channel.key] = channel
+            }
+            val rank = preferenceRank(input.settings)
+            val result = fresh.toMutableMap()
+            for ((eventId, matches) in previous) {
+                if (eventId !in retainedEvents) continue
+                val best = LinkedHashMap<String, ChannelMatch>()
+                fun keep(match: ChannelMatch) {
+                    val key = match.channel.key
+                    val existing = best[key]
+                    if (existing != null) {
+                        if (existing.score >= match.score) return
+                        // Stable ties follow the position of the winning entry.
+                        best.remove(key)
+                    }
+                    best[key] = match
                 }
-                sortMatches((fresh[eventId].orEmpty() + guide).sortedByDescending { it.score }
-                    .distinctBy { it.channel.key }, input.settings.bestChannelFirst, preferenceRank(input.settings)).limitSuggestions()
-            }.filterValues { it.isNotEmpty() }
-            return fresh + retained
+                fresh[eventId].orEmpty().forEach(::keep)
+                for (match in matches) {
+                    if (!match.sure) continue
+                    val programme = match.program ?: continue
+                    val channel = channels[match.channel.key] ?: continue
+                    if ("$eventId|${channel.key}" in input.settings.blocked) continue
+                    keep(match.copy(channel = channel, catchup = CatchupUrlBuilder.isAvailable(channel.catchup, programme.startMs, input.now)))
+                }
+                if (best.isNotEmpty()) result[eventId] =
+                    sortMatches(best.values.toList(), input.settings.bestChannelFirst, rank).limitSuggestions()
+            }
+            return result
         }
         private const val MINUTE = 60_000L
         private const val HOUR = 60 * MINUTE
@@ -952,7 +976,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             // game isn't what most English speakers want first). Your own groups still come first.
             val myLanguage = java.util.Locale.getDefault().language.lowercase()
             // Sorting compares a channel repeatedly, often across many fixtures in one pass.
-            val ranks = HashMap<Pair<String, String>, Int>()
+            val ranks = com.nuvio.tv.livetv.data.boundedCache<Pair<String, String>, Int>(4096)
             return { ch -> ranks.getOrPut(ch.name to ch.group) {
                 when {
                     groups.isNotEmpty() && ch.group.lowercase().trim() in groups -> 2

@@ -135,7 +135,7 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
                              register: (Socket) -> Unit) : Closeable {
     private var socket = connect(server, register)
     private val input: BufferedInputStream
-    private var pending: String? = null
+    private val pending = java.util.ArrayDeque<String>(3)
     init {
         try {
             socket.soTimeout = 12_000
@@ -204,17 +204,30 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
         return status()
     }
 
-    fun canFetch(id: String) = pending == null || pending == id
+    val hasQueuedReplies get() = pending.isNotEmpty()
+    fun canFetch(id: String, allowQueued: Boolean) = pending.isEmpty() || (allowQueued && pending.peekFirst() == id)
 
-    fun fetch(id: String, next: String?, readDeadline: Long): Article {
+    fun fetch(id: String, next: List<String>, readDeadline: Long): Article {
         deadline = readDeadline
-        if (pending == null) send("BODY <$id>")
+        // Commands share one authenticated connection. Responses stay in wire order.
+        // On a seek the pool selects a compatible socket or replaces the old one.
+        val commands = buildString {
+            if (pending.isEmpty()) {
+                append("BODY <").append(id).append(">\r\n")
+            } else {
+                check(pending.removeFirst() == id)
+            }
+            if (pending.withIndex().all { (i, queued) -> next.getOrNull(i) == queued }) {
+                for (i in pending.size until minOf(2, next.size)) {
+                    pending.addLast(next[i])
+                    append("BODY <").append(next[i]).append(">\r\n")
+                }
+            }
+        }
+        if (commands.isNotEmpty()) socket.getOutputStream().write(commands.toByteArray(Charsets.UTF_8))
         val response = status()
         if (response == 430 || response == 423) throw MissingUsenetArticle()
         ensureUsenet(response == 222, "Usenet provider could not return the article.")
-        // Pipeline a single article on sequential playback, without increasing the provider's connection count.
-        pending = next
-        if (next != null) send("BODY <$next>")
         return decodeArticle(input)
     }
     override fun close() = socket.close()
@@ -232,14 +245,14 @@ private object NewsPool {
     }
     private val slots = mutableListOf<Slot>()
 
-    fun acquire(server: NewsServer, factory: SSLSocketFactory, owner: NewsArticles, id: String): Slot {
+    fun acquire(server: NewsServer, factory: SSLSocketFactory, owner: NewsArticles, id: String, allowQueued: Boolean): Slot {
         val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
         synchronized(lock) {
             while (true) {
                 ensureUsenet(!owner.closed, "Usenet session expired.")
                 val account = slots.filter { it.server.sameAccount(server) }
                 account.firstOrNull { !it.busy && it.factory === factory && it.server.sameLogin(server) &&
-                    it.connection?.canFetch(id) == true }?.let {
+                    it.connection?.canFetch(id, allowQueued) == true }?.let {
                     it.busy = true
                     it.owner = owner
                     return it
@@ -293,11 +306,12 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
                             private val readBudgetMs: Long = 45_000L) : Closeable {
     private val servers = serverUrls.take(8).mapNotNull(NewsServer::parse)
     private var preferred = 0
+    private val serialOnly = BooleanArray(servers.size)
     @Volatile var closed = false
         private set
     init { ensureUsenet(servers.isNotEmpty(), "The add-on supplied no usable NNTP server.") }
 
-    @Synchronized fun fetch(id: String, next: String? = null): Article {
+    @Synchronized fun fetch(id: String, next: List<String> = emptyList()): Article {
         ensureUsenet(!closed, "Usenet session expired.")
         var lastFailure: String? = null
         var missingProviders = 0
@@ -309,17 +323,20 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
                 ensureUsenet(!closed, "Usenet session expired.")
                 ensureUsenet(System.nanoTime() < deadline, "Timed out retrieving the Usenet article.")
                 var readingArticle = false
+                var pipelined = false
                 var slot: NewsPool.Slot? = null
                 var reused = false
                 var healthy = false
                 try {
-                    val lease = NewsPool.acquire(servers[index], tlsFactory, this, id)
+                    val lease = NewsPool.acquire(servers[index], tlsFactory, this, id, allowQueued = !serialOnly[index])
                     slot = lease
                     reused = lease.connection != null
                     val active = lease.connection ?: NewsConnection(servers[index], tlsFactory, deadline) { NewsPool.register(lease, it) }
                         .also { lease.connection = it }
                     readingArticle = true
-                    val article = active.fetch(id, next, deadline)
+                    val ahead = if (serialOnly[index]) emptyList() else next
+                    pipelined = active.hasQueuedReplies || ahead.isNotEmpty()
+                    val article = active.fetch(id, ahead, deadline)
                     healthy = true
                     preferred = index
                     return article
@@ -338,7 +355,11 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
                         else -> if (readingArticle) "The connection dropped while reading a Usenet article."
                             else "The connection to the NNTP provider failed during startup."
                     }
-                    if (!reused) break
+                    if (pipelined && !serialOnly[index]) {
+                        // Some servers/proxies reject overlapping BODY commands. Retry the
+                        // requested article alone on a fresh socket and remember this provider.
+                        serialOnly[index] = true
+                    } else if (!reused) break
                 } finally {
                     slot?.let { NewsPool.finish(it, healthy) }
                 }

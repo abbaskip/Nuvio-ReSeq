@@ -519,7 +519,16 @@ object SportsCatalog {
     }
 
     /** [term] (already normalized, no padding) as whole words in [normText] (from [norm]). */
-    fun hasWord(normText: String, term: String): Boolean = term.isNotBlank() && normText.contains(" $term ")
+    fun hasWord(normText: String, term: String): Boolean {
+        if (term.isBlank()) return false
+        var start = normText.indexOf(term, startIndex = 1)
+        while (start >= 0) {
+            val end = start + term.length
+            if (end < normText.length && normText[start - 1] == ' ' && normText[end] == ' ') return true
+            start = normText.indexOf(term, startIndex = start + 1)
+        }
+        return false
+    }
 
 
     /** Words that make a show a replay or a highlights show rather than the game itself. */

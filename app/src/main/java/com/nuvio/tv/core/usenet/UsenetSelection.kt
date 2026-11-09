@@ -197,10 +197,23 @@ internal object UsenetSelection {
         val first = if (info.kind == Kind.RAR && info.number == 0) 0 else info.first
         ensureUsenet(sorted.withIndex().all { (i, pair) -> pair.first.number == first + i && pair.first.first == info.first },
             "NZB archive volumes are missing or duplicated.")
-        val files = sorted.asSequence().map { (_, nzb) ->
+        fun openVolume(index: Int, nextHeads: List<String>): UsenetFile {
             checkActive()
-            PostedFile(nzb, cache, verifyTail = false)
+            return PostedFile(sorted[index].second, cache, verifyTail = false, nextHeads = nextHeads)
         }
+        fun headAt(index: Int) = sorted.getOrNull(index)?.second?.articles?.firstOrNull()
+        // For RAR the indexer may immediately seek within a volume. Consume each pair
+        // of head replies before that seek. Joined files need every head in sequence.
+        val files = if (info.kind == Kind.RAR) sequence {
+            var i = 0
+            while (i < sorted.size) {
+                val a = openVolume(i, listOfNotNull(headAt(i + 1)))
+                val b = if (i + 1 < sorted.size) openVolume(i + 1, emptyList()) else null
+                yield(a)
+                if (b != null) yield(b)
+                i += 2
+            }
+        } else sorted.indices.asSequence().map { i -> openVolume(i, listOfNotNull(headAt(i + 1), headAt(i + 2))) }
         val candidates = when (info.kind) {
             Kind.RAR -> rarFiles(files, passwords, checkActive)
             else -> {

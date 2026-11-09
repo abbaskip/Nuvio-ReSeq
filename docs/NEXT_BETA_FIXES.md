@@ -1,5 +1,21 @@
 # Pending after beta 9
 
+- Startup navigation follow-up: isolated branch `fix/startup-navigation-regression`,
+  backed up at `4961a804c`, in `.worktrees/startup-navigation-regression`.
+  Fixes a reproduced catalog-reader stall while an import waits for network or
+  trailer playback; keeps the original four writer operations serialized using
+  a separate monitor. Bounds guide priority key extraction to the same 400 keys
+  and moves its observer transformations off the UI thread. No settings, UI flow,
+  update interval or feature availability changes. Full 3,334-test suite passed
+  (zero failures/errors, two existing skips), all five new tests passed, debug
+  APKs built and lint guard passed with 4,100 inherited errors. Before/after
+  evidence is durable in `.upstream-sync/evidence/startup-navigation-20261109-4961a804c`.
+  This is not proof of the cause or resolution of the separately reported crash
+  or all menu lag; installed version/crash context remains requested. Preserve
+  that distinction in release notes. Validate the combined exact candidate before
+  any future publication; no separate release was authorised by this follow-up.
+  No physical-device/ADB access or live-account testing is permitted.
+
 - Profile avatars: integrate local branch `fix/profile-avatar-url` from
   `.worktrees/profile-avatar-fix` before the next build. The user requested this
   fix on 9 November: the backend returns 42 relative avatar paths, but the default

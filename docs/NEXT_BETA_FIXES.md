@@ -1,19 +1,27 @@
 # Pending after beta 9
 
-- Open performance faults, confirmed again on 9 November: Sports/background heap
-  exhaustion and slow Usenet preparation/buffering are not resolved by the small
-  navigation follow-up below. The published beta 9 APK was examined locally:
-  the crash's failing allocation is in Sports channel preference/language word
-  matching during sorting. Its already-full heap still needs retained-memory
-  analysis; do not equate the failed tiny allocation with the retained-memory
-  root cause. The beta 7.8 guide-import memory safeguards remain shipped and intact.
-  A second user's Usenet report corroborates slow "Opening Usenet Video", worse
-  with large releases, and buffering. Latest NNTP owner 71ead3fd8 is shipped;
-  current archive metadata scans and serialized article reads remain performance
-  limitations. Measure large fixtures/delayed local providers before choosing
-  bounded read-ahead or lazy indexing; preserve validation, selection and account
-  limits. Full findings: the evidence directory below, `device-followup/local-analysis.md`.
-  No crash fix, throughput improvement or hardware validation is claimed.
+- Sports Hub and Usenet performance follow-up for the next beta. Integrate
+  `fix/startup-navigation-regression` through `3ff87815a`, including its
+  navigation-fix parent below. A Sports refresh now shares channel preference
+  ranks across events, limits the rank cache to the refresh and merges the
+  winning guide entries once. Changed preferences and guide data still affect
+  subsequent refreshes. In a focused 80-event, 160-channel fixture, allocated
+  bytes on the merge thread fell from 67.7–68.5 MB to 4.9 MB. Beta 9 exhausted
+  its heap during channel sorting. The cause of the overall retained heap
+  remains open. The earlier guide-import safeguards are still present.
+  Usenet pipelines at most two upcoming BODY commands and can retry serially
+  for incompatible providers. With 20 ms of fixture provider latency, 48 split
+  volumes opened in 0.49 s (previously 1.50 s), and a 48-article direct video
+  read took 0.49 s (previously 1.43 s). Both paths requested 48 articles and
+  returned identical bytes. Keep full archive validation and connection limits.
+  This branch passed the full debug build, 3,340 app tests (two existing skips),
+  98 tooling and feed tests, the lint guard, and 207 focused tests under a
+  384 MiB test heap. Evidence is in
+  `.upstream-sync/evidence/sports-usenet-20261109-3ff87815a`.
+  Repeat gates on the combined candidate. For manual acceptance, compare menu
+  response during a Sports guide refresh and time opening, seeking and buffering
+  on the same large Usenet release. Live provider performance and long-session
+  TV heap behaviour still require confirmation.
 
 - Startup navigation follow-up: isolated branch `fix/startup-navigation-regression`,
   backed up at `4961a804c`, in `.worktrees/startup-navigation-regression`.

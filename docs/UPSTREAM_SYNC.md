@@ -273,3 +273,5 @@ Use this format, omitting Decisions required when there is no genuine decision:
     - Real options and recommendation only.
     Next actions
     - Outstanding checks/fixes/reviews.
+
+Maintenance releases may contain ReSeq runtime or build changes without a new upstream integration. The release gate recognises those changes against the preserved release base. Version-only, ledger-only, notes-only and test-only updates do not create a release. Upstream inventory review, protective holds, exact-commit validation, compatibility attestation and publication checks apply to both release types.

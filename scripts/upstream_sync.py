@@ -356,20 +356,22 @@ def assert_release_allowed(worktree):
         raise RuntimeError("Maintainer publication hold is active; artifact-only validation remains permitted")
 
 
-def requested_release_matches(run, head):
-    request = run.get("maintainer_release") or {}
-    return (request.get("head") == head and bool(request.get("reason")))
-
-
-def request_release(run, args):
-    worktree = Path(run["worktree"])
-    if git("status", "--porcelain", cwd=worktree):
-        raise RuntimeError("Commit the release candidate before recording maintainer authorisation")
-    if not args.reason.strip():
-        raise RuntimeError("Record the maintainer's explicit release instruction")
-    run["maintainer_release"] = {"head": git("rev-parse", "HEAD", cwd=worktree),
-                                 "reason": args.reason.strip(),
-                                 "recorded_utc": datetime.now(timezone.utc).isoformat()}
+def has_releasable_changes(base, head, worktree):
+    """A maintenance release can contain ReSeq runtime changes without new upstream work."""
+    paths = git("diff", "--name-only", base, head, cwd=worktree).splitlines()
+    build_files = {"app/build.gradle.kts", "build.gradle.kts", "settings.gradle.kts",
+                   "gradle.properties", "gradle/libs.versions.toml", "compose_stability_config.conf"}
+    for path in paths:
+        if (path.startswith(("app/src/main/", "app/src/full/", "app/src/playstore/", "app/libs/",
+                             "ffmpeg-decoder-downmix/", "libmpv-android/", "baselineprofile/src/"))):
+            return True
+        if path in build_files:
+            def content(ref):
+                text = git("show", f"{ref}:{path}", cwd=worktree)
+                return re.sub(r"(?m)^.*\bversion(?:Code|Name)\s*=.*$", "", text)
+            if content(base) != content(head):
+                return True
+    return False
 
 
 def gate(run, state):
@@ -400,8 +402,8 @@ def gate(run, state):
     candidate_runs = {run["id"], *pending.get("runs", [])}
     integrated = [c for c in run["commits"] if ledger[c["sha"]]["outcome"] == "integrated" and
                   ledger[c["sha"]].get("run") in candidate_runs]
-    if not integrated and not requested_release_matches(run, head):
-        raise RuntimeError("No new upstream changes integrated or exact-commit maintainer release requested")
+    if not integrated and not has_releasable_changes(run["base"], head, worktree):
+        raise RuntimeError("No application changes or new upstream integrations to release")
     enforce_held_changes(run, ledger, head)
     if not ancestor(run["dev"], head, cwd=worktree) or not ancestor(run["base"], head, cwd=worktree):
         raise RuntimeError("Release would omit development or published functionality")
@@ -519,9 +521,8 @@ def main():
     p = sub.add_parser("begin"); p.add_argument("--dry-run", action="store_true")
     p.add_argument("--setup-worktree", action="store_true", help="Rehearse in this already isolated clean setup worktree")
     sub.add_parser("status")
-    for name in ("review", "configure", "git", "preserve", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable", "request-release"):
+    for name in ("review", "configure", "git", "preserve", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable"):
         p = sub.add_parser(name); p.add_argument("--run", required=True)
-        if name == "request-release": p.add_argument("--reason", required=True)
         if name == "review":
             p.add_argument("--commit", required=True); p.add_argument("--outcome", choices=STATUSES, required=True)
             p.add_argument("--reason", required=True)
@@ -551,7 +552,6 @@ def main():
         run["validation"] = run["compatibility"] = run["device"] = None
         save(state / "runs" / f"{run['id']}.json", run)
         validation(run)
-    elif args.action == "request-release": request_release(run, args)
     elif args.action == "attest": attest(run, args)
     elif args.action == "gate": print(gate(run, state))
     elif args.action == "publish": publish(run, state, args)

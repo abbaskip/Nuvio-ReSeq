@@ -9,6 +9,32 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_shipped_adaptation_retains_raw_and_modified_implementation_holds(self):
+        sha = "a" * 40
+        entry = {"outcome": "integrated", "raw_upstream": {"outcome": "held"},
+                 "accepted_adaptation": {"release_commit": "released", "protected_blobs": {"cache.kt": "blob"}}}
+        run = {"commits": [{"sha": sha}], "base": "base", "upstream": "up", "worktree": "unused"}
+        def ancestry(a, b, **kwargs):
+            return a == "released" and b == "base"
+        def commands(*args, **kwargs):
+            if args[0] == "log": return ""
+            if args[0] == "rev-parse": return "blob"
+            return "- " + sha
+        with patch.object(sync, "ancestor", side_effect=ancestry), patch.object(sync, "git", side_effect=commands):
+            sync.enforce_held_changes(run, {sha: entry}, "head")
+            entry["requires_decision"] = True
+            with self.assertRaises(RuntimeError): sync.enforce_held_changes(run, {sha: entry}, "head")
+            entry["requires_decision"] = False
+            with patch.object(sync, "git", side_effect=lambda *a, **k: "changed" if a[0] == "rev-parse" else commands(*a, **k)):
+                with self.assertRaises(RuntimeError): sync.enforce_held_changes(run, {sha: entry}, "head")
+            with patch.object(sync, "git", side_effect=lambda *a, **k: "" if a[0] == "cherry" and a[1] == "base" else commands(*a, **k)):
+                with self.assertRaises(RuntimeError): sync.enforce_held_changes(run, {sha: entry}, "head")
+            with patch.object(sync, "ancestor", return_value=True):
+                with self.assertRaisesRegex(RuntimeError, "ancestry"): sync.enforce_held_changes(run, {sha: entry}, "head")
+            with patch.object(sync, "git", side_effect=lambda *a, **k: "(cherry picked from commit " + sha + ")" if a[0] == "log" else commands(*a, **k)):
+                with self.assertRaisesRegex(RuntimeError, "cherry-picked"): sync.enforce_held_changes(run, {sha: entry}, "head")
+
+
     def test_incomplete_candidate_cannot_overwrite_integrated_or_held_history(self):
         previous = {"commits": {"a": {"outcome": "integrated"}, "b": {"outcome": "held"}}}
         for sha in previous["commits"]:

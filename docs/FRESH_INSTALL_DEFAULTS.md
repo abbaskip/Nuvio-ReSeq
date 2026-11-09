@@ -1,6 +1,6 @@
 # Fresh installation defaults and default-metadata Trakt adaptation
 
-Installed Stremio add-ons and IPTV are enabled for the approved autoplay tier at 8 seconds. Plugins are off in that tier but can be selected by the any-source fallback at 25 seconds, as confirmed by the maintainer. Home trailers use the hero media surface after 2 seconds. Details trailers autoplay after 6 seconds in fullscreen. All controls remain editable.
+Installed Stremio add-ons and IPTV are enabled for the approved autoplay tier at 8 seconds. Plugins are off in that tier but can be selected by the any-source fallback at 25 seconds, as confirmed by the maintainer. Home trailers use the hero media surface after 2 seconds with mute disabled. Focused-poster expansion and trailer autoplay are enabled; fullscreen hero backdrop is disabled. Shuffle is enabled and episode ratings are shown by default. Details trailers autoplay after 5 seconds in fullscreen. All controls remain editable.
 
 The preference factory records a fresh-install policy using Android installation/update timestamps, then seeds only new, empty feature stores through DataStore migrations. Existing installations, existing files, restored preferences and subsequent user edits retain their values. Legacy fallback values are unchanged. The marker carries no credentials.
 

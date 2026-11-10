@@ -500,6 +500,9 @@ internal class SportsFeeds {
                             val runs = l.optInt("runs", -1)
                             val wickets = l.optInt("wickets", -1)
                             if (runs < 0 || wickets !in 0..10) return@mapNotNull null
+                            // ESPN repeats each match innings on both competitors. The
+                            // non-batting side gets zeroes and the other side's overs.
+                            if (runs == 0 && wickets == 0 && !l.optBoolean("isBatting", false)) return@mapNotNull null
                             val declared = l.str("description")?.contains("declared", ignoreCase = true) == true
                             val overs = l.str("overs")?.removeSuffix(".0")
                             "$runs/$wickets" + (if (declared) "d" else "") + (overs?.let { " ($it ov)" } ?: "")

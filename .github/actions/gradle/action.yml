@@ -30,7 +30,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ runner.temp }}/nuvio-task-cache
-        key: nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}-${{ github.job }}-${{ github.sha }}-${{ github.run_attempt }}
+        key: nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}-${{ github.job }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
           nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}-${{ github.job }}-
           nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}-

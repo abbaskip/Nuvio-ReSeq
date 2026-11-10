@@ -1,7 +1,15 @@
 package com.nuvio.tv.core.usenet
 
-internal data class UsenetMemoryProfile(val cacheBytes: Int = 8 * 1024 * 1024, val window: Int = 0, val aheadBytes: Int = 0) {
-    companion object { val LOW = UsenetMemoryProfile() }
+internal data class UsenetMemoryProfile(val cacheBytes: Int, val window: Int, val aheadBytes: Int) {
+    companion object {
+        val LOW = UsenetMemoryProfile(16 * 1024 * 1024, 6, 8 * 1024 * 1024)
+        val NORMAL = UsenetMemoryProfile(32 * 1024 * 1024, 12, 16 * 1024 * 1024)
+        @Volatile var current = LOW
+        fun init(context: android.content.Context) {
+            val manager = context.getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            current = if (manager.isLowRamDevice || manager.memoryClass < 192) LOW else NORMAL
+        }
+    }
 }
 
 /** Only fixed stage labels and numeric counters reach logcat. Never include exception text. */
@@ -11,6 +19,10 @@ internal class UsenetStartupTrace(private val log: (String) -> Unit = { android.
     private val counts = linkedMapOf<String, Long>()
     private var reported = false
     private var kind = "direct"
+    private var connectionAllowance: String? = null
+    @Synchronized fun connections(limit: Int, fromAddon: Boolean) {
+        connectionAllowance = "conns=$limit (${if (fromAddon) "addon" else "default"})"
+    }
     @Synchronized fun archive(kind: String, volumes: Int) {
         if (this.kind != "obfuscated") this.kind = kind
         counts["volumes"] = volumes.toLong()
@@ -21,6 +33,7 @@ internal class UsenetStartupTrace(private val log: (String) -> Unit = { android.
         if (reported) return
         reported = true
         log("total=${(System.nanoTime() - start) / 1_000_000}ms success=$success kind=$kind " +
+            (connectionAllowance?.let { "$it " } ?: "") +
             marks.entries.joinToString(" ") { "${it.key}=${it.value}ms" } + " " +
             counts.entries.joinToString(" ") { "${it.key}=${it.value}" })
     }

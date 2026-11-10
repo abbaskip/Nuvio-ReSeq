@@ -23,7 +23,7 @@ internal data class Article(val start: Long, val total: Long, val bytes: ByteArr
 private const val MAX_PART = 4 * 1024 * 1024
 /** One reader owns all read-ahead, including status lines between pipelined articles. */
 internal class NewsWireReader(private val input: InputStream) {
-    private val block = ByteArray(8192)
+    private val block = ByteArray(64 * 1024)
     private var position = 0
     private var end = 0
     val line = ByteArray(8192)
@@ -124,7 +124,7 @@ internal fun decodeArticle(input: NewsWireReader): Article {
 }
 
 private class NewsServer(val host: String, val port: Int, val tls: Boolean, val user: String?, val pass: String?,
-                         val limit: Int) {
+                         val limit: Int, val limitFromAddon: Boolean) {
     fun sameAccount(other: NewsServer) = host.equals(other.host, true) && user == other.user
     fun sameLogin(other: NewsServer) = sameAccount(other) && port == other.port && tls == other.tls && pass == other.pass
 
@@ -140,8 +140,10 @@ private class NewsServer(val host: String, val port: Int, val tls: Boolean, val 
                 require(it.length <= 512 && it.none { c -> c.isISOControl() })
             }
             val auth = uri.rawUserInfo?.split(':', limit = 2)
-            val limit = uri.path.orEmpty().trim('/').toIntOrNull()?.coerceIn(1, 2) ?: 1
-            NewsServer(host, port, tls, auth?.first()?.let(::decode), auth?.getOrNull(1)?.let(::decode), limit)
+            val addonLimit = uri.path.orEmpty().trim('/').toIntOrNull()
+            val limit = addonLimit?.coerceIn(1, 12) ?: 2
+            NewsServer(host, port, tls, auth?.first()?.let(::decode), auth?.getOrNull(1)?.let(::decode),
+                limit, limitFromAddon = addonLimit != null)
         }.getOrNull()
     }
 }
@@ -309,7 +311,7 @@ private object NewsPool {
                 val cap = minOf(server.limit, account.minOfOrNull { it.server.limit } ?: server.limit)
                 val atAccountLimit = account.size >= cap
                 val pool = if (atAccountLimit) account else slots
-                if (atAccountLimit || slots.size >= 8) {
+                if (atAccountLimit || slots.size >= 24) {
                     if (atAccountLimit && allowQueued) account.firstOrNull { !it.busy &&
                         it.factory === factory && it.server.sameLogin(server) && it.connection?.economicalDrain() == true
                     }?.let {
@@ -336,14 +338,15 @@ private object NewsPool {
     fun spare(server: NewsServer, factory: SSLSocketFactory, owner: NewsArticles, id: String): Slot? = synchronized(lock) {
         if (owner.closed) return null
         val account = slots.filter { it.server.sameAccount(server) }
-        if (server.limit < 2 || account.any { it.server.limit < 2 }) return null
+        val cap = minOf(server.limit, account.minOfOrNull { it.server.limit } ?: server.limit)
+        if (cap < 2 || account.count { it.busy } >= cap - 1 || slots.count { it.busy } >= 23) return null
         // Leave any queued sequential replies for their current reader.
         account.firstOrNull { !it.busy && it.owner === owner && it.factory === factory &&
             it.server.sameLogin(server) && it.connection?.canFetch(id, false) == true }?.let {
             it.busy = true
             return it
         }
-        if (account.size >= 2 || slots.size >= 8) return null
+        if (account.size >= cap || slots.size >= 24) return null
         Slot(server, factory, owner).also(slots::add)
     }
 
@@ -351,7 +354,7 @@ private object NewsPool {
         if (owner.closed) return null
         val account = slots.filter { it.server.sameAccount(server) }
         val cap = minOf(server.limit, account.minOfOrNull { it.server.limit } ?: server.limit)
-        if (account.size >= cap || slots.size >= 8) return null
+        if (account.size >= cap || slots.size >= 24) return null
         Slot(server, factory, owner).also(slots::add)
     }
 
@@ -392,7 +395,15 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
     val canPrefetch get() = servers[preferred].limit > 1 && serialOnly.get(preferred) == 0
     @Volatile var closed = false
         private set
-    init { ensureUsenet(servers.isNotEmpty(), "The add-on supplied no usable NNTP server.") }
+    init {
+        ensureUsenet(servers.isNotEmpty(), "The add-on supplied no usable NNTP server.")
+        prefer(0)
+    }
+
+    @Synchronized private fun prefer(index: Int) {
+        preferred = index
+        trace?.connections(servers[index].limit, servers[index].limitFromAddon)
+    }
 
     fun warm(count: Int) {
         repeat(minOf(count, servers[preferred].limit)) {
@@ -459,7 +470,7 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
                     val article = active.fetch(id, ahead, deadline)
                     active.transferLimited?.let { transferLimited.set(index, if (it) 1 else 0) }
                     healthy = true
-                    preferred = index
+                    prefer(index)
                     return article
                 } catch (error: IOException) {
                     if (error is MissingUsenetArticle) {

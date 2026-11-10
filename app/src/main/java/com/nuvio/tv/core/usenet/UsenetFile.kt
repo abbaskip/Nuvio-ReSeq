@@ -7,6 +7,7 @@ internal interface UsenetFile {
     val name: String
     val size: Long
     fun read(position: Long, buffer: ByteArray, offset: Int, length: Int): Int
+    fun prefetch(position: Long) {}
 }
 
 internal class ArticleCache(
@@ -20,7 +21,7 @@ internal class ArticleCache(
     private val missing = LinkedHashSet<String>()
     private val loading = mutableMapOf<String, java.util.concurrent.CompletableFuture<Article?>>()
     private var used = 0
-    private var prefetchBusy = false
+    private var prefetchBusy = 0
     private val heads = LinkedHashMap<String, HeadSlice>(16, 0.75f, true)
     private val evicted = LinkedHashSet<String>()
     internal data class HeadSlice(val article: Article, val length: Int)
@@ -41,7 +42,14 @@ internal class ArticleCache(
         }
     }
 
+    fun window(ids: List<String>, index: Int, stride: Int) {
+        val count = minOf(profile.window, profile.aheadBytes / maxOf(1, stride))
+        for (i in index + 1..minOf(ids.lastIndex, index + count)) prefetch(ids[i])
+    }
+
     fun archive(kind: String, volumes: Int) { trace?.archive(kind, volumes) }
+
+    val parallelAhead get() = fetchAhead != null
 
     operator fun get(id: String): Article = load(id, emptyList())
 
@@ -89,13 +97,14 @@ internal class ArticleCache(
         }
     }
 
-    /** One speculative BODY per session; demand retries declined spare leases. */
+    /** Bounded speculation; the provider pool reserves capacity for demand. */
     fun prefetch(id: String?, archive: Boolean = false) {
         val reader = fetchAhead ?: return
         if (id == null || (!archive && !allowSequentialAhead())) return
         val future = synchronized(this) {
-            if (prefetchBusy || id in entries || id in missing || id in loading) return
-            prefetchBusy = true
+            if (prefetchBusy >= profile.window || (loading.size + 1L) * 4 * 1024 * 1024 > profile.cacheBytes * 3L / 4 ||
+                id in entries || id in missing || id in loading) return
+            prefetchBusy++
             java.util.concurrent.CompletableFuture<Article?>().also { loading[id] = it }
         }
         kotlinx.coroutines.Dispatchers.IO.dispatch(kotlin.coroutines.EmptyCoroutineContext) {
@@ -108,7 +117,7 @@ internal class ArticleCache(
                 synchronized(this) {
                     article?.let { store(id, it); trace?.add("speculative"); trace?.add("bytes", it.bytes.size.toLong()) }
                     loading.remove(id)
-                    prefetchBusy = false
+                    prefetchBusy--
                 }
                 future.complete(article)
             }
@@ -159,6 +168,12 @@ internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verify
         }
     }
 
+    override fun prefetch(position: Long) {
+        val index = (position / stride).coerceIn(0, ids.lastIndex.toLong()).toInt()
+        cache.prefetch(ids[index], archive = true)
+        cache.window(ids, index, stride)
+    }
+
     override fun read(position: Long, buffer: ByteArray, offset: Int, length: Int): Int {
         if (length == 0) return 0
         if (position >= size) return -1
@@ -183,8 +198,9 @@ internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verify
         while (low <= high) {
             val next = if (position == known.end && index == known.index + 1)
                 ids.subList(index + 1, minOf(ids.size, index + 3)) else emptyList()
-            if (next.size == 2) cache.prefetch(ids.getOrNull(index + 3))
-            val article = cache.load(ids[index], next)
+            // Parallel windows own these IDs; avoid also queuing the same bodies on the demand socket.
+            if (next.isNotEmpty()) cache.window(ids, index, stride)
+            val article = cache.load(ids[index], if (cache.parallelAhead) emptyList() else next)
             ensureUsenet(article.total == size && (index != ids.lastIndex || article.end == size), "Inconsistent yEnc file size.")
             synchronized(offsets) {
                 val existing = offsets[article.start]
@@ -246,6 +262,7 @@ internal class StoredFile(override val name: String, private val extents: List<F
         val index = ends.binarySearch(position + 1).let { if (it < 0) -it - 1 else it }
         val extent = extents[index]
         val within = position - (ends[index] - extent.length)
+        if (within + length >= extent.length) extents.getOrNull(index + 1)?.let { it.volume.prefetch(it.offset) }
         return extent.volume.read(extent.offset + within, buffer, offset, minOf(length.toLong(), extent.length - within).toInt())
     }
 }
@@ -259,5 +276,6 @@ internal class LazyPostedFile(private val file: NzbFile, private val cache: Arti
             ensureUsenet(it.size == size, "Inconsistent split volume size.")
         }
     }
+    override fun prefetch(position: Long) { cache.prefetch(file.articles.firstOrNull(), archive = true) }
     override fun read(position: Long, buffer: ByteArray, offset: Int, length: Int) = opened.read(position, buffer, offset, length)
 }

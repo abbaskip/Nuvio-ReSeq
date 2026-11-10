@@ -74,6 +74,7 @@ private class PredictedRarFile(
             }
             val extent = snapshot.parts[i].extent
             val within = position - (snapshot.ends[i] - extent.length)
+            if (within + length >= extent.length) snapshot.parts.getOrNull(i + 1)?.extent?.let { it.volume.prefetch(it.offset) }
             return extent.volume.read(extent.offset + within, buffer, offset,
                 minOf(length.toLong(), extent.length - within).toInt())
         }

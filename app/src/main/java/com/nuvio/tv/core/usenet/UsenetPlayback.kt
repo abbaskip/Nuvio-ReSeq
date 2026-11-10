@@ -75,9 +75,10 @@ internal object UsenetPlayback {
 
     private fun prepare(stream: Stream, season: Int?, episode: Int?, preparation: UsenetPreparation, trace: UsenetStartupTrace, checkActive: () -> Unit): Stream {
         val source = requireNotNull(stream.usenet)
+        val profile = UsenetMemoryProfile.current
         val articles = NewsArticles(source.servers, trace = trace)
         preparation.own(articles)
-        articles.warm(2)
+        articles.warm(minOf(2, profile.window + 1))
         trace.mark("nzb_request")
         val document = NzbDownload.fetch(source.nzbUrl, stream.behaviorHints?.proxyHeaders?.request.orEmpty(), preparation, trace)
         trace.mark("nzb_received")
@@ -86,7 +87,7 @@ internal object UsenetPlayback {
         var preparationCheck: (() -> Unit)? = checkActive
         val cache = ArticleCache(
             fetchAhead = if (articles.canPrefetch) articles::fetchAhead else null,
-            allowSequentialAhead = { articles.sequentialReadAhead }, trace = trace
+            profile = profile, trace = trace
         ) { id, next ->
             preparationCheck?.invoke()
             articles.fetch(id, next)

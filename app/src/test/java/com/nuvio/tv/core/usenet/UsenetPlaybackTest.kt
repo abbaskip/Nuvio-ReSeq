@@ -401,7 +401,7 @@ class UsenetPlaybackTest {
         val count = 16_384
         val total = count * partSize.toLong()
         val reads = mutableListOf<Int>()
-        val cache = ArticleCache { id, _ ->
+        val cache = ArticleCache(profile = UsenetMemoryProfile(8 * 1024 * 1024, 0, 0)) { id, _ ->
             val index = id.toInt()
             reads += index
             Article(index * partSize.toLong(), total, ByteArray(partSize) { (index % 251).toByte() })

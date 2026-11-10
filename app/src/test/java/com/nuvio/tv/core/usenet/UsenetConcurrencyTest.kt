@@ -22,7 +22,8 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class UsenetConcurrencyTest {
-    private class Provider(private val total: Int = 40, private val hold: Set<Int> = emptySet()) : Closeable {
+    private class Provider(private val total: Int = 40, private val hold: Set<Int> = emptySet(),
+                           private val unavailable: Boolean = false) : Closeable {
         private val listener = ServerSocket(0, 24, InetAddress.getByName("127.0.0.1"))
         private val sockets = ConcurrentHashMap.newKeySet<Socket>()
         val loggedIn = CountDownLatch(1)
@@ -53,6 +54,7 @@ class UsenetConcurrencyTest {
                                         command.startsWith("AUTHINFO PASS") -> { line("281 accepted"); loggedIn.countDown() }
                                         command.startsWith("BODY <") -> {
                                             val id = command.removePrefix("BODY <").removeSuffix(">").toInt()
+                                            if (unavailable) { line("430 unavailable"); continue }
                                             val active = activeBodies.incrementAndGet()
                                             maxBodies.accumulateAndGet(active, ::maxOf)
                                             try {
@@ -80,6 +82,42 @@ class UsenetConcurrencyTest {
         override fun close() { release.countDown(); listener.close(); sockets.forEach { it.close() } }
     }
     private val xml = """<nzb><file subject="movie.mkv"><segments><segment number="1">0</segment></segments></file></nzb>"""
+
+    @Test fun startupSummaryReportsClampedAddonOrDefaultAllowanceWithoutProviderDetails() {
+        for ((suffix, expected) in listOf("/5" to "conns=5 (addon)", "" to "conns=2 (default)",
+            "/25" to "conns=12 (addon)", "/" to "conns=2 (default)", "/0" to "conns=1 (addon)")) {
+            val logs = mutableListOf<String>()
+            val trace = UsenetStartupTrace(logs::add)
+            NewsArticles(listOf("nntps://fixture-user:fixture-password@provider.invalid$suffix"), trace = trace).use {
+                trace.finish(false) // The configured allowance is available even if startup fails before a BODY.
+                trace.finish(true)
+            }
+            assertEquals(1, logs.size)
+            assertTrue(logs.single().contains(expected))
+            for (privateValue in listOf("fixture-user", "fixture-password", "provider.invalid", "nntps://")) {
+                assertFalse(logs.single().contains(privateValue))
+            }
+        }
+    }
+
+    @Test fun startupSummaryUsesThePreferredProviderAfterFallback() {
+        Provider(unavailable = true).use { first ->
+            Provider().use { fallback ->
+                val logs = mutableListOf<String>()
+                val trace = UsenetStartupTrace(logs::add)
+                NewsArticles(listOf(first.endpoint, fallback.endpoint + "/5"), trace = trace).use { reader ->
+                    assertArrayEquals(byteArrayOf(1), reader.fetch("0").bytes)
+                    trace.finish(true)
+                }
+                assertEquals(1, logs.size)
+                assertTrue(logs.single().contains("conns=5 (addon)"))
+                assertFalse(logs.single().contains("conns=2"))
+                for (privateValue in listOf("127.0.0.1", "user", "password", "nntp://", "private.mkv")) {
+                    assertFalse(logs.single().contains(privateValue))
+                }
+            }
+        }
+    }
 
     @Test fun preparationLogsInWhileNzbResponseIsDelayedAndRepeatOpenUsesMemoryCache() = runBlocking {
         Provider(total = 1).use { provider ->
@@ -126,6 +164,25 @@ class UsenetConcurrencyTest {
                 } finally { pending.cancelAndJoin() }
                 assertTrue(closed.await(2, TimeUnit.SECONDS))
                 assertTrue(provider.disconnected.await(2, TimeUnit.SECONDS))
+            }
+        }
+    }
+    @Test fun sixSpeculativeBodiesLeaveCapacityForColdSeekAndStayWithinAccountAllowance() {
+        Provider(hold = (2..13).toSet()).use { provider ->
+            NewsArticles(listOf(provider.endpoint + "/8")).use { reader ->
+                val cache = ArticleCache(fetchAhead = reader::fetchAhead, profile = UsenetMemoryProfile.NORMAL, fetch = reader::fetch)
+                val file = PostedFile(NzbFile("movie.mkv", (0..39).map(Int::toString), 40), cache, verifyTail = false)
+                assertArrayEquals(byteArrayOf(1), file.bytesAt(1, 1))
+                assertTrue(provider.sixBodies.await(3, TimeUnit.SECONDS))
+                val worker = Executors.newSingleThreadExecutor()
+                try {
+                    val seek = worker.submit<ByteArray> { file.bytesAt(39, 1) }
+                    assertArrayEquals(byteArrayOf(1), seek.get(2, TimeUnit.SECONDS))
+                    assertTrue(provider.maxBodies.get() >= 6)
+                    assertTrue(provider.maxSockets.get() <= 8)
+                    assertTrue(cache.retainedBytes() <= UsenetMemoryProfile.NORMAL.cacheBytes)
+                } finally { provider.release.countDown(); worker.shutdownNow() }
+                assertArrayEquals(ByteArray(40) { 1 }, file.bytesAt(0, 40))
             }
         }
     }

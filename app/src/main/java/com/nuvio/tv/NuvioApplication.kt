@@ -85,6 +85,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         // Before super.onCreate(): Hilt creates injected services there, and the budget is read once.
         MemoryBudget.init(this)
+        com.nuvio.tv.core.usenet.UsenetMemoryProfile.init(this)
         val sentrySetting = SentryInitializer.preload(this)
         super.onCreate()
         SentryInitializer.start(this, sentrySettingsDataStore, sentrySetting)

@@ -10,12 +10,14 @@ internal interface UsenetFile {
 internal class ArticleCache(
     private val fetchAhead: ((String) -> Article?)? = null,
     private val allowSequentialAhead: () -> Boolean = { true },
+    private val trace: UsenetStartupTrace? = null,
     private val fetch: (String, List<String>) -> Article
 ) {
     private val entries = LinkedHashMap<String, Article>(16, 0.75f, true)
     private val missing = LinkedHashSet<String>()
     private val loading = mutableMapOf<String, java.util.concurrent.CompletableFuture<Article?>>()
     private var used = 0
+    private val evicted = LinkedHashSet<String>()
     private var prefetchBusy = false
 
     operator fun get(id: String): Article = load(id, emptyList())
@@ -26,13 +28,14 @@ internal class ArticleCache(
             val pending: java.util.concurrent.CompletableFuture<Article?>?
             val ahead: List<String>
             synchronized(this) {
-                entries[id]?.let { return it }
+                entries[id]?.let { trace?.add("hits"); return it }
                 if (id in missing) throw MissingUsenetArticle()
                 pending = loading[id]
                 if (pending == null) loading[id] = mine
                 ahead = next.filterNot { it == id || it in entries || it in missing || it in loading }
             }
             if (pending != null) {
+                trace?.add("joins")
                 try {
                     pending.get()?.let { return it }
                 } catch (error: java.util.concurrent.ExecutionException) {
@@ -45,6 +48,8 @@ internal class ArticleCache(
             }
             try {
                 val article = fetch(id, ahead)
+                trace?.add("demand")
+                trace?.add("bytes", article.bytes.size.toLong())
                 synchronized(this) { store(id, article) }
                 mine.complete(article)
                 return article
@@ -78,7 +83,7 @@ internal class ArticleCache(
                 // Demand retries through the normal provider fallback path.
             } finally {
                 synchronized(this) {
-                    article?.let { store(id, it) }
+                    article?.let { store(id, it); trace?.add("speculative"); trace?.add("bytes", it.bytes.size.toLong()) }
                     loading.remove(id)
                     prefetchBusy = false
                 }
@@ -88,11 +93,15 @@ internal class ArticleCache(
     }
 
     private fun store(id: String, article: Article) {
-        entries[id] = article
+        if (evicted.remove(id)) trace?.add("refetches")
+        used -= entries.put(id, article)?.bytes?.size ?: 0
         used += article.bytes.size
-        val iterator = entries.values.iterator()
+        val iterator = entries.entries.iterator()
         while ((used > 8 * 1024 * 1024 || entries.size > 2048) && iterator.hasNext()) {
-            used -= iterator.next().bytes.size
+            val entry = iterator.next()
+            used -= entry.value.bytes.size
+            evicted.add(entry.key)
+            if (evicted.size > 4096) evicted.remove(evicted.first())
             iterator.remove()
         }
     }

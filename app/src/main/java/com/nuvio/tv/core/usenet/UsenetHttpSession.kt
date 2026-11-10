@@ -6,8 +6,9 @@ import java.io.InputStream
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-internal class UsenetHttpSession(val file: UsenetFile, private val articles: Closeable) :
+internal class UsenetHttpSession(val file: UsenetFile, private val articles: Closeable, private val trace: UsenetStartupTrace? = null) :
     NanoHTTPD("127.0.0.1", 0), Closeable {
+    private val firstGet = java.util.concurrent.atomic.AtomicBoolean()
     private val path = "/usenet/" + UUID.randomUUID() + "/video." + file.name.substringAfterLast('.').lowercase()
     val url get() = "http://127.0.0.1:$listeningPort$path"
     @Volatile private var lastRead = System.nanoTime()
@@ -27,6 +28,8 @@ internal class UsenetHttpSession(val file: UsenetFile, private val articles: Clo
         // bytes so the player gets them without a second NNTP read. HEAD stays metadata-only.
         val prefix = if (session.method == Method.GET) ByteArray(minOf(8192L, bounds.last - bounds.first + 1).toInt())
             else byteArrayOf()
+        val first = session.method == Method.GET && firstGet.compareAndSet(false, true)
+        val waitStarted = System.nanoTime()
         val available = try {
             if (prefix.isEmpty()) 0 else file.read(bounds.first, prefix, 0, prefix.size).also {
                 ensureUsenet(it > 0, "Usenet video ended early.")
@@ -37,6 +40,8 @@ internal class UsenetHttpSession(val file: UsenetFile, private val articles: Clo
                 if (error is UsenetFailure) error.message.orEmpty() else "Could not read the Usenet video.").apply {
                 addHeader("Cache-Control", "no-store")
             }
+        } finally {
+            if (first) trace?.firstGet(System.nanoTime() - waitStarted)
         }
         val stream = object : InputStream() {
             @Volatile private var closed = false

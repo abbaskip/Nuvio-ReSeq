@@ -137,7 +137,7 @@ class UsenetPlaybackTest {
                 for (sockets in 1..2) {
                     NewsFixture(bodies, rtt, cap).use { provider ->
                         NewsArticles(listOf(provider.endpoint.substringBeforeLast('/') + "/$sockets")).use { reader ->
-                            val cache = ArticleCache(if (reader.canPrefetch) reader::fetchAhead else null, { reader.sequentialReadAhead }, reader::fetch)
+                            val cache = ArticleCache(if (reader.canPrefetch) reader::fetchAhead else null, { reader.sequentialReadAhead }, fetch = reader::fetch)
                             val file = PostedFile(NzbFile("test.mp4", ids, size.toLong()), cache)
                             val elapsed = kotlin.system.measureNanoTime {
                                 val bytes = file.bytesAt(0, size)

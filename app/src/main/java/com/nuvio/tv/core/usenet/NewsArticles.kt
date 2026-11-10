@@ -147,7 +147,7 @@ private class NewsServer(val host: String, val port: Int, val tls: Boolean, val 
 }
 
 private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, private var deadline: Long,
-                             register: (Socket) -> Unit) : Closeable {
+                             trace: UsenetStartupTrace?, register: (Socket) -> Unit) : Closeable {
     private val connectStarted = System.nanoTime()
     private var socket = connect(server, register)
     private val input: NewsWireReader
@@ -190,6 +190,7 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
                 if (auth == 381) auth = command("AUTHINFO PASS " + server.pass.orEmpty())
                 ensureUsenet(auth == 281, "Usenet provider rejected sign-in.")
             }
+            trace?.mark("first_login")
         } catch (e: Exception) {
             close()
             throw e
@@ -346,6 +347,14 @@ private object NewsPool {
         Slot(server, factory, owner).also(slots::add)
     }
 
+    fun warmSlot(server: NewsServer, factory: SSLSocketFactory, owner: NewsArticles): Slot? = synchronized(lock) {
+        if (owner.closed) return null
+        val account = slots.filter { it.server.sameAccount(server) }
+        val cap = minOf(server.limit, account.minOfOrNull { it.server.limit } ?: server.limit)
+        if (account.size >= cap || slots.size >= 8) return null
+        Slot(server, factory, owner).also(slots::add)
+    }
+
     fun register(slot: Slot, socket: Socket) = synchronized(lock) {
         if (slot !in slots) {
             socket.close()
@@ -374,7 +383,7 @@ private val defaultTls by lazy { SSLSocketFactory.getDefault() as SSLSocketFacto
 
 /** Each socket has one exclusive lease. Account limits span readers and sessions. */
 internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SSLSocketFactory = defaultTls,
-                            private val readBudgetMs: Long = 45_000L) : Closeable {
+                            private val readBudgetMs: Long = 45_000L, private val trace: UsenetStartupTrace? = null) : Closeable {
     private val servers = serverUrls.take(8).mapNotNull(NewsServer::parse)
     @Volatile private var preferred = 0
     private val serialOnly = java.util.concurrent.atomic.AtomicIntegerArray(servers.size)
@@ -385,6 +394,23 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
         private set
     init { ensureUsenet(servers.isNotEmpty(), "The add-on supplied no usable NNTP server.") }
 
+    fun warm(count: Int) {
+        repeat(minOf(count, servers[preferred].limit)) {
+            kotlinx.coroutines.Dispatchers.IO.dispatch(kotlin.coroutines.EmptyCoroutineContext) {
+                val server = servers[preferred]
+                val slot = NewsPool.warmSlot(server, tlsFactory, this) ?: return@dispatch
+                var healthy = false
+                try {
+                    val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(15)
+                    slot.connection = NewsConnection(server, tlsFactory, deadline, trace) { NewsPool.register(slot, it) }
+                    healthy = true
+                } catch (_: Exception) {
+                    trace?.add("warm_failures")
+                } finally { NewsPool.finish(slot, healthy) }
+            }
+        }
+    }
+
     fun fetchAhead(id: String): Article? {
         val index = preferred
         val server = servers[index]
@@ -393,7 +419,7 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
         var healthy = false
         try {
             val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(readBudgetMs)
-            val connection = slot.connection ?: NewsConnection(server, tlsFactory, deadline) { NewsPool.register(slot, it) }
+            val connection = slot.connection ?: NewsConnection(server, tlsFactory, deadline, trace) { NewsPool.register(slot, it) }
                 .also { slot.connection = it }
             return connection.fetch(id, emptyList(), deadline).also { healthy = true }
         } finally {
@@ -422,7 +448,7 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
                     val lease = NewsPool.acquire(servers[index], tlsFactory, this, id, allowQueued = serialOnly.get(index) == 0, readDeadline = deadline)
                     slot = lease
                     reused = lease.connection != null
-                    val active = lease.connection ?: NewsConnection(servers[index], tlsFactory, deadline) { NewsPool.register(lease, it) }
+                    val active = lease.connection ?: NewsConnection(servers[index], tlsFactory, deadline, trace) { NewsPool.register(lease, it) }
                         .also { lease.connection = it }
                     readingArticle = true
                     val draining = !active.canFetch(id, allowQueued = true)

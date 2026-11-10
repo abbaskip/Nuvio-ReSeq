@@ -8,11 +8,14 @@ import java.io.InputStream
 import java.util.zip.GZIPInputStream
 
 internal object NzbDownload {
+    private val cache = NzbMemoryCache()
     // Redirects are processed here to keep addon credentials on their original origin.
     private val client by lazy { OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
         .callTimeout(30, java.util.concurrent.TimeUnit.SECONDS).build() }
 
-    fun fetch(url: String, headers: Map<String, String>, preparation: UsenetPreparation): NzbDocument {
+    fun fetch(url: String, headers: Map<String, String>, preparation: UsenetPreparation, trace: UsenetStartupTrace? = null): NzbDocument {
+        preparation.own(Closeable {}) // A cache hit must still respect cancelled preparation ownership.
+        cache.get(url, headers)?.let { trace?.add("nzb_cache_hits"); return it }
         var request = Request.Builder().url(url).apply {
             headers.forEach { (name, value) ->
                 if (name.lowercase() !in setOf("host", "content-length", "connection", "accept-encoding")) header(name, value)
@@ -39,7 +42,10 @@ internal object NzbDownload {
                     val wire = bounded(body.byteStream())
                     val decoded = if (wire.size >= 2 && wire[0] == 0x1f.toByte() && wire[1] == 0x8b.toByte())
                         GZIPInputStream(wire.inputStream()).use(::bounded) else wire
-                    return NzbManifest.parse(decoded)
+                    return NzbManifest.parse(decoded).also {
+                        trace?.add("nzb_bytes", decoded.size.toLong())
+                        cache.put(url, headers, it, decoded.size)
+                    }
                 }
             }
         }

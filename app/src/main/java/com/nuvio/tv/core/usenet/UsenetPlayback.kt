@@ -40,25 +40,29 @@ internal object UsenetPlayback {
     }
 
     suspend fun resolve(stream: Stream, videoId: String? = null, season: Int? = null, episode: Int? = null): Stream {
+        val trace = UsenetStartupTrace()
+        var success = false
         val (requestedSeason, requestedEpisode) = requestEpisode(videoId, season, episode)
         var awaitingHandoff: Stream? = null
         try {
             val result = kotlinx.coroutines.withTimeoutOrNull(120_000L) {
-                resolveWithinDeadline(stream, requestedSeason, requestedEpisode).also { awaitingHandoff = it }
+                resolveWithinDeadline(stream, requestedSeason, requestedEpisode, trace).also { awaitingHandoff = it }
             } ?: throw UsenetFailure("Timed out preparing this Usenet release.")
             awaitingHandoff = null
+            success = true
             return result
         } finally {
+            trace.finish(success)
             awaitingHandoff?.url?.let(::release)
         }
     }
 
-    private suspend fun resolveWithinDeadline(stream: Stream, season: Int?, episode: Int?): Stream = suspendCancellableCoroutine { continuation ->
+    private suspend fun resolveWithinDeadline(stream: Stream, season: Int?, episode: Int?, trace: UsenetStartupTrace): Stream = suspendCancellableCoroutine { continuation ->
         val preparation = UsenetPreparation()
         continuation.invokeOnCancellation { preparation.close() }
         Dispatchers.IO.asExecutor().execute {
             try {
-                val prepared = prepare(stream, season, episode, preparation) { continuation.context.ensureActive() }
+                val prepared = prepare(stream, season, episode, preparation, trace) { continuation.context.ensureActive() }
                 continuation.resume(prepared, onCancellation = { _, value, _ -> value.url?.let(::release) })
             } catch (error: Exception) {
                 preparation.close()
@@ -69,26 +73,35 @@ internal object UsenetPlayback {
         }
     }
 
-    private fun prepare(stream: Stream, season: Int?, episode: Int?, preparation: UsenetPreparation, checkActive: () -> Unit): Stream {
+    private fun prepare(stream: Stream, season: Int?, episode: Int?, preparation: UsenetPreparation, trace: UsenetStartupTrace, checkActive: () -> Unit): Stream {
         val source = requireNotNull(stream.usenet)
-        val document = NzbDownload.fetch(source.nzbUrl, stream.behaviorHints?.proxyHeaders?.request.orEmpty(), preparation)
-        checkActive()
-        val articles = NewsArticles(source.servers)
+        val articles = NewsArticles(source.servers, trace = trace)
         preparation.own(articles)
+        articles.warm(2)
+        trace.mark("nzb_request")
+        val document = NzbDownload.fetch(source.nzbUrl, stream.behaviorHints?.proxyHeaders?.request.orEmpty(), preparation, trace)
+        trace.mark("nzb_received")
+        trace.add("files", document.files.size.toLong())
+        checkActive()
         var preparationCheck: (() -> Unit)? = checkActive
         val cache = ArticleCache(
             fetchAhead = if (articles.canPrefetch) articles::fetchAhead else null,
-            allowSequentialAhead = { articles.sequentialReadAhead }
+            allowSequentialAhead = { articles.sequentialReadAhead }, trace = trace
         ) { id, next ->
             preparationCheck?.invoke()
             articles.fetch(id, next)
         }
-        val file = UsenetSelection.select(document.files, cache, stream.fileIdx, source.filters, season, episode, document.password, checkActive)
+        trace.mark("selection_started")
+        val file = UsenetSelection.select(document.files, cache, stream.fileIdx, source.filters, season, episode, document.password) {
+            preparationCheck?.invoke()
+        }
+        trace.mark("selection_done")
         checkActive()
         preparationCheck = null
-        val session = UsenetHttpSession(file, articles)
+        val session = UsenetHttpSession(file, articles, trace)
         preparation.own(java.io.Closeable { cleanup.execute { session.close() } })
         session.start()
+        trace.mark("session_started")
         synchronized(sessions) {
             if (sessions.size >= 2) release(sessions.keys.first())
             sessions[session.url] = session

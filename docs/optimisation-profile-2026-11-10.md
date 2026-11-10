@@ -16,9 +16,14 @@ Nuvio-ReSeq dev baseline `3557414`. Measurements used a local NNTP server, synth
 | C10 · mpv | Playing and seeking a 64 MiB local MP4 with its index at the end produced three byte-range requests, with two open simultaneously. | Retain mpv caching and allow overlapping readers. A new range alone does not establish abandonment. |
 | C11 · Media3 VOD cache | Reading 2 MiB through a Usenet session wrote 2 MiB to disk. Replaying the same URL required zero upstream bytes. A new session URL added another 2 MiB. | Retain same-session caching. Stable cross-session keys require a reliable content identity. |
 
+## A4 · Baseline profiles on Android TV
+
+Four emulator journeys exercised guide scrolling, Sports Hub event-to-channel matching, On Demand browsing and NNTP playback through the first rendered video frame. Both minified APKs required the installed baseline profile and had identical DEX files. A control/expanded/expanded/control comparison ran seven cold launches per feature per pass. Median initial display times (control → expanded) were 966 → 954 ms for the guide, 985 → 960 ms for Sports, 631 → 657 ms for On Demand and 467 → 505 ms for NNTP. NNTP's first rendered video frame measured 953 → 960 ms. Other launch samples varied with host load.
+
+A separate comparison with a fresh emulator boot for each APK measured median guide JIT compilation count falling from 34 to 23 and Sports from 36 to 26. The corresponding summed JIT durations fell from 194 to 48 ms and 177 to 37 ms. On Demand stayed at 21 compilations and NNTP at 19. The exploratory binary profile grew by 4,303 bytes. The checked-in subset retains the guide, Sports and shared Live TV data/model rules. The four journeys remain available for future comparisons. No general cold-launch speedup was established. See [the fixture instructions](../baselineprofile/fixtures/README.md).
+
 ## Outstanding or deferred
 
-- Shipping baseline-profile expansion (A4) needs representative release journeys and a first-use comparison. The instrumented guide journey establishes a fixture for that work.
 - Sports updates still publish as leagues finish (A10). Waiting for an entire round could delay a live score or its channel information. The measured change reduces the cost per update instead.
 - Release JankStats is gated by debug build or explicit logging. Ordinary playback did not justify globally stripping logs. Pooling unrelated HTTP clients (A11) would couple their timeout, credential and cancellation policies.
 - Archive preparation gained bounded prefetch. Persistent archive indexes and guessing episodes from outer filenames (B3), broader TVDB lock changes and persistent order storage (B4), delaying side-readers (B5), and changing general range-source polling (B6) remain deferred.

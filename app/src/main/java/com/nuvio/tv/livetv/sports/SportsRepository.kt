@@ -122,7 +122,7 @@ class SportsRepository @Inject constructor(
         // Keep provider fixtures even when the guide has an airing at a similar time.
         // All Events uses these verified entries; TV Now uses the guide's programme times.
         val fixtures = f.values.flatMap { it.events }
-        val espn = l.values.flatMap { it.events } + w.values.flatMap { it.events }
+        val espn = SportsDaySchedule.freshest(l.values.flatMap { it.events } + w.values.flatMap { it.events })
         // Prefer scored fixtures over matching calendar entries. Keep TV airings separately:
         // they belong to TV Now even when All Events already contains the actual match.
         val identities = SportsEventIdentity.Round()
@@ -339,6 +339,46 @@ class SportsRepository @Inject constructor(
         forceAll = true
         forceExtras = true
         kick.value++
+    }
+
+    /** Explicit date selection can fill gaps in the shared catalogue, including during preview. */
+    suspend fun loadDay(offset: Int): String? = withContext(Dispatchers.IO) {
+        if (offset !in -DAYS_BACK..DAYS_AHEAD) return@withContext null
+        cacheLoaded.first { it }
+        val start = dayStart(offset)
+        val end = dayStart(offset + 1)
+        val gate = Semaphore(3)
+        val failed = java.util.concurrent.atomic.AtomicInteger()
+        coroutineScopeFetch(activeLeagues()) { league ->
+            gate.withPermit {
+                val zone = java.time.ZoneId.of(if (league.sport == Sport.CRICKET || league.id.startsWith("tsdb/")) "UTC" else "America/New_York")
+                val dates = SportsDaySchedule.dates(start, end, zone, if (league.id.startsWith("tsdb/")) "yyyy-MM-dd" else "yyyyMMdd")
+                val fetched = mutableListOf<SportsEvent>()
+                for (date in if (league.fixtureSlug != null && league.espnPath == null) listOf("calendar") else dates) {
+                    if (league.espnPath == null && league.fixtureSlug == null && !league.id.startsWith("tsdb/")) continue
+                    val result = sportsCatching {
+                        val saved = freeCached("day_${safe(league.id)}_$date", 30 * MINUTE) {
+                            when {
+                                league.espnPath != null -> feeds.scoreboardDayRaw(league, date)
+                                league.fixtureSlug != null -> feeds.fixturesRaw(league.fixtureSlug)
+                                else -> freeDb.get("eventsday.php", "d" to date, "l" to league.id.removePrefix("tsdb/"))
+                            }
+                        } ?: error("Schedule unavailable")
+                        when {
+                            league.espnPath != null -> SportsFeeds.parseScoreboard(league, saved.second)
+                            league.fixtureSlug != null -> SportsFeeds.parseFixtures(league, saved.second)
+                            else -> FreeSportsDb.events(league, saved.second, saved.first)
+                        }.map { it.copy(updatedAt = saved.first) }
+                    }
+                    result.onSuccess { fetched += it }.onFailure { failed.incrementAndGet() }
+                }
+                // Keep other dates and already saved fixtures when a provider is unavailable.
+                val key = "day|$start|${league.id}"
+                weekData.update { data -> data + (key to LeagueData(SportsDaySchedule.freshest(
+                    fetched + data[key]?.events.orEmpty()), System.currentTimeMillis(), null)) }
+            }
+        }
+        if (failed.get() > 0) "Some events couldn't be loaded for this date. Showing available events." else null
     }
 
     @Volatile private var forceAll = false
@@ -731,14 +771,20 @@ class SportsRepository @Inject constructor(
             if (prior == null || now - prior >= 5 * MINUTE) { allowed = true; now } else prior
         }
         if (!allowed) return saved
-        return sportsCatching {
-            val raw = fetch()
-            val payload = kotlinx.serialization.json.Json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject
-            require(payload != null && payload.keys.any { it in setOf("leagues", "countries", "events", "event", "tvevent", "tv", "eventtv", "teams") })
-            file.writeText("$now\n$raw")
+        return try {
+            sportsCatching {
+                val raw = fetch()
+                val payload = kotlinx.serialization.json.Json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject
+                require(payload != null && payload.keys.any { it in setOf("leagues", "countries", "events", "event", "tvevent", "tv", "eventtv", "teams") })
+                file.writeText("$now\n$raw")
+                freeAttemptAt.remove(name)
+                now to raw
+            }.getOrElse { saved }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            // Changing the selected date must not turn an interrupted request into a failure backoff.
             freeAttemptAt.remove(name)
-            now to raw
-        }.getOrElse { saved }
+            throw cancelled
+        }
     }
 
     /** Independent public-key fallback. Every list is explicitly partial on this tier. */
@@ -961,7 +1007,7 @@ class SportsRepository @Inject constructor(
         ) { _, _, _, _ -> Unit }
         var lastRun = 0L
         launch {
-            // …and every 15 minutes (shows move on; new guide listings).
+            // â€¦and every 15 minutes (shows move on; new guide listings).
             while (true) {
                 delay(15 * MINUTE)
                 if (foreground.value && System.currentTimeMillis() - lastRun > 10 * MINUTE) matchKick.value++
@@ -1299,7 +1345,7 @@ class SportsRepository @Inject constructor(
     private val _standings = MutableStateFlow<Map<String, Standings>>(emptyMap())
     /** League tables looked at (or needed for My Sports' row headers), by league id. */
     val standings: StateFlow<Map<String, Standings>> = _standings.asStateFlow()
-    /** Leagues without a table (a cup, golf…): when we found out, so they aren't asked again for a while. */
+    /** Leagues without a table (a cup, golfâ€¦): when we found out, so they aren't asked again for a while. */
     private val noTable = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val tableLocks = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.sync.Mutex>()
 
@@ -1502,7 +1548,7 @@ class SportsRepository @Inject constructor(
 
     /**
      * The game's ESPN summary, one request for the latest scoring and everything under it (team
-     * stats, leaders, form, the table…). Asked again after 25 seconds while it's on (straight away
+     * stats, leaders, form, the tableâ€¦). Asked again after 25 seconds while it's on (straight away
      * when the score changes), otherwise after half an hour.
      */
     private suspend fun summaryFor(ev: SportsEvent): GameSummary? = withContext(Dispatchers.IO) {
@@ -1518,7 +1564,7 @@ class SportsRepository @Inject constructor(
         GameSummary(System.currentTimeMillis(), sig, plays, extras).also { synchronized(summaryCache) { summaryCache[ev.id] = it } }
     }
 
-    /** The game's scoring plays (touchdowns, goals…), when ESPN has them. */
+    /** The game's scoring plays (touchdowns, goalsâ€¦), when ESPN has them. */
     suspend fun scoringPlays(ev: SportsEvent): List<ScoringPlay> =
         if (ev.state == GameState.PRE) emptyList() else summaryFor(ev)?.plays.orEmpty()
 

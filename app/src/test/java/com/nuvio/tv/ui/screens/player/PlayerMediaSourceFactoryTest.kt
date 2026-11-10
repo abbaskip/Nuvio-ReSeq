@@ -11,6 +11,16 @@ import java.util.Base64
 
 class PlayerMediaSourceFactoryTest {
 
+    @Test fun parallelRangesRespectStreamTransport() {
+        val session = "http://127.0.0.1:8765/usenet/01234567-89ab-cdef-0123-456789abcdef/video.mkv"
+        val local = "http://127.0.0.1:8765/other/video.mkv"
+        assertFalse(PlayerMediaSourceFactory.shouldUseParallelRanges(session, true, false, false))
+        assertTrue(PlayerMediaSourceFactory.shouldUseParallelRanges(local, true, false, false))
+        assertFalse(PlayerMediaSourceFactory.shouldUseParallelRanges(local, false, false, false))
+        assertFalse(PlayerMediaSourceFactory.shouldUseParallelRanges(local, true, true, false))
+        assertFalse(PlayerMediaSourceFactory.shouldUseParallelRanges(local, true, false, true))
+    }
+
     @Test
     fun `media segment 404 with an alternative prefers another HLS track`() {
         assertTrue(

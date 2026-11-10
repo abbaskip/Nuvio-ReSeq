@@ -30,6 +30,7 @@ import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.text.SubtitleParser
 import com.nuvio.tv.NuvioApplication
 import com.nuvio.tv.R
+import com.nuvio.tv.core.usenet.UsenetHttpSession
 import com.nuvio.tv.core.util.findCause
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -208,6 +209,7 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         }
 
         val mediaItem = mediaItemBuilder.build()
+        val useChunkSessionSource = shouldUseParallelRanges(url, useParallelConnections, isHls, isDash)
 
         Log.i(
             "PlayerMediaSource",
@@ -218,9 +220,8 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
                 "backBufferMs=${NuvioExoPlayerPerformanceHelper.backBufferMs} " +
                 "targetMb=${NuvioExoPlayerPerformanceHelper.targetBufferSizeMb} " +
                 "safeNativeMb=${NuvioExoPlayerPerformanceHelper.getSafeNativeMemoryLimitMb(context)} " +
-                "parallel=${if (useParallelConnections) parallelConnectionCount else 0} chunkKb=$parallelChunkSizeKb"
+                "parallel=${if (useChunkSessionSource) parallelConnectionCount else 0} chunkKb=$parallelChunkSizeKb"
         )
-        val useChunkSessionSource = useParallelConnections && !isHls && !isDash
         parallelStartupPrefetchUnlocked.set(!useChunkSessionSource)
         val networkProgressiveFactory: DataSource.Factory = if (useChunkSessionSource) {
             val sessionConnections = parallelConnectionCount
@@ -573,6 +574,10 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
                 headers = sanitizeHeaders(mergedHeaders)
             )
         }
+
+        // NNTP already pipelines sequential articles within the provider's socket allowance.
+        internal fun shouldUseParallelRanges(url: String, enabled: Boolean, isHls: Boolean, isDash: Boolean) =
+            enabled && !isHls && !isDash && !UsenetHttpSession.isSessionUrl(url)
 
         internal fun isLoopbackUrl(url: String): Boolean {
             val host = url.toHttpUrlOrNull()?.host ?: return false

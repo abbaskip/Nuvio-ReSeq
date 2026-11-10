@@ -19,6 +19,37 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class UsenetPlaybackTest {
+    @Test fun pipelinedArticlesKeepStatusAndPayloadAcrossShortReads() {
+        val bytes = byteArrayOf(4, -42, -32, -29, 19) // Dot-stuffing and all four yEnc escapes.
+        val reply = "222 fixture\r\n".toByteArray() + article(bytes, 0, bytes.size)
+        for (blockSize in listOf(1, 2, 13, 8192)) {
+            val input = object : java.io.ByteArrayInputStream(reply + reply) {
+                override fun read(buffer: ByteArray, off: Int, len: Int) =
+                    super.read(buffer, off, minOf(blockSize, len))
+            }
+            val reader = NewsWireReader(input)
+            repeat(2) {
+                assertEquals(222, reader.statusCode())
+                assertArrayEquals(bytes, decodeArticle(reader).bytes)
+            }
+        }
+    }
+
+    @Test fun wireReaderPreservesLineLimitsAndDistinguishesTruncation() {
+        fun reader(line: String) = NewsWireReader(line.byteInputStream())
+        assertEquals(8192, reader("a".repeat(8192) + "\n").readLine())
+        assertEquals(222, reader("222" + " ".repeat(8188) + "\n").statusCode())
+        assertEquals("Invalid Usenet article line.", assertThrows(UsenetFailure::class.java) {
+            reader("a".repeat(8193) + "\n").readLine()
+        }.message)
+        assertEquals("Invalid Usenet article line.", assertThrows(UsenetFailure::class.java) {
+            reader("a".repeat(8192) + "\n").statusCode()
+        }.message)
+        assertEquals("Usenet connection ended early.", assertThrows(UsenetFailure::class.java) {
+            reader("incomplete").readLine()
+        }.message)
+    }
+
     private fun resource(name: String) = checkNotNull(javaClass.getResourceAsStream("/usenet/$name")).use { it.readBytes() }
 
     private fun article(data: ByteArray, start: Int, total: Int): ByteArray {
@@ -264,12 +295,12 @@ class UsenetPlaybackTest {
     @Test fun rejectsCorruptArticle() {
         val bytes = article(byteArrayOf(1, 2, 3), 0, 3).toString(Charsets.ISO_8859_1)
         val bad = bytes.replace(Regex("pcrc32=[a-f0-9]+"), "pcrc32=0")
-        assertThrows(UsenetFailure::class.java) { decodeArticle(bad.byteInputStream(Charsets.ISO_8859_1).buffered()) }
+        assertThrows(UsenetFailure::class.java) { decodeArticle(NewsWireReader(bad.byteInputStream(Charsets.ISO_8859_1))) }
     }
 
     @Test fun handlesEscapesAndNntpDotStuffing() {
         val input = ByteArray(256) { (it + 4).toByte() }
-        assertArrayEquals(input, decodeArticle(article(input, 0, 256).inputStream().buffered()).bytes)
+        assertArrayEquals(input, decodeArticle(NewsWireReader(article(input, 0, 256).inputStream())).bytes)
     }
 
     @Test fun rejectsMissingArticleAndUnsafeXml() {

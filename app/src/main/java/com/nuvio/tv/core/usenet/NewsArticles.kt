@@ -1,7 +1,6 @@
 package com.nuvio.tv.core.usenet
 
-import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.io.Closeable
 import java.io.IOException
 import java.net.ConnectException
@@ -22,18 +21,41 @@ internal data class Article(val start: Long, val total: Long, val bytes: ByteArr
 }
 
 private const val MAX_PART = 4 * 1024 * 1024
-private fun BufferedInputStream.newsLine(): String {
-    val line = ByteArrayOutputStream(160)
-    while (line.size() < 8192) {
-        val c = read()
-        if (c < 0) throw UsenetFailure("Usenet connection ended early.")
-        if (c == 10) return line.toString("ISO-8859-1").removeSuffix("\r")
-        line.write(c)
+/** One reader owns all read-ahead, including status lines between pipelined articles. */
+internal class NewsWireReader(private val input: InputStream) {
+    private val block = ByteArray(8192)
+    private var position = 0
+    private var end = 0
+    val line = ByteArray(8192)
+
+    fun readLine(limit: Int = line.size): Int {
+        var length = 0
+        while (true) {
+            if (position == end) {
+                end = input.read(block)
+                if (end < 0) throw UsenetFailure("Usenet connection ended early.")
+                position = 0
+            }
+            val start = position
+            while (position < end && block[position] != 10.toByte()) position++
+            val count = position - start
+            ensureUsenet(count <= limit - length, "Invalid Usenet article line.")
+            block.copyInto(line, length, start, position)
+            length += count
+            if (position < end) {
+                position++
+                return length
+            }
+        }
     }
-    throw UsenetFailure("Invalid Usenet article line.")
+
+    fun statusCode(): Int? {
+        val length = readLine(line.size - 1)
+        return String(line, 0, length, Charsets.ISO_8859_1).removeSuffix("\r").take(3).toIntOrNull()
+    }
 }
 
-internal fun decodeArticle(input: BufferedInputStream): Article {
+internal fun decodeArticle(input: NewsWireReader): Article {
     var total = 0L
     var start = 0L
     var multipart = false
@@ -41,7 +63,7 @@ internal fun decodeArticle(input: BufferedInputStream): Article {
     var written = 0
     var finished = false
     var filename: String? = null
-    val line = ByteArray(8192)
+    val line = input.line
     var wireBytes = 0
     fun String.field(name: String) = split(' ').firstOrNull { it.startsWith("$name=") }?.substringAfter('=')
     fun buffer(size: Long): ByteArray {
@@ -49,14 +71,7 @@ internal fun decodeArticle(input: BufferedInputStream): Article {
         return ByteArray(size.toInt())
     }
     while (true) {
-        var length = 0
-        while (true) {
-            val c = input.read()
-            if (c < 0) throw UsenetFailure("Usenet connection ended early.")
-            if (c == 10) break
-            ensureUsenet(length < line.size, "Invalid Usenet article line.")
-            line[length++] = c.toByte()
-        }
+        var length = input.readLine()
         wireBytes += length + 1
         ensureUsenet(wireBytes <= MAX_PART * 3, "Usenet article exceeds the size limit.")
         if (length > 0 && line[length - 1] == 13.toByte()) length--
@@ -134,7 +149,7 @@ private class NewsServer(val host: String, val port: Int, val tls: Boolean, val 
 private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, private var deadline: Long,
                              register: (Socket) -> Unit) : Closeable {
     private var socket = connect(server, register)
-    private val input: BufferedInputStream
+    private val input: NewsWireReader
     private val pending = java.util.ArrayDeque<String>(3)
     init {
         try {
@@ -148,7 +163,7 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
             }
             // A socket idle timeout alone can be kept alive indefinitely by trickled bytes.
             val raw = socket.getInputStream()
-            input = object : java.io.InputStream() {
+            input = NewsWireReader(object : InputStream() {
                 var timeout = 12_000
                 private fun updateTimeout() {
                     val remaining = deadline - System.nanoTime()
@@ -167,7 +182,7 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
                     updateTimeout()
                     return raw.read(buffer, off, len)
                 }
-            }.buffered()
+            })
             ensureUsenet(status() in setOf(200, 201), "Usenet provider refused the connection.")
             if (server.user != null) {
                 var auth = command("AUTHINFO USER " + server.user)
@@ -197,7 +212,7 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
             throw failure ?: UnknownHostException()
         }
     }
-    private fun status() = input.newsLine().take(3).toIntOrNull()
+    private fun status() = input.statusCode()
     private fun send(value: String) = socket.getOutputStream().write((value + "\r\n").toByteArray(Charsets.UTF_8))
     private fun command(value: String): Int? {
         send(value)

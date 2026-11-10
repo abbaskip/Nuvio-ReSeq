@@ -533,7 +533,9 @@ internal fun PlayerRuntimeController.initializePlayer(
             val isHlsStream = isHls || resolvedStreamMime == MimeTypes.APPLICATION_M3U8
             val isDashStream = resolvedStreamMime == MimeTypes.APPLICATION_MPD
             val parallelActive = playerSettings.parallelNetworkEnabled && playerSettings.useParallelConnections
-            val useChunkSessionSource = parallelActive && !isHlsStream && !isDashStream
+            val useChunkSessionSource = PlayerMediaSourceFactory.shouldUseParallelRanges(
+                url, parallelActive, isHlsStream, isDashStream
+            )
 
             val parallelOverheadMb = if (useChunkSessionSource) {
                 val chunkMb = Math.ceil(playerSettings.parallelChunkSizeKb / 1024.0)

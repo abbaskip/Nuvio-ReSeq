@@ -1,5 +1,9 @@
 package com.nuvio.tv.core.usenet
 
+internal data class UsenetMemoryProfile(val cacheBytes: Int = 8 * 1024 * 1024, val window: Int = 0, val aheadBytes: Int = 0) {
+    companion object { val LOW = UsenetMemoryProfile() }
+}
+
 /** Only fixed stage labels and numeric counters reach logcat. Never include exception text. */
 internal class UsenetStartupTrace(private val log: (String) -> Unit = { android.util.Log.i("UsenetStartup", it); Unit }) {
     private val start = System.nanoTime()

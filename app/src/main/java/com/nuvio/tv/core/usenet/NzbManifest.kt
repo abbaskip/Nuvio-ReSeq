@@ -19,7 +19,7 @@ internal class NzbDocument(val files: List<NzbFile>, val password: String?)
 internal object NzbManifest {
     const val MAX_BYTES = 12 * 1024 * 1024
     private val quoted = Regex("\"([^\"]+)\"")
-    private val unquoted = Regex("""(?i)([^\s"]+\.(?:(?:7z|mkv|mp4|webm|avi|m4v|mov|m2ts|ts|mpg|mpeg|wmv)(?:\.\d{3,5})?|rar|[r-z]\d\d|par2))\b""")
+    private val unquoted = Regex("""(?i)([^\s"]+\.(?:(?:7z|mkv|mp4|webm|avi|m4v|mov|m2ts|ts|mpg|mpeg|wmv)(?:\.\d{3,5})?|rar(?:\.\d{3,5})?|[r-z]\d{2,3}|par2|\d{3,5}))\b""")
     private val messageId = Regex("[!-~]{1,500}")
 
     fun parse(bytes: ByteArray): NzbDocument {

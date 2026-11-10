@@ -1,5 +1,7 @@
 package com.nuvio.tv.core.usenet
 
+import kotlinx.coroutines.asExecutor
+
 /** read() returns bytes from a single contiguous extent. Callers can span extents by reading again. */
 internal interface UsenetFile {
     val name: String
@@ -10,6 +12,7 @@ internal interface UsenetFile {
 internal class ArticleCache(
     private val fetchAhead: ((String) -> Article?)? = null,
     private val allowSequentialAhead: () -> Boolean = { true },
+    private val profile: UsenetMemoryProfile = UsenetMemoryProfile.LOW,
     private val trace: UsenetStartupTrace? = null,
     private val fetch: (String, List<String>) -> Article
 ) {
@@ -17,8 +20,28 @@ internal class ArticleCache(
     private val missing = LinkedHashSet<String>()
     private val loading = mutableMapOf<String, java.util.concurrent.CompletableFuture<Article?>>()
     private var used = 0
-    private val evicted = LinkedHashSet<String>()
     private var prefetchBusy = false
+    private val heads = LinkedHashMap<String, HeadSlice>(16, 0.75f, true)
+    private val evicted = LinkedHashSet<String>()
+    internal data class HeadSlice(val article: Article, val length: Int)
+    @Synchronized fun headSlice(id: String): HeadSlice? = heads[id]
+    fun head(id: String): Article? = headSlice(id)?.article
+    @Synchronized fun retainedBytes(): Int = used
+
+    fun probeHeads(ids: List<String>, checkActive: () -> Unit) {
+        for (batch in ids.chunked(8)) {
+            checkActive()
+            val futures = batch.map { id ->
+                java.util.concurrent.CompletableFuture.runAsync({
+                    if (head(id) == null) try { get(id) } catch (_: java.io.IOException) { }
+                }, kotlinx.coroutines.Dispatchers.IO.asExecutor())
+            }
+            futures.forEach { it.join() }
+            checkActive()
+        }
+    }
+
+    fun archive(kind: String, volumes: Int) { trace?.archive(kind, volumes) }
 
     operator fun get(id: String): Article = load(id, emptyList())
 
@@ -66,7 +89,7 @@ internal class ArticleCache(
         }
     }
 
-    /** One speculative BODY per session. A spare socket may decline without poisoning demand. */
+    /** One speculative BODY per session; demand retries declined spare leases. */
     fun prefetch(id: String?, archive: Boolean = false) {
         val reader = fetchAhead ?: return
         if (id == null || (!archive && !allowSequentialAhead())) return
@@ -94,10 +117,14 @@ internal class ArticleCache(
 
     private fun store(id: String, article: Article) {
         if (evicted.remove(id)) trace?.add("refetches")
+        if (article.start == 0L) {
+            heads[id] = HeadSlice(article.copy(bytes = article.bytes.copyOf(minOf(16384, article.bytes.size))), article.bytes.size)
+            if (heads.size > 512) heads.remove(heads.keys.first())
+        }
         used -= entries.put(id, article)?.bytes?.size ?: 0
         used += article.bytes.size
         val iterator = entries.entries.iterator()
-        while ((used > 8 * 1024 * 1024 || entries.size > 2048) && iterator.hasNext()) {
+        while ((used > profile.cacheBytes || entries.size > 2048) && iterator.hasNext()) {
             val entry = iterator.next()
             used -= entry.value.bytes.size
             evicted.add(entry.key)
@@ -117,12 +144,15 @@ internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verify
     init {
         ensureUsenet(ids.isNotEmpty(), "NZB is missing one or more file segments.")
         val lookAhead = if (verifyTail && ids.size > 1) listOf(ids.last()) else nextHeads
-        val first = cache.load(ids.first(), lookAhead)
-        stride = first.bytes.size
+        val retained = cache.headSlice(ids.first())
+        val first = retained?.article ?: cache.load(ids.first(), lookAhead)
+        stride = retained?.length ?: first.bytes.size
         size = first.total
-        ensureUsenet(first.start == 0L && stride > 0 && first.end <= size, "NZB is missing the start of a file.")
-        offsets[0] = KnownPart(0, first.end)
-        if (verifyTail || ids.size == 1) {
+        ensureUsenet(first.start == 0L && stride > 0 && stride <= size, "NZB is missing the start of a file.")
+        offsets[0] = KnownPart(0, stride.toLong())
+        if (ids.size == 1) {
+            ensureUsenet(stride.toLong() == size, "NZB is missing the end of a file.")
+        } else if (verifyTail) {
             val last = cache[ids.last()]
             ensureUsenet(last.total == size && last.end == size, "NZB is missing the end of a file.")
             offsets[last.start] = KnownPart(ids.lastIndex, last.end)
@@ -132,6 +162,13 @@ internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verify
     override fun read(position: Long, buffer: ByteArray, offset: Int, length: Int): Int {
         if (length == 0) return 0
         if (position >= size) return -1
+        cache.head(ids.first())?.let { head ->
+            if (position < head.bytes.size) {
+                val count = minOf(length, head.bytes.size - position.toInt())
+                head.bytes.copyInto(buffer, offset, position.toInt(), position.toInt() + count)
+                return count
+            }
+        }
         val (floor, nextIndex) = synchronized(offsets) {
             (offsets.floorEntry(position) ?: throw UsenetFailure("Invalid Usenet video offset.")) to
                 (offsets.higherEntry(position)?.value?.index?.minus(1) ?: ids.lastIndex)
@@ -211,4 +248,16 @@ internal class StoredFile(override val name: String, private val extents: List<F
         val within = position - (ends[index] - extent.length)
         return extent.volume.read(extent.offset + within, buffer, offset, minOf(length.toLong(), extent.length - within).toInt())
     }
+}
+
+/** Split-file sizes are predictions until their decoded yEnc header is opened. */
+internal class LazyPostedFile(private val file: NzbFile, private val cache: ArticleCache,
+                              override val size: Long) : UsenetFile {
+    override val name = file.name
+    private val opened by lazy {
+        PostedFile(file, cache, verifyTail = false).also {
+            ensureUsenet(it.size == size, "Inconsistent split volume size.")
+        }
+    }
+    override fun read(position: Long, buffer: ByteArray, offset: Int, length: Int) = opened.read(position, buffer, offset, length)
 }

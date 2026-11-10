@@ -1,3 +1,5 @@
+// Lazy archive behavior adapted from haaihond/NuvioTV (GPL-3.0),
+// native/usenet/internal/engine/select.go, commit bc6decd434c5718d4cb98e1ffddd9f1708bdd8b6.
 package com.nuvio.tv.core.usenet
 
 import com.google.re2j.Pattern
@@ -8,13 +10,13 @@ internal class UsenetCandidate(val name: String, val estimate: Long, val open: (
 
 internal object UsenetSelection {
     private val videos = setOf("mkv", "mp4", "webm", "avi", "m4v", "mov", "m2ts", "ts", "mpg", "mpeg", "wmv")
-    private val rar = Regex("""(?i)^(.*?)(?:\.part(\d+)\.rar|\.([r-z])(\d\d)|\.rar)$""")
+    private val rar = Regex("""(?i)^(.*?)(?:\.part(\d+)\.rar|\.([r-z])(\d{2,3})|\.rar)$""")
     private val split = Regex("""(?i)^(.+)\.(\d{3,5})$""")
     private val sidecars = setOf("par2", "nfo", "sfv", "srr", "nzb", "srt", "sub", "txt", "jpg", "png")
 
     private fun videoName(name: String) = name.substringAfterLast('.').lowercase() in videos
 
-    private enum class Kind { RAR, SEVEN_ZIP, VIDEO }
+    private enum class Kind { RAR, SEVEN_ZIP, VIDEO, NUMERIC }
     private data class Volume(val key: String, val number: Int, val first: Int, val kind: Kind)
 
     private fun volume(name: String): Volume? {
@@ -30,6 +32,7 @@ internal object UsenetSelection {
         val kind = when {
             key.endsWith(".7z") -> Kind.SEVEN_ZIP
             parts != null && videoName(key) -> Kind.VIDEO
+            parts != null -> Kind.NUMERIC
             else -> return null
         }
         return Volume(key, parts?.groupValues?.get(2)?.toInt() ?: 0, if (parts == null) 0 else 1, kind)
@@ -92,21 +95,23 @@ internal object UsenetSelection {
             }
             names
         }
+        cache.archive("obfuscated", files.count(::unknown))
+        cache.probeHeads(files.filter(::unknown).take(4096).map { it.articles.first() }, checkActive)
         var probes = 0
         val recovered = files.mapIndexed { i, file ->
-            if (!unknown(file) || probes >= 64) return@mapIndexed file
+            if (!unknown(file) || probes >= 4096) return@mapIndexed file
             checkActive()
             probes++
             try {
-                val head = cache[file.articles.first()]
+                val head = cache.head(file.articles.first()) ?: cache[file.articles.first()]
                 val name = head.filename?.takeIf(::recognized)
-                    ?: descriptions.takeIf { it.hasDescriptions() }?.find(PostedFile(file, cache, verifyTail = false))
-                        ?.takeIf(::recognized)
                     ?: when {
                         head.bytes.startsWith(StoredSevenZip.signature) -> "unnamed-$i.7z"
                         head.bytes.startsWith(StoredRar.signature) -> "unnamed-$i.rar"
                         else -> null
                     }
+                    ?: descriptions.takeIf { it.hasDescriptions() }?.find(PostedFile(file, cache, verifyTail = false))
+                        ?.takeIf(::recognized)
                 if (name == null) file else file.copy(name = name)
             } catch (e: UsenetFailure) {
                 checkActive()
@@ -128,19 +133,23 @@ internal object UsenetSelection {
             val v = volumes[i]
             v?.kind == Kind.RAR && v.first == 0 && v.number == 0 && v.key !in normalKeys && files[i].articles.isNotEmpty()
         }
-        if (possible.size !in 2..64) return files
+        if (possible.size !in 2..4096) return files
         data class Piece(val position: Int, val number: Long, val part: RarPart)
         val chains = mutableMapOf<Pair<String, Long>, MutableList<Piece>>()
         for (i in possible) {
             checkActive()
             try {
-                val head = cache[files[i].articles.first()].bytes
-                if (!head.startsWith(StoredRar.signature) || head.getOrNull(6)?.toInt() != 1) continue
+                val head = (cache.head(files[i].articles.first()) ?: cache[files[i].articles.first()]).bytes
+                if (!head.startsWith(StoredRar.signature)) continue
+                val version = head.getOrNull(6)?.toInt() ?: continue
                 var number = -1L
                 val member = StoredRar.index(PostedFile(files[i], cache, false), passwords) { number = it }.singleOrNull() ?: continue
-                if (number !in 0..4095 || (!member.more && !member.continues)) continue
-                val key = member.name to (member.unpacked ?: continue)
-                chains.getOrPut(key) { mutableListOf() }.add(Piece(i, number, member))
+                if (!member.more && !member.continues) continue
+                val key = "$version:${member.name}" to (member.unpacked ?: continue)
+                val chain = chains.getOrPut(key) { mutableListOf() }
+                if (version == 0) number = chain.size.toLong() // RAR4 has no internal ordinal: preserve NZB order.
+                if (number !in 0..4095) continue
+                chain.add(Piece(i, number, member))
             } catch (_: UsenetFailure) { /* The normal per-archive path reports an unreadable volume if selected. */ }
         }
         val result = files.toMutableList()
@@ -157,79 +166,55 @@ internal object UsenetSelection {
     private fun ByteArray.startsWith(prefix: ByteArray) =
         size >= prefix.size && prefix.indices.all { this[it] == prefix[it] }
 
-    private fun rarFiles(volumes: Sequence<UsenetFile>, passwords: RarPasswords, checkActive: () -> Unit): List<UsenetCandidate> {
-        val candidates = mutableListOf<UsenetCandidate>()
-        var pending = mutableListOf<RarPart>()
-        for (file in volumes) {
-            checkActive()
-            for (part in StoredRar.index(file, passwords)) {
-                ensureUsenet(part.continues == pending.isNotEmpty() &&
-                    (!part.continues || pending.first().name == part.name), "Incomplete multipart RAR file.")
-                pending.add(part)
-                if (!part.more) {
-                    val chain = pending
-                    pending = mutableListOf()
-                    val length = chain.sumOf { it.extent.length }
-                    ensureUsenet(candidates.size < 8192, "Too many archived files.")
-                    candidates += UsenetCandidate(part.name, length) {
-                        ensureUsenet(chain.all { it.stored }, "This RAR video uses compression and cannot be streamed.")
-                        val packed = StoredFile(part.name, chain.map { it.extent })
-                        if (chain.none { it.encrypted }) packed else {
-                            val encryption = chain.first().encryption ?: throw UsenetFailure("Unsupported encrypted RAR layout.")
-                            val size = part.unpacked ?: throw UsenetFailure("Encrypted RAR file size is unknown.")
-                            ensureUsenet(size in 1..packed.size && packed.size - size < 16 && packed.size % 16 == 0L &&
-                                chain.all { encryption.sameCipher(it.encryption) && it.unpacked == size }, "Inconsistent encrypted RAR volumes.")
-                            RarPlaintext(packed, 0, size, passwords.key(encryption), encryption.iv)
-                        }
-                    }
-                }
-            }
-        }
-        ensureUsenet(pending.isEmpty(), "NZB is missing the final RAR volume.")
-        return candidates
-    }
-
     private fun groupFiles(group: List<Pair<Volume, NzbFile>>, cache: ArticleCache,
-                           passwords: RarPasswords, checkActive: () -> Unit): List<UsenetCandidate> {
-        val sorted = group.sortedBy { it.first.number }
+                           passwords: RarPasswords, checkActive: () -> Unit): Sequence<UsenetCandidate> = sequence {
+        val sorted = group.groupBy { it.second.name.lowercase() }.values.map { copies ->
+            copies.maxWith(compareBy<Pair<Volume, NzbFile>> { it.second.articles.isNotEmpty() }.thenBy { it.second.postedBytes })
+        }.sortedBy { it.first.number }
         val info = sorted.first().first
-        // Some posters number .part files from zero.
         val first = if (info.kind == Kind.RAR && info.number == 0) 0 else info.first
         ensureUsenet(sorted.withIndex().all { (i, pair) -> pair.first.number == first + i && pair.first.first == info.first },
             "NZB archive volumes are missing or duplicated.")
-        fun openVolume(index: Int, nextHeads: List<String>): UsenetFile {
+        val opened = sorted.map { pair -> lazy {
             checkActive()
-            return PostedFile(sorted[index].second, cache, verifyTail = false, nextHeads = nextHeads)
-        }
-        fun headAt(index: Int) = sorted.getOrNull(index)?.second?.articles?.firstOrNull()
-        // For RAR the indexer may immediately seek within a volume. Consume each pair
-        // of head replies before that seek. Joined files need every head in sequence.
-        val files = if (info.kind == Kind.RAR) sequence {
-            var i = 0
-            while (i < sorted.size) {
-                val segments = sorted[i].second.articles
-                if (segments.size > 1) cache.prefetch(segments.last(), archive = true)
-                val a = openVolume(i, listOfNotNull(headAt(i + 1)))
-                val b = if (i + 1 < sorted.size) openVolume(i + 1, emptyList()) else null
-                yield(a)
-                if (b != null) yield(b)
-                i += 2
+            PostedFile(pair.second, cache, verifyTail = false)
+        } }
+        fun openVolume(i: Int): UsenetFile = opened[i].value
+        val openers = sorted.indices.map { i -> { openVolume(i) } }
+        val kind = if (info.kind == Kind.NUMERIC) {
+            val head = openVolume(0).bytesAt(0, minOf(8L, openVolume(0).size).toInt())
+            when {
+                head.startsWith(StoredRar.signature) -> Kind.RAR
+                head.startsWith(StoredSevenZip.signature) -> Kind.SEVEN_ZIP
+                else -> throw UsenetFailure("Unrecognized split archive.")
             }
-        } else sorted.indices.asSequence().map { i -> openVolume(i, listOfNotNull(headAt(i + 1), headAt(i + 2))) }
-        val candidates = when (info.kind) {
-            Kind.RAR -> rarFiles(files, passwords, checkActive)
-            else -> {
-                val joined = StoredFile(info.key, files.map { FileExtent(it, 0, it.size) }.toList())
-                if (info.kind == Kind.SEVEN_ZIP) StoredSevenZip.index(joined)
-                else listOf(UsenetCandidate(info.key, joined.size) { joined })
-            }
+        } else info.kind
+        cache.archive(if (kind == Kind.RAR) "rar" else if (kind == Kind.SEVEN_ZIP) "7z" else "split", sorted.size)
+        val candidates = if (kind == Kind.RAR) {
+            RarWalker(openers, passwords, checkActive) { i, size -> LazyPostedFile(sorted[i].second, cache, size) }.candidates()
+        } else {
+            val head = openVolume(0)
+            val joined = StoredFile(info.key, sorted.indices.map { i ->
+                val file = if (i == 0) head else if (i == sorted.lastIndex) openVolume(i)
+                    else LazyPostedFile(sorted[i].second, cache, head.size)
+                FileExtent(file, 0, file.size)
+            })
+            if (kind == Kind.SEVEN_ZIP) StoredSevenZip.index(joined).asSequence()
+            else sequenceOf(UsenetCandidate(info.key, joined.size) { joined })
         }
-        // A single stored archive wrapped in another archive has an unambiguous member order.
-        val inner = candidates.singleOrNull() ?: return candidates
-        return when {
-            inner.name.endsWith(".rar", true) -> rarFiles(sequenceOf(inner.open()), passwords, checkActive)
-            inner.name.endsWith(".7z", true) -> StoredSevenZip.index(inner.open())
-            else -> candidates
+        // Preserve explicit-index semantics: only a sole archive member is unwrapped.
+        // Ordinary video candidates are yielded before asking the walker for another entry.
+        val iterator = candidates.iterator()
+        if (!iterator.hasNext()) return@sequence
+        val firstCandidate = iterator.next()
+        val nestedRar = firstCandidate.name.endsWith(".rar", true)
+        val nestedSevenZip = firstCandidate.name.endsWith(".7z", true)
+        if ((nestedRar || nestedSevenZip) && !iterator.hasNext()) {
+            if (nestedRar) yieldAll(RarWalker(listOf(firstCandidate.open), passwords, checkActive).candidates())
+            else yieldAll(StoredSevenZip.index(firstCandidate.open()))
+        } else {
+            yield(firstCandidate)
+            while (iterator.hasNext()) yield(iterator.next())
         }
     }
 
@@ -244,18 +229,52 @@ internal object UsenetSelection {
             ensureUsenet(matches(file.name), "The NZB contains no matching video.")
             return PostedFile(file, cache)
         }
+        if (index == null && episode != null) {
+            files.firstOrNull { videoName(it.name) && matches(it.name) && !sample.containsMatchIn(it.name) &&
+                episodeMatch(it.name, season, episode) == true }?.let {
+                checkActive()
+                return PostedFile(it, cache)
+            }
+        }
+        // Named episode sets can be selected before unrelated standalone .rar files need regrouping.
+        if (index == null && episode != null) {
+            val matchingGroups = files.mapNotNull { file -> volume(file.name)?.let { it to file } }
+                .groupBy { it.first.key }.filterKeys { episodeMatch(it, season, episode) == true }
+            for (group in matchingGroups.values) {
+                try {
+                    for (candidate in groupFiles(group, cache, passwords, checkActive)) {
+                        if (videoName(candidate.name) && matches(candidate.name) && !sample.containsMatchIn(candidate.name) &&
+                            episodeMatch(candidate.name, season, episode) == true) return candidate.open()
+                    }
+                } catch (_: UsenetFailure) { checkActive() /* Full inventory below preserves failure and fallback handling. */ }
+            }
+        }
         val named = regroup(recover(files, cache, checkActive), cache, passwords, checkActive)
         val groups = named.mapNotNull { file -> volume(file.name)?.let { it to file } }
             .groupBy { it.first.key }.toMutableMap()
         val candidates = mutableListOf<UsenetCandidate>()
         var archiveError: UsenetFailure? = null
-        for (file in named) {
+        val ordered = if (index == null && episode != null) named.sortedByDescending {
+            episodeMatch(volume(it.name)?.key ?: it.name, season, episode) == true
+        } else named
+        for (file in ordered) {
             checkActive()
             val group = volume(file.name)
             if (group == null) candidates += UsenetCandidate(file.name, file.postedBytes) { PostedFile(file, cache) }
             else {
                 val entries = groups.remove(group.key) ?: continue
-                try { candidates += groupFiles(entries, cache, passwords, checkActive) }
+                try {
+                    for (candidate in groupFiles(entries, cache, passwords, checkActive)) {
+                        candidates += candidate
+                        val eligible = videoName(candidate.name) && matches(candidate.name) && !sample.containsMatchIn(candidate.name)
+                        if (index == null && eligible && ((episode != null && episodeMatch(candidate.name, season, episode) == true) ||
+                            (episode == null && (hints.isNotEmpty() || candidate.estimate >= entries.sumOf { it.second.postedBytes } / 2)))) {
+                            checkActive()
+                            return candidate.open()
+                        }
+                        if (index != null && index in candidates.indices) break
+                    }
+                }
                 catch (error: UsenetFailure) {
                     // Unknown member count makes every following explicit index ambiguous.
                     if (index != null) throw error
@@ -269,7 +288,7 @@ internal object UsenetSelection {
         val features = eligible.filterNot { sample.containsMatchIn(it.name) }.ifEmpty { eligible }
         val selected = when {
             index != null -> candidates.getOrNull(index)?.takeIf { it in eligible }
-            episode == null || features.isEmpty() || (hints.isNotEmpty() && features.size == 1) ->
+            episode == null || features.isEmpty() ->
                 features.maxByOrNull { it.estimate }
             else -> {
                 val marked = features.map { it to episodeMatch(it.name, season, episode) }

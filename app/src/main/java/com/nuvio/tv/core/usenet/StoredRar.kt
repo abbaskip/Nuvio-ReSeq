@@ -1,3 +1,5 @@
+// Lazy archive behavior adapted from haaihond/NuvioTV (GPL-3.0),
+// native/usenet/internal/engine/rar.go, commit bc6decd434c5718d4cb98e1ffddd9f1708bdd8b6.
 package com.nuvio.tv.core.usenet
 
 import java.util.zip.CRC32
@@ -41,12 +43,31 @@ private class Header(val bytes: ByteArray, var pos: Int = 0) {
 
 internal data class RarPart(
     val name: String, val extent: FileExtent, val continues: Boolean, val more: Boolean,
-    val stored: Boolean, val encrypted: Boolean, val encryption: RarEncryption? = null, val unpacked: Long? = null
+    val stored: Boolean, val encrypted: Boolean, val encryption: RarEncryption? = null, val unpacked: Long? = null,
+    val layout: RarLayout? = null
 )
 
 internal object StoredRar {
     val signature = byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1a, 0x07)
-    fun index(volume: UsenetFile, passwords: RarPasswords, onVolumeNumber: (Long) -> Unit = {}): List<RarPart> {
+    // Quick Open template rule adapted from rarStableMainExtra in haaihond/NuvioTV
+    // native/usenet/internal/engine/rar.go, bc6decd434c5718d4cb98e1ffddd9f1708bdd8b6 (GPL-3.0).
+    private fun stableMainExtra(bytes: ByteArray): Boolean {
+        return try {
+            val extra = Header(bytes)
+            while (extra.pos < bytes.size) {
+                val length = extra.length()
+                val end = extra.pos + length
+                if (length == 0 || extra.vint() != 1L || extra.vint() != 1L) return false
+                extra.vint()
+                if (extra.pos != end) return false
+            }
+            true
+        } catch (_: UsenetFailure) { false }
+    }
+    fun index(volume: UsenetFile, passwords: RarPasswords, onVolumeNumber: (Long) -> Unit = {}): List<RarPart> =
+        parts(volume, passwords, onVolumeNumber).toList()
+
+    fun parts(volume: UsenetFile, passwords: RarPasswords, onVolumeNumber: (Long) -> Unit = {}): Sequence<RarPart> {
         val prefix = volume.bytesAt(0, 8)
         ensureUsenet(prefix.copyOf(6).contentEquals(signature), "Unrecognized RAR volume.")
         return when (prefix[6].toInt()) {
@@ -59,9 +80,9 @@ internal object StoredRar {
         }
     }
 
-    private fun readRar4(file: UsenetFile): List<RarPart> {
-        val parts = mutableListOf<RarPart>()
+    private fun readRar4(file: UsenetFile): Sequence<RarPart> = sequence {
         var pos = 7L
+        var stableMain = false
         var blocks = 0
         while (pos < file.size) {
             ensureUsenet(++blocks <= 8192, BAD_HEADER)
@@ -75,9 +96,14 @@ internal object StoredRar {
             ensureUsenet(CRC32().apply { update(header.bytes, 2, length - 2) }.value.toInt() and 65535 == crc, BAD_HEADER)
             var packed = if (flags and 0x8000 != 0 || kind == 0x74) header.dword() else 0L
             pos += length
-            if (kind == 0x73) ensureUsenet(flags and 0x80 == 0, "RAR volume headers are encrypted.")
+            if (kind == 0x73) {
+                ensureUsenet(flags and 0x80 == 0, "RAR volume headers are encrypted.")
+                stableMain = blocks == 1 && length == 13 && flags and 0x40 == 0
+            } else if (kind != 0x74) stableMain = false
             if (kind == 0x7b) break
             if (kind == 0x74) {
+                header.pos = 11
+                var unpacked = header.dword()
                 header.pos = 25
                 val method = header.byte()
                 val nameLength = header.word()
@@ -86,27 +112,32 @@ internal object StoredRar {
                     val high = header.dword()
                     ensureUsenet(high < 0x80000000L, BAD_HEADER)
                     packed = packed or (high shl 32)
-                    header.dword()
+                    val highUnpacked = header.dword()
+                    ensureUsenet(highUnpacked < 0x80000000L, BAD_HEADER)
+                    unpacked = unpacked or (highUnpacked shl 32)
                 }
                 val name = header.name(nameLength, Charsets.ISO_8859_1)
                 if (packed > 0 && flags and 0xe0 != 0xe0) {
-                    parts += RarPart(name, FileExtent(file, pos, packed), flags and 1 != 0, flags and 2 != 0,
-                        method == 0x30, flags and 4 != 0)
+                    ensureUsenet(packed <= file.size - pos, "Truncated RAR volume.")
+                    yield(RarPart(name, FileExtent(file, pos, packed), flags and 1 != 0, flags and 2 != 0,
+                        method == 0x30, flags and 4 != 0, unpacked = unpacked, layout = if (stableMain) RarLayout(4) else null))
+                    stableMain = false
+                    if (flags and 2 != 0) break
                 }
             }
             ensureUsenet(packed <= file.size - pos, "Truncated RAR volume.")
             pos += packed
         }
-        return parts
     }
 
-    private fun readRar5(file: UsenetFile, passwords: RarPasswords, onVolumeNumber: (Long) -> Unit): List<RarPart> {
-        val parts = mutableListOf<RarPart>()
+    private fun readRar5(file: UsenetFile, passwords: RarPasswords, onVolumeNumber: (Long) -> Unit): Sequence<RarPart> = sequence {
+        var layout: RarLayout? = null
         var headerKey: javax.crypto.spec.SecretKeySpec? = null
         var pos = 8L
         var blocks = 0
         while (pos < file.size) {
             ensureUsenet(++blocks <= 8192, BAD_HEADER)
+            val blockStart = pos
             val key = headerKey
             val view = if (key == null) file else {
                 val iv = file.bytesAt(pos, 16)
@@ -125,7 +156,9 @@ internal object StoredRar {
             val kind = header.vint()
             val flags = header.vint().toInt()
             val extra = if (flags and 1 != 0) header.length() else 0
+            val packedStart = header.pos
             val packed = if (flags and 2 != 0) header.vint() else 0L
+            val packedWidth = header.pos - packedStart
             ensureUsenet(packed <= file.size - pos, "Truncated RAR volume.")
             if (kind == 4L) {
                 ensureUsenet(headerKey == null && packed == 0L, BAD_HEADER)
@@ -133,7 +166,15 @@ internal object StoredRar {
             }
             if (kind == 1L) {
                 val archiveFlags = header.vint()
-                if (archiveFlags and 1L != 0L) onVolumeNumber(if (archiveFlags and 2L != 0L) header.vint() else 0)
+                val numberStart = header.pos
+                val number = if (archiveFlags and 2L != 0L) header.vint() else 0
+                if (archiveFlags and 1L != 0L) onVolumeNumber(number)
+                // Only fixed-width Quick Open locators qualify; encrypted headers use the scan path.
+                ensureUsenet(header.pos <= header.bytes.size - extra, BAD_HEADER)
+                layout = if (key == null && blockStart == 8L && flags and 5.inv() == 0 &&
+                    archiveFlags and 0x10L.inv() == 3L && header.pos == header.bytes.size - extra &&
+                    stableMainExtra(header.bytes.takeLast(extra).toByteArray()))
+                    RarLayout(5, number, header.pos - numberStart, length, prefix.pos - 4) else null
             }
             if (kind == 5L) break
             if (kind == 2L) {
@@ -161,12 +202,15 @@ internal object StoredRar {
                     header.pos = next
                 }
                 if (packed > 0 && attributes and 1 == 0) {
-                    parts += RarPart(name, FileExtent(file, pos, packed), flags and 8 != 0, flags and 16 != 0,
-                        method == 0, encryption != null, encryption, unpacked.takeIf { attributes and 8 == 0 })
+                    yield(RarPart(name, FileExtent(file, pos, packed), flags and 8 != 0, flags and 16 != 0,
+                        method == 0, encryption != null, encryption, unpacked.takeIf { attributes and 8 == 0 },
+                        layout?.copy(packedWidth = packedWidth)))
+                    layout = null
+                    if (flags and 16 != 0) break
                 }
             }
+            if (kind != 1L) layout = null
             pos += packed
         }
-        return parts
     }
 }

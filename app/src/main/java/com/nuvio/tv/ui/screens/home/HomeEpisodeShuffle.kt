@@ -128,16 +128,18 @@ private fun HomeViewModel.finishedShuffleSeeds() = combine(
     watchProgressRepository.observeNextUpSeeds(),
     traktSettingsDataStore.continueWatchingDaysCap,
     traktSettingsDataStore.dismissedNextUpKeys,
-    episodeShuffleStore.profiles
-) { seeds, daysCap, dismissed, profile ->
+    episodeShuffleStore.profiles,
+    combine(watchProgressRepository.allProgress, watchProgressRepository.watchedItems) { items, watched -> items to watched }
+) { seeds, daysCap, dismissed, profile, history ->
     val cutoff = watchProgressRepository.activeProviderContinueWatchingCutoffEpochMs(daysCap, System.currentTimeMillis())
+    val recent = if (cutoff == null) emptyMap() else com.nuvio.tv.domain.model.latestShowActivity(history.first, seeds, history.second)
     // Populate the profile's lightweight selection snapshot once before checking aliases.
     tvdbOrderStore?.let { if (!it.hasSnapshot(profile.profileId)) it.selected(profile.profileId, emptyList()) }
     profile.profileId to seeds.filter { seed ->
         (profile.settings(seed.contentId, seed.contentType).enabled ||
             tvdbOrderStore?.cachedSelection(profile.profileId, seed.contentId) != null) &&
             (seed.season ?: 0) > 0 && seed.episode != null &&
-            (cutoff == null || seed.lastWatched >= cutoff) &&
+            (cutoff == null || (recent[seed.contentId] ?: 0L) >= cutoff) &&
             nextUpDismissKey(seed.contentId, seed.season, seed.episode) !in dismissed &&
             !watchProgressRepository.isDroppedShow(seed.contentId) &&
             shouldUseAsCompletedSeed(seed)

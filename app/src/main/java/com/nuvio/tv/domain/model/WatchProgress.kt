@@ -38,7 +38,9 @@ data class WatchProgress(
     val tvdbCompletedEpisodeIds: List<Long>? = null,
     val tvdbContext: TvdbPlaybackContext? = null,
     val providerDefaultPlayback: Boolean = false,
-    val tvdbCoverageVerified: Boolean? = null
+    val tvdbCoverageVerified: Boolean? = null,
+    /** Show activity for Home's history window when the chosen next-up seed is an older episode. */
+    @Transient val latestSeriesActivity: Long? = null
 ) : TrackingAttributedItem {
     override val trackingContentId: String
         get() = contentId

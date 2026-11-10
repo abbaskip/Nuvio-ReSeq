@@ -85,7 +85,6 @@ class TrackingProgressRefreshCoordinatorTest {
         val incomplete = progress(position = 50L, duration = 100L)
 
         assertFalse(provider.ownsCompletedHistoryProjection)
-        assertNull(provider.continueWatchingCutoffEpochMs(60, 1_000L))
         assertTrue(provider.shouldUseAsNextUpSeed(completed, 1_000L))
         assertFalse(provider.shouldUseAsNextUpSeed(incomplete, 1_000L))
         assertEquals("wrapped", provider.normalizeParentContentId("wrapped", "tt123"))

@@ -1386,9 +1386,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
     override fun activeProviderContinueWatchingCutoffEpochMs(
         daysCap: Int,
         nowEpochMs: Long
-    ): Long? = activeProgressProviderId
-        ?.let(trackingProgressProviders::provider)
-        ?.continueWatchingCutoffEpochMs(daysCap, nowEpochMs)
+    ): Long? = com.nuvio.tv.domain.model.continueWatchingCutoff(daysCap, nowEpochMs)
 
     override fun shouldUseAsNextUpSeed(progress: WatchProgress, nowEpochMs: Long): Boolean =
         activeProgressProviderId

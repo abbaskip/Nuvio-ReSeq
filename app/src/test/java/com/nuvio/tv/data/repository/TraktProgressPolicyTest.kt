@@ -15,14 +15,14 @@ class TraktProgressPolicyTest {
         val now = 10_000_000_000L
 
         assertNull(
-            traktContinueWatchingCutoffEpochMs(
+            com.nuvio.tv.domain.model.continueWatchingCutoff(
                 TraktSettingsDataStore.CONTINUE_WATCHING_DAYS_CAP_ALL,
                 now
             )
         )
         assertEquals(
             now - 60L * 24L * 60L * 60L * 1_000L,
-            traktContinueWatchingCutoffEpochMs(60, now)
+            com.nuvio.tv.domain.model.continueWatchingCutoff(60, now)
         )
     }
 

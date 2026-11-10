@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.nuvio.tv.core.profile.ProfileManager
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -39,6 +40,21 @@ class WatchedSeriesStateHolderProfileTest {
     @After
     fun tearDown() {
         tempDir.deleteRecursively()
+    }
+
+    @Test
+    fun changedSeedIgnoresFreshValidationForThePreviousEpisode() = runTest {
+        holder.loadFromDisk()
+        holder.updateWithValidation(setOf("show"), setOf("show"), nextUpSeeds = mapOf("show" to "finale"))
+        org.junit.Assert.assertTrue(holder.isSeedValidationFresh("show", "finale"))
+        org.junit.Assert.assertFalse(holder.isSeedValidationFresh("show", "rewatch"))
+        factory.get(1, "watched_series_cache").data.first {
+            it[androidx.datastore.preferences.core.stringPreferencesKey("validated_next_up_seeds")] != null
+        }
+        holder.loadFromDisk(2)
+        org.junit.Assert.assertFalse(holder.isSeedValidationFresh("show", "finale"))
+        holder.loadFromDisk(1)
+        org.junit.Assert.assertTrue(holder.isSeedValidationFresh("show", "finale"))
     }
 
     @Test

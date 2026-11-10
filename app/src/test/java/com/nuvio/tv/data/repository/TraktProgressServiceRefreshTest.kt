@@ -7,6 +7,10 @@ import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.data.local.TraktSettingsDataStore
 import com.nuvio.tv.data.local.WatchedSeriesStateHolder
 import com.nuvio.tv.data.remote.api.TraktApi
+import com.nuvio.tv.data.remote.dto.trakt.TraktWatchedShowItemDto
+import com.nuvio.tv.data.remote.dto.trakt.TraktShowDto
+import com.nuvio.tv.data.remote.dto.trakt.TraktWatchedShowSeasonDto
+import com.nuvio.tv.data.remote.dto.trakt.TraktWatchedShowEpisodeDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktIdsDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktLastActivitiesMediaDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktLastActivitiesResponseDto
@@ -33,6 +37,7 @@ import retrofit2.Response
 
 class TraktProgressServiceRefreshTest {
     private val traktApi = mockk<TraktApi>()
+    private val seedMode = MutableStateFlow(false)
     private val lastActivitiesCalls = AtomicInteger()
     private val playbackCalls = AtomicInteger()
     private val watchedMoviesCalls = AtomicInteger()
@@ -46,6 +51,19 @@ class TraktProgressServiceRefreshTest {
 
     @Volatile
     private var playbackHangs = false
+
+    @Test
+    fun `seed mode change reuses the complete watched shows snapshot`() = runBlocking {
+        val service = loadedService()
+        assertEquals(2, withTimeout(TIMEOUT_MS) { service.observeWatchedShowSeeds().first { it.isNotEmpty() }.single().episode })
+        seedMode.value = true
+        val finale = withTimeout(TIMEOUT_MS) { service.observeWatchedShowSeeds().first { it.singleOrNull()?.episode == 8 }.single() }
+        org.junit.Assert.assertTrue(finale.latestSeriesActivity!! > finale.lastWatched)
+        seedMode.value = false
+        withTimeout(TIMEOUT_MS) { service.observeWatchedShowSeeds().first { it.singleOrNull()?.episode == 2 } }
+        assertEquals(0, watchedShowsCalls.get())
+        assertEquals(0, lastActivitiesCalls.get())
+    }
 
     @Test
     fun `watch action refetches only the changed watched list and the next poll skips it`() = runBlocking {
@@ -179,7 +197,9 @@ class TraktProgressServiceRefreshTest {
         }
         coEvery { traktApi.getWatchedShows(any(), any(), any(), any()) } answers {
             watchedShowsCalls.incrementAndGet()
-            Response.success(emptyList())
+            Response.success(listOf(TraktWatchedShowItemDto(show = TraktShowDto(title = "Fixture", ids = TraktIdsDto(imdb = "tt1000001")),
+                seasons = listOf(TraktWatchedShowSeasonDto(1, listOf(TraktWatchedShowEpisodeDto(2, 2, "2026-06-01T00:00:00Z"),
+                    TraktWatchedShowEpisodeDto(8, 1, "2026-02-01T00:00:00Z")))))), okhttp3.Headers.headersOf("X-Pagination-Page-Count", "1"))
         }
 
         val authService = mockk<TraktAuthService>()
@@ -194,7 +214,7 @@ class TraktProgressServiceRefreshTest {
         every { settings.continueWatchingDaysCap } returns
             flowOf(TraktSettingsDataStore.DEFAULT_CONTINUE_WATCHING_DAYS_CAP)
         val layout = mockk<LayoutPreferenceDataStore>()
-        every { layout.nextUpFromFurthestEpisode } returns MutableStateFlow(false)
+        every { layout.nextUpFromFurthestEpisode } returns seedMode
         val profileManager = mockk<ProfileManager>()
         every { profileManager.activeProfileId } returns MutableStateFlow(1)
         val watchedSeries = mockk<WatchedSeriesStateHolder>()

@@ -109,20 +109,22 @@ class TrackingSettingsOverviewTest {
         composeRule.onNodeWithTag(TrackingSettingsTestTags.OVERVIEW_LIST).performScrollToIndex(1)
         composeRule.onNodeWithTag(TrackingSettingsTestTags.WATCH_PROGRESS_SOURCE).assertIsEnabled()
         composeRule.onNodeWithTag(TrackingSettingsTestTags.LIBRARY_SOURCE).assertIsEnabled()
-        composeRule.onNodeWithTag(TrackingSettingsTestTags.CONTINUE_WATCHING).assertDoesNotExist()
+        composeRule.onNodeWithTag(TrackingSettingsTestTags.OVERVIEW_LIST).performScrollToIndex(1)
+        composeRule.onNodeWithTag(TrackingSettingsTestTags.CONTINUE_WATCHING).assertIsEnabled()
     }
 
     @Test
     fun disconnectedTraktHidesItsProviderFeatures() {
         setOverview()
 
-        composeRule.onNodeWithTag(TrackingSettingsTestTags.CONTINUE_WATCHING).assertDoesNotExist()
+        composeRule.onNodeWithTag(TrackingSettingsTestTags.OVERVIEW_LIST).performScrollToIndex(1)
+        composeRule.onNodeWithTag(TrackingSettingsTestTags.CONTINUE_WATCHING).assertIsEnabled()
         composeRule.onNodeWithTag(TrackingSettingsTestTags.COMMENTS).assertDoesNotExist()
         composeRule.onNodeWithTag(TrackingSettingsTestTags.MORE_LIKE_THIS).assertDoesNotExist()
     }
 
     @Test
-    fun connectedTraktRequiresTraktProgressOnlyForContinueWatchingWindow() {
+    fun connectedTraktWithNuvioProgressCanChooseHistoryWindow() {
         setOverview(
             traktState = TraktUiState(mode = TraktConnectionMode.CONNECTED),
             trackingState = TrackingSettingsUiState(
@@ -131,10 +133,10 @@ class TrackingSettingsOverviewTest {
                 isReady = true
             )
         )
-        scrollToTraktFeatures()
-
+        composeRule.onNodeWithTag(TrackingSettingsTestTags.OVERVIEW_LIST).performScrollToIndex(1)
         composeRule.onNodeWithTag(TrackingSettingsTestTags.CONTINUE_WATCHING)
-            .assertIsNotEnabled()
+            .assertIsEnabled()
+        scrollToTraktFeatures()
         composeRule.onNodeWithTag(TrackingSettingsTestTags.COMMENTS)
             .assertIsEnabled()
         composeRule.onNodeWithTag(TrackingSettingsTestTags.MORE_LIKE_THIS)
@@ -152,10 +154,10 @@ class TrackingSettingsOverviewTest {
                 isReady = true
             )
         )
-        scrollToTraktFeatures()
-
+        composeRule.onNodeWithTag(TrackingSettingsTestTags.OVERVIEW_LIST).performScrollToIndex(1)
         composeRule.onNodeWithTag(TrackingSettingsTestTags.CONTINUE_WATCHING)
             .assertIsEnabled()
+        scrollToTraktFeatures()
         composeRule.onNodeWithTag(TrackingSettingsTestTags.COMMENTS)
             .assertIsEnabled()
         composeRule.onNodeWithTag(TrackingSettingsTestTags.MORE_LIKE_THIS)

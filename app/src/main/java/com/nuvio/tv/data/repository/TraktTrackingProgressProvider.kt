@@ -85,9 +85,6 @@ class TraktTrackingProgressProvider @Inject constructor(
     override fun isHiddenFromProgress(contentId: String): Boolean =
         service.isShowHiddenFromProgress(contentId)
 
-    override fun continueWatchingCutoffEpochMs(daysCap: Int, nowEpochMs: Long): Long? =
-        traktContinueWatchingCutoffEpochMs(daysCap, nowEpochMs)
-
     override fun shouldUseAsNextUpSeed(progress: WatchProgress, nowEpochMs: Long): Boolean =
         shouldUseTraktNextUpSeed(progress, nowEpochMs)
 
@@ -121,11 +118,6 @@ internal fun shouldRetainTraktLocalWatchedEpisode(item: WatchedItem): Boolean =
         item.episode != null &&
         (item.contentType.equals("series", ignoreCase = true) ||
             item.contentType.equals("tv", ignoreCase = true))
-
-internal fun traktContinueWatchingCutoffEpochMs(daysCap: Int, nowEpochMs: Long): Long? {
-    if (daysCap == TraktSettingsDataStore.CONTINUE_WATCHING_DAYS_CAP_ALL) return null
-    return nowEpochMs - daysCap.toLong() * 24L * 60L * 60L * 1_000L
-}
 
 internal fun shouldUseTraktNextUpSeed(progress: WatchProgress, nowEpochMs: Long): Boolean {
     if (!progress.isCompleted()) return false

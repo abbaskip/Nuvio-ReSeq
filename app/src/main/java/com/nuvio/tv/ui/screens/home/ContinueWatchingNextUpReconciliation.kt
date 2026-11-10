@@ -133,6 +133,7 @@ internal fun List<ContinueWatchingItem>.toCachedNextUpSnapshot(
         hasAired = info.hasAired,
         airDateLabel = info.airDateLabel,
         lastWatched = info.lastWatched,
+        latestSeriesActivity = info.latestSeriesActivity,
         imdbRating = info.imdbRating,
         genres = info.genres,
         releaseInfo = info.releaseInfo,

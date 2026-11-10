@@ -627,8 +627,21 @@ private fun SportsHub(
     val rowsSport: Sport? = effectiveChip.takeIf { it.startsWith(CHIP_SPORT) }?.let { c -> followedSports.firstOrNull { CHIP_SPORT + it.name == c } }
     val rowsPage = effectiveChip == CHIP_MINE || rowsSport != null
     val leagueView = effectiveChip.takeIf { it.startsWith(CHIP_LEAGUE) }?.removePrefix(CHIP_LEAGUE)
-    // Past scoreboards are loaded only when their date is opened.
-    LaunchedEffect(day, effectiveChip) { if (day < -1 && effectiveChip != CHIP_TV_NOW) viewModel.repo.wantPast() }
+    var dayLoading by remember(day, effectiveChip) { mutableStateOf(false) }
+    var dayProblem by remember(day, effectiveChip) { mutableStateOf<String?>(null) }
+    LaunchedEffect(day, effectiveChip, active) {
+        // Today already loads through the live feed; other dates load only when opened.
+        if (day == 0 || effectiveChip != CHIP_ALL) return@LaunchedEffect
+        viewModel.repo.channelLookupAllowed.collectLatest { allowed ->
+            if (!allowed) return@collectLatest
+            dayLoading = true
+            try {
+                dayProblem = viewModel.repo.loadDay(day)
+            } finally {
+                dayLoading = false
+            }
+        }
+    }
     val dayEvents = remember(events, dayStart, dayEnd, active, filterToChannels, matches, follows, now) {
         SportsEventListings.allEvents(events, dayStart, dayEnd, now).filter { ev ->
             ev.leagueId in active &&
@@ -683,17 +696,17 @@ private fun SportsHub(
         handledContentJump = contentJump
         focusedOnce = true
     }
-    val status: String? = problem
+    val status: String? = dayProblem ?: problem
     val statusLine: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {
         // Top corner: a spinner while your channels are being searched for games; gone when done.
-        if (matching) {
+        if (matching || dayLoading) {
             Row(
                 Modifier.align(Alignment.TopEnd).padding(end = 32.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 com.nuvio.tv.livetv.ui.LoadingSpinner()
                 Spacer(Modifier.width(8.dp))
-                LiveText("Finding channels for today's games…", color = SportsLook.Dim, size = 11.sp, weight = FontWeight.Bold)
+                LiveText(if (dayLoading) "Getting events for this date…" else "Finding channels for today's games…", color = SportsLook.Dim, size = 11.sp, weight = FontWeight.Bold)
             }
         }
         status?.let {
@@ -779,7 +792,7 @@ private fun SportsHub(
             settings = settings,
             now = now,
             use24h = use24h,
-            loading = loading && events.isEmpty(),
+            loading = (loading && events.isEmpty()) || (dayLoading && shown.isEmpty()),
             hasChannels = hasChannels,
             playingKey = playingKey,
             listState = listState,

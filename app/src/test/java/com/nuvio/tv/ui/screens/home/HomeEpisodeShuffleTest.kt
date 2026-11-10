@@ -87,9 +87,9 @@ class HomeEpisodeShuffleTest {
     }
 
     @Test
-    fun `exhausted unwatched pool removes random next up without replacing resume`() {
+    fun `exhausted unwatched pool preserves native upcoming and resume`() {
         val watched = videos.map { it.season!! to it.episode!! }.toSet()
-        assertTrue(project(watched = mapOf("show" to watched)).continueWatchingItems.isEmpty())
+        assertEquals(listOf(upcoming), project(watched = mapOf("show" to watched)).upcomingItems)
         val resume = ContinueWatchingItem.InProgress(progress())
         val input = HomeUiState(continueWatchingItems = listOf(resume))
         assertEquals(resume.progress, (project(input, watched = mapOf("show" to watched))
@@ -97,8 +97,8 @@ class HomeEpisodeShuffleTest {
     }
 
     @Test
-    fun `late metadata makes a hidden random card available`() {
-        assertTrue(project(catalogue = null).continueWatchingItems.isEmpty())
+    fun `native upcoming survives until shuffle metadata arrives`() {
+        assertEquals(listOf(upcoming), project(catalogue = null).upcomingItems)
         assertEquals(1, project().continueWatchingItems.size)
     }
 

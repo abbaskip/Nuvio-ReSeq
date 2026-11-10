@@ -104,6 +104,14 @@ internal suspend fun HomeViewModel.applyConclusiveOlderNextUpResults(
     }
 }
 
+/** A loading tracker snapshot may grow the row. Only a loaded tracker may shrink it. */
+internal fun HomeUiState.afterTrackingRefresh(main: List<ContinueWatchingItem>, upcoming: List<ContinueWatchingItem>,
+    hasLoadedRemoteProgress: Boolean): HomeUiState {
+    if (!hasLoadedRemoteProgress && main.size < continueWatchingItems.size) return this
+    if (continueWatchingItems == main && upcomingItems == upcoming) return this
+    return copy(continueWatchingItems = main, upcomingItems = upcoming)
+}
+
 internal fun List<ContinueWatchingItem>.toCachedNextUpSnapshot(
     brokenImageUrls: Set<String>
 ): List<CachedNextUpItem> = mapNotNull { item ->

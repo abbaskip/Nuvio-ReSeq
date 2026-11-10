@@ -22,6 +22,7 @@ import com.nuvio.tv.domain.model.normalizeLanguageCode
 import com.nuvio.tv.domain.model.countryToLanguageCode
 import com.nuvio.tv.ui.util.parseEpisodeReleaseDate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -97,7 +98,8 @@ internal data class CwMetaSummary(
     val language: String?,
     val country: String?,
     val videos: List<CwVideoSummary>,
-    val tvdbOrder: Boolean = false
+    val tvdbOrder: Boolean = false,
+    val tvdbPending: Boolean = false
 ) {
     fun watchableEpisodes(): List<CwVideoSummary> {
         if (tvdbOrder) {
@@ -203,7 +205,8 @@ private fun Meta.toCwSummary(): CwMetaSummary = CwMetaSummary(
             episodeIdentity = v.episodeIdentity
         )
     },
-    tvdbOrder = episodeOrder?.effectiveType != null
+    tvdbOrder = episodeOrder?.effectiveType != null,
+    tvdbPending = episodeOrder != null && episodeOrder.effectiveType == null
 )
 
 private data class NextUpTmdbData(
@@ -1110,22 +1113,16 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 val (normalMain, normalUpcoming) = splitUpcomingItems(normalItems, continueWatchingSortMode)
 
                 _uiState.update { state ->
-                    // Don't overwrite cached CW with empty data while sources are still loading.
-                    // Once remote progress is confirmed loaded (Nuvio Sync completed or Trakt
-                    // responded), trust the empty result — items may have been deleted remotely.
-                    val shouldProtectCache = normalMain.isEmpty() && normalUpcoming.isEmpty() &&
-                        state.continueWatchingItems.isNotEmpty() &&
-                        !snapshot.hasLoadedRemoteProgress
-                    val shouldPreventShrink = !snapshot.hasLoadedRemoteProgress &&
-                        state.continueWatchingItems.isNotEmpty() &&
-                        normalMain.size < state.continueWatchingItems.size
-                    if (shouldProtectCache || shouldPreventShrink) {
-                        state
-                    } else if (state.continueWatchingItems == normalMain && state.upcomingItems == normalUpcoming) {
-                        state
-                    } else {
-                        state.copy(continueWatchingItems = normalMain, upcomingItems = normalUpcoming)
+                    val next = state.afterTrackingRefresh(normalMain, normalUpcoming, snapshot.hasLoadedRemoteProgress)
+                    if (next !== state) {
+                        if (Log.isLoggable("NuvioCwTrace", Log.DEBUG)) {
+                            val remaining = (normalMain + normalUpcoming).mapTo(mutableSetOf()) { it.contentId() }
+                            (state.continueWatchingItems + state.upcomingItems).filter { it.contentId() !in remaining }.forEach {
+                                traceCwCard(it.contentId()) { "pipeline replacement loaded=${snapshot.hasLoadedRemoteProgress} seed=${it.contentId() in activeSeedContentIds} rejected=${it.contentId() in rejectedByFreshPipeline}" }
+                            }
+                        }
                     }
+                    next
                 }
                 SimklContinueWatchingDisplayLogger.log(
                     buildSimklCwDisplayDiagnosticReport(
@@ -1871,7 +1868,11 @@ private suspend fun HomeViewModel.buildNextUpItem(
     debug: CwDebugSession? = null,
     onPendingIdentity: () -> Unit = {}
 ): ContinueWatchingItem.NextUp? {
-    val progress = selectedOrderSeed(progress) ?: run { onPendingIdentity(); return null }
+    val progress = selectedOrderSeed(progress) ?: run {
+        traceCwCard(progress.contentId) { "pipeline identity-pending" }
+        onPendingIdentity()
+        return null
+    }
     debug?.recordNextUpAttempt(progress)
     if (shouldTraceNextUpSeries(progress)) {
         logNextUpDecision(
@@ -2249,6 +2250,7 @@ private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
             if (negativeCachedAt != null &&
                 SystemClock.elapsedRealtime() - negativeCachedAt < CW_META_NEGATIVE_CACHE_TTL_MS
             ) {
+                traceCwCard(progress.contentId) { "pipeline negative-next-up-cache" }
                 debug?.recordNextUpCacheHit(
                     progress = progress,
                     resolved = false,
@@ -2283,6 +2285,7 @@ private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
     }
 
     val meta = resolveMetaForProgress(progress, cwMetaCache, debug) ?: run {
+        traceCwCard(contentId) { "pipeline no-meta-for-seed" }
         debug?.recordNextUpResult(
             progress = progress,
             reason = "no-meta-for-seed",
@@ -2461,7 +2464,7 @@ internal fun resolveNextUpVideoFromMeta(
     return nextVideo
 }
 
-private const val CW_META_NEGATIVE_CACHE_TTL_MS = 5 * 60_000L
+internal const val CW_META_NEGATIVE_CACHE_TTL_MS = 5 * 60_000L
 
 internal suspend fun HomeViewModel.resolveCwMeta(progress: WatchProgress) =
     resolveMetaForProgress(progress, cwMetaCache)
@@ -2471,12 +2474,24 @@ private suspend fun HomeViewModel.resolveMetaForProgress(
     metaCache: MutableMap<String, CwMetaSummary?>,
     debug: CwDebugSession? = null
 ): CwMetaSummary? {
-    val startedAtMs = SystemClock.elapsedRealtime()
     val cacheKey = "${progress.contentType}:${progress.contentId}"
+    metaCache[cacheKey]?.takeUnless { it.tvdbPending }?.let { return it }
+    val profile = profileManager.activeProfileId.value
+    return cwMetadataLoads.await(viewModelScope, profile, progress.contentType, progress.contentId) {
+        if (profileManager.activeProfileId.value != profile) return@await null
+        loadCwMetadata(progress, metaCache, debug, profile, cacheKey)
+    }
+}
+
+private suspend fun HomeViewModel.loadCwMetadata(
+    progress: WatchProgress, metaCache: MutableMap<String, CwMetaSummary?>,
+    debug: CwDebugSession?, profile: Int, cacheKey: String
+): CwMetaSummary? {
+    val startedAtMs = SystemClock.elapsedRealtime()
     synchronized(metaCache) {
         if (metaCache.containsKey(cacheKey)) {
             val cached = metaCache[cacheKey]
-            if (cached != null) {
+            if (cached != null && !cached.tvdbPending) {
                 debug?.recordMetaCacheHit(progress)
                 return cached
             }
@@ -2485,7 +2500,7 @@ private suspend fun HomeViewModel.resolveMetaForProgress(
                 SystemClock.elapsedRealtime() - negativeCachedAt < CW_META_NEGATIVE_CACHE_TTL_MS
             ) {
                 debug?.recordMetaCacheHit(progress)
-                return null
+                return cached
             }
             metaCache.remove(cacheKey)
             cwMetaNegativeCacheTimestamps.remove(cacheKey)
@@ -2499,6 +2514,8 @@ private suspend fun HomeViewModel.resolveMetaForProgress(
 
     val typeCandidates = listOf(progress.contentType, "series", "tv").distinct()
     val useAllAddons = externalMetaPrefetchEnabled
+    val selectedOrder = isSeriesTypeCW(progress.contentType) && tvdbOrderStore?.selected(profile, listOf(progress.contentId)) != null
+    val timeoutMs = if (selectedOrder) 22_000L else 6_000L
     val resolved = run {
         var summary: CwMetaSummary? = null
         var attempts = 0
@@ -2506,7 +2523,7 @@ private suspend fun HomeViewModel.resolveMetaForProgress(
             for (candidateId in idCandidates) {
                 attempts += 1
                 val attemptStartedAtMs = SystemClock.elapsedRealtime()
-                val result = withTimeoutOrNull(6_000L) {
+                val result = withTimeoutOrNull(timeoutMs) {
                     if (useAllAddons) {
                         metaRepository.getMetaFromAllAddons(
                             type = type,
@@ -2563,7 +2580,7 @@ private suspend fun HomeViewModel.resolveMetaForProgress(
             for (type in typeCandidates) {
                 for (candidateId in idCandidates) {
                     attempts += 1
-                    val fallbackResult = withTimeoutOrNull(6_000L) {
+                    val fallbackResult = withTimeoutOrNull(timeoutMs) {
                         metaRepository.getMetaFromAllAddons(
                             type = type,
                             id = candidateId
@@ -2581,12 +2598,15 @@ private suspend fun HomeViewModel.resolveMetaForProgress(
             success = summary != null,
             attempts = attempts
         )
-        summary
+        summary?.let { if (selectedOrder && !it.tvdbOrder) it.copy(tvdbPending = true) else it }
     }
 
+    val caller = kotlinx.coroutines.currentCoroutineContext()
     synchronized(metaCache) {
+        caller.ensureActive()
+        if (profileManager.activeProfileId.value != profile) return null
         metaCache[cacheKey] = resolved
-        if (resolved == null) {
+        if (resolved == null || resolved.tvdbPending) {
             cwMetaNegativeCacheTimestamps[cacheKey] = SystemClock.elapsedRealtime()
         } else {
             cwMetaNegativeCacheTimestamps.remove(cacheKey)
@@ -2814,7 +2834,7 @@ private fun WatchProgress.hasRenderableMetadata(): Boolean {
     return name.isNotBlank() || poster != null || backdrop != null || logo != null || episodeTitle != null
 }
 
-private fun NextUpInfo.toProgressSeed(): WatchProgress {
+internal fun NextUpInfo.toProgressSeed(): WatchProgress {
     return WatchProgress(
         contentId = contentId,
         contentType = contentType,

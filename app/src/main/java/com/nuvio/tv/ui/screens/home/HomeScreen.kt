@@ -171,14 +171,14 @@ fun HomeScreen(
         { id, type, addon -> if (type == "tvmix") onNavigateToMix(id.removePrefix("tvmix:"), false)
             else onNavigateToDetail(id, type, addon) }
     }
-    val onContinueWatchingClickStable = remember(viewModel, onContinueWatchingClick) {
-        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingClick) }
+    val onContinueWatchingClickStable = remember(viewModel, onContinueWatchingClick, onNavigateToDetailStable) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingClick, onNavigateToDetailStable) }
     }
-    val onContinueWatchingStartFromBeginningStable = remember(viewModel, onContinueWatchingStartFromBeginning) {
-        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingStartFromBeginning) }
+    val onContinueWatchingStartFromBeginningStable = remember(viewModel, onContinueWatchingStartFromBeginning, onNavigateToDetailStable) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingStartFromBeginning, onNavigateToDetailStable) }
     }
-    val onContinueWatchingPlayManuallyStable = remember(viewModel, onContinueWatchingPlayManually) {
-        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingPlayManually) }
+    val onContinueWatchingPlayManuallyStable = remember(viewModel, onContinueWatchingPlayManually, onNavigateToDetailStable) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingPlayManually, onNavigateToDetailStable) }
     }
     val onNavigateToCatalogSeeAllStable = remember(onNavigateToCatalogSeeAll) { onNavigateToCatalogSeeAll }
     val onNavigateToFolderDetailStable = remember(onNavigateToFolderDetail) { onNavigateToFolderDetail }

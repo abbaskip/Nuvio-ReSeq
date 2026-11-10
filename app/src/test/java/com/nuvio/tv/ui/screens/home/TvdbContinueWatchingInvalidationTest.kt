@@ -28,6 +28,7 @@ class TvdbContinueWatchingInvalidationTest {
         every { vm.cwLastProcessedNextUpContentIds } returns mutableSetOf()
         every { vm.cwProcessedOlderSeedContentIds } returns mutableSetOf()
         every { vm.discoveredOlderNextUpItems } returns mutableListOf()
+        every { vm.shuffleHomeRefresh } returns MutableStateFlow(HomeShuffleRefresh())
         every { vm.cwPipelineRefreshTrigger } returns refresh
         vm.invalidateTvdbContinueWatching(setOf(office))
         assertEquals(setOf("series:other"), cache.keys)

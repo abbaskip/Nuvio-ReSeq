@@ -19,6 +19,7 @@ internal fun HomeViewModel.observeTvdbContinueWatchingChanges() = viewModelScope
 }
 
 internal fun HomeViewModel.invalidateTvdbContinueWatching(ids: Set<String>) {
+    cwMetadataLoads.invalidate(ids)
     for (cache in listOf<MutableMap<String, *>>(cwMetaCache, cwMetaNegativeCacheTimestamps, cwBadgeEpisodeCache, cwBadgeNextSeasonMs)) {
         synchronized(cache) { cache.keys.removeAll { it.substringAfter(':') in ids } }
     }
@@ -32,6 +33,7 @@ internal fun HomeViewModel.invalidateTvdbContinueWatching(ids: Set<String>) {
     }
     synchronized(discoveredOlderNextUpItems) { discoveredOlderNextUpItems.removeAll { it.info.contentId in ids } }
     // Keep the current row until the refreshed pipeline can publish a replacement.
+    shuffleHomeRefresh.value = shuffleHomeRefresh.value.copy(metadata = shuffleHomeRefresh.value.metadata + 1)
     cwPipelineRefreshTrigger.value++
 }
 
@@ -57,7 +59,7 @@ internal fun projectTvdbContinueWatching(item: ContinueWatchingItem, videos: Lis
             episodeDescription = video.overview, episodeThumbnail = video.thumbnail)
         is ContinueWatchingItem.NextUp -> item.copy(info = item.info.copy(videoId = video.id,
             season = video.season!!, episode = video.episode!!, tvdbEpisodeId = identity.trackingEpisodeId,
-            episodeTitle = video.title, displaySeason = video.displaySeason, displayEpisode = video.displayEpisode,
+            episodeTitle = video.title, tvdbContext = video.tvdbPlaybackContext(), displaySeason = video.displaySeason, displayEpisode = video.displayEpisode,
             episodeDescription = video.overview, thumbnail = video.thumbnail))
     }
 }
@@ -68,11 +70,13 @@ internal fun ContinueWatchingItem.hasTvdbPlaybackIdentity(): Boolean = when (thi
 }
 
 /** Also covers cards restored from snapshots before their metadata has been refreshed. */
-internal fun HomeViewModel.verifyTvdbPlayback(item: ContinueWatchingItem, play: (ContinueWatchingItem) -> Unit) {
+internal fun HomeViewModel.verifyTvdbPlayback(item: ContinueWatchingItem, play: (ContinueWatchingItem) -> Unit,
+    openSeries: (String, String, String) -> Unit) {
     viewModelScope.launch {
         val profileId = profileManager.activeProfileId.value
         val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
         val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
+        if (item.chooseEpisode) { openSeries(id, type, ""); return@launch }
         if (type !in listOf("series", "tv") || tvdbOrderStore?.selected(profileId, listOf(id)) == null) {
             if (item.hasTvdbPlaybackIdentity()) {
                 Toast.makeText(appContext, "Episode order changed. Open the series to choose an episode.", Toast.LENGTH_LONG).show()

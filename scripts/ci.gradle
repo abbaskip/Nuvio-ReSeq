@@ -1,9 +1,14 @@
 // Shared CI limits. Fork recycling bounds Robolectric classloader retention.
 allprojects {
+    def optInChecks = providers.environmentVariable('NUVIO_PROFILE_LOOPBACK').getOrElse('') == 'true' ||
+        !providers.environmentVariable('NUVIO_TVDB_LIVE_TEST_KEY').getOrElse('').trim().isEmpty()
     tasks.withType(Test).configureEach {
         maxHeapSize = "1536m"
         maxParallelForks = 1
         forkEvery = 100
+        // A requested live/profile run must never reuse cached skipped results.
+        outputs.cacheIf('Only deterministic fixture checks are cached') { !optInChecks }
+        outputs.upToDateWhen { !optInChecks }
     }
     plugins.withId('com.android.application') {
         // The complete report is checked by lint_guard, including known debt.

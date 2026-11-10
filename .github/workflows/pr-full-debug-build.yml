@@ -81,7 +81,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Encrypt task cache
-        if: github.event_name != 'pull_request'
+        if: ${{ !cancelled() && github.event_name != 'pull_request' }}
         env:
           NUVIO_CACHE_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
         run: bash scripts/ci-cache.sh save

@@ -118,6 +118,7 @@ jobs:
             build/test-service-verification.json
           if-no-files-found: error
       - name: Encrypt task cache
+        if: ${{ !cancelled() }}
         env:
           NUVIO_CACHE_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
         run: bash scripts/ci-cache.sh save
@@ -203,6 +204,7 @@ jobs:
           path: build/release/*
           if-no-files-found: error
       - name: Encrypt task cache
+        if: ${{ !cancelled() }}
         env:
           NUVIO_CACHE_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
         run: bash scripts/ci-cache.sh save

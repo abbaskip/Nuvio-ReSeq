@@ -835,138 +835,55 @@ class FrameRateUtilsAfrTest {
         assertTrue(key.endsWith("sample_movie_2160p.iT.WEB-DL.UNRATED.DV.HDR10%2B.MULTi%5BTest%5D.mp4"))
     }
 
-    @org.junit.Ignore("Live integration test requiring active debrid credentials")
     @Test
-    fun `live test real extensionless debrid MP4 URL detects frame rate`() {
-        val realUrl = "https://example.com/dld/bdc5c439-299a-4dff-aff6-b6f99b4952d4?token=debrid_token_placeholder"
-        val tempFile = java.io.File.createTempFile("live_afr_test_", ".tmp")
-        try {
-            // Pass 1: Head Range Probe (first 4 MB)
-            val headMaxBytes = 4_194_304L + 65_536L
-            val headResult = FrameRateUtils.fetchHttpRangeToFile(
-                realUrl, emptyMap(), "bytes=0-4194303", headMaxBytes, tempFile, fileOffset = 0L
-            )
-            println("DEBUG: headResult success=${headResult.success}, totalLength=${headResult.totalContentLength}, fileLength=${tempFile.length()}")
-            assertTrue("Pass 1 head download must succeed", headResult.success)
-            assertTrue("Must detect MP4 ftyp atom in head", FrameRateUtils.hasFtypAtom(tempFile))
-            println("DEBUG: head hasMoovAtom=${FrameRateUtils.hasMoovAtom(tempFile)}")
-
-            // Pass 2: Tail Range Probe
-            val contentLength = headResult.totalContentLength ?: 30805864407L
-            val tailStart = FrameRateUtils.findNextBoxOffsetAfterMdat(tempFile, contentLength) ?: (contentLength - 16_777_216L)
-            val tailSizeBytes = contentLength - tailStart
-            val tailRange = "bytes=$tailStart-${contentLength - 1}"
-            val tailMaxBytes = tailSizeBytes + 65_536L
-            println("DEBUG: Pass 2 configuration: tailSizeBytes=$tailSizeBytes, tailStart=$tailStart, tailRange=$tailRange, tailMaxBytes=$tailMaxBytes")
-
-            val tailResult = FrameRateUtils.fetchHttpRangeToFile(
-                realUrl, emptyMap(), tailRange, tailMaxBytes, tempFile, fileOffset = tailStart
-            )
-            println("DEBUG: tailResult success=${tailResult.success}, fileLength=${tempFile.length()}")
-            assertTrue("Pass 2 tail download must succeed", tailResult.success)
-            assertTrue("Must contain moov in combined file after tail download", FrameRateUtils.hasMoovAtom(tempFile))
-
-            println("SUCCESS: Real URL Head + Tail successfully downloaded. Combined size: ${tempFile.length()} bytes")
-        } finally {
-            tempFile.delete()
-        }
-    }
-
-    @Test
-    fun `example stream range probe fetches head and tail successfully`() {
-        val streamUrl = "https://example.com/cdn/sample_movie_2160p.mp4"
-        val tempFile = java.io.File.createTempFile("live_afr_test_", ".tmp")
-        try {
-            // Pass 1: Head Range Probe (bytes 0-2097151)
-            val headResult = FrameRateUtils.fetchHttpRangeToFile(
-                url = streamUrl,
-                headers = emptyMap(),
-                rangeHeader = "bytes=0-2097151",
-                maxBytes = 2_097_152L + 65_536L,
-                targetFile = tempFile,
-                fileOffset = 0L
-            )
-            val contentLength = headResult.totalContentLength
-            if (headResult.success && contentLength != null) {
-                assertTrue("Content length must be > 2MB", contentLength > 2_097_152L)
-
-                // Pass 2: Tail Range Probe
-                val tailStart = FrameRateUtils.findNextBoxOffsetAfterMdat(tempFile, contentLength) ?: (contentLength - 4_194_304L)
-                val tailRange = "bytes=$tailStart-${contentLength - 1}"
-                val tailResult = FrameRateUtils.fetchHttpRangeToFile(
-                    url = streamUrl,
-                    headers = emptyMap(),
-                    rangeHeader = tailRange,
-                    maxBytes = 4_194_304L + 65_536L,
-                    targetFile = tempFile,
-                    fileOffset = tailStart
-                )
-                println("PROBE Pass 2 tailResult: success=${tailResult.success}, tailStart=$tailStart, tempFileLength=${tempFile.length()}")
-                assertTrue("Pass 2 tail request must succeed", tailResult.success)
-                assertTrue("Temp file length must reach sparse tail offset", tempFile.length() >= tailStart)
-            }
-        } catch (e: Exception) {
-            println("Stream probe exception (offline/example url): ${e.message}")
-        } finally {
-            runCatching { tempFile.delete() }
-        }
-    }
-
-    @Test
-    fun `proves moov atom position scanning and size calculation`() {
-        val streamUrl = "https://example.com/cdn/sample_movie_2160p.mp4"
-        val tempFile = java.io.File.createTempFile("find_moov_", ".tmp")
-        try {
-            val headResult = FrameRateUtils.fetchHttpRangeToFile(
-                url = streamUrl,
-                headers = emptyMap(),
-                rangeHeader = "bytes=0-2097151",
-                maxBytes = 2_097_152L + 65_536L,
-                targetFile = tempFile,
-                fileOffset = 0L
-            )
-            val contentLength = headResult.totalContentLength ?: 0L
-
-            val tailSize16MB = 16_777_216L
-            val tailStart16MB = (contentLength - tailSize16MB).coerceAtLeast(0L)
-            tempFile.delete()
-            val tailResult = FrameRateUtils.fetchHttpRangeToFile(
-                url = streamUrl,
-                headers = emptyMap(),
-                rangeHeader = "bytes=$tailStart16MB-${contentLength - 1}",
-                maxBytes = tailSize16MB + 65_536L,
-                targetFile = tempFile,
-                fileOffset = 0L
-            )
-
-            if (tailResult.success) {
-                val bytes = tempFile.readBytes()
-                var moovOffsetInTail = -1
-                for (i in 0 until bytes.size - 3) {
-                    if (bytes[i] == 0x6d.toByte() &&
-                        bytes[i + 1] == 0x6f.toByte() &&
-                        bytes[i + 2] == 0x6f.toByte() &&
-                        bytes[i + 3] == 0x76.toByte()
-                    ) {
-                        moovOffsetInTail = i - 4
-                        val moovSize32 = ((bytes[i - 4].toInt() and 0xFF) shl 24) or
-                                ((bytes[i - 3].toInt() and 0xFF) shl 16) or
-                                ((bytes[i - 2].toInt() and 0xFF) shl 8) or
-                                (bytes[i - 1].toInt() and 0xFF)
-                        val absoluteMoovStart = tailStart16MB + moovOffsetInTail
-                        println("FOUND MOOV ATOM! moovOffsetInTail=$moovOffsetInTail, absoluteMoovStart=$absoluteMoovStart, moovSize32=$moovSize32 bytes")
-                        break
-                    }
+    fun `range probe fetches head and sparse tail with original MP4 offsets`() {
+        fun box(type: String, size: Int, payload: ByteArray = ByteArray(0)): ByteArray =
+            java.io.ByteArrayOutputStream().also { bytes ->
+                java.io.DataOutputStream(bytes).apply {
+                    writeInt(size)
+                    write(type.toByteArray(Charsets.US_ASCII))
+                    write(payload)
                 }
+            }.toByteArray()
+
+        val head = box("ftyp", 32, ByteArray(24)) + box("mdat", 4096)
+        val tail = box("moov", 24, ByteArray(16))
+        val tailStart = 32L + 4096L
+        val total = tailStart + tail.size
+        val file = java.io.File.createTempFile("afr_range_fixture_", ".mp4")
+        try {
+            okhttp3.mockwebserver.MockWebServer().use { server ->
+                fun response(bytes: ByteArray, start: Long) = okhttp3.mockwebserver.MockResponse()
+                    .setResponseCode(206)
+                    .setHeader("Content-Range", "bytes $start-${start + bytes.size - 1}/$total")
+                    .setBody(okio.Buffer().write(bytes))
+                server.enqueue(response(head, 0))
+                server.enqueue(response(tail, tailStart))
+                server.start()
+                val url = server.url("/extensionless").toString()
+                val headRange = "bytes=0-${head.size - 1}"
+                val first = FrameRateUtils.fetchHttpRangeToFile(url, emptyMap(), headRange,
+                    head.size.toLong(), file)
+                assertTrue("The head request must succeed", first.success)
+                assertEquals(total, first.totalContentLength)
+                assertTrue(FrameRateUtils.hasFtypAtom(file))
+                assertFalse(FrameRateUtils.hasMoovAtom(file))
+                assertEquals(tailStart, FrameRateUtils.findNextBoxOffsetAfterMdat(file, total))
+                assertEquals(headRange, server.takeRequest(2, java.util.concurrent.TimeUnit.SECONDS)!!.getHeader("Range"))
+
+                val tailRange = "bytes=$tailStart-${total - 1}"
+                val second = FrameRateUtils.fetchHttpRangeToFile(url, emptyMap(), tailRange,
+                    tail.size.toLong(), file, fileOffset = tailStart)
+                assertTrue("The tail request must succeed", second.success)
+                assertEquals(total, second.totalContentLength)
+                assertEquals(total, file.length())
+                assertTrue("The tail must be at its original sparse offset", FrameRateUtils.hasMoovAtom(file))
+                assertEquals(tailRange, server.takeRequest(2, java.util.concurrent.TimeUnit.SECONDS)!!.getHeader("Range"))
             }
-        } catch (e: Exception) {
-            println("Exception: ${e.message}")
         } finally {
-            tempFile.delete()
+            file.delete()
         }
     }
-
-
 
     @Test
     fun `proves end-to-end AFR probe detection produces 23_976 fps and 4K resolution mapping`() {

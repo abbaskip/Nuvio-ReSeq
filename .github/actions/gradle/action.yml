@@ -34,6 +34,7 @@ runs:
         restore-keys: |
           nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml', '**/*.gradle.kts', 'scripts/ci.gradle') }}-${{ github.job }}-
           nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml', '**/*.gradle.kts', 'scripts/ci.gradle') }}-
+          nuvio-tasks-v1-${{ runner.os }}-
     - name: Decrypt task outputs
       if: inputs.encryption-key != ''
       shell: bash

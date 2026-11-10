@@ -1033,4 +1033,6 @@ Klaida: Bandomoji simuliuojama klaida — tai nėra tikras gedimas. Šaltinis gr
     <string name="stream_test_label_parallel4">Lygiagretusis ryšys (4 jungtys)</string>
     <string name="stream_test_label_parallel8">Lygiagretusis ryšys (8 jungtys)</string>
     <string name="stream_test_label_parallel16">Lygiagretusis ryšys (16 jungčių)</string>
+    <string name="playback_exo_chapters_title">Rodyti skyrius</string>
+    <string name="playback_exo_chapters_sub">Nuskaityti MKV failų skyrius, pažymėti juos eigos juostoje ir pereiti tarp jų. Prasidėjus atkūrimui siunčiamos kelios nedidelės papildomos užklausos.</string>
 </resources>

@@ -72,6 +72,17 @@ import kotlin.math.abs
 import javax.inject.Inject
 import javax.inject.Singleton
 
+internal fun traktRefreshEvents(signals: Flow<Unit>, intervalMs: () -> Long): Flow<Unit> {
+    val ticks = flow {
+        while (true) {
+            delay(intervalMs())
+            // Player close already requests a refresh. Leave scrobble and manual signals live.
+            if (!com.nuvio.tv.core.player.PlayerSessionTracker.hasOpenSession) emit(Unit)
+        }
+    }
+    return merge(ticks, signals).onStart { emit(Unit) }
+}
+
 @Singleton
 @OptIn(ExperimentalCoroutinesApi::class)
 class TraktProgressService @Inject constructor(
@@ -1024,16 +1035,7 @@ class TraktProgressService @Inject constructor(
         refreshNow()
     }
 
-    private fun refreshTicker(): Flow<Unit> = flow {
-        while (true) {
-            delay(refreshIntervalMs)
-            emit(Unit)
-        }
-    }
-
-    private fun refreshEvents(): Flow<Unit> {
-        return merge(refreshTicker(), refreshSignals).onStart { emit(Unit) }
-    }
+    private fun refreshEvents() = traktRefreshEvents(refreshSignals) { refreshIntervalMs }
 
     private fun updateRefreshBackoff(success: Boolean) {
         if (success) {

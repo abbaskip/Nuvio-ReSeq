@@ -3,6 +3,7 @@ package com.nuvio.tv.ui.screens.home
 import android.os.SystemClock
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.network.NetworkResult
+import com.nuvio.tv.data.repository.traktRefreshEvents
 import com.nuvio.tv.data.local.EpisodeShuffleProfile
 import com.nuvio.tv.data.tvdb.TvdbOrderPreference
 import com.nuvio.tv.data.tvdb.tvdbFixtureMeta
@@ -96,11 +97,17 @@ class ShuffleHomeRefreshTest {
         setup()
         val home = home()
         assertEquals(id, home.onlyCard().contentId())
+        var rounds = 0
+        backgroundScope.launch {
+            traktRefreshEvents(emptyFlow()) { 60_000L }.drop(1).collect {
+                rounds++
+                watched.value = listOf(WatchedItem(id, "series", "Show", 1, 1, currentTime))
+                progress.value = listOf(seed)
+                seeds.value = listOf(seed.copy(lastWatched = currentTime))
+            }
+        }
         minute()
-        watched.value = listOf(WatchedItem(id, "series", "Show", 1, 1, 60_000))
-        progress.value = listOf(seed)
-        seeds.value = listOf(seed.copy(lastWatched = 60_000))
-        runCurrent()
+        assertEquals(1, rounds)
         assertEquals(id, home.onlyCard().contentId())
     }
 

@@ -84,7 +84,8 @@ class ReSeqProfileGenerator {
         rule.collect(packageName = pkg, includeInStartupProfile = false, maxIterations = 3, stableIterations = 2,
             filterPredicate = { rule ->
                 val owner = rule.substringBefore("->").substringAfter('L')
-                owner.startsWith("com/nuvio/tv/livetv/") || owner.startsWith("com/nuvio/tv/core/usenet/")
+                owner.startsWith("com/nuvio/tv/livetv/ui/") || owner.startsWith("com/nuvio/tv/livetv/data/") ||
+                    owner.startsWith("com/nuvio/tv/livetv/model/") || owner.startsWith("com/nuvio/tv/livetv/sports/")
             }) {
             for (route in listOf("guide", "sports", "event", "vod", "usenet")) exercise(pkg, route)
         }

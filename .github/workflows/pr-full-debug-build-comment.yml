@@ -1,8 +1,8 @@
-name: PR Full Debug Build Comment
+name: Development check comment
 
 on:
   workflow_run:
-    workflows: ["PR Full Debug Build"]
+    workflows: ["ReSeq development checks"]
     types: [completed]
 
 permissions:

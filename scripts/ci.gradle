@@ -11,6 +11,17 @@ allprojects {
         outputs.cacheIf('Only deterministic fixture checks are cached') { !optInChecks }
         outputs.upToDateWhen { !optInChecks }
     }
+    // Lint and timing-sensitive IO fixtures compete for CPU on four-core
+    // runners. Keep them in one invocation but give the tests their own turn.
+    // A failed test also stops before starting an expensive full lint analysis.
+    tasks.matching { it.name.startsWith('lintAnalyze') }.configureEach {
+        mustRunAfter(tasks.matching { it.name == 'testFullDebugUnitTest' })
+    }
+    // R8 and vital lint are also CPU/memory-heavy; parallel resource tasks
+    // remain allowed, while these two analyses avoid thrashing each other.
+    tasks.matching { it.name == 'lintVitalAnalyzeFullRelease' }.configureEach {
+        mustRunAfter(tasks.matching { it.name == 'minifyFullReleaseWithR8' })
+    }
     plugins.withId('com.android.application') {
         // The complete report is checked by lint_guard, including known debt.
         android.lint.abortOnError = false

@@ -1,4 +1,4 @@
-name: PR Full Debug Build
+name: ReSeq development checks
 
 on:
   pull_request:

@@ -583,8 +583,9 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     winners.takeIf { hits -> hits.map { it.second.sport }.distinct().size == 1 }
                         ?.firstOrNull()?.second?.takeIf { it.id in allowedIds }
                 }
-            // 24/7 and loop channels ("NETFLIX WWE", a movie channel called "… NXT"): not live sport.
-            if (fillerOrLoop(ch, p)) continue
+            // Current TV airings include long replays and unconfirmed sessions. Fixture
+            // matching keeps its separate loop/live checks; these are not provider events.
+            if (!currentOnly && fillerOrLoop(ch, p)) continue
             // Wrestling words turn up in other shows' titles ("RuPaul's Drag Race - Lip Sync
             // Smackdown", "The Goldbergs - WrestleMania"): the title must start with the show's
             // name, or name the promotion (WWE, AEW, TNA).

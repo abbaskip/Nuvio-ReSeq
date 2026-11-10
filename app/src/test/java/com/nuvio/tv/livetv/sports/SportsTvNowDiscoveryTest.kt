@@ -17,6 +17,23 @@ class SportsTvNowDiscoveryTest {
     private val channel = LiveChannel("506", "playlist", "Test", "AU: Fox Sports 506 HD",
         null, null, null, "sports", "Sports", 1, "https://example.invalid")
 
+    @Test fun longReplaysAndUnconfirmedSessionsRemainCurrentTvEvenWithoutALiveFixture() {
+        val programmes = listOf(
+            EpgProgram(now - 8 * hour, now + hour, "Replay: Snooker: Ronnie O'Sullivan v Judd Trump"),
+            EpgProgram(now - 8 * hour, now + hour, "Replay: Tennis: Australian Open"),
+            EpgProgram(now - 8 * hour, now + hour, "PGA Tour Golf: Hero World Challenge"))
+        val channels = programmes.indices.associate { "$it" to channel.copy(key = "$it") }
+        every { db.visitCurrentPrograms(now, any(), any()) } answers {
+            programmes.forEachIndexed { i, programme -> thirdArg<(String, EpgProgram) -> Unit>().invoke("$i", programme) }
+        }
+        val found = SportsMatcher(db).tvNowEvents(SportsCatalog.all, emptyList(), channels, 0, now)
+        assertEquals(found.map { it.title }.toString(), 3, found.size)
+        assertEquals(2, found.count { it.isReplay })
+        assertTrue(found.all { it.source == EventSource.GUIDE })
+        assertTrue(SportsEventListings.allEvents(found, now - hour, now + hour, now).isEmpty())
+        verify(exactly = 0) { db.visitPrograms(any(), any(), any()) }
+    }
+
     @Test fun currentSportsIncludeLongBowlsSessionsReplaysAndUnconfirmedCoverageWithoutFixtures() {
         val programmes = listOf(
             EpgProgram(now - 10 * hour, now + hour, "Live: Bowls Premier League: BPL 24 day 1"),

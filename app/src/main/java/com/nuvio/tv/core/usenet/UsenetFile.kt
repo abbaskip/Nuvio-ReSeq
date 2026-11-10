@@ -7,22 +7,87 @@ internal interface UsenetFile {
     fun read(position: Long, buffer: ByteArray, offset: Int, length: Int): Int
 }
 
-internal class ArticleCache(private val fetch: (String, List<String>) -> Article) {
+internal class ArticleCache(
+    private val fetchAhead: ((String) -> Article?)? = null,
+    private val allowSequentialAhead: () -> Boolean = { true },
+    private val fetch: (String, List<String>) -> Article
+) {
     private val entries = LinkedHashMap<String, Article>(16, 0.75f, true)
-    private var used = 0
     private val missing = LinkedHashSet<String>()
+    private val loading = mutableMapOf<String, java.util.concurrent.CompletableFuture<Article?>>()
+    private var used = 0
+    private var prefetchBusy = false
+
     operator fun get(id: String): Article = load(id, emptyList())
-    @Synchronized fun load(id: String, next: List<String>): Article {
-        entries[id]?.let { return it }
-        if (id in missing) throw MissingUsenetArticle()
-        val article = try {
-            fetch(id, next.filterNot { it == id || it in entries || it in missing })
-        } catch (error: MissingUsenetArticle) {
-            // Only definitive absence across all providers is remembered. Transport failures remain retryable.
-            if (missing.size >= 4096) missing.remove(missing.first())
-            missing.add(id)
-            throw error
+
+    fun load(id: String, next: List<String>): Article {
+        while (true) {
+            val mine = java.util.concurrent.CompletableFuture<Article?>()
+            val pending: java.util.concurrent.CompletableFuture<Article?>?
+            val ahead: List<String>
+            synchronized(this) {
+                entries[id]?.let { return it }
+                if (id in missing) throw MissingUsenetArticle()
+                pending = loading[id]
+                if (pending == null) loading[id] = mine
+                ahead = next.filterNot { it == id || it in entries || it in missing || it in loading }
+            }
+            if (pending != null) {
+                try {
+                    pending.get()?.let { return it }
+                } catch (error: java.util.concurrent.ExecutionException) {
+                    throw error.cause ?: error
+                } catch (error: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    throw java.io.InterruptedIOException("Interrupted waiting for the Usenet article.")
+                }
+                continue
+            }
+            try {
+                val article = fetch(id, ahead)
+                synchronized(this) { store(id, article) }
+                mine.complete(article)
+                return article
+            } catch (error: Throwable) {
+                if (error is MissingUsenetArticle) synchronized(this) {
+                    if (missing.size >= 4096) missing.remove(missing.first())
+                    missing.add(id)
+                }
+                mine.completeExceptionally(error)
+                throw error
+            } finally {
+                synchronized(this) { loading.remove(id, mine) }
+            }
         }
+    }
+
+    /** One speculative BODY per session. A spare socket may decline without poisoning demand. */
+    fun prefetch(id: String?, archive: Boolean = false) {
+        val reader = fetchAhead ?: return
+        if (id == null || (!archive && !allowSequentialAhead())) return
+        val future = synchronized(this) {
+            if (prefetchBusy || id in entries || id in missing || id in loading) return
+            prefetchBusy = true
+            java.util.concurrent.CompletableFuture<Article?>().also { loading[id] = it }
+        }
+        kotlinx.coroutines.Dispatchers.IO.dispatch(kotlin.coroutines.EmptyCoroutineContext) {
+            var article: Article? = null
+            try {
+                article = reader(id)
+            } catch (_: java.io.IOException) {
+                // Demand retries through the normal provider fallback path.
+            } finally {
+                synchronized(this) {
+                    article?.let { store(id, it) }
+                    loading.remove(id)
+                    prefetchBusy = false
+                }
+                future.complete(article)
+            }
+        }
+    }
+
+    private fun store(id: String, article: Article) {
         entries[id] = article
         used += article.bytes.size
         val iterator = entries.values.iterator()
@@ -30,7 +95,6 @@ internal class ArticleCache(private val fetch: (String, List<String>) -> Article
             used -= iterator.next().bytes.size
             iterator.remove()
         }
-        return article
     }
 }
 
@@ -56,13 +120,16 @@ internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verify
         }
     }
 
-    @Synchronized override fun read(position: Long, buffer: ByteArray, offset: Int, length: Int): Int {
+    override fun read(position: Long, buffer: ByteArray, offset: Int, length: Int): Int {
         if (length == 0) return 0
         if (position >= size) return -1
-        val floor = offsets.floorEntry(position) ?: throw UsenetFailure("Invalid Usenet video offset.")
+        val (floor, nextIndex) = synchronized(offsets) {
+            (offsets.floorEntry(position) ?: throw UsenetFailure("Invalid Usenet video offset.")) to
+                (offsets.higherEntry(position)?.value?.index?.minus(1) ?: ids.lastIndex)
+        }
         val known = floor.value
         var low = if (position < known.end) known.index else known.index + 1
-        var high = offsets.higherEntry(position)?.value?.index?.minus(1) ?: ids.lastIndex
+        var high = nextIndex
         if (position < known.end) high = low
         ensureUsenet(low <= high, "The requested part of the video is missing.")
         var index = if (position == known.end) low else
@@ -70,18 +137,21 @@ internal class PostedFile(file: NzbFile, private val cache: ArticleCache, verify
         while (low <= high) {
             val next = if (position == known.end && index == known.index + 1)
                 ids.subList(index + 1, minOf(ids.size, index + 3)) else emptyList()
+            if (next.size == 2) cache.prefetch(ids.getOrNull(index + 3))
             val article = cache.load(ids[index], next)
             ensureUsenet(article.total == size && (index != ids.lastIndex || article.end == size), "Inconsistent yEnc file size.")
-            val existing = offsets[article.start]
-            val previous = offsets.lowerEntry(article.start)?.value
-            val following = offsets.higherEntry(article.start)
-            ensureUsenet((existing == null || (existing.index == index && existing.end == article.end)) &&
-                (previous == null || (previous.index < index && previous.end <= article.start &&
-                    (previous.index + 1 != index || previous.end == article.start))) &&
-                (following == null || (following.value.index > index && article.end <= following.key &&
-                    (following.value.index != index + 1 || article.end == following.key))),
-                "Inconsistent or missing yEnc file segments.")
-            if (existing == null) offsets[article.start] = KnownPart(index, article.end)
+            synchronized(offsets) {
+                val existing = offsets[article.start]
+                val previous = offsets.lowerEntry(article.start)?.value
+                val following = offsets.higherEntry(article.start)
+                ensureUsenet((existing == null || (existing.index == index && existing.end == article.end)) &&
+                    (previous == null || (previous.index < index && previous.end <= article.start &&
+                        (previous.index + 1 != index || previous.end == article.start))) &&
+                    (following == null || (following.value.index > index && article.end <= following.key &&
+                        (following.value.index != index + 1 || article.end == following.key))),
+                    "Inconsistent or missing yEnc file segments.")
+                if (existing == null) offsets[article.start] = KnownPart(index, article.end)
+            }
             when {
                 position < article.start -> high = index - 1
                 position >= article.end -> low = index + 1

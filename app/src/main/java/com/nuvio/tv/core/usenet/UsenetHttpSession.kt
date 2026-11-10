@@ -39,6 +39,8 @@ internal class UsenetHttpSession(val file: UsenetFile, private val articles: Clo
             }
         }
         val stream = object : InputStream() {
+            @Volatile private var closed = false
+            override fun close() { closed = true }
             var position = bounds.first
             override fun read(): Int {
                 val one = ByteArray(1)
@@ -46,7 +48,7 @@ internal class UsenetHttpSession(val file: UsenetFile, private val articles: Clo
             }
             override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
                 if (length == 0) return 0
-                if (position > bounds.last || session.method == Method.HEAD) return -1
+                if (closed || position > bounds.last || session.method == Method.HEAD) return -1
                 lastRead = System.nanoTime()
                 val prefixOffset = position - bounds.first
                 val count = if (prefixOffset < available) {

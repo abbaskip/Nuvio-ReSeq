@@ -21,6 +21,33 @@ import org.junit.Test
 class UsenetReliabilityTest {
     private val xml = """<nzb><file subject="episode.mp4"><segments><segment number="1">one</segment></segments></file></nzb>"""
 
+    @Test fun stalledArticleDoesNotBlockACachedReadOrAnIndependentSeek() {
+        val held = CountDownLatch(1)
+        val resume = CountDownLatch(1)
+        val ids = (0..7).map(Int::toString)
+        val requests = java.util.concurrent.ConcurrentHashMap<String, AtomicInteger>()
+        val cache = ArticleCache { id, _ ->
+            requests.computeIfAbsent(id) { AtomicInteger() }.incrementAndGet()
+            if (id == "1") {
+                held.countDown()
+                check(resume.await(5, TimeUnit.SECONDS))
+            }
+            Article(id.toLong(), 8L, byteArrayOf(id.toByte()))
+        }
+        val file = PostedFile(NzbFile("fixture.mp4", ids, 8L), cache)
+        val workers = java.util.concurrent.Executors.newFixedThreadPool(3)
+        try {
+            val slow = workers.submit<ByteArray> { file.bytesAt(1, 1) }
+            assertTrue(held.await(2, TimeUnit.SECONDS))
+            val same = workers.submit<ByteArray> { file.bytesAt(1, 1) }
+            val seek = workers.submit<ByteArray> { file.bytesAt(5, 1) + file.bytesAt(0, 1) }
+            assertArrayEquals(byteArrayOf(5, 0), seek.get(2, TimeUnit.SECONDS))
+            resume.countDown()
+            assertArrayEquals(slow.get(2, TimeUnit.SECONDS), same.get(2, TimeUnit.SECONDS))
+            assertEquals(1, requests["1"]?.get())
+        } finally { resume.countDown(); workers.shutdownNow() }
+    }
+
     @Test fun missingArticlesAreRememberedButTransportFailuresRemainRetryable() {
         val requests = AtomicInteger()
         val absent = ArticleCache { _, _ -> requests.incrementAndGet(); throw MissingUsenetArticle() }

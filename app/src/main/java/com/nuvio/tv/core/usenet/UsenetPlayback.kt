@@ -76,7 +76,10 @@ internal object UsenetPlayback {
         val articles = NewsArticles(source.servers)
         preparation.own(articles)
         var preparationCheck: (() -> Unit)? = checkActive
-        val cache = ArticleCache { id, next ->
+        val cache = ArticleCache(
+            fetchAhead = if (articles.canPrefetch) articles::fetchAhead else null,
+            allowSequentialAhead = { articles.sequentialReadAhead }
+        ) { id, next ->
             preparationCheck?.invoke()
             articles.fetch(id, next)
         }

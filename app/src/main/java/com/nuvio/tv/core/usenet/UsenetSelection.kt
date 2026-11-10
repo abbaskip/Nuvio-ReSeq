@@ -207,6 +207,8 @@ internal object UsenetSelection {
         val files = if (info.kind == Kind.RAR) sequence {
             var i = 0
             while (i < sorted.size) {
+                val segments = sorted[i].second.articles
+                if (segments.size > 1) cache.prefetch(segments.last(), archive = true)
                 val a = openVolume(i, listOfNotNull(headAt(i + 1)))
                 val b = if (i + 1 < sorted.size) openVolume(i + 1, emptyList()) else null
                 yield(a)

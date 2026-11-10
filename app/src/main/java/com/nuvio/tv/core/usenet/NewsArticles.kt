@@ -148,6 +148,7 @@ private class NewsServer(val host: String, val port: Int, val tls: Boolean, val 
 
 private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, private var deadline: Long,
                              register: (Socket) -> Unit) : Closeable {
+    private val connectStarted = System.nanoTime()
     private var socket = connect(server, register)
     private val input: NewsWireReader
     private val pending = java.util.ArrayDeque<String>(3)
@@ -212,6 +213,15 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
             throw failure ?: UnknownHostException()
         }
     }
+    // Includes TCP, TLS and authentication. Compare this connection's observed costs.
+    private val setupNanos = System.nanoTime() - connectStarted
+    private var transferNanos = 0L
+    var transferLimited: Boolean? = null
+        private set
+    // The queued BODY commands already shared the preceding request's round trip.
+    fun economicalDrain(): Boolean = pending.isNotEmpty() && transferNanos > 0 &&
+        transferNanos * pending.size < setupNanos
+
     private fun status() = input.statusCode()
     private fun send(value: String) = socket.getOutputStream().write((value + "\r\n").toByteArray(Charsets.UTF_8))
     private fun command(value: String): Int? {
@@ -224,6 +234,21 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
 
     fun fetch(id: String, next: List<String>, readDeadline: Long): Article {
         deadline = readDeadline
+        // An incompatible idle lease is reused only when draining is cheaper than login.
+        if (pending.isNotEmpty() && pending.peekFirst() != id) {
+            deadline = minOf(readDeadline, System.nanoTime() + setupNanos)
+        }
+        while (pending.isNotEmpty() && pending.peekFirst() != id) {
+            pending.removeFirst()
+            when (status()) {
+                222 -> decodeArticle(input)
+                430, 423 -> Unit
+                else -> throw UsenetFailure("Unexpected queued Usenet response.")
+            }
+        }
+        deadline = readDeadline
+        val start = System.nanoTime()
+        val queued = pending.isNotEmpty()
         // Commands share one authenticated connection. Responses stay in wire order.
         // On a seek the pool selects a compatible socket or replaces the old one.
         val commands = buildString {
@@ -241,9 +266,17 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
         }
         if (commands.isNotEmpty()) socket.getOutputStream().write(commands.toByteArray(Charsets.UTF_8))
         val response = status()
+        val statusAt = System.nanoTime()
         if (response == 430 || response == 423) throw MissingUsenetArticle()
         ensureUsenet(response == 222, "Usenet provider could not return the article.")
-        return decodeArticle(input)
+        return decodeArticle(input).also {
+            // A prefetched reply may already be in the kernel buffer; it would underestimate a cold transfer.
+            if (!queued) {
+                val end = System.nanoTime()
+                transferNanos = end - statusAt
+                transferLimited = transferNanos > statusAt - start
+            }
+        }
     }
     override fun close() = socket.close()
 }
@@ -260,14 +293,14 @@ private object NewsPool {
     }
     private val slots = mutableListOf<Slot>()
 
-    fun acquire(server: NewsServer, factory: SSLSocketFactory, owner: NewsArticles, id: String, allowQueued: Boolean): Slot {
-        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+    fun acquire(server: NewsServer, factory: SSLSocketFactory, owner: NewsArticles, id: String, allowQueued: Boolean, readDeadline: Long): Slot {
+        val poolDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
         synchronized(lock) {
             while (true) {
                 ensureUsenet(!owner.closed, "Usenet session expired.")
                 val account = slots.filter { it.server.sameAccount(server) }
-                account.firstOrNull { !it.busy && it.factory === factory && it.server.sameLogin(server) &&
-                    it.connection?.canFetch(id, allowQueued) == true }?.let {
+                account.filter { !it.busy && it.factory === factory && it.server.sameLogin(server) &&
+                    it.connection?.canFetch(id, allowQueued) == true }.maxByOrNull { if (it.connection?.hasQueuedReplies == true) 1 else 0 }?.let {
                     it.busy = true
                     it.owner = owner
                     return it
@@ -276,9 +309,17 @@ private object NewsPool {
                 val atAccountLimit = account.size >= cap
                 val pool = if (atAccountLimit) account else slots
                 if (atAccountLimit || slots.size >= 8) {
+                    if (atAccountLimit && allowQueued) account.firstOrNull { !it.busy &&
+                        it.factory === factory && it.server.sameLogin(server) && it.connection?.economicalDrain() == true
+                    }?.let {
+                        it.busy = true
+                        it.owner = owner
+                        return it
+                    }
                     val idle = pool.firstOrNull { !it.busy }
                     if (idle == null) {
-                        val left = deadline - System.nanoTime()
+                        val limit = if (pool.any { it.owner === owner }) readDeadline else minOf(readDeadline, poolDeadline)
+                        val left = limit - System.nanoTime()
                         ensureUsenet(left > 0, "The NNTP provider connection limit is busy.")
                         java.util.concurrent.TimeUnit.NANOSECONDS.timedWait(lock, left)
                         continue
@@ -288,6 +329,21 @@ private object NewsPool {
                 return Slot(server, factory, owner).also(slots::add)
             }
         }
+    }
+
+    /** Speculation may consume a spare lease, never wait, evict a slot or take the only allowance. */
+    fun spare(server: NewsServer, factory: SSLSocketFactory, owner: NewsArticles, id: String): Slot? = synchronized(lock) {
+        if (owner.closed) return null
+        val account = slots.filter { it.server.sameAccount(server) }
+        if (server.limit < 2 || account.any { it.server.limit < 2 }) return null
+        // Leave any queued sequential replies for their current reader.
+        account.firstOrNull { !it.busy && it.owner === owner && it.factory === factory &&
+            it.server.sameLogin(server) && it.connection?.canFetch(id, false) == true }?.let {
+            it.busy = true
+            return it
+        }
+        if (account.size >= 2 || slots.size >= 8) return null
+        Slot(server, factory, owner).also(slots::add)
     }
 
     fun register(slot: Slot, socket: Socket) = synchronized(lock) {
@@ -316,23 +372,43 @@ private object NewsPool {
 
 private val defaultTls by lazy { SSLSocketFactory.getDefault() as SSLSocketFactory }
 
-/** Each session serializes its reads. Provider leases and account limits span sessions. */
+/** Each socket has one exclusive lease. Account limits span readers and sessions. */
 internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SSLSocketFactory = defaultTls,
                             private val readBudgetMs: Long = 45_000L) : Closeable {
     private val servers = serverUrls.take(8).mapNotNull(NewsServer::parse)
-    private var preferred = 0
-    private val serialOnly = BooleanArray(servers.size)
+    @Volatile private var preferred = 0
+    private val serialOnly = java.util.concurrent.atomic.AtomicIntegerArray(servers.size)
+    private val transferLimited = java.util.concurrent.atomic.AtomicIntegerArray(servers.size)
+    val sequentialReadAhead get() = canPrefetch && transferLimited.get(preferred) != 0
+    val canPrefetch get() = servers[preferred].limit > 1 && serialOnly.get(preferred) == 0
     @Volatile var closed = false
         private set
     init { ensureUsenet(servers.isNotEmpty(), "The add-on supplied no usable NNTP server.") }
 
-    @Synchronized fun fetch(id: String, next: List<String> = emptyList()): Article {
+    fun fetchAhead(id: String): Article? {
+        val index = preferred
+        val server = servers[index]
+        if (serialOnly.get(index) != 0) return null
+        val slot = NewsPool.spare(server, tlsFactory, this, id) ?: return null
+        var healthy = false
+        try {
+            val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(readBudgetMs)
+            val connection = slot.connection ?: NewsConnection(server, tlsFactory, deadline) { NewsPool.register(slot, it) }
+                .also { slot.connection = it }
+            return connection.fetch(id, emptyList(), deadline).also { healthy = true }
+        } finally {
+            NewsPool.finish(slot, healthy)
+        }
+    }
+
+    fun fetch(id: String, next: List<String> = emptyList()): Article {
         ensureUsenet(!closed, "Usenet session expired.")
         var lastFailure: String? = null
         var missingProviders = 0
         val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(readBudgetMs)
+        val firstProvider = preferred
         for (step in servers.indices) {
-            val index = (preferred + step) % servers.size
+            val index = (firstProvider + step) % servers.size
             // An idle socket can have been dropped by the server. Reconnect once in that case.
             for (attempt in 0..1) {
                 ensureUsenet(!closed, "Usenet session expired.")
@@ -343,15 +419,19 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
                 var reused = false
                 var healthy = false
                 try {
-                    val lease = NewsPool.acquire(servers[index], tlsFactory, this, id, allowQueued = !serialOnly[index])
+                    val lease = NewsPool.acquire(servers[index], tlsFactory, this, id, allowQueued = serialOnly.get(index) == 0, readDeadline = deadline)
                     slot = lease
                     reused = lease.connection != null
                     val active = lease.connection ?: NewsConnection(servers[index], tlsFactory, deadline) { NewsPool.register(lease, it) }
                         .also { lease.connection = it }
                     readingArticle = true
-                    val ahead = if (serialOnly[index]) emptyList() else next
-                    pipelined = active.hasQueuedReplies || ahead.isNotEmpty()
+                    val draining = !active.canFetch(id, allowQueued = true)
+                    // A speculative drain exceeding its budget should retry on a fresh connection.
+                    // It says nothing about whether this provider accepts pipelined commands.
+                    val ahead = if (draining || serialOnly.get(index) != 0) emptyList() else next
+                    pipelined = !draining && (active.hasQueuedReplies || ahead.isNotEmpty())
                     val article = active.fetch(id, ahead, deadline)
+                    active.transferLimited?.let { transferLimited.set(index, if (it) 1 else 0) }
                     healthy = true
                     preferred = index
                     return article
@@ -370,10 +450,10 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
                         else -> if (readingArticle) "The connection dropped while reading a Usenet article."
                             else "The connection to the NNTP provider failed during startup."
                     }
-                    if (pipelined && !serialOnly[index]) {
+                    if (pipelined && serialOnly.get(index) == 0) {
                         // Some servers/proxies reject overlapping BODY commands. Retry the
                         // requested article alone on a fresh socket and remember this provider.
-                        serialOnly[index] = true
+                        serialOnly.set(index, 1)
                     } else if (!reused) break
                 } finally {
                     slot?.let { NewsPool.finish(it, healthy) }

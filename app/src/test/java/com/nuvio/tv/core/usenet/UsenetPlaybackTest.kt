@@ -75,8 +75,8 @@ class UsenetPlaybackTest {
         return output.toByteArray()
     }
 
-    private class NewsFixture(private val articles: Map<String, ByteArray>, private val latencyMs: Long = 0) : Closeable {
-        private val responses = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
+    private class NewsFixture(private val articles: Map<String, ByteArray>, private val latencyMs: Long = 0, private val mbps: Int = 0) : Closeable {
+        private val writers = java.util.concurrent.ConcurrentLinkedQueue<java.util.concurrent.ScheduledExecutorService>()
         private val listener = ServerSocket(0, 8, InetAddress.getByName("127.0.0.1"))
         val endpoint = "nntp://fixture:p%3Ass+word@127.0.0.1:" + listener.localPort + "/4"
         val requests = AtomicInteger()
@@ -86,22 +86,29 @@ class UsenetPlaybackTest {
                     val socket = try { listener.accept() } catch (_: SocketException) { break }
                     thread(isDaemon = true) {
                         socket.use {
+                            val responses = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
+                            writers.add(responses)
                             val input = socket.getInputStream().bufferedReader()
                             val out = socket.getOutputStream()
                             fun line(s: String) = out.write((s + "\r\n").toByteArray())
-                            line("200 ready")
+                            fun handshake(message: String) {
+                                if (mbps > 0) Thread.sleep(latencyMs)
+                                line(message)
+                            }
+                            handshake("200 ready")
                             var loggedIn = false
                             while (true) {
                                 val command = input.readLine() ?: break
                                 when {
-                                    command == "AUTHINFO USER fixture" -> line("381 password required")
-                                    command == "AUTHINFO PASS p:ss+word" -> { loggedIn = true; line("281 accepted") }
+                                    command == "AUTHINFO USER fixture" -> handshake("381 password required")
+                                    command == "AUTHINFO PASS p:ss+word" -> { loggedIn = true; handshake("281 accepted") }
                                     loggedIn && command.startsWith("BODY <") -> {
                                         requests.incrementAndGet()
                                         val body = articles[command.removePrefix("BODY <").removeSuffix(">")]
                                         val respond = Runnable {
                                             if (body == null) line("430 unavailable") else {
                                                 line("222 article")
+                                                if (mbps > 0) Thread.sleep(body.size * 8L / (mbps * 1000))
                                                 out.write(body)
                                             }
                                         }
@@ -116,7 +123,47 @@ class UsenetPlaybackTest {
                 }
             }
         }
-        override fun close() { listener.close(); responses.shutdownNow() }
+        override fun close() { listener.close(); writers.forEach { it.shutdownNow() } }
+    }
+
+    @Test fun profileLocalProviderLatencyAndSeekCosts() {
+        org.junit.Assume.assumeTrue(System.getenv("NUVIO_PROFILE_LOOPBACK") == "true")
+        val partSize = 192 * 1024
+        val ids = List(32) { "profile-$it" }
+        val size = partSize * ids.size
+        val bodies = ids.mapIndexed { i, id -> id to article(ByteArray(partSize) { 1 }, i * partSize, size) }.toMap()
+        for (rtt in listOf(50L, 150L, 300L)) {
+            for (cap in listOf(0, 20)) {
+                for (sockets in 1..2) {
+                    NewsFixture(bodies, rtt, cap).use { provider ->
+                        NewsArticles(listOf(provider.endpoint.substringBeforeLast('/') + "/$sockets")).use { reader ->
+                            val cache = ArticleCache(if (reader.canPrefetch) reader::fetchAhead else null, { reader.sequentialReadAhead }, reader::fetch)
+                            val file = PostedFile(NzbFile("test.mp4", ids, size.toLong()), cache)
+                            val elapsed = kotlin.system.measureNanoTime {
+                                val bytes = file.bytesAt(0, size)
+                                assertTrue(bytes.all { it == 1.toByte() })
+                            }
+                            println("C1 rtt=$rtt cap=$cap sockets=$sockets Mbps=" + (size * 8000.0 / elapsed) +
+                                " BODY=" + provider.requests.get())
+                        }
+                    }
+                }
+            }
+            for (bandwidth in listOf(10, 80)) {
+                for (drain in listOf(false, true)) {
+                    NewsFixture(bodies, rtt, bandwidth).use { provider ->
+                        NewsArticles(listOf(provider.endpoint.substringBeforeLast('/') + "/1")).use { reader ->
+                            reader.fetch(ids[0], ids.subList(1, 3))
+                            val elapsed = kotlin.system.measureNanoTime {
+                                if (drain) { reader.fetch(ids[1]); reader.fetch(ids[2]) }
+                                assertEquals(partSize.toLong() * 20, reader.fetch(ids[20]).start)
+                            }
+                            println("C2 rtt=$rtt Mbps=$bandwidth drain=$drain seekMs=" + elapsed / 1_000_000)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Test fun delayedProviderReturnsIdenticalSplitAndSequentialBytesAcrossSeeks() {

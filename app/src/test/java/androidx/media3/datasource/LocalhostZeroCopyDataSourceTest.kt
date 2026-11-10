@@ -145,6 +145,14 @@ class LocalhostZeroCopyDataSourceTest {
         thread {
             try {
                 val client = serverSocket.accept()
+                // Drain the request before closing: unread request bytes can cause a
+                // Windows TCP reset, losing the single-write look-ahead response.
+                client.soTimeout = 5_000
+                val request = client.getInputStream().bufferedReader(Charsets.US_ASCII)
+                while (true) {
+                    val line = request.readLine() ?: break
+                    if (line.isEmpty()) break
+                }
                 val out = client.getOutputStream()
                 val fullPayload = responseHeaders.toByteArray() + expectedData.toByteArray()
                 out.write(fullPayload)

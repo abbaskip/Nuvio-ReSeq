@@ -479,16 +479,12 @@ fun ContinueWatchingCard(
 
     val progress = remember(item) { (item as? ContinueWatchingItem.InProgress)?.progress }
     val nextUp = remember(item) { (item as? ContinueWatchingItem.NextUp)?.info }
-    val cardContext = LocalContext.current
-    val episodeStr = remember(item, progress, nextUp, cardContext) {
-        if (item.chooseEpisode) return@remember cardContext.getString(R.string.cw_choose_episode)
-        val season = (item as? ContinueWatchingItem.InProgress)?.displaySeason ?: nextUp?.displaySeason ?: progress?.season ?: nextUp?.season
-        val episode = (item as? ContinueWatchingItem.InProgress)?.displayEpisode ?: nextUp?.displayEpisode ?: progress?.episode ?: nextUp?.episode
-        if (season != null && episode != null) {
-            cardContext.getString(R.string.season_episode_format, season, episode)
-        } else {
-            null
-        }
+    val season = (item as? ContinueWatchingItem.InProgress)?.displaySeason ?: nextUp?.displaySeason ?: progress?.season ?: nextUp?.season
+    val episode = (item as? ContinueWatchingItem.InProgress)?.displayEpisode ?: nextUp?.displayEpisode ?: progress?.episode ?: nextUp?.episode
+    val episodeStr = when {
+        item.chooseEpisode -> stringResource(R.string.cw_choose_episode)
+        season != null && episode != null -> stringResource(R.string.season_episode_format, season, episode)
+        else -> null
     }
     val strUpcoming = stringResource(R.string.cw_upcoming)
     val strNextUp = stringResource(R.string.cw_next_up)

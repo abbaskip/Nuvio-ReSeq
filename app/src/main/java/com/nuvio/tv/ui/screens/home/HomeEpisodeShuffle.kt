@@ -79,9 +79,11 @@ internal fun HomeViewModel.createShuffleHomeState(): StateFlow<HomeUiState> {
     }.stateIn(viewModelScope, SharingStarted.Eagerly, HomeUiState())
 }
 
+private const val CW_TRACE_TAG = "NuvioCwTrace"
+
 internal inline fun traceCwCard(id: String, reason: () -> String) {
-    if (Log.isLoggable("NuvioCwTrace", Log.DEBUG))
-        Log.d("NuvioCwTrace", "at=${System.currentTimeMillis()} show=$id ${reason()}")
+    if (Log.isLoggable(CW_TRACE_TAG, Log.DEBUG))
+        Log.d(CW_TRACE_TAG, "at=${System.currentTimeMillis()} show=$id ${reason()}")
 }
 
 private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueWatchingItem {

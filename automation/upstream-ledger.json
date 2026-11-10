@@ -2206,6 +2206,96 @@
       "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
       "outcome": "irrelevant",
       "reason": "Upstream version metadata only. ReSeq maintains its separate beta version and update channel."
+    },
+    "9a8468e0f63be1668ab52b6eb6fd9d3ed7528300": {
+      "outcome": "held",
+      "reason": "ReSeq ships its own CloudStream Activity bridge and runtime verification. Compare lifecycle and plugin ABI compatibility in the next upstream integration.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "3f005fe8c4894c39fb7043b456d283ad6a62ec22": {
+      "outcome": "held",
+      "reason": "ReSeq ships its own CloudStream Activity bridge and runtime verification. Compare lifecycle and plugin ABI compatibility in the next upstream integration.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "42b1b64ff48f6780800832fbc99bdb493c55700e": {
+      "outcome": "held",
+      "reason": "Changes pinned optical output capabilities during forced AC-3 transcoding. Requires dedicated passthrough route coverage separate from the validated NNTP changes.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "b5c1bca2287f8ba6a628e6714d0dae35bbf27c9a": {
+      "outcome": "held",
+      "reason": "Changes pinned optical output capabilities during forced AC-3 transcoding. Requires dedicated passthrough route coverage separate from the validated NNTP changes.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "7e9bb622541e788dbf68dcbd2ba124b6250e4b98": {
+      "outcome": "held",
+      "reason": "Lithuanian updates span three resource files beyond this maintenance release. Reconcile with the two new localized Continue Watching labels during the next translation integration.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "7bebafdab9782368efbb0d9c9c6eb9baa838ea4c": {
+      "outcome": "held",
+      "reason": "Lithuanian updates span three resource files beyond this maintenance release. Reconcile with the two new localized Continue Watching labels during the next translation integration.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "e12bc8752f87012ee9a196bd1527865a2d21364f": {
+      "outcome": "held",
+      "reason": "Adds a navigation-triggered sync and changes startup pull order. Review foreground polling and player-session gating before integrating this overlapping implementation.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "48bef4f36ef99b66cfdbab7d0ba9733760577f18": {
+      "outcome": "held",
+      "reason": "Adds a navigation-triggered sync and changes startup pull order. Review foreground polling and player-session gating before integrating this overlapping implementation.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "88c27bbdebd55d5360565c5e8de84b91d67ccfd7": {
+      "outcome": "held",
+      "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "4eb7dda70739aa48d25985bfe04af77b83f8d8cf": {
+      "outcome": "held",
+      "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "24d71a532ab91f5adeaf9e175ab6a4df09c9798e": {
+      "outcome": "held",
+      "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "7c30df17869140a196bb2f2c264017812c8f2ba3": {
+      "outcome": "held",
+      "reason": "Dutch 1.1 resource changes are independent of this beta. Reconcile with the added localized window and episode-selection labels in the next translation integration.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "65538103f4deee249bf919874cb5170824c517c8": {
+      "outcome": "held",
+      "reason": "Dutch 1.1 resource changes are independent of this beta. Reconcile with the added localized window and episode-selection labels in the next translation integration.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "97015f17bdd4a47556d12b2c98ef6b0feeccfb3d": {
+      "outcome": "held",
+      "reason": "Changes post-play recommendation timing using end credits chapters. Requires separate timing regression coverage for ReSeq player engines.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "17ddebe7398d7c95aee8762b5ed2f3de9a7a307e": {
+      "outcome": "held",
+      "reason": "Changes post-play recommendation timing using end credits chapters. Requires separate timing regression coverage for ReSeq player engines.",
+      "run": "20261110T030608Z-582262",
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
     }
   }
 }

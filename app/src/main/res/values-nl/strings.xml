@@ -3166,5 +3166,5 @@
     <string name="episodes_partial_watch_removed">Gedeeltelijke kijkvoortgang verwijderd</string>
     <string name="episodes_partial_watch_failed">Het verwijderen van de gedeeltelijke kijkvoortgang kon niet worden voltooid</string>
     <string name="playback_exo_chapters_title">Hoofdstukken tonen</string>
-    <string name="playback_exo_chapters_sub">Leest hoofdstukken uit MKV-bestanden om ze op de voortgangsbalk te markeren en ertussen te springen. Hiervoor zijn een paar kleine extra verzoeken nodig zodra het afspelen start.</string>
+    <string name="playback_exo_chapters_sub">Leest hoofdstukken uit MKV-bestanden om ze op de voortgangsbalk te markeren en ertussen te springen.</string>
 </resources>

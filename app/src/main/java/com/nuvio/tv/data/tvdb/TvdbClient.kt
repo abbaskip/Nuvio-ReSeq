@@ -43,6 +43,27 @@ class TvdbClient @Inject constructor(
     private val tokens = mutableMapOf<Int, Token>()
     private val json = Json { ignoreUnknownKeys = true }
 
+    // These three lookups usually belong to the same order resolution. Keep only the
+    // most recent series and only the fields needed for titles and season discovery.
+    private data class SeriesSummary(val profileId: Int, val revision: Long, val seriesId: Long,
+        val fetchedAtNanos: Long, val data: JsonObject)
+    private var lastSeries: SeriesSummary? = null
+
+    private suspend fun extendedSeries(profileId: Int, seriesId: Long): JsonObject = mutex.withLock {
+        val revision = credentials.revision(profileId)
+        lastSeries?.takeIf {
+            it.profileId == profileId && it.revision == revision && it.seriesId == seriesId &&
+                System.nanoTime() - it.fetchedAtNanos < 60_000_000_000L
+        }?.let { return@withLock it.data }
+        val data = getLocked(profileId, "series/$seriesId/extended").objectData()
+        checkRevision(profileId, revision)
+        val summary = buildJsonObject {
+            for (field in listOf("name", "aliases", "seasons")) data[field]?.let { put(field, it) }
+        }
+        lastSeries = SeriesSummary(profileId, revision, seriesId, System.nanoTime(), summary)
+        summary
+    }
+
     /** Login only: never persist or display the bearer token. */
     suspend fun testConnection(profileId: Int) = mutex.withLock {
         withContext(Dispatchers.IO) {
@@ -54,7 +75,7 @@ class TvdbClient @Inject constructor(
 
     suspend fun orders(profileId: Int, seriesId: Long): List<TvdbOrder> {
         require(seriesId > 0)
-        val series = get(profileId, "series/$seriesId/extended").objectData()
+        val series = extendedSeries(profileId, seriesId)
         return series["seasons"].array().mapNotNull { value ->
             val type = value.jsonObject["type"] as? JsonObject ?: return@mapNotNull null
             val id = type["type"].string() ?: return@mapNotNull null
@@ -64,7 +85,7 @@ class TvdbClient @Inject constructor(
 
     suspend fun seriesTitles(profileId: Int, seriesId: Long): Set<String> {
         require(seriesId > 0)
-        val series = get(profileId, "series/$seriesId/extended").objectData()
+        val series = extendedSeries(profileId, seriesId)
         return buildSet {
             series["name"].string()?.let(::add)
             series["aliases"].array().forEach { row ->
@@ -112,7 +133,7 @@ class TvdbClient @Inject constructor(
 
     suspend fun episodesFromSeasons(profileId: Int, seriesId: Long, order: String): List<TvdbEpisode> {
         require(seriesId > 0 && order.matches(Regex("[a-zA-Z0-9_-]+")))
-        val series = get(profileId, "series/$seriesId/extended").objectData()
+        val series = extendedSeries(profileId, seriesId)
         val result = mutableListOf<TvdbEpisode>()
         for (season in series["seasons"].array().map { it.jsonObject }) {
             val type = season["type"] as? JsonObject ?: continue
@@ -131,6 +152,10 @@ class TvdbClient @Inject constructor(
     }
 
     private suspend fun get(profileId: Int, path: String): JsonObject = mutex.withLock {
+        getLocked(profileId, path)
+    }
+
+    private suspend fun getLocked(profileId: Int, path: String): JsonObject =
         withContext(Dispatchers.IO) {
             repeat(2) { attempt ->
                 val token = token(profileId)
@@ -151,7 +176,6 @@ class TvdbClient @Inject constructor(
             }
             throw TvdbException(TvdbException.Reason.AUTHENTICATION)
         }
-    }
 
     private suspend fun token(profileId: Int): Token {
         val revision = credentials.revision(profileId)

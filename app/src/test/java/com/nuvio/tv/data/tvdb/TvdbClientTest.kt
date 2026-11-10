@@ -46,6 +46,18 @@ class TvdbClientTest {
     }
     private val login = 200 to """{"data":{"token":"fixture-token"}}"""
 
+    @Test fun `adjacent order title and season lookups share series data only within the profile`() = runTest {
+        val series = 200 to """{"data":{"name":"Show","aliases":["Alias"],"seasons":[{"id":5,"number":2,"type":{"type":"dvd"}}]}}"""
+        val api = client(login, series, 200 to """{"data":{"episodes":[{"id":7,"number":1}]}}""",
+            login, 200 to """{"data":{"name":"Other profile"}}""")
+        assertEquals(listOf(TvdbOrder("dvd", "dvd")), api.orders(1, 100))
+        assertEquals(setOf("Show", "Alias"), api.seriesTitles(1, 100))
+        assertEquals(7L, api.episodesFromSeasons(1, 100, "dvd").single().id)
+        assertEquals(1, paths.count { it == "/v4/series/100/extended" })
+        assertEquals(setOf("Other profile"), api.seriesTitles(2, 100))
+        assertEquals(2, paths.count { it == "/v4/series/100/extended" })
+    }
+
     @Test fun `timeout cancels the HTTP call and releases the shared client lock`() = runBlocking {
         val release = CountDownLatch(1)
         val pending = AtomicReference<Call>()

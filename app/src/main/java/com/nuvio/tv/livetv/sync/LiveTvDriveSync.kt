@@ -79,6 +79,7 @@ class LiveTvDriveSync @Inject constructor(
     private val protected = com.nuvio.tv.core.profile.ProtectedProfilePreferences(
         context, "reseq_drive_credentials", "com.nuvio.tv.drive.credentials.v1")
     private val mutex = Mutex()
+    private val mediaPoll = DriveMediaPoll()
     private data class RemoteBackup(val json: JSONObject, val etag: String?)
 
     private fun refreshToken(): String? {
@@ -325,7 +326,7 @@ class LiveTvDriveSync @Inject constructor(
         val email = emailFromIdToken(token.optString("id_token"))
         protected.write(1, refresh)
         // An explicit sign-in may be a different Google account. Never reuse its predecessor's baseline.
-        android.util.AtomicFile(baseFile()).delete()
+        clearBase()
         store.edit().remove(KEY_REFRESH).remove(KEY_FILE_ID).remove(KEY_LAST_HASH).putString(KEY_EMAIL, email).apply()
         _state.value = _state.value.copy(connected = true, email = email, signIn = null, message = null)
         // First connection merges with Drive; it must not replace an existing local setup.
@@ -339,7 +340,7 @@ class LiveTvDriveSync @Inject constructor(
             mutex.withLock {
                 store.edit().remove(KEY_REFRESH).remove(KEY_EMAIL).remove(KEY_FILE_ID).remove(KEY_LAST_HASH)
                     .remove(KEY_MODE).remove(KEY_LAST_SYNC).remove(KEY_APPLIED_AT).apply()
-                android.util.AtomicFile(baseFile()).delete()
+                clearBase()
                 protected.clear()
                 accessToken = null
                 accessTokenExpiresAt = 0L
@@ -456,21 +457,25 @@ class LiveTvDriveSync @Inject constructor(
         _state.value = _state.value.copy(busy = true, message = if (force && !onlyIfExists) "Restoring…" else null)
         val result = runCatching {
             val fileId = fileId(token) ?: return@runCatching null
-            val text = execute(
-                Request.Builder()
-                    .url("https://www.googleapis.com/drive/v2/files/$fileId?alt=media")
-                    .header("Authorization", "Bearer $token")
-                    .get()
-                    .build()
-            )
-            val json = JSONObject(text)
+            val request = Request.Builder()
+                .url("https://www.googleapis.com/drive/v2/files/$fileId?alt=media")
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+            val media = withContext(Dispatchers.IO) {
+                mediaPoll.download(http, request, force, ::readBody)
+            } ?: return@runCatching false
+            val json = JSONObject(media.text)
             val savedAt = json.optLong("savedAt")
             val fromThisTv = json.optString("deviceId") == deviceId
             val remoteData = driveBackupData(json)
             // Nothing new: saved by this TV, or the same as what this TV last synced. (Not judged
             // by the time it was saved: TVs' clocks differ, and a newer copy was skipped.)
             val base = readBase()
-            if (!force && (fromThisTv || remoteData.toString() == base?.toString())) return@runCatching false
+            if (!force && (fromThisTv || remoteData.toString() == base?.toString())) {
+                media.acknowledgeUnchanged()
+                return@runCatching false
+            }
             // A saved copy with no playlists or guides (made by an older version after signing
             // out): never let it empty this TV. Treated as no backup at all.
             if (!hasSetup(remoteData)) return@runCatching null
@@ -735,7 +740,13 @@ class LiveTvDriveSync @Inject constructor(
 
     private fun readBase(): JSONObject? = if (baseFile().exists()) JSONObject(baseFile().readText()) else null
 
+    private fun clearBase() {
+        mediaPoll.invalidate()
+        android.util.AtomicFile(baseFile()).delete()
+    }
+
     private fun writeBase(data: JSONObject) {
+        mediaPoll.invalidate()
         val file = android.util.AtomicFile(baseFile())
         val stream = file.startWrite()
         try {
@@ -820,13 +831,15 @@ class LiveTvDriveSync @Inject constructor(
     }
 
     private suspend fun execute(request: Request): String = withContext(Dispatchers.IO) {
-        http.newCall(request).execute().use { r ->
-            val text = r.body?.string().orEmpty()
-            if (r.code == 404) store.edit().remove(KEY_FILE_ID).apply()
-            if (r.code == 412) error("The backup changed on another TV. Sync again before saving.")
-            if (!r.isSuccessful) error("HTTP ${r.code}")
-            text
-        }
+        http.newCall(request).execute().use(::readBody)
+    }
+
+    private fun readBody(response: okhttp3.Response): String {
+        val text = response.body?.string().orEmpty()
+        if (response.code == 404) store.edit().remove(KEY_FILE_ID).apply()
+        if (response.code == 412) error("The backup changed on another TV. Sync again before saving.")
+        if (!response.isSuccessful) error("HTTP ${response.code}")
+        return text
     }
 
     private val isAppDataMode: Boolean

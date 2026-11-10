@@ -637,6 +637,7 @@ class PlayerRuntimeController(
     internal var ffmpegAudioRenderer: FfmpegAudioRenderer? = null
     internal var mpvView: NuvioMpvSurfaceView? = null
     internal val subtitleCueTracker = SubtitleCueTracker()
+    internal val styledSubtitles = StyledSubtitlePresenter()
     internal var mpvInitializationInProgress: Boolean = false
     internal var mpvMediaLoadPrepared: Boolean = false
     internal var mpvTrackRefreshJob: Job? = null

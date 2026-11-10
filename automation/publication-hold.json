@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "hold": false,
-  "reason": "Maintainer confirmed the Continue Watching fix is complete and explicitly requested merging and publishing beta 9.3 on 10 November 2026.",
+  "reason": "Maintainer explicitly requested bbd76cd54 plus the Continue Watching, crash, TV Now and cricket fixes be merged and published as beta 9.4 as soon as validation is complete on 10 November 2026. Withdrawn beta 9.3 remains a draft.",
   "clear_when": "Publication is authorized after the standard exact-commit validation and compatibility gates pass.",
-  "release": "v0.1.0-beta.9.3",
-  "accepted_source": "f995e772eb92c8a6add819d61676f195fbfc5a41",
-  "evidence": "tools/sports-feed/COVERAGE_AUDIT.md"
+  "release": "v0.1.0-beta.9.4",
+  "accepted_source": "bbd76cd549daeaeeb2280fe7adde730eb8593678",
+  "evidence": "releases/0.1.0-beta.9.4.md"
 }

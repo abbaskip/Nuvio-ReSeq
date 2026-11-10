@@ -341,6 +341,13 @@ android {
     }
 
     sourceSets {
+        // Accessible only to the shell on the dedicated profile producer and benchmark APKs.
+        for (profileBuild in listOf("fullNonMinifiedRelease", "fullBenchmarkRelease")) {
+            maybeCreate(profileBuild).apply {
+                java.srcDir("src/profileFixtures/java")
+                manifest.srcFile("src/profileFixtures/AndroidManifest.xml")
+            }
+        }
         getByName("main") {
             jniLibs.srcDirs("src/main/jniLibs")
         }

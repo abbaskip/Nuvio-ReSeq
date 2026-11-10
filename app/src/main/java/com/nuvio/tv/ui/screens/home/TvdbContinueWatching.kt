@@ -85,7 +85,7 @@ internal fun HomeViewModel.verifyTvdbPlayback(item: ContinueWatchingItem, play: 
             withTimeoutOrNull(22_000L) {
                 fun current() = (uiState.value.continueWatchingItems + uiState.value.upcomingItems)
                     .firstOrNull { it.contentId() == id && !it.chooseEpisode }
-                val shuffleProfile = episodeShuffleStore.profiles.value
+                val shuffleProfile = episodeShuffleStore.profiles.first { it.profileId == profileId }
                 val sequentialIdentity = item.hasTvdbPlaybackIdentity() && shuffleProfile.profileId == profileId &&
                     shuffleProfile.available && !shuffleProfile.settings(id, type).enabled
                 current() ?: if (sequentialIdentity) {

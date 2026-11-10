@@ -7,6 +7,9 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.nuvio.tv.core.profile.ProfileManager
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.just
+import io.mockk.Runs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -35,7 +38,11 @@ class WatchedSeriesStateHolderProfileTest {
             every { applicationContext } returns this
             every { filesDir } returns tempDir
         }
-        factory = ProfileDataStoreFactory(context)
+        factory = spyk(ProfileDataStoreFactory(context))
+        // Its asynchronous raw-file backup can hold a Windows file lock during
+        // DataStore's atomic rename. This fixture exercises real preference commits
+        // and profile/seed restoration without that independent backup reader.
+        every { factory.writeShadowCopy(any(), any()) } just Runs
         val profileManager = mockk<ProfileManager> {
             every { activeProfileId } returns activeProfileFlow
         }

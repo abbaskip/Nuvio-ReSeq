@@ -21,6 +21,32 @@ class Responses:
 
 
 class ProducerTests(unittest.TestCase):
+    def test_requested_motorsport_schedules_survive_later_discovery_rate_limits(self):
+        class Limited(Responses):
+            def __init__(self):
+                super().__init__()
+                self.urls = []
+            def get(self, url, ttl):
+                self.urls.append(url)
+                if len(self.urls) > 3:
+                    return None
+                ident = url.split("id=")[1]
+                return {"fetchedAt": NOW, "payload": {"events": [{"idEvent": ident, "idLeague": ident}]}}
+        responses = Limited()
+        output = g.build([], responses, NOW, 0, 0)
+        self.assertEqual(g.PRIORITY_SEEDS, [url.split("id=")[1] for url in responses.urls[:3]])
+        self.assertTrue(all("eventsnextleague.php" in url for url in responses.urls[:3]))
+        self.assertEqual({"tsdb/" + ident for ident in g.PRIORITY_SEEDS}, {e["leagueId"] for e in output["entries"]})
+        self.assertTrue(all(len(e["payload"]["events"]) == 1 for e in output["entries"]))
+
+    def test_published_metadata_keeps_identity_and_aliases_without_unused_large_fields(self):
+        previous = {"metadata": {"leagues": [{"idLeague": "4489", "strLeague": "Supercars", "strSport": "Motorsport",
+            "strLeagueAlternate": "V8 Supercars", "strDescriptionEN": "unused " * 10000}]}}
+        output = g.build([LEAGUE], Responses({"fetchedAt": NOW, "payload": {"events": []}}), NOW, 0, 0, [LEAGUE["id"]], previous)
+        row = next(r for r in output["metadata"]["leagues"] if r["idLeague"] == "4489")
+        self.assertEqual({"idLeague", "strLeague", "strSport", "strLeagueAlternate"}, set(row))
+        self.assertEqual("V8 Supercars", row["strLeagueAlternate"])
+
     def test_provider_discovery_covers_missing_sports_and_seeded_motorsport(self):
         for sport in ("Motorsport", "Darts", "Australian Football", "Volleyball", "Netball", "Gaelic",
                       "Lacrosse", "Badminton", "Table Tennis", "Bowling", "Lawn Bowls", "Cornhole"):

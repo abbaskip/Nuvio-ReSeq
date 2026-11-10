@@ -16,6 +16,14 @@ Nuvio-ReSeq dev baseline `3557414`. Measurements used a local NNTP server, synth
 | C10 · mpv | Playing and seeking a 64 MiB local MP4 with its index at the end produced three byte-range requests, with two open simultaneously. | Retain mpv caching and allow overlapping readers. A new range alone does not establish abandonment. |
 | C11 · Media3 VOD cache | Reading 2 MiB through a Usenet session wrote 2 MiB to disk. Replaying the same URL required zero upstream bytes. A new session URL added another 2 MiB. | Retain same-session caching. Stable cross-session keys require a reliable content identity. |
 
+## Outstanding or deferred
+
+- Shipping baseline-profile expansion (A4) needs representative release journeys and a first-use comparison. The instrumented guide journey establishes a fixture for that work.
+- Sports updates still publish as leagues finish (A10). Waiting for an entire round could delay a live score or its channel information. The measured change reduces the cost per update instead.
+- Release JankStats is gated by debug build or explicit logging. Ordinary playback did not justify globally stripping logs. Pooling unrelated HTTP clients (A11) would couple their timeout, credential and cancellation policies.
+- Archive preparation gained bounded prefetch. Persistent archive indexes and guessing episodes from outer filenames (B3), broader TVDB lock changes and persistent order storage (B4), delaying side-readers (B5), and changing general range-source polling (B6) remain deferred.
+- The window applies to the activity each tracker supplies. Whether MDBList advances an existing episode's watched timestamp on a rewatch still needs an authenticated test account. Its journal interpretation and scrobbling were preserved.
+
 ## Reproducing the fixtures
 
 - For C1 and C2 set `NUVIO_PROFILE_LOOPBACK=true` and run `:app:testFullDebugUnitTest --tests com.nuvio.tv.core.usenet.UsenetPlaybackTest`. The fixture emits its socket, rate and RTT measurements to the JUnit XML.

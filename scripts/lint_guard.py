@@ -41,6 +41,7 @@ def findings(report, project):
         raise ValueError("Not an Android lint report")
     result = {}
     ignored_local = 0
+    source_lines = {}
     for issue in xml.findall("issue"):
         severity = issue.get("severity")
         if severity not in LEVEL:
@@ -65,7 +66,9 @@ def findings(report, project):
         context = []
         owner = ""
         if paths and paths[0] in tracked:
-            lines = (project / paths[0]).read_text(encoding="utf-8-sig", errors="replace").splitlines()
+            if paths[0] not in source_lines:
+                source_lines[paths[0]] = (project / paths[0]).read_text(encoding="utf-8-sig", errors="replace").splitlines()
+            lines = source_lines[paths[0]]
             index = int(locations[0].get("line", "1")) - 1
             context = [line.strip() for line in lines[max(0, index-2):index+3]]
             declarations = [m.group(0).strip() for line in lines[:index+1]
@@ -226,6 +229,8 @@ def main():
     parser.add_argument("--release-tag")
     parser.add_argument("--summary", type=Path)
     parser.add_argument("--previous-ref")
+    parser.add_argument("--require-ratchet", action="store_true",
+                        help="Check the committed budget is already ratcheted without modifying it")
     parser.add_argument("--released-report", type=Path,
                         help="Opt-in verified external version-advisory comparison; complete warnings remain visible")
     args = parser.parse_args()
@@ -244,6 +249,8 @@ def main():
                     "seed": current, "active": {k: {field:v[field] for field in ("severity", "count", "levels", "details")} for k,v in current.items()}}
         write(args.baseline, baseline)
         verdict = compare(current, baseline)
+        if args.require_ratchet and ratchet(current, baseline) != baseline:
+            raise ValueError("Retire resolved lint allowances with lint_guard.py ratchet and commit the result")
     else:
         baseline = json.loads(args.baseline.read_text())
         check_history(args.project, baseline, args.previous_ref)

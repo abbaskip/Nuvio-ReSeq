@@ -67,7 +67,7 @@ jobs:
 
               body = [
                 marker,
-                "Full debug APK build completed successfully.",
+                "Development regression checks passed.",
                 "",
                 artifact
                   ? `[Download APK](${artifactUrl})`
@@ -76,7 +76,7 @@ jobs:
             } else {
               body = [
                 marker,
-                "Full debug APK build failed.",
+                "Development regression checks failed.",
                 "",
                 `Logs: ${runUrl}`,
                 "",

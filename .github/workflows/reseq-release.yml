@@ -12,39 +12,35 @@ on:
         type: string
         required: true
       artifacts_only:
-        description: Build verified artifacts without changing any release or tag
+        description: Validate and build verified artifacts without changing any release or tag
         type: boolean
         default: false
       device_tests:
-        description: Also build the separate debug and instrumentation APKs
+        description: Also build configured debug and instrumentation APKs (does not run an emulator)
         type: boolean
-        default: true
+        default: false
 
 permissions:
-  contents: write
+  contents: read
 
+# Artifact rehearsals do not sit behind a publication or block unrelated branches.
+# Publications retain the existing global serialization and are never cancelled.
 concurrency:
-  group: reseq-release
+  group: ${{ inputs.artifacts_only && format('reseq-artifacts-{0}', github.ref) || 'reseq-release' }}
   cancel-in-progress: false
 
 jobs:
-  release:
+  preflight:
     runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.version.outputs.name }}
+      tag: ${{ steps.version.outputs.tag }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
-          log-accepted-android-sdk-licenses: false
-      - uses: gradle/actions/setup-gradle@v6
       - name: Resolve version and reject duplicate releases
         id: version
         env:
@@ -66,6 +62,88 @@ jobs:
             echo "Release/tag already exists: $tag" >&2
             exit 1
           fi
+      - name: Check reviewed notes before spending build time
+        env:
+          NOTES_PATH: ${{ inputs.notes }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          root = Path.cwd().resolve()
+          notes = (root / os.environ['NOTES_PATH']).resolve()
+          if not notes.is_relative_to(root) or not notes.is_file():
+              raise SystemExit('Release notes must be an existing repository file')
+          PY
+
+  validate:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/gradle
+        with:
+          encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+      - name: Prepare approved services
+        env:
+          APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+        run: |
+          test -n "$APP_CONFIG"
+          python3 scripts/ci_app_config.py --output local.properties
+      - name: Full regressions and complete lint
+        env:
+          DEVICE_APKS: ${{ inputs.device_tests }}
+        run: |
+          args=()
+          if [[ "$DEVICE_APKS" == true ]]; then args+=(--device-apks); fi
+          python3 scripts/ci_pipeline.py validate "${args[@]}"
+      - name: Verify configured test APKs
+        if: inputs.device_tests
+        env:
+          APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+        run: |
+          python3 scripts/verify_apk_services.py --properties local.properties --apk-dir app/build/outputs/apk/full/debug --report build/debug-service-verification.json
+          python3 scripts/verify_apk_services.py --properties local.properties --apk-dir app/build/outputs/apk/androidTest/full/debug --backend-only --report build/test-service-verification.json
+      - uses: actions/upload-artifact@v6
+        if: inputs.device_tests
+        with:
+          name: ReSeq-${{ needs.preflight.outputs.name }}-device-tests
+          compression-level: 0
+          path: |
+            app/build/outputs/apk/full/debug/*.apk
+            app/build/outputs/apk/androidTest/full/debug/*.apk
+            build/debug-service-verification.json
+            build/test-service-verification.json
+          if-no-files-found: error
+      - name: Encrypt task cache
+        env:
+          NUVIO_CACHE_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+        run: bash scripts/ci-cache.sh save
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: pipeline-validation-timings
+          path: |
+            build/pipeline/*.json
+            build/reports/profile/*
+          retention-days: 14
+      - name: Remove service inputs
+        if: always()
+        run: rm -f local.properties local.dev.properties
+
+  release:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+        with:
+          encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
       - name: Configure permanent signing and app services
         env:
           APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
@@ -84,56 +162,11 @@ jobs:
           echo "NUVIO_RELEASE_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
           echo "NUVIO_RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
           echo "NUVIO_RELEASE_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
-      - name: Run the full release regression suite and build all APKs
-        if: ${{ !inputs.artifacts_only || inputs.device_tests }}
-        run: |
-          PYTHONPATH=scripts PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -v
-          printf '%s\n' 'allprojects { tasks.withType(Test).configureEach { maxHeapSize = "1536m"; maxParallelForks = 1; forkEvery = 100 } }' > "$RUNNER_TEMP/reseq-tests.gradle"
-          ./gradlew :app:testFullReleaseUnitTest :app:assembleFullRelease --init-script "$RUNNER_TEMP/reseq-tests.gradle" -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --stacktrace
-      - name: Enforce the upstream released-source lint budget
-        if: ${{ !inputs.artifacts_only }}
-        run: |
-          PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests
-          python3 - <<'PY'
-          import gzip, hashlib, json
-          from pathlib import Path
-          raw = gzip.decompress(Path('automation/lint-reference-beta7.1.xml.gz').read_bytes())
-          baseline = json.loads(Path('automation/lint-baseline.json').read_text())
-          assert hashlib.sha256(raw).hexdigest() == baseline['origin']['report_sha256']
-          Path('build/released-lint.xml').write_bytes(raw)
-          PY
-          ./gradlew :app:lintFullDebug --init-script scripts/lint-report.gradle -PuseLocalFfmpegDecoder=false --max-workers=1
-          python3 scripts/lint_guard.py check --project . --report app/build/reports/lint-results-fullDebug.xml --baseline automation/lint-baseline.json --released-report build/released-lint.xml --summary build/release-lint-verdict.json
-          python3 scripts/lint_guard.py ratchet --project . --report app/build/reports/lint-results-fullDebug.xml --baseline automation/lint-baseline.json --released-report build/released-lint.xml
-          git diff --exit-code -- automation/lint-baseline.json
-      - name: Build signed APKs for device-only artifacts without tests
-        if: ${{ inputs.artifacts_only && !inputs.device_tests }}
-        run: ./gradlew :app:assembleFullRelease -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --stacktrace
-      - name: Build configured Android TV test APKs
-        if: inputs.device_tests
-        run: |
-          cp local.properties local.dev.properties
-          ./gradlew :app:assembleFullDebug :app:assembleFullDebugAndroidTest -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --stacktrace
-      - name: Verify configured test APKs
-        if: inputs.device_tests
-        env:
-          APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
-        run: |
-          python3 scripts/verify_apk_services.py --properties local.properties --apk-dir app/build/outputs/apk/full/debug --report build/debug-service-verification.json
-          python3 scripts/verify_apk_services.py --properties local.properties --apk-dir app/build/outputs/apk/androidTest/full/debug --backend-only --report build/test-service-verification.json
-      - uses: actions/upload-artifact@v6
-        if: inputs.device_tests
-        with:
-          name: ReSeq-${{ steps.version.outputs.name }}-device-tests
-          path: |
-            app/build/outputs/apk/full/debug/*.apk
-            app/build/outputs/apk/androidTest/full/debug/*.apk
-            build/debug-service-verification.json
-            build/test-service-verification.json
-          if-no-files-found: error
+      - name: Build optimised signed release APKs
+        run: python3 scripts/ci_pipeline.py release
       - name: Verify signing, upgrade identity and native libraries
         env:
-          VERSION: ${{ steps.version.outputs.name }}
+          VERSION: ${{ needs.preflight.outputs.name }}
           APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
           ARTIFACTS_ONLY: ${{ inputs.artifacts_only }}
         run: |
@@ -161,19 +194,57 @@ jobs:
               raise SystemExit('Release notes must be an existing repository file')
           Path('build/release-notes.md').write_text(notes.read_text() + '\n\n' + Path('build/release/DOWNLOADS.md').read_text())
           PY
+      - name: Preserve reviewed notes with the exact artifacts
+        run: cp build/release-notes.md build/release/release-notes.md
       - uses: actions/upload-artifact@v6
         with:
-          name: ReSeq-${{ steps.version.outputs.name }}-verified-apks
+          name: ReSeq-${{ needs.preflight.outputs.name }}-verified-apks
+          compression-level: 0
           path: build/release/*
           if-no-files-found: error
+      - name: Encrypt task cache
+        env:
+          NUVIO_CACHE_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+        run: bash scripts/ci-cache.sh save
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: pipeline-release-timings
+          path: |
+            build/pipeline/*.json
+            build/reports/profile/*
+          retention-days: 14
+      - name: Remove temporary signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/reseq.jks" local.properties local.dev.properties
+
+  publish:
+    needs: [preflight, validate, release]
+    if: ${{ !inputs.artifacts_only }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Recheck publication hold after validation
+        run: python3 -c "from pathlib import Path; from scripts.upstream_sync import assert_release_allowed; assert_release_allowed(Path('.'))"
+      - uses: actions/download-artifact@v6
+        with:
+          name: ReSeq-${{ needs.preflight.outputs.name }}-verified-apks
+          path: build/release
+      - name: Verify artifact transport
+        working-directory: build/release
+        run: sha256sum --check SHA256SUMS.txt
       - name: Publish one release from this exact commit
         if: ${{ !inputs.artifacts_only }}
         env:
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.name }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          VERSION: ${{ needs.preflight.outputs.name }}
           PUBLISH: ${{ inputs.publish }}
         run: |
-          args=("$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Nuvio ReSeq $VERSION" --notes-file build/release-notes.md)
+          args=("$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Nuvio ReSeq $VERSION" --notes-file build/release/release-notes.md)
           # Stage all assets in a draft; old updaters must see x86 before x86_64.
           # Upload serially because parallel uploads can reorder GitHub's asset list.
           gh release create "${args[@]}" --draft
@@ -185,6 +256,3 @@ jobs:
           if [[ "$PUBLISH" == true ]]; then
             gh release edit "$TAG" --draft=false --latest --repo "$GITHUB_REPOSITORY"
           fi
-      - name: Remove temporary signing material
-        if: always()
-        run: rm -f "$RUNNER_TEMP/reseq.jks" local.properties local.dev.properties

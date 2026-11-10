@@ -1,0 +1,47 @@
+name: ReSeq Gradle
+description: Shared toolchain, dependency cache and encrypted task-output cache
+inputs:
+  encryption-key:
+    description: Private base64 AES key; omit for untrusted builds
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@v3
+      with:
+        packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+        log-accepted-android-sdk-licenses: false
+    - uses: gradle/actions/setup-gradle@v6
+      with:
+        # Default-branch entries seed other branches; trusted branches also
+        # save their own updated state instead of forever restoring old entries.
+        cache-read-only: ${{ github.event_name == 'pull_request' }}
+        cache-encryption-key: ${{ inputs.encryption-key }}
+        # BuildConfig and compiled outputs can contain private service inputs.
+        # Only the separately encrypted archive below may leave the runner.
+        gradle-home-cache-excludes: |
+          caches/build-cache-1
+    - name: Restore encrypted Gradle task outputs
+      if: inputs.encryption-key != ''
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/nuvio-task-cache
+        key: nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml', '**/*.gradle.kts', 'scripts/ci.gradle') }}-${{ github.job }}-${{ github.sha }}-${{ github.run_attempt }}
+        restore-keys: |
+          nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml', '**/*.gradle.kts', 'scripts/ci.gradle') }}-${{ github.job }}-
+          nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml', '**/*.gradle.kts', 'scripts/ci.gradle') }}-
+    - name: Decrypt task outputs
+      if: inputs.encryption-key != ''
+      shell: bash
+      env:
+        NUVIO_CACHE_KEY: ${{ inputs.encryption-key }}
+      run: bash scripts/ci-cache.sh restore
+    - name: Record runner capacity
+      shell: bash
+      run: |
+        echo "NUVIO_CI_WORKERS=2" >> "$GITHUB_ENV"
+        echo "Runner: $(nproc) CPUs; $(free -m | awk '/Mem:/ {print $2}') MiB RAM; Gradle capped at two workers."

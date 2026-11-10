@@ -1,0 +1,12 @@
+// Shared CI limits. Fork recycling bounds Robolectric classloader retention.
+allprojects {
+    tasks.withType(Test).configureEach {
+        maxHeapSize = "1536m"
+        maxParallelForks = 1
+        forkEvery = 100
+    }
+    plugins.withId('com.android.application') {
+        // The complete report is checked by lint_guard, including known debt.
+        android.lint.abortOnError = false
+    }
+}

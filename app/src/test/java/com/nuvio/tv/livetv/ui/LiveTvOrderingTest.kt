@@ -25,6 +25,27 @@ class LiveTvOrderingTest {
         assertEquals("__fav__", groupPreferenceKey("__fav__", "one"))
         assertEquals("custom:mine", groupPreferenceKey("custom:mine", "one"))
     }
+    @Test fun providerRanksRespectSourceSavedMovesAndAlphabeticalMode() {
+        fun group(source: String?, id: String, title: String) =
+            com.nuvio.tv.livetv.model.ChannelGroup(id, title, 1, sourceId = source)
+        val groups = listOf(
+            group(null, "custom:1", "Mine"), group("a", "a::Late", "Late"),
+            group("a", "a::News", "Renamed"), group("a", "a::Sport", "Sport"),
+            group("a", "a::Other", "Other"), group("b", "b::Sport", "Sport"), group("b", "b::News", "News")
+        )
+        val ranks = mapOf("a::Sport" to 0, "a::News" to 1, "b::News" to 0, "b::Sport" to 1)
+        val defaults = listOf("custom:1", "a::Sport", "a::News", "a::Late", "a::Other", "b::News", "b::Sport")
+        fun ids(mode: String, saved: List<String> = emptyList()) =
+            orderLiveGroups(groups, saved, mode, true, ranks).map { it.id }
+        assertEquals(defaults, ids("playlist", listOf("a::Other")))
+        assertEquals(defaults, ids("custom"))
+        assertEquals(listOf("a::Other") + defaults.minus("a::Other"), ids("custom", listOf("a::Other")))
+        assertEquals(listOf("custom:1", "a::Late", "a::Other", "a::News", "a::Sport", "b::News", "b::Sport"), ids("name"))
+        assertEquals(groups, orderLiveGroups(groups, emptyList(), "playlist", true, emptyMap()))
+        val single = listOf(group("a", "News", "News"), group("a", "Sport", "Sport"))
+        assertEquals(single, orderLiveGroups(single, listOf("a::News"), "custom", true, mapOf("Sport" to 0, "News" to 1)))
+    }
+
     private val order = listOf("A", "B", "C", "D", "E", "F")
     @Test fun `non adjacent selection becomes stable block moving up`() {
         assertEquals(listOf("B", "D", "A", "C", "E", "F"), moveOrderedItems(order, linkedSetOf("D", "B"), OrderMove.UP))

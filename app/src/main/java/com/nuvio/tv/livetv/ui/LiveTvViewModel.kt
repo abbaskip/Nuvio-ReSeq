@@ -187,9 +187,10 @@ class LiveTvViewModel @Inject constructor(
         combine(displayChannels, userState.distinctUntilChanged { a, b -> sameForLists(a, b) }, settings) { a, b, c -> Triple(a, b, c) },
         session.currentGroupId,
         searchQuery,
-        combine(hasSources, com.nuvio.tv.livetv.parental.ParentalControls.unlocked) { h, _ -> h }
-    ) { (channels, user, s), groupIdRaw, query, hasSrc ->
-        buildUi(channels, user, s, groupIdRaw, query, hasSrc)
+        combine(hasSources, com.nuvio.tv.livetv.parental.ParentalControls.unlocked) { h, _ -> h },
+        repository.providerGroupRanks
+    ) { (channels, user, s), groupIdRaw, query, hasSrc, ranks ->
+        buildUi(channels, user, s, groupIdRaw, query, hasSrc, providerRanks = ranks)
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, LiveTvUiState())
 
     /** Channels by backup name (see [backupName]); null until first worked out. Declared before
@@ -268,7 +269,8 @@ class LiveTvViewModel @Inject constructor(
          * hidden from the guide's group list, and a group that's gone shows no channels instead
          * of falling back to All channels (thousands of cards on the home screen).
          */
-        exactGroup: Boolean = false
+        exactGroup: Boolean = false,
+        providerRanks: Map<String, Int> = repository.providerGroupRanks.value
     ): LiveTvUiState {
         val shown = channels.filter { it.key !in user.hiddenChannels && it.groupId !in user.hiddenGroups }
         // Parental controls: channels in locked groups stay out of every list until unlocked.
@@ -331,27 +333,7 @@ class LiveTvViewModel @Inject constructor(
             val copied = user.channelCopies[id].orEmpty().count { k -> byKey[k]?.let { it.groupId != id } == true }
             regular += ChannelGroup(id, v.first, v.second + copied, sourceId = groupSource[id], locked = id in lockedIds)
         }
-        val orderIndex = user.groupOrder.withIndex().associate { (i, id) -> id to i }
-        // Playlists in their own order (your own groups first), for keeping each playlist's
-        // groups together when sorting by name.
-        val playlistIndex = HashMap<String, Int>().also { m -> shown.forEach { c -> m.putIfAbsent(c.sourceId, m.size) } }
-        val orderedRegular = when (s.groupSort) {
-            // As the playlist lists them (your own groups first).
-            "playlist" -> regular
-            // A–Z, kept per playlist when playlist headings are on.
-            "name" -> regular.sortedWith(
-                compareBy<ChannelGroup>(
-                    { g -> if (g.sourceId == null) -1 else if (s.groupPlaylistHeadings) playlistIndex[g.sourceId] ?: Int.MAX_VALUE else 0 },
-                    { g -> g.title.lowercase() }
-                )
-            )
-            // Your order (Reorder groups), playlist order for anything not moved.
-            else -> regular.withIndex()
-                .sortedWith(compareBy<IndexedValue<ChannelGroup>>({
-                    orderIndex[groupPreferenceKey(it.value.id, it.value.sourceId)] ?: orderIndex[it.value.id] ?: Int.MAX_VALUE
-                }, { it.index }))
-                .map { it.value }
-        }
+        val orderedRegular = orderLiveGroups(regular, user.groupOrder, s.groupSort, s.groupPlaylistHeadings, providerRanks)
         groups += orderedRegular.map { it.copy(favorite = user.isFavoriteGroup(it)) }
             .sortedByDescending { it.favorite }
         // Keep a long-press recovery route even if every regular group is hidden and

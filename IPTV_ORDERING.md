@@ -4,6 +4,8 @@
 
 Long-press a regular group to add/remove it from favourite groups or open **Manage group order**. Favourite groups have a star and appear before ordinary groups, below the built-in navigation rows. They appear once, retain their playlist identity and locks, and remain accessible when their playlist is collapsed. Hiding a favourite hides it; unhiding restores its favourite status. Favourites are separate from favourite channels and saved per profile. As with existing IPTV preferences, a new profile initially receives a copy of the first profile, then changes independently.
 
+After a successful Xtream Live TV refresh, Playlist order follows the provider's live category list. In Custom order, saved moves take precedence and remaining groups follow the provider. Groups missing from the category list keep their relative channel-list order after the ranked groups.
+
 The group editor contains only the selected playlist (custom groups share a separate scope). The channel editor contains only the current group. Search and Recently watched cannot be reordered. Favourite pinning takes precedence over playlist order: moving a favourite to the bottom does not unpin it.
 
 - Up/Down normally navigates.

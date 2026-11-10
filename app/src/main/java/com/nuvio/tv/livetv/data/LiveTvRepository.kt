@@ -131,6 +131,9 @@ class LiveTvRepository @Inject constructor(
     private val _channels = MutableStateFlow<List<LiveChannel>>(emptyList())
     val channels: StateFlow<List<LiveChannel>> = _channels.asStateFlow()
 
+    private val _providerGroupRanks = MutableStateFlow<Map<String, Int>>(emptyMap())
+    internal val providerGroupRanks = _providerGroupRanks.asStateFlow()
+
     /** Programs keyed by [LiveChannel.key], sorted by start. Offset is not applied here. */
     private val _programs = MutableStateFlow<Map<String, List<EpgProgram>>>(emptyMap())
     val programs: StateFlow<Map<String, List<EpgProgram>>> = _programs.asStateFlow()
@@ -536,7 +539,7 @@ class LiveTvRepository @Inject constructor(
         mutex.withLock { rebuildLocked() }
     }
 
-    private suspend fun refreshInternal(
+    internal suspend fun refreshInternal(
         forcePlaylists: Boolean,
         forceEpg: Boolean,
         forceIds: Set<String> = emptySet()
@@ -596,7 +599,7 @@ class LiveTvRepository @Inject constructor(
             }
         }
         sweep(epgDir, { it.substringBefore(".xml").substringBefore(".tmp") }, guideIds)
-        sweep(playlistDir, { it.substringBefore(".m3u").substringBefore(".tmp") }, playlistIds)
+        sweep(playlistDir, { it.removeSuffix(".meta").removeSuffix(".stamp").removeSuffix(".m3u") }, playlistIds)
         if (count > 0) LIVE_REPORT.add("Cleanup: deleted $count saved guide/playlist files no source uses (${freed / (1024 * 1024)} MB freed)")
     }
 
@@ -809,7 +812,7 @@ class LiveTvRepository @Inject constructor(
      * bigger file on TV boxes), and text that repeats across channels (playlist, group,
      * catch-up type) stored once and referred to by number. Faster to read, less memory.
      */
-    private suspend fun loadSavedChannels(): Boolean = withContext(Dispatchers.IO) {
+    internal suspend fun loadSavedChannels(): Boolean = withContext(Dispatchers.IO) {
         runCatching { File(baseDir, "channels_cache.bin").delete() } // the old zipped format
         val file = savedChannelsFile
         if (!file.exists()) return@withContext false
@@ -857,6 +860,7 @@ class LiveTvRepository @Inject constructor(
                 }
                 embeddedEpgUrls.clear()
                 embeddedEpgUrls.putAll(epg)
+                loadProviderGroupRanks(prefs.currentPlaylists().filter { it.liveEnabled })
                 _channels.value = list
                 true
             }
@@ -1782,6 +1786,7 @@ class LiveTvRepository @Inject constructor(
             embeddedEpgUrls[pl.id] = parsed.epgUrls
             prefs.updatePlaylists { list -> list.map { if (it.id == pl.id) it.copy(channelCount = channelCount) else it } }
         }
+        loadProviderGroupRanks(playlists)
         _channels.value = out
     }
 
@@ -2561,14 +2566,9 @@ class LiveTvRepository @Inject constructor(
             } ?: if (info.has("user_info")) Unit else error("Not an Xtream API response")
 
             // 2. Categories
-            val categories = HashMap<String, String>()
-            runCatching {
-                val arr = org.json.JSONArray(getText("$api&action=get_live_categories", pl.userAgent))
-                for (i in 0 until arr.length()) {
-                    val c = arr.optJSONObject(i) ?: continue
-                    categories[c.optString("category_id")] = c.optString("category_name")
-                }
-            }
+            val categories = runCatching {
+                xtreamLiveCategories(getText("$api&action=get_live_categories", pl.userAgent))
+            }.getOrElse { cachedXtreamCategories(pl, target) }
 
             // 3. Live streams, streamed straight into an M3U file
             writeXtreamPlaylist(pl, "$api&action=get_live_streams", categories, target)
@@ -2579,6 +2579,28 @@ class LiveTvRepository @Inject constructor(
         // Fallback: the classic one-shot playlist. If that fails too, report the API error.
         runCatching { download(pl.resolvedUrl(), target, pl.userAgent) }
             .onFailure { throw IllegalStateException(error.message ?: it.message) }
+    }
+
+    private fun categorySource(pl: PlaylistSource) = sha1(pl.xtreamBase() + "\u0000" + pl.xtreamUsername)
+
+    private fun cachedXtreamCategories(pl: PlaylistSource, file: File): Map<String, String> {
+        if (!file.isFile) return emptyMap()
+        return runCatching {
+            openMaybeGzip(file).bufferedReader().use { readXtreamCategoryHeader(it, categorySource(pl)) }
+        }.getOrDefault(emptyMap())
+    }
+
+    private fun loadProviderGroupRanks(playlists: List<PlaylistSource>) {
+        _providerGroupRanks.value = buildMap {
+            for (pl in playlists.filter { it.isXtream }) {
+                cachedXtreamCategories(pl, playlistFile(pl.id)).values.forEachIndexed { rank, category ->
+                    // M3uParser uses the first group when a provider supplies a semicolon list.
+                    val title = category.substringBefore(';').trim().ifEmpty { "Uncategorized" }
+                    val id = if (playlists.size > 1) "${pl.id}::$title" else title
+                    putIfAbsent(id, rank)
+                }
+            }
+        }
     }
 
     private class XtreamLoginError(message: String) : Exception(message)
@@ -2605,6 +2627,7 @@ class LiveTvRepository @Inject constructor(
             // again afterwards, which read and wrote the whole list a second time.
             fastGzip(tmp.outputStream()).bufferedWriter().use { out ->
                 out.write("#EXTM3U\n")
+                writeXtreamCategoryHeader(out, categorySource(pl), categories)
                 android.util.JsonReader(body.charStream()).use { reader ->
                     // Most panels send a list; some send the channels keyed by number instead
                     // ({"0": {...}, "1": {...}}), which failed with "Expected BEGIN_ARRAY but was
@@ -2658,6 +2681,8 @@ class LiveTvRepository @Inject constructor(
             tmp.delete()
             error("The provider returned no live channels")
         }
+        // An earlier get.php ETag cannot validate the playlist just generated from the API.
+        File(target.parentFile, target.name + ".meta").delete()
         if (!tmp.renameTo(target)) {
             tmp.copyTo(target, overwrite = true)
             tmp.delete()

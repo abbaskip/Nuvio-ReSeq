@@ -11,6 +11,31 @@ internal fun groupPreferenceKey(id: String, sourceId: String?): String =
 internal fun LiveUserState.isFavoriteGroup(group: ChannelGroup): Boolean =
     groupPreferenceKey(group.id, group.sourceId) in favoriteGroups || group.id in favoriteGroups
 
+/** The group editor uses this same unpinned order. Stable sorts keep unranked groups in
+ * first-channel order and leave saved group moves ahead of the provider defaults. */
+internal fun orderLiveGroups(
+    groups: List<ChannelGroup>,
+    savedOrder: List<String>,
+    mode: String,
+    playlistHeadings: Boolean,
+    providerRanks: Map<String, Int>
+): List<ChannelGroup> {
+    val playlists = linkedMapOf<String, Int>()
+    for (group in groups) group.sourceId?.let { playlists.putIfAbsent(it, playlists.size) }
+    fun playlist(group: ChannelGroup) = playlists[group.sourceId] ?: -1
+
+    if (mode == "name") return groups.sortedWith(compareBy(
+        { if (it.sourceId == null) -1 else if (playlistHeadings) playlist(it) else 0 },
+        { it.title.lowercase() }
+    ))
+    val defaults = if (providerRanks.isEmpty()) groups else groups.sortedWith(
+        compareBy(::playlist, { if (it.sourceId == null) 0 else providerRanks[it.id] ?: Int.MAX_VALUE })
+    )
+    if (mode == "playlist" || savedOrder.isEmpty()) return defaults
+    val saved = savedOrder.withIndex().associate { (index, id) -> id to index }
+    return defaults.sortedBy { saved[groupPreferenceKey(it.id, it.sourceId)] ?: saved[it.id] ?: Int.MAX_VALUE }
+}
+
 /** Read older saved orders without rewriting preferences or guessing between duplicate group names. */
 internal fun LiveUserState.channelOrderFor(id: String, sourceId: String?): List<String>? =
     channelOrder[groupPreferenceKey(id, sourceId)] ?: channelOrder[id]

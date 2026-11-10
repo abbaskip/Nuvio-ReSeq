@@ -122,19 +122,20 @@ class SportsRepository @Inject constructor(
         val espn = l.values.flatMap { it.events } + w.values.flatMap { it.events }
         // Prefer scored fixtures over matching calendar entries. Keep TV airings separately:
         // they belong to TV Now even when All Events already contains the actual match.
-        val espnBySport = (espn + tsdb).filter { it.away != null && it.home != null }
-            .groupBy { SportsCatalog.league(it.leagueId)?.sport }
+        val espnIndex = SportsFixtureIndex(espn)
+        val tsdbIndex = SportsFixtureIndex(tsdb)
         fun coveredByEspn(ev: SportsEvent): Boolean {
             val league = SportsCatalog.league(ev.leagueId) ?: return false
             if (league.espnPath != null) return false
-            val same = espnBySport[league.sport] ?: return false
-            return same.any { r -> SportsCatalog.league(r.leagueId)?.let {
-                SportsEventIdentity.guideCoversFixture(ev, r, it)
-            } == true }
+            fun covers(candidate: SportsEvent): Boolean {
+                val other = SportsCatalog.league(candidate.leagueId) ?: return false
+                return league.sport == other.sport && SportsEventIdentity.guideCoversFixture(ev, candidate, other)
+            }
+            return espnIndex.anyNear(ev, ::covers) || tsdbIndex.anyNear(ev, ::covers)
         }
         (espn + fixtures.filterNot(::coveredByEspn) + guide + tsdb.filterNot { event ->
             val league = SportsCatalog.league(event.leagueId)
-            league != null && espn.any { other -> SportsCatalog.league(other.leagueId)?.let {
+            league != null && espnIndex.anyNear(event) { other -> SportsCatalog.league(other.leagueId)?.let {
                 SportsEventIdentity.same(event, other, league, it) } == true }
         }).distinctBy { it.id }
     }.combine(baseData) { current, base ->
@@ -422,14 +423,17 @@ class SportsRepository @Inject constructor(
             followedLeagueIds(), browsing, now, scoreAttempts)
         for (league in due) {
             // Record attempts before I/O: a failed service must not be retried on each loop.
-            scoreAttempts[league.id] = now
+            val previousAttempt = scoreAttempts.put(league.id, now)
             val fmt = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = TimeZone.getTimeZone("America/New_York") }
             val at = SportsRefreshPolicy.scoreboardAnchor(known.value, league, focused, playing, browsing, now)
             sportsCatching {
                 val parsed = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, fmt.format(java.util.Date(at))))
                     .map { it.copy(updatedAt = now) }
-                val prior = leagueData.value[league.id]?.events.orEmpty().filter { it.startMs >= now - DAY }
+                val previous = leagueData.value[league.id]
+                val prior = previous?.events.orEmpty().filter { it.startMs >= now - DAY }
                 leagueData.update { it + (league.id to LeagueData((parsed + prior).distinctBy { e -> e.id }, now, null)) }
+                // An initial or restored scoreboard establishes the baseline for live alerts.
+                if (previous != null && previous.fetchedAt == previousAttempt) noticeScoring(league, prior, parsed)
                 _problem.value = null
                 Log.d(TAG, "Live scores: ${league.id}, ${parsed.size} games, ${parsed.count { it.state == GameState.LIVE }} live")
             }.onFailure {
@@ -1215,19 +1219,7 @@ class SportsRepository @Inject constructor(
     /** A team you follow scored: tell the app (Scoring Alerts). */
     private fun noticeScoring(league: League, before: List<SportsEvent>, after: List<SportsEvent>) {
         if (!settings.value.scoringAlerts) return
-        val f = follows.value
-        val old = before.associateBy { it.id }
-        for (ev in after) {
-            if (ev.state != GameState.LIVE || !ev.hasScore) continue
-            val prev = old[ev.id] ?: continue
-            if (!prev.hasScore) continue
-            for (side in ev.sides) {
-                if (!f.followsTeam(league.id, side.team.id) && league.id !in f.leagues) continue
-                val was = prev.sides.firstOrNull { it.team.id == side.team.id }?.score?.toDoubleOrNull() ?: continue
-                val nowScore = side.score?.toDoubleOrNull() ?: continue
-                if (nowScore > was) SportsLive.alert(SportsAlert(ev, side.team, league))
-            }
-        }
+        noticeScoreIncreases(league, before, after, follows.value, SportsLive::alert)
     }
 
     // ------------------------------------------------------------------ teams, details
@@ -1627,6 +1619,21 @@ class SportsRepository @Inject constructor(
 
 /** A team you follow just scored (shown for a few seconds wherever you are). */
 data class SportsAlert(val event: SportsEvent, val team: TeamInfo, val league: League, val id: Long = System.nanoTime())
+
+internal fun noticeScoreIncreases(league: League, before: List<SportsEvent>, after: List<SportsEvent>,
+    follows: SportsFollows, notify: (SportsAlert) -> Unit) {
+    val old = before.associateBy { it.id }
+    for (event in after) {
+        if (event.state != GameState.LIVE || !event.hasScore) continue
+        val previous = old[event.id]?.takeIf { it.hasScore } ?: continue
+        for (side in event.sides) {
+            if (!follows.followsTeam(league.id, side.team.id) && league.id !in follows.leagues) continue
+            val was = previous.sides.firstOrNull { it.team.id == side.team.id }?.score?.toDoubleOrNull() ?: continue
+            val score = side.score?.toDoubleOrNull() ?: continue
+            if (score > was) notify(SportsAlert(event, side.team, league))
+        }
+    }
+}
 
 /** Sports data the rest of the app shows: scores on Live TV's info bar, scoring alerts. */
 object SportsLive {

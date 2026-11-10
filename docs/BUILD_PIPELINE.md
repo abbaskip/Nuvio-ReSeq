@@ -60,3 +60,18 @@ Retained: TVDB resequencing and identity tests, Continue Watching/shuffle/TV Mix
 Use `python scripts/ci_pipeline.py development`, `validate`, or `release` after preparing approved build inputs. Add `--apk` or `--device-apks` to a validation/development lane only when those APKs are required. Signed packaging requires the existing permanent-signing environment variables. The script never installs an APK or publishes anything.
 
 Each lane writes sanitized elapsed times under `build/pipeline/` and Gradle task profiles under `build/reports/profile/`. Hosted workflows upload those reports for 14 days. Compare a cold artifact-only rehearsal and a second rehearsal on the same branch with the same inputs to assess cache reuse. Do not treat an artifact-only run as on-device sign-in verification.
+
+## Verified hosted results (10 November 2026)
+
+| Run | Result | Observed time |
+| --- | --- | ---: |
+| [Previous published pipeline](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/42758000307) | Successful historical baseline | 49m 02s |
+| [First successful revised rehearsal](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/42779347147) | Full debug compilation, JVM suite and full lint executed; signed packaging ran in parallel with reused release task outputs | 24m 33s executing-job span, excluding queue time |
+| [Final revised rehearsal](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/42783522466) | All gates passed, verified signed APKs produced, publish job skipped | 2m 19s dispatch to completion; 2m 16s executing-job span |
+| [Development lane](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/42781595762) | Passed with APK generation disabled | Successful real workflow check |
+
+The final warm run reduced observed workflow time by 95.3% against the historical baseline. Its Gradle validation took 46.5 seconds, the fresh lint-budget comparison 1.4 seconds and signed Gradle packaging 55.7 seconds. An earlier warm signed build took 48.1 seconds, versus 1,040 seconds for the initial uncached signed build. Logs confirm R8, compilation and release-vital lint cache hits; APK signature, upgrade identity, native contents and packaged services were checked again. Both explicit encrypted-cache save steps succeeded.
+
+These are actual workflow observations rather than an identical-source cold-build A/B test. The final run intentionally reused unchanged task inputs, including passing JVM and lint results. Source/dependency changes can require fresh compilation and analysis. The first successful revised rehearsal still executed compilation, all 3,399 JVM tests (two opt-in checks skipped) and full lint, and took roughly half the old pipeline time. The lint regression budget passed; inherited lint debt was neither silently removed nor claimed to be clean.
+
+No release/tag was created by these rehearsals, no version was bumped for pipeline work, and no physical TV was accessed. The final functional pipeline revision tested was `46b2a23c6`; subsequent edits to this report only record the results.

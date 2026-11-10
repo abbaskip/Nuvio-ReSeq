@@ -178,7 +178,7 @@ fun HomeScreen(
         { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingStartFromBeginning, onNavigateToDetailStable) }
     }
     val onContinueWatchingPlayManuallyStable = remember(viewModel, onContinueWatchingPlayManually, onNavigateToDetailStable) {
-        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingPlayManually, onNavigateToDetailStable) }
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingPlayManually, onNavigateToDetailStable, manualSelection = true) }
     }
     val onNavigateToCatalogSeeAllStable = remember(onNavigateToCatalogSeeAll) { onNavigateToCatalogSeeAll }
     val onNavigateToFolderDetailStable = remember(onNavigateToFolderDetail) { onNavigateToFolderDetail }

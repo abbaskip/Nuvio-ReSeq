@@ -344,7 +344,9 @@ class SportsRepository @Inject constructor(
         f.teams.forEach { t -> out += t.leagueId; out += SportsCatalog.relatedLeagues(t.leagueId) }
         out += f.leagues
         out += f.pins
-        return (out + out.flatMap { SportsCompetitions.sources(it).map(League::id) }).toSet()
+        if (out.isEmpty()) return emptySet()
+        val descendants = SportsCatalog.all.filter { candidate -> out.any { SportsTaxonomy.includesLeague(it, candidate.id) } }
+        return (out + descendants.map { it.id } + out.flatMap { SportsCompetitions.sources(it).map(League::id) }).toSet()
     }
 
     private fun isMine(l: League, f: SportsFollows) = l.id in followedLeagueIds(f)
@@ -425,13 +427,14 @@ class SportsRepository @Inject constructor(
         for (league in due) {
             // Record attempts before I/O: a failed service must not be retried on each loop.
             val previousAttempt = scoreAttempts.put(league.id, now)
-            val fmt = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = TimeZone.getTimeZone("America/New_York") }
             val at = SportsRefreshPolicy.scoreboardAnchor(known.value, league, focused, playing, browsing, now)
             sportsCatching {
-                val parsed = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, fmt.format(java.util.Date(at))))
+                val parsed = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, SportsRefreshPolicy.scoreboardDay(league, at)))
                     .map { it.copy(updatedAt = now) }
                 val previous = leagueData.value[league.id]
-                val prior = previous?.events.orEmpty().filter { it.startMs >= now - DAY }
+                val prior = previous?.events.orEmpty().filter {
+                    it.startMs >= now - DAY || (it.endMs?.let { end -> end > now } == true)
+                }
                 leagueData.update { it + (league.id to LeagueData((parsed + prior).distinctBy { e -> e.id }, now, null)) }
                 // An initial or restored scoreboard establishes the baseline for live alerts.
                 if (previous != null && previous.fetchedAt == previousAttempt) noticeScoring(league, prior, parsed)

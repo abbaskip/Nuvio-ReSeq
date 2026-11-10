@@ -71,23 +71,47 @@ internal fun ContinueWatchingItem.hasTvdbPlaybackIdentity(): Boolean = when (thi
 
 /** Also covers cards restored from snapshots before their metadata has been refreshed. */
 internal fun HomeViewModel.verifyTvdbPlayback(item: ContinueWatchingItem, play: (ContinueWatchingItem) -> Unit,
-    openSeries: (String, String, String) -> Unit) {
+    openSeries: (String, String, String) -> Unit, manualSelection: Boolean = false) {
     viewModelScope.launch {
         val profileId = profileManager.activeProfileId.value
         val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
         val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
-        if (item.chooseEpisode) { openSeries(id, type, ""); return@launch }
+        if (item.chooseEpisode && !manualSelection) { openSeries(id, type, ""); return@launch }
+        val target = if (item.chooseEpisode) {
+            // The options menu can outlive the placeholder card from which it opened.
+            // Resolve the current episode before invoking the manual source picker.
+            withTimeoutOrNull(22_000L) {
+                fun current() = (uiState.value.continueWatchingItems + uiState.value.upcomingItems)
+                    .firstOrNull { it.contentId() == id && !it.chooseEpisode }
+                current() ?: run {
+                    val seed = when (item) {
+                        is ContinueWatchingItem.InProgress -> item.progress
+                        is ContinueWatchingItem.NextUp -> item.info.toProgressSeed()
+                    }
+                    resolveCwMeta(seed) ?: return@withTimeoutOrNull null
+                    val state = uiState.first { state ->
+                        (state.continueWatchingItems + state.upcomingItems).any { it.contentId() == id && !it.chooseEpisode }
+                    }
+                    (state.continueWatchingItems + state.upcomingItems).first { it.contentId() == id && !it.chooseEpisode }
+                }
+            }
+        } else item
+        if (profileManager.activeProfileId.value != profileId) return@launch
+        if (target == null) {
+            Toast.makeText(appContext, "This episode could not be safely matched. Try again once Continue Watching has refreshed.", Toast.LENGTH_LONG).show()
+            return@launch
+        }
         if (type !in listOf("series", "tv") || tvdbOrderStore?.selected(profileId, listOf(id)) == null) {
-            if (item.hasTvdbPlaybackIdentity()) {
+            if (target.hasTvdbPlaybackIdentity()) {
                 Toast.makeText(appContext, "Episode order changed. Open the series to choose an episode.", Toast.LENGTH_LONG).show()
-            } else if (profileManager.activeProfileId.value == profileId) play(item)
+            } else if (profileManager.activeProfileId.value == profileId) play(target)
             return@launch
         }
         val projected = try {
             val meta = withTimeoutOrNull(22_000L) {
                 (metaRepository.getMetaFromAllAddons(type, id).first { it !is NetworkResult.Loading } as? NetworkResult.Success)?.data
             }
-            meta?.takeIf { it.episodeOrder?.effectiveType != null }?.let { projectTvdbContinueWatching(item, it.videos) }
+            meta?.takeIf { it.episodeOrder?.effectiveType != null }?.let { projectTvdbContinueWatching(target, it.videos) }
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { null }
         if (profileManager.activeProfileId.value != profileId) return@launch

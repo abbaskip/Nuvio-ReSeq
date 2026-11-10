@@ -199,6 +199,14 @@ object SportsCatalog {
             guideWords = listOf("College Baseball", "NCAA Baseball"), regions = emptySet(), minutes = 190, schoolNames = true, color = 0xFF2B4C7E),
         League("volleyball/womens-college-volleyball", Sport.VOLLEYBALL, "Women's College Volleyball", "NCAAV", "volleyball/womens-college-volleyball",
             guideWords = listOf("College Volleyball", "NCAA Volleyball"), regions = emptySet(), minutes = 120, schoolNames = true, color = 0xFF5B3A8C),
+        League("volleyball/mens-college-volleyball", Sport.VOLLEYBALL, "Men's College Volleyball", "NCAAV", "volleyball/mens-college-volleyball",
+            guideWords = listOf("Men's College Volleyball", "NCAA Men's Volleyball"), minutes = 120, schoolNames = true),
+        League("field-hockey/womens-college-field-hockey", Sport.OTHER, "Women's College Field Hockey", "NCAAFH", "field-hockey/womens-college-field-hockey",
+            guideWords = listOf("College Field Hockey", "NCAA Field Hockey"), minutes = 100, schoolNames = true),
+        League("water-polo/mens-college-water-polo", Sport.OTHER, "Men's College Water Polo", "NCAAWP", "water-polo/mens-college-water-polo",
+            guideWords = listOf("Men's College Water Polo", "NCAA Men's Water Polo"), minutes = 90, schoolNames = true),
+        League("water-polo/womens-college-water-polo", Sport.OTHER, "Women's College Water Polo", "NCAAWP", "water-polo/womens-college-water-polo",
+            guideWords = listOf("Women's College Water Polo", "NCAA Women's Water Polo"), minutes = 90, schoolNames = true),
         League("lacrosse/pll", Sport.LACROSSE, "Premier Lacrosse League", "PLL", "lacrosse/pll",
             guideWords = listOf("Premier Lacrosse", "PLL"), regions = emptySet(), minutes = 120, color = 0xFF111111),
         League("lacrosse/nll", Sport.LACROSSE, "National Lacrosse League", "NLL", "lacrosse/nll",
@@ -249,6 +257,14 @@ object SportsCatalog {
         League("tennis/wta", Sport.TENNIS, "WTA Tour", "WTA", "tennis/wta", LeagueKind.EVENT, guideWords = listOf("WTA", "Tennis"),
             regions = EVERYWHERE, minutes = 600, color = 0xFF6A1B9A),
         // ---- Found in your guide (ESPN doesn't cover these)
+        League("cricket/19430", Sport.CRICKET, "Test Matches", "TESTS", "cricket/19430",
+            guideWords = listOf("Test Cricket", "Test Matches", "ICC World Test Championship"),
+            minutes = 7200, national = true, color = 0xFF163D2A),
+        League("cricket/8048", Sport.CRICKET, "IPL", "IPL", "cricket/8048",
+            guideWords = listOf("IPL", "Indian Premier League"), minutes = 240, color = 0xFF1B3C73),
+        League("guide/motorsport", Sport.RACING, "All Motorsport", "MOTORSPORT",
+            guideWords = listOf("Motorsport", "Motor Sport", "Motor Racing"),
+            kind = LeagueKind.EVENT, guideOnly = true),
         League("guide/rugby-union", Sport.RUGBY, "Rugby Union", "RUGBY",
             guideWords = listOf("Rugby Union"),
             regions = setOf("UK", "IE", "AU", "OTHER"), guideOnly = true, fixtureSlug = "rugby-union", kind = LeagueKind.EVENT, color = 0xFF0B4F2E),
@@ -271,7 +287,7 @@ object SportsCatalog {
             regions = setOf("UK", "IE", "OTHER"), guideOnly = true, fixtureSlug = "cycling", kind = LeagueKind.EVENT, color = 0xFFF2C200)
     )
 
-    private val byId = leagues.associateBy { it.id }
+    private val byId by lazy { (leagues + SportsProviderCoverage.leagues).associateBy { it.id } }
     fun league(id: String): League? = byId[id] ?: extraById[id] ?: SportsTaxonomy.leagueById[id]
 
     /**
@@ -289,7 +305,7 @@ object SportsCatalog {
     }
 
     /** Every league, built in and from the data. */
-    val all: List<League> get() = leagues + extra + SportsTaxonomy.leagues
+    val all: List<League> get() = (leagues + SportsProviderCoverage.leagues + extra + SportsTaxonomy.leagues).distinctBy { it.id }
 
     fun browseOrdered(s: SportsSettings): List<League> = SportsCompetitions.browse(ordered(s))
 

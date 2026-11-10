@@ -21,6 +21,29 @@ class Responses:
 
 
 class ProducerTests(unittest.TestCase):
+    def test_provider_discovery_covers_missing_sports_and_seeded_motorsport(self):
+        for sport in ("Motorsport", "Darts", "Australian Football", "Volleyball", "Netball", "Gaelic",
+                      "Lacrosse", "Badminton", "Table Tennis", "Bowling", "Lawn Bowls", "Cornhole"):
+            self.assertIn(sport, g.DISCOVERY)
+        for ident in ("4489", "4486", "4487", "4413", "4409"):
+            self.assertIn(ident, g.SEEDS)
+        self.assertEqual(len(g.SEEDS), len(set(g.SEEDS)))
+
+    def test_partial_discovery_keeps_fetching_previously_discovered_leagues(self):
+        class Partial(Responses):
+            def __init__(self):
+                super().__init__()
+                self.urls = []
+            def get(self, url, ttl):
+                self.urls.append(url)
+                return {"fetchedAt": NOW, "payload": {"events": []}}
+        responses = Partial()
+        previous = {"metadata": {"leagues": [{"idLeague": "99999", "strSport": "Motorsport", "strLeague": "Existing Custom Championship"}]}}
+        output = g.build([], responses, NOW, 0, 0, previous=previous)
+        self.assertTrue(any("id=99999" in url for url in responses.urls))
+        self.assertTrue(any(row["leagueId"] == "tsdb/99999" for row in output["entries"]))
+        self.assertTrue(any(row["idLeague"] == "4487" for row in output["metadata"]["leagues"]))
+
     def test_unreliable_cricket_calendar_is_not_fetched_or_carried_forward(self):
         source = Path("app/src/main/java/com/nuvio/tv/livetv/sports/SportsCatalog.kt").read_text(encoding="utf-8")
         cricket = next(row for row in g.catalogue(source) if row["id"] == "guide/cricket")

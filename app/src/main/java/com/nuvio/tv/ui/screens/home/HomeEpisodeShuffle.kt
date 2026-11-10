@@ -92,7 +92,16 @@ private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueW
     val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
     val meta = cachedCwMeta(type, id)
     if (meta?.tvdbOrder != true) {
-        if (meta?.tvdbPending == true || tvdbOrderStore?.cachedSelection(profileManager.activeProfileId.value, id) != null) {
+        val context = when (item) {
+            is ContinueWatchingItem.InProgress -> item.progress.tvdbContext
+            is ContinueWatchingItem.NextUp -> item.info.tvdbContext
+        }
+        val order = tvdbOrderStore?.cachedSelection(profileManager.activeProfileId.value, id)
+        // A cache miss during refresh does not invalidate the episode already shown.
+        // Playback still verifies the selected order against fresh metadata.
+        if (meta == null && item.shufflePlayback && context != null && order?.seriesId == context.seriesId &&
+            order.orderType == context.orderType) return item
+        if (meta?.tvdbPending == true || order != null || context != null) {
             return item.forSeriesChoice()
         }
         return item
@@ -257,14 +266,15 @@ internal fun applyHomeShuffle(
                 }
                 val settings = profile.settings(info.contentId, info.contentType)
                 if (!settings.enabled) item else {
-                    val catalogue = videos(info.contentId, info.contentType) ?: run {
-                        traceCwCard(info.contentId) { "catalogue missing or episode order pending" }
-                        return@mapNotNull item
-                    }
-                    val selected = shuffle.select(
+                    val catalogue = videos(info.contentId, info.contentType)
+                    val selected = if (catalogue == null) {
+                        traceCwCard(info.contentId) { "catalogue refreshing; retain displayed shuffle target" }
+                        shuffle.homeSelection(profile.profileId, info.contentId, settings.includeWatched)
+                    } else shuffle.select(
                         profile.profileId, info.contentId, catalogue, settings.includeWatched,
                         watched[info.contentId].orEmpty(), surface = ShuffleSurface.HOME, visit = visit
-                    ) ?: run {
+                    )
+                    if (selected == null) {
                         traceCwCard(info.contentId) { "no eligible shuffle episode" }
                         return@mapNotNull item
                     }

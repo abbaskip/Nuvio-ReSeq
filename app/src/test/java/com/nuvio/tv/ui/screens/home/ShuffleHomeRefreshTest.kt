@@ -1,6 +1,7 @@
 package com.nuvio.tv.ui.screens.home
 
 import android.os.SystemClock
+import android.widget.Toast
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.network.NetworkResult
 import com.nuvio.tv.data.repository.traktRefreshEvents
@@ -87,6 +88,7 @@ class ShuffleHomeRefreshTest {
     @After fun cleanup() {
         unmockkStatic("androidx.lifecycle.ViewModelKt")
         unmockkStatic(SystemClock::class)
+        unmockkStatic(Toast::class)
     }
 
     private fun TestScope.home(): StateFlow<HomeUiState> = vm.createShuffleHomeState().also { runCurrent() }
@@ -125,6 +127,85 @@ class ShuffleHomeRefreshTest {
         setup()
         cache.clear()
         assertEquals(id, home().onlyCard().contentId())
+    }
+
+    @Test fun metadataEvictionAndTrackerReplacementKeepTheSelectedShuffleEpisode() = runTest {
+        setup()
+        val home = home()
+        val selected = home.onlyCard() as ContinueWatchingItem.NextUp
+        assertTrue(selected.shufflePlayback)
+        cache.clear()
+        native.value = HomeUiState(continueWatchingItems = listOf(card.copy(info = card.info.copy(
+            videoId = "$id:1:3", season = 1, episode = 3, episodeTitle = "Sequential next"
+        ))))
+        refresh.update { it.copy(metadata = it.metadata + 1) }
+        runCurrent()
+        val refreshed = home.onlyCard() as ContinueWatchingItem.NextUp
+        assertTrue(refreshed.shufflePlayback)
+        assertFalse(refreshed.chooseEpisode)
+        assertEquals(selected.info.videoId, refreshed.info.videoId)
+        assertEquals(selected.info.tvdbContext, refreshed.info.tvdbContext)
+        advanceTimeBy(10_001)
+        runCurrent()
+        assertTrue(home.onlyCard().shufflePlayback)
+    }
+
+    @Test fun manualPlayFromStalePlaceholderUsesTheResolvedCardInsteadOfDetails() = runTest {
+        setup()
+        val home = home()
+        every { vm.uiState } returns home
+        var played: ContinueWatchingItem? = null
+        vm.verifyTvdbPlayback(card.copy(chooseEpisode = true), { played = it },
+            { _, _, _ -> fail("Manual play opened Details") }, manualSelection = true)
+        advanceTimeBy(10_001)
+        runCurrent()
+        assertEquals(card.info.videoId, (played as ContinueWatchingItem.NextUp).info.videoId)
+        assertTrue(played!!.shufflePlayback)
+    }
+
+    @Test fun manualPlayWaitsForColdShuffleMetadataAndThenOpensTheChosenEpisode() = runTest {
+        setup()
+        cache.clear()
+        val home = home()
+        every { vm.uiState } returns home
+        val placeholder = home.onlyCard()
+        assertTrue(placeholder.chooseEpisode)
+        var played: ContinueWatchingItem? = null
+        vm.verifyTvdbPlayback(placeholder, { played = it },
+            { _, _, _ -> fail("Manual play opened Details") }, manualSelection = true)
+        advanceTimeBy(20_002)
+        runCurrent()
+        assertEquals(card.info.videoId, (played as ContinueWatchingItem.NextUp).info.videoId)
+        assertFalse(played!!.chooseEpisode)
+        assertTrue(played!!.shufflePlayback)
+    }
+
+    @Test fun manualPlayWithUnresolvedIdentityNeverRedirectsToDetailsOrPlaysTheSeed() = runTest {
+        setup()
+        cache[key] = summary(video).copy(tvdbOrder = false, tvdbPending = true)
+        negative[key] = currentTime
+        val home = home()
+        every { vm.uiState } returns home
+        mockkStatic(Toast::class)
+        val toast = mockk<Toast>(relaxed = true)
+        every { Toast.makeText(any(), any<CharSequence>(), any()) } returns toast
+        vm.verifyTvdbPlayback(home.onlyCard(), { fail("Played an unresolved seed") },
+            { _, _, _ -> fail("Manual play opened Details") }, manualSelection = true)
+        advanceTimeBy(22_001)
+        runCurrent()
+        verify(exactly = 1) { toast.show() }
+    }
+
+    @Test fun changingOrderDuringACacheMissDoesNotRetainTheOldShuffleIdentity() = runTest {
+        setup()
+        val home = home()
+        assertTrue(home.onlyCard().shufflePlayback)
+        cache.clear()
+        every { store.cachedSelection(1, any()) } returns TvdbOrderPreference(111, "alternate")
+        refresh.update { it.copy(metadata = it.metadata + 1) }
+        runCurrent()
+        assertTrue(home.onlyCard().chooseEpisode)
+        assertFalse(home.onlyCard().canMarkWatched())
     }
 
     @Test fun pipelineOmissionWithNegativeMetadataKeepsTrackerShow() = runTest {

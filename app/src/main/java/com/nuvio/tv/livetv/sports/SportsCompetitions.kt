@@ -5,6 +5,8 @@ internal object SportsCompetitions {
     // These built-in provider names omit the sport qualifier used by the curated vocabulary.
     // Match by source ID rather than broadening ambiguous guide phrases such as "Test Match".
     private val sourceNodes = mapOf(
+        "cricket/19430" to "cricket.tests-first-class.test-cricket",
+        "cricket/8048" to "cricket.franchise-t20-leagues.ipl",
         "rugby/289234" to "rugby-union.international-rugby-union.rugby-union-test-matches",
         "soccer/fifa.friendly" to "football-soccer.international-football.international-friendlies-football"
     )
@@ -28,7 +30,7 @@ internal object SportsCompetitions {
                 }
             return l.sport.name + ":" + (node?.id ?: name)
         }
-        val raw = SportsCatalog.leagues + extra + SportsTaxonomy.leagues.filter {
+        val raw = SportsCatalog.leagues + SportsProviderCoverage.leagues + extra + SportsTaxonomy.leagues.filter {
             SportsTaxonomy.byId[it.id.removePrefix("taxonomy/")]?.let { n -> n.children.isEmpty() && n.parentId != null } == true
         }
         val canonical = mutableMapOf<String, String>()
@@ -46,7 +48,8 @@ internal object SportsCompetitions {
             val guide = "guide/" + root.id
             if (SportsCatalog.leagues.any { it.id == guide }) canonical["taxonomy/" + root.id] = canonical[guide] ?: guide
         }
-        val sources = (SportsCatalog.leagues + extra + SportsTaxonomy.leagues).groupBy { canonical[it.id] ?: it.id }
+        val sources = (SportsCatalog.leagues + SportsProviderCoverage.leagues + extra + SportsTaxonomy.leagues)
+            .distinctBy { it.id }.groupBy { canonical[it.id] ?: it.id }
         return Index(extra, canonical, sources).also { saved = it }
     }
 
@@ -60,7 +63,7 @@ internal object SportsCompetitions {
 
     fun browse(ordered: List<League>): List<League> = ordered.asSequence().filter { l ->
         !l.id.startsWith("taxonomy/") || SportsTaxonomy.byId[l.id.removePrefix("taxonomy/")]
-            ?.let { it.parentId != null && it.children.isEmpty() } == true
+            ?.let { it.children.isEmpty() } == true
     }.mapNotNull { SportsCatalog.league(canonicalId(it.id)) }.distinctBy { it.id }.map { league ->
         // Keep concise curated names (IPL, BBL...) when a team provider uses a longer title.
         val label = if (league.id.startsWith("tsdb/")) sources(league.id).firstOrNull {

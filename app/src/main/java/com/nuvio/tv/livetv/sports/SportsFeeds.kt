@@ -329,9 +329,13 @@ internal class SportsFeeds {
         private val CLOCK_FIRST = Regex("""^(\d{1,2}:\d{2}(?:\.\d)?)\s*-\s*(.+)$""")
 
         fun parseTeams(league: League, raw: String): List<TeamInfo> {
-            val teams = JSONObject(raw).optJSONArray("sports")?.optJSONObject(0)
+            val root = JSONObject(raw)
+            val teams = root.optJSONArray("teams") ?: root.optJSONArray("sports")?.optJSONObject(0)
                 ?.optJSONArray("leagues")?.optJSONObject(0)?.optJSONArray("teams") ?: return emptyList()
-            return (0 until teams.length()).mapNotNull { i -> team(league, teams.optJSONObject(i)?.optJSONObject("team")) }
+            return (0 until teams.length()).mapNotNull { i ->
+                val row = teams.optJSONObject(i) ?: return@mapNotNull null
+                team(league, row.optJSONObject("team") ?: row)
+            }
                 .filter { it.fullName.isNotBlank() }
         }
 
@@ -419,7 +423,10 @@ internal class SportsFeeds {
                 stateRaw == "post" -> GameState.POST
                 else -> GameState.PRE
             }
-            val short = type?.str("shortDetail") ?: type?.str("detail")
+            val short = if (league.sport == Sport.CRICKET)
+                listOfNotNull(st?.str("session"), type?.str("shortDetail") ?: type?.str("detail"))
+                    .distinct().joinToString(" · ").ifBlank { null }
+                else type?.str("shortDetail") ?: type?.str("detail")
             val status = when (state) {
                 GameState.LIVE -> short?.let { s -> CLOCK_FIRST.matchEntire(s)?.let { "${it.groupValues[2]} · ${it.groupValues[1]}" } ?: s }
                 GameState.POST -> short ?: "Final"
@@ -440,6 +447,7 @@ internal class SportsFeeds {
             val venue = comp?.optJSONObject("venue")?.str("fullName") ?: ev.optJSONObject("circuit")?.str("fullName")
             val week = ev.optJSONObject("week")?.optInt("number", 0)?.takeIf { it > 0 }?.let { "Week $it" }
             val headline = comp?.optJSONArray("notes")?.optJSONObject(0)?.str("headline")
+                ?: if (league.sport == Sport.CRICKET) comp?.str("description") else null
 
             if (league.kind == LeagueKind.EVENT) {
                 val multiDay = end != null && end - start > 20 * 3_600_000L
@@ -529,7 +537,8 @@ internal class SportsFeeds {
                 broadcasts = broadcasts.toList(),
                 situation = situation,
                 progress = progress,
-                espnId = espnId
+                espnId = espnId,
+                endMs = end
             )
         }
 

@@ -1,0 +1,126 @@
+{
+  "events": [
+    {
+      "id": "1550711",
+      "date": "2026-11-09T04:30Z",
+      "endDate": "2026-11-14T23:59Z",
+      "name": "Pakistan v Sri Lanka",
+      "shortName": "PAK v SL",
+      "status": {
+        "clock": 0,
+        "displayClock": "0'",
+        "period": 1,
+        "session": "Day 2  Session 1",
+        "summary": "Sri Lanka won toss & fielded",
+        "type": {
+          "id": "0",
+          "description": "Live",
+          "detail": "Live",
+          "shortDetail": "Live",
+          "state": "in"
+        }
+      },
+      "competitions": [
+        {
+          "id": "1550711",
+          "date": "2026-11-09T04:30Z",
+          "endDate": "2026-11-14T23:59Z",
+          "description": "1st Test",
+          "status": {
+            "clock": 0,
+            "displayClock": "0'",
+            "period": 1,
+            "session": "Day 2  Session 1",
+            "featuredAthletes": [],
+            "summary": "Sri Lanka won toss & fielded",
+            "type": {
+              "id": "0",
+              "description": "Live",
+              "detail": "Live",
+              "shortDetail": "Live",
+              "state": "in"
+            }
+          },
+          "broadcasts": [],
+          "geoBroadcasts": [],
+          "notes": [],
+          "venue": {
+            "id": "59006",
+            "fullName": "Rawalpindi Cricket Stadium",
+            "address": {
+              "city": "Rawalpindi",
+              "state": "",
+              "country": "Pakistan",
+              "summary": "Rawalpindi Cricket Stadium Rawalpindi, Pakistan. (+92-51-724717)"
+            },
+            "capacity": 15000,
+            "indoor": false
+          },
+          "situation": {},
+          "competitors": [
+            {
+              "id": "7",
+              "homeAway": "home",
+              "score": "342/5 (85 ov)",
+              "winner": "false",
+              "linescores": [
+                {
+                  "period": 1,
+                  "value": 1,
+                  "displayValue": 1,
+                  "wickets": 5,
+                  "runs": 342,
+                  "overs": 85.0,
+                  "isBatting": true,
+                  "description": "",
+                  "isCurrent": 1
+                }
+              ],
+              "order": 1,
+              "team": {
+                "id": "7",
+                "name": "Pakistan",
+                "displayName": "Pakistan",
+                "shortDisplayName": "PAK",
+                "abbreviation": "PAK",
+                "location": "Pakistan",
+                "color": "#07df52",
+                "logo": "https://a.espncdn.com/i/teamlogos/cricket/500/7.png"
+              }
+            },
+            {
+              "id": "8",
+              "homeAway": "away",
+              "score": "",
+              "winner": "false",
+              "linescores": [
+                {
+                  "period": 1,
+                  "value": 1,
+                  "displayValue": 1,
+                  "wickets": 0,
+                  "runs": 0,
+                  "overs": 85.0,
+                  "isBatting": false,
+                  "description": "",
+                  "isCurrent": 1
+                }
+              ],
+              "order": 2,
+              "team": {
+                "id": "8",
+                "name": "Sri Lanka",
+                "displayName": "Sri Lanka",
+                "shortDisplayName": "SL",
+                "abbreviation": "SL",
+                "location": "Sri Lanka",
+                "color": "#203d89",
+                "logo": "https://a.espncdn.com/i/teamlogos/cricket/500/8.png"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

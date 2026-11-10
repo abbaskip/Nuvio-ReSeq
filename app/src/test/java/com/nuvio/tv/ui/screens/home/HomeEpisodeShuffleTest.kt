@@ -103,6 +103,31 @@ class HomeEpisodeShuffleTest {
     }
 
     @Test
+    fun `tracker replacement during a cache miss keeps the displayed random episode and badge`() {
+        val selected = project().continueWatchingItems.single() as ContinueWatchingItem.NextUp
+        val sequential = upcoming.copy(info = upcoming.info.copy(
+            videoId = "show:1:2", season = 1, episode = 2, episodeTitle = "Sequential next episode",
+            hasAired = true, released = "2020-01-01"
+        ))
+        val refreshed = project(HomeUiState(continueWatchingItems = listOf(sequential)), catalogue = null)
+            .continueWatchingItems.single() as ContinueWatchingItem.NextUp
+        assertTrue(refreshed.shufflePlayback)
+        assertFalse(refreshed.chooseEpisode)
+        assertEquals(selected.info.videoId, refreshed.info.videoId)
+        assertEquals(selected.info.episodeTitle, refreshed.info.episodeTitle)
+        assertEquals(selected.info.thumbnail, refreshed.info.thumbnail)
+    }
+
+    @Test
+    fun `retained shuffle target cannot cross profile or pool changes`() {
+        project()
+        val otherProfile = project(profile = profile.copy(profileId = 2), catalogue = null)
+        val otherPool = project(profile = profile.copy(shows = mapOf("show" to EpisodeShuffleSettings(true, true))), catalogue = null)
+        assertFalse(otherProfile.upcomingItems.single().shufflePlayback)
+        assertFalse(otherPool.upcomingItems.single().shufflePlayback)
+    }
+
+    @Test
     fun `removing a native card cannot be undone by the shuffle projection`() {
         project()
         assertTrue(project(HomeUiState()).continueWatchingItems.isEmpty())

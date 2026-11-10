@@ -129,6 +129,11 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val noStart = HashSet<String>()
         val events = input.events.mapNotNull { ev ->
             when {
+                // A Test keeps its original kickoff for sorting but today's session is matched
+                // against today's guide, including on days 2–5.
+                !input.replay && ev.hasTime && ev.endMs?.let { it > input.now } == true &&
+                    ev.startMs < input.now && SportsCatalog.league(ev.leagueId)?.sport == Sport.CRICKET ->
+                    ev.copy(startMs = input.now)
                 ev.hasTime -> ev
                 !multiDay(ev) -> null
                 // The feed's end date is the start of the last day (Sunday 00:00): the event runs through that day.
@@ -466,9 +471,13 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val followedLabels = scanKey.words.map { it to norm(it).trim() }
         // Identify legacy competitions independently of visibility, as the taxonomy does.
         val fallbackWords = (SportsCatalog.leagues + leagues).distinctBy { it.id }
-            .filter { l -> !l.id.startsWith("taxonomy/") && SportsTaxonomy.roots.none { SportsTaxonomy.sport(it.id) == l.sport } }
+            .filter { l -> !l.id.startsWith("taxonomy/") && (l.sport == Sport.RACING ||
+                SportsTaxonomy.roots.none { SportsTaxonomy.sport(it.id) == l.sport }) }
             .flatMap { l -> l.guideWords.map { norm(it).trim() to l } }
         val hits = ArrayList<Pair<String, EpgProgram>>()
+        val classifiedLeagues = leagues.associateBy { SportsCompetitions.canonicalId(it.id) }
+        fun classifiedLeague(node: SportsTaxonomy.Node): League? =
+            classifiedLeagues[SportsCompetitions.canonicalId("taxonomy/" + node.id)]
         fun classify(p: EpgProgram): SportsTaxonomy.Node? {
             val key = p.title to p.description
             if (!classifiedText.containsKey(key)) classifiedText[key] = SportsTaxonomy.classifyProgramme(p.title, p.description)
@@ -485,7 +494,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             if (key in channels) {
                 // Regional/quality feeds repeat the same programme text; classify it once per scan.
                 val included = includedText.getOrPut(p.title to p.description) {
-                    classify(p)?.let { "taxonomy/" + it.id in allowedIds } == true ||
+                    classify(p)?.let { classifiedLeague(it) != null } == true ||
                         (otherIndex.isNotEmpty() && norm(p.title + " " + p.description.orEmpty()).let { text ->
                             text.trim().split(' ').distinct().asSequence()
                                 .flatMap { otherIndex[it].orEmpty().asSequence() }.any { hasWord(text, it) }
@@ -507,7 +516,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             val nd = norm(p.description.orEmpty())
             if (SportsCatalog.NOT_LIVE_WORDS.any { hasWord(nt, it) }) continue
             val classified = classify(p)
-            val league = if (classified != null) leagues.firstOrNull { it.id == "taxonomy/" + classified.id }
+            val league = if (classified != null) classifiedLeague(classified)
                 else fallbackWords.filter { (w, _) ->
                     hasWord(nt, w) || hasWord(nd, w) }
                     .maxByOrNull { (_, l) ->
@@ -526,9 +535,12 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             // name, or name the promotion (WWE, AEW, TNA).
             if (league?.sport == Sport.WRESTLING && !wrestlingTitle(cleanTitle(p.title), league)) continue
             val saysLive = isLive(nt, nd)
+            // These disciplines often have session titles rather than two named opponents.
+            // Recognised coverage still belongs in TV Now when its live status is unknown.
+            val namedDiscipline = classified?.sportId in setOf("lawn-bowls", "cornhole", "ten-pin-bowling")
             // Wrestling's weekly shows are live without the guide saying so, but not on a channel
             // named after the show or league (those run old shows all day).
-            if (!saysLive && (league?.liveByDefault != true || league.guideWords.any { hasWord(nameNorm(ch.name), norm(it).trim()) }) &&
+            if (!saysLive && !namedDiscipline && (league?.liveByDefault != true || league.guideWords.any { hasWord(nameNorm(ch.name), norm(it).trim()) }) &&
                 !MATCHUP.containsMatchIn(" $nt $nd ")) continue
             val word = followedLabels.firstOrNull { (_, w) -> hasWord(nt, w) || hasWord(nd, w) }?.first
             if (league == null && word == null) continue
@@ -690,7 +702,18 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val channel = fillerChannels.getOrPut(listOf(ch.key, ch.name, ch.group, ch.groupId, ch.tvgName)) {
             com.nuvio.tv.livetv.data.LiveTvPosterResolver.is247(ch) to nameNorm(ch.name).trim()
         }
-        if (channel.first || p.stopMs - p.startMs >= 6 * HOUR) return true
+        if (channel.first) return true
+        if (p.stopMs - p.startMs >= 6 * HOUR) {
+            // Test cricket, bowls sessions and endurance races can be full-day broadcasts.
+            // A long slot alone is not a loop when the programme identifies real live sport.
+            val nt = norm(p.title)
+            val nd = norm(p.description.orEmpty())
+            val sport = SportsTaxonomy.classifyProgramme(p.title, p.description)?.sportId
+            val session = sport in setOf("cricket", "lawn-bowls", "cornhole", "ten-pin-bowling", "motorsport") &&
+                (isLive(nt, nd) || MATCHUP.containsMatchIn(nt + nd) ||
+                    sport in setOf("lawn-bowls", "cornhole", "ten-pin-bowling"))
+            if (!session || p.stopMs - p.startMs > 30 * HOUR) return true
+        }
         val (t, matchup) = fillerTitles.getOrPut(p.title) {
             nameNorm(cleanTitle(p.title)).trim() to MATCHUP.containsMatchIn(norm(p.title.replace("@", " at ")))
         }

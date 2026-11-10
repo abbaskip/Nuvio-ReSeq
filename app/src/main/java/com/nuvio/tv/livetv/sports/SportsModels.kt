@@ -167,10 +167,21 @@ data class SportsEvent(
                 listOf("replay", "repeat", "a repeat of", "a replay of", "recorded coverage").any { description == it || description.startsWith("$it ") }
         }
     }
-    val liveLabel: String get() = if (isReplay) "REPLAY" else if (source == EventSource.GUIDE) "ON AIR" else "LIVE"
+    /** Only explicit guide live metadata establishes live play; a current airing alone cannot. */
+    val guideSaysLive: Boolean by lazy {
+        source == EventSource.GUIDE && !isReplay && guideHits.any { (_, p) ->
+            val title = SportsCatalog.norm(p.title)
+            val description = SportsCatalog.norm(p.description.orEmpty())
+            SportsCatalog.hasWord(title, "live") || description.startsWith(" live ") ||
+                SportsCatalog.hasWord(description, "live coverage") || SportsCatalog.hasWord(description, "live action")
+        }
+    }
+    val liveLabel: String get() = if (isReplay) "REPLAY" else if (source == EventSource.GUIDE && !guideSaysLive) "ON AIR" else "LIVE"
     val finishedLabel: String get() = if (isReplay) "REPLAY" else if (source == EventSource.GUIDE) "AIRED" else "FINAL"
     val sides: List<Side> get() = listOfNotNull(away, home)
-    val hasScore: Boolean get() = (state == GameState.LIVE || state == GameState.POST) && sides.size == 2 && sides.all { !it.score.isNullOrBlank() }
+    val hasScore: Boolean get() = (state == GameState.LIVE || state == GameState.POST) && sides.size == 2 &&
+        (if (SportsCatalog.league(leagueId)?.sport == Sport.CRICKET) sides.any { !it.score.isNullOrBlank() }
+         else sides.all { !it.score.isNullOrBlank() })
 
     /** The two sides in the order people say them: "Bears at Lions", "Liverpool v Man City". */
     fun ordered(sport: Sport): List<Side> = if (sport.homeFirst) listOfNotNull(home, away) else listOfNotNull(away, home)

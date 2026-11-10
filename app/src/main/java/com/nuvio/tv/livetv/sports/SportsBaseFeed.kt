@@ -139,6 +139,11 @@ internal class SportsBaseFeed(
 
 /** At most two relevant league/date scoreboards per round; catalogue dates never fan out on the TV. */
 internal object SportsRefreshPolicy {
+    fun scoreboardDay(league: League, anchor: Long): String = java.time.format.DateTimeFormatter
+        .ofPattern("yyyyMMdd").withZone(java.time.ZoneId.of(
+            if (league.sport == Sport.CRICKET) "UTC" else "America/New_York"))
+        .format(java.time.Instant.ofEpochMilli(anchor))
+
     private fun relevant(event: SportsEvent, league: League, viewing: Boolean, now: Long): Boolean {
         if (league.espnPath == null || (!event.hasTime && event.endMs == null) ||
             event.state == GameState.POST || event.state == GameState.OFF) return false
@@ -158,7 +163,10 @@ internal object SportsRefreshPolicy {
         .filter { it.leagueId == league.id && relevant(it, league, viewing, now) }
         .sortedWith(compareBy<SportsEvent> { if (it.id == focused || it.id in playing) 0 else 1 }
             .thenBy { kotlin.math.abs(it.startMs - now) })
-        .firstOrNull()?.startMs ?: now
+        .firstOrNull()?.let { event ->
+            if (league.sport == Sport.CRICKET && event.endMs?.let { it > now } == true && now >= event.startMs)
+                now else event.startMs
+        } ?: now
 
     fun choose(events: List<SportsEvent>, leagues: List<League>, focused: String?, playing: Set<String>,
                followed: Set<String>, viewing: Boolean, now: Long, attempts: Map<String, Long>): List<League> {
@@ -172,7 +180,12 @@ internal object SportsRefreshPolicy {
             id in followed -> 1
             else -> 2
         }
-        return current.keys.filter { id -> (viewing || priority(id) == 0) && now - (attempts[id] ?: 0) >= 60_000 }
+        // Newly added cricket feeds must work before the next shared catalogue generation.
+        // Discovery remains within the same two-request budget and backs off when empty.
+        val discover = if (viewing) leagues.filter { it.sport == Sport.CRICKET && it.espnPath != null &&
+            events.none { e -> e.leagueId == it.id } }.map { it.id } else emptyList()
+        return (current.keys + discover).distinct().filter { id -> (viewing || priority(id) == 0) &&
+            now - (attempts[id] ?: 0) >= if (id in discover) 5 * 60_000L else 60_000L }
             .sortedWith(compareBy<String> { if (priority(it) == 0) 0 else 1 }
                 .thenBy { attempts[it] ?: 0L }.thenBy { priority(it) })
             .take(2).mapNotNull(byId::get)

@@ -17,9 +17,10 @@ class SportsTaxonomyTest {
         assertNull(SportsTaxonomy.classify("NBAmazing", "ordinary programme ".repeat(1000)))
     }
     @Test fun `entire supplied hierarchy is reachable with unique stable IDs`() {
-        assertEquals(13, SportsTaxonomy.roots.size)
-        assertEquals(52, SportsTaxonomy.roots.sumOf { it.children.size })
-        assertEquals(405, SportsTaxonomy.roots.sumOf { it.children.sumOf { c -> c.children.size } })
+        // The supplied hierarchy remains intact as provider coverage adds new sports after it.
+        val original = SportsTaxonomy.roots.take(13)
+        assertEquals(52, original.sumOf { it.children.size })
+        assertEquals(405, original.sumOf { it.children.sumOf { c -> c.children.size } })
         assertEquals(SportsTaxonomy.nodes.size, SportsTaxonomy.byId.size)
         assertTrue(SportsTaxonomy.nodes.all { SportsTaxonomy.enabled(it.id, emptySet()) })
     }

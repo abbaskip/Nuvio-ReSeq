@@ -13,8 +13,9 @@ import urllib.request
 
 DAY = 86_400_000
 SCHEMA = 1
-SEEDS = ["4416", "4415", "4461", "5806", "5282"]
-DISCOVERY = ["Rugby", "Cricket", "Soccer", "Basketball", "American Football", "Baseball", "Ice Hockey", "Swimming", "Athletics", "Snooker", "Gymnastics", "Cycling", "Fighting", "Tennis", "Golf"]
+COVERAGE = json.loads((Path(__file__).resolve().parents[2] / "app/src/main/resources/sports-provider-coverage.json").read_text(encoding="utf-8"))
+SEEDS = list(dict.fromkeys(["4416", "4415", "4461", "5806", "5282", "4489", "4486", "4487"] + [row["id"] for row in COVERAGE["leagues"]]))
+DISCOVERY = [row["name"] for row in COVERAGE["sports"]]
 
 
 def catalogue(source):
@@ -105,7 +106,7 @@ def trim_espn(event):
     result = keep(event, ("id", "date", "endDate", "name", "shortName", "status", "week"))
     comps = []
     for comp in event.get("competitions", []):
-        c = keep(comp, ("id", "date", "status", "broadcasts", "geoBroadcasts", "notes", "venue", "situation", "type"))
+        c = keep(comp, ("id", "date", "endDate", "description", "status", "broadcasts", "geoBroadcasts", "notes", "venue", "situation", "type"))
         competitors = []
         for side in comp.get("competitors", []):
             s = keep(side, ("id", "homeAway", "score", "winner", "records", "linescores", "order"))
@@ -136,7 +137,9 @@ def rows(payload, *keys):
 def build(leagues, fetcher, now, days_back=7, days_ahead=14, only=None, previous=None):
     today = dt.datetime.fromtimestamp(now / 1000, dt.timezone.utc).date()
     entries = []
-    metadata = {str(row["idLeague"]): row for row in (previous or {}).get("metadata", {}).get("leagues", []) if row.get("idLeague")}
+    metadata = {row["id"]: {"idLeague": row["id"], "strLeague": row["name"], "strSport": "Motorsport",
+                           "strLeagueAlternate": ", ".join(row["aliases"])} for row in COVERAGE["leagues"]}
+    metadata.update({str(row["idLeague"]): row for row in (previous or {}).get("metadata", {}).get("leagues", []) if row.get("idLeague")})
     selected = set(only or [])
     previous_entries = {(e["provider"], e["leagueId"]): e for e in (previous or {}).get("entries", [])}
     for league in leagues:
@@ -187,6 +190,9 @@ def build(leagues, fetcher, now, days_back=7, days_ahead=14, only=None, previous
             elif ("calendar", league["id"]) in previous_entries:
                 entries.append(previous_entries[("calendar", league["id"])])
     ids = set(SEEDS if not selected else [value.removeprefix("tsdb/") for value in selected if value.startswith("tsdb/")])
+    if not selected:
+        # A partial discovery response must not erase leagues discovered on a previous run.
+        ids.update(metadata)
     if not selected:
         for sport in DISCOVERY:
             saved = fetcher.get(tsdb_url("search_all_leagues.php", s=sport), DAY)

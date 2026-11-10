@@ -26,7 +26,7 @@ class SportsCompetitionsTest {
         assertEquals(cards.size, cards.distinctBy { it.sport to SportsTaxonomy.normalize(it.name) }.size)
         assertTrue(cards.filter { it.id.startsWith("taxonomy/") }.all {
             val node = SportsTaxonomy.byId.getValue(it.id.removePrefix("taxonomy/"))
-            node.parentId != null && node.children.isEmpty()
+            node.children.isEmpty()
         })
         assertEquals(1, cards.count { it.name == "T20 Internationals" })
         assertTrue(SportsTaxonomy.byId.getValue("cricket.t20-internationals").children.size > 1)

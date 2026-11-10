@@ -39,7 +39,7 @@ case "${1:-}" in
     ;;
   save)
     mkdir -p "$transfer"
-    # The Gradle action post-step archives this ciphertext, never the tar file.
+    # The explicit cache save uploads this ciphertext, never the tar file.
     tar -cf - -C "$cache_home" build-cache-1 | openssl enc -aes-256-cbc -salt -pbkdf2 \
       -iter 100000 -pass env:NUVIO_CACHE_KEY -out "$archive"
     authenticate save

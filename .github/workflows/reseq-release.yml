@@ -84,6 +84,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/gradle
+        id: gradle
         with:
           encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
       - name: Prepare approved services
@@ -118,10 +119,19 @@ jobs:
             build/test-service-verification.json
           if-no-files-found: error
       - name: Encrypt task cache
+        id: encrypt-cache
+        continue-on-error: true
         if: ${{ !cancelled() }}
         env:
           NUVIO_CACHE_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
         run: bash scripts/ci-cache.sh save
+      - name: Save encrypted task cache, including after failed checks
+        if: ${{ !cancelled() && steps.encrypt-cache.outcome == 'success' && steps.gradle.outputs.task-cache-key != '' }}
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/nuvio-task-cache
+          key: ${{ steps.gradle.outputs.task-cache-key }}
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -143,6 +153,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/gradle
+        id: gradle
         with:
           encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
       - name: Configure permanent signing and app services
@@ -204,10 +215,19 @@ jobs:
           path: build/release/*
           if-no-files-found: error
       - name: Encrypt task cache
+        id: encrypt-cache
+        continue-on-error: true
         if: ${{ !cancelled() }}
         env:
           NUVIO_CACHE_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
         run: bash scripts/ci-cache.sh save
+      - name: Save encrypted task cache, including after failed checks
+        if: ${{ !cancelled() && steps.encrypt-cache.outcome == 'success' && steps.gradle.outputs.task-cache-key != '' }}
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/nuvio-task-cache
+          key: ${{ steps.gradle.outputs.task-cache-key }}
       - uses: actions/upload-artifact@v6
         if: always()
         with:

@@ -65,7 +65,7 @@ def run(lane: str, device_apks: bool = False, apk: bool = False) -> None:
 
     if lane != "release":
         executed = verify_test_results(ROOT / "app/build/test-results/testFullDebugUnitTest")
-        print(f"Verified {executed} executed JVM tests; no historical count threshold.")
+        print(f"Verified passing JVM results for {executed} non-skipped tests (reused when inputs are unchanged).")
 
     if lane == "validate":
         raw = gzip.decompress((ROOT / "automation/lint-reference-beta7.1.xml.gz").read_bytes())

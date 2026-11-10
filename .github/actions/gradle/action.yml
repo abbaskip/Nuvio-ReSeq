@@ -4,6 +4,10 @@ inputs:
   encryption-key:
     description: Private base64 AES key; omit for untrusted builds
     default: ''
+outputs:
+  task-cache-key:
+    description: Unique encrypted-output cache key for the explicit save step
+    value: ${{ steps.task-cache.outputs.cache-primary-key }}
 runs:
   using: composite
   steps:
@@ -26,8 +30,9 @@ runs:
         gradle-home-cache-excludes: |
           caches/build-cache-1
     - name: Restore encrypted Gradle task outputs
+      id: task-cache
       if: inputs.encryption-key != ''
-      uses: actions/cache@v4
+      uses: actions/cache/restore@v4
       with:
         path: ${{ runner.temp }}/nuvio-task-cache
         key: nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}-${{ github.job }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}

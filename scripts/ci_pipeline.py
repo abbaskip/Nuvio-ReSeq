@@ -77,6 +77,7 @@ def run(lane: str, device_apks: bool = False, apk: bool = False) -> None:
                                         "--report", "app/build/reports/lint-results-fullDebug.xml",
                                         "--baseline", "automation/lint-baseline.json",
                                         "--released-report", "build/pipeline/released-lint.xml",
+                                        "--ratchet-proposal", "build/pipeline/lint-budget-proposal.json",
                                         "--require-ratchet", "--summary", "build/pipeline/lint-verdict.json"])
 
 

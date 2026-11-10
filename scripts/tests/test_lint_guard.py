@@ -192,7 +192,8 @@ class ReadOnlyRatchetTests(unittest.TestCase):
         path.write_text(__import__('json').dumps(budget))
         argv = ['lint_guard.py', 'check', '--report', str(root / 'report.xml'),
                 '--project', str(root), '--baseline', str(path), '--require-ratchet',
-                '--summary', str(root / 'summary.json')]
+                '--summary', str(root / 'summary.json'),
+                '--ratchet-proposal', str(root / 'proposal.json')]
         with patch('sys.argv', argv), patch.object(lint, 'findings', return_value=(current, 0)), \
                 patch.object(lint, 'check_history'), contextlib.redirect_stdout(io.StringIO()), \
                 contextlib.redirect_stderr(io.StringIO()):
@@ -206,6 +207,7 @@ class ReadOnlyRatchetTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Retire resolved'):
                 self.invoke({}, budget, root)
             self.assertEqual(budget, json.loads((root / 'baseline.json').read_text()))
+            self.assertEqual({}, json.loads((root / 'proposal.json').read_text())['active'])
 
     def test_new_error_still_writes_failed_verdict(self):
         import json

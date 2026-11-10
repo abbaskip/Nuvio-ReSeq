@@ -6,6 +6,7 @@ allprojects {
         maxHeapSize = "1536m"
         maxParallelForks = 1
         forkEvery = 100
+        testLogging.exceptionFormat = 'full'
         // A requested live/profile run must never reuse cached skipped results.
         outputs.cacheIf('Only deterministic fixture checks are cached') { !optInChecks }
         outputs.upToDateWhen { !optInChecks }

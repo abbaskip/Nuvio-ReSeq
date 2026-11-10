@@ -48,8 +48,10 @@ Removed or consolidated:
 - Default generation of five debug APKs plus instrumentation APKs during publication; these were built but never executed by this workflow.
 - Duplicate Python regression runs and duplicated `PYTHONPATH` assignment.
 - Separate Gradle invocation and duplicate source-fingerprint reads for lint checks.
-- The second lint parse and temporary edit of the committed budget: a single read-only `check --require-ratchet` enforces the same retirement requirement.
+- The second lint parse and temporary edit of the committed budget: a single read-only `check --require-ratchet` enforces the same retirement requirement and can emit a reviewable reduced budget under `build/pipeline/`.
 - A permanently ignored placeholder debrid test and two external example-URL probes that could pass without any assertion after a failed request. One deterministic local HTTP fixture replaces them and requires the correct head/tail Range headers, content length, MP4 markers and sparse offsets.
+
+The hosted rehearsal exposed a Home retry fixture that asserted cache state before IO completion and counted requests for other titles. Its checks now join the actual focus job, count the intended title and assert that the initial transport failure remains eligible for retry. The related retry suite also observes job completion instead of fixed sleeps. Both suites passed three forced executions (30 test cases total) without reusing test results. No application logic changed.
 
 Retained: TVDB resequencing and identity tests, Continue Watching/shuffle/TV Mix, playback/NNTP failure fixtures, Sports, Live TV ordering/import/storage, tracker reconciliation, profile/private-key boundaries, updater tests, upstream review/hold protections and complete release artifact validation. No historical test-count threshold was introduced. Genuine opt-in live TVDB and loopback profiling remain opt-in.
 

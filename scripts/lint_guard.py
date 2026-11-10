@@ -242,6 +242,8 @@ def main():
     parser.add_argument("--previous-ref")
     parser.add_argument("--require-ratchet", action="store_true",
                         help="Check the committed budget is already ratcheted without modifying it")
+    parser.add_argument("--ratchet-proposal", type=Path,
+                        help="Write a reviewable reduced budget outside the tracked baseline")
     parser.add_argument("--released-report", type=Path,
                         help="Opt-in verified external version-advisory comparison; complete warnings remain visible")
     args = parser.parse_args()
@@ -267,6 +269,8 @@ def main():
             current, advice = verified_version_advice(current, baseline, args.report, args.released_report)
         verdict = compare(current, baseline)
         if args.action == "ratchet": write(args.baseline, ratchet(current, baseline))
+        if args.ratchet_proposal and verdict["passed"]:
+            write(args.ratchet_proposal, ratchet(current, baseline))
         if args.require_ratchet and verdict["passed"] and ratchet(current, baseline) != baseline:
             raise ValueError("Retire resolved lint allowances with lint_guard.py ratchet and commit the result")
     verdict["ignored_non_source_findings"] = ignored

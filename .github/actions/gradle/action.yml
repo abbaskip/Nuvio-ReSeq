@@ -44,5 +44,11 @@ runs:
     - name: Record runner capacity
       shell: bash
       run: |
+        memory_mib=$(free -m | awk '/Mem:/ {print $2}')
         echo "NUVIO_CI_WORKERS=2" >> "$GITHUB_ENV"
-        echo "Runner: $(nproc) CPUs; $(free -m | awk '/Mem:/ {print $2}') MiB RAM; Gradle capped at two workers."
+        # Keep the proven release heap on dedicated 16 GiB hosted runners;
+        # smaller runners use the bounded default in ci_pipeline.py.
+        if (( memory_mib >= 14000 )); then
+          echo 'NUVIO_CI_JVM_ARGS=-Xmx6144m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8' >> "$GITHUB_ENV"
+        fi
+        echo "Runner: $(nproc) CPUs; $memory_mib MiB RAM; Gradle capped at two workers."

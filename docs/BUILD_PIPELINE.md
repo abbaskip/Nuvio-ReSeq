@@ -28,7 +28,7 @@ JVM logic tests run once against debug code; the production release is still com
 
 ## Caching and resource limits
 
-Gradle task caching, configuration caching and project parallelism are enabled. CI caps Gradle at two workers with a 4 GiB heap and 768 MiB metaspace; JVM tests use one 1.5 GiB process, recycled after 100 classes to bound Robolectric retention. The Kotlin compiler stays in-process to avoid a second large compiler daemon. These limits can be overridden with `NUVIO_CI_WORKERS` and `NUVIO_CI_JVM_ARGS` for controlled benchmarks.
+Gradle task caching, configuration caching and project parallelism are enabled. CI caps Gradle at two workers. Dedicated runners with at least 14 GiB RAM retain the proven 6 GiB release heap and 1 GiB metaspace; smaller runners default to 4 GiB/768 MiB; JVM tests use one 1.5 GiB process, recycled after 100 classes to bound Robolectric retention. The Kotlin compiler stays in-process to avoid a second large compiler daemon. These limits can be overridden with `NUVIO_CI_WORKERS` and `NUVIO_CI_JVM_ARGS` for controlled benchmarks.
 
 All lanes use the same Java 17 toolchain and Gradle cache action. Trusted branches save their own updated dependency/configuration state; GitHub permits branches to restore the default branch's entries, not arbitrary sibling-branch entries. The `dev` development lane seeds shared outputs. Cache restore fallbacks span version/build-script changes; Gradle's own content hashes decide which task outputs remain applicable.
 

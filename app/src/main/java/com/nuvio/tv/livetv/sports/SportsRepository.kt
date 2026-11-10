@@ -71,6 +71,8 @@ class SportsRepository @Inject constructor(
     private val broadcastEnrichment = MutableStateFlow<Map<String, List<SportsBroadcast>>>(emptyMap())
     private val freeAttemptAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val matcher = SportsMatcher(guideDb, File(context.cacheDir, "sports-guide"))
+    private val tvNowMatcher = SportsMatcher(guideDb)
+    private var tvNowMatchIds = emptySet<String>()
     private val dir = File(context.filesDir, "sports").apply { mkdirs() }
 
     val settings: StateFlow<SportsSettings> = prefs.sportsSettingsJson
@@ -270,6 +272,19 @@ class SportsRepository @Inject constructor(
                         }
                     }
                     updateLoop()
+                }
+            }
+        }
+        scope.launch {
+            // Local current-airing reads work while a Sports preview plays, independently
+            // of catalogue downloads, whole-guide imports and bulk fixture matching.
+            combine(channelLookupAllowed, channelStore.displayChannels, settings, follows, liveRepo.guideGeneration) {
+                allowed, _, _, _, _ -> allowed
+            }.collectLatest { allowed ->
+                if (!allowed) return@collectLatest
+                while (true) {
+                    sportsCatching { refreshTvNow() }.onFailure { Log.w(TAG, "Current TV sports discovery failed", it) }
+                    delay(30_000)
                 }
             }
         }
@@ -1075,6 +1090,37 @@ class SportsRepository @Inject constructor(
                 } finally { geminiMatchGate.unlock() }
             }
         }
+    }
+
+    private suspend fun refreshTvNow() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.reads) {
+        val work = currentCoroutineContext()
+        val checkpoint = { work.ensureActive(); com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation() }
+        val live = prefs.settings.first()
+        val user = prefs.userState.first()
+        val s = settings.value
+        val f = follows.value
+        val channels = visibleSportsChannels(live, user, s).associateBy { it.key }
+        if (channels.isEmpty()) return@withContext
+        val now = System.currentTimeMillis()
+        val shift = live.epgOffsetMinutes * MINUTE
+        val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
+            f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
+        val airings = SportsGuideEvents.merge(
+            tvNowMatcher.tvNowEvents(activeLeagues(s, f), f.words, channels, shift, now, checkpoint), protectedIds)
+        val ids = airings.mapTo(HashSet()) { it.id }
+        guideData.update { previous ->
+            (previous + (dayStart(0) to (previous[dayStart(0)].orEmpty().filterNot { it.id in ids } + airings)))
+                .filterKeys { it >= dayStart(-1) && it < dayStart(2) }
+        }
+        // The airings already identify their channels: do not index every playlist channel.
+        val hitKeys = airings.flatMap { it.guideHits.map { hit -> hit.first } }.toSet()
+        val matches = tvNowMatcher.match(SportsMatcher.Input(airings, channels.filterKeys { it in hitKeys }.values.toList(),
+            user.channelQuality, shift, s, now, includeGuide = false), checkpoint).matches
+        val obsolete = tvNowMatchIds - ids - protectedIds
+        _matches.update { previous -> (previous - obsolete) + matches }
+        tvNowMatchIds = ids
+        rebuildLiveScores()
+        Log.d(TAG, "Current TV sports: ${airings.size} airings")
     }
 
     private fun guideReady(): Boolean = !com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding.value

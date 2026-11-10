@@ -494,7 +494,16 @@ internal class SportsFeeds {
                 val periods = co.optJSONArray("linescores")?.let { a ->
                     (0 until a.length()).mapNotNull { k ->
                         val l = a.optJSONObject(k) ?: return@mapNotNull null
-                        l.str("displayValue") ?: l.optDouble("value", Double.NaN).takeIf { !it.isNaN() }?.toInt()?.toString()
+                        if (league.sport == Sport.CRICKET) {
+                            // Cricket displayValue/value is the innings number, not its score.
+                            if (score.isNullOrBlank() && !l.optBoolean("isBatting", false)) return@mapNotNull null
+                            val runs = l.optInt("runs", -1)
+                            val wickets = l.optInt("wickets", -1)
+                            if (runs < 0 || wickets !in 0..10) return@mapNotNull null
+                            val declared = l.str("description")?.contains("declared", ignoreCase = true) == true
+                            val overs = l.str("overs")?.removeSuffix(".0")
+                            "$runs/$wickets" + (if (declared) "d" else "") + (overs?.let { " ($it ov)" } ?: "")
+                        } else l.str("displayValue") ?: l.optDouble("value", Double.NaN).takeIf { !it.isNaN() }?.toInt()?.toString()
                     }
                 }.orEmpty()
                 val side = Side(

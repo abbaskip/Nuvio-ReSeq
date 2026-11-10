@@ -1,7 +1,6 @@
 package com.nuvio.tv.core.image
 
 import android.util.Log
-import com.google.common.cache.CacheBuilder
 import coil3.ImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.network.CacheStrategy
@@ -17,7 +16,6 @@ import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 
 /**
  * Stale-while-revalidate [CacheStrategy]:
@@ -42,9 +40,7 @@ class StaleWhileRevalidateCacheStrategy(
         private const val REVALIDATION_COOLDOWN_MS = 10L * 60 * 1000 // 10 min
         private const val REVALIDATION_MAX_REQUESTS = 8
         private val revalidatingUrls = ConcurrentHashMap.newKeySet<String>()
-        private val recentlyRevalidated = CacheBuilder.newBuilder()
-            .expireAfterWrite(REVALIDATION_COOLDOWN_MS, TimeUnit.MILLISECONDS)
-            .build<String, Boolean>()
+        private val recentlyRevalidated = RevalidationCooldown(REVALIDATION_COOLDOWN_MS)
     }
 
     private val revalidationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -97,7 +93,7 @@ class StaleWhileRevalidateCacheStrategy(
 
     private fun scheduleBackgroundRevalidation(url: String, cachedResponse: NetworkResponse) {
         if (!revalidatingUrls.add(url)) return
-        if (recentlyRevalidated.getIfPresent(url) != null) {
+        if (recentlyRevalidated.contains(url)) {
             revalidatingUrls.remove(url)
             return
         }
@@ -142,8 +138,11 @@ class StaleWhileRevalidateCacheStrategy(
                     Log.w(TAG, "Revalidation error: ${url.take(80)} - ${e.message}")
                 }
             } finally {
-                recentlyRevalidated.put(url, true)
-                revalidatingUrls.remove(url)
+                try {
+                    recentlyRevalidated.record(url)
+                } finally {
+                    revalidatingUrls.remove(url)
+                }
             }
         }
     }

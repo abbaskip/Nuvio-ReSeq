@@ -166,6 +166,12 @@ jobs:
           name: ReSeq-${{ steps.version.outputs.name }}-verified-apks
           path: build/release/*
           if-no-files-found: error
+      - name: Retain exact release crash symbols
+        uses: actions/upload-artifact@v6
+        with:
+          name: ReSeq-${{ steps.version.outputs.name }}-r8-mapping
+          path: app/build/outputs/mapping/fullRelease/mapping.txt
+          if-no-files-found: error
       - name: Publish one release from this exact commit
         if: ${{ !inputs.artifacts_only }}
         env:

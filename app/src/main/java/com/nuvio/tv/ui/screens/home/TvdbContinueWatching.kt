@@ -76,14 +76,26 @@ internal fun HomeViewModel.verifyTvdbPlayback(item: ContinueWatchingItem, play: 
         val profileId = profileManager.activeProfileId.value
         val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
         val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
-        if (item.chooseEpisode && !manualSelection) { openSeries(id, type, ""); return@launch }
+        if (item.chooseEpisode && !manualSelection && !item.hasTvdbPlaybackIdentity()) {
+            openSeries(id, type, ""); return@launch
+        }
         val target = if (item.chooseEpisode) {
             // The options menu can outlive the placeholder card from which it opened.
             // Resolve the current episode before invoking the manual source picker.
             withTimeoutOrNull(22_000L) {
                 fun current() = (uiState.value.continueWatchingItems + uiState.value.upcomingItems)
                     .firstOrNull { it.contentId() == id && !it.chooseEpisode }
-                current() ?: run {
+                val shuffleProfile = episodeShuffleStore.profiles.value
+                val sequentialIdentity = item.hasTvdbPlaybackIdentity() && shuffleProfile.profileId == profileId &&
+                    shuffleProfile.available && !shuffleProfile.settings(id, type).enabled
+                current() ?: if (sequentialIdentity) {
+                    // A negative Home metadata cache must not block an already identified
+                    // sequential episode. The fresh playback projection below verifies it.
+                    when (item) {
+                        is ContinueWatchingItem.InProgress -> item.copy(chooseEpisode = false)
+                        is ContinueWatchingItem.NextUp -> item.copy(chooseEpisode = false)
+                    }
+                } else run {
                     val seed = when (item) {
                         is ContinueWatchingItem.InProgress -> item.progress
                         is ContinueWatchingItem.NextUp -> item.info.toProgressSeed()

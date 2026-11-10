@@ -144,7 +144,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         }
         val wanted = events.filter { ev ->
             ev.state != GameState.OFF &&
-                ((input.replay && ev.startMs < input.now && byKey.isNotEmpty()) || ev.startMs in (input.now - 8 * HOUR)..(input.now + AHEAD_MS))
+                ((ev.source == EventSource.GUIDE && ev.guideHits.any { (_, p) -> input.now >= p.startMs && input.now < p.stopMs }) ||
+                    (input.replay && ev.startMs < input.now && byKey.isNotEmpty()) || ev.startMs in (input.now - 8 * HOUR)..(input.now + AHEAD_MS))
         }
         // A channel you picked yourself shows straight away, however far off the game is (the
         // search above only looks a couple of days ahead).
@@ -441,6 +442,12 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         return if (state == event.state) event else event.copy(state = state)
     }
 
+    /** TV Now does not wait for a whole-day discovery or a guide import to complete. */
+    fun tvNowEvents(leagues: List<League>, followedWords: List<String>, channels: Map<String, LiveChannel>,
+        shiftMs: Long, now: Long, checkCancelled: () -> Unit = {}): List<SportsEvent> =
+        guideEvents(now, now + 1, leagues, followedWords, channels, shiftMs, now,
+            currentOnly = true, checkCancelled = checkCancelled)
+
     fun guideEvents(
         dayStart: Long,
         dayEnd: Long,
@@ -450,18 +457,19 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         shiftMs: Long,
         now: Long,
         cachedOnly: Boolean = false,
+        currentOnly: Boolean = false,
         checkCancelled: () -> Unit = {}
     ): List<SportsEvent> {
         val scanKey = GuideScanKey(dayStart, dayEnd, db.fingerprint(), db.contentRevision(),
             channelDigest(channels),
             SportsGuideCache.digest(leagues.map { listOf(it.id, it.sport.name, it.liveByDefault.toString()) + it.guideWords }.flatten()),
             followedWords.toList(), shiftMs)
-        guideScans[dayStart]?.takeIf { it.key == scanKey }
+        if (!currentOnly) guideScans[dayStart]?.takeIf { it.key == scanKey }
             ?.let { return it.events.map { event -> guideState(event, now) } }
-        val diskKey = SportsGuideCache.digest(listOf("2", scanKey.start.toString(), scanKey.end.toString(),
+        val diskKey = SportsGuideCache.digest(listOf("3", scanKey.start.toString(), scanKey.end.toString(),
             scanKey.fingerprint.orEmpty(), scanKey.revision.orEmpty(), scanKey.channels, scanKey.leagues,
             scanKey.shift.toString()) + scanKey.words)
-        guideCacheDir?.let { dir -> SportsGuideCache.read(dir, dayStart, diskKey) }?.let { saved ->
+        if (!currentOnly) guideCacheDir?.let { dir -> SportsGuideCache.read(dir, dayStart, diskKey) }?.let { saved ->
             guideScans[dayStart] = GuideScan(scanKey, saved)
             return saved.map { guideState(it, now) }
         }
@@ -469,10 +477,10 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val leagueWords = leagues.flatMap { l -> l.guideWords.map { it to l } }
         // Recompute comparison text for each scan, keeping the original labels for display.
         val followedLabels = scanKey.words.map { it to norm(it).trim() }
-        // Identify legacy competitions independently of visibility, as the taxonomy does.
+        // Explicit provider aliases also identify programmes such as NBA replays when
+        // the curated taxonomy deliberately treats the abbreviation as contextual.
         val fallbackWords = (SportsCatalog.leagues + leagues).distinctBy { it.id }
-            .filter { l -> !l.id.startsWith("taxonomy/") && (l.sport == Sport.RACING ||
-                SportsTaxonomy.roots.none { SportsTaxonomy.sport(it.id) == l.sport }) }
+            .filter { l -> !l.id.startsWith("taxonomy/") }
             .flatMap { l -> l.guideWords.map { norm(it).trim() to l } }
         val hits = ArrayList<Pair<String, EpgProgram>>()
         val classifiedLeagues = leagues.associateBy { SportsCompetitions.canonicalId(it.id) }
@@ -489,7 +497,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val otherIndex = otherWords.groupBy { it.substringBefore(' ') }
         val includedText = com.nuvio.tv.livetv.data.boundedCache<Pair<String, String?>, Boolean>(8192)
         var visited = 0
-        db.visitPrograms(dayStart - shiftMs, dayEnd - shiftMs) { key, p ->
+        val collectProgramme: (String, EpgProgram) -> Unit = { key, p ->
             if (++visited % 256 == 0) checkCancelled()
             if (key in channels) {
                 // Regional/quality feeds repeat the same programme text; classify it once per scan.
@@ -503,6 +511,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 if (included) hits += key to p
             }
         }
+        if (currentOnly) db.visitCurrentPrograms(now - shiftMs, channels.keys, collectProgramme)
+        else db.visitPrograms(dayStart - shiftMs, dayEnd - shiftMs, collectProgramme)
         val groups = LinkedHashMap<String, MutableList<Pair<String, EpgProgram>>>()
         val meta = HashMap<String, Pair<League?, String?>>()
         val seen = HashSet<String>()
@@ -514,12 +524,13 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             val p = if (shiftMs == 0L) p0 else p0.copy(startMs = p0.startMs + shiftMs, stopMs = p0.stopMs + shiftMs)
             val nt = norm(p.title)
             val nd = norm(p.description.orEmpty())
-            if (SportsCatalog.NOT_LIVE_WORDS.any { hasWord(nt, it) }) continue
             val classified = classify(p)
             val league = if (classified != null) classifiedLeague(classified)
-                else fallbackWords.filter { (w, _) ->
-                    hasWord(nt, w) || hasWord(nd, w) }
-                    .maxByOrNull { (_, l) ->
+                else fallbackWords.filter { (w, _) -> hasWord(nt, w) || hasWord(nd, w) }.let { candidates ->
+                    val titleHits = candidates.filter { (w, _) -> hasWord(nt, w) }.ifEmpty { candidates }
+                    // Shared phrases such as "Test Match" must not guess between sports.
+                    titleHits.takeIf { hits -> hits.map { it.second.sport }.distinct().size == 1 }
+                    ?.maxByOrNull { (_, l) ->
                         // Explicit names beat generic aliases such as "Grand Prix".
                         val names = listOf(l.name, l.short).map { norm(it).trim() }.filter { it.isNotEmpty() }
                         when {
@@ -528,20 +539,15 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                             else -> 0
                         }
                     }?.second?.takeIf { it.id in allowedIds }
+                }
             // 24/7 and loop channels ("NETFLIX WWE", a movie channel called "… NXT"): not live sport.
             if (fillerOrLoop(ch, p)) continue
             // Wrestling words turn up in other shows' titles ("RuPaul's Drag Race - Lip Sync
             // Smackdown", "The Goldbergs - WrestleMania"): the title must start with the show's
             // name, or name the promotion (WWE, AEW, TNA).
             if (league?.sport == Sport.WRESTLING && !wrestlingTitle(cleanTitle(p.title), league)) continue
-            val saysLive = isLive(nt, nd)
-            // These disciplines often have session titles rather than two named opponents.
-            // Recognised coverage still belongs in TV Now when its live status is unknown.
-            val namedDiscipline = classified?.sportId in setOf("lawn-bowls", "cornhole", "ten-pin-bowling")
-            // Wrestling's weekly shows are live without the guide saying so, but not on a channel
-            // named after the show or league (those run old shows all day).
-            if (!saysLive && !namedDiscipline && (league?.liveByDefault != true || league.guideWords.any { hasWord(nameNorm(ch.name), norm(it).trim()) }) &&
-                !MATCHUP.containsMatchIn(" $nt $nd ")) continue
+            // These are TV airings, including replays, highlights and unconfirmed coverage.
+            // All Events and live-fixture matching apply their separate source/live rules.
             val word = followedLabels.firstOrNull { (_, w) -> hasWord(nt, w) || hasWord(nd, w) }?.first
             if (league == null && word == null) continue
             val clean = cleanTitle(p.title)
@@ -575,7 +581,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         }
         checkCancelled()
         // Never persist a scan that overlapped a committed guide change.
-        if (db.fingerprint() == scanKey.fingerprint && db.contentRevision() == scanKey.revision) {
+        if (!currentOnly && db.fingerprint() == scanKey.fingerprint && db.contentRevision() == scanKey.revision) {
             guideScans[dayStart] = GuideScan(scanKey, result)
             guideCacheDir?.let { SportsGuideCache.write(it, dayStart, diskKey, result) }
         }

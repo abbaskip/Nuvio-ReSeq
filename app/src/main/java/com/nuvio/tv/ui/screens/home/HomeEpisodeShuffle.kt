@@ -97,10 +97,18 @@ private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueW
             is ContinueWatchingItem.NextUp -> item.info.tvdbContext
         }
         val order = tvdbOrderStore?.cachedSelection(profileManager.activeProfileId.value, id)
-        // A cache miss during refresh does not invalidate the episode already shown.
-        // Playback still verifies the selected order against fresh metadata.
-        if (meta == null && item.shufflePlayback && context != null && order?.seriesId == context.seriesId &&
-            order.orderType == context.orderType) return item
+        // Missing metadata does not invalidate a verified episode in the
+        // unchanged order. Sequential cards also survive a temporary TVDB fallback;
+        // a new shuffle pick still requires a resolved catalogue.
+        // Playback still verifies the target against fresh metadata.
+        if ((meta == null || (meta.tvdbPending && !item.shufflePlayback)) && context != null &&
+            order?.seriesId == context.seriesId && order.orderType == context.orderType) {
+            return when (item) {
+                is ContinueWatchingItem.InProgress -> item.copy(displaySeason = context.season, displayEpisode = context.episode)
+                is ContinueWatchingItem.NextUp -> item.copy(info = item.info.copy(
+                    displaySeason = context.season, displayEpisode = context.episode))
+            }
+        }
         if (meta?.tvdbPending == true || order != null || context != null) {
             return item.forSeriesChoice()
         }

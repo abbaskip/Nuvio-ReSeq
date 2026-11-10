@@ -150,6 +150,115 @@ class ShuffleHomeRefreshTest {
         assertTrue(home.onlyCard().shufflePlayback)
     }
 
+    @Test fun sequentialNextUpKeepsItsVerifiedEpisodeDuringMetadataEviction() = runTest {
+        setup()
+        profile.value = EpisodeShuffleProfile(1, true)
+        native.value = snapshot.copy(continueWatchingItems = listOf(card.copy(info = card.info.copy(
+            tvdbContext = video.tvdbPlaybackContext()
+        ))))
+        val home = home()
+        val selected = home.onlyCard() as ContinueWatchingItem.NextUp
+        assertFalse(selected.shufflePlayback)
+        cache.clear()
+        refresh.update { it.copy(metadata = it.metadata + 1) }
+        runCurrent()
+        val refreshing = home.onlyCard() as ContinueWatchingItem.NextUp
+        assertFalse("a cache miss must not turn ordinary Next Up into series navigation", refreshing.chooseEpisode)
+        assertFalse(refreshing.shufflePlayback)
+        assertEquals(selected.info, refreshing.info)
+        advanceTimeBy(10_001)
+        runCurrent()
+        assertFalse(home.onlyCard().chooseEpisode)
+    }
+
+    @Test fun sequentialResumeKeepsItsVerifiedEpisodeDuringMetadataEviction() = runTest {
+        setup()
+        profile.value = EpisodeShuffleProfile(1, true)
+        val resume = ContinueWatchingItem.InProgress(seed.copy(videoId = video.id, season = 1, episode = 2,
+            tvdbEpisodeId = 22, tvdbContext = video.tvdbPlaybackContext(), position = 30))
+        native.value = HomeUiState(continueWatchingItems = listOf(resume))
+        val home = home()
+        assertFalse(home.onlyCard().chooseEpisode)
+        cache.clear()
+        refresh.update { it.copy(metadata = it.metadata + 1) }
+        runCurrent()
+        assertFalse("a cache miss does not invalidate the verified resume", home.onlyCard().chooseEpisode)
+        assertFalse(home.onlyCard().shufflePlayback)
+        assertEquals(resume.progress, (home.onlyCard() as ContinueWatchingItem.InProgress).progress)
+    }
+
+    @Test fun ordinaryPlayFromAStaleFallbackUsesTheCurrentSequentialEpisode() = runTest {
+        setup()
+        profile.value = EpisodeShuffleProfile(1, true)
+        val home = home()
+        every { vm.uiState } returns home
+        var played: ContinueWatchingItem? = null
+        vm.verifyTvdbPlayback(card.copy(chooseEpisode = true), { played = it },
+            { _, _, _ -> fail("Ordinary Play redirected to Details despite a resolved Next Up") })
+        advanceTimeBy(10_001)
+        runCurrent()
+        val target = played as ContinueWatchingItem.NextUp
+        assertEquals(card.info.videoId, target.info.videoId)
+        assertFalse(target.chooseEpisode)
+        assertFalse(target.shufflePlayback)
+    }
+
+    @Test fun sequentialNextUpDoesNotRetainIdentityAfterTheSelectedOrderChanges() = runTest {
+        setup()
+        profile.value = EpisodeShuffleProfile(1, true)
+        native.value = snapshot.copy(continueWatchingItems = listOf(card.copy(info = card.info.copy(
+            tvdbContext = video.tvdbPlaybackContext()
+        ))))
+        val home = home()
+        cache.clear()
+        every { store.cachedSelection(1, any()) } returns TvdbOrderPreference(111, "alternate")
+        refresh.update { it.copy(metadata = it.metadata + 1) }
+        runCurrent()
+        assertTrue(home.onlyCard().chooseEpisode)
+        assertFalse(home.onlyCard().canMarkWatched())
+    }
+
+    @Test fun normalPlayBypassesAPendingHomeCacheButStillResolvesFreshTvdbIdentity() = runTest {
+        setup()
+        profile.value = EpisodeShuffleProfile(1, true)
+        cache[key] = summary(video).copy(tvdbOrder = false, tvdbPending = true)
+        negative[key] = currentTime
+        val home = home()
+        every { vm.uiState } returns home
+        val fallback = home.onlyCard()
+        assertTrue(fallback.chooseEpisode)
+        var played: ContinueWatchingItem? = null
+        vm.verifyTvdbPlayback(fallback, { played = it }, { _, _, _ -> fail("Known sequential episode opened Details") })
+        advanceTimeBy(10_001)
+        runCurrent()
+        val target = played as ContinueWatchingItem.NextUp
+        assertFalse(target.chooseEpisode)
+        assertFalse(target.shufflePlayback)
+        assertEquals(video.tvdbPlaybackContext(), target.info.tvdbContext)
+        assertEquals(listOf(id), requests)
+    }
+
+    @Test fun verifiedSequentialCardSurvivesATemporaryTvdbFallbackWithoutBypassingPlaybackChecks() = runTest {
+        setup()
+        profile.value = EpisodeShuffleProfile(1, true)
+        native.value = snapshot.copy(continueWatchingItems = listOf(card.copy(info = card.info.copy(
+            tvdbContext = video.tvdbPlaybackContext()
+        ))))
+        cache[key] = summary(video).copy(tvdbOrder = false, tvdbPending = true)
+        negative[key] = currentTime
+        val home = home()
+        every { vm.uiState } returns home
+        assertFalse(home.onlyCard().chooseEpisode)
+        every { vm.metaRepository.getMetaFromAllAddons(any(), any(), any()) } returns flowOf(NetworkResult.Error("unavailable"))
+        mockkStatic(Toast::class)
+        val toast = mockk<Toast>(relaxed = true)
+        every { Toast.makeText(any(), any<CharSequence>(), any()) } returns toast
+        vm.verifyTvdbPlayback(home.onlyCard(), { fail("Played without fresh identity verification") },
+            { _, _, _ -> fail("Playback failure redirected to Details") })
+        runCurrent()
+        verify(exactly = 1) { toast.show() }
+    }
+
     @Test fun manualPlayFromStalePlaceholderUsesTheResolvedCardInsteadOfDetails() = runTest {
         setup()
         val home = home()

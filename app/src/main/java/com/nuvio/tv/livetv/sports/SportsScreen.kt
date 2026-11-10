@@ -1353,11 +1353,11 @@ private fun GamePage(
     }
     val details: @Composable () -> Unit = {
         Column(Modifier.fillMaxWidth()) {
-            if (sides.size == 2 && showScore && sides.any { it.periods.isNotEmpty() }) {
+            if (sides.size == 2 && showScore && (sport == Sport.CRICKET || sides.any { it.periods.isNotEmpty() })) {
                 Column(Modifier.fillMaxWidth().sportsFrame(false, accent = NuvioTheme.colors.Secondary).padding(horizontal = 12.dp, vertical = 9.dp)) {
                     LiveText(periodHeading(sport), color = SportsLook.Dim, size = 9.sp, weight = FontWeight.Black)
                     Spacer(Modifier.height(4.dp))
-                    PeriodTable(sides)
+                    if (sport == Sport.CRICKET) CricketInningsTable(sides) else PeriodTable(sides)
                 }
                 Spacer(Modifier.height(8.dp))
             }
@@ -1446,12 +1446,42 @@ private fun GamePage(
     }
 }
 
-private fun periodHeading(sport: Sport): String = when (sport) {
+internal fun periodHeading(sport: Sport): String = when (sport) {
+    Sport.CRICKET -> "BY INNINGS"
     Sport.BASEBALL -> "BY INNING"
     Sport.HOCKEY -> "BY PERIOD"
     Sport.FOOTBALL, Sport.RUGBY, Sport.RUGBY_LEAGUE -> "BY HALF"
     Sport.AMERICAN_FOOTBALL -> "BY QUARTER"
     else -> "BY PERIOD"
+}
+
+@Composable
+private fun CricketInningsTable(sides: List<Side>) {
+    val innings = sides.map(::cricketInningsScores)
+    val count = innings.maxOf { it.size }.coerceIn(1, 2)
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth()) {
+            Spacer(Modifier.width(48.dp))
+            repeat(count) { i ->
+                LiveText(if (i == 0) "1st innings" else "2nd innings", color = SportsLook.Dim,
+                    size = 10.sp, modifier = Modifier.weight(1f))
+            }
+        }
+        sides.forEachIndexed { index, side ->
+            Box(Modifier.fillMaxWidth().height(1.dp).background(SportsLook.Divider))
+            Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                LiveText(side.team.abbr, size = 12.sp, weight = FontWeight.Bold, modifier = Modifier.width(48.dp))
+                repeat(count) { i ->
+                    val score = innings[index].getOrNull(i)
+                    Column(Modifier.weight(1f)) {
+                        LiveText(score?.runs ?: "Yet to bat", size = if (score == null) 11.sp else 16.sp,
+                            weight = FontWeight.Bold)
+                        score?.overs?.let { LiveText(it, color = SportsLook.Dim, size = 11.sp) }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

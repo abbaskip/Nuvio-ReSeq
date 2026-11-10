@@ -9,6 +9,25 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_failed_dispatch_retry_only_accepts_own_unpublished_dev_tip(self):
+        run = {"publication": {"head": "pushed"}, "branch": "review", "worktree": "."}
+        job = {"head_sha": "pushed", "head_branch": "review", "status": "completed", "conclusion": "failure"}
+        with patch.object(sync, "ancestor", return_value=True) as ancestor, patch.object(sync, "api") as api:
+            api.return_value = {"workflow_runs": [job]}
+            self.assertTrue(sync.retrying_failed_publication(run, "pushed", "fixed"))
+            self.assertFalse(sync.retrying_failed_publication(run, "other", "fixed"))
+            ancestor.return_value = False
+            self.assertFalse(sync.retrying_failed_publication(run, "pushed", "diverged"))
+            ancestor.return_value = True
+            for change in ({"status": "in_progress"}, {"conclusion": "success"}, {"head_branch": "other"}):
+                api.return_value = {"workflow_runs": [dict(job, **change)]}
+                self.assertFalse(sync.retrying_failed_publication(run, "pushed", "fixed"))
+            api.return_value = {"workflow_runs": []}
+            self.assertFalse(sync.retrying_failed_publication(run, "pushed", "fixed"))
+            api.return_value = {"workflow_runs": [job]}
+            run["publication"]["verified"] = True
+            self.assertFalse(sync.retrying_failed_publication(run, "pushed", "fixed"))
+
     def test_reseq_runtime_change_is_releasable_without_upstream(self):
         with patch.object(sync, "git", return_value="app/src/main/java/Feature.kt"):
             self.assertTrue(sync.has_releasable_changes("base", "head", "."))

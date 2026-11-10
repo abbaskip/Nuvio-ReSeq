@@ -128,7 +128,10 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
     integration branch and remote `dev`, then dispatches `reseq-release.yml`.
     Never force-push, bypass branch protection, alter GitHub permissions or use
     direct `gh release create` as a fallback. If dev/latest release advanced,
-    integrate that new base in a fresh run and repeat validation.
+    integrate that new base in a fresh run and repeat validation. A failed signed
+    workflow can be retried within its owning run when dev still equals that run's
+    own pushed commit. The fixed descendant must pass all exact-commit checks,
+    the previous attempt must be terminal, and the published release must still match.
 14. Hold the lock until the workflow is terminal and publication verified. Use
     `gh run list --repo abbaskip/Nuvio-ReSeq --branch BRANCH` to identify its run;
     inspect failures and fix clear issues. The workflow retains permanent signing,

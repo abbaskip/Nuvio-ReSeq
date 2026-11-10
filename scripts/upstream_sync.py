@@ -374,6 +374,19 @@ def has_releasable_changes(base, head, worktree):
     return False
 
 
+def retrying_failed_publication(run, remote, head):
+    """Only this run's own failed push may replace its originally fetched dev tip."""
+    previous = run.get("publication") or {}
+    if previous.get("head") != remote or previous.get("verified") or not ancestor(remote, head, cwd=run["worktree"]):
+        return False
+    endpoint = f"repos/{REPO}/actions/workflows/reseq-release.yml/runs?head_sha={remote}&per_page=30"
+    attempts = [item for item in api(endpoint)["workflow_runs"]
+                if item["head_sha"] == remote and item["head_branch"] == run["branch"]]
+    return bool(attempts) and all(item["status"] == "completed" and
+                                  item["conclusion"] in ("failure", "cancelled", "timed_out")
+                                  for item in attempts)
+
+
 def gate(run, state):
     if run["dry_run"]:
         raise RuntimeError("Dry runs cannot publish")
@@ -408,7 +421,7 @@ def gate(run, state):
     if not ancestor(run["dev"], head, cwd=worktree) or not ancestor(run["base"], head, cwd=worktree):
         raise RuntimeError("Release would omit development or published functionality")
     remote = git("ls-remote", ORIGIN, "refs/heads/dev", cwd=worktree).split()[0]
-    if remote != run["dev"]:
+    if remote != run["dev"] and not retrying_failed_publication(run, remote, head):
         raise RuntimeError("Development advanced; rebuild from new base and repeat validation")
     latest = api(f"repos/{REPO}/releases/latest")
     if latest["tag_name"] != run["latest_tag"] or active_releases():

@@ -162,6 +162,7 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         customSubtitleParserFactory = subtitleParserFactory
     }
 
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     fun createMediaSource(
         context: Context,
         url: String,

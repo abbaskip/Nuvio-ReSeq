@@ -1,6 +1,7 @@
 package com.nuvio.tv.core.image
 
 import android.util.Log
+import com.google.common.cache.CacheBuilder
 import coil3.ImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.network.CacheStrategy
@@ -16,6 +17,7 @@ import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 /**
  * Stale-while-revalidate [CacheStrategy]:
@@ -40,7 +42,9 @@ class StaleWhileRevalidateCacheStrategy(
         private const val REVALIDATION_COOLDOWN_MS = 10L * 60 * 1000 // 10 min
         private const val REVALIDATION_MAX_REQUESTS = 8
         private val revalidatingUrls = ConcurrentHashMap.newKeySet<String>()
-        private val revalidatedAt = ConcurrentHashMap<String, Long>()
+        private val recentlyRevalidated = CacheBuilder.newBuilder()
+            .expireAfterWrite(REVALIDATION_COOLDOWN_MS, TimeUnit.MILLISECONDS)
+            .build<String, Boolean>()
     }
 
     private val revalidationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -67,11 +71,7 @@ class StaleWhileRevalidateCacheStrategy(
             )
         ) {
             val url = networkRequest.url
-            val lastRevalidated = revalidatedAt[url]
-            val now = System.currentTimeMillis()
-            if (lastRevalidated == null || (now - lastRevalidated) > REVALIDATION_COOLDOWN_MS) {
-                scheduleBackgroundRevalidation(url, cacheResponse)
-            }
+            scheduleBackgroundRevalidation(url, cacheResponse)
         }
         return CacheStrategy.ReadResult(cacheResponse)
     }
@@ -97,6 +97,10 @@ class StaleWhileRevalidateCacheStrategy(
 
     private fun scheduleBackgroundRevalidation(url: String, cachedResponse: NetworkResponse) {
         if (!revalidatingUrls.add(url)) return
+        if (recentlyRevalidated.getIfPresent(url) != null) {
+            revalidatingUrls.remove(url)
+            return
+        }
 
         revalidationScope.launch {
             try {
@@ -138,8 +142,8 @@ class StaleWhileRevalidateCacheStrategy(
                     Log.w(TAG, "Revalidation error: ${url.take(80)} - ${e.message}")
                 }
             } finally {
+                recentlyRevalidated.put(url, true)
                 revalidatingUrls.remove(url)
-                revalidatedAt[url] = System.currentTimeMillis()
             }
         }
     }

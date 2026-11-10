@@ -73,6 +73,7 @@ class SportsRepository @Inject constructor(
     private val matcher = SportsMatcher(guideDb, File(context.cacheDir, "sports-guide"))
     private val tvNowMatcher = SportsMatcher(guideDb)
     private var tvNowMatchIds = emptySet<String>()
+    private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
     private val dir = File(context.filesDir, "sports").apply { mkdirs() }
 
     val settings: StateFlow<SportsSettings> = prefs.sportsSettingsJson
@@ -280,7 +281,8 @@ class SportsRepository @Inject constructor(
             // of catalogue downloads, whole-guide imports and bulk fixture matching.
             combine(channelLookupAllowed, channelStore.displayChannels, settings, follows, liveRepo.guideGeneration) {
                 allowed, _, _, _, _ -> allowed
-            }.collectLatest { allowed ->
+            }.combine(events.map { SportsCurrentGuide.fixtureKeys(it) }.distinctUntilChanged()) { allowed, _ -> allowed }
+                .collectLatest { allowed ->
                 if (!allowed) return@collectLatest
                 while (true) {
                     sportsCatching { refreshTvNow() }.onFailure { Log.w(TAG, "Current TV sports discovery failed", it) }
@@ -1093,6 +1095,7 @@ class SportsRepository @Inject constructor(
     }
 
     private suspend fun refreshTvNow() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.reads) {
+        val startedAt = System.currentTimeMillis()
         val work = currentCoroutineContext()
         val checkpoint = { work.ensureActive(); com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation() }
         val live = prefs.settings.first()
@@ -1105,22 +1108,36 @@ class SportsRepository @Inject constructor(
         val shift = live.epgOffsetMinutes * MINUTE
         val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
             f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
-        val airings = SportsGuideEvents.merge(
-            tvNowMatcher.tvNowEvents(activeLeagues(s, f), f.words, channels, shift, now, checkpoint), protectedIds)
+        val fixtures = SportsCurrentGuide.fixtures(events.value)
+        val snapshot = tvNowMatcher.tvNowSnapshot(activeLeagues(s, f), f.words, channels, shift, now, fixtures, checkpoint)
+        val discovered = SportsGuideEvents.merge(snapshot.airings, protectedIds)
+        // The airings already identify their channels: do not index every playlist channel.
+        val hitKeys = (discovered.flatMap { it.guideHits.map { hit -> hit.first } } + snapshot.fixturePrograms.map { it.first }).toSet()
+        val found = tvNowMatcher.match(SportsMatcher.Input(discovered + fixtures,
+            channels.filterKeys { it in hitKeys }.values.toList(), user.channelQuality, shift, s, now,
+            includeGuide = false, currentGuidePrograms = snapshot.fixturePrograms), checkpoint).matches
+        val fixtureIds = fixtures.mapTo(HashSet()) { it.id }
+        val fixtureMatches = found.filterKeys { it in fixtureIds }
+        val extra = SportsCurrentGuide.additionalAirings(discovered, fixtures, fixtureMatches, now)
+        val airings = discovered + extra
+        val fixtureChannels = fixtureMatches.values.flatten()
+        val matches = found + extra.associate { airing -> airing.id to fixtureChannels.filter {
+            (it.channel.key to it.program) in airing.guideHits
+        }.distinctBy { it.channel.key } }
         val ids = airings.mapTo(HashSet()) { it.id }
         guideData.update { previous ->
-            (previous + (dayStart(0) to (previous[dayStart(0)].orEmpty().filterNot { it.id in ids } + airings)))
+            (previous + (dayStart(0) to (previous[dayStart(0)].orEmpty().filterNot {
+                it.id in ids || (it.id in tvNowMatchIds && it.id !in protectedIds)
+            } + airings)))
                 .filterKeys { it >= dayStart(-1) && it < dayStart(2) }
         }
-        // The airings already identify their channels: do not index every playlist channel.
-        val hitKeys = airings.flatMap { it.guideHits.map { hit -> hit.first } }.toSet()
-        val matches = tvNowMatcher.match(SportsMatcher.Input(airings, channels.filterKeys { it in hitKeys }.values.toList(),
-            user.channelQuality, shift, s, now, includeGuide = false), checkpoint).matches
         val obsolete = tvNowMatchIds - ids - protectedIds
-        _matches.update { previous -> (previous - obsolete) + matches }
+        _matches.update { previous -> SportsCurrentGuide.mergeMatches(previous - obsolete, tvNowFixtureMatches, matches, s) }
+        tvNowFixtureMatches = fixtureMatches
         tvNowMatchIds = ids
         rebuildLiveScores()
-        Log.d(TAG, "Current TV sports: ${airings.size} airings")
+        val confirmed = fixtureMatches.count { (_, list) -> list.any { it.sure && it.program != null } }
+        Log.d(TAG, "Current TV sports: ${airings.size} airings; live fixtures matched $confirmed/${fixtures.size}; ${System.currentTimeMillis() - startedAt} ms")
     }
 
     private fun guideReady(): Boolean = !com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding.value

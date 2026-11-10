@@ -343,7 +343,10 @@ fun SportsScreen(
         if (!fullscreen) {
             // The same soft glow in the theme colour as the top of the guide.
             ThemeGlow(Modifier.fillMaxWidth().height(SPORTS_GLOW_HEIGHT))
-            val opened = openId?.let { id -> known.firstOrNull { it.id == id } }
+            val opened = openId?.let { id -> known.firstOrNull { it.id == id } }?.let { event ->
+                if (event.source == EventSource.GUIDE) SportsCurrentGuide.withFixtures(listOf(event),
+                    SportsCurrentGuide.fixtures(known), matches, now).single() else event
+            }
             if (openId != null && opened == null && known.isNotEmpty()) openId = null
             when {
                 picker -> SportsPicker(viewModel = viewModel, onClose = { picker = false; returnTo = null; rowsReturning = false; viewModel.repo.markSetUp() })
@@ -632,8 +635,9 @@ private fun SportsHub(
                 (!filterToChannels || ev.state == GameState.POST || isMine(ev, follows) || matches[ev.id]?.isNotEmpty() == true)
         }
     }
-    val shown = remember(events, dayEvents, effectiveChip, active, now) {
-        if (effectiveChip == CHIP_TV_NOW) SportsEventListings.tvNow(events, now).filter { it.leagueId in active }
+    val shown = remember(events, dayEvents, effectiveChip, active, matches, now) {
+        if (effectiveChip == CHIP_TV_NOW) SportsCurrentGuide.withFixtures(SportsEventListings.tvNow(events, now),
+            SportsCurrentGuide.fixtures(events).filter { it.leagueId in active }, matches, now).filter { it.leagueId in active }
         else dayEvents
     }
     val liveCount = remember(dayEvents) { dayEvents.count { it.state == GameState.LIVE } }

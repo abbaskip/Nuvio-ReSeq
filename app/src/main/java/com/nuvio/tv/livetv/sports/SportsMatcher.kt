@@ -528,17 +528,26 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             val league = if (classified != null) classifiedLeague(classified)
                 else fallbackWords.filter { (w, _) -> hasWord(nt, w) || hasWord(nd, w) }.let { candidates ->
                     val titleHits = candidates.filter { (w, _) -> hasWord(nt, w) }.ifEmpty { candidates }
-                    // Shared phrases such as "Test Match" must not guess between sports.
-                    titleHits.takeIf { hits -> hits.map { it.second.sport }.distinct().size == 1 }
-                    ?.maxByOrNull { (_, l) ->
-                        // Explicit names beat generic aliases such as "Grand Prix".
-                        val names = listOf(l.name, l.short).map { norm(it).trim() }.filter { it.isNotEmpty() }
-                        when {
-                            names.any { hasWord(nt, it) } -> 2
-                            names.any { hasWord(nd, it) } -> 1
+                    fun strength(candidate: Pair<String, League>): Int {
+                        val (word, l) = candidate
+                        val name = norm(l.name).trim()
+                        val short = norm(l.short).trim()
+                        // A full competition name outranks generic "Grand Prix" or
+                        // "Championship" aliases from other sports.
+                        val named = when {
+                            name.isNotEmpty() && hasWord(nt, name) -> 20_000
+                            short.isNotEmpty() && hasWord(nt, short) -> 10_000
+                            name.isNotEmpty() && hasWord(nd, name) -> 2_000
+                            short.isNotEmpty() && hasWord(nd, short) -> 1_000
                             else -> 0
                         }
-                    }?.second?.takeIf { it.id in allowedIds }
+                        return named + word.split(' ').size * 100 + word.length
+                    }
+                    val strongest = titleHits.maxOfOrNull(::strength)
+                    val winners = titleHits.filter { strength(it) == strongest }
+                    // Equally strong shared phrases must not guess between sports.
+                    winners.takeIf { hits -> hits.map { it.second.sport }.distinct().size == 1 }
+                        ?.firstOrNull()?.second?.takeIf { it.id in allowedIds }
                 }
             // 24/7 and loop channels ("NETFLIX WWE", a movie channel called "… NXT"): not live sport.
             if (fillerOrLoop(ch, p)) continue

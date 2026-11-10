@@ -24,10 +24,12 @@ class SportsTvNowDiscoveryTest {
             EpgProgram(now - hour, now + hour, "Premier League Highlights"),
             EpgProgram(now - hour, now + hour, "Formula 1: Singapore Grand Prix"),
             EpgProgram(now - hour, now + hour, "MasterChef"))
+        val keys = listOf("506", "nba", "football", "f1", "cooking")
+        val channels = keys.associateWith { channel.copy(key = it) }
         every { db.visitCurrentPrograms(now, any(), any()) } answers {
-            programmes.forEach { thirdArg<(String, EpgProgram) -> Unit>().invoke("506", it) }
+            programmes.forEachIndexed { i, programme -> thirdArg<(String, EpgProgram) -> Unit>().invoke(keys[i], programme) }
         }
-        val found = SportsMatcher(db).tvNowEvents(SportsCatalog.all, emptyList(), mapOf("506" to channel), 0, now)
+        val found = SportsMatcher(db).tvNowEvents(SportsCatalog.all, emptyList(), channels, 0, now)
         assertEquals(found.map { it.title }.toString(), 4, SportsEventListings.tvNow(found, now).size)
         assertEquals("LIVE", found.single { it.title.contains("Bowls") }.liveLabel)
         assertEquals("REPLAY", found.single { it.title.contains("NBA") }.liveLabel)
@@ -35,7 +37,7 @@ class SportsTvNowDiscoveryTest {
         assertEquals("ON AIR", found.single { it.title.contains("Formula 1") }.liveLabel)
         assertTrue(SportsEventListings.allEvents(found, now - hour, now + hour, now).isEmpty())
         verify(exactly = 0) { db.visitPrograms(any(), any(), any()) }
-        val matches = SportsMatcher(db).match(SportsMatcher.Input(found, listOf(channel), emptyMap(), 0,
+        val matches = SportsMatcher(db).match(SportsMatcher.Input(found, channels.values.toList(), emptyMap(), 0,
             SportsSettings(), now, includeGuide = false)).matches
         assertEquals("506", matches[found.single { it.title.contains("Bowls") }.id]!!.single().channel.key)
     }

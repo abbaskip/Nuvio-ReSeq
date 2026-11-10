@@ -2,10 +2,15 @@ package com.nuvio.tv.data.local
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.nuvio.tv.core.profile.ProfileManager
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -48,8 +53,14 @@ class WatchedSeriesStateHolderProfileTest {
         holder.updateWithValidation(setOf("show"), setOf("show"), nextUpSeeds = mapOf("show" to "finale"))
         org.junit.Assert.assertTrue(holder.isSeedValidationFresh("show", "finale"))
         org.junit.Assert.assertFalse(holder.isSeedValidationFresh("show", "rewatch"))
-        factory.get(1, "watched_series_cache").data.first {
-            it[androidx.datastore.preferences.core.stringPreferencesKey("validated_next_up_seeds")] != null
+        val store = factory.get(1, "watched_series_cache")
+        val seedsKey = stringPreferencesKey("validated_next_up_seeds")
+        // The write runs on real IO. A fresh snapshot observes the committed state even
+        // when the initial DataStore collector misses a concurrent write notification.
+        withContext(Dispatchers.IO) {
+            withTimeout(10_000L) {
+                while (store.data.first()[seedsKey] == null) delay(10)
+            }
         }
         holder.loadFromDisk(2)
         org.junit.Assert.assertFalse(holder.isSeedValidationFresh("show", "finale"))

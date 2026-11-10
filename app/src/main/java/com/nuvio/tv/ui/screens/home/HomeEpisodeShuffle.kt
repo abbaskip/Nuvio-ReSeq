@@ -70,9 +70,7 @@ internal fun HomeViewModel.createShuffleHomeState(): StateFlow<HomeUiState> {
             if (cached == null) traceCwCard(id) {
                 if (cwMetaNegativeCacheTimestamps.containsKey("$type:$id")) "negative metadata entry" else "cold metadata cache"
             }
-            cached?.takeUnless { meta ->
-                meta.tvdbPending || (!meta.tvdbOrder && tvdbOrderStore?.cachedSelection(profile.profileId, id) != null)
-            }?.videos?.map { video ->
+            cached?.takeIf { hasUsableCwCatalogue(it, profile.profileId, id) }?.videos?.map { video ->
                 Video(video.id, video.title.orEmpty(), video.released, video.thumbnail,
                     season = video.season, episode = video.episode, overview = video.overview, available = video.available,
                     episodeIdentity = video.episodeIdentity)
@@ -108,7 +106,7 @@ private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueW
                 is ContinueWatchingItem.NextUp -> item.info.videoId
                 is ContinueWatchingItem.InProgress -> item.progress.videoId
             }
-            val candidates = videos.filter { it.id == source || it.episodeIdentity?.trackingEpisodeId == expected }.take(4)
+            val candidates = videos.filter { it.id == source || (expected != null && (it.episodeIdentity?.trackingEpisodeId == expected || it.episodeIdentity?.tvdbEpisodeId == expected)) }.take(4)
             "unresolved projection expected=$expected candidates=" + candidates.map {
                 "tracking=${it.episodeIdentity?.trackingEpisodeId},display=${it.episodeIdentity?.tvdbEpisodeId},resolved=${it.hasResolvedSource}"
             }
@@ -176,7 +174,9 @@ private fun HomeViewModel.requestHomeShuffleMetadata(seeds: Flow<Pair<Int, List<
         lastAttempt.keys.retainAll(targets.keys)
         for ((key, target) in targets) {
             val (seed, shuffleEnabled) = target
-            fun needsMetadata() = cachedCwMeta(seed.contentType, seed.contentId)?.let { it.tvdbPending } ?: true
+            fun needsMetadata() = cachedCwMeta(seed.contentType, seed.contentId)?.let {
+                !hasUsableCwCatalogue(it, profileManager.activeProfileId.value, seed.contentId)
+            } ?: true
             if (!needsMetadata() || jobs[key]?.isActive == true) continue
             jobs[key] = launch {
                 val cacheKey = "${seed.contentType}:${seed.contentId}"

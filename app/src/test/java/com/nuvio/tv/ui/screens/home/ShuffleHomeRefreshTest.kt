@@ -161,6 +161,8 @@ class ShuffleHomeRefreshTest {
         assertEquals(id, home.onlyCard().contentId())
         minute()
         cache[key] = summary(video.copy(episodeIdentity = null)).copy(tvdbOrder = false)
+        every { vm.metaRepository.getMetaFromAllAddons(any(), any(), any()) } returns
+            flowOf(NetworkResult.Success(tvdbFixtureMeta(listOf(video.copy(episodeIdentity = null))).copy(episodeOrder = null)))
         assertNull(vm.selectedOrderSeed(seed))
         assertSame(snapshot, native.value.afterTrackingRefresh(emptyList(), emptyList(), hasLoadedRemoteProgress = false))
         native.update { it.afterTrackingRefresh(emptyList(), emptyList(), hasLoadedRemoteProgress = true) }
@@ -197,6 +199,22 @@ class ShuffleHomeRefreshTest {
         assertEquals(split.tvdbPlaybackContext(), next.info.tvdbContext)
     }
 
+    @Test fun previouslySelectedEpisodeLosesItsSourceDuringTheSameVisit() = runTest {
+        setup()
+        val home = home()
+        assertTrue(home.onlyCard().shufflePlayback)
+        minute()
+        val unresolved = video.copy(episodeIdentity = video.episodeIdentity!!.copy(providerVideoId = null))
+        assertTrue(listOf(unresolved).watchableEpisodes().isEmpty())
+        cache[key] = summary(unresolved)
+        refresh.update { it.copy(metadata = it.metadata + 1) }
+        runCurrent()
+        val retained = home.onlyCard()
+        assertEquals(id, retained.contentId())
+        assertTrue(retained.chooseEpisode)
+        assertFalse(retained.canMarkWatched())
+    }
+
     @Test fun unresolvedResumeNeverRemovesTheWholeGroupedShow() = runTest {
         setup()
         val home = home()
@@ -217,6 +235,31 @@ class ShuffleHomeRefreshTest {
         assertTrue(only.chooseEpisode)
         assertFalse(only.shufflePlayback)
         assertFalse(only.canMarkWatched())
+    }
+
+    @Test fun cacheInvalidationDuringLookupRetriesWithoutAnotherHomeInput() = runTest {
+        setup()
+        cache.clear()
+        val home = home()
+        assertEquals(id, home.onlyCard().contentId())
+        advanceTimeBy(1_000)
+        vm.cwMetadataLoads.invalidate(setOf(id))
+        refresh.update { it.copy(metadata = it.metadata + 1) }
+        runCurrent()
+        advanceTimeBy(CW_META_NEGATIVE_CACHE_TTL_MS + 10_001)
+        runCurrent()
+        assertTrue(home.onlyCard().shufflePlayback)
+    }
+
+    @Test fun rawCachedMetadataForSelectedOrderIsReplacedWithoutAnotherHomeInput() = runTest {
+        setup()
+        cache[key] = summary(video.copy(episodeIdentity = null)).copy(tvdbOrder = false)
+        val home = home()
+        assertTrue(home.onlyCard().chooseEpisode)
+        advanceTimeBy(10_001)
+        runCurrent()
+        assertEquals(listOf(id), requests)
+        assertTrue(home.onlyCard().shufflePlayback)
     }
 
     @Test fun activeHomeLookupSurvivesReplacementOfTheFirstWaiter() = runTest {

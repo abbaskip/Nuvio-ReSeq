@@ -2466,6 +2466,9 @@ internal fun resolveNextUpVideoFromMeta(
 
 internal const val CW_META_NEGATIVE_CACHE_TTL_MS = 5 * 60_000L
 
+internal fun HomeViewModel.hasUsableCwCatalogue(meta: CwMetaSummary, profile: Int, id: String): Boolean =
+    !meta.tvdbPending && (meta.tvdbOrder || tvdbOrderStore?.cachedSelection(profile, id) == null)
+
 internal suspend fun HomeViewModel.resolveCwMeta(progress: WatchProgress) =
     resolveMetaForProgress(progress, cwMetaCache)
 
@@ -2475,8 +2478,8 @@ private suspend fun HomeViewModel.resolveMetaForProgress(
     debug: CwDebugSession? = null
 ): CwMetaSummary? {
     val cacheKey = "${progress.contentType}:${progress.contentId}"
-    metaCache[cacheKey]?.takeUnless { it.tvdbPending }?.let { return it }
     val profile = profileManager.activeProfileId.value
+    metaCache[cacheKey]?.takeIf { hasUsableCwCatalogue(it, profile, progress.contentId) }?.let { return it }
     return cwMetadataLoads.await(viewModelScope, profile, progress.contentType, progress.contentId) {
         if (profileManager.activeProfileId.value != profile) return@await null
         loadCwMetadata(progress, metaCache, debug, profile, cacheKey)
@@ -2491,7 +2494,7 @@ private suspend fun HomeViewModel.loadCwMetadata(
     synchronized(metaCache) {
         if (metaCache.containsKey(cacheKey)) {
             val cached = metaCache[cacheKey]
-            if (cached != null && !cached.tvdbPending) {
+            if (cached != null && hasUsableCwCatalogue(cached, profile, progress.contentId)) {
                 debug?.recordMetaCacheHit(progress)
                 return cached
             }

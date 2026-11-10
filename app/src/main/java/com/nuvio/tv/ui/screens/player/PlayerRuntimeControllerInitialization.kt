@@ -170,6 +170,8 @@ internal fun PlayerRuntimeController.initializePlayer(
         _uiState.update { it.copy(error = context.getString(R.string.player_error_no_stream_url), showLoadingOverlay = false) }
         return
     }
+    rememberUsenetRestoreSource(url)
+    if (restoreUsenetSessionIfNeeded(url, startPaused)) return
     mpvMediaLoadPrepared = false
     styledSubtitles.clear()
     val afrPreflightToken = afrPreflightGate.token()

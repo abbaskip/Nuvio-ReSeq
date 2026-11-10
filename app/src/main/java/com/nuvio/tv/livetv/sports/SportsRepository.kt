@@ -122,6 +122,7 @@ class SportsRepository @Inject constructor(
         val espn = l.values.flatMap { it.events } + w.values.flatMap { it.events }
         // Prefer scored fixtures over matching calendar entries. Keep TV airings separately:
         // they belong to TV Now even when All Events already contains the actual match.
+        val identities = SportsEventIdentity.Round()
         val espnIndex = SportsFixtureIndex(espn)
         val tsdbIndex = SportsFixtureIndex(tsdb)
         fun coveredByEspn(ev: SportsEvent): Boolean {
@@ -136,7 +137,7 @@ class SportsRepository @Inject constructor(
         (espn + fixtures.filterNot(::coveredByEspn) + guide + tsdb.filterNot { event ->
             val league = SportsCatalog.league(event.leagueId)
             league != null && espnIndex.anyNear(event) { other -> SportsCatalog.league(other.leagueId)?.let {
-                SportsEventIdentity.same(event, other, league, it) } == true }
+                identities.same(event, other, league, it) } == true }
         }).distinctBy { it.id }
     }.combine(baseData) { current, base ->
         (current + base).groupBy { it.id }.values.map { versions -> versions.maxBy { it.updatedAt ?: 0L } }

@@ -9,5 +9,7 @@ import dagger.hilt.components.SingletonComponent
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface IptvStorageTestEntryPoint {
+    fun livePreferences(): com.nuvio.tv.livetv.data.LiveTvPreferences
+    fun liveRepository(): com.nuvio.tv.livetv.data.LiveTvRepository
     fun profileManager(): ProfileManager
 }

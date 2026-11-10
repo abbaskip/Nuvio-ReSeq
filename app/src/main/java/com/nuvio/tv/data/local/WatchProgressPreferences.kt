@@ -280,9 +280,14 @@ class WatchProgressPreferences @Inject constructor(
             val key = createKey(progress)
             if (key in recent) {
                 recentStore(profileId).edit { preferences ->
-                    val map = parseProgressMap(preferences[watchProgressEntriesKey] ?: "{}").toMutableMap()
+                    val previous = parseBucket(profileId, preferences[watchProgressEntriesKey] ?: "{}", true)
+                    val map = previous.toMutableMap()
                     upsertProgressEntries(map, listOf(progress))
-                    preferences[watchProgressEntriesKey] = gson.toJson(map)
+                    if (map.size != previous.size || map[key] != previous[key]) {
+                        val json = gson.toJson(map)
+                        preferences[watchProgressEntriesKey] = json
+                        recentMapCache = ProgressMapCache(profileId, json, map)
+                    }
                 }
             } else {
                 val archive = readBucket(archiveStore(profileId), profileId, false)

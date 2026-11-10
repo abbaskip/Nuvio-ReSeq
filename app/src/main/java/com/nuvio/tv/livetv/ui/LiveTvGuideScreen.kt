@@ -1,5 +1,7 @@
 package com.nuvio.tv.livetv.ui
 
+import androidx.compose.ui.platform.testTag
+
 import com.nuvio.tv.livetv.data.LiveTvRepository
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -1210,6 +1212,7 @@ fun LiveTvGuideScreen(
                             .weight(1f)
                             .fillMaxWidth()
                             .padding(end = 24.dp, bottom = 12.dp)
+                            .testTag("live_tv_channel_grid")
                             .focusRequester(gridFocus)
                             .focusRequester(contentFocus)
                             .onFocusChanged {

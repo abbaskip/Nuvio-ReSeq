@@ -39,14 +39,31 @@ internal object SportsEventIdentity {
     }
 
     fun same(a: SportsEvent, b: SportsEvent, first: League, second: League): Boolean {
-        if (first.sport != second.sport || !a.hasTime || !b.hasTime || kotlin.math.abs(a.startMs - b.startMs) > KICKOFF_TOLERANCE_MS) return false
-        val comp = competition(first) ?: return false
-        if (comp != competition(second)) return false
-        if (a.sides.size != 2 || b.sides.size != 2) return false
-        fun names(t: TeamInfo, l: League) = SportsCatalog.teamNames(t, l).first
-            .map { SportsCatalog.norm(it).trim() }.filter { it.length >= 4 }.toSet()
-        fun matches(x: Side, y: Side) = names(x.team, first).intersect(names(y.team, second)).isNotEmpty()
-        return (matches(a.sides[0], b.sides[0]) && matches(a.sides[1], b.sides[1])) ||
-            (matches(a.sides[0], b.sides[1]) && matches(a.sides[1], b.sides[0]))
+        return Round().same(a, b, first, second)
+    }
+
+    /** Scores and names can change between emissions. Reuse normalized identities only inside one merge. */
+    class Round {
+        private val competitions = mutableMapOf<League, String?>()
+        private val teamNames = mutableMapOf<Pair<TeamInfo, League>, Set<String>>()
+
+        private fun competitionOf(league: League): String? {
+            if (league !in competitions) competitions[league] = competition(league)
+            return competitions[league]
+        }
+
+        private fun names(t: TeamInfo, l: League) = teamNames.getOrPut(t to l) {
+            SportsCatalog.teamNames(t, l).first.map { SportsCatalog.norm(it).trim() }.filter { it.length >= 4 }.toSet()
+        }
+
+        fun same(a: SportsEvent, b: SportsEvent, first: League, second: League): Boolean {
+            if (first.sport != second.sport || !a.hasTime || !b.hasTime || kotlin.math.abs(a.startMs - b.startMs) > KICKOFF_TOLERANCE_MS) return false
+            val comp = competitionOf(first) ?: return false
+            if (comp != competitionOf(second)) return false
+            if (a.sides.size != 2 || b.sides.size != 2) return false
+            fun matches(x: Side, y: Side) = names(x.team, first).any(names(y.team, second)::contains)
+            return (matches(a.sides[0], b.sides[0]) && matches(a.sides[1], b.sides[1])) ||
+                (matches(a.sides[0], b.sides[1]) && matches(a.sides[1], b.sides[0]))
+        }
     }
 }

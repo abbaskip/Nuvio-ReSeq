@@ -632,37 +632,38 @@ class StreamScreenViewModel @Inject constructor(
                 contentId?.let { bingeGroupCacheDataStore.getInfoHash(it) }
             } else null
 
-            fun applySuccess(addonStreamGroups: List<AddonStreams>, isAllLoaded: Boolean) {
-                val orderedAddonStreams = StreamAutoPlaySelector.orderAddonStreams(
-                    addonStreamGroups,
-                    installedAddonOrder,
-                    preferredServerNames
+            fun selectFinalStream(streams: List<Stream>): Stream? =
+                StreamAutoPlaySelector.selectAutoPlayStream(
+                    sourceSettings = playerSettings,
+                    streams = streams,
+                    mode = playerSettings.streamAutoPlayMode,
+                    regexPattern = playerSettings.streamAutoPlayRegex,
+                    source = playerSettings.streamAutoPlaySource,
+                    installedAddonNames = installedAddonOrder.toSet(),
+                    selectedAddons = playerSettings.streamAutoPlaySelectedAddons,
+                    selectedPlugins = playerSettings.streamAutoPlaySelectedPlugins,
+                    preferredBingeGroup = persistedBingeGroup,
+                    preferBingeGroupInSelection = persistedBingeGroup != null,
+                    bingeGroupOnly = nextSelection?.bingeGroupOnly == true
                 )
 
-                // Preserve badges already computed by prior badge jobs so they
-                // don't vanish when repository emits fresh (badge-less) streams.
-                val existingBadgedStreams = _uiState.value.allStreams
-                    .filter { it.badges.isNotEmpty() }
-                    .associateBy { it.badgeMergeKey() }
-
-                val mergedAddonStreams = if (existingBadgedStreams.isEmpty()) {
-                    orderedAddonStreams
-                } else {
-                    orderedAddonStreams.map { group ->
-                        group.copy(
-                            streams = group.streams.map { stream ->
-                                val existing = existingBadgedStreams[stream.badgeMergeKey()]
-                                if (existing != null && stream.badges.isEmpty()) {
-                                    stream.copy(badges = existing.badges)
-                                } else {
-                                    stream
-                                }
-                            }
-                        )
-                    }
-                }
-
-                val allStreams = mergedAddonStreams.flatMap { it.streams }
+            suspend fun applySuccess(addonStreamGroups: List<AddonStreams>, isAllLoaded: Boolean) {
+                val preselectRegex = isAllLoaded && !useTieredAutoPlay && !autoPlayHandledForSession &&
+                    !resolvedAutoPlayTarget && playerSettings.streamAutoPlayMode == StreamAutoPlayMode.REGEX_MATCH
+                val previous = _uiState.value.allStreams
+                fun prepare(previousStreams: List<Stream>) = prepareStreamEmission(
+                    addonStreamGroups, installedAddonOrder, preferredServerNames, previousStreams,
+                    if (preselectRegex) ::selectFinalStream else null
+                )
+                val prepared = if (addonStreamGroups.sumOf { it.streams.size } > STREAM_FILTER_PAGE_SIZE) {
+                    val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { prepare(previous) }
+                    if (streamLoadScope !== newScope) return
+                    // A badge or debrid update can finish while this coroutine is suspended.
+                    // Use that result when merging badges before publishing on the UI thread.
+                    if (_uiState.value.allStreams === previous) result else prepare(_uiState.value.allStreams)
+                } else prepare(previous)
+                val mergedAddonStreams = prepared.groups
+                val allStreams = prepared.streams
                 val availableAddons = mergedAddonStreams.map { it.addonName }
 
                 // Early binge group match: if we have a persisted binge group, try to
@@ -732,19 +733,7 @@ class StreamScreenViewModel @Inject constructor(
                 } else if (!shouldAutoSelect) {
                     null
                 } else {
-                    StreamAutoPlaySelector.selectAutoPlayStream(
-                        sourceSettings = playerSettings,
-                        streams = allStreams,
-                        mode = playerSettings.streamAutoPlayMode,
-                        regexPattern = playerSettings.streamAutoPlayRegex,
-                        source = playerSettings.streamAutoPlaySource,
-                        installedAddonNames = installedAddonOrder.toSet(),
-                        selectedAddons = playerSettings.streamAutoPlaySelectedAddons,
-                        selectedPlugins = playerSettings.streamAutoPlaySelectedPlugins,
-                        preferredBingeGroup = persistedBingeGroup,
-                        preferBingeGroupInSelection = persistedBingeGroup != null,
-                        bingeGroupOnly = nextSelection?.bingeGroupOnly == true
-                    )
+                    if (preselectRegex) prepared.selection else selectFinalStream(allStreams)
                 }
                 if (selectedAutoPlayStream != null) {
                     resolvedAutoPlayTarget = true
@@ -2325,6 +2314,24 @@ class StreamScreenViewModel @Inject constructor(
         }
     }
 
+}
+
+internal data class PreparedStreamEmission(val groups: List<AddonStreams>, val streams: List<Stream>, val selection: Stream?)
+
+internal fun prepareStreamEmission(
+    incoming: List<AddonStreams>, installedOrder: List<String>, preferredNames: Set<String>,
+    previous: List<Stream>, select: ((List<Stream>) -> Stream?)?
+): PreparedStreamEmission {
+    val ordered = StreamAutoPlaySelector.orderAddonStreams(incoming, installedOrder, preferredNames)
+    val badges = previous.asSequence().filter { it.badges.isNotEmpty() }.associateBy { it.badgeMergeKey() }
+    val groups = if (badges.isEmpty()) ordered else ordered.map { group ->
+        group.copy(streams = group.streams.map { stream ->
+            if (stream.badges.isNotEmpty()) stream
+            else badges[stream.badgeMergeKey()]?.let { stream.copy(badges = it.badges) } ?: stream
+        })
+    }
+    val streams = groups.flatMap { it.streams }
+    return PreparedStreamEmission(groups, streams, select?.invoke(streams))
 }
 
 private fun Stream.badgeMergeKey(): String {

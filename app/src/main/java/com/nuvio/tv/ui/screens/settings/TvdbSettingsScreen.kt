@@ -40,7 +40,7 @@ fun TvdbSettingsContent(
                 item(key = "key") {
                 SettingsActionRow(
                     title = if (state.configured) "Replace API key" else "Enter API key",
-                    subtitle = "Stored locally using Android Keystore encryption",
+                    subtitle = "Encrypted on this TV. Google Drive backup includes this profile’s TVDB key when connected.",
                     value = if (state.configured) "Configured" else "Not configured",
                     enabled = !state.busy, onClick = { editing = true },
                     modifier = if (initialFocusRequester != null) Modifier.focusRequester(initialFocusRequester) else Modifier

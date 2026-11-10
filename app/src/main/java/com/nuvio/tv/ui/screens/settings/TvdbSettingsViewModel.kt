@@ -28,6 +28,15 @@ class TvdbSettingsViewModel @Inject constructor(
     val state = mutableState.asStateFlow()
     init {
         viewModelScope.launch {
+            credentials.changes.collect {
+                val id = profiles.activeProfileId.value
+                val configured = withContext(Dispatchers.IO) { credentials.read(id) != null }
+                if (profiles.activeProfileId.value == id && !state.value.busy) {
+                    mutableState.value = state.value.copy(configured = configured)
+                }
+            }
+        }
+        viewModelScope.launch {
             profiles.activeProfileId.collect { id ->
                 generation++
                 val configured = withContext(Dispatchers.IO) { credentials.read(id) != null }

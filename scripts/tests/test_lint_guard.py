@@ -183,4 +183,38 @@ class VerifiedVersionAdviceTest(unittest.TestCase):
             self.scenario(bad_hash=True)
 
 
+class ReadOnlyRatchetTests(unittest.TestCase):
+    def invoke(self, current, budget, root):
+        import contextlib
+        import io
+        from unittest.mock import patch
+        path = root / "baseline.json"
+        path.write_text(__import__('json').dumps(budget))
+        argv = ['lint_guard.py', 'check', '--report', str(root / 'report.xml'),
+                '--project', str(root), '--baseline', str(path), '--require-ratchet',
+                '--summary', str(root / 'summary.json'),
+                '--ratchet-proposal', str(root / 'proposal.json')]
+        with patch('sys.argv', argv), patch.object(lint, 'findings', return_value=(current, 0)), \
+                patch.object(lint, 'check_history'), contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            return lint.main()
+
+    def test_resolved_allowance_requires_committed_retirement_without_mutating_file(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            budget = baseline({'known': finding()})
+            with self.assertRaisesRegex(ValueError, 'Retire resolved'):
+                self.invoke({}, budget, root)
+            self.assertEqual(budget, json.loads((root / 'baseline.json').read_text()))
+            self.assertEqual({}, json.loads((root / 'proposal.json').read_text())['active'])
+
+    def test_new_error_still_writes_failed_verdict(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.assertEqual(1, self.invoke({'new': finding()}, baseline({}), root))
+            self.assertFalse(json.loads((root / 'summary.json').read_text())['passed'])
+
+
 if __name__ == "__main__": unittest.main()

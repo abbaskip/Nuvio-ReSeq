@@ -52,6 +52,10 @@ scripts/*
 !scripts/verify_apk_services.py
 !scripts/verify_cs3_runtime.py
 !scripts/ci_app_config.py
+!scripts/ci_pipeline.py
+!scripts/ci.gradle
+!scripts/ci-cache.sh
+/.gradle-user-home/
 !scripts/tests/
 !scripts/tests/*.py
 /supabase
@@ -72,6 +76,7 @@ docs/*
 !docs/WEBSITE.md
 !docs/RIGHTS.md
 !docs/RELEASE_DOCUMENTATION.md
+!docs/BUILD_PIPELINE.md
 !docs/assets/
 docs/assets/*
 !docs/assets/site.css

@@ -198,16 +198,6 @@ android {
             buildConfigField("boolean", "FEATURE_EXTERNAL_PLAYBACK_KEEP_ALIVE_ENABLED", "true")
             buildConfigField("boolean", "FEATURE_CUSTOM_SERVER_CONNECTIONS_ENABLED", "true")
         }
-        create("playstore") {
-            dimension = "distribution"
-            applicationId = "io.github.abbaskip.nuvioreseq.playstore"
-            buildConfigField("boolean", "FEATURE_PLUGINS_ENABLED", "false")
-            buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "false")
-            buildConfigField("boolean", "FEATURE_IN_APP_TRAILERS_ENABLED", "false")
-            buildConfigField("boolean", "FEATURE_EXTERNAL_TRAILERS_ENABLED", "true")
-            buildConfigField("boolean", "FEATURE_EXTERNAL_PLAYBACK_KEEP_ALIVE_ENABLED", "false")
-            buildConfigField("boolean", "FEATURE_CUSTOM_SERVER_CONNECTIONS_ENABLED", "false")
-        }
     }
 
     if (enableDoviNative) {
@@ -319,7 +309,7 @@ android {
     bundle {
         language {
             // Keep all string resources in the
-            // base install so Play Store installs can switch languages at runtime.
+            // base install so bundle installs can switch languages at runtime.
             // https://developer.android.com/guide/app-bundle/configure-base
             enableSplit = false
         }
@@ -377,8 +367,7 @@ android {
 
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
-        val isPlaystore = variant.productFlavors.any { it.second == "playstore" }
-        variant.applicationId.set(if (isPlaystore) "io.github.abbaskip.nuvioreseq.playstore.debug" else "io.github.abbaskip.nuvioreseq.iptvdebug")
+        variant.applicationId.set("io.github.abbaskip.nuvioreseq.iptvdebug")
     }
     // Only the full flavor ships the in-app updater.
     onVariants(selector().withFlavor("distribution" to "full")) { variant ->

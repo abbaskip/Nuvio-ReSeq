@@ -18,7 +18,6 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -27,6 +26,8 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import retrofit2.Response
@@ -65,7 +66,7 @@ class HomeEnrichmentRepositoryBoundaryTest {
         val reachable = AtomicBoolean(false)
         val api = mockk<AddonApi>()
         coEvery { api.getMeta(any()) } coAnswers {
-            metaCalls.incrementAndGet()
+            if (firstArg<String>().contains(itemId)) metaCalls.incrementAndGet()
             if (!reachable.get()) throw IOException("offline")
             Response.success(
                 MetaResponseDto(meta = MetaDto(id = itemId, type = "series", name = "Test Meta"))
@@ -74,8 +75,9 @@ class HomeEnrichmentRepositoryBoundaryTest {
         val viewModel = newViewModel(realRepository(api))
         viewModel.seedCatalog(item(itemId))
 
-        viewModel.onItemFocusPipeline(item(itemId))
-        awaitAtLeast(metaCalls, 1)
+        focusAndSettle(viewModel, item(itemId))
+        assertTrue("The repository must attempt the initial request", metaCalls.get() >= 1)
+        assertFalse("A failed request must remain eligible for retry", itemId in viewModel.prefetchedExternalMetaIds)
 
         reachable.set(true)
         focusAndSettle(viewModel, item(otherId))
@@ -83,7 +85,7 @@ class HomeEnrichmentRepositoryBoundaryTest {
 
         // The failed lookup came back as a codeless Error, so the item was never marked prefetched
         // and the focus gate let it through again.
-        awaitAtLeast(metaCalls, 2)
+        assertTrue("The failed item must be requested again", metaCalls.get() >= 2)
         assertEquals(
             "the resolved item should now be cached",
             true,
@@ -93,14 +95,9 @@ class HomeEnrichmentRepositoryBoundaryTest {
 
     private suspend fun focusAndSettle(viewModel: HomeViewModel, item: MetaPreview) {
         viewModel.onItemFocusPipeline(item)
-        delay(HomeViewModel.EXTERNAL_META_PREFETCH_FOCUS_DEBOUNCE_MS + 400)
-    }
-
-    private suspend fun awaitAtLeast(counter: AtomicInteger, expected: Int) {
-        val reached = runCatching {
-            withTimeout(5_000) { while (counter.get() < expected) delay(25) }
-        }.isSuccess
-        assertEquals("expected at least $expected meta requests", true, reached)
+        // A request count changes before the repository and merge finish. Join
+        // the actual focus job instead of racing it with a fixed wall-clock wait.
+        withTimeout(5_000) { requireNotNull(viewModel.tmdbEnrichFocusJob).join() }
     }
 
     private fun realRepository(api: AddonApi): MetaRepositoryImpl {

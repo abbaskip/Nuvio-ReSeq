@@ -257,10 +257,8 @@ def validation(run):
     lint_report.unlink(missing_ok=True)
     commands = [[sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-v"],
                 [gradle,
-                 ":app:testFullDebugUnitTest", ":app:assembleFullDebug", ":app:compilePlaystoreDebugKotlin",
-                 "-PuseLocalFfmpegDecoder=false", "-Pkotlin.compiler.execution.strategy=in-process",
-                 "--max-workers=2", "--console=plain"],
-                [gradle, ":app:lintFullDebug", "--init-script", "scripts/lint-report.gradle",
+                 ":app:testFullDebugUnitTest", ":app:assembleFullDebug", ":app:lintFullDebug",
+                 "--init-script", "scripts/ci.gradle",
                  "-PuseLocalFfmpegDecoder=false", "-Pkotlin.compiler.execution.strategy=in-process",
                  "--max-workers=2", "--console=plain"],
                 [sys.executable, "scripts/lint_guard.py", "check", "--project", ".",
@@ -290,7 +288,7 @@ def validation(run):
         raise RuntimeError("Source changed during validation")
     run["validation"] = {"head": head, "result": "passed", "unit_tests": totals,
                          "lint": json.loads((output / "lint-verdict.json").read_text()),
-                         "checks": ["Python tests", "fullDebug unit suite", "debug APKs", "Playstore compile",
+                         "checks": ["Python tests", "fullDebug unit suite", "debug APKs",
                                     "complete lint report with shrinking released-source budget", "packaged services", "diff check"]}
     print(json.dumps(run["validation"], indent=2))
 

@@ -184,7 +184,7 @@ class HomeEnrichmentRetryTest {
         // Claim the id, then move on before the debounce elapses so the fetch never runs.
         viewModel.onItemFocusPipeline(item(itemId))
         viewModel.onItemFocusPipeline(item(otherId))
-        delay(HomeViewModel.EXTERNAL_META_PREFETCH_FOCUS_DEBOUNCE_MS + 400)
+        withTimeout(5_000) { viewModel.tmdbEnrichFocusJob?.join() }
         assertEquals("the cancelled focus should not have fetched", 0, calls.get())
 
         focusAndSettle(viewModel, item(itemId))
@@ -316,8 +316,8 @@ class HomeEnrichmentRetryTest {
 
     private suspend fun focusAndSettle(viewModel: HomeViewModel, item: MetaPreview) {
         viewModel.onItemFocusPipeline(item)
-        // Debounce plus the fetch itself; the assertions that need a specific count poll instead.
-        delay(HomeViewModel.EXTERNAL_META_PREFETCH_FOCUS_DEBOUNCE_MS + 400)
+        // Observe completion instead of assuming IO finished during a fixed sleep.
+        withTimeout(5_000) { viewModel.tmdbEnrichFocusJob?.join() }
     }
 
     /**

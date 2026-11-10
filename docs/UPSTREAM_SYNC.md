@@ -76,7 +76,7 @@ is needed. The existing `reseq-release.yml` remains the only publication path.
    Write concise notes from `.github/RELEASE_TEMPLATE.md` under `releases/`.
    Commit source, tests, ledger, notes and version before validation.
 7. Run `validate --run ID`. This requires a clean commit and runs the complete
-   Full Debug unit suite, debug APK build, Playstore Kotlin compilation, Android
+   Full Debug unit suite, debug APK build, Android
    lint, packaged-service verification, Python tooling tests and whitespace checks.
    Lint runs with the explicit report-only init script, then `lint_guard.py`
    enforces the approved released-source budget below. Normal lint behaviour is
@@ -165,7 +165,7 @@ they never strand a completed run's lock. The next run retries only finished,
 unchanged, clean automation worktrees. Shared daemons and reused developer
 checkouts are never stopped or cleaned to force those files free.
 Runs and validation require at least 6 GiB free, covering the measured debug/
-Playstore/lint peak with a safety reserve. `finish` archives this task's unit/lint
+compilation/lint peak with a safety reserve. `finish` archives this task's unit/lint
 reports and retains a held ARM32 debug APK before removing only its own generated
 `app/build`. It verifies the resolved path belongs to a known automation worktree.
 Source, branches, reports and other developers' worktrees are preserved. Do not

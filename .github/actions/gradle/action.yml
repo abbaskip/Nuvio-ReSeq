@@ -1,0 +1,59 @@
+name: ReSeq Gradle
+description: Shared toolchain, dependency cache and encrypted task-output cache
+inputs:
+  encryption-key:
+    description: Private base64 AES key; omit for untrusted builds
+    default: ''
+outputs:
+  task-cache-key:
+    description: Unique encrypted-output cache key for the explicit save step
+    value: ${{ steps.task-cache.outputs.cache-primary-key }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: android-actions/setup-android@v3
+      with:
+        packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+        log-accepted-android-sdk-licenses: false
+    - uses: gradle/actions/setup-gradle@v6
+      with:
+        # Default-branch entries seed other branches; trusted branches also
+        # save their own updated state instead of forever restoring old entries.
+        cache-read-only: ${{ github.event_name == 'pull_request' }}
+        cache-encryption-key: ${{ inputs.encryption-key }}
+        # BuildConfig and compiled outputs can contain private service inputs.
+        # Only the separately encrypted archive below may leave the runner.
+        gradle-home-cache-excludes: |
+          caches/build-cache-1
+    - name: Restore encrypted Gradle task outputs
+      id: task-cache
+      if: inputs.encryption-key != ''
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ runner.temp }}/nuvio-task-cache
+        key: nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}-${{ github.job }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}-${{ github.job }}-
+          nuvio-tasks-v1-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}-
+          nuvio-tasks-v1-${{ runner.os }}-
+    - name: Decrypt task outputs
+      if: inputs.encryption-key != ''
+      shell: bash
+      env:
+        NUVIO_CACHE_KEY: ${{ inputs.encryption-key }}
+      run: bash scripts/ci-cache.sh restore
+    - name: Record runner capacity
+      shell: bash
+      run: |
+        memory_mib=$(free -m | awk '/Mem:/ {print $2}')
+        echo "NUVIO_CI_WORKERS=2" >> "$GITHUB_ENV"
+        # Keep the proven release heap on dedicated 16 GiB hosted runners;
+        # smaller runners use the bounded default in ci_pipeline.py.
+        if (( memory_mib >= 14000 )); then
+          echo 'NUVIO_CI_JVM_ARGS=-Xmx6144m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8' >> "$GITHUB_ENV"
+        fi
+        echo "Runner: $(nproc) CPUs; $memory_mib MiB RAM; Gradle capped at two workers."

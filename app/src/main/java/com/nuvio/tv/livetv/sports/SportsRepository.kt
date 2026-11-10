@@ -1007,7 +1007,7 @@ class SportsRepository @Inject constructor(
         ) { _, _, _, _ -> Unit }
         var lastRun = 0L
         launch {
-            // â€¦and every 15 minutes (shows move on; new guide listings).
+            // …and every 15 minutes (shows move on; new guide listings).
             while (true) {
                 delay(15 * MINUTE)
                 if (foreground.value && System.currentTimeMillis() - lastRun > 10 * MINUTE) matchKick.value++
@@ -1345,7 +1345,7 @@ class SportsRepository @Inject constructor(
     private val _standings = MutableStateFlow<Map<String, Standings>>(emptyMap())
     /** League tables looked at (or needed for My Sports' row headers), by league id. */
     val standings: StateFlow<Map<String, Standings>> = _standings.asStateFlow()
-    /** Leagues without a table (a cup, golfâ€¦): when we found out, so they aren't asked again for a while. */
+    /** Leagues without a table (a cup, golf…): when we found out, so they aren't asked again for a while. */
     private val noTable = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val tableLocks = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.sync.Mutex>()
 
@@ -1548,7 +1548,7 @@ class SportsRepository @Inject constructor(
 
     /**
      * The game's ESPN summary, one request for the latest scoring and everything under it (team
-     * stats, leaders, form, the tableâ€¦). Asked again after 25 seconds while it's on (straight away
+     * stats, leaders, form, the table…). Asked again after 25 seconds while it's on (straight away
      * when the score changes), otherwise after half an hour.
      */
     private suspend fun summaryFor(ev: SportsEvent): GameSummary? = withContext(Dispatchers.IO) {
@@ -1564,7 +1564,7 @@ class SportsRepository @Inject constructor(
         GameSummary(System.currentTimeMillis(), sig, plays, extras).also { synchronized(summaryCache) { summaryCache[ev.id] = it } }
     }
 
-    /** The game's scoring plays (touchdowns, goalsâ€¦), when ESPN has them. */
+    /** The game's scoring plays (touchdowns, goals…), when ESPN has them. */
     suspend fun scoringPlays(ev: SportsEvent): List<ScoringPlay> =
         if (ev.state == GameState.PRE) emptyList() else summaryFor(ev)?.plays.orEmpty()
 

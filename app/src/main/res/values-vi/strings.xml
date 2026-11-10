@@ -3452,4 +3452,6 @@
     <string name="plugin_dns_system">DNS hệ thống TV</string>
     <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
     <string name="plugin_dns_description">Chọn dịch vụ DNS cho yêu cầu CloudStream. Nhấn OK để đổi.</string>
+    <string name="continue_watching_window_summary">Khoảng thời gian cần xét trong lịch sử xem</string>
+    <string name="cw_choose_episode">Mở bộ phim để chọn một tập</string>
 </resources>

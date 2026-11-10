@@ -848,4 +848,6 @@
     <string name="plugin_dns_system">DNS de sistem al televizorului</string>
     <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
     <string name="plugin_dns_description">Alege serviciul DNS pentru cererile CloudStream. Apasă OK pentru schimbare.</string>
+    <string name="continue_watching_window_summary">Perioada din istoricul de vizionare care va fi inclusă</string>
+    <string name="cw_choose_episode">Deschide serialul pentru a alege un episod</string>
 </resources>

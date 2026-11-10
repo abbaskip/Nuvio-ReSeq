@@ -3050,4 +3050,6 @@
     <string name="plugin_dns_system">DNS نظام التلفاز</string>
     <string name="plugin_dns_choice">DNS ‏CloudStream · %1$s</string>
     <string name="plugin_dns_description">اختر خدمة DNS لطلبات CloudStream. اضغط OK للتبديل.</string>
+    <string name="continue_watching_window_summary">المدة التي يشملها سجل المشاهدة</string>
+    <string name="cw_choose_episode">افتح المسلسل لاختيار حلقة</string>
 </resources>

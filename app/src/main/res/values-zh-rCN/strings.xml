@@ -3249,4 +3249,6 @@
     <string name="plugin_dns_system">电视系统 DNS</string>
     <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
     <string name="plugin_dns_description">选择 CloudStream 请求使用的 DNS 服务。按 OK 切换。</string>
+    <string name="continue_watching_window_summary">要查看多长时间内的观看记录</string>
+    <string name="cw_choose_episode">打开剧集以选择一集</string>
 </resources>

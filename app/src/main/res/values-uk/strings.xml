@@ -2750,4 +2750,6 @@
     <string name="plugin_dns_system">Системний DNS телевізора</string>
     <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
     <string name="plugin_dns_description">Виберіть DNS для запитів CloudStream. Натисніть OK для зміни.</string>
+    <string name="continue_watching_window_summary">Який період історії переглядів враховувати</string>
+    <string name="cw_choose_episode">Відкрийте серіал, щоб вибрати серію</string>
 </resources>

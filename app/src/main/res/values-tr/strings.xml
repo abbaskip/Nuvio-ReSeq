@@ -3468,4 +3468,6 @@
     <string name="plugin_dns_system">TV sistem DNS ayarı</string>
     <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
     <string name="plugin_dns_description">CloudStream istekleri için DNS çözümleyicisini seçin. Değiştirmek için OK tuşuna basın.</string>
+    <string name="continue_watching_window_summary">İzleme geçmişinin ne kadar geriye gideceği</string>
+    <string name="cw_choose_episode">Bölüm seçmek için diziyi açın</string>
 </resources>

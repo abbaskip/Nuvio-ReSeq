@@ -2277,4 +2277,6 @@
     <string name="plugin_dns_system">டிவி அமைப்பின் DNS</string>
     <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
     <string name="plugin_dns_description">CloudStream கோரிக்கைகளுக்கான DNS சேவையைத் தேர்ந்தெடுக்கவும். மாற்ற OK அழுத்தவும்.</string>
+    <string name="continue_watching_window_summary">பார்த்த வரலாற்றில் எவ்வளவு காலம் வரை கணக்கில் எடுக்க வேண்டும்</string>
+    <string name="cw_choose_episode">அத்தியாயத்தைத் தேர்ந்தெடுக்கத் தொடரைத் திறக்கவும்</string>
 </resources>

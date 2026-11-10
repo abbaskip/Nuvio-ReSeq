@@ -3319,4 +3319,6 @@
     <string name="plugin_dns_system">Sistemski DNS televizora</string>
     <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
     <string name="plugin_dns_description">Odaberite DNS za zahtjeve CloudStream. Pritisnite OK za promjenu.</string>
+    <string name="continue_watching_window_summary">Koje razdoblje povijesti gledanja uključiti</string>
+    <string name="cw_choose_episode">Otvorite seriju za odabir epizode</string>
 </resources>

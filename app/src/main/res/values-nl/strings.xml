@@ -3160,4 +3160,6 @@
     <string name="plugin_dns_system">Systeem-DNS van de tv</string>
     <string name="plugin_dns_choice">CloudStream-DNS · %1$s</string>
     <string name="plugin_dns_description">Kies de resolver voor CloudStream-verzoeken. Druk op OK om te wisselen.</string>
+    <string name="continue_watching_window_summary">Hoe ver terug je kijkgeschiedenis wordt meegenomen</string>
+    <string name="cw_choose_episode">Open de serie om een aflevering te kiezen</string>
 </resources>

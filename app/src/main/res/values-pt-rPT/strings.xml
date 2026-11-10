@@ -2597,4 +2597,6 @@
     <string name="plugin_dns_system">DNS do sistema da TV</string>
     <string name="plugin_dns_choice">DNS do CloudStream · %1$s</string>
     <string name="plugin_dns_description">Escolha o resolvedor dos pedidos CloudStream. Prima OK para mudar.</string>
+    <string name="continue_watching_window_summary">Período do histórico de visualização a considerar</string>
+    <string name="cw_choose_episode">Abra a série para escolher um episódio</string>
 </resources>

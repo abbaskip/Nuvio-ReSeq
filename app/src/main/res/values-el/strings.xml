@@ -3359,4 +3359,6 @@
     <string name="plugin_dns_system">DNS συστήματος τηλεόρασης</string>
     <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
     <string name="plugin_dns_description">Επιλέξτε DNS για τα αιτήματα CloudStream. Πατήστε OK για αλλαγή.</string>
+    <string name="continue_watching_window_summary">Πόσο πίσω να ανατρέχει το ιστορικό προβολής</string>
+    <string name="cw_choose_episode">Ανοίξτε τη σειρά για να επιλέξετε επεισόδιο</string>
 </resources>

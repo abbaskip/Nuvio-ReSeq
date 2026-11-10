@@ -2465,4 +2465,6 @@
     <string name="plugin_dns_system">DNS sistem TV</string>
     <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
     <string name="plugin_dns_description">Pilih resolver untuk permintaan CloudStream. Tekan OK untuk berganti.</string>
+    <string name="continue_watching_window_summary">Rentang riwayat tontonan yang disertakan</string>
+    <string name="cw_choose_episode">Buka serial untuk memilih episode</string>
 </resources>

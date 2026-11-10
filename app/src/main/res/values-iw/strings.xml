@@ -3451,4 +3451,6 @@
     <string name="plugin_dns_system">DNS של מערכת הטלוויזיה</string>
     <string name="plugin_dns_choice">DNS של CloudStream · %1$s</string>
     <string name="plugin_dns_description">בחר שירות DNS לבקשות CloudStream. לחץ OK כדי להחליף.</string>
+    <string name="continue_watching_window_summary">איזו תקופה לכלול מהיסטוריית הצפייה</string>
+    <string name="cw_choose_episode">יש לפתוח את הסדרה כדי לבחור פרק</string>
 </resources>

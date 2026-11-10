@@ -2718,4 +2718,6 @@
     <string name="plugin_dns_system">TV-systemets DNS</string>
     <string name="plugin_dns_choice">CloudStream-DNS · %1$s</string>
     <string name="plugin_dns_description">Vælg DNS-tjeneste til CloudStream-anmodninger. Tryk OK for at skifte.</string>
+    <string name="continue_watching_window_summary">Hvor langt tilbage i din seerhistorik der skal søges</string>
+    <string name="cw_choose_episode">Åbn serien for at vælge en episode</string>
 </resources>

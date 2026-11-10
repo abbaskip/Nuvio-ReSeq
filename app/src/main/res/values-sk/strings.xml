@@ -3473,4 +3473,6 @@
     <string name="plugin_dns_system">Systémové DNS televízora</string>
     <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
     <string name="plugin_dns_description">Vyberte DNS pre požiadavky CloudStream. Zmeníte ho tlačidlom OK.</string>
+    <string name="continue_watching_window_summary">Aké dlhé obdobie histórie sledovania zahrnúť</string>
+    <string name="cw_choose_episode">Otvorte seriál a vyberte epizódu</string>
 </resources>

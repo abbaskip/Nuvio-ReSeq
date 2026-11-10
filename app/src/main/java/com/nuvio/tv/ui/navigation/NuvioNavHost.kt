@@ -904,7 +904,8 @@ private fun PlaybackNavHost(
                                 profileId = playbackInfo.profileId,
                                 audioDelayMs = playbackInfo.audioDelayMs,
                                 audioDelayLanguage = playbackInfo.audioDelayLanguage,
-                                tvdbContext = playbackInfo.tvdbContextJson
+                                tvdbContext = playbackInfo.tvdbContextJson,
+                                fromLinkCache = playbackInfo.fromLinkCache
                             )
                         ) {
                             popUpTo(Screen.Stream.route) { inclusive = true }
@@ -993,6 +994,11 @@ private fun PlaybackNavHost(
                     defaultValue = null
                 },
                 navArgument("autoPlayNav") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = "false"
+                },
+                navArgument("fromLinkCache") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = "false"

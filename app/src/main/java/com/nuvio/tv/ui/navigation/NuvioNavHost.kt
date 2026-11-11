@@ -306,6 +306,7 @@ private fun PlaybackNavHost(
                     addonName = com.nuvio.tv.livetv.ondemand.OnDemandStreams.GROUP_NAME))
             }
             com.nuvio.tv.livetv.ondemand.OnDemandHomeScreen(
+                onBack = { navController.popBackStack() },
                 homeSettings = homeSettings,
                 onOpenDetail = { _, _, _, uid -> selectedUid = uid },
                 onPlay = play,
@@ -331,7 +332,9 @@ private fun PlaybackNavHost(
         }
         composable(Screen.LiveTvSettings.route) {
             androidx.activity.compose.BackHandler { navController.popBackStack() }
-            com.nuvio.tv.ui.screens.settings.LiveTvSettingsScreen(onBack = { navController.popBackStack() })
+            com.nuvio.tv.ui.screens.settings.LiveTvSettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenIptvLibrary = { navController.navigate(Screen.OnDemand.route) { launchSingleTop = true } })
         }
         composable(TV_MIX_ROUTE, arguments = listOf(
             navArgument("mixId") { type = NavType.StringType },
@@ -1413,7 +1416,8 @@ private fun PlaybackNavHost(
                     )
                 },
                 onOpenDiscover = { navController.navigate(Screen.Discover.route) },
-                onOpenAdvancedDiscover = { navController.navigate(Screen.AdvancedDiscover.route) }
+                onOpenAdvancedDiscover = { navController.navigate(Screen.AdvancedDiscover.route) },
+                onOpenIptvSearch = { navController.navigate(Screen.OnDemandSearch.route) { launchSingleTop = true } }
             )
         }
 
@@ -1494,7 +1498,8 @@ private fun PlaybackNavHost(
                 onNavigateToLicensesAttributions = {
                     navController.navigate(Screen.LicensesAttributions.route)
                 },
-                onNavigateToWatchParty = { navController.navigate(Screen.WatchParty.createRoute()) }
+                onNavigateToWatchParty = { navController.navigate(Screen.WatchParty.createRoute()) },
+                onOpenIptvLibrary = { navController.navigate(Screen.OnDemand.route) { launchSingleTop = true } }
             )
         }
 

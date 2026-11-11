@@ -146,10 +146,11 @@ private val LocalLiveFlat = androidx.compose.runtime.compositionLocalOf { false 
 @Composable
 fun LiveTvSettingsScreen(
     onBack: () -> Unit = {},
+    onOpenIptvLibrary: () -> Unit = {},
     viewModel: LiveTvSettingsViewModel = hiltViewModel()
 ) {
     SettingsStandaloneScaffold(title = LIVE_TV_TITLE, subtitle = LIVE_TV_SUBTITLE) {
-        LiveTvSettingsContent(viewModel = viewModel, page = LiveTvPage.HUB)
+        LiveTvSettingsContent(viewModel = viewModel, page = LiveTvPage.HUB, onOpenIptvLibrary = onOpenIptvLibrary)
     }
 }
 
@@ -268,11 +269,12 @@ private fun sourceStatus(enabled: Boolean, updated: Long, error: String?, count:
 internal fun LiveTvSettingsContent(
     viewModel: LiveTvSettingsViewModel = hiltViewModel(),
     initialFocusRequester: FocusRequester? = null,
-    page: LiveTvPage = LiveTvPage.ALL
+    page: LiveTvPage = LiveTvPage.ALL,
+    onOpenIptvLibrary: () -> Unit = {}
 ) {
     // HUB: one Live TV page with its own row of tabs; the tab picked is the page shown.
     val hub = page == LiveTvPage.HUB
-    var tab by remember { mutableStateOf(LiveTvPage.MAIN) }
+    var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(LiveTvPage.MAIN) }
     @Suppress("NAME_SHADOWING") val page = if (hub) tab else page
     fun show(p: LiveTvPage) = page == LiveTvPage.ALL || page == p
     val flat = page != LiveTvPage.ALL && page != LiveTvPage.MAIN
@@ -588,7 +590,7 @@ internal fun LiveTvSettingsContent(
                     summary = when {
                         onDemandStatus.loading -> onDemandStatus.message ?: "Importing movies and series…"
                         !onDemandHas -> "Nothing imported yet"
-                        else -> "Movies & series imported" + if (s.onDemandInSidebar) " · in the side menu" else ""
+                        else -> "Movies & series imported"
                     },
                     icon = Icons.Default.Movie,
                     open = "on_demand" in open,
@@ -600,6 +602,11 @@ internal fun LiveTvSettingsContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = NuvioTheme.colors.TextSecondary,
                         modifier = Modifier.padding(horizontal = NuvioTheme.spacing.lg, vertical = NuvioTheme.spacing.sm)
+                    )
+                    SettingsActionRow(
+                        title = "Open IPTV On Demand library",
+                        subtitle = "Uses substantial memory and processing power. For best performance, open content from Nuvio Home and choose your IPTV source.",
+                        onClick = onOpenIptvLibrary
                     )
                     if (onDemandStatus.loading) LoadingLine(onDemandStatus.message ?: "Importing movies and series…")
                     SubHeading("Providers")
@@ -622,13 +629,6 @@ internal fun LiveTvSettingsContent(
                         if (importSettings) com.nuvio.tv.livetv.ondemand.VodImportSettingsDialog(pl, viewModel.onDemand,
                             onSave = viewModel::savePlaylist, onDismiss = { importSettings = false })
                     }
-                    SubHeading("In Nuvio")
-                    SettingsToggleRow(
-                        "Show On Demand in the Side Menu",
-                        "Its own page in Nuvio's menu, once a provider's movies or series are imported",
-                        s.onDemandInSidebar,
-                        { update { it.copy(onDemandInSidebar = !it.onDemandInSidebar) } }
-                    )
                     SubHeading("Browsing")
                     var pickingSort by remember { mutableStateOf(false) }
                     val defaultSort = com.nuvio.tv.livetv.ondemand.VodSort.parse(s.vodDefaultSort)?.first

@@ -184,6 +184,7 @@ fun SettingsScreen(
     onNavigateToSupportersContributors: () -> Unit = {},
     onNavigateToLicensesAttributions: () -> Unit = {},
     onNavigateToWatchParty: () -> Unit = {},
+    onOpenIptvLibrary: () -> Unit = {},
     profileViewModel: ProfileSettingsViewModel = hiltViewModel(),
     experienceModeViewModel: ExperienceModeSettingsViewModel = hiltViewModel(),
     partyViewModel: PartyViewModel = hiltViewModel()
@@ -668,7 +669,8 @@ fun SettingsScreen(
                                 onNavigateToAuthQrSignIn = onNavigateToAuthQrSignIn,
                                 onNavigateToSupportersContributors = onNavigateToSupportersContributors,
                                 onNavigateToLicensesAttributions = onNavigateToLicensesAttributions,
-                                onNavigateToWatchParty = onNavigateToWatchParty
+                                onNavigateToWatchParty = onNavigateToWatchParty,
+                                onOpenIptvLibrary = onOpenIptvLibrary
                             )
                         }
                     }
@@ -828,7 +830,8 @@ fun SettingsScreen(
                         onNavigateToAuthQrSignIn = onNavigateToAuthQrSignIn,
                         onNavigateToSupportersContributors = onNavigateToSupportersContributors,
                         onNavigateToLicensesAttributions = onNavigateToLicensesAttributions,
-                        onNavigateToWatchParty = onNavigateToWatchParty
+                        onNavigateToWatchParty = onNavigateToWatchParty,
+                        onOpenIptvLibrary = onOpenIptvLibrary
                     )
                 }
             }
@@ -858,7 +861,8 @@ private fun SettingsDetailPane(
     onNavigateToAuthQrSignIn: () -> Unit,
     onNavigateToSupportersContributors: () -> Unit,
     onNavigateToLicensesAttributions: () -> Unit,
-    onNavigateToWatchParty: () -> Unit
+    onNavigateToWatchParty: () -> Unit,
+    onOpenIptvLibrary: () -> Unit
 ) {
     when (selectedCategory) {
         SettingsCategory.EXPERIENCE -> EssentialAdvancedSettingsContent(
@@ -940,6 +944,7 @@ private fun SettingsDetailPane(
             initialFocusRequester = if (allowDetailAutofocus) contentFocusRequesters[SettingsCategory.BACKUP_SYNC] else null
         )
         SettingsCategory.IPTV -> LiveTvSettingsContent(
+            onOpenIptvLibrary = onOpenIptvLibrary,
             page = LiveTvPage.HUB,
             initialFocusRequester = if (allowDetailAutofocus) contentFocusRequesters[SettingsCategory.IPTV] else null
         )

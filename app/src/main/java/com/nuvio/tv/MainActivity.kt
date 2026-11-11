@@ -51,7 +51,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
@@ -1129,7 +1128,6 @@ open class MainActivity : ComponentActivity() {
                             add(DrawerItem(Screen.Search.route, strNavSearch, iconRes = R.raw.sidebar_search))
                             add(DrawerItem(Screen.LiveTv.route, "Live TV", icon = Icons.Default.LiveTv, sectionStart = true))
                             add(DrawerItem(Screen.Sports.route, "Sports Hub", icon = Icons.Default.EmojiEvents))
-                            add(DrawerItem(Screen.OnDemand.route, "On Demand", icon = Icons.Default.VideoLibrary))
                             add(
                                 DrawerItem(
                                     route = Screen.Settings.route,

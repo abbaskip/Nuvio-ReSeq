@@ -166,6 +166,11 @@ class OnDemandRepository @Inject constructor(
     private val problemByPlaylist = java.util.concurrent.ConcurrentHashMap<String, String>()
     private var started = false
 
+    /** Settings needs only existence, not library loading, maintenance or imports. */
+    suspend fun checkContent() = withContext(Dispatchers.IO) {
+        _hasContent.value = runCatching { db.hasAny() }.getOrDefault(_hasContent.value)
+    }
+
     @Synchronized
     fun start() {
         if (started) return

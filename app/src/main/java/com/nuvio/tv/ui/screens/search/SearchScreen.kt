@@ -139,7 +139,8 @@ fun SearchScreen(
     onNavigateToDetail: (String, String, String) -> Unit,
     onNavigateToSeeAll: (catalogId: String, addonId: String, type: String) -> Unit = { _, _, _ -> },
     onOpenDiscover: () -> Unit = {},
-    onOpenAdvancedDiscover: () -> Unit = {}
+    onOpenAdvancedDiscover: () -> Unit = {},
+    onOpenIptvSearch: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val watchedMovieIds by viewModel.watchedMovieIds.collectAsState()
@@ -156,6 +157,7 @@ fun SearchScreen(
     val discoverFirstItemFocusRequester = remember { FocusRequester() }
     val recentClearHistoryFocusRequester = remember { FocusRequester() }
     val discoverButtonFocusRequester = remember { FocusRequester() }
+    val iptvSearchFocusRequester = remember { FocusRequester() }
     var isSearchFieldFocused by remember { mutableStateOf(false) }
     // Track the whole input row, including voice and Discover.
     var inputRowHasFocus by remember { mutableStateOf(false) }
@@ -169,6 +171,8 @@ fun SearchScreen(
     var discoverFocusedItemIndex by rememberSaveable { mutableStateOf(0) }
     var restoreDiscoverFocus by rememberSaveable { mutableStateOf(false) }
     var pendingDiscoverRestoreOnResume by rememberSaveable { mutableStateOf(false) }
+    var pendingIptvRestoreOnResume by rememberSaveable { mutableStateOf(false) }
+    var restoreIptvFocus by rememberSaveable { mutableStateOf(false) }
     val restoringSearchFocus = remember { mutableStateOf(viewModel.hasSavedSearchFocus) }
     val didRestoreSearchFocus = remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -494,7 +498,7 @@ fun SearchScreen(
 
     LaunchedEffect(Unit) {
         if (viewModel.hasSavedSearchFocus) return@LaunchedEffect
-        if (pendingDiscoverRestoreOnResume || restoreDiscoverFocus) return@LaunchedEffect
+        if (pendingDiscoverRestoreOnResume || restoreDiscoverFocus || pendingIptvRestoreOnResume || restoreIptvFocus) return@LaunchedEffect
         repeat(2) { withFrameNanos { } }
         runCatching { initialFocusRequester.requestFocus() }
     }
@@ -505,6 +509,13 @@ fun SearchScreen(
         repeat(2) { withFrameNanos { } }
         runCatching { discoverButtonFocusRequester.requestFocus() }
         restoreDiscoverFocus = false
+    }
+
+    LaunchedEffect(restoreIptvFocus) {
+        if (!restoreIptvFocus) return@LaunchedEffect
+        repeat(2) { withFrameNanos { } }
+        runCatching { iptvSearchFocusRequester.requestFocus() }
+        restoreIptvFocus = false
     }
 
     // Push search suggestions to the native keyboard suggestion bar. Keyed on the query as well
@@ -521,6 +532,7 @@ fun SearchScreen(
 
     var isScreenActive by remember { mutableStateOf(true) }
     val latestPendingDiscoverRestore by rememberUpdatedState(pendingDiscoverRestoreOnResume)
+    val latestPendingIptvRestore by rememberUpdatedState(pendingIptvRestoreOnResume)
     val latestInitialFocusRequester by rememberUpdatedState(initialFocusRequester)
     val latestShouldKeepSearchFocus by rememberUpdatedState(
         focusResults || uiState.isSearching || isVoiceListening
@@ -529,7 +541,10 @@ fun SearchScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 isScreenActive = true
-                if (latestPendingDiscoverRestore) {
+                if (latestPendingIptvRestore) {
+                    restoreIptvFocus = true
+                    pendingIptvRestoreOnResume = false
+                } else if (latestPendingDiscoverRestore) {
                     restoreDiscoverFocus = true
                     pendingDiscoverRestoreOnResume = false
                 } else if (viewModel.hasSavedSearchFocus || didRestoreSearchFocus.value) {
@@ -627,11 +642,21 @@ fun SearchScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.lg)
         ) {
-            item(key = "advanced_discover") {
-                Button(
-                    onClick = onOpenAdvancedDiscover,
-                    modifier = Modifier.padding(horizontal = NuvioTheme.spacing.xxxl)
-                ) { Text(stringResource(R.string.advanced_discover_title)) }
+            item(key = "search_shortcuts") {
+                Row(modifier = Modifier.padding(horizontal = NuvioTheme.spacing.xxxl),
+                    horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md)) {
+                    Button(onClick = onOpenAdvancedDiscover) {
+                        Text(stringResource(R.string.advanced_discover_title))
+                    }
+                    Button(onClick = {
+                        keyboardController?.hide()
+                        pendingIptvRestoreOnResume = true
+                        onOpenIptvSearch()
+                    }, modifier = Modifier.focusRequester(iptvSearchFocusRequester)
+                        .focusProperties { down = topInputFocusRequester }) {
+                        Text(stringResource(R.string.vod_search_hint))
+                    }
+                }
             }
 
             item(key = "search_input") {

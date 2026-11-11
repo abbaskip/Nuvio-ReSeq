@@ -71,6 +71,7 @@ class LiveTvSettingsViewModel @Inject constructor(
         prefs.playlistAccounts.stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     init {
+        viewModelScope.launch { onDemand.checkContent() }
         repository.ensureLoaded()
         driveSync.start()
     }

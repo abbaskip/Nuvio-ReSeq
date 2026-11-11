@@ -77,6 +77,7 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun OnDemandHomeScreen(
+    onBack: () -> Unit,
     homeSettings: HomeUiState?,
     onOpenDetail: (itemId: String, itemType: String, addonBaseUrl: String?, onDemandUid: String) -> Unit,
     onPlay: (url: String, title: String, type: String, poster: String?) -> Unit,
@@ -279,17 +280,16 @@ fun OnDemandHomeScreen(
     val requestTrailerById: (String, String, String?, String) -> Unit = { _, _, _, _ -> }
     val requestTrailerForItem: (MetaPreview) -> Unit = { }
 
-    // Back opens the menu, like on every other menu page. Added here because otherwise Back
-    // went to the page underneath (Home) on this one. The layouts' own Back handling (scroll a
-    // row back to its start, close a full screen trailer) and any open dialog still come first,
-    // and with the menu open Back is left to the app (exit).
-    val openSidebar = com.nuvio.tv.LocalOpenSidebar.current
-    val sidebarOpen = com.nuvio.tv.LocalSidebarExpanded.current
+    // The full library is a Settings destination; leaving it releases its screen model.
     val topFocusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val topContentFocus = com.nuvio.tv.LocalContentFocusRequester.current
-    androidx.activity.compose.BackHandler(enabled = !sidebarOpen) { openSidebar() }
+    androidx.activity.compose.BackHandler { onBack() }
 
-    androidx.compose.runtime.CompositionLocalProvider(com.nuvio.tv.core.player.LocalTrailerPlayerPool provides ownPool) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.nuvio.tv.core.player.LocalTrailerPlayerPool provides ownPool,
+        com.nuvio.tv.LocalOpenSidebar provides onBack,
+        com.nuvio.tv.LocalSidebarExpanded provides false
+    ) {
     Box(
         modifier = Modifier
             .fillMaxSize()

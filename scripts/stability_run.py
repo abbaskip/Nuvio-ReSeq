@@ -7,6 +7,8 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager
 import json
+import hashlib
+from datetime import datetime, timezone
 from pathlib import Path
 import re
 import subprocess
@@ -370,6 +372,14 @@ def main():
         parser.error('Invalid serial')
     args.output.mkdir(parents=True, exist_ok=False)
     s = Session(args)
+    digest = hashlib.sha256()
+    with args.apk.open('rb') as apk:
+        for chunk in iter(lambda: apk.read(1024*1024), b''):
+            digest.update(chunk)
+    metadata = {'startedUtc': datetime.now(timezone.utc).isoformat(), 'apkSha256': digest.hexdigest(),
+        'sourceHead': run('git', 'rev-parse', 'HEAD').strip(),
+        'runnerSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+    s.save('run-metadata.json', json.dumps(metadata, indent=2))
     error = None
     try:
         with device_session(s):
@@ -377,6 +387,8 @@ def main():
     except BaseException as failure:
         error = str(failure) or type(failure).__name__
     finally:
+        metadata['endedUtc'] = datetime.now(timezone.utc).isoformat()
+        s.save('run-metadata.json', json.dumps(metadata, indent=2))
         s.save('events.json', json.dumps(s.events, indent=2))
         s.save('observations.json', json.dumps(s.observations, indent=2))
         s.save('result.json', json.dumps({'status': 'failed' if error else 'completed', 'error': error,

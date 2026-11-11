@@ -1,3 +1,23 @@
+# Current upstream recovery and integration queue
+
+Read the latest durable report for the 12 November catch-up. Beta 9, beta 9.1
+and later published releases through beta 9.6.1 are historical delivery inputs.
+The current unpublished review branch is
+automation/upstream-20261111T150130Z-4bd1e4. It preserves a reviewed merge of
+development and the published release, DASH MIME hint decoding, MPV audio-clock
+fallback and text-size-aware Home description scroll pacing. Four upstream
+Spanish strings were already translated in ReSeq and were recorded equivalent.
+Keep their established translations and avoid duplicate resource keys.
+
+Continue engineering and validation for process-death route restoration across
+TVDB/canonical identity, TV Mix and NNTP session URLs; VOD HLS SPS/PPS init repair
+and its bounded-read follow-up against ReSeq LiveHlsRepair/recording; and list
+picker checkmarks while preserving ReSeq actions, focus and accessibility.
+These four source records require implementation/validation, not a new product
+decision. Original protected design holds remain intact. Do not mistake a clean
+merge for semantic compatibility or repeatedly ask the maintainer to approve
+routine engineering work.
+
 # Delivered in beta 9.1
 
 Published and verified at 355741488519bb7ddf3d5909b7b0649d70412621.

@@ -279,3 +279,32 @@ Use this format, omitting Decisions required when there is no genuine decision:
     - Outstanding checks/fixes/reviews.
 
 Maintenance releases may contain ReSeq runtime or build changes without a new upstream integration. The release gate recognises those changes against the preserved release base. Version-only, ledger-only, notes-only and test-only updates do not create a release. Upstream inventory review, protective holds, exact-commit validation, compatibility attestation and publication checks apply to both release types.
+
+
+## Recovery on 12 November 2026
+
+The dedicated checkout and original private shared-state directory were missing.
+Recovery restored this independent clone from its remote automation branch and
+all 186 historical decisions verbatim from current development plus thirteen
+preserved branch snapshots. The manifest and raw ledger snapshots are under
+.upstream-sync/recovery/20261112. The separate root backup is
+upstream-sync-recovery-20261112.zip. Missing historical run manifests and private
+validation artifacts remain unavailable. The released lint XML was recovered
+from its tracked gzip and verified against the immutable origin hash. Never
+treat reconstruction as fresh validation or silently recreate publication
+activation. Read the newest report for the current dry-run/activation state.
+
+Development e458f5fb0 contains only eight additional stability workflow commits,
+while published beta 9.6.1 c2b4d94f3 contains newer runtime fixes. The isolated
+automation/reconciled-20261112 merge preserves both histories and adds only the
+development workflow to the published source. For this divergence use begin
+--prepared-base automation/reconciled-20261112, including --dry-run until a
+complete new rehearsal enables future publication. The coordinator verifies
+the supplied commit contains BOTH current dev and latest published release.
+If those refs advance, prepare and inspect a fresh merge before selecting it.
+Never move dev just to satisfy a base preflight.
+
+Preserve pending-integration.json and its remote branch after a held rehearsal.
+A dry-run branch containing integrated upstream work is unpublished. Its ledger
+can be recovered from that branch without pretending those changes shipped.
+Recovered-source backups and new evidence stay independent of this checkout.

@@ -1,0 +1,89 @@
+name: Stability emulator verification
+
+# Deliberately independent of publication. Dispatch after the Phase 1 base is agreed.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        ram: [2048, 4096]
+    env:
+      ANDROID_SERIAL: emulator-5554
+      CI_USE_DEBUG_SIGNING: 'true'
+      NUVIO_SPORTS_BASE_FEED_URL: http://127.0.0.1:38791/sports
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+      - name: Prepare synthetic service configuration
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          Path('local.properties').write_text(
+              'NUVIO_SUPABASE_URL=http://127.0.0.1:38791/\n'
+              'NUVIO_SUPABASE_ANON_KEY=stability-fixture-not-a-credential\n'
+              'TRAKT_API_URL=http://127.0.0.1:38791/\n'
+          )
+          PY
+      - name: Test launch-check guards
+        run: python3 -m unittest scripts.tests.test_stability_smoke
+      - name: Build minified benchmark and existing instrumentation
+        run: >-
+          ./gradlew :app:assembleFullBenchmark :app:assembleFullDebug
+          :app:assembleFullDebugAndroidTest --max-workers=2
+          -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Create disposable Android TV emulator
+        shell: bash
+        run: |
+          sdkmanager 'emulator' 'system-images;android-34;android-tv;x86'
+          echo no | avdmanager create avd --name stability --package 'system-images;android-34;android-tv;x86' --force
+          mkdir -p build/stability
+          "$ANDROID_HOME/emulator/emulator" -avd stability -port 5554 -memory ${{ matrix.ram }} -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > build/stability/emulator.log 2>&1 &
+          timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
+          booted=false
+          for attempt in $(seq 1 120); do
+            if [[ "$(adb -s "$ANDROID_SERIAL" shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; then booted=true; break; fi
+            sleep 2
+          done
+          test "$booted" = true
+          python3 baselineprofile/fixtures/server.py > build/stability/fixture-server.log 2>&1 &
+          adb -s "$ANDROID_SERIAL" reverse tcp:38791 tcp:38791
+          adb -s "$ANDROID_SERIAL" reverse tcp:38792 tcp:38792
+      - name: Launch minified APK and observe for 60 seconds
+        shell: bash
+        run: |
+          mapfile -t apks < <(find app/build/outputs/apk/full/benchmark -name '*-x86-benchmark.apk')
+          test "${#apks[@]}" -eq 1
+          python3 scripts/stability_smoke.py --serial "$ANDROID_SERIAL" --apk "${apks[0]}" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output build/stability/smoke
+      - name: Run existing instrumentation on the emulator
+        # Live-account tests remain opt-in and are skipped with fresh fixture-only app data.
+        if: ${{ !cancelled() && success() }}
+        run: >-
+          ./gradlew :app:connectedFullDebugAndroidTest --max-workers=2
+          -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stability-tv-api34-${{ matrix.ram }}mb
+          path: |
+            build/stability/
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+            app/build/outputs/mapping/fullBenchmark/mapping.txt
+          retention-days: 14
+      - name: Stop disposable emulator
+        if: always()
+        run: adb -s "$ANDROID_SERIAL" emu kill || true

@@ -1185,6 +1185,7 @@ private fun GamePage(
     onClose: () -> Unit
 ) {
     DisposableEffect(ev.id) {
+        com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("sports-game-opened", mapOf("event" to ev.id, "state" to ev.state.name))
         viewModel.repo.focusEvent(ev.id)
         onDispose { viewModel.repo.focusEvent(null) }
     }

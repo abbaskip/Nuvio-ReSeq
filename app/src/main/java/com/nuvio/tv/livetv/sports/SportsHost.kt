@@ -143,6 +143,8 @@ fun SportsHost(navController: NavController) {
                 }
             }
             if (next != null) {
+                com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("reminder-shown", mapOf("event" to next.id,
+                    "dueMs" to next.startMs - lead, "shownMs" to System.currentTimeMillis()))
                 shown += next.id
                 // Switches by itself (this game's choice, or the setting) to a channel we're sure of.
                 val best = repo.bestChannel(next.id)?.takeIf { it.sure }

@@ -243,7 +243,7 @@ private data class NextUpReleaseState(
 )
 
 private class CwDebugSession {
-    fun markPhase(value: String) = Unit
+    fun markPhase(value: String) = com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("cw-phase", mapOf("phase" to value))
     fun logStart(
         snapshot: ContinueWatchingSettingsSnapshot,
         recentItemsCount: Int,
@@ -257,27 +257,27 @@ private class CwDebugSession {
     fun recordPartialRendered(count: Int, elapsedMs: Long) = Unit
     fun recordEnrichmentDelay(delayMs: Long) = Unit
     fun recordEnrichmentComplete(elapsedMs: Long, changed: Boolean) = Unit
-    fun recordMetaCacheHit(progress: WatchProgress) = Unit
+    fun recordMetaCacheHit(progress: WatchProgress) = traceCwCard(progress.contentId) { "metadata cache hit" }
     fun recordMetaAttempt(
         progress: WatchProgress,
         type: String,
         candidateId: String,
         elapsedMs: Long,
         outcome: String
-    ) = Unit
+    ) = traceCwCard(progress.contentId) { "metadata attempt type=$type candidate=$candidateId elapsedMs=$elapsedMs outcome=$outcome" }
     fun recordMetaResolveFinished(
         progress: WatchProgress,
         elapsedMs: Long,
         success: Boolean,
         attempts: Int
-    ) = Unit
-    fun recordMetaTimeout() = Unit
-    fun recordMetaError() = Unit
+    ) = traceCwCard(progress.contentId) { "metadata result success=$success elapsedMs=$elapsedMs attempts=$attempts" }
+    fun recordMetaTimeout() = com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("cw-metadata-timeout")
+    fun recordMetaError() = com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("cw-metadata-error")
     fun recordTmdbIdLookup(progress: WatchProgress, candidateCount: Int, resolved: Boolean, elapsedMs: Long) = Unit
     fun recordTmdbIdCacheHit(progress: WatchProgress, resolved: Boolean) = Unit
     fun recordTmdbCall(kind: String, elapsedMs: Long, success: Boolean) = Unit
-    fun recordNextUpAttempt(progress: WatchProgress) = Unit
-    fun recordNextUpResult(progress: WatchProgress, reason: String, elapsedMs: Long, resolved: Boolean) = Unit
+    fun recordNextUpAttempt(progress: WatchProgress) = traceCwCard(progress.contentId) { "next-up seed ${progress.season}:${progress.episode}" }
+    fun recordNextUpResult(progress: WatchProgress, reason: String, elapsedMs: Long, resolved: Boolean) = traceCwCard(progress.contentId) { "next-up result resolved=$resolved reason=$reason elapsedMs=$elapsedMs" }
     fun recordNextUpCacheHit(progress: WatchProgress, resolved: Boolean, showUnairedNextUp: Boolean) = Unit
     fun logSummary(cancelled: Boolean = false) = Unit
 }
@@ -1180,10 +1180,11 @@ private fun HomeViewModel.shouldTreatAsActiveInProgressForNextUpSuppression(
 }
 
 private fun logNextUpDecision(message: String) {
+    com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("cw-decision", mapOf("decision" to message.take(1024)))
     if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.d("ContinueWatchingNextUp", message)
 }
 
-private fun shouldTraceNextUpSeries(progress: WatchProgress): Boolean = false
+private fun shouldTraceNextUpSeries(progress: WatchProgress): Boolean = com.nuvio.tv.core.diagnostics.StabilityDiagnostics.enabled
 
 private fun WatchProgress.toNextUpTraceString(): String {
     return buildString {

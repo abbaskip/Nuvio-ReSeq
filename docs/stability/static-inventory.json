@@ -1,0 +1,1098 @@
+{
+  "revision": "c2b4d94f32372446fedb24ee951d0a026ddd4e1f",
+  "method": "Committed Kotlin blobs; lexical counts include comments/declarations, not proof of runtime ownership. Git log uses author names, commit dates, all reachable parents, Sydney midnight boundaries.",
+  "commits_nov5_to_nov11": 199,
+  "commits_nov9_to_nov11": 160,
+  "authors": {
+    "Codex": 121,
+    "aicon": 1,
+    "Patrik": 2,
+    "skoruppa": 18,
+    "Svartolina": 1,
+    "SK-Gits": 2,
+    "nosvasedis": 1,
+    "blueocean2308": 3,
+    "halibiram": 2,
+    "Joe00011": 2,
+    "siddiquetanvir": 1,
+    "Omavel": 4,
+    "oathzed": 1,
+    "Marko \u017de\u017eelj": 3,
+    "mmsw": 2,
+    "DavidVamaiotu": 1,
+    "tapframe": 13,
+    "abbaskip": 20,
+    "haveAnIssue": 1
+  },
+  "jvm_kotlin_files": 521,
+  "instrumentation_kotlin_files": 34,
+  "sports_files": 43,
+  "sports_lines": 13855,
+  "sports_repository_stateflow_constructor_mentions": 26,
+  "cw_core_file_lines": {
+    "app/src/main/java/com/nuvio/tv/ui/screens/home/ContinueWatchingNextUpReconciliation.kt": 167,
+    "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeEpisodeShuffle.kt": 349,
+    "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModelContinueWatching.kt": 3220,
+    "app/src/main/java/com/nuvio/tv/ui/screens/home/TvdbContinueWatching.kt": 133
+  },
+  "hotspots": {
+    "SportsRepository.kt": {
+      "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt": 13
+    },
+    "SportsMatcher.kt": {
+      "app/src/main/java/com/nuvio/tv/livetv/sports/SportsMatcher.kt": 8
+    },
+    "NewsArticles.kt": {
+      "app/src/main/java/com/nuvio/tv/core/usenet/NewsArticles.kt": 9
+    },
+    "PlayerRuntimeController.kt": {
+      "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt": 8
+    },
+    "HomeEpisodeShuffle.kt": {
+      "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeEpisodeShuffle.kt": 7
+    },
+    "UsenetFile.kt": {
+      "app/src/main/java/com/nuvio/tv/core/usenet/UsenetFile.kt": 8
+    },
+    "SportsScreen.kt": {
+      "app/src/main/java/com/nuvio/tv/livetv/sports/SportsScreen.kt": 6
+    },
+    "StreamScreenViewModel.kt": {
+      "app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt": 4
+    },
+    "PlayerRuntimeControllerStreams.kt": {
+      "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt": 5
+    },
+    "PlayerRuntimeControllerInitialization.kt": {
+      "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerInitialization.kt": 4
+    },
+    "TvdbContinueWatching.kt": {
+      "app/src/main/java/com/nuvio/tv/ui/screens/home/TvdbContinueWatching.kt": 4
+    },
+    "HomeViewModelContinueWatching.kt": {
+      "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModelContinueWatching.kt": 8
+    },
+    "LiveTvRepository.kt": {
+      "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt": 5
+    },
+    "UsenetPlayback.kt": {
+      "app/src/main/java/com/nuvio/tv/core/usenet/UsenetPlayback.kt": 6
+    }
+  },
+  "gates": {
+    "PlayerSessionTracker": {
+      "files": 11,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/MainActivity.kt",
+          "line": 393,
+          "source": "com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen.collectLatest { open ->"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/player/PlayerSessionTracker.kt",
+          "line": 16,
+          "source": "object PlayerSessionTracker {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/player/TrailerPlayerPool.kt",
+          "line": 58,
+          "source": "private var trailerSession: PlayerSessionTracker.Session? = null"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/player/TrailerPlayerPool.kt",
+          "line": 247,
+          "source": "if (trailerSession == null) trailerSession = PlayerSessionTracker.openTrailer()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/data/repository/TraktProgressService.kt",
+          "line": 80,
+          "source": "if (!com.nuvio.tv.core.player.PlayerSessionTracker.hasOpenSession) emit(Unit)"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/BackgroundWork.kt",
+          "line": 28,
+          "source": "val nuvioPlaying = com.nuvio.tv.core.player.PlayerSessionTracker.playbackActive"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/BackgroundWork.kt",
+          "line": 31,
+          "source": "get() = com.nuvio.tv.core.player.PlayerSessionTracker.hasPlayback"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 3,
+          "source": "import com.nuvio.tv.core.player.PlayerSessionTracker"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 47,
+          "source": "nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 58,
+          "source": "nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 68,
+          "source": "nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 77,
+          "source": "nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen,"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 5,
+          "source": "import com.nuvio.tv.core.player.PlayerSessionTracker"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1320,
+          "source": "if (PlayerSessionTracker.hasOpenSession) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1323,
+          "source": "pacing.checkpoint(PlayerSessionTracker.hasOpenTrailer && viewers.value == 0)"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ui/LiveTvLoadingHost.kt",
+          "line": 71,
+          "source": "// Background work follows PlayerSessionTracker independently of this optional overlay."
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeEpisodeShuffle.kt",
+          "line": 6,
+          "source": "import com.nuvio.tv.core.player.PlayerSessionTracker"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeEpisodeShuffle.kt",
+          "line": 216,
+          "source": "combine(nativeCards, seeds, episodeShuffleStore.profiles, shuffleHomeRefresh, PlayerSessionTracker.isSessionOpen) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModelContinueWatching.kt",
+          "line": 7,
+          "source": "import com.nuvio.tv.core.player.PlayerSessionTracker"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModelContinueWatching.kt",
+          "line": 289,
+          "source": "runVisibleHomeWork(homeContentActive, PlayerSessionTracker.isSessionOpen) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt",
+          "line": 223,
+          "source": "private val playerSession = com.nuvio.tv.core.player.PlayerSessionTracker.open()"
+        }
+      ]
+    },
+    "idle_wait": {
+      "files": 5,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 219,
+          "source": "BackgroundWork.awaitIdle()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1000,
+          "source": "BackgroundWork.awaitIdle()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandDatabase.kt",
+          "line": 471,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.awaitPlaybackIdleBlocking()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 190,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 255,
+          "source": "if (!force) com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 263,
+          "source": "if (!force) com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 287,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 505,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.awaitPlaybackIdleBlocking()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 523,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.awaitPlaybackIdleBlocking()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/StalkerVod.kt",
+          "line": 66,
+          "source": "beforePage = { BackgroundWork.awaitPlaybackIdleBlocking() }) { row ->"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/StalkerVod.kt",
+          "line": 82,
+          "source": "BackgroundWork.awaitIdle()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ui/LiveTvViewModel.kt",
+          "line": 235,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()"
+        }
+      ]
+    },
+    "quiet": {
+      "files": 5,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 229,
+          "source": "private suspend fun refreshAutomatically(forcePlaylists: Boolean = false) = withContext(BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1255,
+          "source": "scope.launch(BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1734,
+          "source": "private suspend fun buildChannels() = withContext(BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1842,
+          "source": "private suspend fun buildProgramsInner(settings: LiveTvSettings, targets: List<EpgTarget>) = withContext(BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/StalkerPortalClient.kt",
+          "line": 44,
+          "source": ".followRedirects(false).build(), System::currentTimeMillis, BackgroundWork.quiet)"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 179,
+          "source": "scope.launch(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 216,
+          "source": "scope.launch(com.nuvio.tv.livetv.data.BackgroundWork.quiet) { kotlinx.coroutines.delay(1_500); refresh(force = false) }"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 318,
+          "source": "genreJob = scope.launch(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 744,
+          "source": "scope.launch(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsHost.kt",
+          "line": 128,
+          "source": "val next = kotlinx.coroutines.withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 253,
+          "source": "withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 692,
+          "source": "val parsed = withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 761,
+          "source": "val list = withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) { mergeSchedule(raws) }"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1315,
+          "source": "private suspend fun runMatch() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1365,
+          "source": "withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {"
+        }
+      ]
+    },
+    "reads": {
+      "files": 2,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1114,
+          "source": "scope.launch(BackgroundWork.reads) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1168,
+          "source": "suspend fun programDetails(channelKey: String, startMs: Long): EpgProgram? = withContext(BackgroundWork.reads) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1192,
+          "source": "scope.launch(BackgroundWork.reads) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1302,
+          "source": "fullRangeJob = scope.launch(BackgroundWork.reads) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1232,
+          "source": "private suspend fun refreshTvNow() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.reads) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1309,
+          "source": "val detailed = withContext(com.nuvio.tv.livetv.data.BackgroundWork.reads) { matcher.match(input(true), checkpoint) }"
+        }
+      ]
+    },
+    "heavy": {
+      "files": 3,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1830,
+          "source": "BackgroundWork.heavy { buildProgramsInner(settings, targets) }"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 256,
+          "source": "if (!force) com.nuvio.tv.livetv.data.BackgroundWork.awaitNoHeavy()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+          "line": 264,
+          "source": "if (!force) com.nuvio.tv.livetv.data.BackgroundWork.awaitNoHeavy()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1126,
+          "source": "sportsCatching { com.nuvio.tv.livetv.data.BackgroundWork.heavy { runMatch() } }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it else Log.w(TAG, \"Sports matching failed\", it) }"
+        }
+      ]
+    },
+    "navigation": {
+      "files": 4,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/MainActivity.kt",
+          "line": 1388,
+          "source": "if (event.action == KeyEvent.ACTION_DOWN) com.nuvio.tv.livetv.data.BackgroundWork.onNavigation()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/BackgroundWork.kt",
+          "line": 20,
+          "source": "fun onNavigation() { lastNavigationNanos = System.nanoTime() }"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/BackgroundWork.kt",
+          "line": 23,
+          "source": "fun yieldToNavigation() {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandDatabase.kt",
+          "line": 472,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1235,
+          "source": "val checkpoint = { work.ensureActive(); com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation() }"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1324,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation()"
+        }
+      ]
+    },
+    "live_fullscreen": {
+      "files": 5,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/MainActivity.kt",
+          "line": 1089,
+          "source": "val liveTvFullscreen by com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.collectAsState()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 230,
+          "source": "foreground, viewers, playback.state, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 233,
+          "source": "foreground, viewers, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 236,
+          "source": "foreground, playback.state, com.nuvio.tv.livetv.ui.LiveTvFullscreen.active"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsScreen.kt",
+          "line": 240,
+          "source": "com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value = fullscreen"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsScreen.kt",
+          "line": 243,
+          "source": "if (fullscreen) com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value = false"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ui/LiveTvGuideScreen.kt",
+          "line": 567,
+          "source": "LaunchedEffect(fullscreen) { LiveTvFullscreen.active.value = fullscreen }"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ui/LiveTvGuideScreen.kt",
+          "line": 570,
+          "source": "LiveTvFullscreen.active.value = false"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/ui/LiveTvLoadingHost.kt",
+          "line": 62,
+          "source": "val liveFullscreen by LiveTvFullscreen.active.collectAsState()"
+        }
+      ]
+    },
+    "recommendation_playback": {
+      "files": 4,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/player/PlayerSessionTracker.kt",
+          "line": 12,
+          "source": "* Unlike TvRecommendationManager.isPlaybackActive it stays set while paused, buffering or seeking,"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/recommendations/TvRecommendationManager.kt",
+          "line": 45,
+          "source": "isPlaybackActive.collect { active ->"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/recommendations/TvRecommendationManager.kt",
+          "line": 63,
+          "source": "val isPlaybackActive = MutableStateFlow(false)"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/recommendations/TvRecommendationManager.kt",
+          "line": 147,
+          "source": "if (isPlaybackActive.value) return@withLock"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/recommendations/TvRecommendationManager.kt",
+          "line": 156,
+          "source": "if (isPlaybackActive.value) return@withLock"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/core/recommendations/TvRecommendationManager.kt",
+          "line": 165,
+          "source": "if (isPlaybackActive.value) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeController.kt",
+          "line": 347,
+          "source": "com.nuvio.tv.core.recommendations.TvRecommendationManager.isPlaybackActive.value = isPlaying"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerLifecycle.kt",
+          "line": 51,
+          "source": "com.nuvio.tv.core.recommendations.TvRecommendationManager.isPlaybackActive.value = false"
+        }
+      ]
+    },
+    "guide_building": {
+      "files": 3,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/BackgroundWork.kt",
+          "line": 86,
+          "source": "val guideBuilding = MutableStateFlow(false)"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1827,
+          "source": "BackgroundWork.guideBuilding.value = true"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1838,
+          "source": "} finally { BackgroundWork.guideBuilding.value = false }"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1095,
+          "source": "combine(liveRepo.status.map { it.loading }, com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding, liveRepo.guideGeneration) { loading, building, generation -> Triple(loading, building, generation) }.distinctUntilChanged()"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 1278,
+          "source": "private fun guideReady(): Boolean = !com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding.value"
+        }
+      ]
+    },
+    "live_channel_open": {
+      "files": 3,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/BackgroundWork.kt",
+          "line": 16,
+          "source": "val liveChannelOpen = MutableStateFlow(false)"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1798,
+          "source": "if (BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying)"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+          "line": 1814,
+          "source": "kotlinx.coroutines.flow.combine(BackgroundWork.liveChannelOpen, BackgroundWork.nuvioPlaying) { live, vod -> !live && !vod }.first { it }"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/player/LiveTvPlaybackController.kt",
+          "line": 110,
+          "source": "com.nuvio.tv.livetv.data.BackgroundWork.liveChannelOpen.value = value != null"
+        }
+      ]
+    },
+    "sports_gates": {
+      "files": 2,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 22,
+          "source": "internal fun sportsCatalogueAllowed(background: Flow<Boolean>, viewers: Flow<Int>): Flow<Boolean> ="
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 42,
+          "source": "internal fun sportsBrowsingAllowed("
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 54,
+          "source": "internal fun sportsChannelLookupAllowed("
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 64,
+          "source": "internal fun sportsBackgroundAllowed("
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsPlaybackWork.kt",
+          "line": 74,
+          "source": "internal fun sportsScoresAllowed("
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 229,
+          "source": "internal val browsingAllowed = sportsBrowsingAllowed("
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 232,
+          "source": "internal val channelLookupAllowed = sportsChannelLookupAllowed("
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 235,
+          "source": "internal val backgroundAllowed = sportsBackgroundAllowed("
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+          "line": 336,
+          "source": "sportsScoresAllowed(foreground, playback.state, viewing = viewers)"
+        }
+      ]
+    },
+    "home_gates": {
+      "files": 6,
+      "hits": [
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/ContinueWatchingCachePolicy.kt",
+          "line": 19,
+          "source": "internal fun <T : Any> kotlinx.coroutines.flow.Flow<T>.holdContinueWatchingWhilePlayerOpen("
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeEpisodeShuffle.kt",
+          "line": 45,
+          "source": "): StateFlow<HomeUiState> = homeContentActive.flatMapLatest { active ->"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModel.kt",
+          "line": 131,
+          "source": "internal val homeContentActive = MutableStateFlow(false)"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModel.kt",
+          "line": 140,
+          "source": "homeContentActive.value = active"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModel.kt",
+          "line": 336,
+          "source": "internal var startupGracePeriodActive: Boolean = true"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModel.kt",
+          "line": 448,
+          "source": "startupGracePeriodActive = false"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModel.kt",
+          "line": 495,
+          "source": "if (!startupGracePeriodActive) return 0L"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModelContinueWatching.kt",
+          "line": 289,
+          "source": "runVisibleHomeWork(homeContentActive, PlayerSessionTracker.isSessionOpen) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModelPresentationPipeline.kt",
+          "line": 425,
+          "source": "if (startupGracePeriodActive) return"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModelPresentationPipeline.kt",
+          "line": 560,
+          "source": "if (startupGracePeriodActive) {"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/HomeViewModelPresentationPipeline.kt",
+          "line": 755,
+          "source": "if (startupGracePeriodActive) return"
+        },
+        {
+          "file": "app/src/main/java/com/nuvio/tv/ui/screens/home/VisibleHomeWork.kt",
+          "line": 11,
+          "source": "internal suspend fun runVisibleHomeWork("
+        }
+      ]
+    }
+  },
+  "scope_constructor_lines": [
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/auth/AuthManager.kt",
+      "line": 91,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/auth/DeviceSessionRegistration.kt",
+      "line": 43,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/debrid/DirectDebridResolver.kt",
+      "line": 28,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/di/MdbListModule.kt",
+      "line": 41,
+      "source": "api, sync, auth, profiles.activeProfileId, CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/di/MdbListModule.kt",
+      "line": 69,
+      "source": "CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/di/MdbListModule.kt",
+      "line": 98,
+      "source": "CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/di/MediaServerModule.kt",
+      "line": 48,
+      "source": "val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/diagnostics/SentryInitializer.kt",
+      "line": 24,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/image/StaleWhileRevalidateCacheStrategy.kt",
+      "line": 46,
+      "source": "private val revalidationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/party/PartyRepository.kt",
+      "line": 63,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + dispatcher)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/party/PartyRepository.kt",
+      "line": 282,
+      "source": "val session = CoroutineScope(dispatcher + job)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/player/ExternalPlaybackTracker.kt",
+      "line": 228,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/player/TrailerPlayerPool.kt",
+      "line": 61,
+      "source": "private val settingsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/profile/ProfileManager.kt",
+      "line": 33,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/recommendations/TvRecommendationManager.kt",
+      "line": 37,
+      "source": "private val deferScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/sync/CollectionSyncService.kt",
+      "line": 33,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/sync/HomeCatalogSettingsSyncService.kt",
+      "line": 82,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/sync/MediaServerSyncService.kt",
+      "line": 43,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/sync/ProfileSettingsSyncService.kt",
+      "line": 191,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/sync/ProviderCredentialSyncService.kt",
+      "line": 60,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/sync/StartupSyncService.kt",
+      "line": 75,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/sync/androidtv/AndroidTvChannelSyncService.kt",
+      "line": 53,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/sync/androidtv/TvChannelRefreshJobService.kt",
+      "line": 61,
+      "source": "jobScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/torrent/TorrentService.kt",
+      "line": 61,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/core/torrent/TorrentSettings.kt",
+      "line": 48,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/local/LayoutPreferenceDataStore.kt",
+      "line": 64,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/local/PlayerSettingsDataStore.kt",
+      "line": 637,
+      "source": "private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/local/ProfileDataStoreFactory.kt",
+      "line": 154,
+      "source": "val scope = CoroutineScope(Dispatchers.IO + job)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/local/StreamBadgeSettingsDataStore.kt",
+      "line": 62,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/local/TmdbSettingsDataStore.kt",
+      "line": 30,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/local/TraktSettingsDataStore.kt",
+      "line": 66,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/local/WatchProgressPreferences.kt",
+      "line": 75,
+      "source": "private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/local/WatchedSeriesStateHolder.kt",
+      "line": 45,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/mdblist/MdbListRatingsDiskCache.kt",
+      "line": 18,
+      "source": "private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/mdblist/MdbListRatingsLoader.kt",
+      "line": 16,
+      "source": "private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/mdblist/MdbListTrackingProvider.kt",
+      "line": 43,
+      "source": "CoroutineScope(SupervisorJob() + Dispatchers.IO), SharingStarted.Eagerly,"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/mediaserver/ServerMatcher.kt",
+      "line": 83,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/mediaserver/ServerPlayback.kt",
+      "line": 25,
+      "source": "scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/mediaserver/ServerUserStateProjection.kt",
+      "line": 30,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/mediaserver/ServerWatched.kt",
+      "line": 47,
+      "source": "scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/remote/supabase/AvatarRepository.kt",
+      "line": 69,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/remote/supabase/ProfileBackgroundRepository.kt",
+      "line": 52,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/AddonRepositoryImpl.kt",
+      "line": 91,
+      "source": "private val syncScope = CoroutineScope(SupervisorJob() + dispatcher)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/ImdbEpisodeRatingsRepository.kt",
+      "line": 31,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/LibraryRepositoryImpl.kt",
+      "line": 66,
+      "source": "private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/MemberAccessRepository.kt",
+      "line": 41,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/MembershipOverviewRepository.kt",
+      "line": 30,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/MetaRepositoryImpl.kt",
+      "line": 121,
+      "source": "private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/StreamSearchSessionCache.kt",
+      "line": 39,
+      "source": "private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/TraktLibraryService.kt",
+      "line": 61,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/TraktProgressService.kt",
+      "line": 178,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + exceptionHandler)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/TraktTrackingProvider.kt",
+      "line": 21,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/repository/WatchProgressRepositoryImpl.kt",
+      "line": 178,
+      "source": "private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/simkl/AndroidSimklAuthStorage.kt",
+      "line": 36,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/simkl/SimklAnimeIdPreferenceHolder.kt",
+      "line": 22,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/simkl/SimklSyncRepository.kt",
+      "line": 33,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/simkl/SimklTrackingProvider.kt",
+      "line": 77,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/data/trailer/InAppYouTubeExtractor.kt",
+      "line": 963,
+      "source": "val probeScope = CoroutineScope(Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvChannelStore.kt",
+      "line": 29,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvPosterResolver.kt",
+      "line": 182,
+      "source": "private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvPreferences.kt",
+      "line": 43,
+      "source": "scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvPreferences.kt",
+      "line": 58,
+      "source": "scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvPreferences.kt",
+      "line": 282,
+      "source": "CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvPreferences.kt",
+      "line": 285,
+      "source": "CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/data/LiveTvRepository.kt",
+      "line": 83,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/home/LiveTvLauncherRows.kt",
+      "line": 43,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/ondemand/OnDemandRepository.kt",
+      "line": 119,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/player/LiveTvPlaybackController.kt",
+      "line": 81,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/player/LiveTvTimeshift.kt",
+      "line": 48,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/record/LiveTvRecorder.kt",
+      "line": 46,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/record/LiveTvRecordingScheduler.kt",
+      "line": 167,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/sports/SportsRepository.kt",
+      "line": 67,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/startup/LiveTvStartup.kt",
+      "line": 56,
+      "source": "kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/sync/LiveTvDriveSync.kt",
+      "line": 78,
+      "source": "private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/livetv/ui/LiveTvComponents.kt",
+      "line": 800,
+      "source": "kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerMediaSourceFactory.kt",
+      "line": 515,
+      "source": "private val vodCacheMaintenanceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt",
+      "line": 211,
+      "source": "val newScope = kotlinx.coroutines.CoroutineScope(scope.coroutineContext + kotlinx.coroutines.SupervisorJob())"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/ui/screens/player/PlayerRuntimeControllerStreams.kt",
+      "line": 1266,
+      "source": "val newScope = kotlinx.coroutines.CoroutineScope(scope.coroutineContext + kotlinx.coroutines.SupervisorJob())"
+    },
+    {
+      "file": "app/src/main/java/com/nuvio/tv/ui/screens/stream/StreamScreenViewModel.kt",
+      "line": 480,
+      "source": "val newScope = kotlinx.coroutines.CoroutineScope(viewModelScope.coroutineContext + kotlinx.coroutines.SupervisorJob())"
+    }
+  ],
+  "scope_constructor_line_count": 79,
+  "scope_constructor_lines_with_io": 68
+}

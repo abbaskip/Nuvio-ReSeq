@@ -88,7 +88,10 @@ private fun HomeViewModel.projectShuffleHomeState(
             val cards = seeds.mapNotNull { seed ->
                 val meta = cachedCwMeta(seed.contentType, seed.contentId)
                 val shuffleEnabled = profile.settings(seed.contentId, seed.contentType).enabled
-                if (!shuffleEnabled && meta?.tvdbOrder == true) return@mapNotNull null
+                if (!shuffleEnabled && meta?.tvdbOrder == true) {
+                    traceCwCard(seed.contentId) { "tracker seed delegated to ordered next-up projection" }
+                    return@mapNotNull null
+                }
                 if (meta == null) traceCwCard(seed.contentId) { "tracker seed without cached metadata" }
                 seed.toShuffleCard(meta)
             }
@@ -116,6 +119,8 @@ private fun HomeViewModel.projectShuffleHomeState(
 private const val CW_TRACE_TAG = "NuvioCwTrace"
 
 internal inline fun traceCwCard(id: String, reason: () -> String) {
+    if (com.nuvio.tv.core.diagnostics.StabilityDiagnostics.enabled)
+        com.nuvio.tv.core.diagnostics.StabilityDiagnostics.cw(id, reason())
     if (Log.isLoggable(CW_TRACE_TAG, Log.DEBUG))
         Log.d(CW_TRACE_TAG, "at=${System.currentTimeMillis()} show=$id ${reason()}")
 }
@@ -125,6 +130,7 @@ private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueW
     val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
     val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
     val meta = cachedCwMeta(type, id)
+    traceCwCard(id) { "TVDB projection ordered=${meta?.tvdbOrder} pending=${meta?.tvdbPending} chooseEpisode=${item.chooseEpisode}" }
     if (meta?.tvdbOrder != true) {
         val context = when (item) {
             is ContinueWatchingItem.InProgress -> item.progress.tvdbContext
@@ -344,6 +350,14 @@ internal fun applyHomeShuffle(
         }
     }
     val unique = projected.distinctBy { it.shuffleFocusKey ?: continueWatchingItemKey(it) }
+    if (com.nuvio.tv.core.diagnostics.StabilityDiagnostics.enabled) {
+        val finalIds = unique.map { it.contentId() }.toSet()
+        items.map { it.contentId() }.distinct().forEach { id ->
+            com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("cw-final", mapOf("show" to id,
+                "present" to (id in finalIds), "stage" to "shuffle", "reason" to
+                    if (id in finalIds) "retained-or-grouped" else "absent-after-shuffle"))
+        }
+    }
     val (current, upcoming) = splitUpcomingItems(unique, sortMode)
     return state.copy(continueWatchingItems = current, upcomingItems = upcoming)
 }

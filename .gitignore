@@ -53,6 +53,12 @@ scripts/*
 !scripts/verify_cs3_runtime.py
 !scripts/ci_app_config.py
 !scripts/ci_pipeline.py
+!scripts/stability_inventory.py
+!scripts/stability_smoke.py
+!scripts/stability_run.py
+!scripts/stability_summarize.py
+!scripts/stability_fixtures.py
+!scripts/stability_avd.py
 !scripts/ci.gradle
 !scripts/ci-cache.sh
 /.gradle-user-home/
@@ -70,6 +76,11 @@ logs
 AGENTS.md
 /PR.md
 docs/*
+!docs/stability/
+docs/stability/*
+!docs/stability/DISCOVERY.md
+!docs/stability/static-inventory.json
+!docs/stability/phase1-measurements.json
 !docs/index.html
 !docs/privacy.html
 !docs/terms.html

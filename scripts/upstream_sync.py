@@ -137,7 +137,12 @@ def begin(args, root, state):
         git("fetch", ORIGIN, f"refs/tags/{latest['tag_name']}:refs/tags/{latest['tag_name']}", cwd=root)
         released = git("rev-parse", f"{latest['tag_name']}^{{commit}}", cwd=root)
         dev = git("rev-parse", "refs/remotes/origin/dev", cwd=root)
-        base = choose_base(dev, released)
+        if args.prepared_base:
+            base = git("rev-parse", "--verify", f"{args.prepared_base}^{{commit}}", cwd=root)
+            if not ancestor(dev, base, cwd=root) or not ancestor(released, base, cwd=root):
+                raise RuntimeError("Prepared base must preserve both current development and the latest release")
+        else:
+            base = choose_base(dev, released)
         pending = pending_candidate(state, root, base)
         start = pending["head"] if pending else base
         upstream = git("rev-parse", UPSTREAM_REF, cwd=root)
@@ -531,6 +536,7 @@ def main():
     sub = parser.add_subparsers(dest="action", required=True)
     p = sub.add_parser("begin"); p.add_argument("--dry-run", action="store_true")
     p.add_argument("--setup-worktree", action="store_true", help="Rehearse in this already isolated clean setup worktree")
+    p.add_argument("--prepared-base", help="Reviewed merge preserving both current dev and latest release ancestry")
     sub.add_parser("status")
     for name in ("review", "configure", "git", "preserve", "probe-device", "validate", "attest", "gate", "publish", "finish", "enable"):
         p = sub.add_parser(name); p.add_argument("--run", required=True)

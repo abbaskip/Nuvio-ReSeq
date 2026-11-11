@@ -2296,6 +2296,96 @@
       "reason": "Changes post-play recommendation timing using end credits chapters. Requires separate timing regression coverage for ReSeq player engines.",
       "run": "20261110T030608Z-582262",
       "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+    },
+    "4ad172fac72e5b71bbdd656c02ff77f5ddd77fd9": {
+      "outcome": "integrated",
+      "reason": "Four genuine Spanish translations, preserving format and resource names.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "e623c2f420aa656e4d987daccbb1c688eaa7a489": {
+      "outcome": "equivalent",
+      "reason": "Verified merge adds no independent resolution patch. Constituent review remains authoritative, including any validation hold; merge does not authorise held features.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "e85b29072e8fb9529983bbf465f003ccf1a0e1c1": {
+      "outcome": "integrated",
+      "reason": "Decode MIME query hints for routing, preserving literal plus and raw URL; new regression tests.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "0726ac5c77552e6c3a6d66577d2709722a0c481c": {
+      "outcome": "equivalent",
+      "reason": "Verified merge adds no independent resolution patch. Constituent review remains authoritative, including any validation hold; merge does not authorise held features.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "12c24cdb880d8d39421f77883a3051354f842066": {
+      "outcome": "held",
+      "reason": "Validation queue, not a product decision: adapt process-death route persistence to ReSeq canonical TVDB, NNTP session URLs, TV Mix and source switching before accepting.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "bfe0548674ca83bd2ae0dee09870ff815aabdd65": {
+      "outcome": "equivalent",
+      "reason": "Verified merge adds no independent resolution patch. Constituent review remains authoritative, including any validation hold; merge does not authorise held features.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "e9a6352fa419ddbb706240a0d2d0a7a4bcd3d84e": {
+      "outcome": "integrated",
+      "reason": "MPV audio-clock fallback outside seeks only; no source-tier or tracker mapping changes; six regression tests.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "04b24b9c86be8031366f760f44ff34e88fce8f54": {
+      "outcome": "equivalent",
+      "reason": "Verified merge adds no independent resolution patch. Constituent review remains authoritative, including any validation hold; merge does not authorise held features.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "a239d298d546648b0b530a6b6faf5c54093db666": {
+      "outcome": "held",
+      "reason": "Validation queue: compare new VOD HLS SPS/PPS repair with ReSeq LiveHlsRepair and recording paths; preserve encrypted/live/bounded network behaviour; not a design hold.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "35942ba5c14906e4f7d431d58766cf8eea0fd595": {
+      "outcome": "held",
+      "reason": "Depends on HLS init repair review; retain bounded-read improvement with its parent in validation queue.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "94efd91a6dae47741b23ca9e28a50f8e39b28948": {
+      "outcome": "equivalent",
+      "reason": "Verified merge adds no independent resolution patch. Constituent review remains authoritative, including any validation hold; merge does not authorise held features.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "a71108dc993339e861bfda0cef6b3d0c33b417f0": {
+      "outcome": "integrated",
+      "reason": "Existing Home description auto-scroll retains controls and cycle bounds, with text-size-aware reading pace.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "b8c166824e01fa63633343e6d53471c31ce76c90": {
+      "outcome": "equivalent",
+      "reason": "Verified merge adds no independent resolution patch. Constituent review remains authoritative, including any validation hold; merge does not authorise held features.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "d976e3d071926840629d17479460aa74b168a4d6": {
+      "outcome": "held",
+      "reason": "Validation queue: retain useful list checkmarks, adapt shared picker replacement without losing ReSeq Home/Details actions, focus or accessibility; not a design hold.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "2b7d454df5c55afefcb5c95a443bfd48b4963a75": {
+      "outcome": "equivalent",
+      "reason": "Verified merge adds no independent resolution patch. Constituent review remains authoritative, including any validation hold; merge does not authorise held features.",
+      "run": "20261111T150130Z-4bd1e4",
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
     }
   }
 }

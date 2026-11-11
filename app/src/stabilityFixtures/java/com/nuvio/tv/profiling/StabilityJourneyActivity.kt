@@ -203,7 +203,13 @@ class StabilityJourneyActivity : ComponentActivity() {
                     else -> {
                         if (action != "trailer") trailers.acquire()?.stop()
                         if (action != "preview") playback.stop()
-                        if (action == "cricket") SportsLaunch.openEvent("espn:cricket/19430:77702")
+                        if (action == "cricket") {
+                            val target = withTimeout(30_000) { sports.events.first { events ->
+                                events.any { it.id == "espn:cricket/19430:77702" }
+                            } }.first { it.id == "espn:cricket/19430:77702" }
+                            Diag.event("fixture-cricket-target", mapOf("event" to target.id, "state" to target.state.name))
+                            SportsLaunch.openEvent(target.id)
+                        }
                         if (action == "preview") {
                             playback.attach().volume = 0f
                             playback.play(live.channels.first { it.isNotEmpty() }.first())
@@ -243,8 +249,9 @@ class StabilityJourneyActivity : ComponentActivity() {
         live.refreshAll()
         live.channels.first { it.size >= 2000 }
         vod.refresh(force = true, onlyId = "stability")
-        check(vod.categories(VodKind.MOVIE).any { it.name == "Fixture movies" })
-        Diag.event("seed-complete", mapOf("channels" to live.channels.value.size))
+        val movies = vod.categories(VodKind.MOVIE).filter { it.name == "Fixture movies" }.sumOf { it.count }
+        check(movies == 20_000) { "Expected 20000 fixture movies, imported $movies" }
+        Diag.event("seed-complete", mapOf("channels" to live.channels.value.size, "movies" to movies))
     }
 
     private fun seedProgress(id: String) = WatchProgress(id, "series", "Fixture $id", null, null, null,
@@ -271,14 +278,15 @@ class StabilityJourneyActivity : ComponentActivity() {
         Diag.event("sample", mapOf("route" to route, "heapUsedBytes" to rt.totalMemory()-rt.freeMemory(),
             "nativeBytes" to Debug.getNativeHeapAllocatedSize(), "threadCount" to stacks.size,
             "dispatcherBlocked" to stacks.count { (thread, stack) -> thread.name.startsWith("DefaultDispatcher-worker") &&
-                stack.any { it.className.contains("usenet", true) || it.methodName.contains("socketRead", true) } },
+                stack.any { it.className.contains("usenet", true) || it.className.contains("CompletableFuture") || it.methodName.contains("socketRead", true) } },
             "gc" to Debug.getRuntimeStats(), "cwIds" to ids, "snapshot" to snapshots,
             "snapshotVersion" to cache.snapshotVersion.value, "launcher" to launcher,
             "guideBuilding" to BackgroundWork.guideBuilding.value, "heavyJobs" to BackgroundWork.heavyJobs.value,
             "rawProgress" to progress.allProgress.first().map { "${it.contentId}:${it.episode}:${it.isCompleted()}" },
             "sportsEvents" to sports.events.value.size))
         stacks.filter { (thread, _) -> thread.name.startsWith("DefaultDispatcher-worker") || thread.name.startsWith("nuvio-quiet") }
-            .filter { (_, stack) -> stack.any { it.className.contains("usenet", true) || it.methodName.contains("park", true) } }
+            .filter { (thread, stack) -> stack.any { it.className.contains("usenet", true) || it.className.contains("CompletableFuture") ||
+                it.methodName.contains("socketRead", true) || (thread.name.startsWith("nuvio-quiet") && it.className.contains("BlockingCoroutine")) } }
             .forEach { (thread, stack) -> Diag.event("blocked-thread", mapOf("thread" to thread.name,
                 "state" to thread.state.name, "stack" to stack.take(12).joinToString("\n"))) }
     }

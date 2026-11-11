@@ -28,4 +28,11 @@ object StabilityFixtureNetwork {
         else chain.proceed(request.newBuilder().url(request.url.newBuilder().scheme("http")
             .host("127.0.0.1").port(38791).encodedPath("/tvdb" + request.url.encodedPath).build()).build())
     }
+
+    fun sports(): Interceptor = Interceptor { chain ->
+        val request = chain.request()
+        if (!BuildConfig.STABILITY_FIXTURES) chain.proceed(request)
+        else chain.proceed(request.newBuilder().url(request.url.newBuilder().scheme("http")
+            .host("127.0.0.1").port(38791).encodedPath("/scores" + request.url.encodedPath).build()).build())
+    }
 }

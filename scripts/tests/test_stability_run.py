@@ -6,7 +6,21 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts.stability_run import Session, device_session, PACKAGE, SETTINGS, ACTIVITY
+from scripts.stability_run import Session, device_session, PACKAGE, SETTINGS, ACTIVITY, timeline_assertions
+
+
+class TimelineTest(unittest.TestCase):
+    def test_stale_background_snapshot_is_a_recorded_failure_not_a_false_pass(self):
+        events = [dict(kind='sample', hostPhase=phase, snapshot=['tt9900003:'+episode],
+            launcher=['tt9900003|intent'], rawProgress=['tt9900003:1:'+completed], snapshotVersion=i)
+            for i, (phase, episode, completed) in enumerate([
+                ('launcher-timeline', '1', 'false'), ('launcher-closed-non-home', '1', 'true'),
+                ('launcher-background', '1', 'true'), ('launcher-returned-home', '2', 'true')])]
+        self.assertEqual([True, False, False, True], [r['snapshotMatchesExpected'] for r in timeline_assertions(events)])
+
+    def test_missing_timeline_stage_fails_harness(self):
+        with self.assertRaisesRegex(RuntimeError, 'Missing timeline'):
+            timeline_assertions([])
 
 
 class RestorationTest(unittest.TestCase):

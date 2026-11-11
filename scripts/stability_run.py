@@ -25,6 +25,26 @@ SETTINGS = [('global', 'stay_on_while_plugged_in'), ('secure', 'screensaver_enab
             ('secure', 'screensaver_activate_on_sleep'), ('system', 'screen_off_timeout')]
 
 
+def timeline_assertions(events):
+    """Record invariant failures as discovery findings, separate from harness failures."""
+    result = []
+    for phase in ('launcher-timeline', 'launcher-closed-non-home', 'launcher-background', 'launcher-returned-home'):
+        samples = [e for e in events if e.get('kind') == 'sample' and e.get('hostPhase') == phase]
+        if not samples:
+            raise RuntimeError('Missing timeline observation: '+phase)
+        sample = samples[-1]
+        expected_episode = '1' if phase == 'launcher-timeline' else '2'
+        # Sequential non-TVDB control avoids conflating shuffle selection with stale progress.
+        snapshot = [row for row in sample['snapshot'] if row.startswith('tt9900003:')]
+        launcher = [row for row in sample['launcher'] if 'tt9900003' in row]
+        result.append({'phase': phase, 'expectedControlEpisode': expected_episode,
+            'snapshot': snapshot, 'launcher': launcher, 'rawProgress': sample['rawProgress'],
+            'snapshotVersion': sample['snapshotVersion'],
+            'snapshotMatchesExpected': snapshot == ['tt9900003:'+expected_episode],
+            'launcherContainsControl': bool(launcher)})
+    return result
+
+
 class Session:
     def __init__(self, args):
         self.args = args
@@ -284,7 +304,15 @@ def execute(s):
         else:
             s.journey('home' if action == 'nntp-stall' and s.args.device == 'onn' else action)
     s.wait(max(0, started+600-time.monotonic()))
+    if not any(e.get('kind') == 'vod-state' and e.get('state') == 3 and e.get('positionMs', 0) > 0 for e in s.events):
+        raise RuntimeError('Real VOD player never reached READY with advancing position')
     s.control('slowImport=false')
+    s.stop_log()
+    s.adb('shell', 'am', 'force-stop', PACKAGE)
+    s.phase = 'cricket-cold-load'
+    s.adb('shell', 'am', 'start', '-W', '-n', PACKAGE+'/'+ACTIVITY, '--es', 'journey', 'sports')
+    s.start_log('cricket')
+    s.wait(30, interval=1)
     for iteration in range(1, 6):
         s.phase = f'cricket-{iteration}'
         s.journey('home')
@@ -302,6 +330,10 @@ def execute(s):
     s.phase = 'launcher-timeline'
     s.journey('home')
     s.wait(20)
+    s.journey('background')
+    s.wait(5)
+    s.journey('home')
+    s.wait(5)
     s.journey('sample')
     s.phase = 'launcher-closed-non-home'
     s.journey('complete')
@@ -313,6 +345,7 @@ def execute(s):
     s.journey('home')
     s.wait(35)
     s.journey('sample')
+    s.save('timeline-assertions.json', json.dumps(timeline_assertions(s.events), indent=2))
     for mode in ('missing', 'invalid', 'timeout', 'unavailable', 'available'):
         s.phase = 'tvdb-'+mode
         s.control('tvdb='+('available' if mode == 'missing' else mode))

@@ -61,7 +61,7 @@ def sports():
     data["entries"][0]["payload"]["events"] = [dict(prototype, id=str(80000+i),
         name=f"Fixture game {i}") for i in range(2000)]
     now = datetime.now(timezone.utc)
-    cricket = {"id": "77702", "date": (now-timedelta(hours=3)).isoformat(),
+    cricket = {"id": "77702", "date": (now-timedelta(hours=3)).strftime('%Y-%m-%dT%H:%M:%SZ'),
         "name": "Australia vs England", "competitions": [{"competitors": [
             {"homeAway": side, "score": "325/6", "team": {"id": str(i), "name": name,
              "displayName": name, "shortDisplayName": name, "abbreviation": name[:3].upper()}}
@@ -128,6 +128,13 @@ class Web(base.Web):
                                   'movies': len(base.MOVIES), 'sportsEvents': 2001})
         if path == '/sports':
             return self.send_json(sports())
+        if path.startswith('/scores/'):
+            entries = sports()['entries']
+            if path.endswith('/scoreboard'):
+                return self.send_json(next((e['payload'] for e in entries if e['leagueId'] in path), {'events': []}))
+            if path.endswith('/summary'):
+                return self.send_json({'header': {'competitions': entries[-1]['payload']['events'][0]['competitions']}})
+            return self.send_json({})
         if path == '/player_api.php' and query.get('action') == ['get_vod_streams'] and STATE['slowImport']:
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')

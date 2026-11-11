@@ -118,6 +118,9 @@ def require_ledger_continuity(previous, current):
 
 def choose_prepared_base(ref, dev, released, root):
     base = git("rev-parse", "--verify", f"{ref}^{{commit}}", cwd=root)
+    parents = git("show", "-s", "--format=%P", base, cwd=root).split()
+    if len(parents) != 2 or set(parents) != {dev, released}:
+        raise RuntimeError("Prepared base must directly merge current development and the latest release")
     if not ancestor(dev, base, cwd=root) or not ancestor(released, base, cwd=root):
         raise RuntimeError("Prepared base must preserve both current development and the latest release")
     return base

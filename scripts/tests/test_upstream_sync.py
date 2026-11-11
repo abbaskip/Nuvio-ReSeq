@@ -9,11 +9,17 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_prepared_base_cannot_hide_additional_unreviewed_ancestry(self):
+        for parents in ("feature", "released feature", "dev released feature"):
+            with patch.object(sync, "git", side_effect=["candidate", parents]):
+                with self.assertRaisesRegex(RuntimeError, "directly merge"):
+                    sync.choose_prepared_base("reviewed", "dev", "released", ".")
+
     def test_prepared_base_must_contain_development_and_published_source(self):
-        with patch.object(sync, "git", return_value="merged"), patch.object(sync, "ancestor", side_effect=[True, True]):
+        with patch.object(sync, "git", side_effect=["merged", "dev released"]), patch.object(sync, "ancestor", side_effect=[True, True]):
             self.assertEqual("merged", sync.choose_prepared_base("reviewed", "dev", "released", "."))
         for ancestry in ([False], [True, False]):
-            with patch.object(sync, "git", return_value="merged"), patch.object(sync, "ancestor", side_effect=ancestry):
+            with patch.object(sync, "git", side_effect=["merged", "dev released"]), patch.object(sync, "ancestor", side_effect=ancestry):
                 with self.assertRaisesRegex(RuntimeError, "preserve both"):
                     sync.choose_prepared_base("reviewed", "dev", "released", ".")
 

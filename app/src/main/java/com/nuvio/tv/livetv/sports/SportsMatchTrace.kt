@@ -6,7 +6,7 @@ import android.util.Log
 internal class SportsMatchTrace {
     private val previous = mutableMapOf<String, Any?>()
     private val pending = linkedSetOf<String>()
-    private val enabled get() = com.nuvio.tv.BuildConfig.DEBUG || Log.isLoggable(TAG, Log.DEBUG)
+    private val enabled get() = Log.isLoggable(TAG, Log.DEBUG)
 
     @Synchronized fun observe(name: String, value: Any?) {
         if (!enabled) return

@@ -9,6 +9,13 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_beta_maintenance_components_preserve_numeric_version_order(self):
+        self.assertEqual((9, 6, 1), sync.beta_version_parts("0.1.0-beta.9.6.1"))
+        self.assertGreater(sync.beta_version_parts("0.1.0-beta.9.6.2"), sync.beta_version_parts("0.1.0-beta.9.6.1"))
+        self.assertGreater(sync.beta_version_parts("0.1.0-beta.10"), sync.beta_version_parts("0.1.0-beta.9.6.1"))
+        for invalid in ("0.1.0-beta.9..1", "0.1.0-beta.-1", "0.1.0-rc.9.6.1", "0.2.0-beta.9"):
+            self.assertIsNone(sync.beta_version_parts(invalid))
+
     def test_failed_dispatch_retry_only_accepts_own_unpublished_dev_tip(self):
         run = {"publication": {"head": "pushed"}, "branch": "review", "worktree": "."}
         job = {"head_sha": "pushed", "head_branch": "review", "status": "completed", "conclusion": "failure"}

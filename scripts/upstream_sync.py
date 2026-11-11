@@ -116,6 +116,13 @@ def require_ledger_continuity(previous, current):
         raise RuntimeError(f"Candidate lost {len(missing)} historical review records; reconcile from the preserved branch")
 
 
+def choose_prepared_base(ref, dev, released, root):
+    base = git("rev-parse", "--verify", f"{ref}^{{commit}}", cwd=root)
+    if not ancestor(dev, base, cwd=root) or not ancestor(released, base, cwd=root):
+        raise RuntimeError("Prepared base must preserve both current development and the latest release")
+    return base
+
+
 def begin(args, root, state):
     if not (state / "review-ledger.json").is_file():
         raise RuntimeError("Missing shared review ledger; recover durable state before starting")
@@ -138,9 +145,7 @@ def begin(args, root, state):
         released = git("rev-parse", f"{latest['tag_name']}^{{commit}}", cwd=root)
         dev = git("rev-parse", "refs/remotes/origin/dev", cwd=root)
         if args.prepared_base:
-            base = git("rev-parse", "--verify", f"{args.prepared_base}^{{commit}}", cwd=root)
-            if not ancestor(dev, base, cwd=root) or not ancestor(released, base, cwd=root):
-                raise RuntimeError("Prepared base must preserve both current development and the latest release")
+            base = choose_prepared_base(args.prepared_base, dev, released, root)
         else:
             base = choose_base(dev, released)
         pending = pending_candidate(state, root, base)

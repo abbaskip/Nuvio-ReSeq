@@ -9,6 +9,14 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_prepared_base_must_contain_development_and_published_source(self):
+        with patch.object(sync, "git", return_value="merged"), patch.object(sync, "ancestor", side_effect=[True, True]):
+            self.assertEqual("merged", sync.choose_prepared_base("reviewed", "dev", "released", "."))
+        for ancestry in ([False], [True, False]):
+            with patch.object(sync, "git", return_value="merged"), patch.object(sync, "ancestor", side_effect=ancestry):
+                with self.assertRaisesRegex(RuntimeError, "preserve both"):
+                    sync.choose_prepared_base("reviewed", "dev", "released", ".")
+
     def test_beta_maintenance_components_preserve_numeric_version_order(self):
         self.assertEqual((9, 6, 1), sync.beta_version_parts("0.1.0-beta.9.6.1"))
         self.assertGreater(sync.beta_version_parts("0.1.0-beta.9.6.2"), sync.beta_version_parts("0.1.0-beta.9.6.1"))

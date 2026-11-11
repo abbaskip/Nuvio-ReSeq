@@ -1,9 +1,11 @@
 {
   "schema": 1,
-  "hold": true,
-  "reason": "Maintainer withdrew beta 9.6 after the Onn cricket-opening memory ANR and requested a fix. No republication until explicitly authorized.",
+  "hold": false,
+  "reason": "Maintainer explicitly approved publication of the tested Onn build 10050 on 11 November 2026 after confirming the improved behaviour.",
   "clear_when": "The maintainer explicitly authorizes publication after the remaining beta 9.6 work and required validation are complete.",
   "release": "v0.1.0-beta.9.6",
-  "accepted_source": "750475b4e1dd2462af729c6e92ded7aa48359511",
-  "evidence": "releases/0.1.0-beta.9.6.md"
+  "accepted_source": "98d71862c5ccb162347bdfaaa2a85e7a30c44e31",
+  "evidence": "releases/0.1.0-beta.9.6-device-validation.md",
+  "artifact_run": 42983632608,
+  "version_code": 10050
 }

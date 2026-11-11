@@ -63,10 +63,13 @@ data class Meta(
 }
 
 fun List<Video>.watchableEpisodes(): List<Video> {
+    // Android clones timezone rules when creating a default clock. Reuse one snapshot
+    // for the whole catalogue instead of allocating those rules for every episode.
+    val clock = java.time.Clock.systemDefaultZone()
     val candidates = filter {
         it.season != null && it.episode != null && (it.displaySeason ?: 0) > 0 && it.hasResolvedSource
     }.distinctEpisodeSources()
-    fun isFutureRelease(raw: String?): Boolean = isEpisodeReleaseAired(raw) == false
+    fun isFutureRelease(raw: String?): Boolean = isEpisodeReleaseAired(raw, clock) == false
     val unavailableSeasons = candidates.groupBy { it.displaySeason }
         .filter { (_, eps) ->
             val first = eps.minByOrNull { it.displayEpisode ?: Int.MAX_VALUE }

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.LocaleCache
+import com.nuvio.tv.livetv.ondemand.settingsOnly
 import com.nuvio.tv.core.player.StreamAutoPlayPolicy
 import com.nuvio.tv.core.recommendations.TvRecommendationManager
 import com.nuvio.tv.core.tmdb.MetaPreviewEnricher
@@ -46,6 +47,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -125,8 +128,17 @@ class HomeViewModel @Inject constructor(
     }
 
     internal val _uiState = MutableStateFlow(HomeUiState())
+    internal val homeContentActive = MutableStateFlow(false)
+    /** Layout consumers such as On Demand must not subscribe to Home's content projection. */
+    val layoutState: StateFlow<HomeUiState> = _uiState.map { it.settingsOnly() }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
     internal val shuffleHomeRefresh = MutableStateFlow(HomeShuffleRefresh())
     val uiState: StateFlow<HomeUiState> by lazy { createShuffleHomeState() }
+
+    fun setHomeContentActive(active: Boolean) {
+        homeContentActive.value = active
+    }
 
     fun beginShuffleHomeVisit() {
         shuffleHomeRefresh.update { it.copy(visit = it.visit + 1) }

@@ -34,6 +34,7 @@ class ShuffleHomeRefreshTest {
     private val watched = MutableStateFlow(emptyList<WatchedItem>())
     private val progress = MutableStateFlow(emptyList<WatchProgress>())
     private val refresh = MutableStateFlow(HomeShuffleRefresh(1))
+    private val homeActive = MutableStateFlow(true)
     private val coord = EpisodeCoordinates(1, 2)
     private val video = Video(card.info.videoId, "Two", "2020-01-01", null, season = 1, episode = 2, overview = null,
         episodeIdentity = EpisodeIdentity(22, 111, "dvd", coord, coord, card.info.videoId, coord))
@@ -52,6 +53,7 @@ class ShuffleHomeRefreshTest {
         every { vm.viewModelScope } returns backgroundScope
         every { vm._uiState } returns native
         every { vm.shuffleHomeRefresh } returns refresh
+        every { vm.homeContentActive } returns homeActive
         every { vm.cwMetadataLoads } returns CwMetadataLoads()
         every { vm.cwMetaCache } returns cache
         every { vm.cwMetaNegativeCacheTimestamps } returns negative
@@ -91,9 +93,77 @@ class ShuffleHomeRefreshTest {
         unmockkStatic(Toast::class)
     }
 
-    private fun TestScope.home(): StateFlow<HomeUiState> = vm.createShuffleHomeState().also { runCurrent() }
+    private fun TestScope.home(): StateFlow<HomeUiState> =
+        vm.createShuffleHomeState(StandardTestDispatcher(testScheduler)).also { runCurrent() }
     private fun StateFlow<HomeUiState>.onlyCard() = value.continueWatchingItems.single()
     private fun TestScope.minute() { advanceTimeBy(60_000); runCurrent() }
+
+    @Test fun leavingHomeStopsProjectionAndResumesWithCurrentInputs() = runTest {
+        setup()
+        val home = home()
+        val before = home.value
+        homeActive.value = false
+        runCurrent()
+        native.value = snapshot.copy(selectedItemId = "on-demand")
+        refresh.update { it.copy(visit = 2) }
+        minute()
+        assertSame("hidden Home must not rebuild its episode catalogues", before, home.value)
+        homeActive.value = true
+        runCurrent()
+        assertEquals("on-demand", home.value.selectedItemId)
+        assertEquals(id, home.onlyCard().contentId())
+    }
+
+    @Test fun focusChangesDoNotRebuildShufflePickers() = runTest {
+        setup()
+        val shuffle = spyk(EpisodeShuffle())
+        every { vm.episodeShuffle } returns shuffle
+        val home = home()
+        clearMocks(shuffle, answers = false)
+        repeat(20) { index ->
+            native.update { it.copy(selectedItemId = "poster-$index") }
+            runCurrent()
+        }
+        assertEquals("poster-19", home.value.selectedItemId)
+        verify { shuffle wasNot Called }
+    }
+
+    @Test fun hiddenHomeDoesNotFetchAndLeavingCancelsPendingMetadata() = runTest {
+        setup()
+        cache.clear()
+        homeActive.value = false
+        home()
+        minute()
+        assertTrue(requests.isEmpty())
+        homeActive.value = true
+        runCurrent()
+        assertEquals(listOf(id), requests)
+        homeActive.value = false
+        runCurrent()
+        minute()
+        assertNull("an off-screen lookup must not fill the cache later", cache[key])
+        assertEquals(listOf(id), requests)
+        homeActive.value = true
+        runCurrent()
+        advanceTimeBy(10_001)
+        runCurrent()
+        assertNotNull(cache[key])
+    }
+
+    @Test fun largeFinishedLibraryKeepsMetadataWorkingSetBounded() = runTest {
+        setup()
+        cache.clear()
+        native.value = HomeUiState()
+        val ids = (1..100).map { "show-$it" }
+        seeds.value = ids.mapIndexed { index, show -> seed.copy(contentId = show, lastWatched = index.toLong()) }
+        profile.value = EpisodeShuffleProfile(1, true, ids.associateWith { EpisodeShuffleSettings(true) })
+        home()
+        advanceTimeBy(120_000)
+        runCurrent()
+        assertEquals(MAX_HOME_SHUFFLE_METADATA_TARGETS, requests.distinct().size)
+        assertEquals("no eviction/refetch loop", requests.distinct().size, requests.size)
+        assertTrue(requests.all { it in ids.takeLast(MAX_HOME_SHUFFLE_METADATA_TARGETS) })
+    }
 
     @Test fun trackerRefreshAloneKeepsRestoredShow() = runTest {
         setup()

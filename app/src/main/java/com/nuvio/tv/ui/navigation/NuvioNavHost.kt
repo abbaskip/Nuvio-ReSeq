@@ -22,7 +22,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import com.nuvio.tv.livetv.ondemand.settingsOnly
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -294,7 +293,7 @@ private fun PlaybackNavHost(
             }
             val homeSettings = homeEntry?.let {
                 val homeVm: com.nuvio.tv.ui.screens.home.HomeViewModel = androidx.hilt.navigation.compose.hiltViewModel(it)
-                homeVm.uiState.collectAsStateWithLifecycle().value.settingsOnly()
+                homeVm.layoutState.collectAsStateWithLifecycle().value
             }
             var selectedUid by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
             val providerItem by androidx.compose.runtime.produceState<com.nuvio.tv.livetv.ondemand.VodItem?>(null, selectedUid) {

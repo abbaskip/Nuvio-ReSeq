@@ -107,7 +107,8 @@ internal data class CwMetaSummary(
             return videos.filter { it.asTvdbVideo().episodeListKey in allowed }
         }
         val candidates = videos.filter { it.season != null && it.episode != null && (it.season ?: 0) > 0 }
-        fun isFutureRelease(raw: String?): Boolean = isEpisodeReleaseAired(raw) == false
+        val clock = java.time.Clock.systemDefaultZone()
+        fun isFutureRelease(raw: String?): Boolean = isEpisodeReleaseAired(raw, clock) == false
         val unavailableSeasons = candidates.groupBy { it.season }
             .filter { (_, eps) ->
                 val first = eps.minByOrNull { it.episode ?: Int.MAX_VALUE } ?: return@filter false

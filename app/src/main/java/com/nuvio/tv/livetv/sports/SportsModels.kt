@@ -118,7 +118,7 @@ enum class GameState { PRE, LIVE, POST, OFF }
 /** One line of a race result or leaderboard: "1", "Kyle Larson", "-12" (golf) or null. */
 data class Standing(val pos: String, val name: String, val detail: String?)
 
-enum class EventSource { ESPN, GUIDE, FIXTURES, THESPORTSDB }
+enum class EventSource { ESPN, GUIDE, FIXTURES, THESPORTSDB, CRICKET_AUSTRALIA }
 
 data class SportsBroadcast(val name: String, val country: String?)
 
@@ -179,7 +179,8 @@ data class SportsEvent(
     val liveLabel: String get() = if (isReplay) "REPLAY" else if (source == EventSource.GUIDE && !guideSaysLive) "ON AIR" else "LIVE"
     val finishedLabel: String get() = if (isReplay) "REPLAY" else if (source == EventSource.GUIDE) "AIRED" else "FINAL"
     val sides: List<Side> get() = listOfNotNull(away, home)
-    val hasScore: Boolean get() = (state == GameState.LIVE || state == GameState.POST) && sides.size == 2 &&
+    val hasScore: Boolean get() = (state == GameState.LIVE || state == GameState.POST ||
+        (state == GameState.OFF && SportsCatalog.league(leagueId)?.sport == Sport.CRICKET)) && sides.size == 2 &&
         (if (SportsCatalog.league(leagueId)?.sport == Sport.CRICKET) sides.any { !it.score.isNullOrBlank() }
          else sides.all { !it.score.isNullOrBlank() })
 
@@ -340,10 +341,13 @@ data class SportsFollows(
         return teams.any { it.teamId == teamId && (it.leagueId == leagueId || SportsCatalog.teamFamily(it.leagueId) == family) }
     }
 
+    fun followsTeam(team: TeamInfo): Boolean = followedTeam(team) != null
+
     /** The followed team [team] is, if any. */
     fun followedTeam(team: TeamInfo): FollowedTeam? {
         val family = SportsCatalog.teamFamily(team.leagueId)
-        return teams.firstOrNull { it.teamId == team.id && (it.leagueId == team.leagueId || SportsCatalog.teamFamily(it.leagueId) == family) }
+        return teams.firstOrNull { InternationalCricket.matches(it, team) ||
+            (it.teamId == team.id && (it.leagueId == team.leagueId || SportsCatalog.teamFamily(it.leagueId) == family)) }
     }
 
     fun toJson(): String = JSONObject()

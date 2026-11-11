@@ -5,8 +5,13 @@ internal object SportsCurrentGuide {
     data class FixtureKey(val id: String, val leagueId: String, val startMs: Long, val endMs: Long?,
         val title: String, val teams: List<TeamInfo>)
 
+    private fun hasCurrentStatus(event: SportsEvent): Boolean = event.source != EventSource.GUIDE &&
+        (event.state == GameState.LIVE || (event.state == GameState.OFF &&
+            SportsCatalog.league(event.leagueId)?.sport == Sport.CRICKET &&
+            event.status in setOf("Stumps", "Awaiting update", "In progress", "Rain Delay", "RainDelay", "Suspended")))
+
     fun fixtures(events: List<SportsEvent>): List<SportsEvent> =
-        events.filter { it.source != EventSource.GUIDE && it.state == GameState.LIVE }
+        events.filter(::hasCurrentStatus)
 
     /** Score/clock updates redraw from the fixture; they do not trigger another programme read. */
     fun fixtureKeys(events: List<SportsEvent>): List<FixtureKey> = fixtures(events).map {
@@ -61,7 +66,7 @@ internal object SportsCurrentGuide {
     /** A programme match is evidence; sharing only a broadcaster is not. Keep ambiguous airings unlinked. */
     fun withFixtures(airings: List<SportsEvent>, fixtures: List<SportsEvent>,
         matches: Map<String, List<ChannelMatch>>, now: Long): List<SportsEvent> {
-        val byProgramme = fixtures.asSequence().filter { it.state == GameState.LIVE && it.source != EventSource.GUIDE }
+        val byProgramme = fixtures.asSequence().filter(::hasCurrentStatus)
             .flatMap { fixture -> matches[fixture.id].orEmpty().asSequence().filter { match ->
                 match.sure && match.program?.let { it.startMs <= now && now < it.stopMs } == true
             }.map { match -> (match.channel.key to match.program!!) to (fixture to match.score) } }
@@ -76,7 +81,7 @@ internal object SportsCurrentGuide {
             airing.copy(leagueId = fixture.leagueId, title = fixture.title, subtitle = fixture.subtitle,
                 status = fixture.status, away = fixture.away, home = fixture.home, espnId = fixture.espnId,
                 progress = fixture.progress, standings = fixture.standings, note = fixture.note,
-                updatedAt = fixture.updatedAt, state = GameState.LIVE)
+                updatedAt = fixture.updatedAt, state = fixture.state)
         }
     }
 }

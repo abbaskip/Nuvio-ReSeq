@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "hold": true,
-  "reason": "On 11 November 2026 the maintainer requested that beta 9.6 remain unpublished because more changes are planned. The signed artifact-only memory-fix build was installed on the Onn for testing.",
+  "hold": false,
+  "reason": "Maintainer explicitly authorized publication of the combined beta 9.6 On Demand performance fixes, Cricket Australia integration and international cricket teams on 11 November 2026.",
   "clear_when": "The maintainer explicitly authorizes publication after the remaining beta 9.6 work and required validation are complete.",
   "release": "v0.1.0-beta.9.6",
   "accepted_source": "c2c22477f",

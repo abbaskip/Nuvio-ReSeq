@@ -318,7 +318,8 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
                             teams == null -> LiveText("Getting the teams…", color = colors.TextSecondary, size = 13.sp)
                             league.national && teams.orEmpty().isNotEmpty() -> Column(Modifier.weight(1f)) {
                                 LiveText(
-                                    if (league.women) "Countries: follow one to see all its games, from friendlies and the Nations League to the Euros and the World Cup."
+                                    if (league.id == InternationalCricket.LEAGUE_ID) "Follow a country across Tests, ODIs and T20 internationals."
+                                    else if (league.women) "Countries: follow one to see all its games, from friendlies and the Nations League to the Euros and the World Cup."
                                     else if (league.sport == Sport.RUGBY) "Countries: follow one to see all its games, from the Six Nations and the Nations Championship to the World Cup."
                                     else "Countries: follow one to see all its games, from qualifiers and the Nations League to friendlies, the World Cup and the Euros.",
                                     color = colors.TextSecondary, size = 12.sp, maxLines = 2
@@ -539,7 +540,7 @@ private fun TeamGrid(
                 LiveText(letter.toString(), color = NuvioTheme.colors.TextTertiary, size = 11.sp, weight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 4.dp))
             }
             items(list, key = { it.key }) { t ->
-                TeamTile(t, follows.followsTeam(t.leagueId, t.id), showLeague, Modifier.focusUp(if (t.key in topRow) upTarget else null)) {
+                TeamTile(t, follows.followsTeam(t), showLeague, Modifier.focusUp(if (t.key in topRow) upTarget else null)) {
                     viewModel.repo.toggleTeam(t)
                 }
             }

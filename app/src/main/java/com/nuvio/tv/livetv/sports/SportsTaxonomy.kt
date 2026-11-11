@@ -159,6 +159,8 @@ internal object SportsTaxonomy {
     /** Following a taxonomy sport/category also includes its child competitions. */
     fun includesLeague(followedId: String, candidateId: String): Boolean {
         if (SportsCompetitions.same(followedId, candidateId)) return true
+        if (followedId == InternationalCricket.LEAGUE_ID)
+            return SportsCatalog.league(candidateId)?.let(InternationalCricket::includes) == true
         val parent = when {
             followedId.startsWith("taxonomy/") -> byId[followedId.removePrefix("taxonomy/")]
             followedId.startsWith("guide/") -> roots.firstOrNull { it.id == followedId.removePrefix("guide/") }

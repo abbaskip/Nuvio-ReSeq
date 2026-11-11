@@ -257,6 +257,8 @@ object SportsCatalog {
         League("tennis/wta", Sport.TENNIS, "WTA Tour", "WTA", "tennis/wta", LeagueKind.EVENT, guideWords = listOf("WTA", "Tennis"),
             regions = EVERYWHERE, minutes = 600, color = 0xFF6A1B9A),
         // ---- Found in your guide (ESPN doesn't cover these)
+        InternationalCricket.league,
+        *CricketAustralia.leagues.toTypedArray(),
         League("cricket/19430", Sport.CRICKET, "Test Matches", "TESTS", "cricket/19430",
             guideWords = listOf("Test Cricket", "Test Matches", "ICC World Test Championship"),
             minutes = 7200, national = true, color = 0xFF163D2A),
@@ -341,6 +343,7 @@ object SportsCatalog {
     fun relatedLeagues(leagueId: String): List<String> {
         val l = league(leagueId) ?: return emptyList()
         val out = when {
+            leagueId == InternationalCricket.LEAGUE_ID -> all.filter { InternationalCricket.includes(it) }.map { it.id }
             l.national -> leagues.filter { it.national && it.nationalGroup == l.nationalGroup }.map { it.id }
             leagueId.startsWith("soccer/eng.w") -> listOf("soccer/eng.w.fa", "soccer/eng.w.league_cup", "soccer/uefa.wchampions")
             leagueId in setOf("soccer/eng.2", "soccer/eng.3", "soccer/eng.4", "soccer/eng.5") ->

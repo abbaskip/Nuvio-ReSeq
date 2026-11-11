@@ -67,6 +67,9 @@ class SportsRepository @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val feeds = SportsFeeds()
     private val freeDb = FreeSportsDb()
+    private val cricketAustralia = CricketAustralia()
+    private val cricketData = MutableStateFlow<Map<Int, List<SportsEvent>>>(emptyMap())
+    private val cricketAttempts = mutableMapOf<Int, Long>()
     private val freeLeagues = LinkedHashMap<String, League>()
     private val broadcastEnrichment = MutableStateFlow<Map<String, List<SportsBroadcast>>>(emptyMap())
     private val freeAttemptAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
@@ -144,6 +147,8 @@ class SportsRepository @Inject constructor(
         }).distinctBy { it.id }
     }.combine(baseData) { current, base ->
         (current + base).groupBy { it.id }.values.map { versions -> versions.maxBy { it.updatedAt ?: 0L } }
+    }.combine(cricketData) { current, cricket ->
+        CricketAustralia.merge(current, cricket.values.flatten())
     }.combine(broadcastEnrichment) { list, enriched ->
         list.map { e -> enriched[e.id]?.let { coverage -> e.copy(broadcastCoverage = coverage,
             broadcasts = (e.broadcasts + coverage.filter { it.country == null || (FreeSportsDb.region(it.country) ?: "OTHER") == SportsCatalog.regionOf(settings.value) }.map { it.name }).distinct()) } ?: e }
@@ -289,6 +294,16 @@ class SportsRepository @Inject constructor(
                     delay(30_000)
                 }
             }
+        }
+        scope.launch {
+            channelLookupAllowed.combine(cacheLoaded) { allowed, loaded -> allowed && loaded }
+                .distinctUntilChanged().collectLatest { allowed ->
+                    if (!allowed) return@collectLatest
+                    while (true) {
+                        updateCricket()
+                        delay(30_000L)
+                    }
+                }
         }
         scope.launch {
             sportsScoresAllowed(foreground, playback.state, viewing = viewers)
@@ -524,6 +539,7 @@ class SportsRepository @Inject constructor(
             val mine = isMine(l, f)
             if (!viewing && !mine && l.id !in playingLeagues) return@filter false
             when {
+                l.sport == Sport.CRICKET -> viewing && age >= 5 * MINUTE
                 force -> age > 15_000
                 viewing -> age > (if (live) 30_000 else 5 * MINUTE)
                 l.id in playingLeagues && s.scoreOnInfoBar -> age > 60_000
@@ -627,7 +643,9 @@ class SportsRepository @Inject constructor(
         // Plus your teams' competitions where ESPN gives no team schedule (rugby): their games
         // further ahead come from the league's months instead.
         val noSchedule = f.teams.flatMap { listOf(it.leagueId) + SportsCatalog.relatedLeagues(it.leagueId) }
-            .filter { it.startsWith("rugby/") || it.startsWith("australian-football/") }
+            .filter { it.startsWith("rugby/") || it.startsWith("australian-football/") ||
+                (f.teams.any { t -> t.leagueId == InternationalCricket.LEAGUE_ID } &&
+                    SportsCatalog.league(it)?.let(InternationalCricket::includes) == true) }
         val ids = (f.pins + f.leagues + noSchedule).toSet()
         if (aheadData.value.keys.any { it !in ids }) aheadData.update { m -> m.filterKeys { it in ids } }
         val due = ids.mapNotNull { SportsCatalog.league(it) }.filter { l ->
@@ -787,6 +805,52 @@ class SportsRepository @Inject constructor(
         }
     }
 
+    /** Cricket requests stop when Sports Hub closes, including fullscreen playback. */
+    private suspend fun updateCricket() {
+        val now = System.currentTimeMillis()
+        for (format in CricketAustralia.formats) {
+            if (!channelLookupAllowed.value) return
+            val interval = CricketAustralia.interval(format)
+            if (now - (cricketAttempts[format] ?: 0L) < interval) continue
+            cricketAttempts[format] = now
+            try {
+                sportsCatching {
+                    val file = File(dir, "cricket_au_$format.json")
+                    val saved = sportsCatching { file.readText().let {
+                        it.substringBefore('\n').toLong() to it.substringAfter('\n')
+                    } }.getOrNull()
+                    if (cricketData.value[format] == null && saved != null) {
+                        cricketData.update { it + (format to CricketAustralia.parse(saved.second, saved.first).map { e ->
+                            if (now - saved.first > interval && e.state == GameState.LIVE)
+                                e.copy(state = GameState.OFF, status = "Awaiting update") else e
+                        }) }
+                    }
+                    val fresh = if (saved != null && now - saved.first < interval) saved else
+                        now to cricketAustralia.fixtures(format, now)
+                    val parsed = CricketAustralia.parse(fresh.second, fresh.first)
+                    cricketAttempts[format] = fresh.first
+                    cricketData.update { it + (format to parsed) }
+                    if (fresh !== saved) file.writeText("${fresh.first}\n${fresh.second}")
+                }.onFailure {
+                    currentCoroutineContext().ensureActive()
+                    cricketData.update { data -> data + (format to data[format].orEmpty().map { e ->
+                        if (e.state == GameState.LIVE) e.copy(state = GameState.OFF, status = "Awaiting update") else e
+                    }) }
+                    Log.w(TAG, "Cricket Australia update failed", it)
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                cricketAttempts.remove(format)
+                throw cancelled
+            }
+        }
+        // BBL remains on SportsDB, at the international five-minute cadence.
+        known.value.filter { it.source == EventSource.THESPORTSDB &&
+            SportsCatalog.league(it.leagueId)?.sport == Sport.CRICKET &&
+            it.state != GameState.POST && it.startMs <= now &&
+            now <= (it.endMs ?: (it.startMs + 24 * HOUR))
+        }.take(12).forEach { if (channelLookupAllowed.value) refreshFreeEvent(it) }
+    }
+
     /** Independent public-key fallback. Every list is explicitly partial on this tier. */
     private suspend fun updateTsdb(now: Long, @Suppress("UNUSED_PARAMETER") force: Boolean) {
         for (id in FreeSportsDb.seedIds) {
@@ -859,7 +923,8 @@ class SportsRepository @Inject constructor(
         if (!foreground.value || event.source != EventSource.THESPORTSDB) return@withContext
         val id = event.id.substringAfterLast(':').takeIf { it.isNotEmpty() && it.all(Char::isDigit) } ?: return@withContext
         val league = SportsCatalog.league(event.leagueId) ?: return@withContext
-        val saved = freeCached("event_$id", 90_000) { freeDb.get("lookupevent.php", "id" to id) } ?: return@withContext
+        if (league.sport == Sport.CRICKET && !channelLookupAllowed.value) return@withContext
+        val saved = freeCached("event_$id", if (league.sport == Sport.CRICKET) 5 * MINUTE else 90_000) { freeDb.get("lookupevent.php", "id" to id) } ?: return@withContext
         val updated = FreeSportsDb.events(league, saved.second, saved.first).singleOrNull { it.id == event.id } ?: return@withContext
         if (baseFeed.enabled) {
             tsdbData.update { map ->
@@ -1500,8 +1565,9 @@ class SportsRepository @Inject constructor(
     }
 
     suspend fun teams(league: League): List<TeamInfo> = withContext(Dispatchers.IO) {
+        if (league.id == InternationalCricket.LEAGUE_ID) return@withContext InternationalCricket.teams
         val loaded = SportsCompetitions.sources(league.id).filter {
-            it.espnPath != null || (it.id.startsWith("tsdb/") && it.kind == LeagueKind.TEAMS)
+            it.espnPath != null || it.id.startsWith("ca/") || (it.id.startsWith("tsdb/") && it.kind == LeagueKind.TEAMS)
         }.flatMap { sourceTeams(it) }
         SportsCompetitions.teams(league.id, loaded, follows.value)
     }
@@ -1529,6 +1595,8 @@ class SportsRepository @Inject constructor(
 
     private suspend fun leagueTeams(league: League): List<TeamInfo> {
         synchronized(teamCache) { teamCache[league.id] }?.let { return it }
+        if (league.id.startsWith("ca/")) return cricketData.value.values.flatten()
+            .filter { it.leagueId == league.id }.flatMap { it.sides }.map { it.team }.distinctBy { it.id }
         if (league.espnPath == null) return emptyList()
         val file = File(dir, "teams_${safe(league.id)}.json")
         val fresh = file.exists() && System.currentTimeMillis() - file.lastModified() < 7 * DAY
@@ -1740,7 +1808,7 @@ internal fun noticeScoreIncreases(league: League, before: List<SportsEvent>, aft
         if (event.state != GameState.LIVE || !event.hasScore) continue
         val previous = old[event.id]?.takeIf { it.hasScore } ?: continue
         for (side in event.sides) {
-            if (!follows.followsTeam(league.id, side.team.id) && league.id !in follows.leagues) continue
+            if (!follows.followsTeam(side.team) && league.id !in follows.leagues) continue
             val was = previous.sides.firstOrNull { it.team.id == side.team.id }?.score?.toDoubleOrNull() ?: continue
             val score = side.score?.toDoubleOrNull() ?: continue
             if (score > was) notify(SportsAlert(event, side.team, league))

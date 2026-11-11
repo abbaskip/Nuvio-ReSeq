@@ -81,8 +81,8 @@ internal object SportsCompetitions {
         order = f.order.map { if (it.startsWith("l:")) "l:" + canonicalId(it.removePrefix("l:")) else it }.distinct()
     )
 
-    fun hasTeams(id: String): Boolean = sources(id).any {
-        it.kind == LeagueKind.TEAMS && (it.espnPath != null || it.id.startsWith("tsdb/"))
+    fun hasTeams(id: String): Boolean = id == InternationalCricket.LEAGUE_ID || sources(id).any {
+        it.kind == LeagueKind.TEAMS && (it.espnPath != null || it.id.startsWith("tsdb/") || it.id.startsWith("ca/"))
     }
 
     /** Merge complete provider lists and retain followed teams even when a partial feed omits them. */

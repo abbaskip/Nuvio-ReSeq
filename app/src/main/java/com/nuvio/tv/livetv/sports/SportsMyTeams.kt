@@ -394,7 +394,7 @@ internal fun RowCard(
                     side = side,
                     showScore = showScore,
                     dim = showScore && !tied && side != lead,
-                    followed = follows.followsTeam(ev.leagueId, side.team.id),
+                    followed = follows.followsTeam(side.team),
                     modifier = Modifier.height(24.dp),
                     logo = 18.dp, name = 11.sp, score = 14.sp, extra = null
                 )
@@ -485,7 +485,7 @@ private fun HeroCard(
     val league = SportsCatalog.league(ev.leagueId)
     val sport = league?.sport ?: Sport.OTHER
     val sides = ev.ordered(sport)
-    val mine = sides.firstOrNull { follows.followsTeam(ev.leagueId, it.team.id) }
+    val mine = sides.firstOrNull { follows.followsTeam(it.team) }
     val look = if (sides.size != 2) eventLook(ev, league) else null
     val label = when {
         ev.state == GameState.LIVE -> "● ${ev.liveLabel}"

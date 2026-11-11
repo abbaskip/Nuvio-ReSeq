@@ -17,7 +17,9 @@ internal object SportsEventListings {
                 // Keep a game that started yesterday visible while it is still live today.
                 ev.state == GameState.LIVE -> ev.startMs < dayEnd &&
                     (ev.startMs >= dayStart || (now in dayStart until dayEnd && (ev.endMs ?: Long.MAX_VALUE) > now))
-                else -> ev.startMs in dayStart until dayEnd
+                else -> ev.startMs in dayStart until dayEnd ||
+                    (SportsCatalog.league(ev.leagueId)?.sport == Sport.CRICKET &&
+                        ev.startMs < dayEnd && (ev.endMs ?: ev.startMs) > dayStart)
             }
         }.sortedWith(compareBy<SportsEvent> {
             // Today's continuous feed follows status, even when a live event spans days.

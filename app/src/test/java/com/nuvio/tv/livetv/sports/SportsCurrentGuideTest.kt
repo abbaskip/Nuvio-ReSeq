@@ -19,6 +19,16 @@ class SportsCurrentGuideTest {
         home = null, away = null, espnId = null, guideHits = listOf(channel.key to p))
     private fun match(p: EpgProgram? = programme, score: Int = 100) = ChannelMatch(channel, score, "Guide", p, "HD", false)
 
+    @Test fun stumpsOverridesLiveTvMetadataWithoutRemovingTheAiring() {
+        val stopped = fixture().copy(state = GameState.OFF, status = "Stumps")
+        val shown = SportsCurrentGuide.withFixtures(listOf(airing()), listOf(stopped),
+            mapOf(stopped.id to listOf(match())), now).single()
+        assertEquals(GameState.OFF, shown.state)
+        assertEquals("Stumps", shown.status)
+        assertEquals(airing().id, shown.id)
+        assertEquals(listOf(stopped), SportsCurrentGuide.fixtures(listOf(stopped)))
+    }
+
     @Test fun scoreAndClockUpdatesDoNotScheduleAnotherDiscoveryButFixtureChangesDo() {
         val fixture = fixture()
         val before = SportsCurrentGuide.fixtureKeys(listOf(fixture, airing()))

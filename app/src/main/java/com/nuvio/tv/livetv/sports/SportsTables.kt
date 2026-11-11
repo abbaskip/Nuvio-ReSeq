@@ -651,7 +651,7 @@ internal fun TeamCard(
     val live = list.firstOrNull { it.state == GameState.LIVE }
     val last = list.filter { it.state == GameState.POST }.sortedByDescending { it.startMs }.take(3)
     val next = list.filter { it.state == GameState.PRE }.minByOrNull { it.startMs }
-    val following = follows.followsTeam(team.leagueId, team.id)
+    val following = follows.followsTeam(team)
     val first = remember { FocusRequester() }
     // On the first button once the games are in (Watch now or Remind me), and back from All their games.
     LaunchedEffect(allGames, games != null) { delay(120); runCatching { first.requestFocus() } }

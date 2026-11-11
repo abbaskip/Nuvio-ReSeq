@@ -92,7 +92,8 @@ internal object SportsRows {
         for (t in follows.teams) {
             val family = SportsCatalog.teamFamily(t.leagueId)
             val games = known.filter { ev ->
-                ev.sides.any { s -> s.team.id == t.teamId && (ev.leagueId == t.leagueId || SportsCatalog.teamFamily(ev.leagueId) == family) }
+                ev.sides.any { s -> InternationalCricket.matches(t, s.team) ||
+                    (s.team.id == t.teamId && (ev.leagueId == t.leagueId || SportsCatalog.teamFamily(ev.leagueId) == family)) }
             }
             rows += timeline("t:${t.key}", t.name, SportsRow.Kind.TEAM, games, now, team = t)
         }

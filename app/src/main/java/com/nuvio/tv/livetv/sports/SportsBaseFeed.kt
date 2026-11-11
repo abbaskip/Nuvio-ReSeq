@@ -184,8 +184,8 @@ internal object SportsRefreshPolicy {
         // Discovery remains within the same two-request budget and backs off when empty.
         val discover = if (viewing) leagues.filter { it.sport == Sport.CRICKET && it.espnPath != null &&
             events.none { e -> e.leagueId == it.id } }.map { it.id } else emptyList()
-        return (current.keys + discover).distinct().filter { id -> (viewing || priority(id) == 0) &&
-            now - (attempts[id] ?: 0) >= if (id in discover) 5 * 60_000L else 60_000L }
+        return (current.keys + discover).distinct().filter { id -> (viewing || (priority(id) == 0 && byId[id]?.sport != Sport.CRICKET)) &&
+            now - (attempts[id] ?: 0) >= if (id in discover || byId[id]?.sport == Sport.CRICKET) 5 * 60_000L else 60_000L }
             .sortedWith(compareBy<String> { if (priority(it) == 0) 0 else 1 }
                 .thenBy { attempts[it] ?: 0L }.thenBy { priority(it) })
             .take(2).mapNotNull(byId::get)

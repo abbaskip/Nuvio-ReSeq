@@ -70,7 +70,7 @@ internal fun isMine(ev: SportsEvent, f: SportsFollows): Boolean =
     f.leagues.any { SportsTaxonomy.includesLeague(it, ev.leagueId) } || ev.word != null ||
         // Saved whole-league follows are migrated to pins, including team sports such as NBA.
         f.pins.any { SportsTaxonomy.includesLeague(it, ev.leagueId) } ||
-        ev.sides.any { f.followsTeam(ev.leagueId, it.team.id) } ||
+        ev.sides.any { f.followsTeam(it.team) } ||
         f.reminders.any { it.eventId == ev.id }
 
 // Flag artwork: https://flagcdn.com (Flagpedia / Wikimedia Commons).

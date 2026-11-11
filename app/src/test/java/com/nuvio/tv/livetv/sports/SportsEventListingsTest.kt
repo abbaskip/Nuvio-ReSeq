@@ -36,7 +36,7 @@ class SportsEventListingsTest {
     @Test fun `only provider fixtures appear in All Events even when guide show names a match`() {
         val events = EventSource.entries.map { source -> event(source.name, now, GameState.LIVE, source) }
         val result = SportsEventListings.allEvents(events, day, day + 24 * hour, now)
-        assertEquals(setOf(EventSource.ESPN, EventSource.FIXTURES, EventSource.THESPORTSDB), result.map { it.source }.toSet())
+        assertEquals(setOf(EventSource.ESPN, EventSource.FIXTURES, EventSource.THESPORTSDB, EventSource.CRICKET_AUSTRALIA), result.map { it.source }.toSet())
         assertFalse(result.any { it.source == EventSource.GUIDE })
     }
 

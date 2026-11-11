@@ -422,7 +422,7 @@ internal fun GameCard(
                             side = side,
                             showScore = showScore,
                             dim = showScore && !tied && side != lead,
-                            followed = follows.followsTeam(ev.leagueId, side.team.id),
+                            followed = follows.followsTeam(side.team),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -574,9 +574,9 @@ internal fun UpcomingRow(
         EventMark(ev, league, 20.dp)
         Box(Modifier.padding(horizontal = 10.dp).width(1.dp).height(26.dp).background(SportsLook.Divider))
         if (sides.size == 2) {
-            UpcomingTeam(sides[0], follows.followsTeam(ev.leagueId, sides[0].team.id), Modifier.weight(1f))
+            UpcomingTeam(sides[0], follows.followsTeam(sides[0].team), Modifier.weight(1f))
             LiveText(if (sport.homeFirst) "v" else "@", color = SportsLook.Dim, size = 11.sp, modifier = Modifier.padding(horizontal = 6.dp))
-            UpcomingTeam(sides[1], follows.followsTeam(ev.leagueId, sides[1].team.id), Modifier.weight(1f))
+            UpcomingTeam(sides[1], follows.followsTeam(sides[1].team), Modifier.weight(1f))
         } else {
             LiveText(sport.icon, size = 15.sp)
             Spacer(Modifier.width(8.dp))

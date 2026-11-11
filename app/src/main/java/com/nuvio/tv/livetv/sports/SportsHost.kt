@@ -129,7 +129,7 @@ fun SportsHost(navController: NavController) {
                 val manual = f.reminders.mapNotNull { r -> events.firstOrNull { it.id == r.eventId } }
                 val auto = if (s.remindMyTeams) events.filter { ev ->
                     ev.state == GameState.PRE && ev.hasTime && ev.source != EventSource.GUIDE &&
-                        (ev.leagueId in f.leagues || ev.sides.any { f.followsTeam(ev.leagueId, it.team.id) } ||
+                        (ev.leagueId in f.leagues || ev.sides.any { f.followsTeam(it.team) } ||
                             (ev.leagueId in f.pins && SportsCatalog.league(ev.leagueId)?.kind == LeagueKind.EVENT))
                 } else emptyList()
                 (manual + auto).distinctBy { it.id }.firstOrNull { ev ->

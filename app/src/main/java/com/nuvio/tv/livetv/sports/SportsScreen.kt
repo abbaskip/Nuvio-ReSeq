@@ -1355,7 +1355,7 @@ private fun GamePage(
             sides.forEach { side ->
                 val m = f()
                 item {
-                    val following = follows.followsTeam(ev.leagueId, side.team.id)
+                    val following = follows.followsTeam(side.team)
                     SportsAction(
                         if (following) "★  ${side.team.name}" else "☆  ${side.team.name}",
                         modifier = m, selected = following,

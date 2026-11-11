@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "hold": false,
-  "reason": "Maintainer explicitly authorized publication of the combined beta 9.6 On Demand performance fixes, Cricket Australia integration and international cricket teams on 11 November 2026.",
+  "hold": true,
+  "reason": "Maintainer withdrew beta 9.6 after the Onn cricket-opening memory ANR and requested a fix. No republication until explicitly authorized.",
   "clear_when": "The maintainer explicitly authorizes publication after the remaining beta 9.6 work and required validation are complete.",
   "release": "v0.1.0-beta.9.6",
-  "accepted_source": "c2c22477f",
+  "accepted_source": "750475b4e1dd2462af729c6e92ded7aa48359511",
   "evidence": "releases/0.1.0-beta.9.6.md"
 }

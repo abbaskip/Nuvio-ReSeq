@@ -57,6 +57,11 @@ def meta(show):
 
 def sports():
     data = base.sports()
+    # A schedule is older than the live scoreboard fetched by the TV. Otherwise
+    # tiny host/device clock skew lets the schedule's PRE projection win the merge.
+    data['generatedAt'] -= 60_000
+    for entry in data['entries']:
+        entry['fetchedAt'] = data['generatedAt']
     prototype = data["entries"][0]["payload"]["events"][0]
     data["entries"][0]["payload"]["events"] = [dict(prototype, id=str(80000+i),
         name=f"Fixture game {i}") for i in range(2000)]

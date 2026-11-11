@@ -48,7 +48,7 @@ jobs:
           :app:assembleFullDebugAndroidTest --max-workers=1
           -PstabilityFixtures=true
           -Pkotlin.compiler.execution.strategy=in-process
-          -Dorg.gradle.jvmargs="$NUVIO_CI_JVM_ARGS"
+          -Dorg.gradle.jvmargs="${NUVIO_CI_JVM_ARGS:--Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8}"
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -82,7 +82,7 @@ jobs:
           ./gradlew :app:connectedFullDebugAndroidTest --max-workers=1
           -PstabilityFixtures=true
           -Pkotlin.compiler.execution.strategy=in-process
-          -Dorg.gradle.jvmargs="$NUVIO_CI_JVM_ARGS"
+          -Dorg.gradle.jvmargs="${NUVIO_CI_JVM_ARGS:--Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8}"
       - uses: actions/upload-artifact@v6
         if: always()
         with:

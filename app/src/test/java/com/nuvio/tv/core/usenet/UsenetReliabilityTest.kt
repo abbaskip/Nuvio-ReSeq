@@ -227,8 +227,9 @@ class UsenetReliabilityTest {
     @Test fun rejectsGzipExpansionPastNzbLimit() {
         val compressed = ByteArrayOutputStream().apply {
             GZIPOutputStream(this).use { gzip ->
-                val block = ByteArray(8192)
-                repeat(NzbManifest.MAX_BYTES / block.size + 1) { gzip.write(block) }
+                gzip.write("<nzb>".toByteArray())
+                val block = ByteArray(8192) { 32 }
+                repeat((NzbLimits.HARD_DECODED_BYTES / block.size + 1).toInt()) { gzip.write(block) }
             }
         }.toByteArray()
         val server = object : NanoHTTPD("127.0.0.1", 0) {

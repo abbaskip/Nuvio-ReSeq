@@ -5,6 +5,7 @@ import org.xml.sax.InputSource
 import org.xml.sax.helpers.DefaultHandler
 import java.io.IOException
 import java.io.StringReader
+import java.io.InputStream
 import javax.xml.parsers.SAXParserFactory
 
 internal open class UsenetFailure(message: String) : IOException(message)
@@ -14,33 +15,37 @@ internal fun ensureUsenet(condition: Boolean, message: String) {
 
 internal data class NzbFile(val name: String, val articles: List<String>, val postedBytes: Long)
 
-internal class NzbDocument(val files: List<NzbFile>, val password: String?)
+internal class NzbDocument(val files: List<NzbFile>, val password: String?, val decodedBytes: Long = 0) {
+    val retainedBytes: Long = 128L + (password?.length ?: 0) * 2L + files.sumOf { file ->
+        192L + file.name.length * 2L + ((file.articles as? NzbArticleIds)?.retainedBytes
+            ?: file.articles.sumOf { 64L + it.length * 2L })
+    }
+}
 
 internal object NzbManifest {
-    const val MAX_BYTES = 12 * 1024 * 1024
     private val quoted = Regex("\"([^\"]+)\"")
     private val unquoted = Regex("""(?i)([^\s"]+\.(?:(?:7z|mkv|mp4|webm|avi|m4v|mov|m2ts|ts|mpg|mpeg|wmv)(?:\.\d{3,5})?|rar(?:\.\d{3,5})?|[r-z]\d{2,3}|par2|\d{3,5}))\b""")
-    private val messageId = Regex("[!-~]{1,500}")
 
-    fun parse(bytes: ByteArray): NzbDocument {
-        ensureUsenet(bytes.size <= MAX_BYTES, "NZB exceeds the size limit.")
-        val encoding = when {
-            bytes.take(2) == listOf(0xff.toByte(), 0xfe.toByte()) -> "UTF-16LE"
-            bytes.take(2) == listOf(0xfe.toByte(), 0xff.toByte()) -> "UTF-16BE"
-            bytes.size >= 4 && bytes[0] == 0.toByte() && bytes[1] == '<'.code.toByte() -> "UTF-16BE"
-            bytes.size >= 4 && bytes[0] == '<'.code.toByte() && bytes[1] == 0.toByte() -> "UTF-16LE"
-            else -> Regex("""encoding\s*=\s*["']([^"']+)["']""").find(
-                String(bytes, 0, minOf(bytes.size, 256), Charsets.ISO_8859_1))?.groupValues?.get(1) ?: "UTF-8"
-        }
-        val text = try { String(bytes, java.nio.charset.Charset.forName(encoding)) }
-            catch (_: Exception) { throw UsenetFailure("Unsupported NZB text encoding.") }
-        return parse(text.removePrefix("\uFEFF"))
-    }
+    fun parse(bytes: ByteArray): NzbDocument = parse(bytes.inputStream())
 
-    fun parse(xml: String): NzbDocument {
-        ensureUsenet(xml.length <= MAX_BYTES && "<!ENTITY" !in xml, "Unsupported NZB document.")
+    // The String overload already has decoded characters; a BOM preserves them regardless
+    // of an encoding declaration supplied by a test/caller. Downloads use InputStream only.
+    fun parse(xml: String): NzbDocument = parse(xml.byteInputStream(Charsets.UTF_16))
+
+    fun parse(input: InputStream, limits: NzbLimits = NzbLimits.forProfile(UsenetMemoryProfile.current)): NzbDocument {
+        val bounded = NzbBoundedInput(input, limits.decodedBytes)
+        val budget = NzbRetentionBudget(limits.retainedBytes)
+        budget.reserve(128 + 1024) // document and maximum password
         val files = mutableListOf<NzbFile>()
-        val segments = sortedMapOf<Int, String>()
+        val names = HashSet<String>()
+        fun accountName(name: String) {
+            if (name !in names) {
+                // SAX implementations intern names; bound that transient symbol table too.
+                budget.reserve(128L + name.length * 2L)
+                names.add(name)
+            }
+        }
+        var segments: NzbArticleIds? = null
         var subject: String? = null
         var number: Int? = null
         val text = StringBuilder()
@@ -54,6 +59,8 @@ internal object NzbManifest {
         val handler = object : DefaultHandler() {
             override fun resolveEntity(publicId: String?, systemId: String?) = InputSource(StringReader(""))
             override fun startElement(uri: String?, local: String?, name: String, attrs: Attributes) {
+                accountName(name)
+                for (i in 0 until attrs.length) accountName(attrs.getQName(i))
                 ensureUsenet(++depth <= 32, "Invalid NZB structure.")
                 if (depth == 1) ensureUsenet(name == "nzb", "Invalid NZB root element.")
                 when (name) {
@@ -65,14 +72,16 @@ internal object NzbManifest {
                     "file" -> {
                         ensureUsenet(subject == null && files.size < 4096, "Invalid NZB file list.")
                         subject = attrs.getValue("subject").orEmpty().take(2048)
+                        budget.reserve(192L + subject!!.length * 2L)
                         postedBytes = 0
-                        segments.clear()
+                        segments = NzbArticleIds(budget, limits.segments)
                     }
                     "segment" -> {
                         val ordinal = attrs.getValue("number")?.toIntOrNull() ?: 0
                         val size = attrs.getValue("bytes")?.toLongOrNull() ?: 0L
                         ensureUsenet(subject != null && number == null && ordinal > 0 &&
-                            ++count <= 150000 && size in 0..Int.MAX_VALUE.toLong(), "Invalid NZB segment.")
+                            size in 0..Int.MAX_VALUE.toLong(), "Invalid NZB segment.")
+                        if (++count > limits.segments) throw NzbTooLarge()
                         number = ordinal
                         postedBytes += size
                         text.setLength(0)
@@ -99,8 +108,9 @@ internal object NzbManifest {
                 depth--
                 if (name == "segment") {
                     val id = text.toString().trim().removeSurrounding("<", ">")
-                    ensureUsenet(messageId.matches(id) && '<' !in id && '>' !in id &&
-                        segments.put(number!!, id) == null, "Invalid NZB article identifier.")
+                    ensureUsenet(id.length in 1..500 && id.all { it in '!'..'~' && it != '<' && it != '>' },
+                        "Invalid NZB article identifier.")
+                    segments!!.add(number!!, id)
                     number = null
                 }
                 if (name == "file") {
@@ -108,20 +118,30 @@ internal object NzbManifest {
                     val filename = quoted.find(title)?.groupValues?.get(1)
                         ?: unquoted.find(title)?.groupValues?.get(1) ?: title
                     // Retain the slot of an incomplete file so fileIdx still identifies the requested episode.
-                    val complete = segments.isNotEmpty() && segments.firstKey() == 1 && segments.lastKey() == segments.size
-                    files += NzbFile(filename, if (complete) segments.values.toList() else emptyList(), postedBytes)
+                    files += NzbFile(filename, segments!!.takeIf { it.complete } ?: emptyList(), postedBytes)
+                    segments = null
                 }
                 if (name == "file") subject = null
             }
         }
         try {
-            SAXParserFactory.newInstance().newSAXParser().parse(InputSource(StringReader(xml)), handler)
+            val reader = SAXParserFactory.newInstance().newSAXParser().xmlReader
+            reader.contentHandler = handler
+            reader.entityResolver = handler
+            reader.errorHandler = handler
+            reader.parse(InputSource(nzbReader(bounded)))
         } catch (failure: UsenetFailure) {
             throw failure
-        } catch (_: Exception) {
+        } catch (failure: Exception) {
+            // Some SAX implementations wrap handler/Reader exceptions.
+            var cause: Throwable? = failure.cause
+            repeat(8) {
+                if (cause is UsenetFailure) throw cause as UsenetFailure
+                cause = cause?.cause
+            }
             throw UsenetFailure("Could not read the NZB document.")
         }
         ensureUsenet(files.any { it.articles.isNotEmpty() }, "The NZB contains no complete files.")
-        return NzbDocument(files, password)
+        return NzbDocument(files, password, bounded.count)
     }
 }

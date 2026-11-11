@@ -5,9 +5,19 @@ internal data class UsenetMemoryProfile(val cacheBytes: Int, val window: Int, va
         val LOW = UsenetMemoryProfile(16 * 1024 * 1024, 6, 8 * 1024 * 1024)
         val NORMAL = UsenetMemoryProfile(32 * 1024 * 1024, 12, 16 * 1024 * 1024)
         @Volatile var current = LOW
+        private var callbacksRegistered = false
+        @Synchronized
         fun init(context: android.content.Context) {
             val manager = context.getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
             current = if (manager.isLowRamDevice || manager.memoryClass < 192) LOW else NORMAL
+            if (!callbacksRegistered) {
+                context.applicationContext.registerComponentCallbacks(object : android.content.ComponentCallbacks2 {
+                    override fun onTrimMemory(level: Int) { NzbDownload.onMemoryPressure() }
+                    override fun onLowMemory() { NzbDownload.onMemoryPressure() }
+                    override fun onConfigurationChanged(config: android.content.res.Configuration) = Unit
+                })
+                callbacksRegistered = true
+            }
         }
     }
 }

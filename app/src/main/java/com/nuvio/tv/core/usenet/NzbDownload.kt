@@ -2,13 +2,13 @@ package com.nuvio.tv.core.usenet
 
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.ByteArrayOutputStream
 import java.io.Closeable
-import java.io.InputStream
+import java.io.PushbackInputStream
 import java.util.zip.GZIPInputStream
 
 internal object NzbDownload {
     private val cache = NzbMemoryCache()
+    fun onMemoryPressure() = cache.clear()
     // Redirects are processed here to keep addon credentials on their original origin.
     private val client by lazy { OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
         .callTimeout(30, java.util.concurrent.TimeUnit.SECONDS).build() }
@@ -16,6 +16,8 @@ internal object NzbDownload {
     fun fetch(url: String, headers: Map<String, String>, preparation: UsenetPreparation, trace: UsenetStartupTrace? = null): NzbDocument {
         preparation.own(Closeable {}) // A cache hit must still respect cancelled preparation ownership.
         cache.get(url, headers)?.let { trace?.add("nzb_cache_hits"); return it }
+        val generation = cache.generation()
+        val limits = NzbLimits.forProfile(UsenetMemoryProfile.current)
         var request = Request.Builder().url(url).apply {
             headers.forEach { (name, value) ->
                 if (name.lowercase() !in setOf("host", "content-length", "connection", "accept-encoding")) header(name, value)
@@ -39,12 +41,16 @@ internal object NzbDownload {
                 } else {
                     ensureUsenet(response.isSuccessful, "Could not download the NZB.")
                     val body = response.body ?: throw UsenetFailure("Empty NZB response.")
-                    val wire = bounded(body.byteStream())
-                    val decoded = if (wire.size >= 2 && wire[0] == 0x1f.toByte() && wire[1] == 0x8b.toByte())
-                        GZIPInputStream(wire.inputStream()).use(::bounded) else wire
-                    return NzbManifest.parse(decoded).also {
-                        trace?.add("nzb_bytes", decoded.size.toLong())
-                        cache.put(url, headers, it, decoded.size)
+                    val wire = PushbackInputStream(body.byteStream(), 2)
+                    val first = wire.read()
+                    val second = wire.read()
+                    if (second >= 0) wire.unread(second)
+                    if (first >= 0) wire.unread(first)
+                    val decoded = if (first == 0x1f && second == 0x8b) GZIPInputStream(wire) else wire
+                    return decoded.use { NzbManifest.parse(it, limits) }.also {
+                        trace?.add("nzb_bytes", it.decodedBytes)
+                        trace?.add("nzb_retained_bytes", it.retainedBytes)
+                        cache.put(url, headers, it, generation)
                     }
                 }
             }
@@ -52,14 +58,4 @@ internal object NzbDownload {
         throw UsenetFailure("Too many NZB redirects.")
     }
 
-    private fun bounded(input: InputStream): ByteArray {
-        val output = ByteArrayOutputStream()
-        val chunk = ByteArray(8192)
-        while (true) {
-            val count = input.read(chunk, 0, minOf(chunk.size, NzbManifest.MAX_BYTES + 1 - output.size()))
-            if (count < 0) return output.toByteArray()
-            output.write(chunk, 0, count)
-            ensureUsenet(output.size() <= NzbManifest.MAX_BYTES, "NZB exceeds the size limit.")
-        }
-    }
 }

@@ -17,6 +17,7 @@ jobs:
         ram: [2048, 3072, 4096]
     env:
       ANDROID_SERIAL: emulator-5554
+      ANDROID_AVD_HOME: ${{ runner.temp }}/stability-avd
       CI_USE_DEBUG_SIGNING: 'true'
       NUVIO_SPORTS_BASE_FEED_URL: http://127.0.0.1:38791/sports
     steps:
@@ -58,9 +59,9 @@ jobs:
         shell: bash
         run: |
           sdkmanager 'emulator' 'system-images;android-34;android-tv;x86'
-          echo no | avdmanager create avd --name stability --package 'system-images;android-34;android-tv;x86' --force
+          python3 scripts/stability_avd.py --image "$ANDROID_HOME/system-images/android-34/android-tv/x86" --root "$ANDROID_AVD_HOME" --ram ${{ matrix.ram }}
           mkdir -p build/stability
-          "$ANDROID_HOME/emulator/emulator" -avd stability -port 5554 -memory ${{ matrix.ram }} -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > build/stability/emulator.log 2>&1 &
+          "$ANDROID_HOME/emulator/emulator" -avd stability-tv-${{ matrix.ram }} -port 5554 -memory ${{ matrix.ram }} -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > build/stability/emulator.log 2>&1 &
           timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
           booted=false
           for attempt in $(seq 1 120); do

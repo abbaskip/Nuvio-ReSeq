@@ -43,7 +43,10 @@ def timeline_assertions(events):
             'snapshot': snapshot, 'launcher': launcher, 'rawProgress': sample['rawProgress'],
             'snapshotVersion': sample['snapshotVersion'],
             'snapshotMatchesExpected': snapshot == ['tt9900003:'+expected_episode],
-            'launcherContainsControl': bool(launcher)})
+            'launcherContainsControl': bool(launcher),
+            'launcherMatchesExpected': bool(launcher) and all(
+                row.startswith('tt9900003_s1e'+expected_episode+'|') and
+                ';i.episode='+expected_episode+';' in row for row in launcher)})
     return result
 
 
@@ -77,6 +80,7 @@ class Session:
         return {
             'model': self.adb('shell', 'getprop', 'ro.product.model').strip(),
             'android': self.adb('shell', 'getprop', 'ro.build.version.release').strip(),
+            'abis': self.adb('shell', 'getprop', 'ro.product.cpu.abilist').strip(),
             'fingerprint': self.adb('shell', 'getprop', 'ro.build.fingerprint').strip(),
             'heapgrowthlimit': self.adb('shell', 'getprop', 'dalvik.vm.heapgrowthlimit').strip(),
             'heapsize': self.adb('shell', 'getprop', 'dalvik.vm.heapsize').strip(),
@@ -181,8 +185,14 @@ def device_session(session):
     cleanup_errors = []
     added_reverses = []
     volume = None
+    primary_error = None
     try:
-        apk_identity(run(s.args.aapt, 'dump', 'badging', str(s.args.apk)))
+        badging = run(s.args.aapt, 'dump', 'badging', str(s.args.apk))
+        apk_identity(badging)
+        native = re.search(r'^native-code:(.*)$', badging, re.M)
+        device_abis = s.adb('shell', 'getprop', 'ro.product.cpu.abilist').strip().split(',')
+        if native and not set(re.findall(r"'([^']+)'", native[1])).intersection(device_abis):
+            raise ValueError('APK native ABI does not match device: '+','.join(device_abis))
         xml = run(s.args.aapt, 'dump', 'xmltree', str(s.args.apk), 'AndroidManifest.xml')
         if ACTIVITY not in xml:
             raise ValueError('APK lacks the shell-protected fixture harness')
@@ -227,6 +237,10 @@ def device_session(session):
         if 'Success' not in s.adb('install', str(s.args.apk), timeout=180):
             raise RuntimeError('Fixture APK install failed')
         yield
+    except BaseException as error:
+        primary_error = error
+        s.save('workload-error.txt', str(error) or type(error).__name__)
+        raise
     finally:
         # Every restoration is independent: one failure must not skip later restores.
         def cleanup(label, operation):
@@ -236,13 +250,17 @@ def device_session(session):
                 cleanup_errors.append(f'{label}: {error}')
         cleanup('log collector', s.stop_log)
         if installed:
-            cleanup('test graphics', lambda: s.save('gfxinfo.txt', s.adb('shell', 'dumpsys', 'gfxinfo', PACKAGE)))
-            cleanup('test activity', lambda: s.save('activity.txt', s.adb('shell', 'dumpsys', 'activity', 'activities', PACKAGE)))
-            cleanup('stop test package', lambda: s.adb('shell', 'am', 'force-stop', PACKAGE))
-            def uninstall():
+            def remove_owned_package():
+                if not s.adb('shell', 'pm', 'path', PACKAGE).strip():
+                    return
+                cleanup('test graphics', lambda: s.save('gfxinfo.txt', s.adb('shell', 'dumpsys', 'gfxinfo', PACKAGE)))
+                cleanup('test activity', lambda: s.save('activity.txt', s.adb('shell', "dumpsys activity activities | grep -F '"+PACKAGE+"'", check=False)))
+                cleanup('stop test package', lambda: s.adb('shell', 'am', 'force-stop', PACKAGE))
                 if 'Success' not in s.adb('uninstall', PACKAGE):
                     raise RuntimeError('Test uninstall failed')
-            cleanup('uninstall test package', uninstall)
+                if s.adb('shell', 'pm', 'path', PACKAGE).strip():
+                    raise RuntimeError('Test package remains after uninstall')
+            cleanup('uninstall test package', remove_owned_package)
         for target in added_reverses:
             cleanup('reverse '+target, lambda target=target: s.adb('reverse', '--remove', target))
         if restore_needed:
@@ -265,7 +283,40 @@ def device_session(session):
             cleanup('power after', lambda: s.save('power-after.txt', s.adb('shell', 'dumpsys', 'power')))
         s.save('cleanup.json', json.dumps({'errors': cleanup_errors}, indent=2))
         if cleanup_errors:
-            raise RuntimeError('Device cleanup incomplete: '+str(cleanup_errors))
+            raise RuntimeError(('Original failure: '+str(primary_error)+'; ' if primary_error else '')+
+                'Device cleanup incomplete: '+str(cleanup_errors)) from primary_error
+
+
+def nntp_samples(s):
+    started = time.monotonic()
+    s.journey('nntp-stall')
+    # The socket deadline is shorter than the general 30-second sampler.
+    for at in (1, 3, 5, 10, 15, 20, 30, 45, 60):
+        s.wait(max(0, started+at-time.monotonic()), interval=1)
+        s.journey('sample')
+
+
+def cricket(s):
+    s.stop_log()
+    s.adb('shell', 'am', 'force-stop', PACKAGE)
+    s.phase = 'cricket-cold-load'
+    s.adb('shell', 'am', 'start', '-W', '-n', PACKAGE+'/'+ACTIVITY, '--es', 'journey', 'sports')
+    s.start_log('cricket')
+    s.wait(30, interval=1)
+    for iteration in range(1, 6):
+        s.phase = f'cricket-{iteration}'
+        s.journey('home')
+        s.journey('sports')
+        s.wait(5)
+        offset = len(s.events)
+        s.journey('cricket')
+        s.wait(15, interval=1)
+        opened = [e for e in s.events[offset:] if e.get('kind') == 'sports-game-opened'
+                  and e.get('event') == 'espn:cricket/19430:77702']
+        if not opened:
+            raise RuntimeError('Cricket detail was not actually opened')
+        if not any(e.get('state') == 'LIVE' for e in opened):
+            raise RuntimeError('Cricket detail opened without the required live fixture state')
 
 
 def execute(s):
@@ -278,6 +329,14 @@ def execute(s):
     s.journey('seed', 300)
     s.journey('home')
     s.wait(30)
+    if s.args.workload == 'focused':
+        cricket(s)
+        s.phase = 'nntp-focused'
+        s.journey('home')
+        nntp_samples(s)
+        with urlopen('http://127.0.0.1:38791/stats') as response:
+            s.save('fixture-stats.json', response.read().decode())
+        return
     s.stop_log()
     s.adb('shell', 'am', 'force-stop', PACKAGE)
     s.adb('shell', 'am', 'start', '-W', '-n', PACKAGE+'/'+ACTIVITY, '--es', 'journey', 'home')
@@ -303,28 +362,15 @@ def execute(s):
             s.adb('shell', 'am', 'start', '-W', '-n', PACKAGE+'/'+VOD,
                   '--es', 'streamUrl', 'http://127.0.0.1:38791/movie/fixture/fixture/1.mp4',
                   '--es', 'title', 'Fixture', '--es', 'contentType', 'movie', '--es', 'contentId', 'tt9900099')
+        elif action == 'nntp-stall' and s.args.device == 'emulator':
+            nntp_samples(s)
         else:
             s.journey('home' if action == 'nntp-stall' and s.args.device == 'onn' else action)
     s.wait(max(0, started+600-time.monotonic()))
     if not any(e.get('kind') == 'vod-state' and e.get('state') == 3 and e.get('positionMs', 0) > 0 for e in s.events):
         raise RuntimeError('Real VOD player never reached READY with advancing position')
     s.control('slowImport=false')
-    s.stop_log()
-    s.adb('shell', 'am', 'force-stop', PACKAGE)
-    s.phase = 'cricket-cold-load'
-    s.adb('shell', 'am', 'start', '-W', '-n', PACKAGE+'/'+ACTIVITY, '--es', 'journey', 'sports')
-    s.start_log('cricket')
-    s.wait(30, interval=1)
-    for iteration in range(1, 6):
-        s.phase = f'cricket-{iteration}'
-        s.journey('home')
-        s.journey('sports')
-        s.wait(5)
-        offset = len(s.events)
-        s.journey('cricket')
-        s.wait(15, interval=1)
-        if not any(e.get('kind') == 'sports-game-opened' and e.get('event') == 'espn:cricket/19430:77702' for e in s.events[offset:]):
-            raise RuntimeError('Cricket detail was not actually opened')
+    cricket(s)
     if s.args.device == 'onn':
         with urlopen('http://127.0.0.1:38791/stats') as response:
             s.save('fixture-stats.json', response.read().decode())
@@ -363,11 +409,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--device', choices=['emulator', 'onn'], required=True)
+    parser.add_argument('--workload', choices=['full', 'focused'], default='full')
     parser.add_argument('--apk', type=Path, required=True)
     parser.add_argument('--aapt', required=True)
     parser.add_argument('--adb', default='adb')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if args.device == 'onn' and args.workload != 'full':
+        parser.error('Onn is limited to the full permitted smoke/soak/cricket subset')
     if not re.fullmatch(r'[A-Za-z0-9_.:-]+', args.serial):
         parser.error('Invalid serial')
     args.output.mkdir(parents=True, exist_ok=False)

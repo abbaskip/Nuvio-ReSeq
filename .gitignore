@@ -80,6 +80,7 @@ docs/*
 docs/stability/*
 !docs/stability/DISCOVERY.md
 !docs/stability/static-inventory.json
+!docs/stability/phase1-measurements.json
 !docs/index.html
 !docs/privacy.html
 !docs/terms.html

@@ -1,6 +1,10 @@
 # Stability programme: Phase 1 discovery
 
-**Phase 1 measurements are in progress. Do not approve Phase 2 yet.**
+**Phase 1 discovery is complete and awaiting maintainer approval.**
+Benchmark workloads completed across all three emulator RAM tiers and the
+permitted Onn subset. Existing allocator tests and lint remain red; CW invariant
+failures and measurement limits are preserved below. This is discovery completion,
+not approval to ship or a claim that the programme's final acceptance criteria pass.
 No design or functional fixes are part of this branch.
 
 ## Approved source and workflow registration
@@ -13,10 +17,11 @@ on `codex/stability-phase1-tooling`.
 GitHub refused manual dispatch while the workflow was absent from the default
 branch. With explicit maintainer approval, **`1bce7ac66`** registers only
 `.github/workflows/stability-emulator.yml` on `dev`, parent `94a87b487`.
-Workflow-only follow-ups `567a772a7`, `250e00c1c`, `87af286be`, `f8c543dfb` and `b0eeb9529`
+Workflow-only follow-ups `567a772a7`, `250e00c1c`, `87af286be`, `f8c543dfb`,
+`b0eeb9529`, `8c40a0ffd` and `e458f5fb0`
 synchronise the CI compiler strategy, bounded heap fallback and explicit AVD
 directory (including a corrected expression context), disposable-guest ADB
-authentication and single-tier reruns. Across these commits, the only changed
+authentication, single-tier reruns and an instrumentation-only mode. Across these commits, the only changed
 path on dev is this workflow. The file is identical to the Phase 1 branch version. It has only
 `workflow_dispatch`, `permissions: contents: read`, and no secret inputs.
 Immediately after checkout it fails clearly when `scripts/stability_smoke.py`
@@ -70,8 +75,10 @@ Reproduction uses `-PstabilityFixtures=true` for the `fullBenchmark` and
 `python scripts/stability_run.py --device emulator --serial emulator-5556
 --apk <x86-benchmark.apk> --aapt <aapt> --adb <adb> --output <new-directory>`.
 The runner records APK SHA-256, checkout HEAD, runner SHA-256 and UTC bounds.
-Local APKs were built from app source `89eeff8b3`; subsequent changes are host
-tooling/workflow/report only. The x86 APK SHA-256 is
+Local benchmark APKs were built from app source `89eeff8b3`; their app code and
+manifest remain unchanged. Subsequent changes are host tooling/workflow/report
+and preservation of the existing debug test activity in the debug-only fixture
+manifest. The x86 benchmark APK SHA-256 is
 `2ea4ba7d5415d54cb062551880a88a3d2a17e6e9bf1bae216dff6d41a10adfb4`;
 the Onn ARMv7 APK is
 `8501455dc7f483ed1e181417c9ae07d8802fd1ab01a2fb103a61bedd6b7301cb`.
@@ -90,6 +97,16 @@ samples, CW/launcher rows, environment and before/after cleanup evidence.
 The manual CI workflow uploads the corresponding artifacts and instrumentation
 reports for 14 days. Onn raw device artifacts stay local; only the permitted
 environment, measurement and restoration facts appear in this report.
+
+Raw CI evidence is attached to
+[the 2/3-GB run](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/43014856509)
+and [the final 4-GB run](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/43024044102).
+Download artifact `stability-tv-api34-<RAM>mb` before its 14-day expiry. The
+committed [selected measurements](phase1-measurements.json) preserve environment,
+APK/runner hashes, UTC bounds, memory summaries, GC/thread endpoints, CW and
+launcher assertions, TVDB probes and cleanup facts beyond that retention period.
+The original failed Onn cleanup result and independent verification both remain
+visible; no failed run is rewritten as a pass.
 
 ## Reproducible static evidence
 
@@ -219,7 +236,7 @@ the show.
 | Shuffle removes cards without cached videos | Not reproduced by source inspection. `applyHomeShuffle` retains prior selection or the item when no eligible selection exists. |
 | Shuffle writes display TVDB ID, projection reads tracking ID | Not reproduced by source inspection. Shuffle now writes `episodeIdentity.trackingEpisodeId` and playback context. |
 | withTvdbLabels drops unprojectable cards | Not reproduced by source inspection. It uses `map(::projectTvdbItem)`, whose fallback is `forSeriesChoice()`. |
-| No TVDB key removes every supported show | Not demonstrated at this base. Fallback cards exist, but the upstream null path and first tracker refresh need the requested timed test. The exact unavailable-on-this-TV label and all provider permutations are not certified. |
+| No TVDB key removes every supported show | Not reproduced in the isolated seeded-card control: 3/3 remained through all five service modes. The separate unresolved-completion identity case did lose its ordered card. The exact unavailable-on-this-TV label and all cold/provider permutations are not certified. |
 
 `86af0341b` is relevant earlier fix history. Existing Home shuffle and TVDB tests
 cover several helper cases and ran in the full JVM suite. Source findings alone
@@ -282,9 +299,37 @@ ledger spanning all these consumers. Limits cannot be added and called measured
 usage. The causal claim that this alone explains the withdrawn Onn ANR remains
 **needs device validation**.
 
+### New allocator-contract finding from instrumentation
+
+After correcting the fixture-only debug manifest (see verification below), the
+existing native allocator tests still failed. Fresh-process isolated repeats on
+the local 2-GB emulator reproduced:
+
+- `DefaultAllocatorNativeLeakTest.testDefaultAllocatorLateReleaseLeak`: after
+  allocating three 65,536-byte segments, reset, then late release, the allocator's
+  `memoryFootprint` reported **196,608 bytes**, expected zero.
+- `DefaultAllocatorNativeStressTest.testConcurrentDefaultAllocatorLateRelease`:
+  its isolated concurrent reset/late-release case reported **30,736,384 bytes**,
+  expected zero. The value varies with the interleaving.
+- `DefaultAllocatorNativeTest.testArenaPoolExhaustionAndReplenishment` failed in
+  the full suite but passed alone in a fresh process. Test-order/global-arena
+  interaction is therefore a live possibility, not an independently reproduced
+  arena defect.
+
+These are **verified by emulator test** allocator-contract failures, not proof
+of a permanent process leak or attribution of the historical Onn ANR. The
+assertions read allocator counters, not independently measured retained native
+PSS after object destruction. The tests and bundled engine behavior were not
+changed; source evidence is in `app/src/androidTest/java/androidx/media3/exoplayer/upstream/`.
+The corrected CI 4-GB suite reproduced the same three full-suite failures:
+late-release footprint **196,608 bytes**, concurrent case **46,727,168 bytes**,
+and the arena-membership assertion. The concurrent value differs by interleaving;
+the isolated local arena pass still prevents classifying that third case as an
+independently reproduced defect.
+
 ## Known 10050 risks at the 10051 application source
 
-### Home-hidden snapshot / launcher: reproduced on local 2-GB and 3-GB emulators
+### Home-hidden snapshot / launcher: reproduced across completed emulator tiers
 
 `runVisibleHomeWork` cancels children unless Home is visible and no player session
 is open. It encloses the CW pipeline. `MainActivity` refreshes connected tracking
@@ -315,6 +360,10 @@ timeline observations: S1E1 before completion, then stale S1E1 after closing to
 non-Home, backgrounding and the 35-second Home-return sample, despite raw progress
 marking S1E1 completed. SnapshotVersion remained 5 at those checkpoints. Both
 snapshot and actual launcher-intent assertions were false at the latter stages.
+The local 4-GB and CI 2/3/4-GB runs reproduced the same stale episode checkpoints.
+The final CI 4-GB run retained snapshotVersion **13** through all four samples;
+the version number differs, but both snapshot and actual launcher intent still
+offered S1E1 after completion instead of S1E2.
 
 The ordered fixture `tt9900002` also disappeared from Home after this completion
 sequence, **before** the missing-key probe, while raw tracker progress still
@@ -356,10 +405,25 @@ that the historical real-data ANR cannot recur.
 
 ## Measurements and tooling status
 
-Results are pending the full runs on API 34 Android TV at 2,048/3,072/4,096 MB
-RAM. The permitted Onn subset is complete with independently verified restoration.
+Local and CI 2/3/4-GB benchmark workloads are complete. The permitted Onn subset
+is complete with independently verified restoration. Existing instrumentation
+also ran in CI; its remaining failures are recorded separately below.
 No zero values substitute for missing data.
 There are no claims of improvement; these are baseline measurements.
+
+| Environment | Configured RAM | Observed app memoryClass / largeMemoryClass | Runtime max heap | Android display / power |
+| --- | ---: | ---: | ---: | --- |
+| Local / CI Android TV API 34 x86, 2 GB | 2,048 MB | 192 / 512 MB | 536,870,912 bytes | ON / Awake |
+| Local / CI Android TV API 34 x86, 3 GB | 3,072 MB | 192 / 576 MB | 603,979,776 bytes | ON / Awake |
+| Local / CI Android TV API 34 x86, 4 GB | 4,096 MB | 192 / 576 MB | 603,979,776 bytes | ON / Awake |
+| Onn 4K Pro, Android 14 ARMv7 userspace | MemTotal 2,998,840 kB | 256 / 384 MB | 402,653,184 bytes | ON / Awake during baseline |
+
+All observed `isLowRamDevice` values were false. Local AVDs use WHPX on Windows;
+CI uses KVM on Ubuntu. Both use the API 34 Android TV x86 image, two virtual CPUs,
+1080p/320 dpi and software graphics. AVD `vm.heapSize=384` and attempted 256m/384m
+boot-property overrides did not produce Onn's heap classes; the image rejected or
+ignored the overrides and root was unavailable. RAM equality therefore does not
+establish equal heap pressure. Local 2/3-GB MemTotal was 2,021,524 / 3,050,644 kB.
 
 Memory values below are **KiB**, from `dumpsys meminfo` for the test package.
 Allocated Dalvik/native heap is distinct from Java/native proportional set size
@@ -372,8 +436,12 @@ overlap a local app build.
 
 | Completed soak | Dalvik allocated first / last / peak | Native allocated first / last / peak | Java PSS peak | Native PSS peak | Graphics PSS peak | Total PSS peak |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| CI 2 GB, corrected LIVE fixture | 15,196 / 54,971 / 119,399 | 21,215 / 24,146 / 67,311 | 180,832 | 126,340 | 0 | 337,986 |
+| CI 3 GB, corrected LIVE fixture | 10,996 / 54,984 / 125,055 | 25,855 / 26,532 / 54,521 | 133,388 | 111,952 | 0 | 285,878 |
+| CI 4 GB, corrected LIVE fixture | 10,718 / 54,235 / 132,144 | 22,753 / 29,030 / 83,898 | 148,960 | 113,676 | 0 | 292,421 |
 | Local 2 GB, corrected LIVE fixture | 10,977 / 47,532 / 95,063 | 25,901 / 23,972 / 46,726 | 117,732 | 88,132 | 0 | 262,364 |
 | Local 3 GB, preliminary timestamps | 10,707 / 47,517 / 99,374 | 22,735 / 28,880 / 55,915 | 112,468 | 98,212 | 0 | 269,582 |
+| Local 4 GB, corrected LIVE fixture | 11,001 / 46,778 / 102,402 | 25,918 / 26,597 / 59,249 | 116,080 | 95,240 | 0 | 262,982 |
 | Onn, corrected LIVE fixture | 10,827 / 50,852 / 148,697 | 21,465 / 50,388 / 63,017 | 168,520 | 88,872 | 58,792 | 361,804 |
 
 The preliminary 3-GB and Onn soaks have 19 periodic memory captures; the corrected
@@ -381,11 +449,34 @@ The preliminary 3-GB and Onn soaks have 19 periodic memory captures; the correct
 Capture work adds a small interval overhead. First-to-last increases include newly loaded screens, media
 and caches. A single ten-minute pass cannot establish a leak or bounded long-run
 growth. Emulator graphics PSS zero is the image's report, not zero graphics cost.
+The CI 2/3-GB runs have 62/63 samples, including the additional NNTP sampling.
+The local and CI 4-GB runs each have 63 samples.
+Component peaks can occur at different times; total PSS is independently sampled.
+
+Runtime samples also retain ART counters and thread counts. The following deltas
+are between the first and last collected soak samples, not exact ten-minute
+boundaries. ART GC time is cumulative collector time, **not** UI pause time;
+logged pause maxima appear in the cricket table below. Allocation/freed-byte
+counters describe churn, not simultaneously retained heap.
+
+| Soak | Runtime samples | Threads first / last / peak | GC count delta | Blocking GC count delta | GC time delta |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| CI 2 GB | 29 | 135 / 96 / 135 | 372 | 62 | 21,517 ms |
+| CI 3 GB | 28 | 99 / 82 / 113 | 408 | 64 | 31,839 ms |
+| CI 4 GB | 29 | 97 / 84 / 108 | 356 | 63 | 27,073 ms |
+| Local 2 GB | 29 | 92 / 78 / 102 | 340 | 62 | 20,753 ms |
+| Local 3 GB, preliminary | 20 | 96 / 77 / 102 | 258 | 18 | 12,711 ms |
+| Local 4 GB | 29 | 105 / 81 / 105 | 282 | 62 | 14,761 ms |
+| Onn | 20 | 120 / 65 / 120 | 282 | 20 | 67,769 ms |
 
 | Completed LIVE cricket sequence | Dalvik allocated peak | Native allocated peak | Java PSS peak | Native PSS peak | Graphics PSS peak | Total PSS peak | Max logged GC pause |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CI 2 GB, corrected full run | 134,052 | 63,481 | 159,488 | 83,780 | 0 | 307,909 | 21.164 ms |
+| CI 3 GB, corrected full run | 119,120 | 73,447 | 169,668 | 88,256 | 0 | 308,330 | 75.034 ms |
+| CI 4 GB, corrected full run | 139,401 | 64,441 | 149,000 | 90,112 | 0 | 295,598 | 76.734 ms |
 | Local 2 GB, corrected full run | 101,972 | 58,035 | 188,116 | 78,128 | 0 | 326,897 | 40.642 ms |
 | Local 3 GB, corrected focused repeat | 143,287 | 60,291 | 147,200 | 77,772 | 0 | 280,372 | 84.452 ms |
+| Local 4 GB, corrected full run | 102,401 | 56,672 | 137,032 | 80,912 | 0 | 262,596 | 9.409 ms |
 | Onn, corrected full subset | 155,492 | 66,472 | 181,812 | 78,124 | 34,992 | 358,584 | 4.265 ms |
 
 Each row includes cold Sports loading and five actual LIVE detail opens. All
@@ -425,8 +516,20 @@ The guide was requested but deferred during playback, so simultaneous active
 guide-build contention remains unmeasured at the unchanged baseline gates.
 The corrected local 2-GB reminder delay was **4,048 ms**, with an import pause of
 **61,913 ms**; the same guide-build limitation applies.
+CI 2/3-GB reminder delays were **3,954 / 4,001 ms**. Both completed their fixture
+workloads and cleanup, retained three cold-start cards through five minutes,
+reproduced stale launcher state and the later unresolved ordered-show drop, and
+observed a peak of one socket-blocked NNTP dispatcher worker.
+The local 4-GB run measured **3,852 ms** reminder delay, **61,838 ms** import pause,
+one blocked NNTP worker, and 3/3 CW cards at actual **1.22/62.23/121.14/301.14 s**.
+The final CI 4-GB run measured **3,757 ms** reminder delay, **61,978 ms** import
+pause, one blocked NNTP worker and 3/3 cold-start cards at actual
+**1.45/62.11/121.07/301.05 s**. All five cricket opens were LIVE. Its later ordered
+card disappeared after completion and remained absent through TVDB recovery;
+cleanup reported no errors. This workload ran from 13:22:56 to 13:47:09 UTC on
+11 November (00:22:56–00:47:09 Sydney on 12 November).
 
-**Verified by test:** host suite 123 tests, one skipped, including failure-path
+**Verified by test:** host suite 124 tests, one skipped, including failure-path
 restoration guards. Minified and debug fixture APK builds pass. A disposable
 3,072 MB TV emulator preflight loaded all channels/catalogue entries and showed
 all three fixture series in CW. Preflight is harness validation, not the soak
@@ -443,13 +546,27 @@ not retroactively turn the first full run green. Original XML is preserved in
 `build/stability/jvm-suite-first/`, the isolated result in `jvm-isolated-rerun/`,
 and the final full rerun in the app's test-results directory.
 
+**Local instrumentation executed, not green:** the first 107-test run recorded
+71 passed / 24 failed / 12 skipped. Twenty-one failures came from this tooling's
+fixture manifest replacing `app/src/debug/AndroidManifest.xml` and omitting
+`TvHiltTestActivity`. The debug-only fixture manifest now preserves that existing
+component, with a host regression test; the benchmark manifest is unchanged.
+Corrected debug APKs built successfully, and the second full run recorded
+**91 passed / 3 failed / 13 skipped**. All three failures were the native allocator
+assertions described above. The three fresh-process repeats produced two failures
+and one pass. Every local instrumentation run uninstalled both owned test APKs
+and restored its emulator state, with no cleanup errors. No functional fix or
+test exclusion was introduced to turn these failures green.
+
 **Lint is not green:** full lint reported 4,065 errors, 2,050 warnings and 48 hints.
 The existing `lint_guard.py check` classified 4,064 tracked errors as inherited
 and excluded one non-source finding. Its six failing comparisons are dependency
 version advisories (`AndroidGradlePluginVersion`, `GradleDependency`,
 `NewerVersionAvailable`); no dependency or lint-baseline change was made.
-The new fixture manifest has two `DiscouragedApi` orientation warnings; no new
-diagnostics-source errors were found. See `build/stability/lint-comparison.json`
+The final rerun after correcting the debug fixture manifest produced the same
+counts and six failing comparisons. That manifest has two `DiscouragedApi`
+orientation warnings; no new diagnostics-source errors were found. See
+`build/stability/lint-final-guard.json`, `build/stability/lint-final-manifest.log`
 and `app/build/reports/lint-results-fullDebug.xml`.
 
 Manual CI attempts: `43005035828` was superseded by fixture validation;
@@ -467,9 +584,26 @@ result is claimed from any build-only/cancelled attempt.
 
 In that run, the 4-GB build passed but its fresh emulator remained ADB-unauthorized
 until startup timed out. The 2-GB tier reached its workload. A workflow-only
-follow-up starts ADB first and uses the emulator's supported `-skip_adb_auth`
-option for the disposable CI guest only. The single-tier 4-GB repeat is
-`43019500282`; no physical-device authorization was changed.
+follow-up starts ADB first and adds an explicit authentication option for the
+disposable CI guest only. The first spelling used the help's
+internal underscore form, which the actual CLI rejected. Thus `43019500282`
+(4 GB) and `43020482554` (corrected instrumentation-only, 2 GB) failed before any
+app test. The spelling is now **`-skip-adb-auth`**, matching
+[Google's emulator launcher](https://github.com/google/android-emulator-container-scripts/blob/master/emu/templates/launch-emulator.sh).
+Startup now runs before compilation, checks immediate emulator exit, and has a
+bounded boot deadline. The final full 4-GB attempt, **`43024044102`**, completed:
+boot, APK builds, minified benchmark workload, artifact upload and emulator
+shutdown passed. Corrected instrumentation ran **107 tests: 91 passed / 3 failed /
+13 skipped**, with exactly the three allocator assertions described above and no
+missing-activity failures. The workflow conclusion remains **failure** because
+instrumentation is red. No physical-device authorization was changed. Original
+artifacts remain available for comparison.
+
+The completed CI 2/3-GB jobs in `43014856509` both ran all 107 instrumentation
+tests with the older fixture manifest: **71 passed / 24 failed / 12 skipped**
+each, consisting of the same 21 missing-activity failures and three allocator
+assertions. Their minified measurement workloads completed successfully; a red
+job is not relabelled green because that earlier stage passed.
 
 Fixture validation found and corrected two input issues: ESPN dates require the
 parser's UTC `Z` format, and synthetic schedule timestamps must precede live-score
@@ -523,9 +657,21 @@ were removed; no reboot or other SDK/device change was needed.
 After this completed measurement, the maintainer unplugged HDMI and asked to keep
 the box awake overnight. ADB still reached the powered box, but it reported
 Asleep / display OFF. `svc power stayon true` woke it; later checks reported Awake
-and stay-on true, with logical display ON despite disconnected HDMI. The global
-stay-on value remains its original **3**. This later state change is separate
+and stay-on true, with logical display ON despite disconnected HDMI.
+The wake command temporarily selected all plug types (**15**); it was returned to
+the original AC/USB value **3**, and Awake / powered / stay-on true were reverified.
+This later state change is separate
 from the completed baseline and does not relabel its display observations.
+Subsequent read-only overnight checks are retained locally in
+`build/stability/onn-awake-observations.log`. No recurring job, reboot or
+production-app operation is used to keep the box awake.
+The final read-only restoration check again matched settings, volume and
+production version, and found the owned `.debug` package and reverse mappings
+absent (`build/stability/onn-final-restoration.json`). An initially overbroad
+assertion also demanded absence of `.iptvdebug`/`.iptvdebug.test`; those packages
+are present but were not installed by this Onn run. They were left untouched,
+and the original overbroad check is retained separately. Only ownership-proven
+test packages may be removed.
 
 ## Ranking by user impact
 
@@ -544,7 +690,9 @@ attribution of every historical production incident.
    with a concurrently active guide build was not reproduced.
 4. Separate resource limits and large resident data: fixture memory residency is
    measured, but per-consumer ownership and the historical ANR's cause remain
-   unproven. No ANR was reproduced by the completed Onn/3-GB fixture runs.
+   unproven. No ANR was reproduced by the completed Onn and 2/3/4-GB emulator
+   fixture runs. Existing allocator-counter contracts fail independently; their
+   relationship to retained native memory or the historical ANR is unproven.
 5. Cross-area release bundling/high churn increases isolation and verification
    cost, making the other problems harder to diagnose and roll back.
 
@@ -554,15 +702,34 @@ retain the targeted TV Now path until a shared scheduler preserves its freshness
 distinguish nominal cap from actual residency; match heap class rather than RAM
 alone; avoid assuming profile fixture APKs are safe for the everyday device.
 
-## Remaining Phase 1 work and approval boundary
+## Explicit limits and remaining device validation
 
-The base and manual workflow registration are approved. Complete the fixture-only soak and cricket workload,
-fake tracker/TVDB and stalled NNTP scenarios, launcher timeline test and release-safe
-diagnostics. Run the launch/instrumentation workflow, measure all three emulator RAM
-tiers and the permitted Onn subset, preserve artefacts and record restored device
-state. Replace every pending entry with evidence or an explicit environment
-limitation. Only then request Phase 1 approval for solution design. No DESIGN.md
-or Phase 3 fixes have been started.
+These are boundaries of the completed discovery scenarios, not passed programme
+acceptance criteria or permission to begin fixes.
+
+| Scenario | Evidence and remaining limit |
+| --- | --- |
+| Reminder with paused import and active guide build | Import parking and reminder delay were measured. The baseline guide gate deferred the requested build while playback was active, so three-way contention was not measured. Bypassing that gate would change the behavior under investigation. |
+| Paused trailer staying READY | Confirmed by source/gate inspection; the timed soak uses a playing looped trailer, so paused-in-place lifecycle behavior needs a separate targeted scenario in a later approved phase. |
+| TVDB unavailable | Fresh-install control retained cached/seeded cards in all five service modes. Fully cold/uncached alternate orders, split/combined episodes and correctly resolved completion permutations remain untested. |
+| Historical Onn cricket ANR | Not reproduced by five fixture opens and a ten-minute soak. These runs do not establish long-run bounded growth, smoothness improvement or safety under the maintainer's real catalogue. |
+| Heap matching | The image's actual 192/512 or 192/576 MB classes differ from Onn's 256/384 MB. Configured physical RAM alone is not an equivalent pressure test. |
+| Playback and external players | The synthetic HTTP clip lasts four seconds; the NNTP fixture demonstrates a socket stall and timeout. Sustained high-bitrate decoding, all archive/recovery/provider paths and external-player return remain untested. |
+| Physical display | Android display/power was observed for every run. Physical TV state during the Onn baseline was unknown; HDMI was unplugged later. No representative TV-on frame-rate/rendering claim is made. |
+| Real accounts and user data | No production login, profile, provider credentials or data were used. Account-dependent instrumentation was skipped; real-account compatibility needs maintainer-controlled validation. |
+| Existing verification failures | Native allocator assertions and lint remain red. A successful fixture journey means the harness completed, not that every recorded CW invariant or every existing test passed. |
+
+## Phase 1 completion and approval boundary
+
+The base and manual workflow registration are approved. Static verification,
+diagnostics, all local emulator tiers and the permitted Onn subset are complete,
+including fixture soak/cricket, fake tracker/TVDB, stalled NNTP and the launcher
+timeline. CI benchmark measurements and existing instrumentation have also
+completed; selected results and raw artifacts are linked above. Every requested
+scenario has a measured outcome or an explicit limitation. Phase 1 is ready for
+maintainer review, including its failing invariants/tests and unmeasured cases.
+**Stop here and request Phase 1 approval before solution design.** No DESIGN.md
+or Phase 3 fixes have been started; PR #14 remains a draft.
 
 No version/release change is recommended in this checkpoint. If later required,
 remember that ReleaseSelector uses GitHub's single latest release and

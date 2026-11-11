@@ -1,0 +1,2780 @@
+{
+  "schemaVersion": 1,
+  "units": {
+    "memory": "Memory fields carry KiB, Bytes or Mb in their names; raw device properties retain their original units",
+    "duration": "milliseconds unless explicitly Seconds"
+  },
+  "method": "Derived from PID-scoped fixture artifacts using stability_summarize.py. Column peaks need not be simultaneous. GC phase attribution follows the latest diagnostic event in log order.",
+  "sourceNote": "metadata.sourceHead is the checkout at execution. Local/Onn benchmark APKs were built from app source 89eeff8b30e237a9adfbfb074ae38e6f5536c316; subsequent benchmark app code was unchanged. CI APKs were built at their recorded sourceHead.",
+  "runs": {
+    "local2048": {
+      "sourceDirectory": "build/stability/baseline-local-2048",
+      "note": "Full corrected fixture baseline",
+      "metadata": {
+        "startedUtc": "2026-11-11T11:47:36.004624+00:00",
+        "apkSha256": "2ea4ba7d5415d54cb062551880a88a3d2a17e6e9bf1bae216dff6d41a10adfb4",
+        "sourceHead": "c15d31919b30d8391c757d6eb3c1ff8c4fccca2d",
+        "runnerSha256": "a9458fe7ac10dca7c7e2243ef5b4825a8eb0af9abcc2f22f3df25bf94c66d1f9",
+        "endedUtc": "2026-11-11T12:11:44.443210+00:00"
+      },
+      "recordedResult": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5556",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": {
+        "fixture": true,
+        "package": "io.github.abbaskip.nuvioreseq.debug",
+        "lowRam": false,
+        "memoryClassMb": 192,
+        "kind": "environment",
+        "wallMs": 1794397725308,
+        "largeMemoryClassMb": 512,
+        "maxHeapBytes": 536870912,
+        "elapsedMs": 535619,
+        "hostPhase": "seed"
+      },
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "512m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 63,
+        "Dalvik HeapAllocKiB": {
+          "first": 10977,
+          "last": 47532,
+          "peak": 95063
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 17096,
+          "last": 51584,
+          "peak": 117732
+        },
+        "Native HeapAllocKiB": {
+          "first": 25901,
+          "last": 23972,
+          "peak": 46726
+        },
+        "Native HeapPssKiB": {
+          "first": 23896,
+          "last": 49120,
+          "peak": 88132
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 99353,
+          "last": 170226,
+          "peak": 262364
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 101972,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 188116,
+        "Native HeapAllocKiB": 58035,
+        "Native HeapPssKiB": 78128,
+        "TOTAL PSSPssKiB": 326897
+      },
+      "cricketMemorySamples": 89,
+      "gcPauseCricketMaxMs": 40.642,
+      "gcPauseSoakMaxMs": 10.463000000000001,
+      "gcPauseWholeRunMaxMs": 40.642,
+      "nntpBlockedWorkerPeak": 1,
+      "reminderDelaysMs": [
+        4048
+      ],
+      "playbackIdlePausesMs": [
+        61913
+      ],
+      "maxQuietQueueWholeRun": 7,
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.187000000005355,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.29700000000594,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 120.125,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.125,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "tvdbProbes": [
+        {
+          "mode": "missing",
+          "wallMs": 1794398912784,
+          "error": "d0",
+          "durationMs": 1,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1723095,
+          "hostPhase": "tvdb-missing"
+        },
+        {
+          "mode": "invalid",
+          "wallMs": 1794398946225,
+          "error": "d0",
+          "durationMs": 49,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1756536,
+          "hostPhase": "tvdb-invalid"
+        },
+        {
+          "mode": "timeout",
+          "wallMs": 1794399003599,
+          "error": "TimeoutCancellationException",
+          "durationMs": 24007,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1813910,
+          "hostPhase": "tvdb-timeout"
+        },
+        {
+          "mode": "unavailable",
+          "wallMs": 1794399035979,
+          "error": "d0",
+          "durationMs": 19,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1846291,
+          "hostPhase": "tvdb-unavailable"
+        },
+        {
+          "mode": "available",
+          "wallMs": 1794399069322,
+          "durationMs": 21,
+          "episodes": 8,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1879633,
+          "hostPhase": "tvdb-available"
+        }
+      ],
+      "tvdbCardIdsByPhase": {
+        "tvdb-missing": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-invalid": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-timeout": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-unavailable": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-available": [
+          "tt9900003",
+          "tt9900001"
+        ]
+      },
+      "cleanup": {
+        "errors": []
+      },
+      "runtimeEndpoints": {
+        "soak": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "11",
+            "art.gc.gc-time": "387",
+            "art.gc.bytes-allocated": "73703384",
+            "art.gc.bytes-freed": "56072320",
+            "art.gc.gc-count-rate-histogram": "0:22,1:11",
+            "art.gc.blocking-gc-count-rate-histogram": "0:23,1:10",
+            "art.gc.gc-count": "13",
+            "art.gc.blocking-gc-time": "288"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "73",
+            "art.gc.gc-time": "21140",
+            "art.gc.bytes-allocated": "7848770360",
+            "art.gc.bytes-freed": "7797391712",
+            "art.gc.gc-count-rate-histogram": "0:46,1:19,2:3,3:3,8:5,10:2,13:1,14:1,16:1,23:1,27:1,35:1,37:1,42:1,51:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:55,1:25,3:1,4:1,8:5",
+            "art.gc.gc-count": "353",
+            "art.gc.blocking-gc-time": "5401"
+          },
+          "samples": 29,
+          "firstThreads": 92,
+          "lastThreads": 78,
+          "maxThreads": 102,
+          "maxManagedUsedBytes": 115297496
+        },
+        "cricket-cold-load": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "64406880",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "64406880",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "samples": 1,
+          "firstThreads": 63,
+          "lastThreads": 63,
+          "maxThreads": 63,
+          "maxManagedUsedBytes": 64390496
+        },
+        "cricket-1": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "5629",
+            "art.gc.bytes-allocated": "1515369176",
+            "art.gc.bytes-freed": "1464867368",
+            "art.gc.gc-count-rate-histogram": "5:1,11:1,45:1",
+            "art.gc.blocking-gc-count-rate-histogram": "2:1,8:1,9:1",
+            "art.gc.gc-count": "68",
+            "art.gc.blocking-gc-time": "3729"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "5629",
+            "art.gc.bytes-allocated": "1515369176",
+            "art.gc.bytes-freed": "1464867368",
+            "art.gc.gc-count-rate-histogram": "5:1,11:1,45:1",
+            "art.gc.blocking-gc-count-rate-histogram": "2:1,8:1,9:1",
+            "art.gc.gc-count": "68",
+            "art.gc.blocking-gc-time": "3729"
+          },
+          "samples": 1,
+          "firstThreads": 87,
+          "lastThreads": 87,
+          "maxThreads": 87,
+          "maxManagedUsedBytes": 50485424
+        },
+        "cricket-5": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "81",
+            "art.gc.gc-time": "13187",
+            "art.gc.bytes-allocated": "3445190016",
+            "art.gc.bytes-freed": "3367153104",
+            "art.gc.gc-count-rate-histogram": "5:1,7:1,8:3,9:1,11:1,13:1,14:1,15:1,16:1,45:1",
+            "art.gc.blocking-gc-count-rate-histogram": "2:1,5:2,6:2,7:2,8:4,9:1",
+            "art.gc.gc-count": "162",
+            "art.gc.blocking-gc-time": "8476"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "81",
+            "art.gc.gc-time": "13187",
+            "art.gc.bytes-allocated": "3445190016",
+            "art.gc.bytes-freed": "3367153104",
+            "art.gc.gc-count-rate-histogram": "5:1,7:1,8:3,9:1,11:1,13:1,14:1,15:1,16:1,45:1",
+            "art.gc.blocking-gc-count-rate-histogram": "2:1,5:2,6:2,7:2,8:4,9:1",
+            "art.gc.gc-count": "162",
+            "art.gc.blocking-gc-time": "8476"
+          },
+          "samples": 1,
+          "firstThreads": 89,
+          "lastThreads": 89,
+          "maxThreads": 89,
+          "maxManagedUsedBytes": 78020528
+        }
+      },
+      "launcherTimeline": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ]
+    },
+    "local3072Preliminary": {
+      "sourceDirectory": "build/stability/baseline-local-3072",
+      "note": "Preliminary schedule timestamps; cricket was PRE, not LIVE; coarse NNTP samples missed the short stall",
+      "metadata": {
+        "startedUtc": "2026-11-11T10:53:17.972065+00:00",
+        "apkSha256": "2ea4ba7d5415d54cb062551880a88a3d2a17e6e9bf1bae216dff6d41a10adfb4",
+        "sourceHead": "89eeff8b30e237a9adfbfb074ae38e6f5536c316",
+        "runnerSha256": "7c3b38c151f02320f8aac648ebc3ed37a11aa9a3f8dba6b9e2bce377a184a6d8",
+        "endedUtc": "2026-11-11T11:17:24.298868+00:00"
+      },
+      "recordedResult": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5556",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": {
+        "fixture": true,
+        "package": "io.github.abbaskip.nuvioreseq.debug",
+        "lowRam": false,
+        "memoryClassMb": 192,
+        "kind": "environment",
+        "wallMs": 1794394464195,
+        "largeMemoryClassMb": 576,
+        "maxHeapBytes": 603979776,
+        "elapsedMs": 2548195,
+        "hostPhase": "seed"
+      },
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "576m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 19,
+        "Dalvik HeapAllocKiB": {
+          "first": 10707,
+          "last": 47517,
+          "peak": 99374
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 14084,
+          "last": 50372,
+          "peak": 112468
+        },
+        "Native HeapAllocKiB": {
+          "first": 22735,
+          "last": 28880,
+          "peak": 55915
+        },
+        "Native HeapPssKiB": {
+          "first": 20688,
+          "last": 43484,
+          "peak": 98212
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 88563,
+          "last": 156946,
+          "peak": 269582
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 91953,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 147384,
+        "Native HeapAllocKiB": 69456,
+        "Native HeapPssKiB": 74516,
+        "TOTAL PSSPssKiB": 277367
+      },
+      "cricketMemorySamples": 89,
+      "gcPauseCricketMaxMs": 37.309,
+      "gcPauseSoakMaxMs": 16.102,
+      "gcPauseWholeRunMaxMs": 43.800999999999995,
+      "nntpBlockedWorkerPeak": 0,
+      "reminderDelaysMs": [
+        3910
+      ],
+      "playbackIdlePausesMs": [
+        61857
+      ],
+      "maxQuietQueueWholeRun": 8,
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.2190000000045984,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.234000000004016,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 121.14100000000326,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.18700000000536,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "tvdbProbes": [
+        {
+          "mode": "missing",
+          "wallMs": 1794395651964,
+          "error": "d0",
+          "durationMs": 1,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3735964,
+          "hostPhase": "tvdb-missing"
+        },
+        {
+          "mode": "invalid",
+          "wallMs": 1794395685422,
+          "error": "d0",
+          "durationMs": 36,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3769422,
+          "hostPhase": "tvdb-invalid"
+        },
+        {
+          "mode": "timeout",
+          "wallMs": 1794395742748,
+          "error": "TimeoutCancellationException",
+          "durationMs": 24006,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3826748,
+          "hostPhase": "tvdb-timeout"
+        },
+        {
+          "mode": "unavailable",
+          "wallMs": 1794395775068,
+          "error": "d0",
+          "durationMs": 14,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3859068,
+          "hostPhase": "tvdb-unavailable"
+        },
+        {
+          "mode": "available",
+          "wallMs": 1794395808453,
+          "durationMs": 18,
+          "episodes": 8,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3892453,
+          "hostPhase": "tvdb-available"
+        }
+      ],
+      "tvdbCardIdsByPhase": {
+        "tvdb-missing": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-invalid": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-timeout": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-unavailable": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-available": [
+          "tt9900003",
+          "tt9900001"
+        ]
+      },
+      "cleanup": {
+        "errors": []
+      },
+      "runtimeEndpoints": {
+        "soak": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "11",
+            "art.gc.gc-time": "319",
+            "art.gc.bytes-allocated": "74427904",
+            "art.gc.bytes-freed": "53637768",
+            "art.gc.gc-count-rate-histogram": "0:22,1:11",
+            "art.gc.blocking-gc-count-rate-histogram": "0:23,1:10",
+            "art.gc.gc-count": "13",
+            "art.gc.blocking-gc-time": "252"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "29",
+            "art.gc.gc-time": "13030",
+            "art.gc.bytes-allocated": "6740876568",
+            "art.gc.bytes-freed": "6689413872",
+            "art.gc.gc-count-rate-histogram": "0:50,1:24,2:2,3:2,7:1,8:1,10:2,11:1,19:1,36:1,42:1,45:1,48:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:60,1:28",
+            "art.gc.gc-count": "271",
+            "art.gc.blocking-gc-time": "1906"
+          },
+          "samples": 20,
+          "firstThreads": 96,
+          "lastThreads": 77,
+          "maxThreads": 102,
+          "maxManagedUsedBytes": 113779112
+        },
+        "cricket-cold-load": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "84971480",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "84971480",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "samples": 1,
+          "firstThreads": 89,
+          "lastThreads": 89,
+          "maxThreads": 89,
+          "maxManagedUsedBytes": 84938712
+        },
+        "cricket-1": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "4961",
+            "art.gc.bytes-allocated": "1508777184",
+            "art.gc.bytes-freed": "1459313320",
+            "art.gc.gc-count-rate-histogram": "0:1,8:1,9:1,51:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,8:2,9:1",
+            "art.gc.gc-count": "69",
+            "art.gc.blocking-gc-time": "2888"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "4961",
+            "art.gc.bytes-allocated": "1508777184",
+            "art.gc.bytes-freed": "1459313320",
+            "art.gc.gc-count-rate-histogram": "0:1,8:1,9:1,51:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,8:2,9:1",
+            "art.gc.gc-count": "69",
+            "art.gc.blocking-gc-time": "2888"
+          },
+          "samples": 1,
+          "firstThreads": 114,
+          "lastThreads": 114,
+          "maxThreads": 114,
+          "maxManagedUsedBytes": 49447480
+        },
+        "cricket-5": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "81",
+            "art.gc.gc-time": "12506",
+            "art.gc.bytes-allocated": "3483357920",
+            "art.gc.bytes-freed": "3374908720",
+            "art.gc.gc-count-rate-histogram": "0:1,5:1,7:1,8:4,9:1,15:4,51:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,4:3,5:2,8:5,9:2",
+            "art.gc.gc-count": "165",
+            "art.gc.blocking-gc-time": "7712"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "81",
+            "art.gc.gc-time": "12506",
+            "art.gc.bytes-allocated": "3483357920",
+            "art.gc.bytes-freed": "3374908720",
+            "art.gc.gc-count-rate-histogram": "0:1,5:1,7:1,8:4,9:1,15:4,51:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,4:3,5:2,8:5,9:2",
+            "art.gc.gc-count": "165",
+            "art.gc.blocking-gc-time": "7712"
+          },
+          "samples": 1,
+          "firstThreads": 116,
+          "lastThreads": 116,
+          "maxThreads": 116,
+          "maxManagedUsedBytes": 108432816
+        }
+      },
+      "launcherTimeline": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ]
+    },
+    "local3072Focused": {
+      "sourceDirectory": "build/stability/focused-local-3072",
+      "note": "Corrected LIVE cricket and short-interval NNTP repeat",
+      "metadata": {
+        "startedUtc": "2026-11-11T11:17:44.552448+00:00",
+        "apkSha256": "2ea4ba7d5415d54cb062551880a88a3d2a17e6e9bf1bae216dff6d41a10adfb4",
+        "sourceHead": "017bcc19fb755ae5ad608c1349d229725ad387fb",
+        "runnerSha256": "53407609580206e457b791b60045ac7129eec67d3e8bd5ab2a1f28a93055fa20",
+        "endedUtc": "2026-11-11T11:22:47.234047+00:00"
+      },
+      "recordedResult": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5556",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": {
+        "fixture": true,
+        "package": "io.github.abbaskip.nuvioreseq.debug",
+        "lowRam": false,
+        "memoryClassMb": 192,
+        "kind": "environment",
+        "wallMs": 1794395930111,
+        "largeMemoryClassMb": 576,
+        "maxHeapBytes": 603979776,
+        "elapsedMs": 4014111,
+        "hostPhase": "seed"
+      },
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "576m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": null,
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 143287,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 147200,
+        "Native HeapAllocKiB": 60291,
+        "Native HeapPssKiB": 77772,
+        "TOTAL PSSPssKiB": 280372
+      },
+      "cricketMemorySamples": 85,
+      "gcPauseCricketMaxMs": 84.452,
+      "gcPauseSoakMaxMs": null,
+      "gcPauseWholeRunMaxMs": 84.452,
+      "nntpBlockedWorkerPeak": 1,
+      "reminderDelaysMs": [],
+      "playbackIdlePausesMs": [],
+      "maxQuietQueueWholeRun": 7,
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [],
+      "tvdbProbes": [],
+      "tvdbCardIdsByPhase": {},
+      "cleanup": {
+        "errors": []
+      },
+      "runtimeEndpoints": {
+        "cricket-cold-load": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "107675848",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "107675848",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "samples": 1,
+          "firstThreads": 89,
+          "lastThreads": 89,
+          "maxThreads": 89,
+          "maxManagedUsedBytes": 107643080
+        },
+        "cricket-1": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "7545",
+            "art.gc.bytes-allocated": "2518880992",
+            "art.gc.bytes-freed": "2458993088",
+            "art.gc.gc-count-rate-histogram": "8:1,43:1,50:1",
+            "art.gc.blocking-gc-count-rate-histogram": "7:1,8:1,9:1",
+            "art.gc.gc-count": "103",
+            "art.gc.blocking-gc-time": "4487"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "7545",
+            "art.gc.bytes-allocated": "2518880992",
+            "art.gc.bytes-freed": "2458993088",
+            "art.gc.gc-count-rate-histogram": "8:1,43:1,50:1",
+            "art.gc.blocking-gc-count-rate-histogram": "7:1,8:1,9:1",
+            "art.gc.gc-count": "103",
+            "art.gc.blocking-gc-time": "4487"
+          },
+          "samples": 1,
+          "firstThreads": 115,
+          "lastThreads": 115,
+          "maxThreads": 115,
+          "maxManagedUsedBytes": 59871520
+        },
+        "cricket-5": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "80",
+            "art.gc.gc-time": "16150",
+            "art.gc.bytes-allocated": "4472093512",
+            "art.gc.bytes-freed": "4357306920",
+            "art.gc.gc-count-rate-histogram": "3:1,4:1,6:1,8:2,9:1,12:1,15:1,16:1,18:1,43:1,50:1",
+            "art.gc.blocking-gc-count-rate-histogram": "2:1,3:1,4:1,5:2,7:1,8:2,9:3,10:1",
+            "art.gc.gc-count": "193",
+            "art.gc.blocking-gc-time": "10427"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "80",
+            "art.gc.gc-time": "16150",
+            "art.gc.bytes-allocated": "4472093512",
+            "art.gc.bytes-freed": "4357306920",
+            "art.gc.gc-count-rate-histogram": "3:1,4:1,6:1,8:2,9:1,12:1,15:1,16:1,18:1,43:1,50:1",
+            "art.gc.blocking-gc-count-rate-histogram": "2:1,3:1,4:1,5:2,7:1,8:2,9:3,10:1",
+            "art.gc.gc-count": "193",
+            "art.gc.blocking-gc-time": "10427"
+          },
+          "samples": 1,
+          "firstThreads": 117,
+          "lastThreads": 117,
+          "maxThreads": 117,
+          "maxManagedUsedBytes": 114770208
+        }
+      }
+    },
+    "local4096": {
+      "sourceDirectory": "build/stability/baseline-local-4096",
+      "note": "Full corrected fixture baseline",
+      "metadata": {
+        "startedUtc": "2026-11-11T12:35:21.996062+00:00",
+        "apkSha256": "2ea4ba7d5415d54cb062551880a88a3d2a17e6e9bf1bae216dff6d41a10adfb4",
+        "sourceHead": "be56b0c547577e8b73fa9775378a761004f7186f",
+        "runnerSha256": "1de27b0e111a7119c3773702aa4e9ba6f87926e24830beaff038d6bfc9aa498b",
+        "endedUtc": "2026-11-11T12:59:23.739885+00:00"
+      },
+      "recordedResult": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5556",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": {
+        "fixture": true,
+        "package": "io.github.abbaskip.nuvioreseq.debug",
+        "lowRam": false,
+        "memoryClassMb": 192,
+        "kind": "environment",
+        "wallMs": 1794400586102,
+        "largeMemoryClassMb": 576,
+        "maxHeapBytes": 603979776,
+        "elapsedMs": 177102,
+        "hostPhase": "seed"
+      },
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "576m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 63,
+        "Dalvik HeapAllocKiB": {
+          "first": 11001,
+          "last": 46778,
+          "peak": 102402
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 17084,
+          "last": 51056,
+          "peak": 116080
+        },
+        "Native HeapAllocKiB": {
+          "first": 25918,
+          "last": 26597,
+          "peak": 59249
+        },
+        "Native HeapPssKiB": {
+          "first": 23804,
+          "last": 67428,
+          "peak": 95240
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 93974,
+          "last": 183752,
+          "peak": 262982
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 102401,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 137032,
+        "Native HeapAllocKiB": 56672,
+        "Native HeapPssKiB": 80912,
+        "TOTAL PSSPssKiB": 262596
+      },
+      "cricketMemorySamples": 89,
+      "gcPauseCricketMaxMs": 9.409,
+      "gcPauseSoakMaxMs": 7.269,
+      "gcPauseWholeRunMaxMs": 9.409,
+      "nntpBlockedWorkerPeak": 1,
+      "reminderDelaysMs": [
+        3852
+      ],
+      "playbackIdlePausesMs": [
+        61838
+      ],
+      "maxQuietQueueWholeRun": 8,
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.2180000000007567,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.23399999999674,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 121.13999999999942,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.1399999999994,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "tvdbProbes": [
+        {
+          "mode": "missing",
+          "wallMs": 1794401770692,
+          "error": "d0",
+          "durationMs": 1,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1361692,
+          "hostPhase": "tvdb-missing"
+        },
+        {
+          "mode": "invalid",
+          "wallMs": 1794401804085,
+          "error": "d0",
+          "durationMs": 23,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1395085,
+          "hostPhase": "tvdb-invalid"
+        },
+        {
+          "mode": "timeout",
+          "wallMs": 1794401861492,
+          "error": "TimeoutCancellationException",
+          "durationMs": 24001,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1452492,
+          "hostPhase": "tvdb-timeout"
+        },
+        {
+          "mode": "unavailable",
+          "wallMs": 1794401893861,
+          "error": "d0",
+          "durationMs": 13,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1484861,
+          "hostPhase": "tvdb-unavailable"
+        },
+        {
+          "mode": "available",
+          "wallMs": 1794401927216,
+          "durationMs": 13,
+          "episodes": 8,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1518216,
+          "hostPhase": "tvdb-available"
+        }
+      ],
+      "tvdbCardIdsByPhase": {
+        "tvdb-missing": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-invalid": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-timeout": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-unavailable": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-available": [
+          "tt9900003",
+          "tt9900001"
+        ]
+      },
+      "cleanup": {
+        "errors": []
+      },
+      "runtimeEndpoints": {
+        "soak": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "11",
+            "art.gc.gc-time": "304",
+            "art.gc.bytes-allocated": "79969136",
+            "art.gc.bytes-freed": "60845056",
+            "art.gc.gc-count-rate-histogram": "0:22,1:11",
+            "art.gc.blocking-gc-count-rate-histogram": "0:23,1:10",
+            "art.gc.gc-count": "14",
+            "art.gc.blocking-gc-time": "220"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "73",
+            "art.gc.gc-time": "15065",
+            "art.gc.bytes-allocated": "6638013688",
+            "art.gc.bytes-freed": "6587325120",
+            "art.gc.gc-count-rate-histogram": "0:48,1:21,3:4,5:1,7:1,8:3,9:1,11:1,13:2,24:1,32:1,40:1,41:1,43:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:55,1:25,3:1,4:1,7:1,8:3,9:1",
+            "art.gc.gc-count": "296",
+            "art.gc.blocking-gc-time": "5001"
+          },
+          "samples": 29,
+          "firstThreads": 105,
+          "lastThreads": 81,
+          "maxThreads": 105,
+          "maxManagedUsedBytes": 113169120
+        },
+        "cricket-cold-load": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "51585152",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "51585152",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "samples": 1,
+          "firstThreads": 60,
+          "lastThreads": 60,
+          "maxThreads": 60,
+          "maxManagedUsedBytes": 51568768
+        },
+        "cricket-1": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "7119",
+            "art.gc.bytes-allocated": "2698444576",
+            "art.gc.bytes-freed": "2654551648",
+            "art.gc.gc-count-rate-histogram": "8:1,9:1,94:1",
+            "art.gc.blocking-gc-count-rate-histogram": "3:1,7:1,9:1",
+            "art.gc.gc-count": "118",
+            "art.gc.blocking-gc-time": "3165"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "7119",
+            "art.gc.bytes-allocated": "2698444576",
+            "art.gc.bytes-freed": "2654551648",
+            "art.gc.gc-count-rate-histogram": "8:1,9:1,94:1",
+            "art.gc.blocking-gc-count-rate-histogram": "3:1,7:1,9:1",
+            "art.gc.gc-count": "118",
+            "art.gc.blocking-gc-time": "3165"
+          },
+          "samples": 1,
+          "firstThreads": 90,
+          "lastThreads": 90,
+          "maxThreads": 90,
+          "maxManagedUsedBytes": 43876544
+        },
+        "cricket-5": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "81",
+            "art.gc.gc-time": "14933",
+            "art.gc.bytes-allocated": "4807100456",
+            "art.gc.bytes-freed": "4691286008",
+            "art.gc.gc-count-rate-histogram": "7:1,8:2,9:4,13:1,14:2,16:1,94:1",
+            "art.gc.blocking-gc-count-rate-histogram": "3:1,5:2,6:2,7:3,8:2,9:2",
+            "art.gc.gc-count": "216",
+            "art.gc.blocking-gc-time": "7916"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "81",
+            "art.gc.gc-time": "14933",
+            "art.gc.bytes-allocated": "4807100456",
+            "art.gc.bytes-freed": "4691286008",
+            "art.gc.gc-count-rate-histogram": "7:1,8:2,9:4,13:1,14:2,16:1,94:1",
+            "art.gc.blocking-gc-count-rate-histogram": "3:1,5:2,6:2,7:3,8:2,9:2",
+            "art.gc.gc-count": "216",
+            "art.gc.blocking-gc-time": "7916"
+          },
+          "samples": 1,
+          "firstThreads": 87,
+          "lastThreads": 87,
+          "maxThreads": 87,
+          "maxManagedUsedBytes": 115814448
+        }
+      },
+      "launcherTimeline": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ]
+    },
+    "onn": {
+      "sourceDirectory": "build/stability/baseline-onn-retry",
+      "note": "Permitted smoke/soak/cricket subset; Android display ON/Awake",
+      "metadata": {
+        "startedUtc": "2026-11-11T11:31:29.700636+00:00",
+        "apkSha256": "8501455dc7f483ed1e181417c9ae07d8802fd1ab01a2fb103a61bedd6b7301cb",
+        "sourceHead": "017bcc19fb755ae5ad608c1349d229725ad387fb",
+        "runnerSha256": "2114ad27cfabc35fc29575b08d501331c4cd2737015d6da03e26296b87e1e535",
+        "endedUtc": "2026-11-11T11:46:19.868243+00:00"
+      },
+      "recordedResult": {
+        "status": "failed",
+        "error": "Device cleanup incomplete: [\"uninstall test package: Command failed (1): C:\\\\Users\\\\abbac\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe ('-s', '192.168.1.121:5555', 'shell', 'pm', 'path', 'io.github.abbaskip.nuvioreseq.debug')\\n\\n\"]",
+        "device": "onn",
+        "serial": "192.168.1.121:5555",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": {
+        "fixture": true,
+        "package": "io.github.abbaskip.nuvioreseq.debug",
+        "lowRam": false,
+        "memoryClassMb": 256,
+        "kind": "environment",
+        "wallMs": 1794396772101,
+        "largeMemoryClassMb": 384,
+        "maxHeapBytes": 402653184,
+        "elapsedMs": 431470264,
+        "hostPhase": "seed"
+      },
+      "deviceBefore": {
+        "model": "onn 4K Pro Streaming Device",
+        "android": "14",
+        "abis": "armeabi-v7a,armeabi",
+        "fingerprint": "onn/jarvis2/jarvis2:14/URO3.260203.035.A1/15640252:user/release-keys",
+        "heapgrowthlimit": "256m",
+        "heapsize": "384m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "3",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "1",
+          "system/screen_off_timeout": "600000"
+        },
+        "productionVersion": "versionCode=10051 minSdk=24 targetSdk=36\n    versionName=0.1.0-beta.9.6.1",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 25 in range [0..25]\n"
+      },
+      "soakMemory": {
+        "samples": 19,
+        "Dalvik HeapAllocKiB": {
+          "first": 10827,
+          "last": 50852,
+          "peak": 148697
+        },
+        "GraphicsPssKiB": {
+          "first": 26944,
+          "last": 39044,
+          "peak": 58792
+        },
+        "Java HeapPssKiB": {
+          "first": 37872,
+          "last": 111452,
+          "peak": 168520
+        },
+        "Native HeapAllocKiB": {
+          "first": 21465,
+          "last": 50388,
+          "peak": 63017
+        },
+        "Native HeapPssKiB": {
+          "first": 18264,
+          "last": 72876,
+          "peak": 88872
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 141758,
+          "last": 297760,
+          "peak": 361804
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 155492,
+        "GraphicsPssKiB": 34992,
+        "Java HeapPssKiB": 181812,
+        "Native HeapAllocKiB": 66472,
+        "Native HeapPssKiB": 78124,
+        "TOTAL PSSPssKiB": 358584
+      },
+      "cricketMemorySamples": 44,
+      "gcPauseCricketMaxMs": 4.265,
+      "gcPauseSoakMaxMs": 3.1999999999999997,
+      "gcPauseWholeRunMaxMs": 4.265000000000001,
+      "nntpBlockedWorkerPeak": null,
+      "reminderDelaysMs": [
+        2983
+      ],
+      "playbackIdlePausesMs": [
+        61894
+      ],
+      "maxQuietQueueWholeRun": 7,
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.625,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "tvdbProbes": [],
+      "tvdbCardIdsByPhase": {},
+      "cleanup": {
+        "errors": [
+          "uninstall test package: Command failed (1): C:\\Users\\abbac\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe ('-s', '192.168.1.121:5555', 'shell', 'pm', 'path', 'io.github.abbaskip.nuvioreseq.debug')\n\n"
+        ]
+      },
+      "runtimeEndpoints": {
+        "soak": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "2",
+            "art.gc.gc-time": "646",
+            "art.gc.bytes-allocated": "57985224",
+            "art.gc.bytes-freed": "36280096",
+            "art.gc.gc-count-rate-histogram": "0:2,2:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:2,2:1",
+            "art.gc.gc-count": "3",
+            "art.gc.blocking-gc-time": "423"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "22",
+            "art.gc.gc-time": "68415",
+            "art.gc.bytes-allocated": "7830890488",
+            "art.gc.bytes-freed": "7720849024",
+            "art.gc.gc-count-rate-histogram": "0:21,1:7,2:4,3:2,4:3,5:1,8:3,10:1,11:1,13:1,15:4,16:3,17:1,18:1,19:2",
+            "art.gc.blocking-gc-count-rate-histogram": "0:38,1:14,2:3",
+            "art.gc.gc-count": "285",
+            "art.gc.blocking-gc-time": "14032"
+          },
+          "samples": 20,
+          "firstThreads": 120,
+          "lastThreads": 65,
+          "maxThreads": 120,
+          "maxManagedUsedBytes": 112575216
+        },
+        "cricket-cold-load": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "56302152",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "56302152",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "samples": 1,
+          "firstThreads": 64,
+          "lastThreads": 64,
+          "maxThreads": 64,
+          "maxManagedUsedBytes": 55958088
+        },
+        "cricket-1": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "16",
+            "art.gc.gc-time": "10801",
+            "art.gc.bytes-allocated": "1044630696",
+            "art.gc.bytes-freed": "972082848",
+            "art.gc.gc-count-rate-histogram": "0:1,9:1,12:1,14:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,4:1,5:1,7:1",
+            "art.gc.gc-count": "38",
+            "art.gc.blocking-gc-time": "7516"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "16",
+            "art.gc.gc-time": "10801",
+            "art.gc.bytes-allocated": "1044630696",
+            "art.gc.bytes-freed": "972082848",
+            "art.gc.gc-count-rate-histogram": "0:1,9:1,12:1,14:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,4:1,5:1,7:1",
+            "art.gc.gc-count": "38",
+            "art.gc.blocking-gc-time": "7516"
+          },
+          "samples": 1,
+          "firstThreads": 92,
+          "lastThreads": 92,
+          "maxThreads": 92,
+          "maxManagedUsedBytes": 72351240
+        },
+        "cricket-5": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "51",
+            "art.gc.gc-time": "52219",
+            "art.gc.bytes-allocated": "4584939424",
+            "art.gc.bytes-freed": "4546713272",
+            "art.gc.gc-count-rate-histogram": "0:1,4:1,9:3,10:2,11:1,12:1,14:3,21:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,2:3,3:2,4:2,5:1,6:3,7:1",
+            "art.gc.gc-count": "138",
+            "art.gc.blocking-gc-time": "34046"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "51",
+            "art.gc.gc-time": "52219",
+            "art.gc.bytes-allocated": "4584939424",
+            "art.gc.bytes-freed": "4546713272",
+            "art.gc.gc-count-rate-histogram": "0:1,4:1,9:3,10:2,11:1,12:1,14:3,21:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,2:3,3:2,4:2,5:1,6:3,7:1",
+            "art.gc.gc-count": "138",
+            "art.gc.blocking-gc-time": "34046"
+          },
+          "samples": 1,
+          "firstThreads": 86,
+          "lastThreads": 86,
+          "maxThreads": 86,
+          "maxManagedUsedBytes": 38209768
+        }
+      },
+      "independentCleanupVerification": {
+        "checks": {
+          "testPackageAbsent": true,
+          "settingsMatch": true,
+          "volumeMatch": true,
+          "productionVersionMatch": true
+        },
+        "state": {
+          "model": "onn 4K Pro Streaming Device",
+          "android": "14",
+          "abis": "armeabi-v7a,armeabi",
+          "fingerprint": "onn/jarvis2/jarvis2:14/URO3.260203.035.A1/15640252:user/release-keys",
+          "heapgrowthlimit": "256m",
+          "heapsize": "384m",
+          "settings": {
+            "global/stay_on_while_plugged_in": "3",
+            "secure/screensaver_enabled": "1",
+            "secure/screensaver_activate_on_sleep": "1",
+            "system/screen_off_timeout": "600000"
+          },
+          "productionVersion": "versionCode=10051 minSdk=24 targetSdk=36\n    versionName=0.1.0-beta.9.6.1",
+          "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 25 in range [0..25]\n"
+        },
+        "runnerFailureExplained": "pm path returns exit 1 when package is absent after successful uninstall; original failed result retained",
+        "workloadCompleted": true
+      }
+    },
+    "ci2048": {
+      "sourceDirectory": "build/stability/ci-43014856509-2048/build/stability/journeys",
+      "note": "Full corrected benchmark workload; older debug instrumentation manifest",
+      "metadata": {
+        "startedUtc": "2026-11-11T12:12:42.022781+00:00",
+        "apkSha256": "d6de2e99395a507743f944bf50da2f464514e36c19a14b23bafe91b97604fb3e",
+        "sourceHead": "c15d31919b30d8391c757d6eb3c1ff8c4fccca2d",
+        "runnerSha256": "a9458fe7ac10dca7c7e2243ef5b4825a8eb0af9abcc2f22f3df25bf94c66d1f9",
+        "endedUtc": "2026-11-11T12:37:04.522994+00:00"
+      },
+      "recordedResult": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5554",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": {
+        "fixture": true,
+        "package": "io.github.abbaskip.nuvioreseq.debug",
+        "lowRam": false,
+        "memoryClassMb": 192,
+        "kind": "environment",
+        "wallMs": 1794399242036,
+        "largeMemoryClassMb": 512,
+        "maxHeapBytes": 536870912,
+        "elapsedMs": 107241,
+        "hostPhase": "seed"
+      },
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "512m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 62,
+        "Dalvik HeapAllocKiB": {
+          "first": 15196,
+          "last": 54971,
+          "peak": 119399
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 14032,
+          "last": 60416,
+          "peak": 180832
+        },
+        "Native HeapAllocKiB": {
+          "first": 21215,
+          "last": 24146,
+          "peak": 67311
+        },
+        "Native HeapPssKiB": {
+          "first": 29432,
+          "last": 38748,
+          "peak": 126340
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 104314,
+          "last": 170263,
+          "peak": 337986
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 134052,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 159488,
+        "Native HeapAllocKiB": 63481,
+        "Native HeapPssKiB": 83780,
+        "TOTAL PSSPssKiB": 307909
+      },
+      "cricketMemorySamples": 90,
+      "gcPauseCricketMaxMs": 21.164,
+      "gcPauseSoakMaxMs": 7.6049999999999995,
+      "gcPauseWholeRunMaxMs": 21.164,
+      "nntpBlockedWorkerPeak": 1,
+      "reminderDelaysMs": [
+        3954
+      ],
+      "playbackIdlePausesMs": [
+        61928
+      ],
+      "maxQuietQueueWholeRun": 7,
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.1350812980001592,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.11797188500009,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 121.06872988400005,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.0508493640002,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "tvdbProbes": [
+        {
+          "mode": "missing",
+          "wallMs": 1794400432682,
+          "error": "d0",
+          "durationMs": 1,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1297888,
+          "hostPhase": "tvdb-missing"
+        },
+        {
+          "mode": "invalid",
+          "wallMs": 1794400465877,
+          "error": "d0",
+          "durationMs": 22,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1331083,
+          "hostPhase": "tvdb-invalid"
+        },
+        {
+          "mode": "timeout",
+          "wallMs": 1794400523011,
+          "error": "TimeoutCancellationException",
+          "durationMs": 24005,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1388217,
+          "hostPhase": "tvdb-timeout"
+        },
+        {
+          "mode": "unavailable",
+          "wallMs": 1794400555610,
+          "error": "d0",
+          "durationMs": 9,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1420815,
+          "hostPhase": "tvdb-unavailable"
+        },
+        {
+          "mode": "available",
+          "wallMs": 1794400588761,
+          "durationMs": 13,
+          "episodes": 8,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1453967,
+          "hostPhase": "tvdb-available"
+        }
+      ],
+      "tvdbCardIdsByPhase": {
+        "tvdb-missing": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-invalid": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-timeout": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-unavailable": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-available": [
+          "tt9900003",
+          "tt9900001"
+        ]
+      },
+      "cleanup": {
+        "errors": []
+      },
+      "runtimeEndpoints": {
+        "soak": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "11",
+            "art.gc.gc-time": "386",
+            "art.gc.bytes-allocated": "75165544",
+            "art.gc.bytes-freed": "53622416",
+            "art.gc.gc-count-rate-histogram": "0:22,1:11",
+            "art.gc.blocking-gc-count-rate-histogram": "0:23,1:10",
+            "art.gc.gc-count": "13",
+            "art.gc.blocking-gc-time": "271"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "73",
+            "art.gc.gc-time": "21903",
+            "art.gc.bytes-allocated": "7893817376",
+            "art.gc.bytes-freed": "7834788440",
+            "art.gc.gc-count-rate-histogram": "0:48,1:21,2:3,8:5,11:1,13:1,14:1,16:1,17:1,27:1,28:1,36:1,44:1,111:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:55,1:25,2:1,5:1,8:5",
+            "art.gc.gc-count": "385",
+            "art.gc.blocking-gc-time": "7155"
+          },
+          "samples": 29,
+          "firstThreads": 135,
+          "lastThreads": 96,
+          "maxThreads": 135,
+          "maxManagedUsedBytes": 134531904
+        },
+        "cricket-cold-load": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "52922512",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "0",
+            "art.gc.gc-time": "0",
+            "art.gc.bytes-allocated": "52922512",
+            "art.gc.bytes-freed": "0",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "0",
+            "art.gc.blocking-gc-time": "0"
+          },
+          "samples": 1,
+          "firstThreads": 83,
+          "lastThreads": 83,
+          "maxThreads": 83,
+          "maxManagedUsedBytes": 52867864
+        },
+        "cricket-1": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "27",
+            "art.gc.gc-time": "6494",
+            "art.gc.bytes-allocated": "1734554656",
+            "art.gc.bytes-freed": "1681930648",
+            "art.gc.gc-count-rate-histogram": "0:1,13:1,57:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,9:1,10:1",
+            "art.gc.gc-count": "79",
+            "art.gc.blocking-gc-time": "4162"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "27",
+            "art.gc.gc-time": "6494",
+            "art.gc.bytes-allocated": "1734554656",
+            "art.gc.bytes-freed": "1681930648",
+            "art.gc.gc-count-rate-histogram": "0:1,13:1,57:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,9:1,10:1",
+            "art.gc.gc-count": "79",
+            "art.gc.blocking-gc-time": "4162"
+          },
+          "samples": 1,
+          "firstThreads": 113,
+          "lastThreads": 113,
+          "maxThreads": 113,
+          "maxManagedUsedBytes": 52607624
+        },
+        "cricket-5": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "82",
+            "art.gc.gc-time": "16271",
+            "art.gc.bytes-allocated": "4071708752",
+            "art.gc.bytes-freed": "4018547144",
+            "art.gc.gc-count-rate-histogram": "0:1,4:1,8:1,9:3,13:1,15:2,16:1,20:1,57:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,3:2,4:1,5:1,8:1,9:5,10:1",
+            "art.gc.gc-count": "180",
+            "art.gc.blocking-gc-time": "9599"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "82",
+            "art.gc.gc-time": "16271",
+            "art.gc.bytes-allocated": "4071708752",
+            "art.gc.bytes-freed": "4018547144",
+            "art.gc.gc-count-rate-histogram": "0:1,4:1,8:1,9:3,13:1,15:2,16:1,20:1,57:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,3:2,4:1,5:1,8:1,9:5,10:1",
+            "art.gc.gc-count": "180",
+            "art.gc.blocking-gc-time": "9599"
+          },
+          "samples": 1,
+          "firstThreads": 112,
+          "lastThreads": 112,
+          "maxThreads": 112,
+          "maxManagedUsedBytes": 53145224
+        }
+      },
+      "launcherTimeline": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ]
+    },
+    "ci3072": {
+      "sourceDirectory": "build/stability/ci-43014856509-3072/build/stability/journeys",
+      "note": "Full corrected benchmark workload; older debug instrumentation manifest",
+      "metadata": {
+        "startedUtc": "2026-11-11T12:22:12.267236+00:00",
+        "apkSha256": "a292105d1a2cf5bbdc743b75d028c0d1b585a97633158b7856abe36b6f3b52ab",
+        "sourceHead": "c15d31919b30d8391c757d6eb3c1ff8c4fccca2d",
+        "runnerSha256": "a9458fe7ac10dca7c7e2243ef5b4825a8eb0af9abcc2f22f3df25bf94c66d1f9",
+        "endedUtc": "2026-11-11T12:46:55.880651+00:00"
+      },
+      "recordedResult": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5554",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": {
+        "fixture": true,
+        "package": "io.github.abbaskip.nuvioreseq.debug",
+        "lowRam": false,
+        "memoryClassMb": 192,
+        "kind": "environment",
+        "wallMs": 1794399825005,
+        "largeMemoryClassMb": 576,
+        "maxHeapBytes": 603979776,
+        "elapsedMs": 131422,
+        "hostPhase": "seed"
+      },
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "576m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 63,
+        "Dalvik HeapAllocKiB": {
+          "first": 10996,
+          "last": 54984,
+          "peak": 125055
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 13684,
+          "last": 57620,
+          "peak": 133388
+        },
+        "Native HeapAllocKiB": {
+          "first": 25855,
+          "last": 26532,
+          "peak": 54521
+        },
+        "Native HeapPssKiB": {
+          "first": 23812,
+          "last": 42528,
+          "peak": 111952
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 91390,
+          "last": 165895,
+          "peak": 285878
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 119120,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 169668,
+        "Native HeapAllocKiB": 73447,
+        "Native HeapPssKiB": 88256,
+        "TOTAL PSSPssKiB": 308330
+      },
+      "cricketMemorySamples": 80,
+      "gcPauseCricketMaxMs": 75.034,
+      "gcPauseSoakMaxMs": 33.006,
+      "gcPauseWholeRunMaxMs": 75.03399999999999,
+      "nntpBlockedWorkerPeak": 1,
+      "reminderDelaysMs": [
+        4001
+      ],
+      "playbackIdlePausesMs": [
+        61910
+      ],
+      "maxQuietQueueWholeRun": 7,
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.3564115250001123,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.15331216799996,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 121.0895302570002,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.0728438670003,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "tvdbProbes": [
+        {
+          "mode": "missing",
+          "wallMs": 1794401023794,
+          "error": "d0",
+          "durationMs": 1,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1330210,
+          "hostPhase": "tvdb-missing"
+        },
+        {
+          "mode": "invalid",
+          "wallMs": 1794401057045,
+          "error": "d0",
+          "durationMs": 28,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1363462,
+          "hostPhase": "tvdb-invalid"
+        },
+        {
+          "mode": "timeout",
+          "wallMs": 1794401114246,
+          "error": "TimeoutCancellationException",
+          "durationMs": 24009,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1420663,
+          "hostPhase": "tvdb-timeout"
+        },
+        {
+          "mode": "unavailable",
+          "wallMs": 1794401147024,
+          "error": "d0",
+          "durationMs": 14,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1453441,
+          "hostPhase": "tvdb-unavailable"
+        },
+        {
+          "mode": "available",
+          "wallMs": 1794401180219,
+          "durationMs": 15,
+          "episodes": 8,
+          "kind": "tvdb-probe",
+          "elapsedMs": 1486635,
+          "hostPhase": "tvdb-available"
+        }
+      ],
+      "tvdbCardIdsByPhase": {
+        "tvdb-missing": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-invalid": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-timeout": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-unavailable": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-available": [
+          "tt9900003",
+          "tt9900001"
+        ]
+      },
+      "cleanup": {
+        "errors": []
+      },
+      "runtimeEndpoints": {
+        "soak": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "11",
+            "art.gc.gc-time": "434",
+            "art.gc.bytes-allocated": "66839552",
+            "art.gc.bytes-freed": "45719216",
+            "art.gc.gc-count-rate-histogram": "0:22,1:11",
+            "art.gc.blocking-gc-count-rate-histogram": "0:23,1:10",
+            "art.gc.gc-count": "12",
+            "art.gc.blocking-gc-time": "348"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "75",
+            "art.gc.gc-time": "32273",
+            "art.gc.bytes-allocated": "8018683408",
+            "art.gc.bytes-freed": "7959498160",
+            "art.gc.gc-count-rate-histogram": "0:45,1:19,2:1,3:3,8:6,16:1,17:1,19:1,28:1,29:1,36:1,38:1,41:1,45:1,72:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:53,1:21,2:3,3:1,4:1,8:5",
+            "art.gc.gc-count": "420",
+            "art.gc.blocking-gc-time": "8164"
+          },
+          "samples": 28,
+          "firstThreads": 99,
+          "lastThreads": 82,
+          "maxThreads": 113,
+          "maxManagedUsedBytes": 142644448
+        },
+        "cricket-cold-load": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "1",
+            "art.gc.gc-time": "533",
+            "art.gc.bytes-allocated": "51591664",
+            "art.gc.bytes-freed": "32556808",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "1",
+            "art.gc.blocking-gc-time": "706"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "1",
+            "art.gc.gc-time": "533",
+            "art.gc.bytes-allocated": "51591664",
+            "art.gc.bytes-freed": "32556808",
+            "art.gc.gc-count-rate-histogram": "",
+            "art.gc.blocking-gc-count-rate-histogram": "",
+            "art.gc.gc-count": "1",
+            "art.gc.blocking-gc-time": "706"
+          },
+          "samples": 1,
+          "firstThreads": 63,
+          "lastThreads": 63,
+          "maxThreads": 63,
+          "maxManagedUsedBytes": 19018472
+        },
+        "cricket-1": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "20",
+            "art.gc.gc-time": "13988",
+            "art.gc.bytes-allocated": "2182626592",
+            "art.gc.bytes-freed": "1976689808",
+            "art.gc.gc-count-rate-histogram": "1:1,23:1,48:1",
+            "art.gc.blocking-gc-count-rate-histogram": "1:1,6:1,9:1",
+            "art.gc.gc-count": "83",
+            "art.gc.blocking-gc-time": "10447"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "20",
+            "art.gc.gc-time": "13988",
+            "art.gc.bytes-allocated": "2182626592",
+            "art.gc.bytes-freed": "1976689808",
+            "art.gc.gc-count-rate-histogram": "1:1,23:1,48:1",
+            "art.gc.blocking-gc-count-rate-histogram": "1:1,6:1,9:1",
+            "art.gc.gc-count": "83",
+            "art.gc.blocking-gc-time": "10447"
+          },
+          "samples": 1,
+          "firstThreads": 95,
+          "lastThreads": 95,
+          "maxThreads": 95,
+          "maxManagedUsedBytes": 205920400
+        },
+        "cricket-5": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "75",
+            "art.gc.gc-time": "30338",
+            "art.gc.bytes-allocated": "5463323952",
+            "art.gc.bytes-freed": "5409195832",
+            "art.gc.gc-count-rate-histogram": "1:1,6:2,8:1,9:1,11:1,14:1,18:1,20:1,23:1,48:1,63:1",
+            "art.gc.blocking-gc-count-rate-histogram": "1:1,3:2,4:2,5:1,6:1,8:3,9:2",
+            "art.gc.gc-count": "235",
+            "art.gc.blocking-gc-time": "16908"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "75",
+            "art.gc.gc-time": "30338",
+            "art.gc.bytes-allocated": "5463323952",
+            "art.gc.bytes-freed": "5409195832",
+            "art.gc.gc-count-rate-histogram": "1:1,6:2,8:1,9:1,11:1,14:1,18:1,20:1,23:1,48:1,63:1",
+            "art.gc.blocking-gc-count-rate-histogram": "1:1,3:2,4:2,5:1,6:1,8:3,9:2",
+            "art.gc.gc-count": "235",
+            "art.gc.blocking-gc-time": "16908"
+          },
+          "samples": 1,
+          "firstThreads": 90,
+          "lastThreads": 90,
+          "maxThreads": 90,
+          "maxManagedUsedBytes": 54111736
+        }
+      },
+      "launcherTimeline": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 12,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 12,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 12,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 12,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ]
+    },
+    "ci4096": {
+      "sourceDirectory": "build/stability/ci-43024044102-4096/build/stability/journeys",
+      "note": "Full benchmark workload and corrected debug instrumentation manifest",
+      "metadata": {
+        "startedUtc": "2026-11-11T13:22:56.285129+00:00",
+        "apkSha256": "7bb492d16442a29fed9345c491aa66afa5ab42649909f38f735a54ff64693da7",
+        "sourceHead": "43c7588f424917e381b9583577e01f96f6e0e8ca",
+        "runnerSha256": "1de27b0e111a7119c3773702aa4e9ba6f87926e24830beaff038d6bfc9aa498b",
+        "endedUtc": "2026-11-11T13:47:09.686234+00:00"
+      },
+      "recordedResult": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5554",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": {
+        "fixture": true,
+        "package": "io.github.abbaskip.nuvioreseq.debug",
+        "lowRam": false,
+        "memoryClassMb": 192,
+        "kind": "environment",
+        "wallMs": 1794403444733,
+        "largeMemoryClassMb": 576,
+        "maxHeapBytes": 603979776,
+        "elapsedMs": 1808529,
+        "hostPhase": "seed"
+      },
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "576m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 63,
+        "Dalvik HeapAllocKiB": {
+          "first": 10718,
+          "last": 54235,
+          "peak": 132144
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 12832,
+          "last": 57140,
+          "peak": 148960
+        },
+        "Native HeapAllocKiB": {
+          "first": 22753,
+          "last": 29030,
+          "peak": 83898
+        },
+        "Native HeapPssKiB": {
+          "first": 20536,
+          "last": 43092,
+          "peak": 113676
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 88315,
+          "last": 166643,
+          "peak": 292421
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 139401,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 149000,
+        "Native HeapAllocKiB": 64441,
+        "Native HeapPssKiB": 90112,
+        "TOTAL PSSPssKiB": 295598
+      },
+      "cricketMemorySamples": 87,
+      "gcPauseCricketMaxMs": 76.734,
+      "gcPauseSoakMaxMs": 6.229,
+      "gcPauseWholeRunMaxMs": 76.734,
+      "nntpBlockedWorkerPeak": 1,
+      "reminderDelaysMs": [
+        3757
+      ],
+      "playbackIdlePausesMs": [
+        61978
+      ],
+      "maxQuietQueueWholeRun": 7,
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.452602521000017,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.108994049999865,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 121.067421427,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.05013157100007,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "tvdbProbes": [
+        {
+          "mode": "missing",
+          "wallMs": 1794404637700,
+          "error": "d0",
+          "durationMs": 1,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3001495,
+          "hostPhase": "tvdb-missing"
+        },
+        {
+          "mode": "invalid",
+          "wallMs": 1794404670900,
+          "error": "d0",
+          "durationMs": 24,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3034696,
+          "hostPhase": "tvdb-invalid"
+        },
+        {
+          "mode": "timeout",
+          "wallMs": 1794404728042,
+          "error": "TimeoutCancellationException",
+          "durationMs": 24006,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3091838,
+          "hostPhase": "tvdb-timeout"
+        },
+        {
+          "mode": "unavailable",
+          "wallMs": 1794404760704,
+          "error": "d0",
+          "durationMs": 8,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3124500,
+          "hostPhase": "tvdb-unavailable"
+        },
+        {
+          "mode": "available",
+          "wallMs": 1794404793864,
+          "durationMs": 11,
+          "episodes": 8,
+          "kind": "tvdb-probe",
+          "elapsedMs": 3157660,
+          "hostPhase": "tvdb-available"
+        }
+      ],
+      "tvdbCardIdsByPhase": {
+        "tvdb-missing": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-invalid": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-timeout": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-unavailable": [
+          "tt9900003",
+          "tt9900001"
+        ],
+        "tvdb-available": [
+          "tt9900003",
+          "tt9900001"
+        ]
+      },
+      "cleanup": {
+        "errors": []
+      },
+      "runtimeEndpoints": {
+        "soak": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "11",
+            "art.gc.gc-time": "481",
+            "art.gc.bytes-allocated": "67411896",
+            "art.gc.bytes-freed": "49885616",
+            "art.gc.gc-count-rate-histogram": "0:22,1:11",
+            "art.gc.blocking-gc-count-rate-histogram": "0:23,1:10",
+            "art.gc.gc-count": "13",
+            "art.gc.blocking-gc-time": "290"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "74",
+            "art.gc.gc-time": "27554",
+            "art.gc.bytes-allocated": "7824629224",
+            "art.gc.bytes-freed": "7766288512",
+            "art.gc.gc-count-rate-histogram": "0:47,1:24,2:2,3:1,6:1,8:5,10:1,11:1,15:2,58:1,59:1,60:1,63:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:56,1:25,2:1,6:1,8:5",
+            "art.gc.gc-count": "369",
+            "art.gc.blocking-gc-time": "8171"
+          },
+          "samples": 29,
+          "firstThreads": 97,
+          "lastThreads": 84,
+          "maxThreads": 108,
+          "maxManagedUsedBytes": 152252560
+        },
+        "cricket-cold-load": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "1",
+            "art.gc.gc-time": "2200",
+            "art.gc.bytes-allocated": "76433848",
+            "art.gc.bytes-freed": "42469520",
+            "art.gc.gc-count-rate-histogram": "0:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1",
+            "art.gc.gc-count": "1",
+            "art.gc.blocking-gc-time": "2231"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "1",
+            "art.gc.gc-time": "2200",
+            "art.gc.bytes-allocated": "76433848",
+            "art.gc.bytes-freed": "42469520",
+            "art.gc.gc-count-rate-histogram": "0:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1",
+            "art.gc.gc-count": "1",
+            "art.gc.blocking-gc-time": "2231"
+          },
+          "samples": 1,
+          "firstThreads": 82,
+          "lastThreads": 82,
+          "maxThreads": 82,
+          "maxManagedUsedBytes": 33931560
+        },
+        "cricket-1": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "6564",
+            "art.gc.bytes-allocated": "256853696",
+            "art.gc.bytes-freed": "217504456",
+            "art.gc.gc-count-rate-histogram": "0:1,5:1,9:2",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,5:1,9:2",
+            "art.gc.gc-count": "31",
+            "art.gc.blocking-gc-time": "5918"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "25",
+            "art.gc.gc-time": "6564",
+            "art.gc.bytes-allocated": "256853696",
+            "art.gc.bytes-freed": "217504456",
+            "art.gc.gc-count-rate-histogram": "0:1,5:1,9:2",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,5:1,9:2",
+            "art.gc.gc-count": "31",
+            "art.gc.blocking-gc-time": "5918"
+          },
+          "samples": 1,
+          "firstThreads": 108,
+          "lastThreads": 108,
+          "maxThreads": 108,
+          "maxManagedUsedBytes": 39332856
+        },
+        "cricket-5": {
+          "firstGc": {
+            "art.gc.blocking-gc-count": "85",
+            "art.gc.gc-time": "22576",
+            "art.gc.bytes-allocated": "4931934496",
+            "art.gc.bytes-freed": "4877299320",
+            "art.gc.gc-count-rate-histogram": "0:1,5:1,6:1,8:1,9:3,12:1,14:1,16:1,24:1,26:1,92:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,2:1,5:4,7:1,8:1,9:4,12:1",
+            "art.gc.gc-count": "231",
+            "art.gc.blocking-gc-time": "13127"
+          },
+          "lastGc": {
+            "art.gc.blocking-gc-count": "85",
+            "art.gc.gc-time": "22576",
+            "art.gc.bytes-allocated": "4931934496",
+            "art.gc.bytes-freed": "4877299320",
+            "art.gc.gc-count-rate-histogram": "0:1,5:1,6:1,8:1,9:3,12:1,14:1,16:1,24:1,26:1,92:1",
+            "art.gc.blocking-gc-count-rate-histogram": "0:1,2:1,5:4,7:1,8:1,9:4,12:1",
+            "art.gc.gc-count": "231",
+            "art.gc.blocking-gc-time": "13127"
+          },
+          "samples": 1,
+          "firstThreads": 105,
+          "lastThreads": 105,
+          "maxThreads": 105,
+          "maxManagedUsedBytes": 54618792
+        }
+      },
+      "launcherTimeline": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 13,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 13,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 13,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "snapshotVersion": 13,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ]
+    }
+  },
+  "isolatedTvdbControl": [
+    {
+      "mode": "missing",
+      "expectedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "observedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "retainsSupportedShows": true
+    },
+    {
+      "mode": "invalid",
+      "expectedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "observedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "retainsSupportedShows": true
+    },
+    {
+      "mode": "timeout",
+      "expectedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "observedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "retainsSupportedShows": true
+    },
+    {
+      "mode": "unavailable",
+      "expectedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "observedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "retainsSupportedShows": true
+    },
+    {
+      "mode": "available",
+      "expectedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "observedIds": [
+        "tt9900001",
+        "tt9900002",
+        "tt9900003"
+      ],
+      "retainsSupportedShows": true
+    }
+  ],
+  "finalOnnRestoration": {
+    "checkedUtc": "2026-11-11T13:41:07.022908+00:00",
+    "settings": {
+      "global/stay_on_while_plugged_in": "3",
+      "secure/screensaver_enabled": "1",
+      "secure/screensaver_activate_on_sleep": "1",
+      "system/screen_off_timeout": "600000"
+    },
+    "productionVersion": "versionCode=10051 minSdk=24 targetSdk=36\n    versionName=0.1.0-beta.9.6.1",
+    "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 25 in range [0..25]",
+    "checks": {
+      "settingsMatch": true,
+      "productionVersionMatches": true,
+      "volumeMatches": true,
+      "ownedReverseMappingsAbsent": true,
+      "ownedBenchmarkPackageAbsent": true
+    },
+    "ownershipNote": "This programme installed only .debug on Onn. The separate .iptvdebug and .iptvdebug.test packages are present but not owned by this run; they were not launched, read for data, modified or removed. The initial final-check assertion incorrectly demanded their absence; that original check is retained separately.",
+    "power": [
+      "mWakefulness=Awake",
+      "mStayOn=true"
+    ]
+  }
+}

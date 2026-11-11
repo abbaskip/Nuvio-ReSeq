@@ -2194,5 +2194,4 @@
     <string name="plugin_dns_description">Izberite DNS za zahteve CloudStream. Za menjavo pritisnite OK.</string>
     <string name="continue_watching_window_summary">Kolikšno obdobje zgodovine ogledov naj se upošteva</string>
     <string name="cw_choose_episode">Odprite serijo in izberite epizodo</string>
-    <string name="home_updating_continue_watching">Posodabljanje razdelka Nadaljuj ogled…</string>
 </resources>

@@ -3479,5 +3479,4 @@
     <string name="plugin_dns_description">Choose the resolver used for CloudStream extension requests. Press OK to switch providers.</string>
     <string name="usenet_opening">Opening Usenet video…</string>
     <string name="cw_choose_episode">Open series to choose an episode</string>
-    <string name="home_updating_continue_watching">Updating Continue Watching…</string>
 </resources>

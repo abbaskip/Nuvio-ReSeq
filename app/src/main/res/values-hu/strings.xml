@@ -3438,5 +3438,4 @@ Próbálj meg egy másik forrást. [%1$s]</string>
     <string name="plugin_dns_description">Válassz DNS-szolgáltatót a CloudStream-kérésekhez. Váltáshoz nyomd meg az OK gombot.</string>
     <string name="continue_watching_window_summary">A megtekintési előzmények figyelembe vett időszaka</string>
     <string name="cw_choose_episode">Nyisd meg a sorozatot az epizód kiválasztásához</string>
-    <string name="home_updating_continue_watching">A Nézés folytatása frissítése…</string>
 </resources>

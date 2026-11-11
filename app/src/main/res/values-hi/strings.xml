@@ -1018,5 +1018,4 @@
     <string name="plugin_dns_description">CloudStream अनुरोधों के लिए DNS रिज़ॉल्वर चुनें। बदलने के लिए OK दबाएँ।</string>
     <string name="continue_watching_window_summary">देखने के इतिहास में कितने समय पीछे तक देखें</string>
     <string name="cw_choose_episode">एपिसोड चुनने के लिए सीरीज़ खोलें</string>
-    <string name="home_updating_continue_watching">देखना जारी रखें अपडेट हो रहा है…</string>
 </resources>

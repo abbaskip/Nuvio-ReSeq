@@ -129,8 +129,6 @@ class HomeViewModel @Inject constructor(
 
     internal val _uiState = MutableStateFlow(HomeUiState())
     internal val homeContentActive = MutableStateFlow(false)
-    internal val _continueWatchingRefreshing = MutableStateFlow(false)
-    val continueWatchingRefreshing: StateFlow<Boolean> = _continueWatchingRefreshing.asStateFlow()
     /** Layout consumers such as On Demand must not subscribe to Home's content projection. */
     val layoutState: StateFlow<HomeUiState> = _uiState.map { it.settingsOnly() }
         .distinctUntilChanged()
@@ -299,9 +297,6 @@ class HomeViewModel @Inject constructor(
     internal val cwBadgeEpisodeCache: MutableMap<String, Set<Pair<Int, Int>>?> = createLruMap(MAX_CW_CACHE_SIZE)
     /** Per-series earliest upcoming season release date (epochMs) for smart TTL scheduling. */
     internal val cwBadgeNextSeasonMs: MutableMap<String, Long> = createLruMap(MAX_CW_CACHE_SIZE)
-    /** Snapshot of watchedShowEpisodes keys from the last badge evaluation cycle. */
-    @Volatile
-    internal var cwLastBadgeEpisodeKeys: Set<String> = emptySet()
     /** Cached show ID siblings from the last badge evaluation cycle (for anime ID expansion). */
     @Volatile
     internal var cwLastShowIdSiblings: Map<String, Set<String>> = emptyMap()
@@ -430,7 +425,6 @@ class HomeViewModel @Inject constructor(
                     cwProcessedOlderSeedContentIds.clear()
                     cwEnrichedNextUpOverlay.clear()
                     cwEnrichedInProgressOverlay.clear()
-                    cwLastBadgeEpisodeKeys = emptySet()
                     cwLastShowIdSiblings = emptyMap()
                     _uiState.update {
                         it.copy(layoutPreferencesReady = false, continueWatchingItems = emptyList())
@@ -490,7 +484,6 @@ class HomeViewModel @Inject constructor(
         cwProcessedOlderSeedContentIds.clear()
         cwEnrichedNextUpOverlay.clear()
         cwEnrichedInProgressOverlay.clear()
-        cwLastBadgeEpisodeKeys = emptySet()
         cwLastShowIdSiblings = emptyMap()
         watchedSeriesStateHolder.clearValidationState()
         _uiState.update { it.copy(continueWatchingItems = emptyList(), upcomingItems = emptyList()) }

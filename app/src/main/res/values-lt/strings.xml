@@ -1022,5 +1022,4 @@ Klaida: Bandomoji simuliuojama klaida — tai nėra tikras gedimas. Šaltinis gr
     <string name="plugin_dns_description">Pasirinkite DNS tarnybą „CloudStream“ užklausoms. Keiskite paspausdami OK.</string>
     <string name="continue_watching_window_summary">Kokį žiūrėjimo istorijos laikotarpį įtraukti</string>
     <string name="cw_choose_episode">Atverkite serialą ir pasirinkite seriją</string>
-    <string name="home_updating_continue_watching">Atnaujinama „Tęsti žiūrėjimą“…</string>
 </resources>

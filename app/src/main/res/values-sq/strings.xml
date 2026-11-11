@@ -2913,5 +2913,4 @@
     <string name="plugin_dns_description">Zgjidh shërbimin DNS për kërkesat CloudStream. Shtyp OK për ta ndryshuar.</string>
     <string name="continue_watching_window_summary">Periudha e historikut të shikimit që përfshihet</string>
     <string name="cw_choose_episode">Hap serialin për të zgjedhur një episod</string>
-    <string name="home_updating_continue_watching">Po përditësohet Vazhdo shikimin…</string>
 </resources>

@@ -3162,5 +3162,4 @@
     <string name="plugin_dns_description">Kies de resolver voor CloudStream-verzoeken. Druk op OK om te wisselen.</string>
     <string name="continue_watching_window_summary">Hoe ver terug je kijkgeschiedenis wordt meegenomen</string>
     <string name="cw_choose_episode">Open de serie om een aflevering te kiezen</string>
-    <string name="home_updating_continue_watching">Verder kijken bijwerken…</string>
 </resources>

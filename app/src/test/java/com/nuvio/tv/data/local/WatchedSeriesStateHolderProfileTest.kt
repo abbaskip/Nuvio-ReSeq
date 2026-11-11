@@ -67,6 +67,12 @@ class WatchedSeriesStateHolderProfileTest {
                 while (store.data.first()[seedsKey] == null) delay(10)
             }
         }
+        val restarted = WatchedSeriesStateHolder(factory, mockk {
+            every { activeProfileId } returns activeProfileFlow
+        })
+        restarted.loadFromDisk()
+        org.junit.Assert.assertTrue(restarted.isSeedValidationFresh("show", "finale"))
+        org.junit.Assert.assertFalse(restarted.isSeedValidationFresh("show", "rewatch"))
         holder.loadFromDisk(2)
         org.junit.Assert.assertFalse(holder.isSeedValidationFresh("show", "finale"))
         holder.loadFromDisk(1)

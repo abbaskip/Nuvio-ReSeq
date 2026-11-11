@@ -3137,5 +3137,4 @@
     <string name="plugin_dns_description">Выберите DNS для запросов CloudStream. Нажмите OK для смены.</string>
     <string name="continue_watching_window_summary">Какой период истории просмотров учитывать</string>
     <string name="cw_choose_episode">Откройте сериал, чтобы выбрать серию</string>
-    <string name="home_updating_continue_watching">Обновление раздела «Продолжить просмотр»…</string>
 </resources>

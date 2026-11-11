@@ -3453,5 +3453,4 @@
     <string name="plugin_dns_description">בחר שירות DNS לבקשות CloudStream. לחץ OK כדי להחליף.</string>
     <string name="continue_watching_window_summary">איזו תקופה לכלול מהיסטוריית הצפייה</string>
     <string name="cw_choose_episode">יש לפתוח את הסדרה כדי לבחור פרק</string>
-    <string name="home_updating_continue_watching">מעדכן את המשך צפייה…</string>
 </resources>

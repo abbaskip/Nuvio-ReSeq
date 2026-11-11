@@ -100,6 +100,8 @@ internal fun PlaybackStreamSelectionSection(
         onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_MODE) }
     )
 
+    PlaybackFailureFallbackSettings(settings, onUpdate)
+
     if (settings.streamAutoPlayMode == StreamAutoPlayMode.REGEX_MATCH) {
         SettingsActionRow(
             title = stringResource(R.string.autoplay_regex_title),

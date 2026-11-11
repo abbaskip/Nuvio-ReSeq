@@ -40,7 +40,8 @@ internal data class PlayerNavigationArgs(
     val audioDelayMs: Int? = null,
     val audioDelayLanguage: String? = null,
     val tvdbContextJson: String? = null,
-    val fromLinkCache: Boolean = false
+    val fromLinkCache: Boolean = false,
+    val autoPlayNav: Boolean = false
 ) {
     val torrentTrackers: List<String>
         get() {
@@ -104,7 +105,8 @@ internal data class PlayerNavigationArgs(
                 audioDelayMs = savedStateHandle.get<String>("audioDelayMs")?.toIntOrNull(),
                 audioDelayLanguage = decodedOrNull("audioDelayLanguage"),
                 tvdbContextJson = decodedOrNull("tvdbContext"),
-                fromLinkCache = savedStateHandle.get<String>("fromLinkCache")?.toBooleanStrictOrNull() == true
+                fromLinkCache = savedStateHandle.get<String>("fromLinkCache")?.toBooleanStrictOrNull() == true,
+                autoPlayNav = savedStateHandle.get<String>("autoPlayNav")?.toBooleanStrictOrNull() == true
             )
         }
     }

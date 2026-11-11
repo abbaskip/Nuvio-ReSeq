@@ -84,7 +84,7 @@ internal fun dayWord(ms: Long, now: Long): String {
 }
 
 /** When a game is, for a card's footer: the clock when it's on, "Today 8:00 PM", "FT · Sat 17 Oct". */
-internal fun whenLabel(ev: SportsEvent, now: Long, use24h: Boolean, hideScores: Boolean): String = when (ev.state) {
+internal fun whenLabel(ev: SportsEvent, now: Long, use24h: Boolean, hideScores: Boolean): String = if (ev.awaitingUpdate) "Updating…" else when (ev.state) {
     GameState.LIVE -> cornerStatus(ev, use24h, hideScores)
     GameState.POST -> (if (ev.source == EventSource.GUIDE) ev.finishedLabel else ev.status?.takeIf { it.length <= 6 } ?: "Final") + " · " + dayWord(ev.startMs, now)
     GameState.OFF -> (ev.status ?: "Postponed") + " · " + dayWord(ev.startMs, now)
@@ -435,6 +435,7 @@ private fun CornerBadge(ev: SportsEvent, now: Long, playing: Boolean) {
     val colors = NuvioTheme.colors
     val rec = isRecording(ev)
     when {
+        ev.awaitingUpdate -> OutlineBadge("UPDATING…", colors.Secondary)
         playing -> SportsBadge("▶ PLAYING", colors.Secondary, colors.OnSecondary)
         rec -> RecBadge()
         ev.state == GameState.LIVE -> SportsBadge("● ${ev.liveLabel}", ev.liveBadgeColor(), Color.White)
@@ -488,7 +489,9 @@ private fun HeroCard(
     val mine = sides.firstOrNull { follows.followsTeam(it.team) }
     val look = if (sides.size != 2) eventLook(ev, league) else null
     val label = when {
+        ev.awaitingUpdate -> "UPDATING…"
         ev.state == GameState.LIVE -> "● ${ev.liveLabel}"
+        ev.state == GameState.OFF -> ev.status?.uppercase() ?: "PAUSED"
         mine != null -> "NEXT FOR ${mine.team.name.uppercase()} · ${dayWord(ev.startMs, now).uppercase()}"
         else -> "COMING UP · ${dayWord(ev.startMs, now).uppercase()}"
     }

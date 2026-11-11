@@ -837,6 +837,7 @@ internal fun SportsChannelRow(
     /** The event's start: a channel airing it at another time shows its own time. */
     eventStartMs: Long? = null,
     use24h: Boolean = false,
+    paused: Boolean = false,
     onClick: () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -879,7 +880,9 @@ internal fun SportsChannelRow(
                     else -> m.program?.title?.takeIf { it != m.channel.name } ?: m.channel.group
                 }.let { base ->
                     val p = m.program
-                    if (p != null && eventStartMs != null && kotlin.math.abs(p.startMs - eventStartMs) > 20 * 60_000L)
+                    if (paused && p != null && p.startMs > now)
+                        "${dayWord(p.startMs, now)} ${com.nuvio.tv.livetv.ui.formatClock(p.startMs, use24h)} · $base"
+                    else if (p != null && eventStartMs != null && kotlin.math.abs(p.startMs - eventStartMs) > 20 * 60_000L)
                         "Airs ${com.nuvio.tv.livetv.ui.formatClock(p.startMs, use24h)} · $base" else base
                 }
                 LiveText(line, color = sub, size = 10.sp, maxLines = 1)
@@ -887,6 +890,7 @@ internal fun SportsChannelRow(
             Spacer(Modifier.width(8.dp))
             when {
                 playing -> SportsBadge("▶ PLAYING", accent, NuvioTheme.colors.OnSecondary)
+                paused && m.program?.startMs?.let { it > now } == true -> SportsBadge("UPCOMING", accent, NuvioTheme.colors.OnSecondary)
                 m.sure -> SportsBadge("SHOWING IT", accent, NuvioTheme.colors.OnSecondary)
                 else -> LiveText(
                     "MAYBE",

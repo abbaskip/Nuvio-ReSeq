@@ -1282,6 +1282,7 @@ private fun GamePage(
                         now = now,
                         eventStartMs = ev.startMs,
                         use24h = use24h,
+                        paused = ev.isPausedOngoingCricket(now),
                         modifier = (if (i == 0) Modifier.focusRequester(first) else Modifier).focusProperties {
                             previewFocus?.let { preview ->
                                 right = preview

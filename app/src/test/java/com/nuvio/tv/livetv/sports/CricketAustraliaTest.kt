@@ -27,6 +27,37 @@ class CricketAustraliaTest {
             assertEquals(status, GameState.LIVE, CricketAustralia.parse(fixture(status), now).single().state)
         assertEquals(GameState.OFF, CricketAustralia.parse(fixture("RainDelay", true), now).single().state)
     }
+
+    @Test fun `My Sports retains Tests and Shield at stumps after their opening days`() {
+        val today = Instant.parse("2026-11-12T10:00:00Z").toEpochMilli()
+        val test = CricketAustralia.parse(fixture("Stumps"), today).single()
+        val shield = CricketAustralia.parse(fixture("Stumps", format = 4, competition = "Sheffield Shield 2026-27"), today).single().copy(id = "ca:shield")
+        val follows = SportsFollows(leagues = setOf(test.leagueId, shield.leagueId))
+        val result = test.copy(id = "previous", state = GameState.POST, status = "Final", startMs = today - 86_400_000)
+        val page = SportsRows.build(listOf(result, test, shield), follows, today, Sport.CRICKET) { true }
+
+        assertEquals(setOf(test.id, shield.id), page.rows.first { it.key == "up" }.events.map { it.id }.toSet())
+        assertEquals(setOf(test.id, shield.id), page.heroes.map { it.id }.toSet())
+        assertEquals(1, page.rows.single { it.key == "l:${SportsCompetitions.canonicalId(test.leagueId)}" }.startIndex)
+        for (event in listOf(test, shield)) {
+            val row = page.rows.single { it.key == "l:${SportsCompetitions.canonicalId(event.leagueId)}" }
+            assertEquals(event.id, row.events[row.startIndex].id)
+            assertEquals(GameState.OFF, row.events[row.startIndex].state)
+            assertTrue(row.events[row.startIndex].hasScore)
+        }
+    }
+
+    @Test fun `My Sports does not promote cancelled finished or expired cricket to upcoming`() {
+        val base = CricketAustralia.parse(fixture("Stumps"), now).single()
+        val events = listOf(base.copy(id = "cancelled", status = "Cancelled"),
+            base.copy(id = "finished", state = GameState.POST),
+            base.copy(id = "expired", endMs = now),
+            base.copy(id = "guide", source = EventSource.GUIDE),
+            base.copy(id = "old", startMs = now - 6 * 86_400_000L, endMs = null))
+        val page = SportsRows.build(events, SportsFollows(leagues = setOf(base.leagueId)), now) { true }
+        assertTrue(page.heroes.isEmpty())
+        assertTrue(page.rows.none { it.key == "up" })
+    }
     @Test fun `domestic coverage excludes BBL and unrelated first class competitions`() {
         assertEquals("ca/shield", CricketAustralia.parse(fixture("Stumps", format = 4, competition = "Sheffield Shield 2026-27"), now).single().leagueId)
         assertEquals("ca/one-day", CricketAustralia.parse(fixture("InPlay", format = 5, competition = "One-Day Cup 2026-27"), now).single().leagueId)
@@ -46,6 +77,9 @@ class CricketAustraliaTest {
         assertEquals(GameState.OFF, result.state)
         assertEquals("Stumps", result.status)
         assertEquals(2, CricketAustralia.merge(listOf(original.copy(startMs = original.startMs - 7 * 86_400_000)), listOf(ca)).size)
+        val refreshed = CricketAustralia.merge(listOf(original.copy(awaitingUpdate = true)), listOf(ca)).single()
+        assertFalse(refreshed.awaitingUpdate)
+        assertTrue(refreshed.hasScore)
     }
     @Test fun `real ESPN abbreviations merge with full CA country names`() {
         val raw = requireNotNull(javaClass.getResourceAsStream("/sports/pakistan-sri-lanka-test.json"))

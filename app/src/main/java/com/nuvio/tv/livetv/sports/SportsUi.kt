@@ -42,7 +42,7 @@ internal fun untilLabel(startMs: Long, now: Long, dayEnd: Long): String {
 }
 
 /** What the corner of a card says: the game clock, "Started 1:00", "Final", or the start time. */
-internal fun cornerStatus(ev: SportsEvent, use24h: Boolean, hideScores: Boolean): String = when (ev.state) {
+internal fun cornerStatus(ev: SportsEvent, use24h: Boolean, hideScores: Boolean): String = if (ev.awaitingUpdate) "Updating…" else when (ev.state) {
     GameState.LIVE -> if (!hideScores && ev.status != null && ev.source != EventSource.GUIDE && ev.hasScore) ev.status
     else (if (ev.source == EventSource.GUIDE) "Airing since " else "Started ") + formatClock(ev.startMs, use24h)
     GameState.POST -> if (ev.source == EventSource.GUIDE) "Ended" else (ev.status ?: "Final")

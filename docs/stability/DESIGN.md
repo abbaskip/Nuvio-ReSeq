@@ -1,7 +1,8 @@
 # Stability programme: Phase 2 design and work plan
 
-**Status: proposed for maintainer approval. Phase 1 is approved, including its
-corrections to the original findings. Phase 3 has not started.** This change adds
+**Status: Phase 2 approved with the amendments recorded below. B0 only is
+authorized; implementation must wait for explicit Phase 3 base confirmation.**
+Phase 1 and its corrected findings remain approved. This design change touches
 only this document. All component names, limits and tests below are proposals,
 unless explicitly identified as existing code or measured evidence.
 
@@ -22,10 +23,10 @@ the Phase 1 report itself is preserved.
 | Priority | Established evidence | Design decision |
 | --- | --- | --- |
 | CW membership and consumers | Three cards survived the five-minute cold start. After synthetic completion, an unresolved ordered card disappeared, and the sequential control's snapshot and actual launcher intent remained on S1E1 instead of S1E2 off Home and after Home return. | Separate durable membership/projection from visible-Home enrichment. One owner authorizes removal; all consumers use one versioned projection. |
-| Allocator | Corrected local and CI suites: 91 passed, 3 failed, 13 skipped. Two late-release footprint assertions fail alone; arena membership fails in the suite but passed alone. | Correct the demonstrated test-contract/isolation assumptions through reviewed tests; independently establish native reclamation and real-player teardown correctness before declaring the engine healthy. No skips or quarantine. |
+| Allocator | Corrected local and CI suites: 91 passed, 3 failed, 13 skipped. Two late-release footprint assertions fail alone; arena membership fails in the suite but passed alone. | Correct the demonstrated test-contract/isolation assumptions through reviewed tests; independently establish native reclamation and real-player teardown correctness before declaring the engine healthy. A1 blocks player/allocator/NNTP/memory releases; CW and policy releases require no-worse allocator results with A1 in progress. No skips or quarantine. |
 | Work priority | Import parked a quiet worker for about 62 seconds; reminders took 2.98–4.05 seconds. One NNTP socket-blocked dispatcher worker was observed. The guide gate deferred the requested concurrent build. | Suspend admission/checkpoints without occupying worker threads; isolate blocking NNTP; reserve a deadline path for reminders and CW commits. Three-way contention still requires a real test. |
 | Memory | Onn soak total PSS peaked at 361,804 KiB; cricket Dalvik allocation at 155,492 KiB. Consumer ownership was not measured. Onn heap classes 256/384 MB differ from emulator 192/512 or 192/576 MB. | One ledger with separate managed/native accounts, shared-allocation ownership and whole-process residency checks. Measure attribution before enforcing consumer shares. |
-| Verification | Minified workloads completed; existing allocator tests and lint remain red. A completed harness journey does not mean its CW invariants passed. | Convert recorded invariants to failing gates and retain every existing test outcome. Current state is not releasable under the proposed gates. |
+| Verification | Minified workloads completed; existing allocator tests and lint remain red. A completed harness journey does not mean its CW invariants passed. | Convert recorded invariants to failing gates and retain every existing test outcome. Apply the scoped allocator rule in §7.1 and the new-base lint evidence; never hide raw failures. |
 | Sports | Multiple repository, detail and UI clocks; separate bulk and TV Now matchers; streaming parsers already exist. | One scheduler for data work, explicit UI timer exceptions, and a separate deadline lane for TV Now/reminders. Preserve the pending hotfix's trigger semantics once merged. |
 
 Preserve every capability in programme §1.2: all tracking integrations and local
@@ -41,23 +42,49 @@ resource-management shortcut.
 
 | Dependency | State and required integration |
 | --- | --- |
-| Sports hotfix | Maintainer-reported work in progress: My Sports cricket at stumps, fewer matching triggers, removal of the periodic 15-minute re-match, guide invalidation by committed revision. This design does not inspect or assume the unmerged implementation. After merge, adopt its actual trigger API and regression tests; do not restore the timer or duplicate its fix. Scheduler activation depends on this reconciliation. |
-| Large-NZB streaming hotfix | Maintainer-reported work in progress in `core/usenet`: streaming/compact storage replaces the 12 MiB and 150,000-segment caps. Register its parser windows, compact index/storage and cache residency with the ledger after merge. Do not restore size/segment caps as memory policy. NNTP scheduling must preserve its cancellation and streaming behavior. |
+| Sports PR #16 | Open, unmerged: paused cricket in My Sports/matcher, 36-hour lookahead and a separate query group per paused fixture; Finding channels only on the first matching pass; page snapshot bounded to 512 events, eight matches per event and 2 MiB, with per-item freshness and a seven-day bound; cache decode/match restore on user-visible IO rather than the bulk pool. **The 15-minute re-match timer, on-entry kick, original fixture key and original guide invalidation remain.** Their proposed removals/replacements were reverted. Register the snapshot and dispatcher when this dependency lands; do not include unmerged Sports changes in B0. |
+| Large-NZB streaming fix | Not started under the maintainer's latest instruction; planned to branch from 9.6.2. Streaming/compact storage will replace the 12 MiB and 150,000-segment caps. Keep P3, M1 and M3d dependent on the completed fix. C1–C3 and P1–P2 do not wait for it. Register its actual storage/residency after merge; do not design against an unmerged implementation or restore the removed caps later. |
 
-Release check on **12 November 2026, Sydney**: latest published release remains
-[`v0.1.0-beta.9.6.1`](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/v0.1.0-beta.9.6.1),
-published 11 November 09:15:36 UTC. Neither dependency has a verified shipped
-release in this check. **Phase 3 base candidate: pending those releases and
-maintainer confirmation; do not switch base during Phase 2.**
+Release check on **12 November 2026, Sydney**: the latest published release is
+[`v0.1.0-beta.9.6.2`](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/v0.1.0-beta.9.6.2),
+build **10052**, tag/target commit
+`6b1999648a46b9d54b5b924e7912e0f480d72689`, published **03:23:33 Sydney on
+12 November** (11 November 16:23:33 UTC). It contains 9.6.1 plus encoded-DASH
+MIME routing, MPV audio-clock fallback for a zero-video-timestamp glitch, and Home
+description scroll pacing. The app-source diff has **three production files and
+two player test files**. The separately owned Sports PR is not in this release.
 
-At the Phase 3 intake checkpoint, record each dependency's merged commit, PR,
-published tag, peeled commit, version name/code and included regressions. A
-published tag must actually contain the dependency; “latest” alone is insufficient.
-If they ship separately, record both releases and select a candidate containing
-both, or explicitly defer the dependent work item. Re-run the baseline on that
-candidate, retaining the 10051 measurements. Reconfirm the base before any Phase 3
-implementation. There is no automatic merge, release, tag, version, publication
-hold or release-workflow action in this programme.
+**Phase 3 must use 9.6.2 or later. B0 candidate: 9.6.2, pending fresh baseline
+results and explicit maintainer base confirmation.** Keep the design branch's
+10051 evidence history intact. B0 uses a separate 10052 measurement manifest and
+the unchanged Phase 1 harness overlay, not a silent rebase of PR #14 or #15.
+Re-measure playback controls because the published candidate changes player code;
+identify which native/encoded-DASH behaviors the fixtures actually exercise.
+
+At intake, record the published tag, peeled commit, version name/code, source
+changes, fixture/tooling overlay and artifact hashes. Rerun the unchanged baseline
+on 10052 and preserve the 10051 manifests. Record each independent dependency's
+merged commit and shipped release when it actually lands; it is not a prerequisite
+for unrelated CW work. A release must actually contain a dependency before the
+dependent work item can start. No implementation follows B0 until the maintainer
+confirms the base.
+
+### 1.2 Upstream publication is a base event
+
+Four upstream items are queued. The identified overlaps include process-death
+route restoration across TVDB/NNTP/TV Mix (C1–C3/P3) and VOD HLS initialization
+repair (player/P3 controls). This is a dependency warning, not approval to apply
+queued changes. The remaining queued items are not assumed to be harmless.
+
+During B0 or later programme work, **any newly published release after the known
+9.6.2 release is a stop event**: stop starting work, cancel active measurements
+through their restoration/finally path where safe, retain partial evidence,
+record tag/commit/version/time and changed areas, and ask the maintainer to confirm
+the next base. Do not silently rebase or retarget an in-flight PR, substitute a
+new source in an existing manifest, or continue implementation on an assumed
+base. Check publication before starting a measurement and periodically while a
+long run is active. No automation is authorized here to publish, change tags,
+versions or holds, or dispatch the release workflow.
 
 ## 2. Continue Watching: membership first, enrichment second
 
@@ -286,7 +313,9 @@ The concurrent failure **46,727,168 bytes (~44.6 MiB)** is pooled-footprint evid
 not an independent native RSS/PSS measurement. The arena failure may be affected
 by earlier tests retaining pool entries without explicit teardown. Whether real
 player disposal can similarly strand native allocations remains an engine/
-integration question and a release blocker until resolved.
+integration question. Its release-blocking scope is defined in §7.1; unrelated
+CW/policy work is not held behind A1 when its allocator results are no worse than
+the approved base and A1 is in progress.
 
 ### 3.2 Investigation and adjudication plan
 
@@ -333,7 +362,7 @@ return. Preserve the original Phase 1 failures in the report.
 | Valid reset/release/trim sequence leaves blocks, corrupts counters, double-frees or loses arena slots | Bundled engine defect. Minimal source fix and reproducible AAR update in its own PR; retain failing regression tests and test all shipped ABIs before release. |
 | Allocator works in isolation but player disposal omits required final reclamation | Integration defect, separately scoped lifetime fix with player stop/restart tests. |
 | Only suite ordering fails | Repair test ownership/cleanup if proven; if shared engine state violates its documented lifetime, fix that engine defect instead. Full and isolated suites must both pass. |
-| Matching engine source/native accounting is unavailable | Keep the investigation open and release gate red. Do not declare the engine healthy from a test edit alone. |
+| Matching engine source/native accounting is unavailable | Keep A1 open and block player/allocator/NNTP/memory releases. CW/policy releases still require the explicit no-worse comparison and active A1 investigation. Do not declare the engine healthy from a test edit alone. |
 
 ## 4. One work-priority policy
 
@@ -528,7 +557,7 @@ correction from nominal caps to actual residency.
 | Trailers / `TrailerPlayerPool` | Per-player leases plus shared-resource attribution; paused/idle pools reclaim before active primary playback, preserving user resume semantics. |
 | Coil / `NuvioApplication.newImageLoader` | Register actual image cache bytes and trim callback; avoid duplicate full-bitmap estimates in card caches. Reclaim prefetch/offscreen images before visible images. |
 | Guide / `LiveTvRepository` | Charge resident index and separately reserved build batch/generation. Publish committed generations atomically; release superseded generation only when readers finish. Replace standalone 85%-heap check with admission. |
-| Sports feeds/indexes/matcher caches | Retain streaming parsing; account parsed event collections, bounded guide scans, saved-match serialization and overlapping generations. Shared matcher caches have one owner. |
+| Sports feeds/indexes/matcher caches and PR #16 page snapshot | Retain streaming parsing; account parsed events, guide scans, saved-match serialization, overlapping generations, and the snapshot (512 events, eight matches per event, 2 MiB serialized, per-item freshness, seven-day bound). Serialized size is not a heap estimate: measure decoded residency and overlap during restore. Register the user-visible IO decode/restore dispatcher, its actual concurrency/queue bounds and thread-stack cost; do not move restore back behind bulk imports. Shared matcher caches have one owner. |
 | On Demand / database/import/artwork | Lease parser/batch scratch and in-memory result windows; durable catalogue size is not a memory cap. Suspend between committed batches. |
 | CW / provider metadata | Register the derived caches in §2.4, projection windows and transient enrichment. Logical membership/progress cannot be evicted as a memory response. |
 | Usenet / `UsenetMemoryProfile` | Account article/window caches, archive indexes, repair buffers, warm connection data and in-flight decode buffers; preserve windows/allowances until their replacement is measured. |
@@ -562,15 +591,15 @@ jobs, not recurring schedules.
 
 | ID / source | Existing trigger/cadence and lifecycle | Proposed ownership |
 | --- | --- | --- |
-| S01 `SportsRepository.start` cache loader | `channelLookupAllowed`, once until `cacheLoaded`; disk decode and optional initial base-feed fetch. | Scheduler bootstrap; visible catalogue admission, cancellation-safe streaming. |
+| S01 `SportsRepository.start` cache loader | 10051: `channelLookupAllowed`, once until `cacheLoaded`; disk decode/initial feed. Pending PR #16 adds a bounded page snapshot and cache decode/match restore on user-visible IO rather than bulk. | Register snapshot disk/decoded/scratch residency (512 events, eight matches/event, 2 MiB serialized; per-item freshness, seven-day bound) and the new IO dispatcher under USER_VISIBLE, including its actual limits after merge. Preserve restore while bulk is blocked and while a preview plays; cancellation-safe streaming. |
 | S02 `updateLoop` | Foreground demand; kick or 10 s while viewed / 30 s otherwise. Shared-base mode: team schedules. Fallback mode: current/week/ahead/past/schedules; fixtures considered every 12 h. | One keyed catalogue task family; retain per-request TTLs, demand and forced refresh intent. |
 | S03 `start` TSDB child | Every 30 s, no shared base feed, viewers present, bulk background gate. | Shared scheduler/provider quota; no independent timer. |
 | S04 `start` base-feed child | Immediate then 30 s while lookup allowed and cache loaded; applies feed timestamp ordering. | Scheduler catalogue deadline; preserve streaming parser and cancellation. |
-| S05 `refreshTvNow` child | Immediate and 30 s; lookup gate, display channels, settings, follows, guide generation and fixture-key changes restart it. Runs during Sports preview. | Reserved local USER_VISIBLE lookup; current-airing boundary and committed-revision triggers. Never wait behind a bulk matcher. |
+| S05 `refreshTvNow` child | Immediate and 30 s; lookup gate, display channels, settings, follows, guide generation and fixture-key changes restart it. Runs during Sports preview. | Reserved local USER_VISIBLE lookup; preserve existing triggers and current-airing freshness. Any revision-only replacement requires device diagnostics and equivalent behavior tests. Never wait behind a bulk matcher. |
 | S06 `updateCricket` child | Immediate then 30 s while lookup allowed and cache loaded. | Visible cricket/playing-event demand, preserve multi-day states and shipped stumps fix. |
 | S07 shared/watched scores child | Immediate, kick or 30 s while score gate/cache permit; identifies watched event and refreshes it. | Deadline-bearing watched/visible score task; reminders/alerts remain eligible during playback. |
-| S08 `matchLoop` inputs | Channels; matching settings; follows; loading/building/guide generation; fixture ID/start/broadcast signatures; `matchKick`; 0 or 1.5 s debounce and conflation. | Revision-keyed matching requests. After hotfix merge, use its committed-revision/reduced-trigger model, not these obsolete invalidation sources. |
-| S09 `matchLoop` timer child | 15-minute kick if foreground and last run older than ten minutes. | Baseline-only dependency slated for removal by the separate hotfix. Do not reintroduce it in the scheduler. |
+| S08 `matchLoop` inputs | Channels; matching settings; follows; loading/building/guide generation; fixture ID/start/broadcast signatures; `matchKick`; 0 or 1.5 s debounce and conflation. | Retain these 9.6.1 trigger semantics, including original fixture-key ordering and loading/building invalidation. PR #16 reverted the sorted-key and revision-only proposals. Any narrower trigger model requires device diagnostic evidence and explicit regression coverage. |
+| S09 `matchLoop` timer child | 15-minute kick if foreground and last run older than ten minutes. | Existing behavior to keep. S1 may replace this timer only after a time-advancing test proves matches remain current across programme boundaries with the Sports page closed; local TV Now freshness alone is insufficient. |
 | S10 `matchLoop` restore/save | Restore saved matches on loop activation; save after a completed pass. | Versioned cache I/O around scheduler jobs; stream/batch where measured copies are large. |
 | S11 `queueGeminiMatching` | Viewing/local match completion; opt-in and gate; at most three uncertain candidates, one mutex, 15 s pacing between candidates. | USER_DEFERRABLE keyed refinement; same opt-in, session invalidation and provider quota. Pacing is not an automatic quota-error retry. |
 | S12 `SportsScreen.GamePage` | Event ID/state/start and RESUMED lifecycle; local channels, optional broadcasts/channels, then free-event refresh every 90 s while browsing gate permits. | View demand subscriptions to scheduler; deduplicate with S07, preserving ≤30 s priority for genuinely watched/visible live scores. |
@@ -591,9 +620,9 @@ network work hidden inside UI effects:
 | `SportsDesign.ScoreLabel` | 2.5 s score-change flash | UI-only effect; no background registry exemption for data work. |
 | `SportsScreen`, `SportsMyTeams`, `SportsPicker`, `SportsTables`, `SportsRecord` | 40–400 ms focus/scroll/debounce effects, keyed by selection/content | Finite UI effects; cancel on key/disposal, no detached refresh loop. |
 | `SportsHost` lifecycle | `start`, foreground transitions and playback score-alert observation | Feed policy/demand state; one scheduler start. Alert emission deduplicated by event/score revision. |
-| `setViewing`, `setForeground`, `focusEvent`, `refreshNow` | Viewer count, foreground, event focus; manual refresh sets force flags/kick; entering view can request matching/Gemini | Translate to typed demand/revision/forced-refresh events. No unconditional bulk restart on every lifecycle bounce. |
+| `setViewing`, `setForeground`, `focusEvent`, `refreshNow` | Viewer count, foreground, event focus; manual refresh sets force flags/kick; entering view can request matching/Gemini | Translate to typed demand/revision/forced-refresh events. Preserve the existing conditional on-entry matching kick; PR #16 did not remove it. Optimize only with diagnostic and equivalence evidence. |
 | Settings/follows mutations | Team/league/pin/word changes, reminders, user channel pick/block/clear fixes | Persist intent, advance relevant revision and invalidate only dependent tasks. Manual pick/block remains immediately visible before recomputation. |
-| Data/provider responses | Applied catalogue/cricket expansion and fixture-signature changes; guide/channel publication | Schedule affected keys from committed revisions; score-only changes do not restart a full guide scan. |
+| Data/provider responses | Applied catalogue/cricket expansion and fixture-signature changes; guide/channel publication | Preserve existing publication/fixture/guide invalidation inputs. Diagnose actual triggering on device before making revision-only or sorted-key changes; retain stale-result guards separately from trigger eligibility. |
 | `loadDay`, `loadBroadcasts`, `loadEventChannels`, team/table/detail lookups, plays/extras and explicit Gemini dialog | User-selected date/event/league/team, panel attachment or explicit action | USER_VISIBLE or opted-in USER_DEFERRABLE requests with cancellation; coalesce same key with recurring tasks. Preserve date/time-zone rules, replay lookup and all existing picker/table behavior. |
 
 The Phase 3 inventory test must cover every recurring `delay`, timeout-as-ticker,
@@ -625,13 +654,22 @@ for a whole bulk pass. Keep the existing two instances until the replacement
 passes blocked-bulk/preview freshness tests; the temporary duplication is an
 explicit migration exception with measured memory ownership and a removal item.
 
-On the shipped Sports hotfix base, import its trigger contract and tests before
-changing scheduling: committed guide revision only, reduced matching triggers,
-no periodic 15-minute re-match, and correct My Sports at-stumps classification.
-Use deadline/boundary triggers for TV Now freshness, not a disguised full re-match
-timer. If its final API differs from the maintainer's description, amend the
-dependent design/work item for approval rather than copying unmerged code or
-silently reverting the hotfix. Retain streaming feed/guide parsing throughout.
+When PR #16 lands, retain its actual scope: paused-cricket lookahead/query-group
+isolation, initial-pass-only spinner, bounded page snapshot, and user-visible IO
+restore. Keep the 9.6.1 on-entry kick, original fixture keys and guide invalidation,
+and the 15-minute timer. No device evidence currently justifies making
+“no periodic bulk re-match” or “committed-revision-only invalidation” acceptance
+criteria.
+
+S1 may replace the timer only with a time-advancing regression that closes the
+Sports page, crosses programme boundaries, and verifies actual matches/replay
+choices and newly airing programmes stay current without reopening the page.
+Include the existing foreground-other-screen demand conditions and separately
+report OS-background deferral. Device trigger/completion diagnostics must support
+any narrower invalidation proposal. Preserve paused Test/Shield matching (36-hour
+lookahead and separate paused-fixture query groups), first-pass spinner behavior,
+snapshot freshness/bounds, and fast restore with a blocked bulk pool/active preview.
+Retain streaming feed/guide parsing and do not duplicate or revert the hotfix.
 
 ## 7. Release gates and handling existing red checks
 
@@ -658,27 +696,49 @@ Retain all §1.5 restrictions and observe display state each run.
 | --- | --- |
 | Test-package crash, ANR, OOM, process death, missing phase/sample, failed cleanup | Fail; missing evidence is not zero or pass. Preserve logs/mapping and device restoration attempts. |
 | CW supported card disappears, stale completed-episode intent, profile leak | Fail the harness assertion. Phase 1's report-only invariant failures become executable release blockers. |
-| Native allocator/JVM/instrumentation assertion | Fail with complete per-test results. Never convert a nonzero test result to success because benchmarks completed. |
+| Native allocator/JVM/instrumentation assertion | Preserve the raw failing check and full per-test result. New/worsened failures block every candidate. Only the explicitly scoped allocator comparison below may permit unrelated CW/policy releases with the same base failures; benchmarks passing never turns the native suite green. |
 | Required JNI/image/ABI/build/fixture prerequisite unavailable | Fail/incomplete, separately classified from an app defect; no empty test-suite pass. |
 | Account-dependent instrumentation | Continue the existing explicit fixture-only opt-in exclusions, with exact test IDs, reason and expected count recorded. Any new skip/count reduction fails review. None of the three allocator tests is excluded. Real-account validation remains separately reported. |
 | Reminder or freshness deadline, declared queue/pool bound, memory threshold exceeded | Fail the affected gate with raw timing/resource evidence; thresholds are versioned and cannot increase in the same PR to hide a regression. |
 
-**Current release eligibility is red.** Preserve the full 4,065-error lint report;
-the existing guard identifies 4,064 inherited source errors and six worsened
-dependency-version advisory comparisons. Retain and ratchet the already approved
-inherited-source budget; add no new error allowance. Revalidate advisory changes
-against an unchanged released-source report using the same tool/environment; the
-guard's verified external-advisory comparison may be used only with that evidence.
-Otherwise resolve them in a separate approved maintenance change. No blanket
-suppression, baseline inflation or unrelated dependency upgrade in a CW fix.
+**Lint is base-specific.** The 10051 local report had 4,065 raw errors (4,064
+inherited source errors) and six worsened external dependency advisories. That is
+historical evidence, not the status of 10052. The 9.6.2 publication record reports
+two permanently retired allowances and zero guard failures. B0 must rerun the
+complete lint report and guard on the exact candidate, preserve its raw report,
+confirm the retired allowances and record actual guard results in the 10052
+manifest. Until that rerun completes, do not label the new base red from the old
+six-advisory comparison or claim a fresh pass. Retain/ratchet the inherited budget;
+no blanket suppression, allowance inflation or unrelated upgrade to make it pass.
 
-Pre-existing red allocator tests block a release until the §3 adjudication is
-implemented and both corrected contract tests and real lifetime checks pass.
-Historical failures remain visible even after a justified test correction.
-Research/docs and review of failing reproductions can proceed; a required check
-is not made green by grandfathering, expected-failure annotations or quarantine.
-If branch protection prevents landing a required fix alone, review the minimal
-dependent fix stack and evaluate the complete candidate; do not disable checks.
+**Allocator gating is scoped by affected behavior, as approved:**
+
+- A1 must be complete before any release touching player, allocator, NNTP or
+  memory sizing/accounting: A2, P3 and M1 onward. An ostensibly unrelated PR that
+  changes those paths inherits this stricter gate. Native lifetime/teardown proof
+  remains mandatory; an expectation edit alone is insufficient.
+- C1–C3 and P1–P2 may proceed without waiting for A1 closure, provided A1 is
+  actively in progress and allocator results are **no worse than the confirmed
+  base**. Record exact test IDs, assertion signatures, checked counts/skips,
+  sequential footprint and concurrent footprint distribution using identical
+  fresh-process/stress protocols. No new failure, crash, missing JNI, additional
+  skip, or unexplained worsening is allowed. Compare concurrent values against
+  the measured base envelope, not a conveniently enlarged tolerance.
+- Run and report the full native suite on both base and candidate. Keep its raw
+  status red where assertions still fail; publish a separate, explicit
+  scope/no-regression assessment with links to both results and A1's active work.
+  This is the maintainer's limited release policy, not a test quarantine,
+  expected-failure annotation or a green native-suite result. The policy cannot
+  be extended to a new failure or another work area without approval.
+- All other required gates must pass for the relevant base. If CI branch
+  protection cannot express this scoped policy, implement an auditable aggregate
+  eligibility check that consumes the unmodified raw results; do not disable,
+  filter or skip the underlying tests. Its criteria and affected-path detection
+  require review before use.
+
+This proportional gate preserves coverage of the known shipped failures while
+allowing unrelated correctness fixes. A newly demonstrated safety defect or an
+unexplained regression is still a stop condition, regardless of the PR label.
 
 ### 7.2 Proposed numerical thresholds
 
@@ -741,8 +801,9 @@ Additional pass criteria:
 
 ### 7.3 Release and upstream landing rules
 
-First production candidate is a stabilization fix in one area, after all required
-gates are genuinely green. Gate/test infrastructure may precede it without a
+First production candidate is a stabilization fix in one area, after all applicable
+gates and the explicitly scoped allocator eligibility policy in §7.1 are satisfied.
+The raw native test status is never relabeled green. Gate/test infrastructure may precede it without a
 product release. Use separate release candidates for CW membership, CW lifecycle,
 allocator/integration if needed, import policy, NNTP isolation, memory migrations
 and Sports scheduling; do not bundle unrelated features or recombine withdrawn
@@ -759,8 +820,9 @@ maintainer decisions.
 
 ## 8. Ordered work plan: one scoped PR per item
 
-The order puts CW correctness first while making allocator closure an explicit
-release prerequisite. Independent investigations may be developed on separate
+The order puts CW correctness first. Allocator closure is a prerequisite for
+player/allocator/NNTP/memory releases; C1–C3/P1–P2 use the approved no-worse rule
+with A1 in progress. Independent investigations may be developed on separate
 branches, but dependencies and gates must be satisfied before a release candidate.
 Each implementation branch starts from the then-approved Phase 3 base; no
 unrelated hotfix is pulled into PR #14. Keep app-code diffs near the programme's
@@ -770,31 +832,31 @@ tests, measured comparison, rollback and remaining real-data validation.
 
 | Order / item | Scope and dependencies | Required acceptance | Logical release group |
 | --- | --- | --- | --- |
-| B0 Base intake | Verify both independently shipped dependencies, record candidate and obtain base confirmation; rerun unchanged baselines. | Published provenance contains required commits; no unmerged source assumption; all changed measurement cohorts retained. | No product release |
+| B0 Base intake — only currently authorized work | Verify 9.6.2/10052 at `6b1999648`; rerun unchanged baselines and playback controls into a new manifest, recheck lint, retain 10051 history. Dependency hotfixes are recorded, not merged or global blockers. | Candidate is 9.6.2 or later; exact source/overlay/artifact provenance and changed-player control measurements recorded. Any new published release stops work. Stop after B0 for explicit base confirmation. | No product release |
 | G1 Verification gates | Integrate approved Phase 1 tooling; assertion-mode CW/timeline checks, full native results, thresholds and restoration. Depends B0/design approval. | Existing red failures stay red; injected crash, missing sample, stale row and cleanup failure all fail; fixture-off packaging check executes. | Infrastructure only |
 | C1 CW removal owner | Extract/test membership decisions and typed fallback; route existing drop/removal paths through it. Depends B0/G1; preserve existing projection/shuffle fixes. | Pending ordered identity never removes supported series; authoritative/user removal and profile cases pass. | CW membership stabilization |
 | C2 Durable off-Home projection | Repository lifetime, single atomic projection, pending publication/recovery; migrate snapshot writers. Depends C1. | Non-Home completion and background timeline pass with actual provider intent/version; crash-window tests pass. | CW lifecycle stabilization |
 | C3 External/post-player convergence | Normalize player close, external return, resume and remote refresh through C2; bounded terminal publication. | Valid/absent/duplicate external result, old refresh, process restart and order/profile switches pass without altered tracking semantics. | CW external-return stabilization |
-| A1 Allocator adjudication and test contracts | Execute §3 against pinned binary/source; futures, deterministic trim/handle accounting, arena capacity/cleanup. Can investigate alongside C1–C3. | Original scenarios retained; no skip; full/isolated/randomized suites and actual teardown classified. Closure required before any product release. | Test maintenance; no product release if engine is sound |
+| A1 Allocator adjudication and test contracts | Execute §3 against pinned binary/source; futures, deterministic trim/handle accounting, arena capacity/cleanup. Can investigate alongside C1–C3. | Original scenarios retained; no skip; full/isolated/randomized suites and actual teardown classified. Closure required before player/allocator/NNTP/memory releases. C1–C3/P1–P2 require no-worse base comparison with A1 active. | Test maintenance; no product release if engine is sound |
 | A2 Allocator/integration fix, only if A1 proves one | One identified lifetime defect per PR; matching-source AAR rebuild separately reviewable. Depends A1. | Native ownership balances, repeated teardown bounded, all shipped ABIs and stock/native playback paths pass. | Allocator stabilization, separate from CW |
 | P1 Policy state and registry | State adapters and generated/curated registration; observation first. Depends G1; CW requests register without reintroducing Home gating. | All current gate/scope/timer sites accounted; paused READY, preview stall, resume and profile tests pass; no new duplicate pools. | Policy infrastructure |
 | P2 Suspending imports | Migrate import/parser/database checkpoints and remove blocking waits; reserve deadline lane. Depends P1. | No parked gate worker; actual active-guide/import/trailer reminder ≤15 s; restart/cancel/resume imports exact. | Import responsiveness |
-| P3 NNTP execution isolation | Dedicated bounded transport and cancellation; preserve shipped streaming NZB interface. Depends P1 and large-NZB dependency. | Stalls do not occupy shared IO workers; seek/handoff/cancel/provider allowances and archive/PAR2 matrices pass with no throughput/rebuffer regression. | Usenet scheduling |
+| P3 NNTP execution isolation | Dedicated bounded transport and cancellation; preserve shipped streaming NZB interface. Depends A1 closure, P1 and completed large-NZB dependency. | Stalls do not occupy shared IO workers; seek/handoff/cancel/provider allowances and archive/PAR2 matrices pass with no throughput/rebuffer regression. | Usenet scheduling |
 | M1 Ledger observation | Resource IDs, native/managed counters, adapters, pressure telemetry; no changed grants. Depends A1/P1 and merged NZB consumer. | Attributed measurements and safe floors for every §5 consumer; shared arena not double counted; unexplained residency quantified. | Memory infrastructure |
 | M2a Image-cache leases | Coil accounting and pressure trim. Depends M1. | Measured bounds; visible images and navigation remain usable; no duplicated bitmap charge. | Image-cache memory |
 | M2b CW derived-cache leases | Bounded derived state and eviction-safe fallbacks. Depends M1/C1–C3. | Repeated cycles meet thresholds; every supported card survives eviction/trim. | CW cache memory |
-| M3a Guide working sets | Build-batch and committed-generation leases. Depends M1/P2 and shipped guide-revision contract. | Old readers remain valid until release; large guides complete under pressure without blocking reminders. | Guide memory |
-| M3b Sports working sets | Parsed feed/index and matcher-cache ownership. Depends M1 and Sports hotfix. | Streaming retained; freshness unchanged; overlapping generations and serialization measured. | Sports data memory |
+| M3a Guide working sets | Build-batch and committed-generation leases. Depends M1/P2; preserve the actual guide invalidation contract, without assuming PR #16 made it revision-only. | Old readers remain valid until release; large guides complete under pressure without blocking reminders. | Guide memory |
+| M3b Sports working sets | Parsed feed/index/matcher caches plus PR #16 page snapshot and user-visible IO decode/restore dispatcher. Depends M1 and shipped Sports dependency. | Account 512 events/eight matches/2 MiB serialized bounds, per-item freshness/seven-day bound, decoded residency and dispatcher stacks/queue/concurrency; preserve fast restore under blocked bulk/preview and retain existing triggers. | Sports data memory |
 | M3c On Demand working sets | Import/database batch and catalogue-window leases. Depends M1/P2. | Large imports finish exactly, suspend/resume safely and preserve all entries. | On Demand memory |
 | M3d NZB metadata working sets | Adapt the shipped compact/streaming representation to ledger accounting. Depends M1/P3 and NZB hotfix. | Inputs beyond both removed caps remain complete and seekable; no restored caps or whole-input reparse per seek; bounded hot residency. | NZB metadata memory |
 | M4a VOD/range leases | Calibrated buffer/native-arena/parallel-range ownership and safe seek floor. Depends M1/A1–A2 as applicable. | Stock/optional engine startup, sustained playback, seek and rebuffer no worse than frozen controls; no premature free. | VOD buffer memory |
 | M4b Live TV buffer leases | Replace independent Live TV sizing with calibrated leases. Depends M1. | Preview/fullscreen/tune transitions preserve playback and avoid double charging. | Live TV buffer memory |
 | M4c Trailer leases | Pool accounting and inactive-player reclamation. Depends M1/P1. | Paused READY, resume, screen disposal and active preview behavior preserved; no indefinite gate. | Trailer memory |
 | M4d Usenet article/repair leases | Cache/window/repair/native buffer ownership. Depends M1/P3/M3d. | Stalled/seek/archive/PAR2 tests pass within grants without provider-allowance or rebuffer regression. | Usenet buffer memory |
-| S1 Sports scheduler | Reconcile shipped hotfix trigger model; consolidate S01–S16 and demand subscriptions. Depends P1, Sports hotfix and M1 accounting. | Every loop/trigger registered; no periodic bulk re-match; committed-revision invalidation; stumps regression retained; scores/TV Now/reminders meet deadlines during playback. | Sports scheduling |
+| S1 Sports scheduler | Preserve the shipped PR #16 scope and retained 9.6.1 triggers; consolidate ownership of S01–S16. Depends P1, Sports dependency and M1 accounting. | All triggers registered; keep on-entry kick, original fixture key/invalidation and 15-minute timer. Replace the timer only if time-advancing page-closed programme-boundary tests prove current matches. Narrower invalidation requires device diagnostics; no “no periodic bulk re-match” or “revision-only” assumption. Paused-cricket, first-pass spinner, snapshot/IO restore and playback freshness/reminders remain covered. | Sports scheduling |
 | S2 Matcher service | Unify indexes/caches while preserving targeted lane; remove temporary second-instance exception. Depends S1/M3b. | Blocked bulk scan cannot delay current-airing results; same matches/user overrides/replays; memory measured and bounded. | Sports matching infrastructure |
 | P4 Remaining gate retirement | Migrate residual adapters and remove old paths/pools only after zero callers; audit all §4.3 owners. | Inventory has no unregistered gate/scope; compatibility and full cross-feature suites pass. | Remaining policy stabilization |
-| V1 Candidate validation | Per-area candidate, not a combined feature release. | All gates green, repeated-soak comparison and restored Onn evidence; explicit real-data/TV-on limitations; maintainer chooses publication. | One area per release |
+| V1 Candidate validation | Per-area candidate, not a combined feature release. | Applicable gates pass under §7.1 scope; raw allocator failures remain visible if the approved no-worse exception applies. Repeated-soak/restoration evidence and real-data limits recorded; maintainer chooses publication. | One area per release |
 
 Rollback is per work item. Keep old snapshot decoding during the CW migration;
 do not run two writers as a rollback mechanism. Policy/ledger observation and
@@ -805,9 +867,10 @@ the separately shipped hotfix contracts and their tests.
 
 ## 9. Approval boundary and remaining validation
 
-Approve this design's ownership model, staged allocator adjudication, policy and
-memory calibration process, proposed thresholds and ordered PR/release plan
-before Phase 3. Numeric proposals need the unchanged-base variance/calibration
+The maintainer approved this design with the amendments above. Complete B0 only,
+then obtain explicit base confirmation before starting G1, C1 or any other
+implementation work. C1–C3 do not depend on the unstarted large-NZB change; P3,
+M1 and M3d do. Reconfirm scope if queued upstream route/HLS changes ship. Numeric proposals need the unchanged-base variance/calibration
 steps specified above; they are not claimed as proven safe operating limits.
 
 Still needs later validation: cold uncached TVDB/provider/order combinations;
@@ -819,4 +882,5 @@ fixture subset unless the maintainer expands that scope. No Phase 2 device run,
 app-code change, test edit, workflow change, dependency merge or publication has
 been performed.
 
-**Stop after this DESIGN.md and work plan. Await maintainer approval.**
+**Stop after B0 and its new-base evidence. Await explicit Phase 3 base confirmation;
+a new published release triggers an earlier stop and confirmation request.**

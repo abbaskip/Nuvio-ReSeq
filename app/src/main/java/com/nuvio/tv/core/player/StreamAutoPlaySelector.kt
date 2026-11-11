@@ -55,7 +55,7 @@ object StreamAutoPlaySelector {
     internal fun isPlayable(stream: Stream): Boolean {
         // External URL streams (e.g. error pages, web links) are not playable.
         if (stream.isExternal()) return false
-        if (stream.serverTarget != null) return true
+        if (stream.serverTarget != null || stream.usenet?.servers?.isNotEmpty() == true) return true
         // Streams with a direct URL are always playable regardless of debrid cache status.
         if (stream.getStreamUrl() != null) return true
         when (stream.debridCacheStatus?.state) {
@@ -190,32 +190,23 @@ object StreamAutoPlaySelector {
                     Regex("\\b(${exclusionWords.joinToString("|")})\\b", RegexOption.IGNORE_CASE)
                 } else null
 
-                // 1. Build list of ALL regex‑matching streams
-                val matchingStreams = candidateStreams.filter { stream ->
-                    if (!isPlayable(stream)) return@filter false
+                // Selection is ordered. Stop once a matching, playable source is found.
+                candidateStreams.firstOrNull { stream ->
+                    if (!isPlayable(stream)) return@firstOrNull false
+                    val playableUrl = stream.getStreamUrl()
 
                     val searchableText = buildString {
                         append(stream.addonName).append(' ')
                         append(stream.name.orEmpty()).append(' ')
                         append(stream.title.orEmpty()).append(' ')
                         append(stream.description.orEmpty()).append(' ')
-                        append(stream.getStreamUrl().orEmpty())
-                        if (stream.isTorrent()) append(' ').append(stream.infoHash.orEmpty())
+                        append(playableUrl.orEmpty())
+                        if (playableUrl.isNullOrBlank() && stream.isTorrent()) append(' ').append(stream.infoHash.orEmpty())
                     }
 
-                    // Must match include pattern
-                    if (!userRegex.containsMatchIn(searchableText)) return@filter false
-
-                    // Must NOT match exclusion pattern
-                    if (excludeRegex != null && excludeRegex.containsMatchIn(searchableText)) {
-                        return@filter false
-                    }
-
-                    true
+                    userRegex.containsMatchIn(searchableText) &&
+                        excludeRegex?.containsMatchIn(searchableText) != true
                 }
-
-                if (matchingStreams.isEmpty()) return null
-                matchingStreams.firstOrNull { isPlayable(it) }
             }
 
         }

@@ -1,0 +1,404 @@
+{
+  "asOf": "2026-11-10",
+  "sources": [
+    "https://www.thesportsdb.com/sport/leagues",
+    "https://www.thesportsdb.com/sport/motorsport"
+  ],
+  "sports": [
+    {
+      "name": "Soccer",
+      "category": "FOOTBALL"
+    },
+    {
+      "name": "Motorsport",
+      "category": "RACING"
+    },
+    {
+      "name": "Fighting",
+      "category": "FIGHTING"
+    },
+    {
+      "name": "Baseball",
+      "category": "BASEBALL"
+    },
+    {
+      "name": "Basketball",
+      "category": "BASKETBALL"
+    },
+    {
+      "name": "American Football",
+      "category": "AMERICAN_FOOTBALL"
+    },
+    {
+      "name": "Ice Hockey",
+      "category": "HOCKEY"
+    },
+    {
+      "name": "Golf",
+      "category": "GOLF"
+    },
+    {
+      "name": "Rugby",
+      "category": "RUGBY"
+    },
+    {
+      "name": "Tennis",
+      "category": "TENNIS"
+    },
+    {
+      "name": "Cricket",
+      "category": "CRICKET"
+    },
+    {
+      "name": "Cycling",
+      "category": "CYCLING"
+    },
+    {
+      "name": "Australian Football",
+      "category": "AUSSIE_RULES"
+    },
+    {
+      "name": "ESports",
+      "category": "OTHER"
+    },
+    {
+      "name": "Volleyball",
+      "category": "VOLLEYBALL"
+    },
+    {
+      "name": "Netball",
+      "category": "NETBALL"
+    },
+    {
+      "name": "Handball",
+      "category": "OTHER"
+    },
+    {
+      "name": "Snooker",
+      "category": "SNOOKER"
+    },
+    {
+      "name": "Field Hockey",
+      "category": "OTHER"
+    },
+    {
+      "name": "Darts",
+      "category": "DARTS"
+    },
+    {
+      "name": "Athletics",
+      "category": "ATHLETICS"
+    },
+    {
+      "name": "Badminton",
+      "category": "OTHER"
+    },
+    {
+      "name": "Climbing",
+      "category": "OTHER"
+    },
+    {
+      "name": "Equestrian",
+      "category": "OTHER"
+    },
+    {
+      "name": "Gymnastics",
+      "category": "GYMNASTICS"
+    },
+    {
+      "name": "Shooting",
+      "category": "OTHER"
+    },
+    {
+      "name": "Extreme Sports",
+      "category": "OTHER"
+    },
+    {
+      "name": "Table Tennis",
+      "category": "OTHER"
+    },
+    {
+      "name": "Multi Sports",
+      "category": "OTHER"
+    },
+    {
+      "name": "Watersports",
+      "category": "OTHER"
+    },
+    {
+      "name": "Weightlifting",
+      "category": "OTHER"
+    },
+    {
+      "name": "Skiing",
+      "category": "OTHER"
+    },
+    {
+      "name": "Skating",
+      "category": "OTHER"
+    },
+    {
+      "name": "Wintersports",
+      "category": "OTHER"
+    },
+    {
+      "name": "Lacrosse",
+      "category": "LACROSSE"
+    },
+    {
+      "name": "Gambling",
+      "category": "OTHER"
+    },
+    {
+      "name": "Gaelic",
+      "category": "GAELIC"
+    },
+    {
+      "name": "Swimming",
+      "category": "SWIMMING"
+    },
+    {
+      "name": "Horse Racing",
+      "category": "HORSE_RACING"
+    },
+    {
+      "name": "Pool",
+      "category": "SNOOKER"
+    },
+    {
+      "name": "Billiards",
+      "category": "SNOOKER"
+    },
+    {
+      "name": "Bowling",
+      "category": "OTHER"
+    },
+    {
+      "name": "Lawn Bowls",
+      "category": "OTHER"
+    },
+    {
+      "name": "Cornhole",
+      "category": "OTHER"
+    }
+  ],
+  "leagues": [
+    {
+      "id": "4489",
+      "name": "Supercars",
+      "aliases": [
+        "V8 Supercars",
+        "Supercars Championship",
+        "Repco Supercars Championship"
+      ]
+    },
+    {
+      "id": "4486",
+      "name": "Formula 2",
+      "aliases": [
+        "FIA Formula 2",
+        "F2",
+        "GP2"
+      ]
+    },
+    {
+      "id": "4487",
+      "name": "Formula 3",
+      "aliases": [
+        "FIA Formula 3",
+        "F3"
+      ]
+    },
+    {
+      "id": "4370",
+      "name": "Formula 1",
+      "aliases": [
+        "F1"
+      ]
+    },
+    {
+      "id": "4371",
+      "name": "Formula E",
+      "aliases": []
+    },
+    {
+      "id": "4372",
+      "name": "BTCC",
+      "aliases": []
+    },
+    {
+      "id": "4373",
+      "name": "IndyCar Series",
+      "aliases": [
+        "IndyCar"
+      ]
+    },
+    {
+      "id": "4393",
+      "name": "NASCAR Cup Series",
+      "aliases": []
+    },
+    {
+      "id": "4407",
+      "name": "MotoGP",
+      "aliases": []
+    },
+    {
+      "id": "4409",
+      "name": "WRC",
+      "aliases": [
+        "World Rally Championship"
+      ]
+    },
+    {
+      "id": "4410",
+      "name": "British GT Championship",
+      "aliases": []
+    },
+    {
+      "id": "4412",
+      "name": "Super GT Series",
+      "aliases": []
+    },
+    {
+      "id": "4413",
+      "name": "WEC",
+      "aliases": [
+        "World Endurance Championship",
+        "24 Hours of Le Mans"
+      ]
+    },
+    {
+      "id": "4436",
+      "name": "Moto2",
+      "aliases": []
+    },
+    {
+      "id": "4437",
+      "name": "Moto3",
+      "aliases": []
+    },
+    {
+      "id": "4438",
+      "name": "DTM",
+      "aliases": []
+    },
+    {
+      "id": "4439",
+      "name": "GT Series Endurance Cup",
+      "aliases": []
+    },
+    {
+      "id": "4440",
+      "name": "GT World Challenge Europe Sprint Cup",
+      "aliases": []
+    },
+    {
+      "id": "4447",
+      "name": "Dakar Rally",
+      "aliases": []
+    },
+    {
+      "id": "4454",
+      "name": "World Superbikes",
+      "aliases": [
+        "SBK",
+        "WorldSBK",
+        "Superbike World Championship"
+      ]
+    },
+    {
+      "id": "4488",
+      "name": "IMSA SportsCar Championship",
+      "aliases": []
+    },
+    {
+      "id": "4573",
+      "name": "NASCAR O'Reilly Auto Parts Series",
+      "aliases": [
+        "NASCAR Xfinity",
+        "NASCAR O Reilly Series"
+      ]
+    },
+    {
+      "id": "4587",
+      "name": "MXGP",
+      "aliases": []
+    },
+    {
+      "id": "4730",
+      "name": "World Rallycross Championship",
+      "aliases": []
+    },
+    {
+      "id": "4732",
+      "name": "Isle of Man TT",
+      "aliases": []
+    },
+    {
+      "id": "4869",
+      "name": "IMSA Pilot Challenge",
+      "aliases": []
+    },
+    {
+      "id": "4871",
+      "name": "Lamborghini Super Trofeo North America",
+      "aliases": []
+    },
+    {
+      "id": "4872",
+      "name": "Ferrari Challenge North America",
+      "aliases": []
+    },
+    {
+      "id": "5093",
+      "name": "NASCAR Truck Series",
+      "aliases": []
+    },
+    {
+      "id": "5094",
+      "name": "NASCAR ARCA Series",
+      "aliases": []
+    },
+    {
+      "id": "5264",
+      "name": "British Superbike Championship",
+      "aliases": []
+    },
+    {
+      "id": "5309",
+      "name": "NHRA Drag Racing",
+      "aliases": []
+    },
+    {
+      "id": "5382",
+      "name": "F1 Academy",
+      "aliases": []
+    },
+    {
+      "id": "5412",
+      "name": "SuperMotocross World Championship",
+      "aliases": []
+    },
+    {
+      "id": "5491",
+      "name": "FIM Endurance World Championship",
+      "aliases": []
+    },
+    {
+      "id": "5600",
+      "name": "British Speedway Premiership",
+      "aliases": []
+    },
+    {
+      "id": "5750",
+      "name": "Goodwood Festival of Speed",
+      "aliases": []
+    },
+    {
+      "id": "5873",
+      "name": "WorldSSP",
+      "aliases": []
+    }
+  ]
+}

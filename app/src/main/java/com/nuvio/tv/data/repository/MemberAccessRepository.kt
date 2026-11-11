@@ -114,11 +114,12 @@ class MemberAccessRepository @Inject constructor(
                 refreshGeneration.update { it + 1L }
             }
         }
-        scope.launch {
-            while (true) {
-                delay(MemberAccessStaleAfterMs)
-                refreshIfStale()
-            }
+    }
+
+    suspend fun pollWhileVisible() {
+        while (true) {
+            delay(MemberAccessStaleAfterMs)
+            refreshIfStale()
         }
     }
 

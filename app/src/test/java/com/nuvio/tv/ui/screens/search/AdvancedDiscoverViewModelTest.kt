@@ -75,6 +75,50 @@ class AdvancedDiscoverViewModelTest {
         mockk<WatchedSeriesStateHolder> { every { fullyWatchedSeriesIds } returns shows }, credentials, layout)
 
     @Test
+    fun `title filter is explicitly applied saved restored reset and cleared across profiles`() = runTest(dispatcher) {
+        coEvery { repository.discover(any(), any(), any()) } returns DiscoveryPage(emptyList(), false, 0)
+        coEvery { saved.save(any(), any()) } returns Unit
+        val vm = viewModel()
+        runCurrent()
+        val query = DiscoveryQuery(titleContains = "Alien", minimumRating = "7", hideWatched = true)
+        vm.edit(query)
+        coVerify(exactly = 0) { repository.discover(any(), any(), any()) }
+        vm.save("Alien films", false)
+        advanceUntilIdle()
+        coVerify { saved.save(match { it.query == query }, 1) }
+        vm.openSaved(SavedDiscovery("one", "Alien films", query))
+        advanceUntilIdle()
+        assertEquals(query, vm.state.value.applied)
+        coVerify { repository.discover(query, "en", 1) }
+        vm.reset()
+        assertEquals("", vm.state.value.draft.titleContains)
+        vm.edit(query)
+        profiles.value = 2
+        advanceUntilIdle()
+        assertEquals("", vm.state.value.draft.titleContains)
+        assertNull(vm.state.value.applied)
+    }
+
+    @Test
+    fun `no title matches on a page still allows explicit loading of later results`() = runTest(dispatcher) {
+        val query = DiscoveryQuery(titleContains = "Title")
+        coEvery { repository.discover(query, "en", 1) } returns DiscoveryPage(emptyList(), true, 21)
+        coEvery { repository.discover(query, "en", 2) } returns DiscoveryPage(listOf(item(2)), false, 21)
+        val vm = viewModel()
+        runCurrent()
+        vm.edit(query)
+        vm.showResults()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.items.isEmpty())
+        assertTrue(vm.state.value.hasMore)
+        coVerify(exactly = 0) { repository.discover(query, "en", 2) }
+        vm.loadMore()
+        advanceUntilIdle()
+        assertEquals(listOf("tmdb:2"), vm.state.value.items.map { it.id })
+        assertFalse(vm.state.value.hasMore)
+    }
+
+    @Test
     fun `editing filters makes no result requests until explicitly applied`() = runTest(dispatcher) {
         val vm = viewModel()
         runCurrent()

@@ -2831,4 +2831,28 @@
     <string name="stream_test_video_bitrate">Průměrný datový tok videa: %1$s</string>
     <string name="stream_test_error_connection">Připojení selhalo. Platnost posledního přehraného odkazu na stream mohla vypršet, nebo je nedostupný. Přehrajte prosím video znovu a zkuste to opět.</string>
 
+    <string name="playback_release_decoder_on_background">Uvolnit dekodér na pozadí</string>
+    <string name="playback_release_decoder_on_background_sub">Uvolní dekodér videa, když Nuvio přejde na pozadí. Zapněte při chybě dekodéru po návratu. Přehrávač se při návratu znovu načte, i po spořiči obrazovky.</string>
+    <string name="layout_hero_description_auto_scroll">Automaticky posouvat popisy</string>
+    <string name="layout_hero_description_auto_scroll_sub">Dlouhé popisy na hlavní obrazovce se pomalu posouvají místo oříznutí.</string>
+    <string name="autosync_toast_no_fit">Synchronizace selhala: titulky neodpovídají této verzi videa.</string>
+    <string name="usenet_opening">Otevírání videa z Usenetu…</string>
+    <string name="plugin_extension_settings_failed">Rozšíření nemohlo otevřít nastavení.</string>
+    <string name="tmdb_collection_auth_error">TMDB odmítlo požadavek. Zkontrolujte klíč API profilu v Nastavení → Integrace → TMDB.</string>
+    <string name="about_update_check_frequency">Četnost kontroly aktualizací</string>
+    <string name="about_update_check_frequency_summary">Zvolte, jak často má Nuvio hledat novou verzi.</string>
+    <string name="about_update_check_always">Vždy</string>
+    <string name="about_update_check_daily">Denně</string>
+    <string name="about_update_check_two_days">2 dny</string>
+    <string name="about_update_check_three_days">3 dny</string>
+    <string name="about_update_check_weekly">Týdně</string>
+    <string name="about_update_check_never">Nikdy</string>
+    <string name="plugin_source_languages_title">Jazyky zdrojů</string>
+    <string name="plugin_source_languages_description">Zvolte jazyky zdrojů CloudStream. Vícejazyčné zdroje a zdroje bez uvedeného jazyka zůstávají zahrnuty.</string>
+    <string name="plugin_all_source_languages">Všechny jazyky</string>
+    <string name="plugin_dns_system">Systémové DNS televizoru</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Zvolte překladač DNS pro požadavky CloudStream. Změňte jej tlačítkem OK.</string>
+    <string name="continue_watching_window_summary">Jak dlouhé období historie sledování zahrnout</string>
+    <string name="cw_choose_episode">Otevřete seriál a vyberte epizodu</string>
 </resources>

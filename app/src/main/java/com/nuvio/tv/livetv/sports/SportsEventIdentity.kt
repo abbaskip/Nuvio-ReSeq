@@ -1,5 +1,21 @@
 package com.nuvio.tv.livetv.sports
 
+private const val KICKOFF_TOLERANCE_MS = 90 * 60_000L
+
+/** Cross-feed matches need a kick-off within 90 minutes. Search adjacent buckets so a
+ * game just across a boundary is still considered by the original identity checks. */
+internal class SportsFixtureIndex(fixtures: List<SportsEvent>) {
+    private val byKickoff = fixtures.asSequence()
+        .filter { it.hasTime && it.away != null && it.home != null }
+        .groupBy { it.startMs / KICKOFF_TOLERANCE_MS }
+
+    fun anyNear(event: SportsEvent, matches: (SportsEvent) -> Boolean): Boolean {
+        if (!event.hasTime) return false
+        val bucket = event.startMs / KICKOFF_TOLERANCE_MS
+        return (bucket - 1..bucket + 1).any { byKickoff[it]?.any(matches) == true }
+    }
+}
+
 /** Cross-feed correspondence requires a competition, a start time and both participants. */
 internal object SportsEventIdentity {
     private fun competition(l: League) = SportsTaxonomy.classify(l.name, l.guideWords.joinToString(" ") + " " + l.sport.label)
@@ -7,7 +23,7 @@ internal object SportsEventIdentity {
     /** A guide listing must name both participants; one shared national team is not a duplicate. */
     fun guideCoversFixture(guide: SportsEvent, fixture: SportsEvent, league: League): Boolean {
         if (!guide.hasTime || !fixture.hasTime || fixture.sides.size != 2 ||
-            kotlin.math.abs(guide.startMs - fixture.startMs) > 90 * 60_000L) return false
+            kotlin.math.abs(guide.startMs - fixture.startMs) > KICKOFF_TOLERANCE_MS) return false
         val text = SportsCatalog.norm(guide.title + " " + guide.subtitle.orEmpty())
         val fixtureText = SportsCatalog.norm(fixture.title + " " + league.name)
         fun category(t: String) = when {
@@ -23,14 +39,31 @@ internal object SportsEventIdentity {
     }
 
     fun same(a: SportsEvent, b: SportsEvent, first: League, second: League): Boolean {
-        if (first.sport != second.sport || !a.hasTime || !b.hasTime || kotlin.math.abs(a.startMs - b.startMs) > 90 * 60_000L) return false
-        val comp = competition(first) ?: return false
-        if (comp != competition(second)) return false
-        if (a.sides.size != 2 || b.sides.size != 2) return false
-        fun names(t: TeamInfo, l: League) = SportsCatalog.teamNames(t, l).first
-            .map { SportsCatalog.norm(it).trim() }.filter { it.length >= 4 }.toSet()
-        fun matches(x: Side, y: Side) = names(x.team, first).intersect(names(y.team, second)).isNotEmpty()
-        return (matches(a.sides[0], b.sides[0]) && matches(a.sides[1], b.sides[1])) ||
-            (matches(a.sides[0], b.sides[1]) && matches(a.sides[1], b.sides[0]))
+        return Round().same(a, b, first, second)
+    }
+
+    /** Scores and names can change between emissions. Reuse normalized identities only inside one merge. */
+    class Round {
+        private val competitions = mutableMapOf<League, String?>()
+        private val teamNames = mutableMapOf<Pair<TeamInfo, League>, Set<String>>()
+
+        private fun competitionOf(league: League): String? {
+            if (league !in competitions) competitions[league] = competition(league)
+            return competitions[league]
+        }
+
+        private fun names(t: TeamInfo, l: League) = teamNames.getOrPut(t to l) {
+            SportsCatalog.teamNames(t, l).first.map { SportsCatalog.norm(it).trim() }.filter { it.length >= 4 }.toSet()
+        }
+
+        fun same(a: SportsEvent, b: SportsEvent, first: League, second: League): Boolean {
+            if (first.sport != second.sport || !a.hasTime || !b.hasTime || kotlin.math.abs(a.startMs - b.startMs) > KICKOFF_TOLERANCE_MS) return false
+            val comp = competitionOf(first) ?: return false
+            if (comp != competitionOf(second)) return false
+            if (a.sides.size != 2 || b.sides.size != 2) return false
+            fun matches(x: Side, y: Side) = names(x.team, first).any(names(y.team, second)::contains)
+            return (matches(a.sides[0], b.sides[0]) && matches(a.sides[1], b.sides[1])) ||
+                (matches(a.sides[0], b.sides[1]) && matches(a.sides[1], b.sides[0]))
+        }
     }
 }

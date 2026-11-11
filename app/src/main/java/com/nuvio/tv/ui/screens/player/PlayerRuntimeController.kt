@@ -56,6 +56,7 @@ import androidx.media3.session.MediaSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Job
+import com.nuvio.tv.core.usenet.UsenetPlayback
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -235,7 +236,11 @@ class PlayerRuntimeController(
     internal var currentVideoBitrate: Int? = null
     internal var portalRefusalRetried = false
     internal var portalPlayback: Pair<String, String>? = null // stable reference and last resolved URL
-    internal var currentStreamUrl: String
+    internal var currentStreamUrl: String = initialStreamUrl
+        set(value) {
+            if (field != value) UsenetPlayback.release(field)
+            field = value
+        }
     internal var reportedServerUrl: String? = null
     internal var serverAudioChosenByUser = false
     internal var currentStreamResponseHeaders: Map<String, String> = emptyMap()
@@ -264,6 +269,7 @@ class PlayerRuntimeController(
     fun getCurrentHeaders(): Map<String, String> = currentHeaders
 
     fun stopAndRelease() {
+        usenetPrepareJob?.cancel()
         leavePartyPlayback()
         // Cache counters only reach the card on a natural finish, so capture them when the user exits too.
         val diagnostics = lastPlaybackDiagnosticsForReport
@@ -464,6 +470,7 @@ class PlayerRuntimeController(
     internal var subtitleTimingRefreshJob: Job? = null
     internal var nextEpisodeAutoPlayJob: Job? = null
     internal var debridResolveJob: Job? = null
+    internal var usenetPrepareJob: Job? = null
     internal var stillWatchingPromptJob: Job? = null
     internal var startupLoadingReportJob: Job? = null
     internal var sourceStreamsJob: Job? = null
@@ -530,6 +537,7 @@ class PlayerRuntimeController(
     internal var userPausedManually = false
 
     internal var isInBackground: Boolean = false
+    internal var releaseDecoderOnBackground: Boolean = true
     internal var pendingBackgroundCrashRecovery: Boolean = false
     internal var backgroundCrashSavedPositionMs: Long = 0L
 
@@ -555,6 +563,9 @@ class PlayerRuntimeController(
     internal var pendingAudioSelectionAfterSubtitleRefresh: PendingAudioSelection? = null
     internal var rememberedTrackPreference: TrackPreference? = null
     internal var persistedTrackPreference: TrackPreference? = null
+    // Snapshot of what was loaded from storage. persistedTrackPreference is consumed as tracks
+    // get restored, so it cannot serve as the base when something else is saved later.
+    internal var loadedTrackPreference: TrackPreference? = null
     internal var pendingEngineSwitchTrackPreference: PendingEngineSwitchTrackPreference? = null
     internal var explicitSubtitleSelectionForEngineSwitch: ExplicitSubtitleSelectionForEngineSwitch? = null
     internal var effectiveSubtitleSelectionForEngineSwitch: ExplicitSubtitleSelectionForEngineSwitch? = null
@@ -683,6 +694,7 @@ class PlayerRuntimeController(
     internal var errorRetryJob: Job? = null
     internal var stableProgressResetJob: Job? = null
     @Volatile internal var currentPlayerSettingsForReport: PlayerSettings = PlayerSettings()
+    @Volatile internal var hasObservedPlayerSettings: Boolean = false
 
     internal val dv7ToHevcForcedStreamUrls: MutableSet<String> = mutableSetOf()
     // Streams where manual Convert-to-DV8.1 mode 2 failed to play, so the next
@@ -782,6 +794,7 @@ class PlayerRuntimeController(
         observeDeviceLocalAspectMode()
         observeDeviceLocalTransparentLetterbox()
         observeDeviceLocalTunneledSurfaceFill()
+        observeDeviceLocalReleaseDecoderOnBackground()
         observePlayerStatsHud()
         observeStreamDelayTrackSelection()
     }
@@ -832,6 +845,8 @@ class PlayerRuntimeController(
     }
 
     fun onCleared() {
+        usenetPrepareJob?.cancel()
+        UsenetPlayback.release(currentStreamUrl)
         playerSession.close()
         stopServerPlayback()
         releasePlayer()

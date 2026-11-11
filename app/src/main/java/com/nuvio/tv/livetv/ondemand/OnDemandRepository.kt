@@ -149,7 +149,8 @@ class OnDemandRepository @Inject constructor(
     private val detailHttp = http.newBuilder().readTimeout(20, TimeUnit.SECONDS).callTimeout(30, TimeUnit.SECONDS).build()
     private val prefixMutex = Mutex()
     private var prefixesReady = false
-    private val infoLocks = ConcurrentHashMap<String, Mutex>()
+    // Holders and waiters retain their mutex. Once idle, an old detail key can be reclaimed.
+    private val infoLocks = com.google.common.collect.MapMaker().weakValues().makeMap<String, Mutex>()
     private val detailRequests = kotlinx.coroutines.sync.Semaphore(4)
     private val infoCache = com.nuvio.tv.livetv.data.boundedCache<String, VodInfo>(300)
     private val artworkGate = kotlinx.coroutines.sync.Semaphore(2)
@@ -666,7 +667,7 @@ class OnDemandRepository @Inject constructor(
     suspend fun info(item: VodItem): VodInfo? = withContext(Dispatchers.IO) {
         val pl = playlist(item.playlistId) ?: return@withContext null
         val cacheKey = item.uid + ":" + _version.value + ":" + java.security.MessageDigest.getInstance("SHA-256").digest(
-            listOf(pl.xtreamServer, pl.xtreamUsername, pl.xtreamPassword, pl.userAgent, pl.stalkerPortal, pl.stalkerMac, pl.stalkerUsername, pl.stalkerPassword, pl.stalkerSerial).joinToString("\u0000").toByteArray()).joinToString("") { "%02x".format(it) }
+            listOf(pl.xtreamServer, pl.xtreamUsername, pl.xtreamPassword, pl.userAgent, pl.stalkerPortal, pl.stalkerMac, pl.stalkerUsername, pl.stalkerPassword, pl.stalkerSerial).joinToString("\u0000").toByteArray()).toHexString()
         infoCache[cacheKey]?.let { return@withContext it }
         infoLocks.getOrPut(cacheKey) { Mutex() }.withLock {
         infoCache[cacheKey]?.let { return@withLock it }
@@ -702,7 +703,7 @@ class OnDemandRepository @Inject constructor(
                         image = einfo?.optString("movie_image")?.takeIf { it.startsWith("http") },
                         url = "${pl.xtreamBase()}/series/${enc(pl.xtreamUsername)}/${enc(pl.xtreamPassword)}/$id.$ext",
                         tech = einfo?.let { parseTech(it) },
-                        imdbId = (einfo?.optString("imdb_id") ?: e.optString("imdb_id")).takeIf { it.matches(Regex("tt[0-9]+")) },
+                        imdbId = (einfo?.optString("imdb_id") ?: e.optString("imdb_id")).takeIf(IMDB_ID::matches),
                         tmdbId = (einfo?.optString("tmdb_id") ?: e.optString("tmdb_id")).toLongOrNull()?.takeIf { it > 0 },
                         tvdbId = (einfo?.optString("tvdb_id") ?: e.optString("tvdb_id")).toLongOrNull()?.takeIf { it > 0 }
                     )
@@ -719,7 +720,7 @@ class OnDemandRepository @Inject constructor(
             episodes = episodes.sortedWith(compareBy({ it.season }, { it.episode })),
             tech = parseTech(info),
             tmdbId = info.optString("tmdb_id").ifBlank { info.optString("tmdb") }.takeIf { it.toLongOrNull()?.let { id -> id > 0 } == true },
-            imdbId = info.optString("imdb_id").takeIf { it.matches(Regex("tt[0-9]+")) }
+            imdbId = info.optString("imdb_id").takeIf(IMDB_ID::matches)
         )
         infoCache[cacheKey] = result
         result
@@ -917,6 +918,7 @@ class OnDemandRepository @Inject constructor(
 
     companion object {
         private const val TAG = "OnDemand"
+        private val IMDB_ID = Regex("tt[0-9]+")
         /** Re-import each provider once a day. */
         private const val REFRESH_MS = 24L * 60 * 60 * 1000
     }

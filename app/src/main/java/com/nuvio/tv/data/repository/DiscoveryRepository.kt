@@ -73,7 +73,7 @@ class DiscoveryRepository internal constructor(
         mutex.withLock {
             activate(auth)
             val now = clock()
-            pages[key]?.takeIf { now - it.time < CACHE_TTL_NANOS }?.let { return@withLock it.page }
+            pages[key]?.takeIf { now - it.time < CACHE_TTL_NANOS }?.let { return@withLock it.page.withTitleFilter(query) }
             val body = api.advancedDiscover(query.mediaType, auth.apiKey, language, page, key.parameters).checked(auth)
             val items = body.results.orEmpty().mapNotNull { result ->
                 val name = (if (query.television) result.name else result.title)?.takeIf(String::isNotBlank)
@@ -93,9 +93,14 @@ class DiscoveryRepository internal constructor(
             DiscoveryPage(items, page < minOf(body.totalPages ?: 1, 500), body.totalResults ?: items.size).also {
                 pages[key] = CachedPage(now, it)
                 while (pages.size > 40) pages.remove(pages.keys.first())
-            }
+            }.withTitleFilter(query)
         }
     }
+
+    // Cache the complete provider page, so editing/clearing a local title filter
+    // cannot hide results from later queries that share the same TMDB parameters.
+    private fun DiscoveryPage.withTitleFilter(query: DiscoveryQuery): DiscoveryPage =
+        if (query.titleContains.isBlank()) this else copy(items = items.filter { query.matchesTitle(it.name) })
 
     suspend fun imdbId(tmdbId: Int, television: Boolean): String? = try {
         withContext(Dispatchers.IO) {

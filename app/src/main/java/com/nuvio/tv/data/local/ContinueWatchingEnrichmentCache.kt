@@ -43,7 +43,8 @@ data class CachedNextUpItem(
     val contentLanguage: String? = null,
     val ratingVisible: Boolean = true,
     val tvdbEpisodeId: Long? = null,
-    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null
+    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null,
+    val latestSeriesActivity: Long? = null
 )
 
 data class CachedInProgressItem(

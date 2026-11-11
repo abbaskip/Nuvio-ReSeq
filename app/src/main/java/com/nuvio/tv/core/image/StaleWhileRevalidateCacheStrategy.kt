@@ -40,7 +40,7 @@ class StaleWhileRevalidateCacheStrategy(
         private const val REVALIDATION_COOLDOWN_MS = 10L * 60 * 1000 // 10 min
         private const val REVALIDATION_MAX_REQUESTS = 8
         private val revalidatingUrls = ConcurrentHashMap.newKeySet<String>()
-        private val revalidatedAt = ConcurrentHashMap<String, Long>()
+        private val recentlyRevalidated = RevalidationCooldown(REVALIDATION_COOLDOWN_MS)
     }
 
     private val revalidationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -67,11 +67,7 @@ class StaleWhileRevalidateCacheStrategy(
             )
         ) {
             val url = networkRequest.url
-            val lastRevalidated = revalidatedAt[url]
-            val now = System.currentTimeMillis()
-            if (lastRevalidated == null || (now - lastRevalidated) > REVALIDATION_COOLDOWN_MS) {
-                scheduleBackgroundRevalidation(url, cacheResponse)
-            }
+            scheduleBackgroundRevalidation(url, cacheResponse)
         }
         return CacheStrategy.ReadResult(cacheResponse)
     }
@@ -97,6 +93,10 @@ class StaleWhileRevalidateCacheStrategy(
 
     private fun scheduleBackgroundRevalidation(url: String, cachedResponse: NetworkResponse) {
         if (!revalidatingUrls.add(url)) return
+        if (recentlyRevalidated.contains(url)) {
+            revalidatingUrls.remove(url)
+            return
+        }
 
         revalidationScope.launch {
             try {
@@ -138,8 +138,11 @@ class StaleWhileRevalidateCacheStrategy(
                     Log.w(TAG, "Revalidation error: ${url.take(80)} - ${e.message}")
                 }
             } finally {
-                revalidatingUrls.remove(url)
-                revalidatedAt[url] = System.currentTimeMillis()
+                try {
+                    recentlyRevalidated.record(url)
+                } finally {
+                    revalidatingUrls.remove(url)
+                }
             }
         }
     }

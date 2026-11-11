@@ -99,8 +99,7 @@ internal fun instrumentationArg(name: String, default: String? = null): String? 
  */
 internal fun resolveTargetPackage(device: UiDevice, expected: String): String {
     val target = instrumentationArg(TARGET_PACKAGE_ARGUMENT) ?: expected
-    require(target in setOf(DEFAULT_TARGET_PACKAGE, BENCHMARK_TARGET_PACKAGE,
-        "$DEFAULT_TARGET_PACKAGE.playstore", "$DEFAULT_TARGET_PACKAGE.playstore.debug")) {
+    require(target in setOf(DEFAULT_TARGET_PACKAGE, BENCHMARK_TARGET_PACKAGE)) {
         "Unexpected target package for the ReSeq benchmark"
     }
     require(device.executeShellCommand("pm path $target").trim().startsWith("package:")) {

@@ -87,9 +87,9 @@ class HomeEpisodeShuffleTest {
     }
 
     @Test
-    fun `exhausted unwatched pool removes random next up without replacing resume`() {
+    fun `exhausted unwatched pool preserves native upcoming and resume`() {
         val watched = videos.map { it.season!! to it.episode!! }.toSet()
-        assertTrue(project(watched = mapOf("show" to watched)).continueWatchingItems.isEmpty())
+        assertEquals(listOf(upcoming), project(watched = mapOf("show" to watched)).upcomingItems)
         val resume = ContinueWatchingItem.InProgress(progress())
         val input = HomeUiState(continueWatchingItems = listOf(resume))
         assertEquals(resume.progress, (project(input, watched = mapOf("show" to watched))
@@ -97,9 +97,34 @@ class HomeEpisodeShuffleTest {
     }
 
     @Test
-    fun `late metadata makes a hidden random card available`() {
-        assertTrue(project(catalogue = null).continueWatchingItems.isEmpty())
+    fun `native upcoming survives until shuffle metadata arrives`() {
+        assertEquals(listOf(upcoming), project(catalogue = null).upcomingItems)
         assertEquals(1, project().continueWatchingItems.size)
+    }
+
+    @Test
+    fun `tracker replacement during a cache miss keeps the displayed random episode and badge`() {
+        val selected = project().continueWatchingItems.single() as ContinueWatchingItem.NextUp
+        val sequential = upcoming.copy(info = upcoming.info.copy(
+            videoId = "show:1:2", season = 1, episode = 2, episodeTitle = "Sequential next episode",
+            hasAired = true, released = "2020-01-01"
+        ))
+        val refreshed = project(HomeUiState(continueWatchingItems = listOf(sequential)), catalogue = null)
+            .continueWatchingItems.single() as ContinueWatchingItem.NextUp
+        assertTrue(refreshed.shufflePlayback)
+        assertFalse(refreshed.chooseEpisode)
+        assertEquals(selected.info.videoId, refreshed.info.videoId)
+        assertEquals(selected.info.episodeTitle, refreshed.info.episodeTitle)
+        assertEquals(selected.info.thumbnail, refreshed.info.thumbnail)
+    }
+
+    @Test
+    fun `retained shuffle target cannot cross profile or pool changes`() {
+        project()
+        val otherProfile = project(profile = profile.copy(profileId = 2), catalogue = null)
+        val otherPool = project(profile = profile.copy(shows = mapOf("show" to EpisodeShuffleSettings(true, true))), catalogue = null)
+        assertFalse(otherProfile.upcomingItems.single().shufflePlayback)
+        assertFalse(otherPool.upcomingItems.single().shufflePlayback)
     }
 
     @Test

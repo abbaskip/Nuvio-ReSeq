@@ -220,6 +220,8 @@ object XmltvParser {
         )
     }
 
+    private val longEpisodeId = Regex("""\d{5,}""")
+    private val seasonNumber = Regex("""(?i)\bS(?:eason)?\s*(\d+)""")
     private val yearInParens = Regex("""\((19\d{2}|20\d{2})\)""")
 
     /** "(1990)" in a title or description. Bare numbers are ignored: too easy to misread. */
@@ -274,9 +276,9 @@ object XmltvParser {
         val digits = t.count { it.isDigit() }
         if (digits == 0) return t // "Part One", "Finale"
         if (letters == 0 && digits > 4) return null // a plain id
-        if (Regex("""\d{5,}""").containsMatchIn(t)) return null // ids with a prefix ("EP012345678")
+        if (longEpisodeId.containsMatchIn(t)) return null // ids with a prefix ("EP012345678")
         // Season numbers that are years.
-        Regex("""(?i)\bS(?:eason)?\s*(\d+)""").find(t)?.groupValues?.get(1)?.toIntOrNull()?.let { if (it >= 100) return null }
+        seasonNumber.find(t)?.groupValues?.get(1)?.toIntOrNull()?.let { if (it >= 100) return null }
         return t
     }
 

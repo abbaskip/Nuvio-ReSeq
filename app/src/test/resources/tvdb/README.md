@@ -15,6 +15,12 @@ IDs, titles, coordinates, air dates and availability on 28 October 2026. All URL
 account configuration, artwork and stream references are excluded. It reproduces
 the combined-episode structure involved in Trakt mapping-cache contamination.
 
+`office-provider-mixed-ids.json` records only public series IDs and episode facts
+from the configured provider on 11 November 2026. Its S00E14 uses a TVDB-prefixed
+ID among IMDb-prefixed episodes. It reproduces the whole-series unmatched bug
+and tests all seven selected orders plus Continue Watching S06E03 playback.
+No addon URL, credentials, artwork or stream data is retained.
+
 `office-all-orders.json` contains complete public identity/title/date/runtime facts
 for all seven discovered Office orders (including the season-endpoint fallbacks
 for Blu-ray and Extended Cut). It contains no account, authentication or stream data.

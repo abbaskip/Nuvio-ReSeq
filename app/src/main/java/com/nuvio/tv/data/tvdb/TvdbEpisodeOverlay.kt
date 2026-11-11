@@ -27,9 +27,14 @@ internal fun tvdbEpisodeOverlay(meta: Meta, seriesId: Long, order: TvdbEpisodeOr
     val prefixes = eligible.mapNotNull { video -> numberedId.matchEntire(video.id)?.takeIf {
         it.groupValues[2].toIntOrNull() == video.season && it.groupValues[3].toIntOrNull() == video.episode
     }?.groupValues?.get(1) }.distinct()
-    val requestPrefix = prefixes.singleOrNull() ?: (meta.imdbId ?: meta.id).takeIf {
-        prefixes.isEmpty() && it.matches(Regex("(?:tt\\d+|tmdb:\\d+|tvdb:\\d+)"))
-    }
+    // A provider may use another ID scheme for one special. Prefer an explicitly
+    // identified series parent present in its episode IDs instead of disabling
+    // every selected-order request. Unknown mixed parents remain unresolved.
+    val requestPrefix = prefixes.singleOrNull()
+        ?: listOfNotNull(meta.imdbId, meta.id).firstOrNull { it in prefixes }
+        ?: (meta.imdbId ?: meta.id).takeIf {
+            prefixes.isEmpty() && it.matches(Regex("(?:tt\\d+|tmdb:\\d+|tvdb:\\d+)"))
+        }
     val provider = eligible.filter { uniqueIds[it.id] == 1 }.mapNotNull { video ->
         val explicit = video.episodeIdentity
         val episodes = if (explicit != null) {

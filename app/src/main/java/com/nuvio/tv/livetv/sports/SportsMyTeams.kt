@@ -259,7 +259,6 @@ internal fun MyTeamsRows(
                             )
                         } else {
                             val state = rowState(row.key, row.startIndex)
-                            val keyAt: (Int) -> String = { i -> "${row.key}|${row.events[i].id}" }
                             // The card you left this row on, by game (not by position, which shifts).
                             val lastOnRow = remember(row.key) { arrayOfNulls<String>(1) }
                             androidx.compose.runtime.CompositionLocalProvider(androidx.compose.foundation.gestures.LocalBringIntoViewSpec provides rowSpec) {
@@ -271,16 +270,15 @@ internal fun MyTeamsRows(
                                         .fillMaxWidth()
                                         .focusRestorer {
                                             val visible = state.layoutInfo.visibleItemsInfo.map { it.index }
-                                            val back = lastOnRow[0]?.let { id -> row.events.indexOfFirst { it.id == id } }?.takeIf { it >= 0 && it in visible }
-                                            val idx = back ?: row.startIndex.takeIf { it in visible } ?: visible.firstOrNull()
-                                            idx?.let { requesterFor(keyAt(it)) } ?: FocusRequester.Default
+                                            row.restoreFocusKey(visible, lastOnRow[0])?.let { requesterFor(it) }
+                                                ?: FocusRequester.Default
                                         }
                                         .focusGroup(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     contentPadding = PaddingValues(start = 6.dp, end = 640.dp, top = 3.dp, bottom = 6.dp)
                                 ) {
                                     itemsIndexed(row.events, key = { _, ev -> ev.id }) { i, ev ->
-                                        val key = keyAt(i)
+                                        val key = "${row.key}|${ev.id}"
                                         RowCard(
                                             ev = ev,
                                             follows = follows,
@@ -292,7 +290,9 @@ internal fun MyTeamsRows(
                                             modifier = Modifier
                                                 .focusRequester(requesterFor(key))
                                                 .onFocusChanged { if (it.isFocused) { lastOnRow[0] = ev.id; onFocusKey(key) } }
-                                                .steadyRowKeys(state, i, row.events.size) { j -> requesterFor(keyAt(j)) },
+                                                .steadyRowKeys(state, i, row.events.size) { j ->
+                                                    row.focusKey(j)?.let { requesterFor(it) } ?: FocusRequester.Default
+                                                },
                                             onClick = { onOpen(ev) },
                                             onLongClick = { onQuickWatch(ev) }
                                         )

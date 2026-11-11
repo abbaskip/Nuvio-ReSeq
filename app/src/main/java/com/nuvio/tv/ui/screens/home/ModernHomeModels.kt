@@ -424,7 +424,7 @@ internal fun buildContinueWatchingItem(
             is ContinueWatchingItem.InProgress -> item.progress.name
             is ContinueWatchingItem.NextUp -> item.info.name
         },
-        subtitle = when (item) {
+        subtitle = if (item.chooseEpisode) context.getString(R.string.cw_choose_episode) else when (item) {
             is ContinueWatchingItem.InProgress -> {
                 val ps = item.displaySeason ?: item.progress.season
                 val pe = item.displayEpisode ?: item.progress.episode
@@ -448,7 +448,8 @@ internal fun buildContinueWatchingItem(
             }
         },
         imageUrl = imageUrl,
-        heroPreview = heroPreview.copy(imageUrl = imageUrl ?: heroPreview.imageUrl),
+        heroPreview = heroPreview.copy(imageUrl = imageUrl ?: heroPreview.imageUrl,
+            contentTypeText = if (item.chooseEpisode) context.getString(R.string.cw_choose_episode) else heroPreview.contentTypeText),
         payload = ModernPayload.ContinueWatching(item)
     )
 }

@@ -76,7 +76,7 @@ class TraktViewModel @Inject constructor(
     fun onContinueWatchingDaysCapSelected(days: Int) {
         viewModelScope.launch {
             traktSettingsDataStore.setContinueWatchingDaysCap(days)
-            traktProgressService.refreshNow()
+            if (traktSettingsDataStore.watchProgressSource.value == com.nuvio.tv.data.local.WatchProgressSource.TRAKT) traktProgressService.refreshNow()
             _uiState.update {
                 it.copy(
                     continueWatchingDaysCap = days,

@@ -24,6 +24,16 @@ internal class SportsRow(
 /** [heroes]: the big card's games (on now first, then the next ones); left and right go through them. */
 internal class MyTeamsPage(val heroes: List<SportsEvent>, val rows: List<SportsRow>)
 
+internal fun SportsRow.focusKey(index: Int): String? = events.getOrNull(index)?.let { "$key|${it.id}" }
+
+/** Layout indices can still describe the previous row while fresh fixtures are being composed. */
+internal fun SportsRow.restoreFocusKey(visibleIndices: List<Int>, lastEventId: String?): String? {
+    val visible = visibleIndices.filter { it in events.indices }
+    val previous = lastEventId?.let { id -> events.indexOfFirst { it.id == id } }?.takeIf { it in visible }
+    val index = previous ?: startIndex.takeIf { it in visible } ?: visible.firstOrNull()
+    return index?.let(::focusKey)
+}
+
 internal object SportsRows {
     private const val HOUR = 3_600_000L
     private const val DAY = 24 * HOUR

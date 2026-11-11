@@ -28,7 +28,9 @@ class TsSegmenter(
     /** A piece was saved (its length in seconds); the playlist is already updated. */
     private val onSegment: (Double) -> Unit = {}
 ) {
-    data class Piece(val seq: Long, val name: String, val durationSec: Double, val discontinuity: Boolean = false)
+    data class Piece(val seq: Long, val name: String, val durationSec: Double, val discontinuity: Boolean = false) {
+        val durationText = String.format(java.util.Locale.US, "%.3f", durationSec)
+    }
 
     val playlist: File = File(dir, "index.m3u8")
 
@@ -221,7 +223,7 @@ class TsSegmenter(
         if (keepSec == null) sb.append("#EXT-X-PLAYLIST-TYPE:EVENT\n")
         pieces.forEach { pc ->
             if (pc.discontinuity) sb.append("#EXT-X-DISCONTINUITY\n")
-            sb.append("#EXTINF:").append(String.format(java.util.Locale.US, "%.3f", pc.durationSec)).append(",\n")
+            sb.append("#EXTINF:").append(pc.durationText).append(",\n")
             sb.append(pc.name).append('\n')
         }
         if (ended) sb.append("#EXT-X-ENDLIST\n")

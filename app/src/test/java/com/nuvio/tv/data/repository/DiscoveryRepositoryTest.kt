@@ -30,6 +30,56 @@ class DiscoveryRepositoryTest {
     private val movie = TmdbDiscoverResult(id = 99, title = "A Film", releaseDate = "2020-02-04", voteAverage = 7.2, voteCount = 1500)
 
     @Test
+    fun `title filters share raw cached pages without poisoning changed or cleared filters`() = runTest {
+        coEvery { api.advancedDiscover(any(), any(), any(), any(), any()) } returns Response.success(
+            TmdbDiscoverResponse(results = listOf(movie.copy(id = 1, title = "Alien"),
+                movie.copy(id = 2, title = "Other"), movie.copy(id = 3, title = "Alien: Covenant")),
+                totalPages = 3, totalResults = 60))
+        val repository = DiscoveryRepository(api, "test-key")
+        val query = DiscoveryQuery(titleContains = " ALIEN ", genres = setOf(878), minimumVotes = "1000", sort = "release_date.asc")
+        val filtered = repository.discover(query, "en", 1)
+        assertEquals(listOf("tmdb:1", "tmdb:3"), filtered.items.map { it.id })
+        assertTrue(filtered.hasMore)
+        // Provider total is retained for pagination; the UI labels only the loaded matches.
+        assertEquals(60, filtered.totalResults)
+        assertEquals(listOf("tmdb:2"), repository.discover(query.copy(titleContains = "other"), "en", 1).items.map { it.id })
+        assertTrue(repository.discover(query.copy(titleContains = "not found"), "en", 1).items.isEmpty())
+        assertEquals(3, repository.discover(query.copy(titleContains = ""), "en", 1).items.size)
+        coVerify(exactly = 1) { api.advancedDiscover("movie", any(), "en", 1, query.tmdbParameters()) }
+        coVerify(exactly = 0) { api.getMovieDetails(any(), any(), any()) }
+    }
+
+    @Test
+    fun `empty title match page preserves pagination and later matching pages`() = runTest {
+        coEvery { api.advancedDiscover(any(), any(), any(), 1, any()) } returns Response.success(
+            TmdbDiscoverResponse(results = listOf(movie), totalPages = 2, totalResults = 21))
+        coEvery { api.advancedDiscover(any(), any(), any(), 2, any()) } returns Response.success(
+            TmdbDiscoverResponse(results = listOf(movie.copy(title = "Wanted Film")), totalPages = 2, totalResults = 21))
+        val repository = DiscoveryRepository(api, "test-key")
+        val query = DiscoveryQuery(titleContains = "wanted")
+        val first = repository.discover(query, "en", 1)
+        assertTrue(first.items.isEmpty())
+        assertTrue(first.hasMore)
+        val second = repository.discover(query, "en", 2)
+        assertEquals(listOf("Wanted Film"), second.items.map { it.name })
+        assertFalse(second.hasMore)
+        coVerify(exactly = 1) { api.advancedDiscover(any(), any(), any(), 1, any()) }
+        coVerify(exactly = 1) { api.advancedDiscover(any(), any(), any(), 2, any()) }
+    }
+
+    @Test
+    fun `TV filter matches displayed name including original name fallback but not the description`() = runTest {
+        coEvery { api.advancedDiscover(any(), any(), any(), any(), any()) } returns Response.success(
+            TmdbDiscoverResponse(results = listOf(
+                TmdbDiscoverResult(id = 1, name = "Star Trek: Discovery", originalName = "Original"),
+                TmdbDiscoverResult(id = 2, name = "Other", overview = "Star Trek"),
+                TmdbDiscoverResult(id = 3, originalName = "Star Trek: Voyager"))))
+        val repository = DiscoveryRepository(api, "test-key")
+        val result = repository.discover(DiscoveryQuery(television = true, titleContains = "star trek"), "en", 1)
+        assertEquals(listOf("tmdb:1", "tmdb:3"), result.items.map { it.id })
+    }
+
+    @Test
     fun `pages reference lists and watched lookups are invalidated on profile or key changes`() = runTest {
         var current = TmdbCredentialAccess(1, 0, "synthetic-first")
         val repository = DiscoveryRepository(api, { current })

@@ -1,8 +1,8 @@
-name: PR Full Debug Build Comment
+name: Development check comment
 
 on:
   workflow_run:
-    workflows: ["PR Full Debug Build"]
+    workflows: ["ReSeq development checks"]
     types: [completed]
 
 permissions:
@@ -67,7 +67,7 @@ jobs:
 
               body = [
                 marker,
-                "Full debug APK build completed successfully.",
+                "Development regression checks passed.",
                 "",
                 artifact
                   ? `[Download APK](${artifactUrl})`
@@ -76,7 +76,7 @@ jobs:
             } else {
               body = [
                 marker,
-                "Full debug APK build failed.",
+                "Development regression checks failed.",
                 "",
                 `Logs: ${runUrl}`,
                 "",

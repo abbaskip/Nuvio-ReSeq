@@ -1,10 +1,30 @@
-name: PR Full Debug Build
+name: ReSeq development checks
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [dev]
+  push:
+    branches: [dev]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'scripts/**'
+      - 'tools/sports-feed/**'
+      - '.github/actions/gradle/**'
+      - '.github/workflows/pr-full-debug-build.yml'
   workflow_dispatch:
+    inputs:
+      build_apk:
+        description: Also build and verify downloadable debug APKs
+        type: boolean
+        default: false
+      comprehensive:
+        description: Also run complete lint
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,67 +35,74 @@ concurrency:
 
 jobs:
   full-debug-build:
-    name: Build fullDebug APK
+    name: Development regression checks
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
-
+    timeout-minutes: 40
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v6
         with:
-          distribution: temurin
-          java-version: "21"
-          cache: gradle
-
-      - name: Prepare local properties
+          fetch-depth: 0
+      - uses: ./.github/actions/gradle
+        id: gradle
+        with:
+          encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+      - name: Prepare sanitised service inputs
         env:
-          LOCAL_PROPERTIES_BASE64: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
-          LOCAL_DEV_PROPERTIES_BASE64: ${{ secrets.LOCAL_DEV_PROPERTIES_BASE64 }}
+          APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+          BUILD_APK: ${{ inputs.build_apk }}
         run: |
-          if [ -n "$LOCAL_PROPERTIES_BASE64" ]; then
-            printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode > local.properties
+          if [[ -n "$APP_CONFIG" ]]; then
+            python3 scripts/ci_app_config.py --output local.properties
           else
             touch local.properties
           fi
-
-          if [ -n "$LOCAL_DEV_PROPERTIES_BASE64" ]; then
-            printf '%s' "$LOCAL_DEV_PROPERTIES_BASE64" | base64 --decode > local.dev.properties
-          else
-            touch local.dev.properties
-          fi
-
-          # TMDB keys are entered at runtime and stay local to the TV profile.
-          sed -i -E '/^[[:space:]]*TMDB_API_KEY[[:space:]]*=/d' local.properties local.dev.properties
-
-      - name: Prepare CI signing config
+          if [[ "$BUILD_APK" == true ]]; then test -n "$APP_CONFIG"; fi
+      - name: Run development checks
+        env:
+          COMPREHENSIVE: ${{ inputs.comprehensive }}
+          BUILD_APK: ${{ inputs.build_apk }}
         run: |
-          keytool -genkeypair \
-            -v \
-            -keystore "$RUNNER_TEMP/ci-debug.jks" \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US" \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000
-
-          {
-            echo "NUVIO_RELEASE_STORE_FILE=$RUNNER_TEMP/ci-debug.jks"
-            echo "NUVIO_RELEASE_KEY_ALIAS=androiddebugkey"
-            echo "NUVIO_RELEASE_KEY_PASSWORD=android"
-            echo "NUVIO_RELEASE_STORE_PASSWORD=android"
-          } >> "$GITHUB_ENV"
-
-      - name: Test Sports Hub, navigation, updater and source paging, then build fullDebug APK
-        run: ./gradlew :app:testFullDebugUnitTest --tests 'com.nuvio.tv.livetv.sports.*' --tests 'com.nuvio.tv.ui.navigation.*' --tests 'com.nuvio.tv.updater.*' --tests 'com.nuvio.tv.ui.screens.player.SourceStreamPagingTest' :app:assembleFullDebug --stacktrace
-
+          lane=development
+          if [[ "$COMPREHENSIVE" == true ]]; then lane=validate; fi
+          args=()
+          if [[ "$BUILD_APK" == true ]]; then args+=(--apk); fi
+          python3 scripts/ci_pipeline.py "$lane" "${args[@]}"
+      - name: Verify actual debug APK services before sharing
+        if: inputs.build_apk
+        env:
+          APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+        run: python3 scripts/verify_apk_services.py --properties local.properties --apk-dir app/build/outputs/apk/full/debug --report build/pipeline/debug-services.json
       - name: Upload fullDebug APK
+        if: inputs.build_apk
         uses: actions/upload-artifact@v7
         with:
           path: app/build/outputs/apk/full/debug/app-full-universal-debug.apk
           archive: false
           if-no-files-found: error
           retention-days: 7
+      - name: Encrypt task cache
+        id: encrypt-cache
+        continue-on-error: true
+        if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+        env:
+          NUVIO_CACHE_KEY: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+        run: bash scripts/ci-cache.sh save
+      - name: Save encrypted task cache, including after failed checks
+        if: ${{ !cancelled() && steps.encrypt-cache.outcome == 'success' && steps.gradle.outputs.task-cache-key != '' }}
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/nuvio-task-cache
+          key: ${{ steps.gradle.outputs.task-cache-key }}
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: pipeline-development-timings
+          path: |
+            build/pipeline/*.json
+            build/reports/profile/*
+          retention-days: 14
+      - name: Remove service inputs
+        if: always()
+        run: rm -f local.properties local.dev.properties

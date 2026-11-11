@@ -71,6 +71,9 @@ class SportsRepository @Inject constructor(
     private val broadcastEnrichment = MutableStateFlow<Map<String, List<SportsBroadcast>>>(emptyMap())
     private val freeAttemptAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val matcher = SportsMatcher(guideDb, File(context.cacheDir, "sports-guide"))
+    private val tvNowMatcher = SportsMatcher(guideDb)
+    private var tvNowMatchIds = emptySet<String>()
+    private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
     private val dir = File(context.filesDir, "sports").apply { mkdirs() }
 
     val settings: StateFlow<SportsSettings> = prefs.sportsSettingsJson
@@ -119,23 +122,25 @@ class SportsRepository @Inject constructor(
         // Keep provider fixtures even when the guide has an airing at a similar time.
         // All Events uses these verified entries; TV Now uses the guide's programme times.
         val fixtures = f.values.flatMap { it.events }
-        val espn = l.values.flatMap { it.events } + w.values.flatMap { it.events }
+        val espn = SportsDaySchedule.freshest(l.values.flatMap { it.events } + w.values.flatMap { it.events })
         // Prefer scored fixtures over matching calendar entries. Keep TV airings separately:
         // they belong to TV Now even when All Events already contains the actual match.
-        val espnBySport = (espn + tsdb).filter { it.away != null && it.home != null }
-            .groupBy { SportsCatalog.league(it.leagueId)?.sport }
+        val identities = SportsEventIdentity.Round()
+        val espnIndex = SportsFixtureIndex(espn)
+        val tsdbIndex = SportsFixtureIndex(tsdb)
         fun coveredByEspn(ev: SportsEvent): Boolean {
             val league = SportsCatalog.league(ev.leagueId) ?: return false
             if (league.espnPath != null) return false
-            val same = espnBySport[league.sport] ?: return false
-            return same.any { r -> SportsCatalog.league(r.leagueId)?.let {
-                SportsEventIdentity.guideCoversFixture(ev, r, it)
-            } == true }
+            fun covers(candidate: SportsEvent): Boolean {
+                val other = SportsCatalog.league(candidate.leagueId) ?: return false
+                return league.sport == other.sport && SportsEventIdentity.guideCoversFixture(ev, candidate, other)
+            }
+            return espnIndex.anyNear(ev, ::covers) || tsdbIndex.anyNear(ev, ::covers)
         }
         (espn + fixtures.filterNot(::coveredByEspn) + guide + tsdb.filterNot { event ->
             val league = SportsCatalog.league(event.leagueId)
-            league != null && espn.any { other -> SportsCatalog.league(other.leagueId)?.let {
-                SportsEventIdentity.same(event, other, league, it) } == true }
+            league != null && espnIndex.anyNear(event) { other -> SportsCatalog.league(other.leagueId)?.let {
+                identities.same(event, other, league, it) } == true }
         }).distinctBy { it.id }
     }.combine(baseData) { current, base ->
         (current + base).groupBy { it.id }.values.map { versions -> versions.maxBy { it.updatedAt ?: 0L } }
@@ -272,6 +277,20 @@ class SportsRepository @Inject constructor(
             }
         }
         scope.launch {
+            // Local current-airing reads work while a Sports preview plays, independently
+            // of catalogue downloads, whole-guide imports and bulk fixture matching.
+            combine(channelLookupAllowed, channelStore.displayChannels, settings, follows, liveRepo.guideGeneration) {
+                allowed, _, _, _, _ -> allowed
+            }.combine(events.map { SportsCurrentGuide.fixtureKeys(it) }.distinctUntilChanged()) { allowed, _ -> allowed }
+                .collectLatest { allowed ->
+                if (!allowed) return@collectLatest
+                while (true) {
+                    sportsCatching { refreshTvNow() }.onFailure { Log.w(TAG, "Current TV sports discovery failed", it) }
+                    delay(30_000)
+                }
+            }
+        }
+        scope.launch {
             sportsScoresAllowed(foreground, playback.state, viewing = viewers)
                 .combine(cacheLoaded) { allowed, loaded -> allowed && loaded }.distinctUntilChanged()
                 .collectLatest { allowed ->
@@ -322,6 +341,46 @@ class SportsRepository @Inject constructor(
         kick.value++
     }
 
+    /** Explicit date selection can fill gaps in the shared catalogue, including during preview. */
+    suspend fun loadDay(offset: Int): String? = withContext(Dispatchers.IO) {
+        if (offset !in -DAYS_BACK..DAYS_AHEAD) return@withContext null
+        cacheLoaded.first { it }
+        val start = dayStart(offset)
+        val end = dayStart(offset + 1)
+        val gate = Semaphore(3)
+        val failed = java.util.concurrent.atomic.AtomicInteger()
+        coroutineScopeFetch(activeLeagues()) { league ->
+            gate.withPermit {
+                val zone = java.time.ZoneId.of(if (league.sport == Sport.CRICKET || league.id.startsWith("tsdb/")) "UTC" else "America/New_York")
+                val dates = SportsDaySchedule.dates(start, end, zone, if (league.id.startsWith("tsdb/")) "yyyy-MM-dd" else "yyyyMMdd")
+                val fetched = mutableListOf<SportsEvent>()
+                for (date in if (league.fixtureSlug != null && league.espnPath == null) listOf("calendar") else dates) {
+                    if (league.espnPath == null && league.fixtureSlug == null && !league.id.startsWith("tsdb/")) continue
+                    val result = sportsCatching {
+                        val saved = freeCached("day_${safe(league.id)}_$date", 30 * MINUTE) {
+                            when {
+                                league.espnPath != null -> feeds.scoreboardDayRaw(league, date)
+                                league.fixtureSlug != null -> feeds.fixturesRaw(league.fixtureSlug)
+                                else -> freeDb.get("eventsday.php", "d" to date, "l" to league.id.removePrefix("tsdb/"))
+                            }
+                        } ?: error("Schedule unavailable")
+                        when {
+                            league.espnPath != null -> SportsFeeds.parseScoreboard(league, saved.second)
+                            league.fixtureSlug != null -> SportsFeeds.parseFixtures(league, saved.second)
+                            else -> FreeSportsDb.events(league, saved.second, saved.first)
+                        }.map { it.copy(updatedAt = saved.first) }
+                    }
+                    result.onSuccess { fetched += it }.onFailure { failed.incrementAndGet() }
+                }
+                // Keep other dates and already saved fixtures when a provider is unavailable.
+                val key = "day|$start|${league.id}"
+                weekData.update { data -> data + (key to LeagueData(SportsDaySchedule.freshest(
+                    fetched + data[key]?.events.orEmpty()), System.currentTimeMillis(), null)) }
+            }
+        }
+        if (failed.get() > 0) "Some events couldn't be loaded for this date. Showing available events." else null
+    }
+
     @Volatile private var forceAll = false
     @Volatile private var forceExtras = false
 
@@ -342,7 +401,9 @@ class SportsRepository @Inject constructor(
         f.teams.forEach { t -> out += t.leagueId; out += SportsCatalog.relatedLeagues(t.leagueId) }
         out += f.leagues
         out += f.pins
-        return (out + out.flatMap { SportsCompetitions.sources(it).map(League::id) }).toSet()
+        if (out.isEmpty()) return emptySet()
+        val descendants = SportsCatalog.all.filter { candidate -> out.any { SportsTaxonomy.includesLeague(it, candidate.id) } }
+        return (out + descendants.map { it.id } + out.flatMap { SportsCompetitions.sources(it).map(League::id) }).toSet()
     }
 
     private fun isMine(l: League, f: SportsFollows) = l.id in followedLeagueIds(f)
@@ -422,14 +483,18 @@ class SportsRepository @Inject constructor(
             followedLeagueIds(), browsing, now, scoreAttempts)
         for (league in due) {
             // Record attempts before I/O: a failed service must not be retried on each loop.
-            scoreAttempts[league.id] = now
-            val fmt = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = TimeZone.getTimeZone("America/New_York") }
+            val previousAttempt = scoreAttempts.put(league.id, now)
             val at = SportsRefreshPolicy.scoreboardAnchor(known.value, league, focused, playing, browsing, now)
             sportsCatching {
-                val parsed = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, fmt.format(java.util.Date(at))))
+                val parsed = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, SportsRefreshPolicy.scoreboardDay(league, at)))
                     .map { it.copy(updatedAt = now) }
-                val prior = leagueData.value[league.id]?.events.orEmpty().filter { it.startMs >= now - DAY }
+                val previous = leagueData.value[league.id]
+                val prior = previous?.events.orEmpty().filter {
+                    it.startMs >= now - DAY || (it.endMs?.let { end -> end > now } == true)
+                }
                 leagueData.update { it + (league.id to LeagueData((parsed + prior).distinctBy { e -> e.id }, now, null)) }
+                // An initial or restored scoreboard establishes the baseline for live alerts.
+                if (previous != null && previous.fetchedAt == previousAttempt) noticeScoring(league, prior, parsed)
                 _problem.value = null
                 Log.d(TAG, "Live scores: ${league.id}, ${parsed.size} games, ${parsed.count { it.state == GameState.LIVE }} live")
             }.onFailure {
@@ -706,14 +771,20 @@ class SportsRepository @Inject constructor(
             if (prior == null || now - prior >= 5 * MINUTE) { allowed = true; now } else prior
         }
         if (!allowed) return saved
-        return sportsCatching {
-            val raw = fetch()
-            val payload = kotlinx.serialization.json.Json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject
-            require(payload != null && payload.keys.any { it in setOf("leagues", "countries", "events", "event", "tvevent", "tv", "eventtv", "teams") })
-            file.writeText("$now\n$raw")
+        return try {
+            sportsCatching {
+                val raw = fetch()
+                val payload = kotlinx.serialization.json.Json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject
+                require(payload != null && payload.keys.any { it in setOf("leagues", "countries", "events", "event", "tvevent", "tv", "eventtv", "teams") })
+                file.writeText("$now\n$raw")
+                freeAttemptAt.remove(name)
+                now to raw
+            }.getOrElse { saved }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            // Changing the selected date must not turn an interrupted request into a failure backoff.
             freeAttemptAt.remove(name)
-            now to raw
-        }.getOrElse { saved }
+            throw cancelled
+        }
     }
 
     /** Independent public-key fallback. Every list is explicitly partial on this tier. */
@@ -1069,6 +1140,52 @@ class SportsRepository @Inject constructor(
         }
     }
 
+    private suspend fun refreshTvNow() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.reads) {
+        val startedAt = System.currentTimeMillis()
+        val work = currentCoroutineContext()
+        val checkpoint = { work.ensureActive(); com.nuvio.tv.livetv.data.BackgroundWork.yieldToNavigation() }
+        val live = prefs.settings.first()
+        val user = prefs.userState.first()
+        val s = settings.value
+        val f = follows.value
+        val channels = visibleSportsChannels(live, user, s).associateBy { it.key }
+        if (channels.isEmpty()) return@withContext
+        val now = System.currentTimeMillis()
+        val shift = live.epgOffsetMinutes * MINUTE
+        val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
+            f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
+        val fixtures = SportsCurrentGuide.fixtures(events.value)
+        val snapshot = tvNowMatcher.tvNowSnapshot(activeLeagues(s, f), f.words, channels, shift, now, fixtures, checkpoint)
+        val discovered = SportsGuideEvents.merge(snapshot.airings, protectedIds)
+        // The airings already identify their channels: do not index every playlist channel.
+        val hitKeys = (discovered.flatMap { it.guideHits.map { hit -> hit.first } } + snapshot.fixturePrograms.map { it.first }).toSet()
+        val found = tvNowMatcher.match(SportsMatcher.Input(discovered + fixtures,
+            channels.filterKeys { it in hitKeys }.values.toList(), user.channelQuality, shift, s, now,
+            includeGuide = false, currentGuidePrograms = snapshot.fixturePrograms), checkpoint).matches
+        val fixtureIds = fixtures.mapTo(HashSet()) { it.id }
+        val fixtureMatches = found.filterKeys { it in fixtureIds }
+        val extra = SportsCurrentGuide.additionalAirings(discovered, fixtures, fixtureMatches, now)
+        val airings = discovered + extra
+        val fixtureChannels = fixtureMatches.values.flatten()
+        val matches = found + extra.associate { airing -> airing.id to fixtureChannels.filter {
+            (it.channel.key to it.program) in airing.guideHits
+        }.distinctBy { it.channel.key } }
+        val ids = airings.mapTo(HashSet()) { it.id }
+        guideData.update { previous ->
+            (previous + (dayStart(0) to (previous[dayStart(0)].orEmpty().filterNot {
+                it.id in ids || (it.id in tvNowMatchIds && it.id !in protectedIds)
+            } + airings)))
+                .filterKeys { it >= dayStart(-1) && it < dayStart(2) }
+        }
+        val obsolete = tvNowMatchIds - ids - protectedIds
+        _matches.update { previous -> SportsCurrentGuide.mergeMatches(previous - obsolete, tvNowFixtureMatches, matches, s) }
+        tvNowFixtureMatches = fixtureMatches
+        tvNowMatchIds = ids
+        rebuildLiveScores()
+        val confirmed = fixtureMatches.count { (_, list) -> list.any { it.sure && it.program != null } }
+        Log.d(TAG, "Current TV sports: ${airings.size} airings; live fixtures matched $confirmed/${fixtures.size}; ${System.currentTimeMillis() - startedAt} ms")
+    }
+
     private fun guideReady(): Boolean = !com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding.value
 
     /** Publish inexpensive local suggestions before accessing the guide or any remote service. */
@@ -1215,19 +1332,7 @@ class SportsRepository @Inject constructor(
     /** A team you follow scored: tell the app (Scoring Alerts). */
     private fun noticeScoring(league: League, before: List<SportsEvent>, after: List<SportsEvent>) {
         if (!settings.value.scoringAlerts) return
-        val f = follows.value
-        val old = before.associateBy { it.id }
-        for (ev in after) {
-            if (ev.state != GameState.LIVE || !ev.hasScore) continue
-            val prev = old[ev.id] ?: continue
-            if (!prev.hasScore) continue
-            for (side in ev.sides) {
-                if (!f.followsTeam(league.id, side.team.id) && league.id !in f.leagues) continue
-                val was = prev.sides.firstOrNull { it.team.id == side.team.id }?.score?.toDoubleOrNull() ?: continue
-                val nowScore = side.score?.toDoubleOrNull() ?: continue
-                if (nowScore > was) SportsLive.alert(SportsAlert(ev, side.team, league))
-            }
-        }
+        noticeScoreIncreases(league, before, after, follows.value, SportsLive::alert)
     }
 
     // ------------------------------------------------------------------ teams, details
@@ -1627,6 +1732,21 @@ class SportsRepository @Inject constructor(
 
 /** A team you follow just scored (shown for a few seconds wherever you are). */
 data class SportsAlert(val event: SportsEvent, val team: TeamInfo, val league: League, val id: Long = System.nanoTime())
+
+internal fun noticeScoreIncreases(league: League, before: List<SportsEvent>, after: List<SportsEvent>,
+    follows: SportsFollows, notify: (SportsAlert) -> Unit) {
+    val old = before.associateBy { it.id }
+    for (event in after) {
+        if (event.state != GameState.LIVE || !event.hasScore) continue
+        val previous = old[event.id]?.takeIf { it.hasScore } ?: continue
+        for (side in event.sides) {
+            if (!follows.followsTeam(league.id, side.team.id) && league.id !in follows.leagues) continue
+            val was = previous.sides.firstOrNull { it.team.id == side.team.id }?.score?.toDoubleOrNull() ?: continue
+            val score = side.score?.toDoubleOrNull() ?: continue
+            if (score > was) notify(SportsAlert(event, side.team, league))
+        }
+    }
+}
 
 /** Sports data the rest of the app shows: scores on Live TV's info bar, scoring alerts. */
 object SportsLive {

@@ -171,6 +171,7 @@ class StartupSyncService @Inject constructor(
     }
 
     fun requestForegroundSync() {
+        profileSettingsSyncService.requestForegroundPull()
         scheduleActivityPull(
             reason = "foreground",
             delayMs = FOREGROUND_ACTIVITY_PULL_DELAY_MS,

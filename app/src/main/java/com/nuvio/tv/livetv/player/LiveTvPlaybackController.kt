@@ -647,7 +647,7 @@ class LiveTvPlaybackController @Inject constructor(
             currentChannel?.key == channel.key && currentChannel?.url == channel.url &&
             _state.value.error == null && _recordingPlayback.value == null &&
             (currentUrl != null || portalLinkJob?.isActive == true) &&
-            (portalLinkJob?.isActive == true || (alwaysBuffer && timeshift.isRecording) ||
+            (portalLinkJob?.isActive == true || reconnectJob?.isActive == true || (alwaysBuffer && timeshift.isRecording) ||
                 existing?.playbackState == Player.STATE_READY || existing?.playbackState == Player.STATE_BUFFERING)
         ) {
             if (existing != null && !existing.playWhenReady) existing.play()
@@ -1823,6 +1823,9 @@ class LiveTvPlaybackController @Inject constructor(
         if (refreshCommand && portalCommandRecoveryUsed) return
         if (refreshCommand) portalCommandRecoveryUsed = true
         reconnectJob?.cancel()
+        // A portal lookup may take a while for large playlists. Keep the channel in its
+        // loading state so selecting it again doesn't cancel recovery and replay the old URL.
+        if (portal) _state.value = _state.value.copy(error = null, isBuffering = true)
         reconnectJob = scope.launch {
             delay((attempt * 2_000L).coerceAtMost(10_000L))
             val ch = currentChannel ?: return@launch
@@ -1838,14 +1841,20 @@ class LiveTvPlaybackController @Inject constructor(
                         else "Stalker: resolving the channel again before reconnecting"
                     )
                     val link = kotlinx.coroutines.withTimeoutOrNull(90_000) { stalker.resolve(source, ch.url, refreshCommand) }
-                        ?: error("Portal recovery timed out.")
+                        ?: run {
+                            com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Stalker: channel recovery timed out after 90 seconds")
+                            error("Portal recovery timed out.")
+                        }
                     kotlinx.coroutines.currentCoroutineContext().ensureActive()
                     if (currentChannel?.key != ch.key) return@launch
                     url = link.url
                     headers = ch.headers + link.headers
                     currentChannel = ch.copy(headers = headers)
                     currentUrl = url
-                } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Stalker: channel recovery cancelled before completion")
+                    throw cancelled
+                }
                 catch (_: Exception) {
                     com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Stalker: reconnect could not obtain a fresh playback link")
                     _state.value = _state.value.copy(error = "Could not refresh the portal channel. Try again.", isBuffering = false)

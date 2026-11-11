@@ -92,7 +92,7 @@ Each job uses the Android TV profile and fixture-only backend settings. A change
    Write concise notes from `.github/RELEASE_TEMPLATE.md` under `releases/`.
    Commit source, tests, ledger, notes and version before validation.
 7. Run `validate --run ID`. This requires a clean commit and runs the complete
-   Full Debug unit suite, debug APK build, Playstore Kotlin compilation, Android
+   Full Debug unit suite, debug APK build, Android
    lint, packaged-service verification, Python tooling tests and whitespace checks.
    Lint runs with the explicit report-only init script, then `lint_guard.py`
    enforces the approved released-source budget below. Normal lint behaviour is
@@ -129,7 +129,10 @@ Each job uses the Android TV profile and fixture-only backend settings. A change
     integration branch and remote `dev`, then dispatches `reseq-release.yml`.
     Never force-push, bypass branch protection, alter GitHub permissions or use
     direct `gh release create` as a fallback. If dev/latest release advanced,
-    integrate that new base in a fresh run and repeat validation.
+    integrate that new base in a fresh run and repeat validation. A failed signed
+    workflow can be retried within its owning run when dev still equals that run's
+    own pushed commit. The fixed descendant must pass all exact-commit checks,
+    the previous attempt must be terminal, and the published release must still match.
 14. Hold the lock until the workflow is terminal and publication verified. Use
     `gh run list --repo abbaskip/Nuvio-ReSeq --branch BRANCH` to identify its run;
     inspect failures and fix clear issues. The workflow retains permanent signing,
@@ -163,7 +166,7 @@ they never strand a completed run's lock. The next run retries only finished,
 unchanged, clean automation worktrees. Shared daemons and reused developer
 checkouts are never stopped or cleaned to force those files free.
 Runs and validation require at least 6 GiB free, covering the measured debug/
-Playstore/lint peak with a safety reserve. `finish` archives this task's unit/lint
+compilation/lint peak with a safety reserve. `finish` archives this task's unit/lint
 reports and retains a held ARM32 debug APK before removing only its own generated
 `app/build`. It verifies the resolved path belongs to a known automation worktree.
 Source, branches, reports and other developers' worktrees are preserved. Do not
@@ -274,3 +277,5 @@ Use this format, omitting Decisions required when there is no genuine decision:
     - Real options and recommendation only.
     Next actions
     - Outstanding checks/fixes/reviews.
+
+Maintenance releases may contain ReSeq runtime or build changes without a new upstream integration. The release gate recognises those changes against the preserved release base. Version-only, ledger-only, notes-only and test-only updates do not create a release. Upstream inventory review, protective holds, exact-commit validation, compatibility attestation and publication checks apply to both release types.

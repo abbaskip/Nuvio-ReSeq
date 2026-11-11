@@ -517,6 +517,8 @@
     <!-- Custom Poster Web Page -->
     <string name="layout_always_show_landscape_clearlogo">Zawsze tło z logo dla poziomych plakatów</string>
     <string name="layout_always_show_landscape_clearlogo_sub">Ignoruj poziomy plakat z dodatku i użyj tła z nakładką logo.</string>
+    <string name="layout_hero_description_auto_scroll">Automatyczne przewijanie opisów</string>
+    <string name="layout_hero_description_auto_scroll_sub">Powoli przewijaj długie opisy na ekranie głównym zamiast je ucinać.</string>
     <string name="web_custom_poster_title">Niestandardowe źródło plakatów</string>
     <string name="web_custom_poster_subtitle">Wklej wzorzec URL poniżej i naciśnij Zapisz.</string>
     <string name="web_custom_poster_label">Wzorzec URL</string>
@@ -1583,6 +1585,8 @@
     <string name="playback_engine_mvplayer">Libmpv (Beta)</string>
     <string name="playback_auto_switch_internal_player_on_error">Automatyczne przełączanie silnika przy błędzie</string>
     <string name="playback_auto_switch_internal_player_on_error_sub">Jeśli uruchomienie strumienia się nie powiedzie, automatycznie przełącz między ExoPlayer a libmpv.</string>
+    <string name="playback_release_decoder_on_background">Zwalniaj dekoder w tle</string>
+    <string name="playback_release_decoder_on_background_sub">Zwalnia dekoder wideo, gdy Nuvio przechodzi w tło. Włącz, jeśli po powrocie do aplikacji odtwarzanie kończy się błędem dekodera. Po powrocie, także po wygaszaczu ekranu, odtwarzacz ładuje się od nowa</string>
     <string name="playback_external_forward_subtitles">Przekazuj napisy do zewnętrznego odtwarzacza</string>
     <string name="playback_external_forward_subtitles_sub">Pobierz napisy w preferowanym języku z dodatków i przekaż je do zewnętrznego odtwarzacza.</string>
     <string name="playback_engine_exoplayer_desc">Najlepsza kompatybilność z funkcjami Nuvio ReSeq.</string>
@@ -3433,10 +3437,8 @@
     <string name="autosync_tolerance_value">%1$d ms</string>
     <string name="autosync_thorough_title">Dokładne wyszukiwanie synchronizacji</string>
     <string name="autosync_thorough_description">Porównuj kolejne ścieżki napisów w poszukiwaniu lepszego dopasowania przed synchronizacją. Po wyłączeniu pierwsze silne dopasowanie jest używane szybciej. Tylko pewne dopasowania są stosowane.</string>
-    <string name="autosync_toast_failed">Synchronizacja nie powiodła się: nie udało się dopasować napisów do wideo.</string>
-    <string name="autosync_toast_failed_no_reference">Synchronizacja nie powiodła się: wideo nie zawiera osadzonych napisów do porównania.</string>
-    <string name="autosync_toast_failed_unsupported">Synchronizacja nie powiodła się: ten format napisów nie jest obsługiwany.</string>
-    <string name="autosync_label_synced">Zsynchronizowane automatycznie</string>
+    <string name="autosync_toast_no_fit">Synchronizacja nie powiodła się: te napisy nie pasują do tej wersji wideo.</string>
+    <string name="autosync_label_synced">Dopasowane</string>
 
     <string name="layout_trailer_4k">Zwiastuny 4K</string>
     <string name="layout_trailer_4k_sub">Odtwarzaj zwiastuny w rozdzielczości powyżej 1080p, gdy są dostępne. Zużywa znacznie więcej pamięci; domyślnie wyłączone na urządzeniach z 2 GB RAM lub mniej.</string>
@@ -3517,4 +3519,23 @@
     <string name="cd_emoji_option">Emoji %1$s</string>
     <string name="cd_trailer_controls">Sterowanie zwiastunem</string>
     <string name="cd_seek_bar">Pasek przewijania</string>
+    <string name="usenet_opening">Otwieranie filmu z Usenetu…</string>
+    <string name="plugin_extension_settings_failed">To rozszerzenie nie mogło otworzyć ustawień.</string>
+    <string name="tmdb_collection_auth_error">TMDB odrzuciło żądanie. Sprawdź klucz API profilu w Ustawienia → Integracje → TMDB.</string>
+    <string name="about_update_check_frequency">Częstotliwość sprawdzania aktualizacji</string>
+    <string name="about_update_check_frequency_summary">Wybierz, jak często Nuvio szuka nowej wersji.</string>
+    <string name="about_update_check_always">Zawsze</string>
+    <string name="about_update_check_daily">Codziennie</string>
+    <string name="about_update_check_two_days">2 dni</string>
+    <string name="about_update_check_three_days">3 dni</string>
+    <string name="about_update_check_weekly">Co tydzień</string>
+    <string name="about_update_check_never">Nigdy</string>
+    <string name="plugin_source_languages_title">Języki źródeł</string>
+    <string name="plugin_source_languages_description">Wybierz języki źródeł CloudStream. Źródła wielojęzyczne i bez określonego języka są zawsze uwzględniane.</string>
+    <string name="plugin_all_source_languages">Wszystkie języki</string>
+    <string name="plugin_dns_system">Systemowy DNS telewizora</string>
+    <string name="plugin_dns_choice">DNS CloudStream · %1$s</string>
+    <string name="plugin_dns_description">Wybierz serwer DNS dla żądań CloudStream. Naciśnij OK, aby zmienić.</string>
+    <string name="continue_watching_window_summary">Jak długi okres historii oglądania uwzględnić</string>
+    <string name="cw_choose_episode">Otwórz serial, aby wybrać odcinek</string>
 </resources>

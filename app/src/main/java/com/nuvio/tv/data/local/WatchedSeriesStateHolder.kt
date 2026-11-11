@@ -36,6 +36,7 @@ class WatchedSeriesStateHolder @Inject constructor(
         private const val FEATURE = "watched_series_cache"
         private val KEY = stringSetPreferencesKey("fully_watched_ids")
         private val REVALIDATE_KEY = stringPreferencesKey("revalidate_after")
+        private val VALIDATED_SEEDS_KEY = stringPreferencesKey("validated_next_up_seeds")
         private val VALIDATION_RESET_KEY = intPreferencesKey("validation_reset_version")
         private const val VALIDATION_RESET_VERSION = 1
         private const val DEFAULT_TTL_MS = 7L * 24 * 60 * 60 * 1000 // 7 days
@@ -49,6 +50,7 @@ class WatchedSeriesStateHolder @Inject constructor(
     /** Per-series revalidation deadline (contentId → epochMs when re-check is needed). */
     @Volatile
     private var revalidateAfterMap: Map<String, Long> = emptyMap()
+    @Volatile private var validatedSeeds: Map<String, String> = emptyMap()
     @Volatile
     private var loadedForProfileId: Int? = null
 
@@ -61,6 +63,9 @@ class WatchedSeriesStateHolder @Inject constructor(
         val prefs = store(profileId).data.first()
         val persisted = prefs[KEY] ?: emptySet()
         val resetVersion = prefs[VALIDATION_RESET_KEY] ?: 0
+        validatedSeeds = if (resetVersion < VALIDATION_RESET_VERSION) emptyMap() else runCatching {
+            gson.fromJson<Map<String, String>>(prefs[VALIDATED_SEEDS_KEY], object : TypeToken<Map<String, String>>() {}.type)
+        }.getOrNull().orEmpty()
         if (resetVersion < VALIDATION_RESET_VERSION) {
             revalidateAfterMap = emptyMap()
             store(profileId).edit { p ->
@@ -87,6 +92,7 @@ class WatchedSeriesStateHolder @Inject constructor(
     /** Clear in-memory state only — does NOT touch DataStore on disk. */
     fun clearInMemory() {
         _fullyWatchedSeriesIds.value = emptySet()
+        validatedSeeds = emptyMap()
         revalidateAfterMap = emptyMap()
     }
 
@@ -100,7 +106,8 @@ class WatchedSeriesStateHolder @Inject constructor(
         ids: Set<String>,
         validatedIds: Set<String>,
         revalidateAt: Map<String, Long> = emptyMap(),
-        profileId: Int = profileManager.activeProfileId.value
+        profileId: Int = profileManager.activeProfileId.value,
+        nextUpSeeds: Map<String, String> = emptyMap()
     ) {
         val idsChanged = _fullyWatchedSeriesIds.value != ids
         _fullyWatchedSeriesIds.value = ids
@@ -126,11 +133,15 @@ class WatchedSeriesStateHolder @Inject constructor(
         }
 
         revalidateAfterMap = updated
-        if (idsChanged || deadlinesChanged) {
+        val seeds = (validatedSeeds + nextUpSeeds).filterKeys(updated::containsKey)
+        val seedsChanged = seeds != validatedSeeds
+        validatedSeeds = seeds
+        if (idsChanged || deadlinesChanged || seedsChanged) {
             scope.launch {
                 store(profileId).edit { prefs ->
                     prefs[KEY] = ids
                     prefs[REVALIDATE_KEY] = gson.toJson(updated)
+                    prefs[VALIDATED_SEEDS_KEY] = gson.toJson(seeds)
                 }
             }
         }
@@ -147,6 +158,9 @@ class WatchedSeriesStateHolder @Inject constructor(
     /**
      * Returns true if the series has ever been validated (has an entry in the map).
      */
+    fun isSeedValidationFresh(contentId: String, seedKey: String): Boolean =
+        validatedSeeds[contentId] == seedKey && isSeriesValidationFresh(contentId)
+
     fun hasBeenValidated(contentId: String): Boolean {
         return contentId in revalidateAfterMap
     }
@@ -157,8 +171,9 @@ class WatchedSeriesStateHolder @Inject constructor(
      */
     fun clearValidationState(profileId: Int = profileManager.activeProfileId.value) {
         revalidateAfterMap = emptyMap()
+        validatedSeeds = emptyMap()
         scope.launch {
-            store(profileId).edit { prefs -> prefs.remove(REVALIDATE_KEY) }
+            store(profileId).edit { prefs -> prefs.remove(REVALIDATE_KEY); prefs.remove(VALIDATED_SEEDS_KEY) }
         }
     }
 

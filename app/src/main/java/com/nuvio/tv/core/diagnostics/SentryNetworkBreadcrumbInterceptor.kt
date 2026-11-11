@@ -8,7 +8,7 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
 
-class SentryNetworkBreadcrumbInterceptor : Interceptor {
+class SentryNetworkBreadcrumbInterceptor(private val hostOnly: Boolean = false) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         if (!Sentry.isEnabled()) return chain.proceed(request)
@@ -60,11 +60,11 @@ class SentryNetworkBreadcrumbInterceptor : Interceptor {
         breadcrumb.setCategory("http.client")
         breadcrumb.setLevel(levelFor(statusCode, error))
         breadcrumb.setData("host", url.host)
-        breadcrumb.setData("path", url.encodedPath)
+        if (!hostOnly) breadcrumb.setData("path", url.encodedPath)
         breadcrumb.setData("elapsed_ms", elapsedMs)
         if (error != null) {
             breadcrumb.setData("error_type", error.javaClass.name)
-            error.message?.let { breadcrumb.setData("error_message", it.take(240)) }
+            if (!hostOnly) error.message?.let { breadcrumb.setData("error_message", it.take(240)) }
         }
         Sentry.addBreadcrumb(breadcrumb)
     }
@@ -80,6 +80,7 @@ class SentryNetworkBreadcrumbInterceptor : Interceptor {
     }
 
     private fun scrubbedUrl(url: HttpUrl): String {
+        if (hostOnly) return url.redact()
         return url.newBuilder()
             .query(null)
             .fragment(null)

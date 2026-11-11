@@ -30,7 +30,9 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val now: Long,
         val replay: Boolean = false,
         val guideAssignments: Map<String, EpgAssignment> = emptyMap(),
-        val includeGuide: Boolean = true
+        val includeGuide: Boolean = true,
+        /** Already shifted current programmes from TV Now; no extra database scan is needed. */
+        val currentGuidePrograms: List<Pair<String, EpgProgram>> = emptyList()
     )
 
     class Result(val matches: Map<String, List<ChannelMatch>>, val summary: String)
@@ -129,6 +131,12 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val noStart = HashSet<String>()
         val events = input.events.mapNotNull { ev ->
             when {
+                // Long live fixtures keep their original kickoff for sorting, but match
+                // the current session (including Test days 2–5 and long snooker matches).
+                !input.replay && ev.state == GameState.LIVE && ev.startMs < input.now &&
+                    (ev.endMs == null || ev.endMs > input.now) &&
+                    longSessionSport(SportsCatalog.league(ev.leagueId)?.sport) ->
+                    ev.copy(startMs = input.now)
                 ev.hasTime -> ev
                 !multiDay(ev) -> null
                 // The feed's end date is the start of the last day (Sunday 00:00): the event runs through that day.
@@ -139,7 +147,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         }
         val wanted = events.filter { ev ->
             ev.state != GameState.OFF &&
-                ((input.replay && ev.startMs < input.now && byKey.isNotEmpty()) || ev.startMs in (input.now - 8 * HOUR)..(input.now + AHEAD_MS))
+                ((ev.source == EventSource.GUIDE && ev.guideHits.any { (_, p) -> input.now >= p.startMs && input.now < p.stopMs }) ||
+                    (input.replay && ev.startMs < input.now && byKey.isNotEmpty()) || ev.startMs in (input.now - 8 * HOUR)..(input.now + AHEAD_MS))
         }
         // A channel you picked yourself shows straight away, however far off the game is (the
         // search above only looks a couple of days ahead).
@@ -185,35 +194,43 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         }
 
         // ---- 1. The guide, a half-hour slot at a time.
-        if (input.includeGuide) teamEvents.groupBy { it.startMs / (30 * MINUTE) }.forEach { (_, slot) ->
+        if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) teamEvents.groupBy { it.startMs / (30 * MINUTE) }.forEach { (_, slot) ->
             checkpoint()
             val slotStart = slot.minOf { it.startMs }
             val slotEnd = slot.maxOf { it.startMs }
             val words = slot.flatMap { ev -> terms[ev.id]?.sqlWords.orEmpty() }.distinct()
             if (words.isEmpty()) return@forEach
-            val hits = runCatching {
+            val longLive = slot.any { it.state == GameState.LIVE && longSessionSport(SportsCatalog.league(it.leagueId)?.sport) }
+            val queried = if (!input.includeGuide) emptyList() else runCatching {
                 db.findByWords(
-                    fromMs = slotStart - 100 * MINUTE - input.shiftMs,
+                    fromMs = slotStart - (if (longLive) 30 * HOUR else 100 * MINUTE) - input.shiftMs,
                     toMs = slotEnd + 70 * MINUTE - input.shiftMs,
-                    minStopMs = slotStart + 10 * MINUTE - input.shiftMs,
+                    minStopMs = (if (longLive) input.now else slotStart + 10 * MINUTE) - input.shiftMs,
                     words = words
                 )
             }.getOrDefault(emptyList())
+            val hits = (queried.map { (key, p) -> key to if (input.shiftMs == 0L) p else
+                p.copy(startMs = p.startMs + input.shiftMs, stopMs = p.stopMs + input.shiftMs) } +
+                input.currentGuidePrograms.filter { (_, p) -> p.startMs <= input.now && p.stopMs > input.now })
+                .distinctBy { (key, p) -> key to p.startMs }
             if (hits.isEmpty()) return@forEach
             val prepared = hits.mapNotNull { (key, p0) ->
                 boundedCheckpoint()
                 val ch = byKey[key] ?: return@mapNotNull null
-                val p = if (input.shiftMs == 0L) p0 else p0.copy(startMs = p0.startMs + input.shiftMs, stopMs = p0.stopMs + input.shiftMs)
-                if (fillerOrLoop(ch, p)) return@mapNotNull null
+                val p = p0
+                if (fillerOrLoop(ch, p, allowLongSession = longLive)) return@mapNotNull null
                 // The guide's own label for studio shows and replays, when it has one.
                 val cat = norm(p.category.orEmpty())
                 if (hasWord(cat, "sports non event") || hasWord(cat, "classic sport event")) return@mapNotNull null
                 // Many guides put the match-up in the episode title ("MLB Baseball" / "Cubs at
                 // Cardinals"); it's the first line of the description here: read it with the title.
                 val desc = p.description.orEmpty()
+                val descStart = norm(desc).trim()
+                if (listOf("replay", "repeat", "a repeat of", "a replay of", "recorded coverage", "highlights", "condensed")
+                        .any { descStart == it || descStart.startsWith("$it ") }) return@mapNotNull null
                 val sub = if ('\n' in desc) desc.substringBefore('\n').takeIf { it.length <= 90 } else null
                 val nt = norm(p.title + (sub?.let { " $it" } ?: ""))
-                if (SportsCatalog.NOT_LIVE_WORDS.any { hasWord(nt, it) }) return@mapNotNull null
+                if (SportsCatalog.NOT_LIVE_WORDS.any { hasWord(nt, it) } || hasWord(nt, "recorded coverage")) return@mapNotNull null
                 Triple(key, p, nt to norm(desc))
             }
             val programmeSports = prepared.associate { (key, p, _) ->
@@ -229,7 +246,9 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     if (conflictingSports(eventSport, programmeSport) && !t.namesLeague(nt, "")) continue
                     // Disc golf shows never count for regular golf.
                     if (ev.id !in discIds && (hasWord(nt, "disc golf") || hasWord(nd, "disc golf"))) continue
-                    if (p.startMs > ev.startMs + 60 * MINUTE || p.stopMs < ev.startMs + 15 * MINUTE) continue
+                    val ongoing = ev.state == GameState.LIVE && p.startMs <= input.now && p.stopMs > input.now &&
+                        longSessionSport(eventSport) && p.stopMs - p.startMs <= 30 * HOUR
+                    if (!ongoing && (p.startMs > ev.startMs + 60 * MINUTE || p.stopMs < ev.startMs + 15 * MINUTE)) continue
                     var score = t.scoreText(nt, nd)
                     // No start time (a race weekend, a tournament): a show on now that names this
                     // event, or the competition when nothing else of its kind is on.
@@ -246,7 +265,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     }
                     if (score <= 0) continue
                     // Pre-game shows often start an hour early on the same channel; much earlier or later is less likely the game.
-                    if (p.startMs < ev.startMs - 80 * MINUTE || p.startMs > ev.startMs + 25 * MINUTE) score -= 10
+                    if (!ongoing && (p.startMs < ev.startMs - 80 * MINUTE || p.startMs > ev.startMs + 25 * MINUTE)) score -= 10
                     add(ev.id, key, score, "Guide: ${p.title}", p)
                 }
             }
@@ -436,6 +455,31 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         return if (state == event.state) event else event.copy(state = state)
     }
 
+    /** TV Now does not wait for a whole-day discovery or a guide import to complete. */
+    fun tvNowEvents(leagues: List<League>, followedWords: List<String>, channels: Map<String, LiveChannel>,
+        shiftMs: Long, now: Long, checkCancelled: () -> Unit = {}): List<SportsEvent> =
+        guideEvents(now, now + 1, leagues, followedWords, channels, shiftMs, now,
+            currentOnly = true, checkCancelled = checkCancelled)
+
+    class CurrentSnapshot(val airings: List<SportsEvent>, val fixturePrograms: List<Pair<String, EpgProgram>>)
+
+    /** Collect only fixture-name candidates while performing the existing current-programme read. */
+    fun tvNowSnapshot(leagues: List<League>, followedWords: List<String>, channels: Map<String, LiveChannel>,
+        shiftMs: Long, now: Long, fixtures: List<SportsEvent>, checkCancelled: () -> Unit = {}): CurrentSnapshot {
+        val words = fixtures.flatMap { termsFor(it).sqlWords }.filter { it.length >= 3 }.distinct()
+        val candidates = ArrayList<Pair<String, EpgProgram>>()
+        val airings = guideEvents(now, now + 1, leagues, followedWords, channels, shiftMs, now,
+            currentOnly = true, currentProgramme = { key, p ->
+                val title = if (words.isEmpty()) "" else p.title.lowercase(java.util.Locale.ROOT)
+                val description = if (words.isEmpty()) null else p.description?.lowercase(java.util.Locale.ROOT)
+                if (words.any { title.contains(it) || description?.contains(it) == true }) {
+                    candidates += key to if (shiftMs == 0L) p else
+                        p.copy(startMs = p.startMs + shiftMs, stopMs = p.stopMs + shiftMs)
+                }
+            }, checkCancelled = checkCancelled)
+        return CurrentSnapshot(airings, candidates)
+    }
+
     fun guideEvents(
         dayStart: Long,
         dayEnd: Long,
@@ -445,45 +489,54 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         shiftMs: Long,
         now: Long,
         cachedOnly: Boolean = false,
+        currentOnly: Boolean = false,
+        currentProgramme: ((String, EpgProgram) -> Unit)? = null,
         checkCancelled: () -> Unit = {}
     ): List<SportsEvent> {
         val scanKey = GuideScanKey(dayStart, dayEnd, db.fingerprint(), db.contentRevision(),
             channelDigest(channels),
             SportsGuideCache.digest(leagues.map { listOf(it.id, it.sport.name, it.liveByDefault.toString()) + it.guideWords }.flatten()),
             followedWords.toList(), shiftMs)
-        guideScans[dayStart]?.takeIf { it.key == scanKey }
+        if (!currentOnly) guideScans[dayStart]?.takeIf { it.key == scanKey }
             ?.let { return it.events.map { event -> guideState(event, now) } }
-        val diskKey = SportsGuideCache.digest(listOf("2", scanKey.start.toString(), scanKey.end.toString(),
+        val diskKey = SportsGuideCache.digest(listOf("3", scanKey.start.toString(), scanKey.end.toString(),
             scanKey.fingerprint.orEmpty(), scanKey.revision.orEmpty(), scanKey.channels, scanKey.leagues,
             scanKey.shift.toString()) + scanKey.words)
-        guideCacheDir?.let { dir -> SportsGuideCache.read(dir, dayStart, diskKey) }?.let { saved ->
+        if (!currentOnly) guideCacheDir?.let { dir -> SportsGuideCache.read(dir, dayStart, diskKey) }?.let { saved ->
             guideScans[dayStart] = GuideScan(scanKey, saved)
             return saved.map { guideState(it, now) }
         }
         if (cachedOnly) return emptyList()
         val leagueWords = leagues.flatMap { l -> l.guideWords.map { it to l } }
-        // Identify legacy competitions independently of visibility, as the taxonomy does.
+        // Recompute comparison text for each scan, keeping the original labels for display.
+        val followedLabels = scanKey.words.map { it to norm(it).trim() }
+        // Explicit provider aliases also identify programmes such as NBA replays when
+        // the curated taxonomy deliberately treats the abbreviation as contextual.
         val fallbackWords = (SportsCatalog.leagues + leagues).distinctBy { it.id }
-            .filter { l -> !l.id.startsWith("taxonomy/") && SportsTaxonomy.roots.none { SportsTaxonomy.sport(it.id) == l.sport } }
-            .flatMap { l -> l.guideWords.map { it to l } }
+            .filter { l -> !l.id.startsWith("taxonomy/") }
+            .flatMap { l -> l.guideWords.map { norm(it).trim() to l } }
         val hits = ArrayList<Pair<String, EpgProgram>>()
+        val classifiedLeagues = leagues.associateBy { SportsCompetitions.canonicalId(it.id) }
+        fun classifiedLeague(node: SportsTaxonomy.Node): League? =
+            classifiedLeagues[SportsCompetitions.canonicalId("taxonomy/" + node.id)]
         fun classify(p: EpgProgram): SportsTaxonomy.Node? {
             val key = p.title to p.description
             if (!classifiedText.containsKey(key)) classifiedText[key] = SportsTaxonomy.classifyProgramme(p.title, p.description)
             return classifiedText[key]
         }
         val allowedIds = leagues.mapTo(HashSet()) { it.id }
-        val otherWords = (leagueWords.filterNot { it.second.id.startsWith("taxonomy/") }.map { it.first } + followedWords)
-            .map { norm(it).trim() }.distinct()
+        val otherWords = (leagueWords.filterNot { it.second.id.startsWith("taxonomy/") }.map { norm(it.first).trim() } +
+            followedLabels.map { it.second }).distinct()
         val otherIndex = otherWords.groupBy { it.substringBefore(' ') }
         val includedText = com.nuvio.tv.livetv.data.boundedCache<Pair<String, String?>, Boolean>(8192)
         var visited = 0
-        db.visitPrograms(dayStart - shiftMs, dayEnd - shiftMs) { key, p ->
+        val collectProgramme: (String, EpgProgram) -> Unit = { key, p ->
             if (++visited % 256 == 0) checkCancelled()
             if (key in channels) {
+                currentProgramme?.invoke(key, p)
                 // Regional/quality feeds repeat the same programme text; classify it once per scan.
                 val included = includedText.getOrPut(p.title to p.description) {
-                    classify(p)?.let { "taxonomy/" + it.id in allowedIds } == true ||
+                    classify(p)?.let { classifiedLeague(it) != null } == true ||
                         (otherIndex.isNotEmpty() && norm(p.title + " " + p.description.orEmpty()).let { text ->
                             text.trim().split(' ').distinct().asSequence()
                                 .flatMap { otherIndex[it].orEmpty().asSequence() }.any { hasWord(text, it) }
@@ -492,6 +545,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 if (included) hits += key to p
             }
         }
+        if (currentOnly) db.visitCurrentPrograms(now - shiftMs, channels.keys, collectProgramme)
+        else db.visitPrograms(dayStart - shiftMs, dayEnd - shiftMs, collectProgramme)
         val groups = LinkedHashMap<String, MutableList<Pair<String, EpgProgram>>>()
         val meta = HashMap<String, Pair<League?, String?>>()
         val seen = HashSet<String>()
@@ -503,32 +558,41 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             val p = if (shiftMs == 0L) p0 else p0.copy(startMs = p0.startMs + shiftMs, stopMs = p0.stopMs + shiftMs)
             val nt = norm(p.title)
             val nd = norm(p.description.orEmpty())
-            if (SportsCatalog.NOT_LIVE_WORDS.any { hasWord(nt, it) }) continue
             val classified = classify(p)
-            val league = if (classified != null) leagues.firstOrNull { it.id == "taxonomy/" + classified.id }
-                else fallbackWords.filter { (w, _) ->
-                    hasWord(nt, norm(w).trim()) || hasWord(nd, norm(w).trim()) }
-                    .maxByOrNull { (_, l) ->
-                        // Explicit names beat generic aliases such as "Grand Prix".
-                        val names = listOf(l.name, l.short).map { norm(it).trim() }.filter { it.isNotEmpty() }
-                        when {
-                            names.any { hasWord(nt, it) } -> 2
-                            names.any { hasWord(nd, it) } -> 1
+            val league = if (classified != null) classifiedLeague(classified)
+                else fallbackWords.filter { (w, _) -> hasWord(nt, w) || hasWord(nd, w) }.let { candidates ->
+                    val titleHits = candidates.filter { (w, _) -> hasWord(nt, w) }.ifEmpty { candidates }
+                    fun strength(candidate: Pair<String, League>): Int {
+                        val (word, l) = candidate
+                        val name = norm(l.name).trim()
+                        val short = norm(l.short).trim()
+                        // A full competition name outranks generic "Grand Prix" or
+                        // "Championship" aliases from other sports.
+                        val named = when {
+                            name.isNotEmpty() && hasWord(nt, name) -> 20_000
+                            short.isNotEmpty() && hasWord(nt, short) -> 10_000
+                            name.isNotEmpty() && hasWord(nd, name) -> 2_000
+                            short.isNotEmpty() && hasWord(nd, short) -> 1_000
                             else -> 0
                         }
-                    }?.second?.takeIf { it.id in allowedIds }
-            // 24/7 and loop channels ("NETFLIX WWE", a movie channel called "… NXT"): not live sport.
-            if (fillerOrLoop(ch, p)) continue
+                        return named + word.split(' ').size * 100 + word.length
+                    }
+                    val strongest = titleHits.maxOfOrNull(::strength)
+                    val winners = titleHits.filter { strength(it) == strongest }
+                    // Equally strong shared phrases must not guess between sports.
+                    winners.takeIf { hits -> hits.map { it.second.sport }.distinct().size == 1 }
+                        ?.firstOrNull()?.second?.takeIf { it.id in allowedIds }
+                }
+            // Current TV airings include long replays and unconfirmed sessions. Fixture
+            // matching keeps its separate loop/live checks; these are not provider events.
+            if (!currentOnly && fillerOrLoop(ch, p)) continue
             // Wrestling words turn up in other shows' titles ("RuPaul's Drag Race - Lip Sync
             // Smackdown", "The Goldbergs - WrestleMania"): the title must start with the show's
             // name, or name the promotion (WWE, AEW, TNA).
             if (league?.sport == Sport.WRESTLING && !wrestlingTitle(cleanTitle(p.title), league)) continue
-            val saysLive = isLive(nt, nd)
-            // Wrestling's weekly shows are live without the guide saying so, but not on a channel
-            // named after the show or league (those run old shows all day).
-            if (!saysLive && (league?.liveByDefault != true || league.guideWords.any { hasWord(nameNorm(ch.name), norm(it).trim()) }) &&
-                !MATCHUP.containsMatchIn(" $nt $nd ")) continue
-            val word = followedWords.firstOrNull { w -> hasWord(nt, norm(w).trim()) || hasWord(nd, norm(w).trim()) }
+            // These are TV airings, including replays, highlights and unconfirmed coverage.
+            // All Events and live-fixture matching apply their separate source/live rules.
+            val word = followedLabels.firstOrNull { (_, w) -> hasWord(nt, w) || hasWord(nd, w) }?.first
             if (league == null && word == null) continue
             val clean = cleanTitle(p.title)
             val g = (league?.id ?: OTHER_ID) + "|" + norm(clean).trim() + "|" + (p.startMs / (15 * MINUTE))
@@ -561,7 +625,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         }
         checkCancelled()
         // Never persist a scan that overlapped a committed guide change.
-        if (db.fingerprint() == scanKey.fingerprint && db.contentRevision() == scanKey.revision) {
+        if (!currentOnly && db.fingerprint() == scanKey.fingerprint && db.contentRevision() == scanKey.revision) {
             guideScans[dayStart] = GuideScan(scanKey, result)
             guideCacheDir?.let { SportsGuideCache.write(it, dayStart, diskKey, result) }
         }
@@ -684,11 +748,23 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
     private val fillerChannels = com.nuvio.tv.livetv.data.boundedCache<List<String?>, Pair<Boolean, String>>(8192)
     private val fillerTitles = com.nuvio.tv.livetv.data.boundedCache<String, Pair<String, Boolean>>(8192)
 
-    private fun fillerOrLoop(ch: LiveChannel, p: EpgProgram): Boolean {
+    private fun fillerOrLoop(ch: LiveChannel, p: EpgProgram, allowLongSession: Boolean = false): Boolean {
         val channel = fillerChannels.getOrPut(listOf(ch.key, ch.name, ch.group, ch.groupId, ch.tvgName)) {
             com.nuvio.tv.livetv.data.LiveTvPosterResolver.is247(ch) to nameNorm(ch.name).trim()
         }
-        if (channel.first || p.stopMs - p.startMs >= 6 * HOUR) return true
+        if (channel.first) return true
+        if (p.stopMs - p.startMs >= 6 * HOUR) {
+            // Test cricket, bowls sessions and endurance races can be full-day broadcasts.
+            // A long slot alone is not a loop when the programme identifies real live sport.
+            val nt = norm(p.title)
+            val nd = norm(p.description.orEmpty())
+            val sport = SportsTaxonomy.classifyProgramme(p.title, p.description)?.sportId
+            val session = (allowLongSession || longSessionSport(sport?.let(SportsTaxonomy::sport)) ||
+                sport in setOf("lawn-bowls", "cornhole", "ten-pin-bowling")) &&
+                (isLive(nt, nd) || MATCHUP.containsMatchIn(nt + nd) ||
+                    sport in setOf("lawn-bowls", "cornhole", "ten-pin-bowling"))
+            if (!session || p.stopMs - p.startMs > 30 * HOUR) return true
+        }
         val (t, matchup) = fillerTitles.getOrPut(p.title) {
             nameNorm(cleanTitle(p.title)).trim() to MATCHUP.containsMatchIn(norm(p.title.replace("@", " at ")))
         }
@@ -733,22 +809,51 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
     }
 
     companion object {
+        private fun longSessionSport(sport: Sport?): Boolean = sport in setOf(
+            Sport.CRICKET, Sport.SNOOKER, Sport.TENNIS, Sport.GOLF, Sport.RACING, Sport.CYCLING,
+            Sport.BASEBALL, Sport.ATHLETICS, Sport.SWIMMING
+        )
+
         /** A quick pass must not erase verified guide results while the full refresh is pending. */
         internal fun keepGuideMatches(previous: Map<String, List<ChannelMatch>>, fresh: Map<String, List<ChannelMatch>>,
             retainedEvents: Set<String>, input: Input): Map<String, List<ChannelMatch>> {
-            val channels = input.channels.associateBy { it.key }
-            val retained = previous.filterKeys { it in retainedEvents }.mapValues { (eventId, matches) ->
-                val guide = matches.mapNotNull { match ->
-                    if (!match.sure) return@mapNotNull null
-                    val channel = channels[match.channel.key] ?: return@mapNotNull null
-                    val programme = match.program ?: return@mapNotNull null
-                    if ("$eventId|${channel.key}" in input.settings.blocked) return@mapNotNull null
-                    match.copy(channel = channel, catchup = CatchupUrlBuilder.isAvailable(channel.catchup, programme.startMs, input.now))
+            // Only index channels referenced by a retained guide match. For duplicate channel
+            // keys the last catalog entry wins, as in the original full-playlist index.
+            if (previous.keys.none { it in retainedEvents }) return fresh
+            val channels = HashMap<String, LiveChannel?>()
+            for ((eventId, matches) in previous) if (eventId in retainedEvents) {
+                for (match in matches) if (match.sure && match.program != null) channels[match.channel.key] = null
+            }
+            if (channels.isNotEmpty()) for (channel in input.channels) {
+                if (channels.containsKey(channel.key)) channels[channel.key] = channel
+            }
+            val rank = preferenceRank(input.settings)
+            val result = fresh.toMutableMap()
+            for ((eventId, matches) in previous) {
+                if (eventId !in retainedEvents) continue
+                val best = LinkedHashMap<String, ChannelMatch>()
+                fun keep(match: ChannelMatch) {
+                    val key = match.channel.key
+                    val existing = best[key]
+                    if (existing != null) {
+                        if (existing.score >= match.score) return
+                        // Stable ties follow the position of the winning entry.
+                        best.remove(key)
+                    }
+                    best[key] = match
                 }
-                sortMatches((fresh[eventId].orEmpty() + guide).sortedByDescending { it.score }
-                    .distinctBy { it.channel.key }, input.settings.bestChannelFirst, preferenceRank(input.settings)).limitSuggestions()
-            }.filterValues { it.isNotEmpty() }
-            return fresh + retained
+                fresh[eventId].orEmpty().forEach(::keep)
+                for (match in matches) {
+                    if (!match.sure) continue
+                    val programme = match.program ?: continue
+                    val channel = channels[match.channel.key] ?: continue
+                    if ("$eventId|${channel.key}" in input.settings.blocked) continue
+                    keep(match.copy(channel = channel, catchup = CatchupUrlBuilder.isAvailable(channel.catchup, programme.startMs, input.now)))
+                }
+                if (best.isNotEmpty()) result[eventId] =
+                    sortMatches(best.values.toList(), input.settings.bestChannelFirst, rank).limitSuggestions()
+            }
+            return result
         }
         private const val MINUTE = 60_000L
         private const val HOUR = 60 * MINUTE
@@ -950,7 +1055,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             // game isn't what most English speakers want first). Your own groups still come first.
             val myLanguage = java.util.Locale.getDefault().language.lowercase()
             // Sorting compares a channel repeatedly, often across many fixtures in one pass.
-            val ranks = HashMap<Pair<String, String>, Int>()
+            val ranks = com.nuvio.tv.livetv.data.boundedCache<Pair<String, String>, Int>(4096)
             return { ch -> ranks.getOrPut(ch.name to ch.group) {
                 when {
                     groups.isNotEmpty() && ch.group.lowercase().trim() in groups -> 2

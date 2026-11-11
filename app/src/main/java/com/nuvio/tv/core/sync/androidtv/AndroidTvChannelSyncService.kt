@@ -153,12 +153,7 @@ class AndroidTvChannelSyncService @Inject constructor(
         nextUp: List<CachedNextUpItem>,
         settings: ChannelSettingsSnapshot
     ): List<WatchProgress> {
-        val cutoffMs = if (settings.daysCap == TraktSettingsDataStore.CONTINUE_WATCHING_DAYS_CAP_ALL) {
-            null
-        } else {
-            val windowMs = settings.daysCap.toLong() * 24L * 60L * 60L * 1000L
-            System.currentTimeMillis() - windowMs
-        }
+        val cutoffMs = com.nuvio.tv.domain.model.continueWatchingCutoff(settings.daysCap, System.currentTimeMillis())
 
         // Filter in-progress items by days cap
         val filteredInProgress = inProgress
@@ -168,7 +163,7 @@ class AndroidTvChannelSyncService @Inject constructor(
         // respect days cap and dismissed keys
         val filteredNextUp = nextUp
             .filter { it.hasAired }  // Never show unaired in launcher — can't be played
-            .filter { cutoffMs == null || it.lastWatched >= cutoffMs }
+            .filter { cutoffMs == null || maxOf(it.lastWatched, it.latestSeriesActivity ?: 0L) >= cutoffMs }
             .filter { nextUpDismissKey(it) !in settings.dismissedNextUp }
 
         // Deduplicate: in-progress wins over next-up for same contentId

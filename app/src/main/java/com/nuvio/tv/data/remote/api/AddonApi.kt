@@ -21,6 +21,7 @@ interface AddonApi {
     suspend fun getMeta(@Url metaUrl: String): Response<MetaResponseDto>
 
     @GET
+    @retrofit2.http.Headers("Cache-Control: no-store")
     suspend fun getStreams(@Url streamUrl: String): Response<StreamResponseDto>
 
     @GET

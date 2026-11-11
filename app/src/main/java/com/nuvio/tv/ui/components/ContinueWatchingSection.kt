@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.nuvio.tv.R
@@ -479,15 +480,12 @@ fun ContinueWatchingCard(
 
     val progress = remember(item) { (item as? ContinueWatchingItem.InProgress)?.progress }
     val nextUp = remember(item) { (item as? ContinueWatchingItem.NextUp)?.info }
-    val cardContext = LocalContext.current
-    val episodeStr = remember(item, progress, nextUp, cardContext) {
-        val season = (item as? ContinueWatchingItem.InProgress)?.displaySeason ?: nextUp?.displaySeason ?: progress?.season ?: nextUp?.season
-        val episode = (item as? ContinueWatchingItem.InProgress)?.displayEpisode ?: nextUp?.displayEpisode ?: progress?.episode ?: nextUp?.episode
-        if (season != null && episode != null) {
-            cardContext.getString(R.string.season_episode_format, season, episode)
-        } else {
-            null
-        }
+    val season = (item as? ContinueWatchingItem.InProgress)?.displaySeason ?: nextUp?.displaySeason ?: progress?.season ?: nextUp?.season
+    val episode = (item as? ContinueWatchingItem.InProgress)?.displayEpisode ?: nextUp?.displayEpisode ?: progress?.episode ?: nextUp?.episode
+    val episodeStr = when {
+        item.chooseEpisode -> stringResource(R.string.cw_choose_episode)
+        season != null && episode != null -> stringResource(R.string.season_episode_format, season, episode)
+        else -> null
     }
     val strUpcoming = stringResource(R.string.cw_upcoming)
     val strNextUp = stringResource(R.string.cw_next_up)
@@ -507,6 +505,7 @@ fun ContinueWatchingCard(
         if (info.isReleaseAlert) {
             if (info.isNewSeasonRelease) strNewSeason else effectiveNewEpisodeLabel
         } else if (!info.hasAired) {
+            val cardContext = LocalContext.current
             val airDateText = if (useShortLabels) {
                 computeAirDateBadgeTextShort(cardContext, info.released, info.airDateLabel)
             } else {

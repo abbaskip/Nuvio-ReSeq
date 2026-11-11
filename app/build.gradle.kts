@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -135,8 +135,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10037
-        versionName = "0.1.0-beta.8.3"
+        versionCode = 10043
+        versionName = "0.1.0-beta.9.5"
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")
@@ -197,16 +197,6 @@ android {
             buildConfigField("boolean", "FEATURE_EXTERNAL_TRAILERS_ENABLED", "true")
             buildConfigField("boolean", "FEATURE_EXTERNAL_PLAYBACK_KEEP_ALIVE_ENABLED", "true")
             buildConfigField("boolean", "FEATURE_CUSTOM_SERVER_CONNECTIONS_ENABLED", "true")
-        }
-        create("playstore") {
-            dimension = "distribution"
-            applicationId = "io.github.abbaskip.nuvioreseq.playstore"
-            buildConfigField("boolean", "FEATURE_PLUGINS_ENABLED", "false")
-            buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "false")
-            buildConfigField("boolean", "FEATURE_IN_APP_TRAILERS_ENABLED", "false")
-            buildConfigField("boolean", "FEATURE_EXTERNAL_TRAILERS_ENABLED", "true")
-            buildConfigField("boolean", "FEATURE_EXTERNAL_PLAYBACK_KEEP_ALIVE_ENABLED", "false")
-            buildConfigField("boolean", "FEATURE_CUSTOM_SERVER_CONNECTIONS_ENABLED", "false")
         }
     }
 
@@ -319,7 +309,7 @@ android {
     bundle {
         language {
             // Keep all string resources in the
-            // base install so Play Store installs can switch languages at runtime.
+            // base install so bundle installs can switch languages at runtime.
             // https://developer.android.com/guide/app-bundle/configure-base
             enableSplit = false
         }
@@ -341,6 +331,13 @@ android {
     }
 
     sourceSets {
+        // Accessible only to the shell on the dedicated profile producer and benchmark APKs.
+        for (profileBuild in listOf("fullNonMinifiedRelease", "fullBenchmarkRelease")) {
+            maybeCreate(profileBuild).apply {
+                java.srcDir("src/profileFixtures/java")
+                manifest.srcFile("src/profileFixtures/AndroidManifest.xml")
+            }
+        }
         getByName("main") {
             jniLibs.srcDirs("src/main/jniLibs")
         }
@@ -370,8 +367,7 @@ android {
 
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
-        val isPlaystore = variant.productFlavors.any { it.second == "playstore" }
-        variant.applicationId.set(if (isPlaystore) "io.github.abbaskip.nuvioreseq.playstore.debug" else "io.github.abbaskip.nuvioreseq.iptvdebug")
+        variant.applicationId.set("io.github.abbaskip.nuvioreseq.iptvdebug")
     }
     // Only the full flavor ships the in-app updater.
     onVariants(selector().withFlavor("distribution" to "full")) { variant ->
@@ -588,6 +584,9 @@ dependencies {
     add("fullImplementation", libs.crypto.js)
     // QR code + local server for addon management
     implementation(libs.nanohttpd)
+    implementation("com.google.re2j:re2j:1.8")
+    // Decode bounded 7z metadata. Video payloads stay on the seekable NNTP path.
+    implementation("org.tukaani:xz:1.10")
     implementation(libs.zxing.core)
 
 

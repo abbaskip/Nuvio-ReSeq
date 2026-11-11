@@ -298,7 +298,8 @@ internal fun ModernHomeRowsList(
                         event.key == Key.DirectionUp &&
                         effectiveExpandEnabled &&
                         expandedCatalogFocusKey.value != null &&
-                        activeRowKey.value == firstRowKey
+                        activeRowKey.value == firstRowKey &&
+                        !com.nuvio.tv.livetv.home.LiveTvHomeReveal.available.value
                     ) return@onPreviewKeyEvent true
                     if (event.type == KeyEventType.KeyDown &&
                         event.key == Key.DirectionDown &&

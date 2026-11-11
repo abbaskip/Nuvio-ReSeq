@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "hold": false,
-  "reason": "Maintainer confirmed the signed Onn beta works and explicitly requested public publication of beta 7.7 on 5 November 2026.",
-  "clear_when": "The maintainer explicitly requests publication of the planned combined beta.",
-  "release": "v0.1.0-beta.7.7",
-  "accepted_source": "84675344e68b5f760741db53dcb7d66878aa83ab",
-  "evidence": "docs/BETA_7_7_PROMOTION.md"
+  "reason": "Maintainer explicitly requested bbd76cd54 plus the Continue Watching, crash, TV Now and cricket fixes be merged and published as beta 9.4 as soon as validation is complete on 10 November 2026. Withdrawn beta 9.3 remains a draft.",
+  "clear_when": "Publication is authorized after the standard exact-commit validation and compatibility gates pass.",
+  "release": "v0.1.0-beta.9.4",
+  "accepted_source": "bbd76cd549daeaeeb2280fe7adde730eb8593678",
+  "evidence": "releases/0.1.0-beta.9.4.md"
 }

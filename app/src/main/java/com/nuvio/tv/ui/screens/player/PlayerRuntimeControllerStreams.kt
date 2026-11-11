@@ -5,6 +5,8 @@ import com.nuvio.tv.domain.model.displaySeason
 import com.nuvio.tv.domain.model.episodeSequenceComparator
 import com.nuvio.tv.domain.model.hasResolvedSource
 
+import com.nuvio.tv.core.usenet.UsenetFailure
+import com.nuvio.tv.core.usenet.UsenetPlayback
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -328,6 +330,7 @@ private fun mergeSourceStreams(cached: List<Stream>, fresh: List<Stream>): List<
 
 private fun Stream.mergeKey(): String =
     infoHash?.lowercase()?.let { hash -> "$addonName|$hash:${fileIdx ?: ""}" }
+        ?: usenet?.let { "$addonName|${it.identity}|${fileIdx ?: ""}" }
         ?: "$addonName|${getStreamUrl() ?: externalUrl ?: ytId ?: "${name}:${title}"}"
 
 private fun PlayerRuntimeController.launchSourceDebridPreparationIfNeeded(
@@ -780,6 +783,30 @@ private fun PlayerRuntimeController.persistTorrentStreamForReuse(stream: Stream)
     }
 }
 
+private fun PlayerRuntimeController.prepareUsenetStream(stream: Stream, fromEpisodePanel: Boolean, target: Video? = null, play: (Stream) -> Unit) {
+    debridResolveJob?.cancel()
+    _uiState.update {
+        if (fromEpisodePanel) it.copy(isLoadingEpisodeStreams = true, episodeStreamsError = null)
+        else it.copy(isLoadingSourceStreams = true, sourceStreamsError = null)
+    }
+    usenetPrepareJob = scope.launch {
+        try {
+            val state = _uiState.value
+            val resolved = if (fromEpisodePanel) UsenetPlayback.resolve(stream,
+                target?.id ?: state.episodeStreamsForVideoId, target?.season ?: state.episodeStreamsSeason,
+                target?.episode ?: state.episodeStreamsEpisode)
+            else UsenetPlayback.resolve(stream, currentVideoId, currentSeason, currentEpisode)
+            usenetPrepareJob = null
+            play(resolved)
+        } catch (error: UsenetFailure) {
+            _uiState.update {
+                if (fromEpisodePanel) it.copy(isLoadingEpisodeStreams = false, episodeStreamsError = error.message)
+                else it.copy(isLoadingSourceStreams = false, sourceStreamsError = error.message)
+            }
+        }
+    }
+}
+
 private fun PlayerRuntimeController.openExternalStreamInBrowser(
     stream: Stream,
     fromEpisodePanel: Boolean
@@ -842,6 +869,8 @@ internal fun PlayerRuntimeController.switchToSourceStream(
     sourceStreamsScope = null
     sourceStreamsJob = null
     streamRepository.setLocalPluginSearchPaused(true)
+    usenetPrepareJob?.cancel()
+    usenetPrepareJob = null
     if (openExternalStreamInBrowser(stream = stream, fromEpisodePanel = false)) {
         return
     }
@@ -858,6 +887,11 @@ internal fun PlayerRuntimeController.switchToSourceStream(
                 _uiState.update { it.copy(isLoadingSourceStreams = false) }
             }
         }
+        return
+    }
+
+    if (stream.usenet != null) {
+        prepareUsenetStream(stream, fromEpisodePanel = false) { switchToSourceStream(it) }
         return
     }
 
@@ -1232,7 +1266,11 @@ internal fun PlayerRuntimeController.loadStreamsForEpisode(
     val newScope = kotlinx.coroutines.CoroutineScope(scope.coroutineContext + kotlinx.coroutines.SupervisorJob())
     episodeStreamsScope = newScope
     episodeStreamsJob = newScope.launch {
-        val playerSettings = if (manualSelection) null else playerSettingsDataStore.playerSettings.first()
+        val playerSettings = when {
+            manualSelection -> null
+            hasObservedPlayerSettings -> currentPlayerSettingsForReport
+            else -> playerSettingsDataStore.playerSettings.first()
+        }
         val autoPlaySettings = playerSettings?.takeIf { it.streamAutoPlayMode != StreamAutoPlayMode.MANUAL }
         if (autoPlaySettings != null && com.nuvio.tv.core.player.TieredStreamAutoPlay.isEnabled(autoPlaySettings)) {
             nextEpisodeAutoPlayJob?.cancel()
@@ -1507,6 +1545,8 @@ internal fun PlayerRuntimeController.switchToEpisodeStream(
     forcedTargetVideo: Video? = null,
     isAutoPlay: Boolean = false
 ) {
+    usenetPrepareJob?.cancel()
+    usenetPrepareJob = null
     if (openExternalStreamInBrowser(stream = stream, fromEpisodePanel = true)) {
         return
     }
@@ -1523,6 +1563,11 @@ internal fun PlayerRuntimeController.switchToEpisodeStream(
                 _uiState.update { it.copy(isLoadingEpisodeStreams = false) }
             }
         }
+        return
+    }
+
+    if (stream.usenet != null) {
+        prepareUsenetStream(stream, fromEpisodePanel = true, target = forcedTargetVideo) { switchToEpisodeStream(it, forcedTargetVideo, isAutoPlay) }
         return
     }
 
@@ -1980,7 +2025,11 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean) {
     nextEpisodeAutoPlayJob = scope.launch {
         try {
             streamRepository.setLocalPluginSearchPaused(false)
-            val playerSettings = playerSettingsDataStore.playerSettings.first()
+            val playerSettings = if (hasObservedPlayerSettings) {
+                currentPlayerSettingsForReport
+            } else {
+                playerSettingsDataStore.playerSettings.first()
+            }
             val nextSelection = com.nuvio.tv.core.player.StreamAutoPlayPolicy.nextEpisodeSelection(playerSettings)
             val bingeGroupOnlyManualMode = nextSelection.bingeGroupOnly
             if (!nextSelection.automatic) {

@@ -61,6 +61,10 @@ class EpisodeShuffle @Inject constructor() {
     }
 
     @Synchronized
+    fun homeSelection(profileId: Int, contentId: String, includeWatched: Boolean): Video? =
+        sessions[Key(profileId, contentId, ShuffleSurface.HOME, includeWatched)]?.selected
+
+    @Synchronized
     fun clearSelection(profileId: Int, contentId: String, surface: ShuffleSurface) {
         sessions.filterKeys {
             it.profileId == profileId && it.contentId == contentId && it.surface == surface

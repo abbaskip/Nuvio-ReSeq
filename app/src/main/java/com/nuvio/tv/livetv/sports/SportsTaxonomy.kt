@@ -143,6 +143,7 @@ internal object SportsTaxonomy {
         "billiards-cue-sports" -> Sport.SNOOKER
         "gymnastics" -> Sport.GYMNASTICS
         "cycling" -> Sport.CYCLING
+        "motorsport" -> Sport.RACING
         else -> Sport.OTHER
     }
     // Retain the donor dashboard's additional sports without requiring a new taxonomy for them.
@@ -164,7 +165,8 @@ internal object SportsTaxonomy {
             else -> null
         } ?: return false
         val candidate = SportsCatalog.league(candidateId) ?: return false
-        if (parent.parentId == null) return candidate.sport == sport(parent.sportId)
+        if (parent.parentId == null && sport(parent.sportId) != Sport.OTHER)
+            return candidate.sport == sport(parent.sportId)
         var node = byId[candidateId.removePrefix("taxonomy/")]
             ?: classify(candidate.name, candidate.guideWords.joinToString(" "))
         while (node != null) {
@@ -184,7 +186,10 @@ internal object SportsTaxonomy {
         if (excluded.isEmpty()) return true
         if ("legacy/" + league.sport.name in excluded) return false
         if (league.id.startsWith("taxonomy/")) return enabled(league.id.removePrefix("taxonomy/"), excluded)
-        val root = roots.firstOrNull { sport(it.id) == league.sport } ?: return true
+        val classified = classify(league.name, league.guideWords.joinToString(" "))
+        val root = if (league.sport == Sport.OTHER) classified?.sportId?.let(byId::get)
+            else roots.firstOrNull { sport(it.id) == league.sport }
+        if (root == null) return true
         if (!enabled(root.id, excluded)) return false
         val matched = classify(league.name, league.guideWords.joinToString(" ") + " " + league.sport.label)
         return matched == null || enabled(matched.id, excluded)

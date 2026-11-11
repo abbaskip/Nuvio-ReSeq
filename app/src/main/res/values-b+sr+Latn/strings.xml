@@ -3166,4 +3166,28 @@
     <string name="stream_test_video_bitrate">Prosečni video bitrejt: %1$s</string>
     <string name="stream_test_error_connection">Povezivanje nije uspelo. Veza poslednje puštenog strima je možda istekla ili je nedostupna. Pustite video ponovo i pokušajte opet.</string>
 
+    <string name="playback_release_decoder_on_background">Oslobodi dekoder u pozadini</string>
+    <string name="playback_release_decoder_on_background_sub">Oslobađa video-dekoder kada Nuvio pređe u pozadinu. Uključite ako se nakon povratka javi greška dekodera. Plejer se ponovo učitava pri povratku, čak i nakon čuvara ekrana.</string>
+    <string name="layout_hero_description_auto_scroll">Automatsko pomeranje opisa</string>
+    <string name="layout_hero_description_auto_scroll_sub">Polako pomera duge opise na početnom ekranu umesto da ih skrati.</string>
+    <string name="autosync_toast_no_fit">Sinhronizacija nije uspela: titlovi ne odgovaraju ovoj verziji snimka.</string>
+    <string name="usenet_opening">Otvaranje videa sa Useneta…</string>
+    <string name="plugin_extension_settings_failed">Proširenje nije moglo da otvori podešavanja.</string>
+    <string name="tmdb_collection_auth_error">TMDB je odbio zahtev. Proverite API ključ profila u Podešavanja → Integracije → TMDB.</string>
+    <string name="about_update_check_frequency">Učestalost provere ažuriranja</string>
+    <string name="about_update_check_frequency_summary">Izaberite koliko često Nuvio traži novu verziju.</string>
+    <string name="about_update_check_always">Uvek</string>
+    <string name="about_update_check_daily">Svakodnevno</string>
+    <string name="about_update_check_two_days">2 dana</string>
+    <string name="about_update_check_three_days">3 dana</string>
+    <string name="about_update_check_weekly">Nedeljno</string>
+    <string name="about_update_check_never">Nikad</string>
+    <string name="plugin_source_languages_title">Jezici izvora</string>
+    <string name="plugin_source_languages_description">Izaberite jezike izvora CloudStream. Višejezični izvori i izvori bez navedenog jezika uvek su uključeni.</string>
+    <string name="plugin_all_source_languages">Svi jezici</string>
+    <string name="plugin_dns_system">Sistemski DNS televizora</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">Izaberite DNS za zahteve CloudStream. Pritisnite OK za promenu.</string>
+    <string name="continue_watching_window_summary">Koliki period istorije gledanja se uzima u obzir</string>
+    <string name="cw_choose_episode">Otvori seriju da izabereš epizodu</string>
 </resources>

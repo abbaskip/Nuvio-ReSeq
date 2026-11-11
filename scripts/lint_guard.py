@@ -41,6 +41,9 @@ def findings(report, project):
         raise ValueError("Not an Android lint report")
     result = {}
     ignored_local = 0
+    source_lines = {}
+    source_owners = {}
+    relative_paths = {}
     for issue in xml.findall("issue"):
         severity = issue.get("severity")
         if severity not in LEVEL:
@@ -48,11 +51,14 @@ def findings(report, project):
         locations = issue.findall("location")
         paths = []
         for location in locations:
-            source = Path(location.get("file", ""))
-            if not source.is_absolute(): source = project / source
-            try: relative = source.resolve().relative_to(project).as_posix()
-            except ValueError: relative = "<external>/" + source.name
-            paths.append(relative)
+            raw_path = location.get("file", "")
+            if raw_path not in relative_paths:
+                source = Path(raw_path)
+                if not source.is_absolute(): source = project / source
+                try: relative = source.resolve().relative_to(project).as_posix()
+                except ValueError: relative = "<external>/" + source.name
+                relative_paths[raw_path] = relative
+            paths.append(relative_paths[raw_path])
         if paths and paths[0] not in tracked and not paths[0].startswith("<external>/"):
             # Ignored local.properties/generated files are not released source.
             # A clean committed tree is required by the caller, so untracked app
@@ -65,12 +71,20 @@ def findings(report, project):
         context = []
         owner = ""
         if paths and paths[0] in tracked:
-            lines = (project / paths[0]).read_text(encoding="utf-8-sig", errors="replace").splitlines()
+            if paths[0] not in source_lines:
+                source_lines[paths[0]] = (project / paths[0]).read_text(encoding="utf-8-sig", errors="replace").splitlines()
+                owners = []
+                declaration = ""
+                for line in source_lines[paths[0]]:
+                    match = DECLARATION.search(line)
+                    if match: declaration = match.group(0).strip()
+                    owners.append(declaration)
+                source_owners[paths[0]] = owners
+            lines = source_lines[paths[0]]
             index = int(locations[0].get("line", "1")) - 1
             context = [line.strip() for line in lines[max(0, index-2):index+3]]
-            declarations = [m.group(0).strip() for line in lines[:index+1]
-                            for m in [DECLARATION.search(line)] if m]
-            owner = declarations[-1] if declarations else ""
+            if lines and index >= 0:
+                owner = source_owners[paths[0]][min(index, len(lines) - 1)]
         kind = issue.get("id", "")
         translations = re.findall(r'"([^"]+)"', message) if kind == "MissingTranslation" else []
         if translations:
@@ -226,6 +240,10 @@ def main():
     parser.add_argument("--release-tag")
     parser.add_argument("--summary", type=Path)
     parser.add_argument("--previous-ref")
+    parser.add_argument("--require-ratchet", action="store_true",
+                        help="Check the committed budget is already ratcheted without modifying it")
+    parser.add_argument("--ratchet-proposal", type=Path,
+                        help="Write a reviewable reduced budget outside the tracked baseline")
     parser.add_argument("--released-report", type=Path,
                         help="Opt-in verified external version-advisory comparison; complete warnings remain visible")
     args = parser.parse_args()
@@ -251,6 +269,10 @@ def main():
             current, advice = verified_version_advice(current, baseline, args.report, args.released_report)
         verdict = compare(current, baseline)
         if args.action == "ratchet": write(args.baseline, ratchet(current, baseline))
+        if args.ratchet_proposal and verdict["passed"]:
+            write(args.ratchet_proposal, ratchet(current, baseline))
+        if args.require_ratchet and verdict["passed"] and ratchet(current, baseline) != baseline:
+            raise ValueError("Retire resolved lint allowances with lint_guard.py ratchet and commit the result")
     verdict["ignored_non_source_findings"] = ignored
     if advice: verdict["external_version_advice"] = advice
     if args.summary: write(args.summary, verdict)

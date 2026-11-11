@@ -8,10 +8,11 @@ import io.sentry.SentryEvent
 import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
@@ -24,12 +25,16 @@ object SentryInitializer {
     @Volatile private var started = false
     @Volatile private var active = false
 
-    fun start(application: Application, settings: SentrySettingsDataStore) {
-        if (started) return
+    /** Read the authoritative opt-in while Hilt initializes the application. */
+    fun preload(application: Application): Deferred<Boolean>? {
+        if (BuildConfig.SENTRY_DSN.isBlank()) return null
+        return scope.async { SentrySettingsDataStore(application).isEnabled() }
+    }
+
+    fun start(application: Application, settings: SentrySettingsDataStore, initial: Deferred<Boolean>?) {
+        if (started || initial == null) return
         started = true
-        val initialEnabled = runBlocking(Dispatchers.IO) {
-            settings.enabled.first()
-        }
+        val initialEnabled = runBlocking { initial.await() }
         applyEnabled(application, initialEnabled)
         scope.launch {
             settings.enabled.distinctUntilChanged().collect { enabled ->

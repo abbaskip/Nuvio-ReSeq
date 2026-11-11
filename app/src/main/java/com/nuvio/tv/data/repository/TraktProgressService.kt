@@ -72,6 +72,17 @@ import kotlin.math.abs
 import javax.inject.Inject
 import javax.inject.Singleton
 
+internal fun traktRefreshEvents(signals: Flow<Unit>, intervalMs: () -> Long): Flow<Unit> {
+    val ticks = flow {
+        while (true) {
+            delay(intervalMs())
+            // Player close already requests a refresh. Leave scrobble and manual signals live.
+            if (!com.nuvio.tv.core.player.PlayerSessionTracker.hasOpenSession) emit(Unit)
+        }
+    }
+    return merge(ticks, signals).onStart { emit(Unit) }
+}
+
 @Singleton
 @OptIn(ExperimentalCoroutinesApi::class)
 class TraktProgressService @Inject constructor(
@@ -190,6 +201,9 @@ class TraktProgressService @Inject constructor(
     private val metadataMutex = Mutex()
     private val watchedMoviesMutex = Mutex()
     private val watchedShowSeedsMutex = Mutex()
+    // Compact projections of the last complete watched-shows response. No episode-history
+    // response is retained just to switch the Home preference.
+    private var seedChoices: Map<Boolean, List<WatchProgress>> = emptyMap()
     private val episodeProgressMutex = Mutex()
     private val inFlightMetadataKeys = mutableSetOf<String>()
     private val inFlightEpisodeProgressKeys = mutableSetOf<String>()
@@ -289,6 +303,13 @@ class TraktProgressService @Inject constructor(
             }
         }
         scope.launch {
+            layoutPreferenceDataStore.nextUpFromFurthestEpisode.collect { mode ->
+                watchedShowSeedsMutex.withLock {
+                    if (!watchedShowSeedsStale) seedChoices[mode]?.let { watchedShowSeedsState.value = it }
+                }
+            }
+        }
+        scope.launch {
             refreshEvents().collectLatest {
                 val success = try {
                     refreshRemoteSnapshot()
@@ -353,6 +374,8 @@ class TraktProgressService @Inject constructor(
             // No-op lock boundary for watched-movie fetch state reset above.
         }
         watchedShowSeedsMutex.withLock {
+            seedChoices = emptyMap()
+            watchedShowSeedsState.value = emptyList()
             // No-op lock boundary for watched-show fetch state reset above.
         }
         episodeProgressMutex.withLock {
@@ -1024,16 +1047,7 @@ class TraktProgressService @Inject constructor(
         refreshNow()
     }
 
-    private fun refreshTicker(): Flow<Unit> = flow {
-        while (true) {
-            delay(refreshIntervalMs)
-            emit(Unit)
-        }
-    }
-
-    private fun refreshEvents(): Flow<Unit> {
-        return merge(refreshTicker(), refreshSignals).onStart { emit(Unit) }
-    }
+    private fun refreshEvents() = traktRefreshEvents(refreshSignals) { refreshIntervalMs }
 
     private fun updateRefreshBackoff(success: Boolean) {
         if (success) {
@@ -1075,9 +1089,7 @@ class TraktProgressService @Inject constructor(
         val shouldRefresh = activityRefreshPending ||
             (activityChanged == null && !hasLoadedRemoteProgress.value)
         val progressRecheckDue = !force && progressRecheckAtMs in 1..now
-        if (!force && !shouldRefresh && !progressRecheckDue) {
-            return
-        }
+        if (!force && !shouldRefresh && !progressRecheckDue) return
         // With last_activities read, the stale flags say which watched lists changed.
         // Only refetch both when it could not be read.
         val refetchWatched = force && activityChanged == null
@@ -1409,11 +1421,6 @@ class TraktProgressService @Inject constructor(
                 return@withLock watchedShowSeedsState.value
             }
 
-            val useFurthestEpisode = layoutPreferenceDataStore.nextUpFromFurthestEpisode.first()
-            val watchedShowSeeds = items
-                .mapNotNull { mapWatchedShowSeed(it, useFurthestEpisode) }
-                .sortedByDescending { it.lastWatched }
-
             // Build per-show watched episodes map from the same response.
             // Store under ALL available IDs (IMDB, TMDB, Trakt) so badge evaluation
             // matches regardless of which ID the catalog or addon uses.
@@ -1450,16 +1457,19 @@ class TraktProgressService @Inject constructor(
             // BUT ONLY for ambiguous IDs (anthology shows where one IMDB ID maps to
             // multiple Trakt entries). Non-ambiguous shows must keep their IMDB ID
             // so that deduplication against local in-progress items works correctly.
-            val fixedWatchedShowSeeds = watchedShowSeeds.map { seed ->
-                if (seed.contentId.startsWith("tt") && seed.contentId in ambiguousIds) {
-                    val siblings = siblingsMap[seed.contentId]
-                    val tmdbSibling = siblings?.firstOrNull { it.startsWith("tmdb:") }
-                    if (tmdbSibling != null) {
-                        seed.copy(contentId = tmdbSibling)
-                    } else {
-                        seed
-                    }
-                } else seed
+            val pairs = items.mapNotNull(::mapWatchedShowSeeds)
+            val choices = listOf(false, true).associateWith { furthest ->
+                pairs.map { if (furthest) it.second else it.first }.sortedByDescending { it.lastWatched }.map { seed ->
+                    if (seed.contentId.startsWith("tt") && seed.contentId in ambiguousIds) {
+                        val siblings = siblingsMap[seed.contentId]
+                        val tmdbSibling = siblings?.firstOrNull { it.startsWith("tmdb:") }
+                        if (tmdbSibling != null) {
+                            seed.copy(contentId = tmdbSibling)
+                        } else {
+                            seed
+                        }
+                    } else seed
+                }
             }
 
             // Second pass: build episodes map and ID lookup, excluding ambiguous IDs
@@ -1502,6 +1512,8 @@ class TraktProgressService @Inject constructor(
             showIdToTraktPathId = idLookup
             showIdSiblingsMap = siblingsMap
 
+            seedChoices = choices
+            val fixedWatchedShowSeeds = choices.getValue(layoutPreferenceDataStore.nextUpFromFurthestEpisode.first())
             watchedShowSeedsState.value = fixedWatchedShowSeeds
             watchedShowSeedsUpdatedAtMs = System.currentTimeMillis()
             hasLoadedWatchedShowSeeds = true
@@ -1579,67 +1591,52 @@ class TraktProgressService @Inject constructor(
         return items
     }
 
-    private fun mapWatchedShowSeed(item: TraktWatchedShowItemDto, useFurthestEpisode: Boolean): WatchProgress? {
+    private fun mapWatchedShowSeeds(item: TraktWatchedShowItemDto): Pair<WatchProgress, WatchProgress>? {
         val show = item.show ?: return null
         val contentId = normalizeContentId(show.ids)
         if (contentId.isBlank()) return null
-
-        val furthestEpisode = item.seasons.orEmpty()
-            .asSequence()
-            .filter { season -> (season.number ?: 0) > 0 }
-            .flatMap { season ->
-                val seasonNumber = season.number ?: return@flatMap emptySequence()
-                season.episodes.orEmpty()
-                    .asSequence()
-                    .filter { episode -> (episode.number ?: 0) > 0 && (episode.plays ?: 1) > 0 }
-                    .mapNotNull { episode ->
-                        val episodeNumber = episode.number ?: return@mapNotNull null
-                        Triple(
-                            seasonNumber,
-                            episodeNumber,
-                            parseIsoToMillis(episode.lastWatchedAt)
-                        )
-                    }
+        var latest: Triple<Int, Int, Long>? = null
+        var furthest: Triple<Int, Int, Long>? = null
+        val byTime = compareBy<Triple<Int, Int, Long>>({ it.third }, { it.first }, { it.second })
+        val byNumber = compareBy<Triple<Int, Int, Long>>({ it.first }, { it.second }, { it.third })
+        for (season in item.seasons.orEmpty()) {
+            val number = season.number?.takeIf { it > 0 } ?: continue
+            for (episode in season.episodes.orEmpty()) {
+                val ep = episode.number?.takeIf { it > 0 } ?: continue
+                if ((episode.plays ?: 1) <= 0) continue
+                val candidate = Triple(number, ep, parseIsoToMillis(episode.lastWatchedAt))
+                if (latest == null || byTime.compare(candidate, latest) > 0) latest = candidate
+                if (furthest == null || byNumber.compare(candidate, furthest) > 0) furthest = candidate
             }
-            .maxWithOrNull(
-                if (useFurthestEpisode) {
-                    compareBy<Triple<Int, Int, Long>>(
-                        { it.first },
-                        { it.second },
-                        { it.third }
-                    )
-                } else {
-                    compareBy<Triple<Int, Int, Long>>(
-                        { it.third },
-                        { it.first },
-                        { it.second }
-                    )
-                }
-            ) ?: return null
-
-        val season = furthestEpisode.first
-        val episode = furthestEpisode.second
-        val lastWatched = furthestEpisode.third.takeIf { it > 0L }
-            ?: parseIsoToMillis(item.lastWatchedAt)
-
-        return WatchProgress(
-            contentId = contentId,
-            contentType = "series",
-            name = show.title ?: contentId,
-            poster = null,
-            backdrop = null,
-            logo = null,
-            videoId = buildLightweightEpisodeVideoId(contentId, season, episode),
-            season = season,
-            episode = episode,
-            episodeTitle = null,
-            position = 1L,
-            duration = 1L,
-            lastWatched = lastWatched,
-            progressPercent = 100f,
-            source = WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS,
-            traktShowId = show.ids?.trakt
-        )
+        }
+        val recent = latest ?: return null
+        val highest = furthest ?: return null
+        val showTime = parseIsoToMillis(item.lastWatchedAt)
+        fun seed(pick: Triple<Int, Int, Long>): WatchProgress {
+            val (season, episode, time) = pick
+            val lastWatched = time.takeIf { it > 0L } ?: showTime
+            return WatchProgress(
+                contentId = contentId,
+                contentType = "series",
+                name = show.title ?: contentId,
+                poster = null,
+                backdrop = null,
+                logo = null,
+                videoId = buildLightweightEpisodeVideoId(contentId, season, episode),
+                season = season,
+                episode = episode,
+                episodeTitle = null,
+                position = 1L,
+                duration = 1L,
+                lastWatched = lastWatched,
+                latestSeriesActivity = maxOf(recent.third, showTime),
+                progressPercent = 100f,
+                source = WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS,
+                traktShowId = show.ids?.trakt
+            )
+        }
+        val latestSeed = seed(recent)
+        return latestSeed to if (recent == highest) latestSeed else seed(highest)
     }
 
     private fun updateWatchedShowSeedOptimistically(progress: WatchProgress) {

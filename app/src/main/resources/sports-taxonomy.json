@@ -11102,6 +11102,954 @@
           ]
         }
       ]
+    },
+    {
+      "id": "motorsport",
+      "display": "Motorsport",
+      "synonyms": [
+        {
+          "term": "Motorsport",
+          "match": "standalone"
+        },
+        {
+          "term": "Motor Sport",
+          "match": "standalone"
+        },
+        {
+          "term": "Motor Racing",
+          "match": "standalone"
+        }
+      ],
+      "categories": [
+        {
+          "id": "motorsport.championships",
+          "display": "Championships",
+          "synonyms": [],
+          "subcategories": [
+            {
+              "id": "motorsport.championships.4489",
+              "display": "Supercars",
+              "synonyms": [
+                {
+                  "term": "Supercars",
+                  "match": "standalone"
+                },
+                {
+                  "term": "V8 Supercars",
+                  "match": "standalone"
+                },
+                {
+                  "term": "Supercars Championship",
+                  "match": "standalone"
+                },
+                {
+                  "term": "Repco Supercars Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4486",
+              "display": "Formula 2",
+              "synonyms": [
+                {
+                  "term": "Formula 2",
+                  "match": "standalone"
+                },
+                {
+                  "term": "FIA Formula 2",
+                  "match": "standalone"
+                },
+                {
+                  "term": "F2",
+                  "match": "standalone"
+                },
+                {
+                  "term": "GP2",
+                  "match": "standalone"
+                },
+                {
+                  "term": "Formula Two",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4487",
+              "display": "Formula 3",
+              "synonyms": [
+                {
+                  "term": "Formula 3",
+                  "match": "standalone"
+                },
+                {
+                  "term": "FIA Formula 3",
+                  "match": "standalone"
+                },
+                {
+                  "term": "F3",
+                  "match": "standalone"
+                },
+                {
+                  "term": "Formula Three",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4370",
+              "display": "Formula 1",
+              "synonyms": [
+                {
+                  "term": "Formula 1",
+                  "match": "standalone"
+                },
+                {
+                  "term": "F1",
+                  "match": "standalone"
+                },
+                {
+                  "term": "Formula One",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4371",
+              "display": "Formula E",
+              "synonyms": [
+                {
+                  "term": "Formula E",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4372",
+              "display": "BTCC",
+              "synonyms": [
+                {
+                  "term": "BTCC",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4373",
+              "display": "IndyCar Series",
+              "synonyms": [
+                {
+                  "term": "IndyCar Series",
+                  "match": "standalone"
+                },
+                {
+                  "term": "IndyCar",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4393",
+              "display": "NASCAR Cup Series",
+              "synonyms": [
+                {
+                  "term": "NASCAR Cup Series",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4407",
+              "display": "MotoGP",
+              "synonyms": [
+                {
+                  "term": "MotoGP",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4409",
+              "display": "WRC",
+              "synonyms": [
+                {
+                  "term": "WRC",
+                  "match": "standalone"
+                },
+                {
+                  "term": "World Rally Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4410",
+              "display": "British GT Championship",
+              "synonyms": [
+                {
+                  "term": "British GT Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4412",
+              "display": "Super GT Series",
+              "synonyms": [
+                {
+                  "term": "Super GT Series",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4413",
+              "display": "WEC",
+              "synonyms": [
+                {
+                  "term": "WEC",
+                  "match": "standalone"
+                },
+                {
+                  "term": "World Endurance Championship",
+                  "match": "standalone"
+                },
+                {
+                  "term": "24 Hours of Le Mans",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4436",
+              "display": "Moto2",
+              "synonyms": [
+                {
+                  "term": "Moto2",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4437",
+              "display": "Moto3",
+              "synonyms": [
+                {
+                  "term": "Moto3",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4438",
+              "display": "DTM",
+              "synonyms": [
+                {
+                  "term": "DTM",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4439",
+              "display": "GT Series Endurance Cup",
+              "synonyms": [
+                {
+                  "term": "GT Series Endurance Cup",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4440",
+              "display": "GT World Challenge Europe Sprint Cup",
+              "synonyms": [
+                {
+                  "term": "GT World Challenge Europe Sprint Cup",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4447",
+              "display": "Dakar Rally",
+              "synonyms": [
+                {
+                  "term": "Dakar Rally",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4454",
+              "display": "World Superbikes",
+              "synonyms": [
+                {
+                  "term": "World Superbikes",
+                  "match": "standalone"
+                },
+                {
+                  "term": "SBK",
+                  "match": "contextual"
+                },
+                {
+                  "term": "WorldSBK",
+                  "match": "standalone"
+                },
+                {
+                  "term": "Superbike World Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4488",
+              "display": "IMSA SportsCar Championship",
+              "synonyms": [
+                {
+                  "term": "IMSA SportsCar Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4573",
+              "display": "NASCAR O'Reilly Auto Parts Series",
+              "synonyms": [
+                {
+                  "term": "NASCAR O'Reilly Auto Parts Series",
+                  "match": "standalone"
+                },
+                {
+                  "term": "NASCAR Xfinity",
+                  "match": "standalone"
+                },
+                {
+                  "term": "NASCAR O Reilly Series",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4587",
+              "display": "MXGP",
+              "synonyms": [
+                {
+                  "term": "MXGP",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4730",
+              "display": "World Rallycross Championship",
+              "synonyms": [
+                {
+                  "term": "World Rallycross Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4732",
+              "display": "Isle of Man TT",
+              "synonyms": [
+                {
+                  "term": "Isle of Man TT",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4869",
+              "display": "IMSA Pilot Challenge",
+              "synonyms": [
+                {
+                  "term": "IMSA Pilot Challenge",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4871",
+              "display": "Lamborghini Super Trofeo North America",
+              "synonyms": [
+                {
+                  "term": "Lamborghini Super Trofeo North America",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.4872",
+              "display": "Ferrari Challenge North America",
+              "synonyms": [
+                {
+                  "term": "Ferrari Challenge North America",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5093",
+              "display": "NASCAR Truck Series",
+              "synonyms": [
+                {
+                  "term": "NASCAR Truck Series",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5094",
+              "display": "NASCAR ARCA Series",
+              "synonyms": [
+                {
+                  "term": "NASCAR ARCA Series",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5264",
+              "display": "British Superbike Championship",
+              "synonyms": [
+                {
+                  "term": "British Superbike Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5309",
+              "display": "NHRA Drag Racing",
+              "synonyms": [
+                {
+                  "term": "NHRA Drag Racing",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5382",
+              "display": "F1 Academy",
+              "synonyms": [
+                {
+                  "term": "F1 Academy",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5412",
+              "display": "SuperMotocross World Championship",
+              "synonyms": [
+                {
+                  "term": "SuperMotocross World Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5491",
+              "display": "FIM Endurance World Championship",
+              "synonyms": [
+                {
+                  "term": "FIM Endurance World Championship",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5600",
+              "display": "British Speedway Premiership",
+              "synonyms": [
+                {
+                  "term": "British Speedway Premiership",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5750",
+              "display": "Goodwood Festival of Speed",
+              "synonyms": [
+                {
+                  "term": "Goodwood Festival of Speed",
+                  "match": "standalone"
+                }
+              ]
+            },
+            {
+              "id": "motorsport.championships.5873",
+              "display": "WorldSSP",
+              "synonyms": [
+                {
+                  "term": "WorldSSP",
+                  "match": "standalone"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "esports",
+      "display": "Esports",
+      "synonyms": [
+        {
+          "term": "Esports",
+          "match": "standalone"
+        },
+        {
+          "term": "E Sports",
+          "match": "standalone"
+        },
+        {
+          "term": "ESL Pro League",
+          "match": "standalone"
+        },
+        {
+          "term": "Blast Premier",
+          "match": "standalone"
+        },
+        {
+          "term": "League of Legends",
+          "match": "standalone"
+        },
+        {
+          "term": "Call of Duty League",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "handball",
+      "display": "Handball",
+      "synonyms": [
+        {
+          "term": "Handball",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "field-hockey",
+      "display": "Field Hockey",
+      "synonyms": [
+        {
+          "term": "Field Hockey",
+          "match": "standalone"
+        },
+        {
+          "term": "FIH Pro League",
+          "match": "standalone"
+        },
+        {
+          "term": "Euro Hockey League",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "badminton",
+      "display": "Badminton",
+      "synonyms": [
+        {
+          "term": "Badminton",
+          "match": "standalone"
+        },
+        {
+          "term": "BWF World Tour",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "climbing",
+      "display": "Climbing",
+      "synonyms": [
+        {
+          "term": "Sport Climbing",
+          "match": "standalone"
+        },
+        {
+          "term": "IFSC Climbing",
+          "match": "standalone"
+        },
+        {
+          "term": "Climbing World Cup",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "equestrian",
+      "display": "Equestrian",
+      "synonyms": [
+        {
+          "term": "Equestrian",
+          "match": "standalone"
+        },
+        {
+          "term": "Show Jumping",
+          "match": "standalone"
+        },
+        {
+          "term": "Dressage",
+          "match": "standalone"
+        },
+        {
+          "term": "FEI World Cup",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "shooting",
+      "display": "Shooting",
+      "synonyms": [
+        {
+          "term": "Sport Shooting",
+          "match": "standalone"
+        },
+        {
+          "term": "ISSF World Cup",
+          "match": "standalone"
+        },
+        {
+          "term": "Clay Target Shooting",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "extreme-sports",
+      "display": "Extreme Sports",
+      "synonyms": [
+        {
+          "term": "Extreme Sports",
+          "match": "standalone"
+        },
+        {
+          "term": "X Games",
+          "match": "standalone"
+        },
+        {
+          "term": "Skateboarding",
+          "match": "standalone"
+        },
+        {
+          "term": "BMX",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "table-tennis",
+      "display": "Table Tennis",
+      "synonyms": [
+        {
+          "term": "Table Tennis",
+          "match": "standalone"
+        },
+        {
+          "term": "Ping Pong",
+          "match": "standalone"
+        },
+        {
+          "term": "WTT Champions",
+          "match": "standalone"
+        },
+        {
+          "term": "WTT Finals",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "multi-sports",
+      "display": "Multi Sports",
+      "synonyms": [
+        {
+          "term": "Olympic Games",
+          "match": "standalone"
+        },
+        {
+          "term": "Commonwealth Games",
+          "match": "standalone"
+        },
+        {
+          "term": "Asian Games",
+          "match": "standalone"
+        },
+        {
+          "term": "World Games",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "watersports",
+      "display": "Watersports",
+      "synonyms": [
+        {
+          "term": "Watersports",
+          "match": "standalone"
+        },
+        {
+          "term": "Water Sports",
+          "match": "standalone"
+        },
+        {
+          "term": "Surfing",
+          "match": "standalone"
+        },
+        {
+          "term": "Sailing",
+          "match": "standalone"
+        },
+        {
+          "term": "Rowing",
+          "match": "standalone"
+        },
+        {
+          "term": "Canoeing",
+          "match": "standalone"
+        },
+        {
+          "term": "Kayaking",
+          "match": "standalone"
+        },
+        {
+          "term": "Water Polo",
+          "match": "standalone"
+        },
+        {
+          "term": "Diving",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "weightlifting",
+      "display": "Weightlifting",
+      "synonyms": [
+        {
+          "term": "Weightlifting",
+          "match": "standalone"
+        },
+        {
+          "term": "Powerlifting",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "skiing",
+      "display": "Skiing",
+      "synonyms": [
+        {
+          "term": "Skiing",
+          "match": "standalone"
+        },
+        {
+          "term": "Alpine Ski",
+          "match": "standalone"
+        },
+        {
+          "term": "Ski Jumping",
+          "match": "standalone"
+        },
+        {
+          "term": "Nordic Combined",
+          "match": "standalone"
+        },
+        {
+          "term": "Freeski",
+          "match": "standalone"
+        },
+        {
+          "term": "Ski Cross",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "skating",
+      "display": "Skating",
+      "synonyms": [
+        {
+          "term": "Figure Skating",
+          "match": "standalone"
+        },
+        {
+          "term": "Speed Skating",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "wintersports",
+      "display": "Winter Sports",
+      "synonyms": [
+        {
+          "term": "Winter Sports",
+          "match": "standalone"
+        },
+        {
+          "term": "Wintersports",
+          "match": "standalone"
+        },
+        {
+          "term": "Biathlon",
+          "match": "standalone"
+        },
+        {
+          "term": "Bobsleigh",
+          "match": "standalone"
+        },
+        {
+          "term": "Luge",
+          "match": "standalone"
+        },
+        {
+          "term": "Skeleton",
+          "match": "standalone"
+        },
+        {
+          "term": "Curling",
+          "match": "standalone"
+        },
+        {
+          "term": "Snowboarding",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "gambling",
+      "display": "Poker",
+      "synonyms": [
+        {
+          "term": "Poker",
+          "match": "standalone"
+        },
+        {
+          "term": "World Series of Poker",
+          "match": "standalone"
+        },
+        {
+          "term": "World Poker Tour",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "lawn-bowls",
+      "display": "Lawn Bowls",
+      "synonyms": [
+        {
+          "term": "Lawn Bowls",
+          "match": "standalone"
+        },
+        {
+          "term": "Lawn Bowling",
+          "match": "standalone"
+        },
+        {
+          "term": "Bowls Premier League",
+          "match": "standalone"
+        },
+        {
+          "term": "World Bowls",
+          "match": "standalone"
+        },
+        {
+          "term": "Indoor Bowls",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "cornhole",
+      "display": "Cornhole",
+      "synonyms": [
+        {
+          "term": "Cornhole",
+          "match": "standalone"
+        },
+        {
+          "term": "Corn Hole",
+          "match": "standalone"
+        },
+        {
+          "term": "American Cornhole League",
+          "match": "standalone"
+        },
+        {
+          "term": "American Cornhole Organization",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
+    },
+    {
+      "id": "ten-pin-bowling",
+      "display": "Ten Pin Bowling",
+      "synonyms": [
+        {
+          "term": "Ten Pin Bowling",
+          "match": "standalone"
+        },
+        {
+          "term": "Tenpin Bowling",
+          "match": "standalone"
+        },
+        {
+          "term": "Ten Pin",
+          "match": "standalone"
+        },
+        {
+          "term": "Tenpin",
+          "match": "standalone"
+        },
+        {
+          "term": "PBA Bowling",
+          "match": "standalone"
+        },
+        {
+          "term": "Professional Bowlers Association",
+          "match": "standalone"
+        },
+        {
+          "term": "World Bowling",
+          "match": "standalone"
+        },
+        {
+          "term": "Bowling",
+          "match": "standalone"
+        }
+      ],
+      "categories": []
     }
   ]
 }

@@ -1,5 +1,7 @@
 package com.nuvio.tv.livetv.ui
 
+import androidx.compose.ui.platform.testTag
+
 import com.nuvio.tv.livetv.data.LiveTvRepository
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -1210,6 +1212,7 @@ fun LiveTvGuideScreen(
                             .weight(1f)
                             .fillMaxWidth()
                             .padding(end = 24.dp, bottom = 12.dp)
+                            .testTag("live_tv_channel_grid")
                             .focusRequester(gridFocus)
                             .focusRequester(contentFocus)
                             .onFocusChanged {
@@ -3684,12 +3687,17 @@ private fun EpgPanelButton(
 
 private const val EPG_PICKER_LIMIT = 300
 
+private val epgRegionPrefix = Regex("""^[a-z]{2,3}\s*[:|]\s*""")
+private val epgBracketed = Regex("""\[.*?]|\(.*?\)""")
+private val epgQuality = Regex("""\b(fhd|uhd|hd|sd|4k|8k|hevc|h265|h264|1080p|720p|backup|raw)\b""")
+private val epgCountrySuffix = Regex("""(\.(com|co|net|tv))?\.[a-z]{2}$""")
+
 /** A name or guide id reduced for comparing: "BR: Globo SP FHD" and "GloboSP.br" -> "globosp". */
 private fun epgKey(s: String): String = s.lowercase().trim()
-    .replace(Regex("""^[a-z]{2,3}\s*[:|]\s*"""), "")
-    .replace(Regex("""\[.*?]|\(.*?\)"""), " ")
-    .replace(Regex("""\b(fhd|uhd|hd|sd|4k|8k|hevc|h265|h264|1080p|720p|backup|raw)\b"""), " ")
-    .replace(Regex("""(\.(com|co|net|tv))?\.[a-z]{2}$"""), "")
+    .replace(epgRegionPrefix, "")
+    .replace(epgBracketed, " ")
+    .replace(epgQuality, " ")
+    .replace(epgCountrySuffix, "")
     .filter { it.isLetterOrDigit() }
 
 /** The guide channel whose name or id is closest to the playlist channel's, or null if none is close. */
@@ -3721,20 +3729,27 @@ private fun epgSearchSeed(name: String): String =
         .trim()
 
 /** Every word of the query must appear in one of the channel's names or its id. */
-private fun filterEpgChannels(
+internal fun filterEpgChannels(
     channels: List<com.nuvio.tv.livetv.model.EpgChannelEntry>,
     query: String
 ): List<com.nuvio.tv.livetv.model.EpgChannelEntry> {
     val words = query.lowercase().split(Regex("""\s+""")).filter { it.isNotBlank() }
     if (words.isEmpty()) return channels.take(EPG_PICKER_LIMIT)
-    val scored = channels.mapNotNull { c ->
-        val haystack = (c.names + c.id).joinToString(" ").lowercase()
-        if (words.all { it in haystack }) {
-            val exact = c.names.any { it.equals(query.trim(), ignoreCase = true) }
-            c to if (exact) 0 else 1
-        } else null
+    val exact = ArrayList<com.nuvio.tv.livetv.model.EpgChannelEntry>()
+    val partial = ArrayList<com.nuvio.tv.livetv.model.EpgChannelEntry>()
+    val title = query.trim()
+    for (channel in channels) {
+        val haystack = (channel.names + channel.id).joinToString(" ").lowercase()
+        if (words.any { it !in haystack }) continue
+        if (channel.names.any { it.equals(title, ignoreCase = true) }) {
+            exact.add(channel)
+            if (exact.size == EPG_PICKER_LIMIT) break
+        } else if (partial.size < EPG_PICKER_LIMIT - exact.size) {
+            partial.add(channel)
+        }
     }
-    return scored.sortedBy { it.second }.map { it.first }.take(EPG_PICKER_LIMIT)
+    exact.addAll(partial.take(EPG_PICKER_LIMIT - exact.size))
+    return exact
 }
 
 private data class TextPrompt(

@@ -305,6 +305,21 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         }
     }
 
+    /** Stream committed current listings, including full-day sports sessions, during guide imports. */
+    fun visitCurrentPrograms(atMs: Long, channels: Collection<String>, visit: (String, EpgProgram) -> Unit) {
+        channels.distinct().chunked(400).forEach { part ->
+            val sql = "SELECT ch, start, stop, title, descr, cat FROM programs WHERE ch IN (" +
+                part.joinToString(",") { "?" } + ") AND start >= ? AND start <= ? AND stop > ?"
+            val args = part + listOf((atMs - 30L * 60 * 60_000).toString(), atMs.toString(), atMs.toString())
+            readableDatabase.rawQuery(sql, args.toTypedArray()).use { c ->
+                while (c.moveToNext()) visit(c.getString(0), EpgProgram(
+                    startMs = c.getLong(1), stopMs = c.getLong(2), title = c.getString(3),
+                    description = if (c.isNull(4)) null else c.getString(4),
+                    category = if (c.isNull(5)) null else c.getString(5)))
+            }
+        }
+    }
+
     fun findByWords(
         fromMs: Long,
         toMs: Long,

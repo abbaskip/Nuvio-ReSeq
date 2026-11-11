@@ -13,8 +13,10 @@ import urllib.request
 
 DAY = 86_400_000
 SCHEMA = 1
-SEEDS = ["4416", "4415", "4461", "5806", "5282"]
-DISCOVERY = ["Rugby", "Cricket", "Soccer", "Basketball", "American Football", "Baseball", "Ice Hockey", "Swimming", "Athletics", "Snooker", "Gymnastics", "Cycling", "Fighting", "Tennis", "Golf"]
+COVERAGE = json.loads((Path(__file__).resolve().parents[2] / "app/src/main/resources/sports-provider-coverage.json").read_text(encoding="utf-8"))
+PRIORITY_SEEDS = ["4489", "4486", "4487"]
+SEEDS = list(dict.fromkeys(PRIORITY_SEEDS + ["4416", "4415", "4461", "5806", "5282"] + [row["id"] for row in COVERAGE["leagues"]]))
+DISCOVERY = [row["name"] for row in COVERAGE["sports"]]
 
 
 def catalogue(source):
@@ -105,7 +107,7 @@ def trim_espn(event):
     result = keep(event, ("id", "date", "endDate", "name", "shortName", "status", "week"))
     comps = []
     for comp in event.get("competitions", []):
-        c = keep(comp, ("id", "date", "status", "broadcasts", "geoBroadcasts", "notes", "venue", "situation", "type"))
+        c = keep(comp, ("id", "date", "endDate", "description", "status", "broadcasts", "geoBroadcasts", "notes", "venue", "situation", "type"))
         competitors = []
         for side in comp.get("competitors", []):
             s = keep(side, ("id", "homeAway", "score", "winner", "records", "linescores", "order"))
@@ -136,7 +138,9 @@ def rows(payload, *keys):
 def build(leagues, fetcher, now, days_back=7, days_ahead=14, only=None, previous=None):
     today = dt.datetime.fromtimestamp(now / 1000, dt.timezone.utc).date()
     entries = []
-    metadata = {str(row["idLeague"]): row for row in (previous or {}).get("metadata", {}).get("leagues", []) if row.get("idLeague")}
+    metadata = {row["id"]: {"idLeague": row["id"], "strLeague": row["name"], "strSport": "Motorsport",
+                           "strLeagueAlternate": ", ".join(row["aliases"])} for row in COVERAGE["leagues"]}
+    metadata.update({str(row["idLeague"]): row for row in (previous or {}).get("metadata", {}).get("leagues", []) if row.get("idLeague")})
     selected = set(only or [])
     previous_entries = {(e["provider"], e["leagueId"]): e for e in (previous or {}).get("entries", [])}
     for league in leagues:
@@ -188,6 +192,13 @@ def build(leagues, fetcher, now, days_back=7, days_ahead=14, only=None, previous
                 entries.append(previous_entries[("calendar", league["id"])])
     ids = set(SEEDS if not selected else [value.removeprefix("tsdb/") for value in selected if value.startswith("tsdb/")])
     if not selected:
+        # A partial discovery response must not erase leagues discovered on a previous run.
+        ids.update(metadata)
+    # Fetch the requested schedules before broad discovery can exhaust the shared
+    # provider quota. Keep these responses even when a subsequent request is limited.
+    primed = {ident: fetcher.get(tsdb_url("eventsnextleague.php", id=ident), 6 * 3_600_000)
+              for ident in PRIORITY_SEEDS if ident in ids}
+    if not selected:
         for sport in DISCOVERY:
             saved = fetcher.get(tsdb_url("search_all_leagues.php", s=sport), DAY)
             if saved:
@@ -195,7 +206,8 @@ def build(leagues, fetcher, now, days_back=7, days_ahead=14, only=None, previous
                     if str(row.get("idLeague", "")).isdigit():
                         metadata[row["idLeague"]] = row
                         ids.add(row["idLeague"])
-    for ident in sorted(ids, key=lambda ident: (ident not in SEEDS, ident)):
+    seed_order = {ident: index for index, ident in enumerate(SEEDS)}
+    for ident in sorted(ids, key=lambda ident: (seed_order.get(ident, len(SEEDS)), ident)):
         saved = fetcher.get(tsdb_url("lookupleague.php", id=ident), DAY)
         if saved:
             for row in rows(saved["payload"], "leagues", "countries"):
@@ -204,7 +216,8 @@ def build(leagues, fetcher, now, days_back=7, days_ahead=14, only=None, previous
         parts = []
         for endpoint, params in [("eventsnextleague.php", {"id": ident}), ("eventspastleague.php", {"id": ident}),
                                  ("eventsday.php", {"d": today.isoformat(), "l": ident})]:
-            saved = fetcher.get(tsdb_url(endpoint, **params), 6 * 3_600_000)
+            saved = primed[ident] if endpoint == "eventsnextleague.php" and ident in primed else \
+                fetcher.get(tsdb_url(endpoint, **params), 6 * 3_600_000)
             if saved:
                 parts.append(saved)
         if parts:
@@ -226,7 +239,10 @@ def build(leagues, fetcher, now, days_back=7, days_ahead=14, only=None, previous
         raise ValueError("No valid source responses; existing output must remain untouched")
     return {"schemaVersion": SCHEMA, "generatedAt": published_at, "windowStart": str(today - dt.timedelta(days=days_back)),
             "windowEnd": str(today + dt.timedelta(days=days_ahead)), "sources": ["ESPN", "TheSportsDB", "sporting-events.org"],
-            "metadata": {"leagues": [strip_artwork(row) for row in metadata.values()]}, "entries": entries}
+            # These are the only metadata fields consumed by FreeSportsDb.leagues.
+            # Omit unused descriptions, histories and social fields to preserve feed headroom.
+            "metadata": {"leagues": [{key: row[key] for key in ("idLeague", "strLeague", "strSport", "strLeagueAlternate") if key in row}
+                                     for row in metadata.values()]}, "entries": entries}
 
 
 def strip_artwork(row):

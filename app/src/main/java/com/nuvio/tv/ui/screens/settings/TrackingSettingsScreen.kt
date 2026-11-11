@@ -382,7 +382,7 @@ fun TrackingSettingsContent(
         }
         SettingsSingleChoiceDialog(
             title = stringResource(R.string.trakt_cw_window_title),
-            subtitle = stringResource(R.string.trakt_cw_window_subtitle),
+            subtitle = stringResource(R.string.continue_watching_window_summary),
             options = options.map { days ->
                 SettingsPickerOption(days, continueWatchingWindowLabel(days))
             },
@@ -498,7 +498,6 @@ internal fun TrackingSettingsOverview(
     val simklPresentation = simklConnectionPresentation(simklState)
     val mdbListPresentation = mdbListConnectionPresentation(mdbListState)
     val traktConnected = traktState.mode == TraktConnectionMode.CONNECTED
-    val traktProgressActive = trackingState.watchProgressSource == WatchProgressSource.TRAKT
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -585,6 +584,16 @@ internal fun TrackingSettingsOverview(
                                 .focusRequester(watchProgressFocusRequester)
                                 .testTag(TrackingSettingsTestTags.WATCH_PROGRESS_SOURCE)
                         )
+                        SettingsActionRow(
+                            title = stringResource(R.string.trakt_continue_watching_window),
+                            subtitle = stringResource(R.string.continue_watching_window_summary),
+                            value = continueWatchingWindowLabel(traktState.continueWatchingDaysCap),
+                            enabled = true,
+                            onClick = onContinueWatchingWindowClick,
+                            modifier = Modifier
+                                .focusRequester(continueWatchingFocusRequester)
+                                .testTag(TrackingSettingsTestTags.CONTINUE_WATCHING)
+                        )
                         if (traktConnected || simklState.mode == SimklConnectionMode.CONNECTED) {
                             SettingsActionRow(
                                 title = stringResource(R.string.trakt_more_like_this_source_title),
@@ -605,20 +614,6 @@ internal fun TrackingSettingsOverview(
                             title = stringResource(R.string.tracking_trakt_features_title),
                             subtitle = stringResource(R.string.tracking_trakt_features_subtitle)
                         ) {
-                            SettingsActionRow(
-                                title = stringResource(R.string.trakt_continue_watching_window),
-                                subtitle = if (!traktProgressActive) {
-                                    stringResource(R.string.tracking_trakt_progress_required)
-                                } else {
-                                    stringResource(R.string.trakt_continue_watching_subtitle)
-                                },
-                                value = continueWatchingWindowLabel(traktState.continueWatchingDaysCap),
-                                enabled = traktProgressActive,
-                                onClick = onContinueWatchingWindowClick,
-                                modifier = Modifier
-                                    .focusRequester(continueWatchingFocusRequester)
-                                    .testTag(TrackingSettingsTestTags.CONTINUE_WATCHING)
-                            )
                             SettingsToggleRow(
                                 title = stringResource(R.string.trakt_comments_title),
                                 subtitle = stringResource(R.string.trakt_comments_subtitle),

@@ -33,15 +33,10 @@ internal class FreeSportsDb {
     }
 
     companion object {
-        val discoverySports = mapOf(
-            Sport.RUGBY to listOf("Rugby"), Sport.RUGBY_LEAGUE to listOf("Rugby"), Sport.CRICKET to listOf("Cricket"),
-            Sport.FOOTBALL to listOf("Soccer"), Sport.BASKETBALL to listOf("Basketball"), Sport.AMERICAN_FOOTBALL to listOf("American Football"),
-            Sport.BASEBALL to listOf("Baseball"), Sport.HOCKEY to listOf("Ice Hockey"), Sport.SWIMMING to listOf("Swimming"),
-            Sport.ATHLETICS to listOf("Athletics"), Sport.SNOOKER to listOf("Snooker", "Pool", "Billiards"), Sport.GYMNASTICS to listOf("Gymnastics"),
-            Sport.CYCLING to listOf("Cycling"), Sport.FIGHTING to listOf("Fighting"), Sport.WRESTLING to listOf("Fighting"),
-            Sport.TENNIS to listOf("Tennis"), Sport.GOLF to listOf("Golf"), Sport.HORSE_RACING to listOf("Horse Racing"))
+        val discoverySports get() = SportsProviderCoverage.discoverySports +
+            mapOf(Sport.RUGBY_LEAGUE to listOf("Rugby"), Sport.WRESTLING to listOf("Fighting"))
         // Stable catalogue identifiers, verified by lookup; discovery itself is truncated on free access.
-        val seedIds = listOf("4416", "4415", "4461", "5806", "5282")
+        val seedIds = listOf("4416", "4415", "4461", "5806", "5282", "4489", "4486", "4487")
         private fun JsonObject.text(key: String) = (get(key) as? JsonPrimitive)?.contentOrNull
             ?.trim()?.takeUnless { it.isEmpty() || it == "null" }
         private fun rows(raw: String, vararg keys: String): List<JsonObject> {
@@ -57,9 +52,9 @@ internal class FreeSportsDb {
                 .any { l -> l.guideWords.any { w -> SportsCatalog.hasWord(SportsCatalog.norm(name), SportsCatalog.norm(w).trim()) } }
             val sport = if (wrestling) Sport.WRESTLING else if (declared == "Rugby") classified?.let { SportsTaxonomy.sport(it.sportId) }
                 ?.takeIf { it == Sport.RUGBY || it == Sport.RUGBY_LEAGUE }
-                else discoverySports.entries.firstOrNull { declared in it.value }?.key
+                else discoverySports.entries.firstOrNull { entry -> entry.value.any { it.equals(declared, true) } }?.key
             if (sport == null) return@mapNotNull null
-            League("tsdb/$id", sport, name, name, kind = if (sport in setOf(Sport.FOOTBALL, Sport.RUGBY, Sport.RUGBY_LEAGUE, Sport.CRICKET, Sport.BASKETBALL, Sport.BASEBALL, Sport.HOCKEY, Sport.AMERICAN_FOOTBALL)) LeagueKind.TEAMS else LeagueKind.EVENT, guideWords = listOf(name) +
+            League("tsdb/$id", sport, name, name, kind = if (sport in setOf(Sport.FOOTBALL, Sport.RUGBY, Sport.RUGBY_LEAGUE, Sport.CRICKET, Sport.BASKETBALL, Sport.BASEBALL, Sport.HOCKEY, Sport.AMERICAN_FOOTBALL, Sport.AUSSIE_RULES, Sport.NETBALL, Sport.VOLLEYBALL, Sport.LACROSSE, Sport.GAELIC) || declared in setOf("Handball", "Field Hockey")) LeagueKind.TEAMS else LeagueKind.EVENT, guideWords = listOf(name) +
                 o.text("strLeagueAlternate").orEmpty().split(',').map(String::trim).filter(String::isNotEmpty))
         }
         fun events(league: League, raw: String, checkedAt: Long): List<SportsEvent> = rows(raw, "events", "event").mapNotNull { o ->

@@ -28,6 +28,7 @@ data class HomeUiState(
     val homeLayout: HomeLayout = HomeLayout.MODERN,
     val modernLandscapePostersEnabled: Boolean = false,
     val alwaysShowLandscapeClearlogo: Boolean = false,
+    val heroDescriptionAutoScrollEnabled: Boolean = false,
     val modernHeroFullScreenBackdropEnabled: Boolean = false,
     val homeImdbRatingsVisibility: HomeImdbRatingsVisibility = HomeImdbRatingsVisibility.SHOW_ALL,
     val detailImdbRatingsVisibility: DetailImdbRatingsVisibility = DetailImdbRatingsVisibility.SHOW_ALL,
@@ -81,6 +82,7 @@ data class HomeUiState(
 @Immutable
 sealed class ContinueWatchingItem {
     abstract val shufflePlayback: Boolean
+    abstract val chooseEpisode: Boolean
     @Immutable
     data class InProgress(
         val progress: WatchProgress,
@@ -95,7 +97,8 @@ sealed class ContinueWatchingItem {
         val customLandscapePoster: String? = null,
         val mdbListRatings: com.nuvio.tv.domain.model.MDBListRatings? = null,
         val displaySeason: Int? = null,
-        val displayEpisode: Int? = null
+        val displayEpisode: Int? = null,
+        override val chooseEpisode: Boolean = false
     ) : ContinueWatchingItem()
 
     @Immutable
@@ -103,7 +106,8 @@ sealed class ContinueWatchingItem {
         val info: NextUpInfo,
         override val shufflePlayback: Boolean = false,
         val originalPoster: String? = null,
-        val customLandscapePoster: String? = null
+        val customLandscapePoster: String? = null,
+        override val chooseEpisode: Boolean = false
     ) : ContinueWatchingItem()
 }
 
@@ -145,7 +149,8 @@ data class NextUpInfo(
     val displaySeason: Int? = null,
     val displayEpisode: Int? = null,
     val tvdbEpisodeId: Long? = null,
-    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null
+    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null,
+    val latestSeriesActivity: Long? = null
 )
 
 @Immutable
@@ -231,7 +236,7 @@ sealed class HomeEvent {
 }
 
 /** Upcoming episodes stay in Next Up but cannot be marked until they air. */
-internal fun ContinueWatchingItem.canMarkWatched(): Boolean = when (this) {
+internal fun ContinueWatchingItem.canMarkWatched(): Boolean = !chooseEpisode && when (this) {
     is ContinueWatchingItem.InProgress -> progress.tvdbCoverageVerified != false && progress.tvdbContext?.episodeIds?.isEmpty() != true
     is ContinueWatchingItem.NextUp -> info.hasAired && (info.tvdbEpisodeId == null || !info.tvdbContext?.episodeIds.isNullOrEmpty())
 }

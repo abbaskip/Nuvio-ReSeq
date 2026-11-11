@@ -533,7 +533,9 @@ internal fun PlayerRuntimeController.initializePlayer(
             val isHlsStream = isHls || resolvedStreamMime == MimeTypes.APPLICATION_M3U8
             val isDashStream = resolvedStreamMime == MimeTypes.APPLICATION_MPD
             val parallelActive = playerSettings.parallelNetworkEnabled && playerSettings.useParallelConnections
-            val useChunkSessionSource = parallelActive && !isHlsStream && !isDashStream
+            val useChunkSessionSource = PlayerMediaSourceFactory.shouldUseParallelRanges(
+                url, parallelActive, isHlsStream, isDashStream
+            )
 
             val parallelOverheadMb = if (useChunkSessionSource) {
                 val chunkMb = Math.ceil(playerSettings.parallelChunkSizeKb / 1024.0)
@@ -1052,7 +1054,7 @@ internal fun PlayerRuntimeController.initializePlayer(
             if (!afrPreflightGate.isCurrent(afrPreflightToken)) return@launch
             // Left the foreground while preparing: build on return instead of claiming a decoder
             // the foreground app may need. The resume rebuild uses currentStreamUrl.
-            if (isInBackground && url == currentStreamUrl) {
+            if (releaseDecoderOnBackground && isInBackground && url == currentStreamUrl) {
                 pendingBackgroundCrashRecovery = true
                 return@launch
             }

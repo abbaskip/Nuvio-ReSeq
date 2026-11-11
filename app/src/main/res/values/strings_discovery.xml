@@ -19,6 +19,9 @@
     <string name="advanced_discover_type_value">Type: %1$s</string>
     <string name="advanced_discover_movies">Movies</string>
     <string name="advanced_discover_tv">TV shows</string>
+    <string name="advanced_discover_title_contains">Title contains</string>
+    <string name="advanced_discover_title_contains_hint">Matches title text, ignoring capitalisation. More titles are checked as you load results.</string>
+    <string name="advanced_discover_title_matches_loaded">Matching titles loaded: %1$d</string>
     <string name="advanced_discover_genres">Include genres</string>
     <string name="advanced_discover_genres_value">Included genres: %1$d</string>
     <string name="advanced_discover_exclude_genres">Exclude genres</string>

@@ -3227,4 +3227,28 @@
     <string name="stream_test_video_bitrate">平均视频比特率：%1$s</string>
     <string name="stream_test_error_connection">连接失败。上次播放的流链接可能已过期或无法访问。请重新播放视频并重试。</string>
 
+    <string name="playback_release_decoder_on_background">在后台释放解码器</string>
+    <string name="playback_release_decoder_on_background_sub">Nuvio 进入后台时释放视频解码器。如果返回应用后出现解码错误，请启用此选项。返回时播放器会重新加载，从屏幕保护程序返回时也是如此。</string>
+    <string name="layout_hero_description_auto_scroll">自动滚动简介</string>
+    <string name="layout_hero_description_auto_scroll_sub">缓慢滚动主屏幕上的长简介，而不截断文字。</string>
+    <string name="autosync_toast_no_fit">同步失败：字幕与此版本的视频不匹配。</string>
+    <string name="usenet_opening">正在打开 Usenet 视频…</string>
+    <string name="plugin_extension_settings_failed">此扩展无法打开其设置。</string>
+    <string name="tmdb_collection_auth_error">TMDB 拒绝了请求。请在设置 → 集成 → TMDB 中检查此配置的 API 密钥。</string>
+    <string name="about_update_check_frequency">应用更新检查频率</string>
+    <string name="about_update_check_frequency_summary">选择 Nuvio 检查新版本的频率。</string>
+    <string name="about_update_check_always">始终</string>
+    <string name="about_update_check_daily">每天</string>
+    <string name="about_update_check_two_days">2 天</string>
+    <string name="about_update_check_three_days">3 天</string>
+    <string name="about_update_check_weekly">每周</string>
+    <string name="about_update_check_never">从不</string>
+    <string name="plugin_source_languages_title">来源语言</string>
+    <string name="plugin_source_languages_description">选择 CloudStream 来源的语言。始终包含多语言来源和未指定语言的来源。</string>
+    <string name="plugin_all_source_languages">所有语言</string>
+    <string name="plugin_dns_system">电视系统 DNS</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">选择 CloudStream 请求使用的 DNS 服务。按 OK 切换。</string>
+    <string name="continue_watching_window_summary">要查看多长时间内的观看记录</string>
+    <string name="cw_choose_episode">打开剧集以选择一集</string>
 </resources>

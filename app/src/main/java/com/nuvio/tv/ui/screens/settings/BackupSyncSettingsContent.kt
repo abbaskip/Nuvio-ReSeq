@@ -45,7 +45,7 @@ internal fun BackupSyncSettingsContent(
     var dialog by remember { mutableStateOf<BackupDialog?>(null) }
     val close = { dialog = null }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md)) {
-        SettingsDetailHeader(title = "Backup & Sync", subtitle = "TVDB orders, Shuffle choices, IPTV and Sports Hub configuration")
+        SettingsDetailHeader(title = "Backup & Sync", subtitle = "TVDB keys and orders, Shuffle choices, IPTV and Sports Hub configuration")
         LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
             item {
                 DriveSyncCard(
@@ -116,7 +116,7 @@ private fun DriveSyncCard(
                 )
                 !state.connected -> {
                     Text(
-                        text = "Your playlists, guide settings, Sports Hub preferences and per-profile TVDB order and Shuffle choices are saved privately in your Google Drive. Backups include playlist logins, so keep the backup private. Personal API keys and tracker sign-ins are not included.",
+                        text = "Your playlists, guide settings, Sports Hub preferences and per-profile TVDB keys, episode orders and Shuffle choices are saved privately in your Google Drive. Keep the backup private. It includes playlist logins and TVDB keys. TMDB keys and tracker sign-ins stay on this TV.",
                         style = MaterialTheme.typography.bodySmall,
                         color = NuvioTheme.colors.TextSecondary
                     )
@@ -203,7 +203,7 @@ private fun DriveSignInDialog(prompt: com.nuvio.tv.livetv.sync.SignInPrompt, onC
 }
 
 private fun restoreMessage(loaded: Boolean, info: com.nuvio.tv.livetv.sync.LiveTvDriveSync.BackupInfo?, localChangedAt: Long): String {
-    val base = "This TV's Live TV setup, Sports Hub preferences and saved TVDB episode orders and Shuffle choices are replaced with the copy in Google Drive. Profiles must match; personal API keys and tracker sign-ins are kept on this TV."
+    val base = "This TV's Live TV setup, Sports Hub preferences and saved TVDB keys, episode orders and Shuffle choices are replaced with the copy in Google Drive. Profiles must match. TMDB keys and tracker sign-ins stay on this TV."
     if (!loaded) return "$base\n\nChecking when it was saved…"
     if (info == null || info.savedAtMs <= 0L) return base
     val now = System.currentTimeMillis()

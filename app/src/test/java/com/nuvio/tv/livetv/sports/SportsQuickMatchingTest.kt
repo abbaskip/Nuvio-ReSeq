@@ -130,6 +130,46 @@ class SportsQuickMatchingTest {
         assertEquals(listOf(manual), merged[event.id])
     }
 
+    @Test fun retainedHigherScoreTiesKeepTheOrderOfTheWinningEntries() {
+        val a = channel("a", "ABC")
+        val b = channel("b", "DEF")
+        val programme = com.nuvio.tv.livetv.model.EpgProgram(now, now + 7200000, event.title)
+        val weak = ChannelMatch(a, 40, "Weak", null, null, false)
+        val strongB = ChannelMatch(b, 100, "Fresh", programme, null, false)
+        val strongA = strongB.copy(channel = a, how = "Guide")
+        for (bestFirst in listOf(true, false)) {
+            val input = SportsMatcher.Input(listOf(event), listOf(a, b), emptyMap(), 0,
+                SportsSettings(bestChannelFirst = bestFirst), now)
+            val result = SportsMatcher.keepGuideMatches(mapOf(event.id to listOf(strongA, strongB.copy(how = "Duplicate"))),
+                mapOf(event.id to listOf(weak, strongB)), setOf(event.id), input)
+            assertEquals(listOf(strongB, strongA), result[event.id])
+        }
+    }
+
+    @Test fun repeatedEventRefreshPreservesRankingAcrossChangedGroups() {
+        val programme = com.nuvio.tv.livetv.model.EpgProgram(now, now + 7200000, event.title)
+        val channels = List(160) { i -> channel("key-$i", "US: Sports $i").copy(group = "group-" + (i % 8)) }
+        val matches = channels.map { ChannelMatch(it, 100, "Guide", programme, null, false) }
+        val previous = (1..80).associate { "event-$it" to matches }
+        // Allocation evidence is optional on JVMs without the HotSpot management extension.
+        val allocatedBytes = runCatching {
+            val bean = Class.forName("java.lang.management.ManagementFactory").getMethod("getThreadMXBean").invoke(null)
+            val method = Class.forName("com.sun.management.ThreadMXBean").getMethod("getCurrentThreadAllocatedBytes")
+            val read = { method.invoke(bean) as Long }
+            read
+        }.getOrNull()
+        for (preferred in listOf("group-7", "group-3")) {
+            val settings = SportsSettings(preferredGroups = setOf(preferred))
+            val input = SportsMatcher.Input(listOf(event), channels, emptyMap(), 0, settings, now)
+            val expected = SportsMatcher.sortMatches(matches, settings.bestChannelFirst, SportsMatcher.preferenceRank(settings))
+            val before = allocatedBytes?.invoke()
+            val actual = SportsMatcher.keepGuideMatches(previous, emptyMap(), previous.keys, input)
+            if (before != null && before >= 0) println("Sports merge allocated bytes=" + (allocatedBytes() - before))
+            assertEquals(previous.keys, actual.keys)
+            actual.values.forEach { assertEquals(expected, it) }
+        }
+    }
+
     @Test fun `quick refresh retains all strong guide matches beyond suggestion limit`() {
         val programme = com.nuvio.tv.livetv.model.EpgProgram(now, now + 7_200_000, event.title)
         val channels = (1..15).map { channel("$it", "Sports channel $it") }

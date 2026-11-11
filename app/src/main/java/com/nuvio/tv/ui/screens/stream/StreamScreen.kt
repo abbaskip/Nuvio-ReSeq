@@ -206,8 +206,11 @@ fun StreamScreen(
     }
 
     fun launchInternalPlayer(playbackInfo: StreamPlaybackInfo) {
-        viewModel.onInternalPlayerLaunching()
-        scope.coroutineLaunch { onStreamSelected(viewModel.attachTvdbContext(playbackInfo)) }
+        scope.coroutineLaunch {
+            val prepared = viewModel.attachTvdbContext(playbackInfo)
+            viewModel.onInternalPlayerLaunching(prepared.url)
+            onStreamSelected(prepared)
+        }
     }
 
     fun routePlayback(playbackInfo: StreamPlaybackInfo) {
@@ -275,8 +278,11 @@ fun StreamScreen(
                     viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
                 }
                 else -> {
-                    viewModel.onInternalPlayerLaunching()
-                    scope.coroutineLaunch { onAutoPlayResolved(viewModel.attachTvdbContext(playbackInfo)) }
+                    scope.coroutineLaunch {
+                        val prepared = viewModel.attachTvdbContext(playbackInfo)
+                        viewModel.onInternalPlayerLaunching(prepared.url)
+                        onAutoPlayResolved(prepared)
+                    }
                 }
             }
             return
@@ -371,8 +377,9 @@ fun StreamScreen(
                     viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
                 }
                 else -> {
-                    viewModel.onInternalPlayerLaunching()
-                    onAutoPlayResolved(viewModel.attachTvdbContext(playbackInfo))
+                    val prepared = viewModel.attachTvdbContext(playbackInfo)
+                    viewModel.onInternalPlayerLaunching(prepared.url)
+                    onAutoPlayResolved(prepared)
                     viewModel.onEvent(StreamScreenEvent.OnAutoPlayConsumed)
                 }
             }
@@ -419,8 +426,14 @@ fun StreamScreen(
         )
 
         if (!uiState.autoPlayDecided) {
-            // Don't render overlay or stream list until ViewModel decides
-            // whether direct autoplay is active — prevents single-frame flash.
+            LoadingOverlay(
+                visible = true,
+                backdropUrl = uiState.backdrop ?: uiState.poster,
+                logoUrl = uiState.logo,
+                title = uiState.title,
+                message = stringResource(R.string.stream_finding_source),
+                modifier = Modifier.fillMaxSize()
+            )
         } else if (showOverlay) {
             LoadingOverlay(
                 visible = true,
@@ -492,7 +505,7 @@ fun StreamScreen(
                             it.url == stream.url &&
                                 it.infoHash == stream.infoHash &&
                                 it.ytId == stream.ytId &&
-                                it.serverTarget == stream.serverTarget &&
+                                it.usenet == stream.usenet && it.serverTarget == stream.serverTarget &&
                                 it.addonName == stream.addonName
                         }
                         if (currentIndex >= 0) {
@@ -544,6 +557,7 @@ fun StreamScreen(
                     pendingPlaybackInfo = null
                 },
                 onDismiss = {
+                    viewModel.releasePendingUsenetPlayback()
                     showPlayerChoiceDialog = false
                     pendingPlaybackInfo = null
                 }

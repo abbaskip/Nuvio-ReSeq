@@ -57,6 +57,14 @@ class DefaultDataSourceRoutingTest {
             try {
                 val client = serverSocket.accept()
                 connectionAccepted = true
+                // Consume the request so closing this fixture cannot reset an
+                // otherwise valid localhost response on Windows.
+                client.soTimeout = 5_000
+                val request = client.getInputStream().bufferedReader(Charsets.US_ASCII)
+                while (true) {
+                    val line = request.readLine() ?: break
+                    if (line.isEmpty()) break
+                }
                 val out = client.getOutputStream()
                 out.write(responseHeaders.toByteArray())
                 out.flush()

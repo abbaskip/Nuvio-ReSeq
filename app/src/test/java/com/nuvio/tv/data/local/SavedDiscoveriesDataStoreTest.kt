@@ -51,7 +51,7 @@ class SavedDiscoveriesDataStoreTest {
         val saved = SavedDiscovery("one", "Short crime films", DiscoveryQuery(genres = setOf(80, 53), excludedGenres = setOf(27),
             matchAllGenres = true, minimumVotes = "1000", minimumRating = "7", originalLanguage = "en",
             dateFrom = "2015-01-01", dateTo = "2026-11-03", runtimeFrom = "60", runtimeTo = "120",
-            certificationCountry = "AU", certification = "PG", hideWatched = true, sort = "release_date.asc"))
+            certificationCountry = "AU", certification = "PG", hideWatched = true, sort = "release_date.asc", titleContains = "Alien"))
         assertEquals(listOf(saved), store.parse(Gson().toJson(listOf(saved))))
     }
 
@@ -62,6 +62,26 @@ class SavedDiscoveriesDataStoreTest {
             .replace("\"certificationCountry\":\"AU\",", "")
             .replace("\"certification\":\"\",", "")
         assertEquals(listOf(saved), store.parse(json))
+    }
+
+    @Test
+    fun `older saved discoveries without title text still match any title`() {
+        val saved = SavedDiscovery("old", "Old movies", DiscoveryQuery())
+        val json = Gson().toJson(listOf(saved)).replace(",\"titleContains\":\"\"", "")
+        val parsed = store.parse(json)
+        assertEquals(listOf(saved), parsed)
+        assertTrue(parsed.single().query.matchesTitle("Anything"))
+    }
+
+    @Test
+    fun `title filter is persisted and remains profile local`() = runTest {
+        val saved = SavedDiscovery("one", "Alien films", DiscoveryQuery(titleContains = " Alien "))
+        store.save(saved, 1)
+        assertEquals(listOf(saved), store.discoveries.first())
+        profileId.value = 2
+        assertTrue(store.discoveries.first().isEmpty())
+        profileId.value = 1
+        assertEquals(" Alien ", store.discoveries.first().single().query.titleContains)
     }
 
     @Test

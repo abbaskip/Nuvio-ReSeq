@@ -12,7 +12,9 @@ import javax.inject.Singleton
 class TraktEpisodeMappingService @Inject constructor(
     private val traktApi: TraktApi,
     private val traktAuthService: TraktAuthService,
-    private val addonEpisodeListService: AddonEpisodeListService
+    private val addonEpisodeListService: AddonEpisodeListService,
+    private val profiles: com.nuvio.tv.core.profile.ProfileManager,
+    private val orders: com.nuvio.tv.data.tvdb.TvdbOrderStore
 ) {
     companion object {
         private const val TAG = "TraktEpMapSvc"
@@ -20,6 +22,13 @@ class TraktEpisodeMappingService @Inject constructor(
 
     internal suspend fun isTraktAuthenticated(): Boolean =
         traktAuthService.getCurrentAuthState().isAuthenticated
+
+    private suspend fun mappingScope(contentId: String?, videoId: String? = null): Pair<String, Boolean> {
+        val profile = profiles.activeProfileId.value
+        val aliases = listOfNotNull(contentId?.trim(), videoId?.substringBeforeLast(':')?.substringBeforeLast(':'))
+        val selection = orders.selected(profile, aliases)
+        return "$profile|$selection" to (selection == null)
+    }
 
     private val cacheMutex = Mutex()
     private val mappingCache = mutableMapOf<String, EpisodeMappingEntry>()
@@ -59,7 +68,8 @@ class TraktEpisodeMappingService @Inject constructor(
         val requestedEpisode = episode ?: return null
         val resolvedContentId = contentId?.takeIf { it.isNotBlank() } ?: return null
         val resolvedContentType = contentType?.takeIf { it.isNotBlank() } ?: return null
-        val reverseKey = reverseCacheKey(
+        val (scope, defaultMetadata) = mappingScope(resolvedContentId)
+        val reverseKey = scope + "|" + reverseCacheKey(
             contentId = resolvedContentId,
             contentType = resolvedContentType,
             season = requestedSeason,
@@ -73,13 +83,13 @@ class TraktEpisodeMappingService @Inject constructor(
         val addonEpisodes = getAddonEpisodes(resolvedContentId, resolvedContentType)
         if (addonEpisodes.isEmpty()) return null
 
-        val showLookupId = resolveShowLookupId(contentId = resolvedContentId, videoId = null) ?: return null
-        val traktEpisodes = getTraktEpisodes(showLookupId)
-        if (traktEpisodes.isEmpty()) return null
-
         val addonHasEpisode = addonEpisodes.any {
             it.season == requestedSeason && it.episode == requestedEpisode
         }
+        if (defaultMetadata && addonHasEpisode) return null
+        val showLookupId = resolveShowLookupId(contentId = resolvedContentId, videoId = null) ?: return null
+        val traktEpisodes = getTraktEpisodes(showLookupId)
+        if (traktEpisodes.isEmpty()) return null
         val sameStructure = hasSameSeasonStructure(addonEpisodes, traktEpisodes)
         if (addonHasEpisode && sameStructure) {
             return null
@@ -93,6 +103,7 @@ class TraktEpisodeMappingService @Inject constructor(
             traktEpisodes = traktEpisodes
         ) ?: return null
 
+        if (mappingScope(resolvedContentId).first != scope) return null
         cacheMutex.withLock {
             reverseMappingCache[reverseKey] = mapped
         }
@@ -106,7 +117,8 @@ class TraktEpisodeMappingService @Inject constructor(
         season: Int?,
         episode: Int?
     ): EpisodeMappingEntry? {
-        val key = cacheKey(contentId, contentType, videoId, season, episode) ?: return null
+        val scope = mappingScope(contentId, videoId).first
+        val key = scope + "|" + (cacheKey(contentId, contentType, videoId, season, episode) ?: return null)
         return cacheMutex.withLock { mappingCache[key] }
     }
 
@@ -120,7 +132,8 @@ class TraktEpisodeMappingService @Inject constructor(
     ): EpisodeMappingEntry? {
         if (!traktAuthService.getCurrentAuthState().isAuthenticated) return null
 
-        val key = cacheKey(contentId, contentType, videoId, season, episode) ?: return null
+        val (scope, defaultMetadata) = mappingScope(contentId, videoId)
+        val key = scope + "|" + (cacheKey(contentId, contentType, videoId, season, episode) ?: return null)
         cacheMutex.withLock {
             mappingCache[key]?.let { return it }
         }
@@ -147,9 +160,11 @@ class TraktEpisodeMappingService @Inject constructor(
             requestedVideoId = videoId,
             requestedTitle = episodeTitle,
             addonEpisodes = addonEpisodes,
-            traktEpisodes = traktEpisodes
+            traktEpisodes = traktEpisodes,
+            preferSameNumberOverIndex = defaultMetadata
         ) ?: return null
 
+        if (mappingScope(contentId, videoId).first != scope) return null
         cacheMutex.withLock {
             mappingCache[key] = mapped
         }

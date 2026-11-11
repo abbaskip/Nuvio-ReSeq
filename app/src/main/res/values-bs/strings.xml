@@ -1488,4 +1488,28 @@
     <string name="collections_tab_all">Sve</string>
     <string name="collections_tab_combined">Kombinovano</string>
 
+    <string name="playback_release_decoder_on_background">Oslobodi dekoder u pozadini</string>
+    <string name="playback_release_decoder_on_background_sub">Oslobađa videodekoder kada Nuvio pređe u pozadinu. Uključite ako se nakon povratka javi greška dekodera. Plejer se ponovo učitava pri povratku, čak i nakon čuvara ekrana.</string>
+    <string name="layout_hero_description_auto_scroll">Automatsko pomjeranje opisa</string>
+    <string name="layout_hero_description_auto_scroll_sub">Polako pomjera duge opise na početnom ekranu umjesto da ih skrati.</string>
+    <string name="autosync_toast_no_fit">Sinhronizacija nije uspjela: titlovi ne odgovaraju ovoj verziji videa.</string>
+    <string name="usenet_opening">Otvaranje videa s Useneta…</string>
+    <string name="plugin_extension_settings_failed">Proširenje nije moglo otvoriti postavke.</string>
+    <string name="tmdb_collection_auth_error">TMDB je odbio zahtjev. Provjerite API ključ profila u Postavke → Integracije → TMDB.</string>
+    <string name="about_update_check_frequency">Učestalost provjere ažuriranja</string>
+    <string name="about_update_check_frequency_summary">Odaberite koliko često Nuvio traži novu verziju.</string>
+    <string name="about_update_check_always">Uvijek</string>
+    <string name="about_update_check_daily">Svakodnevno</string>
+    <string name="about_update_check_two_days">2 dana</string>
+    <string name="about_update_check_three_days">3 dana</string>
+    <string name="about_update_check_weekly">Sedmično</string>
+    <string name="about_update_check_never">Nikad</string>
+    <string name="plugin_source_languages_title">Jezici izvora</string>
+    <string name="plugin_source_languages_description">Odaberite jezike izvora CloudStream. Višejezični izvori i izvori bez navedenog jezika uvijek su uključeni.</string>
+    <string name="plugin_all_source_languages">Svi jezici</string>
+    <string name="plugin_dns_system">Sistemski DNS televizora</string>
+    <string name="plugin_dns_choice">CloudStream DNS · %1$s</string>
+    <string name="plugin_dns_description">Odaberite DNS za zahtjeve CloudStream. Pritisnite OK za promjenu.</string>
+    <string name="continue_watching_window_summary">Koji period historije gledanja uključiti</string>
+    <string name="cw_choose_episode">Otvori seriju za izbor epizode</string>
 </resources>

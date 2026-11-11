@@ -278,6 +278,7 @@ class HomeViewModel @Inject constructor(
     internal val mdbBatchNegativeIds: MutableSet<String> = ConcurrentHashMap.newKeySet()
     internal var mdbBatchRowFocusJob: Job? = null
     @Volatile internal var mdbBatchHasFired: Boolean = false
+    internal val cwMetadataLoads = CwMetadataLoads()
     internal val cwMetaCache: MutableMap<String, CwMetaSummary?> = createLruMap(MAX_CW_CACHE_SIZE)
     internal val cwMetaNegativeCacheTimestamps: MutableMap<String, Long> = createLruMap(MAX_CW_CACHE_SIZE)
     /** Ultra-light cache for badge evaluation: contentId → set of aired (season, episode) pairs. */
@@ -295,7 +296,7 @@ class HomeViewModel @Inject constructor(
     internal val cwNextUpNegativeCacheTimestamps = ConcurrentHashMap<String, Long>()
     internal val discoveredOlderNextUpItems = Collections.synchronizedList(mutableListOf<ContinueWatchingItem.NextUp>())
     internal val cwLastProcessedNextUpContentIds: MutableSet<String> = ConcurrentHashMap.newKeySet()
-    internal val cwProcessedOlderSeedContentIds: MutableSet<String> = ConcurrentHashMap.newKeySet()
+    internal val cwProcessedOlderSeedContentIds: MutableMap<String, String> = ConcurrentHashMap()
     internal val cwEnrichedNextUpOverlay = ConcurrentHashMap<String, NextUpInfo>()
     /** In-memory cache of enriched InProgress items per contentId+episode key. */
     internal val cwEnrichedInProgressOverlay = ConcurrentHashMap<String, ContinueWatchingItem.InProgress>()
@@ -404,8 +405,7 @@ class HomeViewModel @Inject constructor(
                     cwPipelineJob = null
                     // Clear all in-memory CW caches so data from the previous
                     // profile doesn't leak into the new one.
-                    cwMetaCache.clear()
-                    cwMetaNegativeCacheTimestamps.clear()
+                    clearCwMetadata()
                     cwBadgeEpisodeCache.clear()
                     cwBadgeNextSeasonMs.clear()
                     cwTmdbIdCache.clear()
@@ -457,9 +457,15 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun clearAllCwInMemoryCaches() {
+    private fun clearCwMetadata() {
+        cwMetadataLoads.invalidate()
         cwMetaCache.clear()
         cwMetaNegativeCacheTimestamps.clear()
+        shuffleHomeRefresh.update { it.copy(metadata = it.metadata + 1) }
+    }
+
+    private fun clearAllCwInMemoryCaches() {
+        clearCwMetadata()
         cwBadgeEpisodeCache.clear()
         cwBadgeNextSeasonMs.clear()
         cwTmdbIdCache.clear()
@@ -654,7 +660,7 @@ class HomeViewModel @Inject constructor(
                     val profileChanged = previousProfileId != null && previousProfileId != currentProfileId
                     if (previousSource != null && previousSource != source && !profileChanged) {
                         // Genuine in-profile source change — clear CW caches to prevent mixing.
-                        cwMetaCache.clear()
+                        clearCwMetadata()
                         cwEnrichedNextUpOverlay.clear()
                         cwEnrichedInProgressOverlay.clear()
                         discoveredOlderNextUpItems.clear()
@@ -721,10 +727,13 @@ class HomeViewModel @Inject constructor(
             val cachedInProgress = runCatching { cwEnrichmentCache.getInProgressSnapshot() }.getOrDefault(emptyList())
             val cachedNextUp = runCatching { cwEnrichmentCache.getNextUpSnapshot() }.getOrDefault(emptyList())
             if (cachedInProgress.isEmpty() && cachedNextUp.isEmpty()) return@launch
+            val cutoff = com.nuvio.tv.domain.model.continueWatchingCutoff(
+                traktSettingsDataStore.continueWatchingDaysCap.first(), System.currentTimeMillis())
             val dismissedNextUp = traktSettingsDataStore.dismissedNextUpKeys.first()
             // Render cached items immediately — don't wait for Trakt/allProgress.
             // The pipeline will replace these with live data once it completes.
             val inProgressItems = cachedInProgress
+                .filter { cutoff == null || it.lastWatched >= cutoff }
                 .filter { !watchProgressRepository.isDroppedShow(it.contentId) }
                 .map { cached ->
                     ContinueWatchingItem.InProgress(
@@ -752,6 +761,7 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             val nextUpItems = cachedNextUp
+                .filter { cutoff == null || maxOf(it.lastWatched, it.latestSeriesActivity ?: 0L) >= cutoff || recalculateCachedReleaseBadge(it).second }
                 .filter { !watchProgressRepository.isDroppedShow(it.contentId) }
                 .filter { nextUpDismissKey(it.contentId, it.seedSeason, it.seedEpisode) !in dismissedNextUp }
                 .map { cached ->
@@ -773,6 +783,7 @@ class HomeViewModel @Inject constructor(
                         hasAired = cached.hasAired,
                         airDateLabel = cached.airDateLabel,
                         lastWatched = cached.lastWatched,
+                        latestSeriesActivity = cached.latestSeriesActivity,
                         imdbRating = if (cached.ratingVisible) cached.imdbRating else null,
                         genres = cached.genres,
                         releaseInfo = cached.releaseInfo,

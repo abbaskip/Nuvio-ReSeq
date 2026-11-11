@@ -224,7 +224,9 @@ class LiveTvTimeshift(private val context: Context) {
 
     // ------------------------------------------------------------------ HLS
 
-    private data class Seg(val seq: Long, val durationSec: Double, val url: String)
+    private data class Seg(val seq: Long, val durationSec: Double, val url: String) {
+        val durationText = String.format(java.util.Locale.US, "%.3f", durationSec)
+    }
 
     private suspend fun recordHls(url: String, headers: Map<String, String>, dir: File, local: File, keepMinutes: Int) {
         try {
@@ -253,6 +255,7 @@ class LiveTvTimeshift(private val context: Context) {
             }
             val saved = ArrayList<Seg>()
             var lastSeq = -1L
+            var pendingInitUrl: String? = null
             var mapLine: String? = null
             var target = 6
             while (currentCoroutineContext().isActive && session?.dir == dir) {
@@ -262,7 +265,11 @@ class LiveTvTimeshift(private val context: Context) {
                 // fMP4 streams: the init segment, once.
                 if (mapLine == null) {
                     Regex("""#EXT-X-MAP:URI="([^"]+)"""").find(text)?.groupValues?.get(1)?.let { m ->
-                        download(resolve(mediaUrl, m), headers, File(dir, "init.mp4"))
+                        pendingInitUrl = resolve(mediaUrl, m)
+                    }
+                    val initUrl = pendingInitUrl
+                    if (initUrl != null && download(initUrl, headers, File(dir, "init.mp4"))) {
+                        pendingInitUrl = null
                         mapLine = "#EXT-X-MAP:URI=\"init.mp4\""
                     }
                 }
@@ -293,8 +300,10 @@ class LiveTvTimeshift(private val context: Context) {
                 if (firstBatchMs == 0L && saved.isNotEmpty()) firstBatchMs = (saved.sumOf { it.durationSec } * 1000).toLong()
                 currentCoroutineContext().ensureActive()
                 if (session?.dir != dir) return
-                availableDurationMs = (saved.sumOf { it.durationSec } * 1000).toLong()
-                writeLocalPlaylist(local, saved, target, mapLine)
+                if (pendingInitUrl == null) {
+                    availableDurationMs = (saved.sumOf { it.durationSec } * 1000).toLong()
+                    writeLocalPlaylist(local, saved, target, mapLine)
+                }
                 delay((target * 1000L / 2).coerceIn(1_000L, 6_000L))
                 text = runCatching { LiveHttp.fetchCancellable(mediaUrl, headers).let { (t, u) -> mediaUrl = u; t } }.getOrElse { delay(2_000); continue }
             }
@@ -313,7 +322,7 @@ class LiveTvTimeshift(private val context: Context) {
         sb.append("#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-TARGETDURATION:").append(target + 1).append('\n')
         sb.append("#EXT-X-MEDIA-SEQUENCE:").append(segs.first().seq).append('\n')
         mapLine?.let { sb.append(it).append('\n') }
-        segs.forEach { s -> sb.append("#EXTINF:").append(String.format(java.util.Locale.US, "%.3f", s.durationSec)).append(",\n").append(s.url).append('\n') }
+        segs.forEach { s -> sb.append("#EXTINF:").append(s.durationText).append(",\n").append(s.url).append('\n') }
         val tmp = File(file.parentFile, file.name + ".tmp")
         tmp.writeText(sb.toString())
         if (!tmp.renameTo(file)) { tmp.copyTo(file, overwrite = true); tmp.delete() }

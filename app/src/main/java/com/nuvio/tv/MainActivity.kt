@@ -127,6 +127,8 @@ import androidx.core.os.ConfigurationCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.metrics.performance.JankStats
 import androidx.metrics.performance.PerformanceMetricsState
 import androidx.navigation.NavHostController
@@ -383,6 +385,9 @@ open class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { memberAccessRepository.pollWhileVisible() }
+        }
         isFirstResumeAfterCreate = true
         lifecycleScope.launch {
             var hadPlayer = false
@@ -1309,12 +1314,14 @@ open class MainActivity : ComponentActivity() {
             }
         }
 
-        jankStats = JankStats.createAndTrack(window) { frameData ->
-            if (frameData.isJank) {
-                Log.w(
-                    "JankStats",
-                    "JANK: ${frameData.frameDurationUiNanos / 1_000_000}ms | states: ${frameData.states}"
-                )
+        if (BuildConfig.DEBUG || Log.isLoggable("JankStats", Log.DEBUG)) {
+            jankStats = JankStats.createAndTrack(window) { frameData ->
+                if (frameData.isJank) {
+                    Log.w(
+                        "JankStats",
+                        "JANK: ${frameData.frameDurationUiNanos / 1_000_000}ms | states: ${frameData.states}"
+                    )
+                }
             }
         }
     }

@@ -1,9 +1,9 @@
 package com.nuvio.tv.livetv.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.PreferencesSerializer
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.preferencesOf
 import com.nuvio.tv.core.profile.ProfileManager
 import io.mockk.every
 import io.mockk.mockk
@@ -14,6 +14,8 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import okio.buffer
+import okio.sink
 
 class LiveTvFirstRunTest {
     @get:Rule val temp = TemporaryFolder()
@@ -39,10 +41,11 @@ class LiveTvFirstRunTest {
         val dir = temp.newFolder()
         val file = java.io.File(dir, "datastore/live_tv.preferences_pb")
         file.parentFile!!.mkdirs()
-        val job = SupervisorJob()
-        val store = PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + job), produceFile = { file })
-        store.edit { it[intPreferencesKey("epg_refresh_hours")] = 17 }
-        job.cancelAndJoin()
+        // Seed a persisted file without a second live DataStore/coordinator
+        // retaining Windows file handles while the production store opens it.
+        file.sink().buffer().use { sink ->
+            PreferencesSerializer.writeTo(preferencesOf(intPreferencesKey("epg_refresh_hours") to 17), sink)
+        }
         val prefs = preferences(dir)
         assertEquals(17, withTimeout(5_000) { prefs.settings.first() }.epgRefreshHours)
         assertFalse(prefs.currentSettings().updatePlaylistsOnOpen)

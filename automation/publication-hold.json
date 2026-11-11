@@ -4,8 +4,11 @@
   "reason": "Maintainer explicitly selected publication of beta 9.6.1 on 11 November 2026 so existing beta 9.6 installations receive the tested fixes through the updater.",
   "clear_when": "The maintainer explicitly authorizes publication after the remaining beta 9.6 work and required validation are complete.",
   "release": "v0.1.0-beta.9.6.1",
-  "evidence": "releases/0.1.0-beta.9.6.1.md",
+  "evidence": "releases/0.1.0-beta.9.6.1-validation.md",
   "version_code": 10051,
   "tested_fixes_source": "98d71862c5ccb162347bdfaaa2a85e7a30c44e31",
-  "tested_fixes_artifact_run": 42983632608
+  "tested_fixes_artifact_run": 42983632608,
+  "accepted_source": "c2b4d94f32372446fedb24ee951d0a026ddd4e1f",
+  "artifact_run": 42990026718,
+  "publication_verified": true
 }

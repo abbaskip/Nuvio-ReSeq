@@ -345,7 +345,9 @@ android {
             for (fixtureBuild in listOf("benchmark", "debug")) {
                 maybeCreate(fixtureBuild).apply {
                     java.srcDir("src/stabilityFixtures/java")
-                    manifest.srcFile("src/stabilityFixtures/AndroidManifest.xml")
+                    manifest.srcFile(if (fixtureBuild == "debug")
+                        "src/stabilityFixtures/debug/AndroidManifest.xml"
+                    else "src/stabilityFixtures/AndroidManifest.xml")
                 }
             }
         }

@@ -3190,4 +3190,5 @@
     <string name="plugin_dns_description">Izaberite DNS za zahteve CloudStream. Pritisnite OK za promenu.</string>
     <string name="continue_watching_window_summary">Koliki period istorije gledanja se uzima u obzir</string>
     <string name="cw_choose_episode">Otvori seriju da izabereš epizodu</string>
+    <string name="home_updating_continue_watching">Ažuriranje odeljka Nastavi gledanje…</string>
 </resources>

@@ -1143,4 +1143,5 @@
     <string name="plugin_dns_description">Velg DNS-tjeneste for CloudStream-forespørsler. Trykk OK for å bytte.</string>
     <string name="continue_watching_window_summary">Hvor langt tilbake i seerloggen du vil gå</string>
     <string name="cw_choose_episode">Åpne serien for å velge en episode</string>
+    <string name="home_updating_continue_watching">Oppdaterer Fortsett å se…</string>
 </resources>

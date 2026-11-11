@@ -3454,4 +3454,5 @@
     <string name="plugin_dns_description">Elige el resolvedor para las solicitudes de CloudStream. Pulsa OK para cambiar.</string>
     <string name="continue_watching_window_summary">Qué período del historial se incluye</string>
     <string name="cw_choose_episode">Abre la serie para elegir un episodio</string>
+    <string name="home_updating_continue_watching">Actualizando Seguir viendo…</string>
 </resources>

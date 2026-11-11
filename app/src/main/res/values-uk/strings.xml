@@ -2752,4 +2752,5 @@
     <string name="plugin_dns_description">Виберіть DNS для запитів CloudStream. Натисніть OK для зміни.</string>
     <string name="continue_watching_window_summary">Який період історії переглядів враховувати</string>
     <string name="cw_choose_episode">Відкрийте серіал, щоб вибрати серію</string>
+    <string name="home_updating_continue_watching">Оновлення розділу «Продовжити перегляд»…</string>
 </resources>

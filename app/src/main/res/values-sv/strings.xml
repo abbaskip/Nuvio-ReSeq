@@ -1785,4 +1785,5 @@
     <string name="plugin_dns_description">Välj DNS-tjänst för CloudStream-förfrågningar. Tryck OK för att byta.</string>
     <string name="continue_watching_window_summary">Hur långt tillbaka i visningshistoriken du vill gå</string>
     <string name="cw_choose_episode">Öppna serien för att välja ett avsnitt</string>
+    <string name="home_updating_continue_watching">Uppdaterar Fortsätt titta…</string>
 </resources>

@@ -3454,4 +3454,5 @@
     <string name="plugin_dns_description">Chọn dịch vụ DNS cho yêu cầu CloudStream. Nhấn OK để đổi.</string>
     <string name="continue_watching_window_summary">Khoảng thời gian cần xét trong lịch sử xem</string>
     <string name="cw_choose_episode">Mở bộ phim để chọn một tập</string>
+    <string name="home_updating_continue_watching">Đang cập nhật Tiếp tục xem…</string>
 </resources>

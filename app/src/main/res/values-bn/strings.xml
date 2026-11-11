@@ -3240,4 +3240,5 @@
     <string name="plugin_dns_description">CloudStream অনুরোধের জন্য DNS সেবা বেছে নিন। বদলাতে OK চাপুন।</string>
     <string name="continue_watching_window_summary">দেখার ইতিহাসের কত দিনের তথ্য ব্যবহার করা হবে</string>
     <string name="cw_choose_episode">পর্ব বেছে নিতে সিরিজটি খুলুন</string>
+    <string name="home_updating_continue_watching">দেখা চালিয়ে যান আপডেট করা হচ্ছে…</string>
 </resources>

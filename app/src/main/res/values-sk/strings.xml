@@ -3475,4 +3475,5 @@
     <string name="plugin_dns_description">Vyberte DNS pre požiadavky CloudStream. Zmeníte ho tlačidlom OK.</string>
     <string name="continue_watching_window_summary">Aké dlhé obdobie histórie sledovania zahrnúť</string>
     <string name="cw_choose_episode">Otvorte seriál a vyberte epizódu</string>
+    <string name="home_updating_continue_watching">Aktualizuje sa sekcia Pokračovať v sledovaní…</string>
 </resources>

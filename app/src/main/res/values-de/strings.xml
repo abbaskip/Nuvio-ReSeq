@@ -2292,4 +2292,5 @@
     <string name="plugin_dns_description">Wähle den DNS-Dienst für CloudStream-Anfragen. Mit OK wechseln.</string>
     <string name="continue_watching_window_summary">Wie weit dein Wiedergabeverlauf berücksichtigt wird</string>
     <string name="cw_choose_episode">Serie öffnen und Folge auswählen</string>
+    <string name="home_updating_continue_watching">„Weiterschauen“ wird aktualisiert…</string>
 </resources>

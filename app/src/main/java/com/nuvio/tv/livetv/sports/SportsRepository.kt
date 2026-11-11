@@ -1321,7 +1321,7 @@ class SportsRepository @Inject constructor(
         // Restore completed discoveries before the all-fixture pass, including after process death.
         for (offset in listOf(0, 1, -1)) {
             val saved = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues,
-                f.words, keys, shift, now, cachedOnly = true)
+                f.words, keys, shift, now, cachedOnly = true, checkCancelled = checkpoint)
             if (saved.isNotEmpty()) guideData.update { previous ->
                 val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
                     f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)

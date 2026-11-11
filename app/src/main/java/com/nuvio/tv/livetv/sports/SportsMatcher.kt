@@ -502,8 +502,9 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val diskKey = SportsGuideCache.digest(listOf("3", scanKey.start.toString(), scanKey.end.toString(),
             scanKey.fingerprint.orEmpty(), scanKey.revision.orEmpty(), scanKey.channels, scanKey.leagues,
             scanKey.shift.toString()) + scanKey.words)
-        if (!currentOnly) guideCacheDir?.let { dir -> SportsGuideCache.read(dir, dayStart, diskKey) }?.let { saved ->
+        if (!currentOnly) guideCacheDir?.let { dir -> SportsGuideCache.read(dir, dayStart, diskKey, checkCancelled) }?.let { saved ->
             guideScans[dayStart] = GuideScan(scanKey, saved)
+            while (guideScans.size > 3) guideScans.remove(guideScans.keys.first())
             return saved.map { guideState(it, now) }
         }
         if (cachedOnly) return emptyList()
@@ -627,7 +628,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         // Never persist a scan that overlapped a committed guide change.
         if (!currentOnly && db.fingerprint() == scanKey.fingerprint && db.contentRevision() == scanKey.revision) {
             guideScans[dayStart] = GuideScan(scanKey, result)
-            guideCacheDir?.let { SportsGuideCache.write(it, dayStart, diskKey, result) }
+            guideCacheDir?.let { SportsGuideCache.write(it, dayStart, diskKey, result, checkCancelled) }
         }
         while (guideScans.size > 3) guideScans.remove(guideScans.keys.first())
         return result

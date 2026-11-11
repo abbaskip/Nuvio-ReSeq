@@ -227,4 +227,44 @@ class SportsGuideCacheTest {
         assertTrue(events.all { SportsCatalog.league(it.leagueId)?.sport == Sport.RUGBY_LEAGUE })
         assertTrue(events.all { it.guideHits.single().first == "channel" })
     }
+    @Test fun `large cache reads and writes cancel within an event and preserve previous file`() {
+        val dir = temp.newFolder()
+        val day = 1_793_318_400_000L
+        val programme = EpgProgram(day, day + 3600000, "Pakistan v Sri Lanka", "Cricket")
+        val event = SportsEvent("fixture", "ca/test", day, true, GameState.PRE,
+            "Pakistan v Sri Lanka", null, null, null, null, endMs = day + 3600000,
+            source = EventSource.GUIDE, guideHits = List(1000) { "channel-$it" to programme })
+        SportsGuideCache.write(dir, day, "original", listOf(event))
+        val restored = SportsGuideCache.read(dir, day, "original")!!
+        assertEquals(listOf(event), restored)
+        assertSame(restored.single().guideHits.first().second, restored.single().guideHits.last().second)
+        var checks = 0
+        val readFailure = runCatching {
+            SportsGuideCache.read(dir, day, "original") {
+                if (++checks == 12) throw java.util.concurrent.CancellationException()
+            }
+        }.exceptionOrNull()
+        assertTrue(readFailure is java.util.concurrent.CancellationException)
+        checks = 0
+        val writeFailure = runCatching {
+            SportsGuideCache.write(dir, day, "replacement", listOf(event)) {
+                if (++checks == 12) throw java.util.concurrent.CancellationException()
+            }
+        }.exceptionOrNull()
+        assertTrue(writeFailure is java.util.concurrent.CancellationException)
+        assertEquals(listOf(event), SportsGuideCache.read(dir, day, "original"))
+        assertFalse(java.io.File(dir, "$day.tmp").exists())
+    }
+
+    @Test fun `stale cache is rejected before parsing its events`() {
+        val dir = temp.newFolder()
+        val file = java.io.File(dir, "0.json.gz")
+        java.util.zip.GZIPOutputStream(file.outputStream()).bufferedWriter().use {
+            it.write("{\"key\":\"stale\",\"events\":[invalid remainder")
+        }
+        var checks = 0
+        assertNull(SportsGuideCache.read(dir, 0, "fresh") { checks++ })
+        assertEquals(1, checks)
+    }
+
 }

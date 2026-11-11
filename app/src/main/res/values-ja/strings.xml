@@ -3454,4 +3454,5 @@
     <string name="plugin_dns_description">CloudStream のリクエストに使う DNS を選びます。OK で切り替えます。</string>
     <string name="continue_watching_window_summary">視聴履歴をさかのぼる期間</string>
     <string name="cw_choose_episode">シリーズを開いてエピソードを選択</string>
+    <string name="home_updating_continue_watching">「視聴を続ける」を更新中…</string>
 </resources>

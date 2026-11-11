@@ -10,6 +10,13 @@ import com.nuvio.tv.ui.components.canStream
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import com.nuvio.tv.R
+import com.nuvio.tv.LocalRootContentInset
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
 
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.EnterTransition
@@ -73,7 +80,8 @@ import com.nuvio.tv.ui.screens.home.HeroBackdropState
 fun NuvioNavHost(
     navController: NavHostController,
     startDestination: String = Screen.Home.route,
-    hideBuiltInHeaders: Boolean = false
+    hideBuiltInHeaders: Boolean = false,
+    discoverIsRoot: Boolean = false
 ) {
     // The session owner below only supplies a store, not a Hilt factory. Resolve the
     // shared mix coordinator from the activity before installing that owner.
@@ -90,7 +98,22 @@ fun NuvioNavHost(
         val navViewModelStoreOwner = LocalNavViewModelStoreOwner.current
             ?: checkNotNull(LocalViewModelStoreOwner.current)
         CompositionLocalProvider(LocalViewModelStoreOwner provides navViewModelStoreOwner) {
-            PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel)
+            PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel, discoverIsRoot)
+        }
+    }
+}
+
+// Root destinations carry the legacy sidebar inset themselves so the NavHost container
+// keeps a constant width while navigating between root and non-root routes.
+private fun NavGraphBuilder.rootComposable(
+    route: String,
+    withInset: Boolean = true,
+    content: @Composable (NavBackStackEntry) -> Unit
+) {
+    composable(route) { backStackEntry ->
+        val inset = if (withInset) LocalRootContentInset.current else 0.dp
+        Box(modifier = Modifier.padding(start = inset)) {
+            content(backStackEntry)
         }
     }
 }
@@ -100,9 +123,11 @@ private fun PlaybackNavHost(
     navController: NavHostController,
     startDestination: String,
     hideBuiltInHeaders: Boolean,
-    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel
+    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel,
+    discoverIsRoot: Boolean
 ) {
     val mixPlaying by mixViewModel.session.playing.collectAsStateWithLifecycle()
+    val liveFullscreen by com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.collectAsStateWithLifecycle()
     fun returnToMix() {
         if (!navController.popBackStack(TV_MIX_ROUTE, inclusive = false)) {
             val id = mixViewModel.state.value.mixId
@@ -249,7 +274,7 @@ private fun PlaybackNavHost(
             )
         }
 
-        composable(Screen.LiveTv.route) { entry ->
+        rootComposable(Screen.LiveTv.route, withInset = !liveFullscreen) { entry ->
             // Reuse Home's live state so its selected channel/group survives opening the guide.
             // Live TV can also be the start destination, with no Home entry on the back stack.
             val liveTvOwner = androidx.compose.runtime.remember(entry) {
@@ -271,7 +296,7 @@ private fun PlaybackNavHost(
                 onFindInNuvio = { navController.navigate(Screen.Search.route) }
             )
         }
-        composable(Screen.Sports.route) {
+        rootComposable(Screen.Sports.route, withInset = !liveFullscreen) {
             com.nuvio.tv.livetv.sports.SportsScreen(
                 onOpenLive = {
                     com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
@@ -350,7 +375,7 @@ private fun PlaybackNavHost(
                 }
             )
         }
-        composable(Screen.Home.route) {
+        rootComposable(Screen.Home.route) {
             fun createContinueWatchingRoute(
                 item: ContinueWatchingItem,
                 manualSelection: Boolean = false,
@@ -1394,7 +1419,7 @@ private fun PlaybackNavHost(
             )
         }
 
-        composable(Screen.Search.route) { backStackEntry ->
+        rootComposable(Screen.Search.route) { backStackEntry ->
             val searchViewModel: com.nuvio.tv.ui.screens.search.SearchViewModel =
                 androidx.hilt.navigation.compose.hiltViewModel(backStackEntry)
             SearchScreen(
@@ -1421,7 +1446,7 @@ private fun PlaybackNavHost(
             )
         }
 
-        composable(Screen.Discover.route) {
+        rootComposable(Screen.Discover.route, withInset = discoverIsRoot) {
             DiscoverScreen(
                 showBuiltInHeader = !hideBuiltInHeaders,
                 onOpenAdvancedDiscover = { navController.navigate(Screen.AdvancedDiscover.route) },
@@ -1452,7 +1477,7 @@ private fun PlaybackNavHost(
             )
         }
 
-        composable(Screen.Library.route) {
+        rootComposable(Screen.Library.route) {
             LibraryScreen(
                 showBuiltInHeader = !hideBuiltInHeaders,
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
@@ -1485,7 +1510,7 @@ private fun PlaybackNavHost(
             )
         }
 
-        composable(Screen.Settings.route) {
+        rootComposable(Screen.Settings.route) {
             SettingsScreen(
                 showBuiltInHeader = !hideBuiltInHeaders,
                 onNavigateToAddons = { navController.navigate(Screen.AddonManager.route) },

@@ -77,7 +77,8 @@ class SportsRepository @Inject constructor(
     private val tvNowMatcher = SportsMatcher(guideDb)
     private var tvNowMatchIds = emptySet<String>()
     private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
-    private val dir = File(context.filesDir, "sports").apply { mkdirs() }
+    private val sportsCache = SportsDiskCache.directory(context.filesDir, context.cacheDir)
+    private val dir get() = sportsCache.apply { mkdirs() }
 
     val settings: StateFlow<SportsSettings> = prefs.sportsSettingsJson
         .map { SportsSettings.fromJson(it) }
@@ -106,6 +107,7 @@ class SportsRepository @Inject constructor(
     private val baseData = MutableStateFlow<List<SportsEvent>>(emptyList())
     private val baseFeed by lazy { SportsBaseFeed(dir, com.nuvio.tv.BuildConfig.SPORTS_BASE_FEED_URL, allowLocalhost = com.nuvio.tv.BuildConfig.DEBUG) }
     private var appliedBaseAt = 0L
+    private val baseApplyGate = kotlinx.coroutines.sync.Mutex()
     private val scoreAttempts = HashMap<String, Long>()
     private var lastSharedScoreRound = 0L
     private val focusedEvent = MutableStateFlow<String?>(null)
@@ -242,25 +244,32 @@ class SportsRepository @Inject constructor(
         if (started) return
         started = true
         scope.launch {
-            // Opening Sports needs the catalogue even when a live channel occupies the preview.
-            sportsCatalogueAllowed(backgroundAllowed, viewers).first { it }
-            _loading.value = true
-            try {
-                withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
-                    loadCache()
-                    if (baseFeed.enabled && appliedBaseAt == 0L) {
-                        baseFeed.refresh()?.let { applyBaseFeed(it) }
-                        if (appliedBaseAt == 0L) _problem.value = "Sports schedule unavailable. Try refreshing."
+            // Catalogue decoding belongs to the visible Sports page, including preview.
+            // Leaving the page cancels disk parsing and any unfinished download.
+            channelLookupAllowed.collectLatest { allowed ->
+                if (!allowed || cacheLoaded.value) return@collectLatest
+                _loading.value = true
+                try {
+                    withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
+                        loadCache()
+                        if (baseFeed.enabled && appliedBaseAt == 0L) {
+                            baseFeed.refresh()?.let { applyBaseFeed(it) }
+                            if (appliedBaseAt == 0L) _problem.value = "Sports schedule unavailable. Try refreshing."
+                        }
                     }
+                    cacheLoaded.value = true
+                } catch (e: Exception) {
+                    currentCoroutineContext().ensureActive()
+                    _problem.value = "Sports schedule unavailable. Try refreshing."
+                    Log.w(TAG, "Sports catalogue load failed", e)
+                    cacheLoaded.value = true
+                } finally {
+                    _loading.value = false
                 }
-            } catch (e: Exception) {
-                currentCoroutineContext().ensureActive()
-                _problem.value = "Sports schedule unavailable. Try refreshing."
-                Log.w(TAG, "Sports catalogue load failed", e)
-            } finally {
-                cacheLoaded.value = true
-                _loading.value = false
             }
+        }
+        scope.launch {
+            cacheLoaded.first { it }
             backgroundAllowed.collectLatest { allowed ->
                 if (!allowed) return@collectLatest
                 // Structured children are cancelled together as soon as tuning/full screen starts.
@@ -280,6 +289,24 @@ class SportsRepository @Inject constructor(
                     updateLoop()
                 }
             }
+        }
+        scope.launch {
+            channelLookupAllowed.combine(cacheLoaded) { allowed, loaded -> allowed && loaded }
+                .distinctUntilChanged().collectLatest { allowed ->
+                    if (!allowed) return@collectLatest
+                    while (true) {
+                        if (baseFeed.enabled) sportsCatching {
+                            val snapshot = baseFeed.refresh()
+                            if (snapshot != null) applyBaseFeed(snapshot)
+                            else if (appliedBaseAt > 0) {
+                                baseData.value = emptyList()
+                                leagueData.value = emptyMap()
+                                tsdbData.value = emptyMap()
+                            }
+                        }
+                        delay(30_000L)
+                    }
+                }
         }
         scope.launch {
             // Local current-airing reads work while a Sports preview plays, independently
@@ -431,15 +458,6 @@ class SportsRepository @Inject constructor(
         while (true) {
             val active = foreground.value && (viewers.value > 0 || playback.state.value.channelKey != null || followedLeagueIds().isNotEmpty() || follows.value.reminders.isNotEmpty())
             if (active && baseFeed.enabled) {
-                sportsCatching {
-                    val snapshot = baseFeed.refresh()
-                    if (snapshot != null) applyBaseFeed(snapshot)
-                    else if (appliedBaseAt > 0) {
-                        baseData.value = emptyList()
-                        leagueData.value = emptyMap()
-                        tsdbData.value = emptyMap()
-                    }
-                }
                 // Personal full-season requests remain tied to followed teams, while Sports is open.
                 if (viewers.value > 0) sportsCatching { updateSchedules(System.currentTimeMillis(), false) }
             } else if (active) {
@@ -466,21 +484,27 @@ class SportsRepository @Inject constructor(
         kick.value++
     }
 
-    private suspend fun applyBaseFeed(snapshot: SportsBaseFeed.Snapshot) {
-        if (snapshot.generatedAt <= appliedBaseAt) return
+    private suspend fun applyBaseFeed(snapshot: SportsBaseFeed.Snapshot) = baseApplyGate.withLock {
+        if (snapshot.generatedAt <= appliedBaseAt) return@withLock
         applyFreeLeagues(snapshot.metadata.toString())
-        val parsed = snapshot.entries.flatMap { entry ->
-            val league = SportsCatalog.league(entry.leagueId) ?: return@flatMap emptyList()
-            sportsCatching {
-                val events = when {
-                    entry.provider == "espn" && league.espnPath != null -> SportsFeeds.parseScoreboard(league, entry.payload.toString())
-                    entry.provider == "tsdb" && league.id.startsWith("tsdb/") -> FreeSportsDb.events(league, entry.payload.toString(), entry.fetchedAt)
-                    entry.provider == "calendar" && league.fixtureSlug != null -> SportsFeeds.parseFixtures(league, entry.payload.toString())
+        val parsed = ArrayList<SportsEvent>()
+        val loaded = baseFeed.readEntries(snapshot) { entry ->
+            val league = SportsCatalog.league(entry.leagueId) ?: return@readEntries
+            val events = try {
+                when {
+                    entry.provider == "espn" && league.espnPath != null -> SportsFeeds.parseScoreboard(league, entry.payload)
+                    entry.provider == "tsdb" && league.id.startsWith("tsdb/") -> FreeSportsDb.events(league, entry.payload, entry.fetchedAt)
+                    entry.provider == "calendar" && league.fixtureSlug != null -> SportsFeeds.parseFixtures(league, entry.payload)
                     else -> emptyList()
                 }
-                events.map { SportsBaseFeed.scheduled(it, entry.fetchedAt) }
-            }.getOrDefault(emptyList())
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                emptyList()
+            }
+            events.mapTo(parsed) { SportsBaseFeed.scheduled(it, entry.fetchedAt) }
         }
+        currentCoroutineContext().ensureActive()
+        if (!loaded) return@withLock
         _problem.value = null
         baseData.value = parsed
         appliedBaseAt = snapshot.generatedAt

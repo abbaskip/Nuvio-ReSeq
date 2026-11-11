@@ -8,9 +8,10 @@ import java.security.MessageDigest
 internal enum class GuideMatchDecision { MATCH, DIFFERENT, UNCERTAIN }
 
 /** A content-keyed decision cache and a persistent device-wide request budget, not another guide. */
-internal class GeminiGuideCache(private val dir: File, private val clock: () -> Long = System::currentTimeMillis) {
-    init { dir.mkdirs() }
-    private val usageFile = File(dir, "gemini-guide-usage.json")
+internal class GeminiGuideCache(private val dir: File, usageDir: File = dir,
+                                private val clock: () -> Long = System::currentTimeMillis) {
+    init { dir.mkdirs(); usageDir.mkdirs() }
+    private val usageFile = File(usageDir, "gemini-guide-usage.json")
     private fun read(file: File) = runCatching { Json.parseToJsonElement(file.readText()).jsonObject }.getOrNull()
     private fun file(profile: Int) = File(dir, "gemini-guide-$profile.json")
 
@@ -21,6 +22,7 @@ internal class GeminiGuideCache(private val dir: File, private val clock: () -> 
         return entry["decision"]?.jsonPrimitive?.contentOrNull?.let { runCatching { GuideMatchDecision.valueOf(it) }.getOrNull() }
     }
     @Synchronized fun put(profile: Int, key: String, decision: GuideMatchDecision) {
+        dir.mkdirs()
         val now = clock()
         val entries = read(file(profile)).orEmpty().filterValues {
             val at = it.jsonObject["at"]?.jsonPrimitive?.longOrNull ?: 0

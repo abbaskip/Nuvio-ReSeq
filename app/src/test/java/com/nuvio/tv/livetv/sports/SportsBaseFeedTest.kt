@@ -15,7 +15,7 @@ class SportsBaseFeedTest {
         """{"schemaVersion":$version,"generatedAt":$at,"metadata":{"leagues":[]},"entries":[{"provider":"espn","leagueId":"football/nfl","fetchedAt":$fetched,"payload":{"events":[]}}]}"""
 
     @Test fun `valid empty source list is retained while incompatible stale and future feeds are rejected`() {
-        assertTrue(SportsBaseFeed.parse(body(), now).entries.single().payload.toString().contains("events"))
+        assertEquals(1, SportsBaseFeed.parse(body(), now).entryCount)
         for (raw in listOf(body(version = 2), body(at = now + 3_600_000), body(at = now - SportsBaseFeed.MAX_AGE - 1), body(fetched = now + 3_600_000))) {
             assertTrue(runCatching { SportsBaseFeed.parse(raw, now) }.isFailure)
         }
@@ -88,6 +88,70 @@ class SportsBaseFeedTest {
             assertNotNull(client.refresh())
             clock = now + SportsBaseFeed.MAX_AGE + 1
             assertNull(client.cached())
+        }
+    }
+
+    @Test fun `disk catalogue visits payloads in order after reopening without retaining them in the header`() = runBlocking {
+        MockWebServer().use { server ->
+            val directory = temporary.newFolder()
+            val entries = (1..40).joinToString(",") { id ->
+                """{"payload":{"events":[],"ignored":"${"x".repeat(10000)}"},"fetchedAt":$now,"leagueId":"league/$id","provider":"espn"}"""
+            }
+            // Header and payload fields need not precede their dependants.
+            val raw = """{"entries":[$entries],"generatedAt":$now,"schemaVersion":1}"""
+            server.enqueue(MockResponse().setBody(raw))
+            val feed = SportsBaseFeed(directory, server.url("/base").toString(), clock = { now }, allowLocalhost = true)
+            assertEquals(40, feed.refresh()?.entryCount)
+            val reopened = SportsBaseFeed(directory, server.url("/base").toString(), clock = { now }, allowLocalhost = true)
+            val seen = mutableListOf<String>()
+            assertTrue(reopened.readEntries(reopened.cached()!!) { entry ->
+                seen += entry.leagueId
+                assertTrue(entry.payload.contains("events"))
+            })
+            assertEquals((1..40).map { "league/$it" }, seen)
+            assertEquals(1, server.requestCount)
+        }
+    }
+
+    @Test fun `cleared cache is refetched immediately without a stale conditional validator`() = runBlocking {
+        MockWebServer().use { server ->
+            val directory = temporary.newFolder()
+            val feed = SportsBaseFeed(directory, server.url("/base").toString(), clock = { now }, allowLocalhost = true)
+            server.enqueue(MockResponse().setBody(body()).addHeader("ETag", "v1"))
+            assertNotNull(feed.refresh())
+            server.takeRequest()
+            directory.listFiles()!!.forEach { assertTrue(it.delete()) }
+            assertTrue(directory.delete())
+            assertNull(feed.cached())
+            server.enqueue(MockResponse().setBody(body()).addHeader("ETag", "v1"))
+            assertNotNull(feed.refresh())
+            assertNull(server.takeRequest().getHeader("If-None-Match"))
+        }
+    }
+
+    @Test fun `stream validation rejects duplicate identities malformed events and trailing documents`() {
+        val valid = body()
+        val entry = """{"provider":"espn","leagueId":"football/nfl","fetchedAt":$now,"payload":{"events":[]}}"""
+        for (raw in listOf(
+            valid.replace("\"events\":[]", "\"events\":{}"),
+            valid.replace("\"events\":[]", "\"other\":[]"),
+            valid.replace("[$entry]", "[$entry,$entry]"),
+            valid + "{}"
+        )) assertTrue(runCatching { SportsBaseFeed.parse(raw, now) }.isFailure)
+    }
+
+    @Test fun `cancellation interrupts validation between events`() {
+        val raw = body().replace("\"events\":[]", "\"events\":[" + (1..1000).joinToString(",") { "{\"id\":$it}" } + "]")
+        var checks = 0
+        try {
+            okio.Buffer().writeUtf8(raw).use { source ->
+                SportsBaseFeed.parse(source, now, checkCancelled = {
+                    if (++checks == 20) throw kotlinx.coroutines.CancellationException("page closed")
+                })
+            }
+            fail("Cancellation must propagate")
+        } catch (_: kotlinx.coroutines.CancellationException) {
+            assertEquals(20, checks)
         }
     }
 

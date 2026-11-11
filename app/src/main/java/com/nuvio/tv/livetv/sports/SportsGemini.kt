@@ -30,7 +30,7 @@ class SportsGeminiCredentials @Inject constructor(@ApplicationContext context: C
     private val storage = ProtectedProfilePreferences(context, "sports_gemini_credentials", "com.nuvio.tv.sports.gemini.v1")
     fun read(profile: Int): String? = storage.read(profile)
     fun save(profile: Int, key: String?) = storage.write(profile, key?.trim()?.takeIf(String::isNotEmpty))
-    private val matches = File(context.filesDir, "sports")
+    private val matches = SportsDiskCache.directory(context.filesDir, context.cacheDir)
     override fun removeProfile(profileId: Int) {
         storage.write(profileId, null)
         File(matches, "gemini-guide-$profileId.json").delete()
@@ -51,7 +51,8 @@ object SportsGeminiModule {
 @Singleton
 class SportsGemini @Inject constructor(private val credentials: SportsGeminiCredentials, private val profiles: ProfileManager,
     @ApplicationContext context: Context) {
-    private val guideCache = GeminiGuideCache(File(context.filesDir, "sports"))
+    private val guideCache = GeminiGuideCache(SportsDiskCache.directory(context.filesDir, context.cacheDir),
+        usageDir = File(context.filesDir, "sports"))
     internal fun session(): Pair<Int, String?> {
         val profile = profiles.activeProfileId.value
         return profile to runCatching { credentials.read(profile)?.let { key ->

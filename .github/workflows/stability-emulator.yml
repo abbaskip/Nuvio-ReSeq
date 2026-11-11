@@ -58,14 +58,6 @@ jobs:
           PY
       - name: Test launch-check guards
         run: python3 -m unittest scripts.tests.test_stability_smoke
-      - name: Build fixture APKs
-        shell: bash
-        run: |
-          tasks=(:app:assembleFullDebug :app:assembleFullDebugAndroidTest)
-          if [[ '${{ inputs.workload }}' == full ]]; then tasks+=(:app:assembleFullBenchmark); fi
-          ./gradlew "${tasks[@]}" --max-workers=1 -PstabilityFixtures=true \
-            -Pkotlin.compiler.execution.strategy=in-process \
-            -Dorg.gradle.jvmargs="${NUVIO_CI_JVM_ARGS:--Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8}"
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -79,15 +71,33 @@ jobs:
           mkdir -p build/stability
           adb start-server
           # Fresh disposable CI guest only; never alter a physical device's authorisation.
-          "$ANDROID_HOME/emulator/emulator" -avd stability-tv-${{ matrix.ram }} -port 5554 -memory ${{ matrix.ram }} -skip_adb_auth -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > build/stability/emulator.log 2>&1 &
-          timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
+          "$ANDROID_HOME/emulator/emulator" -avd stability-tv-${{ matrix.ram }} -port 5554 -memory ${{ matrix.ram }} -skip-adb-auth -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > build/stability/emulator.log 2>&1 &
+          emulator_pid=$!
           booted=false
-          for attempt in $(seq 1 120); do
-            if [[ "$(adb -s "$ANDROID_SERIAL" shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; then booted=true; break; fi
+          for attempt in $(seq 1 150); do
+            if ! kill -0 "$emulator_pid" 2>/dev/null; then
+              tail -80 build/stability/emulator.log
+              echo '::error::Disposable emulator exited before boot.'
+              exit 1
+            fi
+            if [[ "$(adb -s "$ANDROID_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)" == 1 ]]; then booted=true; break; fi
             sleep 2
           done
-          test "$booted" = true
+          if [[ "$booted" != true ]]; then
+            tail -80 build/stability/emulator.log
+            adb devices -l
+            echo '::error::Disposable emulator did not become boot-ready within 300 seconds.'
+            exit 1
+          fi
           python3 scripts/stability_fixtures.py > build/stability/fixture-server.log 2>&1 &
+      - name: Build fixture APKs
+        shell: bash
+        run: |
+          tasks=(:app:assembleFullDebug :app:assembleFullDebugAndroidTest)
+          if [[ '${{ inputs.workload }}' == full ]]; then tasks+=(:app:assembleFullBenchmark); fi
+          ./gradlew "${tasks[@]}" --max-workers=1 -PstabilityFixtures=true \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            -Dorg.gradle.jvmargs="${NUVIO_CI_JVM_ARGS:--Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8}"
       - name: Run minified fixture smoke, soak, cricket and timeline workloads
         if: ${{ inputs.workload == 'full' }}
         shell: bash

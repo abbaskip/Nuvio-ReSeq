@@ -1,74 +1,72 @@
-# Stability programme: Phase 1 interim discovery
+# Stability programme: Phase 1 discovery
 
-## Decision needed before continuing
+**Phase 1 measurements are in progress. Do not approve Phase 2 yet.**
+No design or functional fixes are part of this branch.
 
-**Phase 1 is incomplete. Do not approve Phase 2 from this report.** The programme's
-section 1.1 says to stop and ask when the published tag, `dev`, and memory branch
-disagree. Which base should be used: published **9.6.1 / 10051 / `c2b4d94f3`**
-(recommended), the memory branch `9c35d5edf`, or a future `dev` containing it?
+## Approved source and workflow registration
 
-There is also **no configured Android emulator or installed system image** on this
-machine. The SDK and emulator executable exist. Provision a disposable Android TV
-AVD, or run the standalone emulator workflow after confirming the base. The
-programme requires reporting this rather than treating unrun checks as passes.
+The maintainer selected published beta **9.6.1**, build **10051**, commit
+`c2b4d94f32372446fedb24ee951d0a026ddd4e1f`. The original tooling commit was
+rebased onto that exact source as `47c461eb4`; PR #14 remains the Phase 1 PR
+on `codex/stability-phase1-tooling`.
 
-Independent work completed: F1–F5 static review against the published source,
-reproducible inventory, guarded emulator launch script, a standalone manual CI
-workflow that builds minified benchmark APKs and runs existing instrumentation,
-and host tests for the script. No app behaviour was changed. The 10-minute fixture
-soak, expanded fixtures, runtime diagnostics, and time-sequenced launcher test
-remain unfinished. Onn application tests were not started while the base is
-unresolved. This is the programme's unattended-run checkpoint, not its Phase 1
-acceptance checkpoint.
+GitHub refused manual dispatch while the workflow was absent from the default
+branch. With explicit maintainer approval, **`1bce7ac66`** registers only
+`.github/workflows/stability-emulator.yml` on `dev`, parent `94a87b487`.
+The file is identical to the Phase 1 branch version. It has only
+`workflow_dispatch`, `permissions: contents: read`, and no secret inputs.
+Immediately after checkout it fails clearly when `scripts/stability_smoke.py`
+is absent. Every dispatch uses `--ref codex/stability-phase1-tooling`, never
+`dev`. Dev otherwise remains unchanged; Phase 1 app/tooling has not been merged.
 
-## Source and environment
+The older memory branch `9c35d5edf` differs from the selected published source
+only in existing publication records. No release, tag, publication hold,
+version, or release workflow is changed by this programme. The original
+programme attachment remains untracked.
 
-Read-only GitHub queries on 11 November 2026 returned:
+## Tooling ownership and test isolation
 
-| Reference | Commit / state |
-| --- | --- |
-| Latest published beta | `v0.1.0-beta.9.6.1`, `c2b4d94f32372446fedb24ee951d0a026ddd4e1f`, published 09:15:36 UTC, regular release |
-| Remote `dev` | `94a87b487c3a90688c44aed888787b1b5d7bf79c`, beta 9.5; does not contain 10051 |
-| Remote memory branch / starting checkout | `9c35d5edfa3e3c9dabf23bf4465d448f361593fa` |
-| Beta 9.6 | Draft/withdrawn, tag points to `98d71862c5ccb162347bdfaaa2a85e7a30c44e31` |
+Normal builds have `STABILITY_FIXTURES=false`; only explicitly opted-in debug
+and minified benchmark builds include the fixture activities. They are protected
+by Android's DUMP permission and restricted to the separate `.debug` and
+`.iptvdebug` application IDs. Fixture builds ignore local service-properties
+files, use synthetic localhost services, and deny external HTTP(S) through a
+local non-forwarding proxy. Test packages never read production app data.
 
-The memory branch differs from the 10051 source commit only in existing publication
-records: `automation/publication-hold.json` and
-`releases/0.1.0-beta.9.6.1-validation.md`. A diff of app sources, app Gradle configuration,
-and the release workflow is empty. The independent tooling branch
-`codex/stability-phase1-tooling` was made from the starting checkout, without
-rewriting those records. Its provisional parent is not a decision to use that
-base for the programme. Recheck remote refs and replay only the tooling commit
-onto the agreed base before continuing.
+The diagnostics receiver is shell/DUMP protected, off by default and not
+persisted. It emits bounded reasons/identifiers and counters to logcat, with no
+new job, scope, timer, event buffer or disk cache. The existing two-thread
+`BackgroundWork.quiet` and `reads` executors retain their priority, queue and
+thread factory; each adds one saturation counter. Existing CW/shuffle/TVDB,
+visible-Home and playback-idle gate calls and Sports reminder/detail events are
+observed without changing their decisions. Priority classes remain those of the
+observed work; Phase 2 has not introduced a shared policy yet.
 
-No tags were fetched, created or changed. No releases, publication holds, versions
-or release workflows were changed or dispatched. The attachment remains untracked.
+Test-only registry: `StabilityJourneyActivity.lifecycleScope` owns a 30-second
+heap/GC/CW/thread sampler (measurement overhead), fixture setup and navigation
+(USER_VISIBLE), synthetic catalogue/guide workloads on the existing quiet pool
+(BULK), and the NNTP fixture request on existing Dispatchers.IO
+(PLAYBACK_CRITICAL). `StabilityVodActivity.lifecycleScope` samples the real player
+once per second and mutes it. All cancel on activity destruction. Fixture
+servers retain synthetic catalogue/feed data on the host, never in production.
+No new production cache, pause signal or loop is introduced.
 
-Host: Windows, PowerShell, Python 3.10, SDK at the configured Android SDK directory.
-`emulator -list-avds` returned no entries. `adb devices -l` identified one already
-authorised Onn; no connection was enabled or authorised. Initial sandbox network
-and adb restrictions were resolved using approved read-only access.
+The host runner refuses pre-existing test packages, validates the minified APK
+identity, filters logs by the new process, and samples package memory. Its
+finally path independently restores original power/screensaver/timeout values,
+media volume and only its newly created ADB reverse mappings, stops/uninstalls
+its test package, and verifies unchanged production version. Automated guard
+checks inject workload, install and uninstall failures. Onn selection is limited
+to the already-authorised `192.168.1.121:5555`; its permitted run is smoke, soak
+and five cricket opens only. Display/power are observed before and after each
+run; physical TV state is not inferred from the Android display flag.
 
-## Reproducible evidence
+## Reproducible static evidence
 
-Run from the repository root:
-
-```text
-python scripts/stability_inventory.py --ref c2b4d94f3 --output build/stability/inventory.json
-python -m unittest scripts.tests.test_stability_smoke
-```
-
-[static-inventory.json](static-inventory.json) contains committed-blob evidence,
-file/line/source hits, hotspot counts and the exact revision. It deliberately
-does not inspect configuration, credentials or device app data. Counts are lexical;
-comments, declarations and helper files are included where stated. They are not
-a runtime ownership registry or evidence of resource saturation.
-
-History counts use explicit Sydney-midnight boundaries, 5–11 November inclusive
-and 9–11 November inclusive, and all reachable parents. An initial abbreviated
-date-only query gave 173/84; those ambiguous bounds have been superseded by the
-explicit, reproducible 199/160 below. Commit frequency is evidence of review
-exposure, not proof that any particular commit caused a crash.
+`python scripts/stability_inventory.py --ref c2b4d94f3 --output build/stability/inventory.json`
+recreates [static-inventory.json](static-inventory.json), which uses committed
+blobs, file/symbol/line references and explicit Sydney-midnight history bounds.
+Counts are lexical evidence, not runtime ownership or saturation measurements.
 
 ## F1 — change volume and bundling: confirmed, counts revised
 
@@ -261,107 +259,39 @@ snapshot consumers were found in Home and Android TV sync, not TV Mix's own path
 Details has an invalidation dependency. External-player return enters tracking
 refresh and still needs lifecycle coverage.
 
-Required executable scenario remains **not implemented / not run**:
+The executable timeline now records raw progress, snapshotVersion, snapshot episode
+identities and this test package's actual TvProvider rows before completion,
+after a fake player closes onto a non-Home screen, while backgrounded and after
+returning Home. Runtime results are pending the full measurement run.
 
-1. Seed a fake local/tracker show with episode 1 partially watched; display Home;
-   assert saved snapshot and launcher provider row identify episode 1.
-2. Open a fake player, complete episode 1, and close onto Details, Sports and
-   Live TV in separate cases. Await the tracking refresh completion; record
-   raw progress, snapshotVersion, snapshot episode identity and launcher row.
-3. Background without visiting Home. Await actual channel reconciliation;
-   assert its rows against the newly completed progress, not just a flow emission.
-   The suspected failure is an old snapshot being republished.
-4. Return to Home and verify repair; repeat with external-player return, app
-   exit directly from player, profile switch, and tracker refresh delay/failure.
+### Cricket opening memory: full measurement pending
 
-This specification is not a passing test and must be implemented before closing
-the risk. Do not fix behaviour during discovery.
-
-### Cricket opening memory: not reproduced (not run)
-
-Streaming/cache changes are present. No low-RAM emulator, fixture cricket open,
-five-repeat measurement or Onn application run occurred here. The existing
-fixture sports journey is insufficient evidence for a large live Test-match feed
-plus large guide. Build that fixture, assert the cricket detail actually opens,
-and collect peak Java/native/graphics plus GC pause/thread/ANR evidence across
-five opens. Use the same fixture for both environments. Real playlists, real
-guide complexity, rendering and decoder behaviour with the TV on remain separate
-maintainer validation.
+The large synthetic fixture has 2,000 sports channels, 96,000 guide programmes,
+20,000 On Demand movies, 2,000 basketball feed events and one live Test cricket
+match. The runner requires the actual cricket-detail diagnostic on each of five
+opens, and samples package memory every second during that sequence.
 
 ## Measurements and tooling status
 
-| Check / metric | 2-GB TV emulator | Normal TV emulator | Onn |
-| --- | --- | --- | --- |
-| 60-second minified launch, crash/ANR | Not run (no emulator) | Not run (no emulator) | Not run (base unresolved; fixture-safe package not built) |
-| Existing instrumentation | Not run (no emulator) | Not run (no emulator) | Not run; not required on Onn by this phase |
-| 10-minute soak, 30-second Java/native/graphics, GC, threads, CW IDs | Not run (no emulator); journey unfinished | Not run (no emulator); journey unfinished | Not run (base unresolved; journey unfinished) |
-| Cricket peak heap, GC pauses, five opens | Not run (no emulator) | Not run (no emulator) | Not run (base unresolved; large fixture unfinished) |
-| Reminder due-to-display delay under stalled import + guide build | Not run (no emulator) | Not run (no emulator) | Not run; no latency measured |
-| Stalled NNTP blocked worker count | Not run (no emulator) | Not run (no emulator) | Not run; no thread measurement |
-| CW IDs/count at 0, 1, 2, 5 minutes, first fake Trakt refresh | Not run (no emulator) | Not run (no emulator) | Not run; no card measurement |
-| Launcher timeline | Not run (no emulator); test unfinished | Not run (no emulator); test unfinished | Not run |
+Results are pending the full runs on API 34 Android TV at 2,048/3,072/4,096 MB
+RAM and the permitted Onn subset. No zero values substitute for missing data.
+There are no claims of improvement; these are baseline measurements.
 
-No zero values substitute for missing measurements. There are no claims of
-smoothness, lower memory, better freshness or ANR improvement.
+**Verified by test:** host suite 113 tests, one skipped, including failure-path
+restoration guards. Minified and debug fixture APK builds pass. A disposable
+3,072 MB TV emulator preflight loaded all channels/catalogue entries and showed
+all three fixture series in CW. Preflight is harness validation, not the soak
+baseline. Actual emulator memoryClass/largeMemoryClass is 192/576 MB despite
+requested 256m/384m boot properties. The image ignores those overrides; this
+mismatch must accompany the measurement tables. Full JVM/lint and the final
+workload builds are running.
 
-- **Verified by test:** six Python launch-script tests, including background-crash
-  failure/cleanup and rejection of production/debuggable APKs, physical devices,
-  phone images and existing benchmark installs. YAML parsed successfully. Source
-  inventory was generated from committed blobs. `git diff --check` passes.
-  The full host tooling suite also passed: **108 tests, one skipped**, with
-  `PYTHONPATH=scripts python -m unittest discover -s scripts/tests -p 'test_*.py'`.
-  An initial invocation without the repository's required PYTHONPATH failed
-  module imports; setting that path resolved it without changing existing tests.
-- **Needs device validation:** the launch script itself, the workflow build/task
-  names and actual instrumentation outcomes. The workflow is manual-only,
-  read-only in GitHub permissions, separate from publication and has not run.
-- `scripts/stability_smoke.py` requires a fresh TV emulator, installs only the
-  non-debuggable `.debug` benchmark package, waits at least 60 seconds, checks
-  process survival, captures logcat and before/after activity ANR records, fails
-  on Java/native crashes or ANRs, records meminfo every 30 seconds, then stops
-  and uninstalls its own package. It deliberately cannot operate on Onn.
-- CI matrix requests 2,048/4,096 MB RAM with API 34 Android TV x86. Heap class is
-  not thereby guaranteed to match Onn. It uses synthetic service inputs and the
-  existing local fixture server, not repository service secrets. Account-live
-  tests remain opt-in and should skip; inspect their reports rather than calling
-  skipped tests passed. No accounts may be configured for this programme.
-- Full JVM suite/lint were not rerun: no app code changed. No APK was built or
-  installed. This is host-tool validation only.
-- The existing logcat-gated `NuvioCwTrace` is partial CW tracing. It is **not** the
-  requested complete hidden diagnostic toggle, per-show final reason ledger,
-  gate transition durations or pool-saturation counters. Those are pending.
+## Onn environment and restoration
 
-## Onn read-only before/after record
-
-No test package was installed, launched, stopped or uninstalled. No maintainer
-app was launched, stopped, updated or cleared; no app files, accounts or settings
-were read. Package version inspection was limited to the programme's permitted
-version check. No power, screensaver, volume, display or developer setting was
-changed, so there is nothing to restore.
-
-| Property | Before | After |
-| --- | --- | --- |
-| Model | onn 4K Pro Streaming Device | Same |
-| Android | 14 | Same |
-| Fingerprint | `onn/jarvis2/jarvis2:14/URO3.260203.035.A1/15640252:user/release-keys` | Same |
-| RAM | MemTotal 2,998,840 kB; MemAvailable 1,252,576 kB | Availability is time-dependent; no app measurement |
-| Heap properties | heapgrowthlimit 256m; heapsize 384m | Same; no test-app ActivityManager memoryClass measured |
-| Power/display | Awake, powered, stay-on true; Android display state ON | Same power state; display not reread; physical TV power state unknown |
-| stay_on_while_plugged_in | 3 | 3 |
-| screensaver_enabled | 1 | 1 |
-| screensaver_activate_on_sleep | 1 | 1 |
-| screen_off_timeout | 600000 | 600000 |
-| Maintainer package | versionCode 10051; versionName 0.1.0-beta.9.6.1 | Same |
-
-Final read-only inspection: 2026-11-11 09:38:34 UTC. Values above are property
-observations, not a smoke/soak result.
-
-The device is approximately a 3-GB physical-RAM model, not the assumed 2-GB box.
-Android reports a display ON even though the programme anticipates the TV being
-off. Do not relabel this inspection "measured on Onn (display off)": there was no
-application measurement and physical TV state was not established. Future runs
-must record these properties again, inspect the test APK's package, use only
-fixture data, mute playback and restore every changed setting in a finally path.
+The initial read-only inspection observed Android display ON, power Awake,
+physical TV power unknown; heap properties 256m/384m; MemTotal 2,998,840 kB;
+production build 10051 / 0.1.0-beta.9.6.1. No Onn test has run yet. Each run will
+record its own before/after state and test-app memoryClass/largeMemoryClass.
 
 ## Provisional ranking by user impact
 
@@ -386,9 +316,9 @@ alone; avoid assuming profile fixture APKs are safe for the everyday device.
 
 ## Remaining Phase 1 work and approval boundary
 
-Resolve the base first. Then complete the fixture-only soak and cricket workload,
+The base and manual workflow registration are approved. Complete the fixture-only soak and cricket workload,
 fake tracker/TVDB and stalled NNTP scenarios, launcher timeline test and release-safe
-diagnostics. Run the launch/instrumentation workflow, measure both emulator RAM
+diagnostics. Run the launch/instrumentation workflow, measure all three emulator RAM
 tiers and the permitted Onn subset, preserve artefacts and record restored device
 state. Replace every pending entry with evidence or an explicit environment
 limitation. Only then request Phase 1 approval for solution design. No DESIGN.md

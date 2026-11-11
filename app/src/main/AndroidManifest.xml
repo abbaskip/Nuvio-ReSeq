@@ -52,6 +52,8 @@
         <meta-data
             android:name="io.sentry.auto-init"
             android:value="false" />
+        <receiver android:name=".core.diagnostics.StabilityDiagnosticsReceiver"
+            android:exported="true" android:permission="android.permission.DUMP" />
         <meta-data
             android:name="io.sentry.tombstone.enable"
             android:value="true" />

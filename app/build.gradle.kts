@@ -64,16 +64,25 @@ fun cmakePath(path: String): String {
     return resolved.absolutePath.replace("\\", "/")
 }
 
+// Opt-in disposable test builds never read service credentials from developer files.
+val stabilityFixtures = providers.gradleProperty("stabilityFixtures").orNull == "true"
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
+    if (!stabilityFixtures && localPropertiesFile.exists()) {
         load(localPropertiesFile.inputStream())
+    }
+    if (stabilityFixtures) {
+        setProperty("NUVIO_SUPABASE_URL", "http://127.0.0.1:38791")
+        setProperty("NUVIO_SUPABASE_ANON_KEY", "stability-fixture-not-a-credential")
+        setProperty("TRAKT_API_URL", "http://127.0.0.1:38791/trakt/")
+        setProperty("TRAKT_CLIENT_ID", "stability-fixture")
+        setProperty("SPORTS_BASE_FEED_URL", "http://127.0.0.1:38791/sports")
     }
 }
 
 val devProperties = Properties().apply {
     val devPropertiesFile = rootProject.file("local.dev.properties")
-    if (devPropertiesFile.exists()) {
+    if (!stabilityFixtures && devPropertiesFile.exists()) {
         load(devPropertiesFile.inputStream())
     }
 }
@@ -131,6 +140,7 @@ android {
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
+        buildConfigField("boolean", "STABILITY_FIXTURES", stabilityFixtures.toString())
         applicationId = "io.github.abbaskip.nuvioreseq"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 24
@@ -331,6 +341,14 @@ android {
     }
 
     sourceSets {
+        if (stabilityFixtures) {
+            for (fixtureBuild in listOf("benchmark", "debug")) {
+                maybeCreate(fixtureBuild).apply {
+                    java.srcDir("src/stabilityFixtures/java")
+                    manifest.srcFile("src/stabilityFixtures/AndroidManifest.xml")
+                }
+            }
+        }
         // Accessible only to the shell on the dedicated profile producer and benchmark APKs.
         for (profileBuild in listOf("fullNonMinifiedRelease", "fullBenchmarkRelease")) {
             maybeCreate(profileBuild).apply {

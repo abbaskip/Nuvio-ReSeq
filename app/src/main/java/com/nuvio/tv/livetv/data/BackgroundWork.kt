@@ -43,7 +43,7 @@ object BackgroundWork {
      */
     val quiet: kotlinx.coroutines.CoroutineDispatcher by lazy {
         val count = java.util.concurrent.atomic.AtomicInteger()
-        java.util.concurrent.Executors.newFixedThreadPool(2) { r ->
+        com.nuvio.tv.core.diagnostics.StabilityDiagnostics.fixedPool("quiet", 2) { r ->
             Thread({
                 // Just short of Android's "background" class (10): that class is held to a small
                 // slice of the processor whenever anything else is busy, which stretched a guide
@@ -62,7 +62,7 @@ object BackgroundWork {
      */
     val reads: kotlinx.coroutines.CoroutineDispatcher by lazy {
         val count = java.util.concurrent.atomic.AtomicInteger()
-        java.util.concurrent.Executors.newFixedThreadPool(2) { r ->
+        com.nuvio.tv.core.diagnostics.StabilityDiagnostics.fixedPool("reads", 2) { r ->
             Thread({
                 android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
                 r.run()
@@ -72,7 +72,14 @@ object BackgroundWork {
 
     /** Waits while Nuvio's player is open. */
     suspend fun awaitIdle() {
-        if (isNuvioPlaying) nuvioPlaying.first { !it }
+        if (isNuvioPlaying) {
+            val start = System.nanoTime()
+            val thread = Thread.currentThread().name
+            com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("gate-paused", mapOf("gate" to "playback-idle", "thread" to thread))
+            try { nuvioPlaying.first { !it } } finally {
+                com.nuvio.tv.core.diagnostics.StabilityDiagnostics.event("gate-ended", mapOf("gate" to "playback-idle", "thread" to thread, "durationMs" to (System.nanoTime() - start) / 1_000_000))
+            }
+        }
     }
 
     /**

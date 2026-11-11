@@ -55,6 +55,9 @@ scripts/*
 !scripts/ci_pipeline.py
 !scripts/stability_inventory.py
 !scripts/stability_smoke.py
+!scripts/stability_run.py
+!scripts/stability_fixtures.py
+!scripts/stability_avd.py
 !scripts/ci.gradle
 !scripts/ci-cache.sh
 /.gradle-user-home/

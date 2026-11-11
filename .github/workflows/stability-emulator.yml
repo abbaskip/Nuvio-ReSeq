@@ -14,13 +14,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ram: [2048, 4096]
+        ram: [2048, 3072, 4096]
     env:
       ANDROID_SERIAL: emulator-5554
       CI_USE_DEBUG_SIGNING: 'true'
       NUVIO_SPORTS_BASE_FEED_URL: http://127.0.0.1:38791/sports
     steps:
       - uses: actions/checkout@v6
+      - name: Require Phase 1 tooling
+        shell: bash
+        run: |
+          if [[ ! -f scripts/stability_smoke.py ]]; then
+            echo '::error::Phase 1 tooling is missing. Dispatch with --ref codex/stability-phase1-tooling; do not dispatch against dev.'
+            exit 1
+          fi
       - uses: ./.github/actions/gradle
       - name: Prepare synthetic service configuration
         shell: bash
@@ -39,6 +46,7 @@ jobs:
         run: >-
           ./gradlew :app:assembleFullBenchmark :app:assembleFullDebug
           :app:assembleFullDebugAndroidTest --max-workers=2
+          -PstabilityFixtures=true
           -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
       - name: Enable emulator acceleration
         run: |
@@ -59,20 +67,19 @@ jobs:
             sleep 2
           done
           test "$booted" = true
-          python3 baselineprofile/fixtures/server.py > build/stability/fixture-server.log 2>&1 &
-          adb -s "$ANDROID_SERIAL" reverse tcp:38791 tcp:38791
-          adb -s "$ANDROID_SERIAL" reverse tcp:38792 tcp:38792
-      - name: Launch minified APK and observe for 60 seconds
+          python3 scripts/stability_fixtures.py > build/stability/fixture-server.log 2>&1 &
+      - name: Run minified fixture smoke, soak, cricket and timeline workloads
         shell: bash
         run: |
           mapfile -t apks < <(find app/build/outputs/apk/full/benchmark -name '*-x86-benchmark.apk')
           test "${#apks[@]}" -eq 1
-          python3 scripts/stability_smoke.py --serial "$ANDROID_SERIAL" --apk "${apks[0]}" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output build/stability/smoke
+          python3 scripts/stability_run.py --device emulator --serial "$ANDROID_SERIAL" --apk "${apks[0]}" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output build/stability/journeys
       - name: Run existing instrumentation on the emulator
         # Live-account tests remain opt-in and are skipped with fresh fixture-only app data.
         if: ${{ !cancelled() && success() }}
         run: >-
           ./gradlew :app:connectedFullDebugAndroidTest --max-workers=2
+          -PstabilityFixtures=true
           -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
       - uses: actions/upload-artifact@v6
         if: always()

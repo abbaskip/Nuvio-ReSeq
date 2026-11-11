@@ -308,3 +308,13 @@ Preserve pending-integration.json and its remote branch after a held rehearsal.
 A dry-run branch containing integrated upstream work is unpublished. Its ledger
 can be recovered from that branch without pretending those changes shipped.
 Recovered-source backups and new evidence stay independent of this checkout.
+
+
+The 12 November recovery rehearsal passed and enabled future publication through
+the normal coordinator. Its three independent upstream changes then shipped in
+beta 9.6.2 from the separate regular run 20261111T152540Z-5d276f. Published source
+and development ancestry are now reconciled. Start future runs with ordinary
+begin; use a reviewed prepared base only for a newly verified divergence.
+Beta maintenance versions with multiple numeric suffix components are supported
+with the same monotonic version/code checks. Original private historical reports
+remain unavailable, with recovered GitHub CI evidence kept separately.

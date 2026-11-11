@@ -1,9 +1,18 @@
+# Delivered in beta 9.6.2
+
+Published and fully verified at 6b1999648a46b9d54b5b924e7912e0f480d72689.
+The three upstream fixes described below are delivered. All five public signed
+APKs, checksums, metadata, project services and latest update channel were checked.
+CI 43053556150 finished successfully. The 12 November report is in
+.upstream-sync/reports/2026-11-12.md. The four engineering/validation records below
+remain active. Historical product holds remain intact.
+
 # Current upstream recovery and integration queue
 
 Read the latest durable report for the 12 November catch-up. Beta 9, beta 9.1
 and later published releases through beta 9.6.1 are historical delivery inputs.
-The current unpublished review branch is
-automation/upstream-20261111T150130Z-4bd1e4. It preserves a reviewed merge of
+The reviewed recovery rehearsal branch was
+automation/upstream-20261111T150130Z-4bd1e4. It preserved a reviewed merge of
 development and the published release, DASH MIME hint decoding, MPV audio-clock
 fallback and text-size-aware Home description scroll pacing. Four upstream
 Spanish strings were already translated in ReSeq and were recorded equivalent.

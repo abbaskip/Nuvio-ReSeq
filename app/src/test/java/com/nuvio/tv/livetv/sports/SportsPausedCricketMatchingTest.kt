@@ -56,6 +56,28 @@ class SportsPausedCricketMatchingTest {
         assertTrue(matches(ev.copy(endMs = now + 12 * hour), p).none { it.program != null })
     }
 
+    @Test fun `current Test results cannot exhaust the query limit ahead of tomorrow's Shield session`() {
+        val shield = event()
+        val test = shield.copy(id = "test", leagueId = "cricket/19430", state = GameState.LIVE, status = "Day 2",
+            title = "Australia v England",
+            home = shield.home!!.copy(team = shield.home!!.team.copy(leagueId = "cricket/19430", name = "Australia", fullName = "Australia", abbr = "AUS")),
+            away = shield.away!!.copy(team = shield.away!!.team.copy(leagueId = "cricket/19430", name = "England", fullName = "England", abbr = "ENG")))
+        val current = EpgProgram(now - hour, now + hour, "Test Cricket: Australia v England live")
+        val tomorrow = EpgProgram(now + 18 * hour, now + 21 * hour, "Sheffield Shield: VIC v WA Day 2 P1")
+        val db = mockk<EpgDatabase>()
+        every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+            val words = arg<Collection<String>>(3)
+            // The real database caps an OR query at 4,000 rows. Broad Test terms fill it first.
+            if ("england" in words) List(4_000) { channel.key to current }
+            else if (tomorrow.startMs in firstArg<Long>() until secondArg<Long>()) listOf(channel.key to tomorrow)
+            else emptyList()
+        }
+        val matched = SportsMatcher(db).match(SportsMatcher.Input(listOf(test, shield), listOf(channel),
+            emptyMap(), 0, SportsSettings(region = "AU"), now)).matches
+        assertTrue(matched[shield.id].orEmpty().any { it.sure && it.program == tomorrow })
+        assertTrue(matched[test.id].orEmpty().any { it.sure && it.program == current })
+    }
+
     @Test fun `live Shield and Tests retain current session matching and completed games do not gain future sessions`() {
         val p = EpgProgram(now - 5 * hour, now + hour, "Sheffield Shield: VIC v WA Day 3 live")
         assertTrue(matches(event(state = GameState.LIVE, status = "InPlay"), p).any { it.sure && it.program == p })

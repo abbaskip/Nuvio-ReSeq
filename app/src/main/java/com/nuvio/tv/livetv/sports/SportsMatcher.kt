@@ -197,7 +197,11 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         }
 
         // ---- 1. The guide, a half-hour slot at a time.
-        if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) teamEvents.groupBy { it.startMs / (30 * MINUTE) }.forEach { (_, slot) ->
+        // Keep each paused fixture's future search separate: current games' broad country terms
+        // can otherwise consume the database row limit before tomorrow's session is returned.
+        if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) teamEvents.groupBy { ev ->
+            if (ev.id in pausedCricket) ev.id else ev.startMs / (30 * MINUTE)
+        }.forEach { (_, slot) ->
             checkpoint()
             val slotStart = slot.minOf { it.startMs }
             val slotEnd = slot.maxOf { it.startMs }

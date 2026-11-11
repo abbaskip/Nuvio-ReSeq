@@ -17,7 +17,7 @@ jobs:
         ram: [2048, 3072, 4096]
     env:
       ANDROID_SERIAL: emulator-5554
-      ANDROID_AVD_HOME: ${{ runner.temp }}/stability-avd
+      ANDROID_AVD_HOME: ${{ github.workspace }}/.stability-avd
       CI_USE_DEBUG_SIGNING: 'true'
       NUVIO_SPORTS_BASE_FEED_URL: http://127.0.0.1:38791/sports
     steps:

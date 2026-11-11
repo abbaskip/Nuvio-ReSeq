@@ -13,9 +13,10 @@ on `codex/stability-phase1-tooling`.
 GitHub refused manual dispatch while the workflow was absent from the default
 branch. With explicit maintainer approval, **`1bce7ac66`** registers only
 `.github/workflows/stability-emulator.yml` on `dev`, parent `94a87b487`.
-Workflow-only follow-ups `567a772a7`, `250e00c1c`, `87af286be` and `f8c543dfb`
+Workflow-only follow-ups `567a772a7`, `250e00c1c`, `87af286be`, `f8c543dfb` and `b0eeb9529`
 synchronise the CI compiler strategy, bounded heap fallback and explicit AVD
-directory (including a corrected expression context). Across these commits, the only changed
+directory (including a corrected expression context), disposable-guest ADB
+authentication and single-tier reruns. Across these commits, the only changed
 path on dev is this workflow. The file is identical to the Phase 1 branch version. It has only
 `workflow_dispatch`, `permissions: contents: read`, and no secret inputs.
 Immediately after checkout it fails clearly when `scripts/stability_smoke.py`
@@ -63,6 +64,32 @@ checks inject workload, partial/absent install and uninstall failures, and incom
 to the already-authorised `192.168.1.121:5555`; its permitted run is smoke, soak
 and five cricket opens only. Display/power are observed before and after each
 run; physical TV state is not inferred from the Android display flag.
+
+Reproduction uses `-PstabilityFixtures=true` for the `fullBenchmark` and
+`fullDebug`/instrumentation APKs, `python scripts/stability_fixtures.py`, and
+`python scripts/stability_run.py --device emulator --serial emulator-5556
+--apk <x86-benchmark.apk> --aapt <aapt> --adb <adb> --output <new-directory>`.
+The runner records APK SHA-256, checkout HEAD, runner SHA-256 and UTC bounds.
+Local APKs were built from app source `89eeff8b3`; subsequent changes are host
+tooling/workflow/report only. The x86 APK SHA-256 is
+`2ea4ba7d5415d54cb062551880a88a3d2a17e6e9bf1bae216dff6d41a10adfb4`;
+the Onn ARMv7 APK is
+`8501455dc7f483ed1e181417c9ae07d8802fd1ab01a2fb103a61bedd6b7301cb`.
+
+The fixture activity enables diagnostics for its process. For a separate manual
+test-package run, the hidden toggle is `adb -s <serial> shell am broadcast -n
+io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.core.diagnostics.StabilityDiagnosticsReceiver
+--ez enabled true` (use false to disable). The 60-second main-activity smoke runs
+before fixture seeding/toggle activation. Fixture VOD is a short four-second clip;
+the trailer loops it. This proves the exercised player paths start, not sustained
+high-bitrate/decoder performance.
+
+Each output directory retains PID-filtered logcat, periodic meminfo, runtime/GC
+samples, CW/launcher rows, environment and before/after cleanup evidence.
+`python scripts/stability_summarize.py <directory>` derives `summary.json`.
+The manual CI workflow uploads the corresponding artifacts and instrumentation
+reports for 14 days. Onn raw device artifacts stay local; only the permitted
+environment, measurement and restoration facts appear in this report.
 
 ## Reproducible static evidence
 
@@ -241,7 +268,7 @@ validation cannot be proved from static code alone.
 | Consumer | Verified source policy |
 | --- | --- |
 | Managed VOD, `MemoryBudget.snapshotFor` | >=512 MB budget heap: 85%. Below that: min(65% of heap, heap minus 210 MB), then a device-sensitive floor. It is **not** simply 65% minus 210 MB. A 1-GB physical-RAM tier may halve the nominal large heap. |
-| Default VOD, PlayerRuntimeControllerInitialization | Stock DefaultLoadControl path when buffer engine is disabled, with back-buffer configuration. The prompt's ~131/~13 MB library defaults were not independently derived from the resolved library in this run. |
+| Default VOD, PlayerRuntimeControllerInitialization | DefaultLoadControl path when the buffer engine is disabled, with a 1.5-second back buffer. The bundled `app/libs/lib-exoplayer-release.aar` exposes video **131,072,000 bytes (125 MiB)** and audio **13,107,200 bytes (12.5 MiB)** defaults; verified with `javap -constants` on its `classes.jar`. These are track buffer targets, not measured allocations. |
 | Coil, NuvioApplication.newImageLoader | 15/20/25% based on physical-RAM tier; uses MemoryBudget heap correction when smaller than runtime max heap. `allowHardware(false)` is set. Sharing a heap input is not an allocation ledger. |
 | Live TV, playerBufferBytes | 30% runtime max heap, clamped **32–160 MiB**. |
 | Guide build, LiveTvRepository | Checks used heap against 85% runtime max heap. |
@@ -257,7 +284,7 @@ usage. The causal claim that this alone explains the withdrawn Onn ANR remains
 
 ## Known 10050 risks at the 10051 application source
 
-### Home-hidden snapshot / launcher: reproduced on the 3-GB emulator
+### Home-hidden snapshot / launcher: reproduced on local 2-GB and 3-GB emulators
 
 `runVisibleHomeWork` cancels children unless Home is visible and no player session
 is open. It encloses the CW pipeline. `MainActivity` refreshes connected tracking
@@ -282,6 +309,12 @@ and at the 35-second sample after returning Home. The next-up builder had alread
 logged S1E2, but the saved snapshot did not advance until a later sample about
 100 seconds after the Home return, during subsequent TVDB probes. That later
 repair must not be attributed to a particular key change without isolation.
+
+The corrected full local **2-GB** run independently reproduced the same four
+timeline observations: S1E1 before completion, then stale S1E1 after closing to
+non-Home, backgrounding and the 35-second Home-return sample, despite raw progress
+marking S1E1 completed. SnapshotVersion remained 5 at those checkpoints. Both
+snapshot and actual launcher-intent assertions were false at the latter stages.
 
 The ordered fixture `tt9900002` also disappeared from Home after this completion
 sequence, **before** the missing-key probe, while raw tracker progress still
@@ -339,20 +372,23 @@ overlap a local app build.
 
 | Completed soak | Dalvik allocated first / last / peak | Native allocated first / last / peak | Java PSS peak | Native PSS peak | Graphics PSS peak | Total PSS peak |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Local 2 GB, corrected LIVE fixture | 10,977 / 47,532 / 95,063 | 25,901 / 23,972 / 46,726 | 117,732 | 88,132 | 0 | 262,364 |
 | Local 3 GB, preliminary timestamps | 10,707 / 47,517 / 99,374 | 22,735 / 28,880 / 55,915 | 112,468 | 98,212 | 0 | 269,582 |
 | Onn, corrected LIVE fixture | 10,827 / 50,852 / 148,697 | 21,465 / 50,388 / 63,017 | 168,520 | 88,872 | 58,792 | 361,804 |
 
-Both ten-minute soaks have 19 periodic memory captures; capture work adds a small
-interval overhead. First-to-last increases include newly loaded screens, media
+The preliminary 3-GB and Onn soaks have 19 periodic memory captures; the corrected
+2-GB run has 63 because it supplements the NNTP section with 1-second sampling.
+Capture work adds a small interval overhead. First-to-last increases include newly loaded screens, media
 and caches. A single ten-minute pass cannot establish a leak or bounded long-run
 growth. Emulator graphics PSS zero is the image's report, not zero graphics cost.
 
 | Completed LIVE cricket sequence | Dalvik allocated peak | Native allocated peak | Java PSS peak | Native PSS peak | Graphics PSS peak | Total PSS peak | Max logged GC pause |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Local 2 GB, corrected full run | 101,972 | 58,035 | 188,116 | 78,128 | 0 | 326,897 | 40.642 ms |
 | Local 3 GB, corrected focused repeat | 143,287 | 60,291 | 147,200 | 77,772 | 0 | 280,372 | 84.452 ms |
 | Onn, corrected full subset | 155,492 | 66,472 | 181,812 | 78,124 | 34,992 | 358,584 | 4.265 ms |
 
-Each row includes cold Sports loading and five actual LIVE detail opens. Both
+Each row includes cold Sports loading and five actual LIVE detail opens. All
 completed with no detected process death, crash or new test-package ANR.
 
 The preliminary 3-GB cold CW samples at requested 0/60/120/300 s actually occurred
@@ -362,6 +398,11 @@ An earlier automatic sample was empty during startup, then filled within about
 0.7 s; the first-frame invariant is not certified. The subsequent ordered-show
 drop and launcher timeline failure are described above.
 
+The corrected 2-GB cold CW checkpoints occurred at **1.19/62.30/120.12/301.12 s**,
+also retaining all three shows. Its stalled-NNTP samples again found **one**
+socket-blocked dispatcher worker early and zero after the timeout, with actual
+READY playback advancing through the first four seconds.
+
 TVDB client probes (same preliminary 3-GB run): missing key **1 ms**, invalid key
 **36 ms**, stalled response **24,006 ms** (harness timeout), service 503 **14 ms**,
 and successful recovery **18 ms / 8 episodes**. Missing/invalid/503 used the real
@@ -369,11 +410,21 @@ client's `TvdbException` (obfuscated `ca.d0`); timeout used `TimeoutCancellation
 The ordered show had already disappeared before these probes, so they do not
 independently prove that removing a key caused that disappearance.
 
+An independent **fresh-install 2-GB TVDB control**, without fake episode completion,
+then exercised the same five key/service modes. It retained **3/3 cards in every
+mode** and cleaned up successfully (`tvdb-isolated-local-2048/tvdb-invariants.json`).
+This control had already seeded metadata; it verifies retained cached cards, not
+every cold/uncached order or correctly resolved playback-completion permutation.
+It supports separating the unresolved-completion identity failure from key failure
+alone. No fallback behavior was changed.
+
 Reminder due-to-show was **3,910 ms** on the preliminary 3-GB run and **2,983 ms**
 on Onn. Their import workers were parked for **61,857 / 61,894 ms** respectively;
 maximum observed quiet-queue lengths across each complete run were **8 / 7**.
 The guide was requested but deferred during playback, so simultaneous active
 guide-build contention remains unmeasured at the unchanged baseline gates.
+The corrected local 2-GB reminder delay was **4,048 ms**, with an import pause of
+**61,913 ms**; the same guide-build limitation applies.
 
 **Verified by test:** host suite 123 tests, one skipped, including failure-path
 restoration guards. Minified and debug fixture APK builds pass. A disposable
@@ -413,6 +464,12 @@ observed Onn absent-package return-code correction. Active verification is
 `43014856509`, using the repository's
 in-process Kotlin strategy, one compile worker and existing runner-capacity heap setting. No emulator
 result is claimed from any build-only/cancelled attempt.
+
+In that run, the 4-GB build passed but its fresh emulator remained ADB-unauthorized
+until startup timed out. The 2-GB tier reached its workload. A workflow-only
+follow-up starts ADB first and uses the emulator's supported `-skip_adb_auth`
+option for the disposable CI guest only. The single-tier 4-GB repeat is
+`43019500282`; no physical-device authorization was changed.
 
 Fixture validation found and corrected two input issues: ESPN dates require the
 parser's UTC `Z` format, and synthetic schedule timestamps must precede live-score
@@ -462,6 +519,13 @@ fingerprint `onn/jarvis2/jarvis2:14/URO3.260203.035.A1/15640252:user/release-key
 The production app was not launched, stopped, read for account/data contents or
 changed. All test media was muted. Only the test package and owned reverse mappings
 were removed; no reboot or other SDK/device change was needed.
+
+After this completed measurement, the maintainer unplugged HDMI and asked to keep
+the box awake overnight. ADB still reached the powered box, but it reported
+Asleep / display OFF. `svc power stayon true` woke it; later checks reported Awake
+and stay-on true, with logical display ON despite disconnected HDMI. The global
+stay-on value remains its original **3**. This later state change is separate
+from the completed baseline and does not relabel its display observations.
 
 ## Ranking by user impact
 

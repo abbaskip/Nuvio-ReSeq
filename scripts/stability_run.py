@@ -319,6 +319,23 @@ def cricket(s):
             raise RuntimeError('Cricket detail opened without the required live fixture state')
 
 
+def tvdb_scenarios(s):
+    observations = []
+    for mode in ('missing', 'invalid', 'timeout', 'unavailable', 'available'):
+        s.phase = 'tvdb-'+mode
+        s.control('tvdb='+('available' if mode == 'missing' else mode))
+        s.journey('tvdb-'+mode)
+        s.journey('refresh')
+        s.wait(30)
+        s.journey('sample')
+        sample = next(e for e in reversed(s.events) if e.get('kind') == 'sample')
+        expected = ['tt9900001', 'tt9900002', 'tt9900003']
+        observations.append({'mode': mode, 'expectedIds': expected, 'observedIds': sample['cwIds'],
+            'retainsSupportedShows': set(expected).issubset(sample['cwIds']),
+            'sample': sample})
+    s.save('tvdb-invariants.json', json.dumps(observations, indent=2))
+
+
 def execute(s):
     s.control('tvdb=available&completed=false&slowImport=false')
     s.phase = 'launch-smoke'
@@ -329,6 +346,10 @@ def execute(s):
     s.journey('seed', 300)
     s.journey('home')
     s.wait(30)
+    if s.args.workload == 'tvdb':
+        # Separate fresh install: do not conflate key failures with prior fake completion.
+        tvdb_scenarios(s)
+        return
     if s.args.workload == 'focused':
         cricket(s)
         s.phase = 'nntp-focused'
@@ -394,13 +415,7 @@ def execute(s):
     s.wait(35)
     s.journey('sample')
     s.save('timeline-assertions.json', json.dumps(timeline_assertions(s.events), indent=2))
-    for mode in ('missing', 'invalid', 'timeout', 'unavailable', 'available'):
-        s.phase = 'tvdb-'+mode
-        s.control('tvdb='+('available' if mode == 'missing' else mode))
-        s.journey('tvdb-'+mode)
-        s.journey('refresh')
-        s.wait(30)
-        s.journey('sample')
+    tvdb_scenarios(s)
     with urlopen('http://127.0.0.1:38791/stats') as response:
         s.save('fixture-stats.json', response.read().decode())
 
@@ -409,7 +424,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--device', choices=['emulator', 'onn'], required=True)
-    parser.add_argument('--workload', choices=['full', 'focused'], default='full')
+    parser.add_argument('--workload', choices=['full', 'focused', 'tvdb'], default='full')
     parser.add_argument('--apk', type=Path, required=True)
     parser.add_argument('--aapt', required=True)
     parser.add_argument('--adb', default='adb')

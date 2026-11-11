@@ -6,6 +6,14 @@ import org.junit.Test
 
 class VersionUtilsTest {
     @Test
+    fun `beta hotfix is offered to withdrawn beta installations only once`() {
+        assertTrue(VersionUtils.isRemoteNewer("v0.1.0-beta.9.6.1", "0.1.0-beta.9.6"))
+        assertFalse(VersionUtils.isRemoteNewer("v0.1.0-beta.9.6.1", "0.1.0-beta.9.6.1"))
+        assertFalse(VersionUtils.isRemoteNewer("v0.1.0-beta.9.6", "0.1.0-beta.9.6.1"))
+        assertTrue(VersionUtils.isRemoteNewer("v0.1.0-beta.9.7", "0.1.0-beta.9.6.1"))
+    }
+
+    @Test
     fun `stable release is newer than its prerelease`() {
         assertTrue(VersionUtils.isRemoteNewer("1.1.0", "1.1.0-rc.2"))
     }

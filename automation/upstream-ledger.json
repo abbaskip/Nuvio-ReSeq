@@ -2298,8 +2298,8 @@
       "base": "355741488519bb7ddf3d5909b7b0649d70412621"
     },
     "4ad172fac72e5b71bbdd656c02ff77f5ddd77fd9": {
-      "outcome": "integrated",
-      "reason": "Four genuine Spanish translations, preserving format and resource names.",
+      "outcome": "equivalent",
+      "reason": "All four Latin American Spanish strings already exist in the beta 9.6.1 locale with genuine Spanish wording. Resource build caught duplicate keys after a clean textual cherry-pick; reverted that duplicate addition and retained established ReSeq translations.",
       "run": "20261111T150130Z-4bd1e4",
       "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
     },

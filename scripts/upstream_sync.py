@@ -116,6 +116,13 @@ def require_ledger_continuity(previous, current):
         raise RuntimeError(f"Candidate lost {len(missing)} historical review records; reconcile from the preserved branch")
 
 
+def choose_prepared_base(ref, dev, released, root):
+    base = git("rev-parse", "--verify", f"{ref}^{{commit}}", cwd=root)
+    if not ancestor(dev, base, cwd=root) or not ancestor(released, base, cwd=root):
+        raise RuntimeError("Prepared base must preserve both current development and the latest release")
+    return base
+
+
 def begin(args, root, state):
     if not (state / "review-ledger.json").is_file():
         raise RuntimeError("Missing shared review ledger; recover durable state before starting")
@@ -138,9 +145,7 @@ def begin(args, root, state):
         released = git("rev-parse", f"{latest['tag_name']}^{{commit}}", cwd=root)
         dev = git("rev-parse", "refs/remotes/origin/dev", cwd=root)
         if args.prepared_base:
-            base = git("rev-parse", "--verify", f"{args.prepared_base}^{{commit}}", cwd=root)
-            if not ancestor(dev, base, cwd=root) or not ancestor(released, base, cwd=root):
-                raise RuntimeError("Prepared base must preserve both current development and the latest release")
+            base = choose_prepared_base(args.prepared_base, dev, released, root)
         else:
             base = choose_base(dev, released)
         pending = pending_candidate(state, root, base)
@@ -390,6 +395,11 @@ def retrying_failed_publication(run, remote, head):
                                   for item in attempts)
 
 
+def beta_version_parts(version):
+    match = re.fullmatch(r"0\.1\.0-beta\.(\d+(?:\.\d+)*)", version)
+    return tuple(map(int, match[1].split("."))) if match else None
+
+
 def gate(run, state):
     if run["dry_run"]:
         raise RuntimeError("Dry runs cannot publish")
@@ -431,12 +441,14 @@ def gate(run, state):
         raise RuntimeError("Release state changed or another release is running")
     contents = (worktree / "app/build.gradle.kts").read_text(encoding="utf-8-sig")
     version = re.search(r'versionName\s*=\s*"([^"]+)"', contents)[1]
-    if not re.fullmatch(r"0\.1\.0-beta\.\d+(?:\.\d+)?", version):
+    version_parts = beta_version_parts(version)
+    if version_parts is None:
         raise RuntimeError("Prepare a new version using ReSeq beta conventions")
     previous_version = run["latest_tag"].removeprefix("v")
-    if not re.fullmatch(r"0\.1\.0-beta\.\d+(?:\.\d+)?", previous_version):
+    previous_parts = beta_version_parts(previous_version)
+    if previous_parts is None:
         raise RuntimeError("Release version convention changed; review before publishing")
-    if tuple(map(int, version.split("-beta.")[1].split("."))) <= tuple(map(int, previous_version.split("-beta.")[1].split("."))):
+    if version_parts <= previous_parts:
         raise RuntimeError("Beta version must advance the latest published release")
     before = git("show", f"{run['base']}:app/build.gradle.kts", cwd=worktree)
     if int(re.search(r"versionCode\s*=\s*(\d+)", contents)[1]) <= int(re.search(r"versionCode\s*=\s*(\d+)", before)[1]):

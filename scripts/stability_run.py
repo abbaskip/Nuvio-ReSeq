@@ -251,14 +251,14 @@ def device_session(session):
         cleanup('log collector', s.stop_log)
         if installed:
             def remove_owned_package():
-                if not s.adb('shell', 'pm', 'path', PACKAGE).strip():
+                if 'package:'+PACKAGE not in s.adb('shell', 'pm', 'list', 'packages', PACKAGE).splitlines():
                     return
                 cleanup('test graphics', lambda: s.save('gfxinfo.txt', s.adb('shell', 'dumpsys', 'gfxinfo', PACKAGE)))
                 cleanup('test activity', lambda: s.save('activity.txt', s.adb('shell', "dumpsys activity activities | grep -F '"+PACKAGE+"'", check=False)))
                 cleanup('stop test package', lambda: s.adb('shell', 'am', 'force-stop', PACKAGE))
                 if 'Success' not in s.adb('uninstall', PACKAGE):
                     raise RuntimeError('Test uninstall failed')
-                if s.adb('shell', 'pm', 'path', PACKAGE).strip():
+                if 'package:'+PACKAGE in s.adb('shell', 'pm', 'list', 'packages', PACKAGE).splitlines():
                     raise RuntimeError('Test package remains after uninstall')
             cleanup('uninstall test package', remove_owned_package)
         for target in added_reverses:

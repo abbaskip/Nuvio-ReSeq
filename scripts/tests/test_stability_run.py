@@ -36,8 +36,7 @@ class RestorationTest(unittest.TestCase):
             if cmd == ('shell', 'getprop', 'ro.kernel.qemu'): return '0'
             if cmd == ('shell', 'getprop', 'ro.product.model'): return 'onn4KPro'
             if cmd == ('shell', 'getprop', 'ro.product.cpu.abilist'): return 'armeabi-v7a,armeabi'
-            if cmd == ('shell', 'pm', 'path', PACKAGE): return 'package:/fixture.apk' if present[0] else ''
-            if cmd[:4] == ('shell', 'pm', 'list', 'packages'): return 'package:'+PACKAGE if existing else ''
+            if cmd[:4] == ('shell', 'pm', 'list', 'packages'): return 'package:'+PACKAGE if present[0] else ''
             if cmd[:3] == ('shell', 'settings', 'put'):
                 settings[cmd[3]+'/'+cmd[4]] = cmd[5]
             if cmd[:4] == ('shell', 'cmd', 'media_session', 'volume') and '--set' in cmd:

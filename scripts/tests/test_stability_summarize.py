@@ -1,5 +1,8 @@
 import unittest
-from scripts.stability_summarize import memory
+import json
+from pathlib import Path
+import tempfile
+from scripts.stability_summarize import memory, summarize
 
 
 class MemoryParsingTest(unittest.TestCase):
@@ -19,3 +22,17 @@ class MemoryParsingTest(unittest.TestCase):
 
     def test_missing_measurement_is_not_zero(self):
         self.assertEqual({}, memory('No process found'))
+
+    def test_gc_units_and_phase_boundaries_remain_distinct(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            events = [dict(kind='sample', wallMs=i, elapsedMs=i, dispatcherBlocked=0,
+                hostPhase=phase) for i, phase in enumerate(('cricket-1', 'nntp-focused'))]
+            (folder/'events.json').write_text(json.dumps(events))
+            (folder/'cleanup.json').write_text('{"errors": []}')
+            (folder/'logcat-cricket.txt').write_text(
+                'NuvioStability: '+json.dumps(events[0])+'\nGC paused 500us,1.5ms total 100ms\n'+
+                'NuvioStability: '+json.dumps(events[1])+'\nGC paused 4ms total 100ms\n')
+            result = summarize(folder)
+            self.assertEqual(4, result['gcPauseMaxMs'])
+            self.assertEqual({'cricket-1': 2, 'nntp-focused': 4}, result['gcPauseMaxByPhaseMs'])

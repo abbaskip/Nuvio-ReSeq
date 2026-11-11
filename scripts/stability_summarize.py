@@ -33,10 +33,24 @@ def summarize(folder):
             'peak': max(row[key] for row in records if key in row)} for key in sorted(keys)}}
     samples = [e for e in events if e.get('kind') == 'sample']
     pauses = []
+    phase_pauses = defaultdict(list)
+    phases_by_event = {(e.get('wallMs'), e.get('elapsedMs'), e.get('kind')): e.get('hostPhase') for e in events}
     for file in folder.glob('logcat-*.txt'):
-        for match in re.finditer(r'paused ([\d.,]+(?:us|ms)(?:,[\d.]+(?:us|ms))*)', file.read_text(errors='replace')):
-            durations = re.findall(r'([\d.]+)(us|ms)', match[1])
-            pauses.append(sum(float(value)/(1000 if unit == 'us' else 1) for value, unit in durations))
+        phase = None
+        for line in file.read_text(errors='replace').splitlines():
+            if 'NuvioStability:' in line:
+                try:
+                    event = json.loads(line.split('NuvioStability:', 1)[1])
+                    phase = phases_by_event.get((event.get('wallMs'), event.get('elapsedMs'), event.get('kind')), phase)
+                except json.JSONDecodeError:
+                    pass
+            match = re.search(r'paused ([\d.,]+(?:us|ms)(?:,[\d.]+(?:us|ms))*)', line)
+            if match:
+                durations = re.findall(r'([\d.]+)(us|ms)', match[1])
+                pause = sum(float(value)/(1000 if unit == 'us' else 1) for value, unit in durations)
+                pauses.append(pause)
+                if phase:
+                    phase_pauses[phase].append(pause)
     return {
         'result': json.loads((folder/'result.json').read_text()) if (folder/'result.json').exists() else None,
         'environment': [e for e in events if e.get('kind') == 'environment'],
@@ -45,6 +59,8 @@ def summarize(folder):
             'nativeBytes', 'threadCount', 'dispatcherBlocked', 'gc', 'cwIds', 'snapshot', 'snapshotVersion',
             'launcher', 'rawProgress', 'guideBuilding', 'heavyJobs')} for e in samples],
         'gcPauseMaxMs': max(pauses) if pauses else None,
+        'gcPauseMaxByPhaseMs': {phase: max(values) for phase, values in phase_pauses.items()},
+        'gcPhaseMethod': 'Log order, attributed to the latest collected diagnostic event; boundary attribution is approximate.',
         'gcLogEvents': len(pauses),
         'reminders': [{**e, 'delayMs': e['shownMs']-e['dueMs']} for e in events if e.get('kind') == 'reminder-shown'],
         'maxBlockedDispatcherWorkers': max((e['dispatcherBlocked'] for e in samples), default=None),

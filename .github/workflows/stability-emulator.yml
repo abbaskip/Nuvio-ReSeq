@@ -3,6 +3,16 @@ name: Stability emulator verification
 # Deliberately independent of publication. Dispatch after the Phase 1 base is agreed.
 on:
   workflow_dispatch:
+    inputs:
+      ram_tiers:
+        description: 'RAM tiers in MB; select one to repeat a failed tier'
+        type: choice
+        default: '[2048,3072,4096]'
+        options:
+          - '[2048,3072,4096]'
+          - '[2048]'
+          - '[3072]'
+          - '[4096]'
 
 permissions:
   contents: read
@@ -14,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ram: [2048, 3072, 4096]
+        ram: ${{ fromJSON(inputs.ram_tiers) }}
     env:
       ANDROID_SERIAL: emulator-5554
       ANDROID_AVD_HOME: ${{ github.workspace }}/.stability-avd
@@ -61,7 +71,9 @@ jobs:
           sdkmanager 'emulator' 'system-images;android-34;android-tv;x86'
           python3 scripts/stability_avd.py --image "$ANDROID_HOME/system-images/android-34/android-tv/x86" --root "$ANDROID_AVD_HOME" --ram ${{ matrix.ram }}
           mkdir -p build/stability
-          "$ANDROID_HOME/emulator/emulator" -avd stability-tv-${{ matrix.ram }} -port 5554 -memory ${{ matrix.ram }} -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > build/stability/emulator.log 2>&1 &
+          adb start-server
+          # Fresh disposable CI guest only; never alter a physical device's authorisation.
+          "$ANDROID_HOME/emulator/emulator" -avd stability-tv-${{ matrix.ram }} -port 5554 -memory ${{ matrix.ram }} -skip_adb_auth -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > build/stability/emulator.log 2>&1 &
           timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
           booted=false
           for attempt in $(seq 1 120); do

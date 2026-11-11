@@ -542,7 +542,34 @@ private fun HeroCard(
                 }
             }
             Spacer(Modifier.weight(1f))
-            if (sides.size == 2) {
+            if (sides.size == 2 && sport == Sport.CRICKET) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                    sides.forEach { side ->
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            TeamLogo(side.team, 32.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                com.nuvio.tv.ui.components.AutoResizeText(
+                                    side.team.fullName.ifBlank { side.team.name }.removeSuffix(" Men"),
+                                    Color.White, Modifier.fillMaxWidth(),
+                                    style = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, lineHeight = 17.sp,
+                                        fontWeight = FontWeight.Black), minFontSize = 10.sp
+                                )
+                                if (ev.hasScore && !hideScores) {
+                                    cricketInningsScores(side).forEach { innings ->
+                                        com.nuvio.tv.ui.components.AutoResizeText(
+                                            innings.runs + (innings.overs?.let { " ($it)" } ?: ""),
+                                            Color.White, Modifier.fillMaxWidth(),
+                                            style = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, lineHeight = 15.sp,
+                                                fontWeight = FontWeight.Bold), minFontSize = 9.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (sides.size == 2) {
                 val showScore = ev.hasScore && !hideScores
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {

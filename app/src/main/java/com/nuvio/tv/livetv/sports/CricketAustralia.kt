@@ -95,16 +95,16 @@ internal class CricketAustralia {
             .replace(Regex(" (tests?|odis?|t20i?)$"), "")
         fun same(a: SportsEvent, b: SportsEvent): Boolean = a.sides.size == 2 && b.sides.size == 2 &&
             kotlin.math.abs(a.startMs - b.startMs) < 12 * 3_600_000L &&
-            a.sides.map { team(it.team.name) }.toSet() == b.sides.map { team(it.team.name) }.toSet()
+            a.sides.map { team(it.team.fullName.ifBlank { it.team.name }) }.toSet() == b.sides.map { team(it.team.fullName.ifBlank { it.team.name }) }.toSet()
 
         /** Retain existing IDs, team identities and channel matches when enriching another provider. */
         fun merge(existing: List<SportsEvent>, secondary: List<SportsEvent>): List<SportsEvent> {
             val used = mutableSetOf<String>()
-            val merged = existing.map { old ->
-                if (SportsCatalog.league(old.leagueId)?.sport != Sport.CRICKET || old.source == EventSource.GUIDE) return@map old
-                val ca = secondary.singleOrNull { same(old, it) } ?: return@map old
-                used += ca.id
-                fun score(side: Side?): Side? = side?.let { s -> ca.sides.firstOrNull { team(it.team.name) == team(s.team.name) }
+            val merged = existing.mapNotNull { old ->
+                if (SportsCatalog.league(old.leagueId)?.sport != Sport.CRICKET || old.source == EventSource.GUIDE) return@mapNotNull old
+                val ca = secondary.singleOrNull { same(old, it) } ?: return@mapNotNull old
+                if (!used.add(ca.id)) return@mapNotNull null
+                fun score(side: Side?): Side? = side?.let { s -> ca.sides.firstOrNull { team(it.team.fullName.ifBlank { it.team.name }) == team(s.team.fullName.ifBlank { s.team.name }) }
                     ?.let { s.copy(score = it.score, periods = it.periods) } ?: s }
                 old.copy(state = ca.state, status = ca.status, endMs = ca.endMs, situation = ca.situation,
                     home = score(old.home), away = score(old.away), updatedAt = ca.updatedAt, note = ca.note)

@@ -24,6 +24,7 @@ import com.nuvio.tv.ui.util.parseEpisodeReleaseDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -282,20 +283,11 @@ private class CwDebugSession {
     fun logSummary(cancelled: Boolean = false) = Unit
 }
 
-/**
- * Holds pipeline runs while the in-app player is open. Home is covered then, and a rebuild (for
- * example when the episode crosses the watched threshold) allocates enough to stall playback
- * on low-memory TV devices. The hold also covers pause, buffering and seeks, so a held rebuild
- * cannot start mid-episode and keep running once playback resumes. The latest snapshot runs
- * once the player closes.
- */
-private fun Flow<ContinueWatchingSettingsSnapshot>.holdWhilePlayerOpen(): Flow<ContinueWatchingSettingsSnapshot> =
-    holdContinueWatchingWhilePlayerOpen(PlayerSessionTracker.isSessionOpen)
-
 @OptIn(kotlinx.coroutines.FlowPreview::class)
 internal fun HomeViewModel.loadContinueWatchingPipeline() {
     cwPipelineJob?.cancel()
-    cwPipelineJob = viewModelScope.launch {
+    cwPipelineJob = viewModelScope.launch(Dispatchers.Default) {
+        runVisibleHomeWork(homeContentActive, PlayerSessionTracker.isSessionOpen) {
         combine(
             combine(
                 watchProgressRepository.allProgress,
@@ -334,7 +326,10 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 watchedItemsVersion = watchedItemsVersion,
                 hasLoadedRemoteProgress = hasLoadedRemoteProgress
             )
-        }.debounce(CW_PROGRESS_DEBOUNCE_MS).holdWhilePlayerOpen().collectLatest { snapshot ->
+        }.debounce(CW_PROGRESS_DEBOUNCE_MS).collectLatest { snapshot ->
+            _continueWatchingRefreshing.value = true
+            try {
+            coroutineScope {
             val debug = CwDebugSession()
             val pipelineProfileId = profileManager.activeProfileId.value
             try {
@@ -608,7 +603,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                     )
                     // Persist in-progress snapshot early so force-close doesn't lose items.
                     if (inProgressOnly.isNotEmpty() && snapshot.hasLoadedRemoteProgress) {
-                        viewModelScope.launch(Dispatchers.IO) {
+                        launch(Dispatchers.IO) {
                             val brokenUrls = com.nuvio.tv.ui.components.brokenImageUrls
                             val ipSnap = inProgressOnly.map { item ->
                                 com.nuvio.tv.data.local.CachedInProgressItem(
@@ -723,7 +718,6 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                         publishBadgeUpdate(allWatchedEpisodes)
                         return@launch
                     }
-                    cwLastBadgeEpisodeKeys = currentKeys.toSet()
 
                     val showIdSiblings = watchProgressRepository.getShowIdSiblings()
                     cwLastShowIdSiblings = showIdSiblings
@@ -774,14 +768,11 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
 
                     // First-time: resolve as fast as possible so badges appear quickly.
                     if (firstTimeGroups.isNotEmpty()) {
-                        val metaSemaphore = Semaphore(2)
-                        firstTimeGroups.map { group ->
-                            async {
-                                metaSemaphore.withPermit {
-                                    resolveBadgeGroup(group)
-                                }
-                            }
-                        }.awaitAll()
+                        for (group in firstTimeGroups) {
+                            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                            resolveBadgeGroup(group)
+                            kotlinx.coroutines.yield()
+                        }
                     }
 
                     // Revalidation: process gently to avoid CPU/memory spikes.
@@ -792,8 +783,9 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                         }
                     }
 
-                    // Single badge evaluation after all meta is resolved.
+                    // A cancelled visit must resume unfinished badge work next time.
                     publishBadgeUpdate(allWatchedEpisodes)
+                    cwLastBadgeEpisodeKeys = currentKeys.toSet()
                 }
 
                 // --- CW next-up injection ---
@@ -1141,7 +1133,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
 
                 // Save lightweight CW snapshot to disk immediately so cache stays fresh
                 // even if enrichment is cancelled by collectLatest.
-                viewModelScope.launch(Dispatchers.IO) {
+                launch(Dispatchers.IO) {
                     val currentItems = _uiState.value.continueWatchingItems + _uiState.value.upcomingItems
                     val brokenUrls = com.nuvio.tv.ui.components.brokenImageUrls
                     val ratingVisibility = layoutPreferenceDataStore.detailImdbRatingsVisibility.first()
@@ -1214,6 +1206,11 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 debug.logSummary(cancelled = true)
                 throw cancelled
             }
+            }
+            } finally {
+                _continueWatchingRefreshing.value = false
+            }
+        }
         }
     }
 }

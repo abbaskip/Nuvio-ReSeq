@@ -47,6 +47,21 @@ class CricketAustraliaTest {
         assertEquals("Stumps", result.status)
         assertEquals(2, CricketAustralia.merge(listOf(original.copy(startMs = original.startMs - 7 * 86_400_000)), listOf(ca)).size)
     }
+    @Test fun `real ESPN abbreviations merge with full CA country names`() {
+        val raw = requireNotNull(javaClass.getResourceAsStream("/sports/pakistan-sri-lanka-test.json"))
+            .bufferedReader().use { it.readText() }
+        val espn = SportsFeeds.parseScoreboard(SportsCatalog.league("cricket/19430")!!, raw).single()
+        val ca = CricketAustralia.parse(fixture("Stumps"), now).single()
+        assertEquals("PAK", espn.home!!.team.name)
+        val merged = CricketAustralia.merge(listOf(espn), listOf(ca))
+        assertEquals(1, merged.size)
+        assertEquals(espn.id, merged.single().id)
+        assertEquals("Stumps", merged.single().status)
+        assertEquals("434/9d (106.3 ov)", merged.single().home!!.score)
+        assertEquals("", compactCricketScore(merged.single().away!!))
+        assertEquals("", cricketScoreText("null").runs)
+    }
+
     @Test(expected = java.io.IOException::class) fun `error response cannot erase cached fixtures`() {
         CricketAustralia.parse("""{"responseError":"unavailable"}""", now)
     }

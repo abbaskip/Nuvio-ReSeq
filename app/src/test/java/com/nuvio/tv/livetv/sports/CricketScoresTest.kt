@@ -27,7 +27,7 @@ class CricketScoresTest {
         val event = parse(raw)
         assertEquals(listOf("434/9d (106.3 ov)"), event.home!!.periods)
         assertEquals(CricketScoreText("434/9d", "106.3 ov"), cricketScoreText(event.home!!.score))
-        assertEquals(CricketScoreText("Yet to bat", null), cricketScoreText(event.away!!.score))
+        assertEquals(CricketScoreText("", null), cricketScoreText(event.away!!.score))
     }
 
     @Test fun oldCachedOrdinalsFallBackToTheRealScoreAndSeparateBothTestInnings() {

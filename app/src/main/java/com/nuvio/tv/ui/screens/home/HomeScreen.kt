@@ -125,6 +125,7 @@ fun HomeScreen(
     }
     val modernPresentation by viewModel.modernHomePresentation.collectAsStateWithLifecycle()
     val initialCwResolved by viewModel.initialCwResolved.collectAsStateWithLifecycle()
+    val continueWatchingRefreshing by viewModel.continueWatchingRefreshing.collectAsStateWithLifecycle()
     val scrollToTopTrigger by viewModel.scrollToTopTrigger.collectAsStateWithLifecycle()
     val effectiveAutoplayEnabled by viewModel.effectiveAutoplayEnabled.collectAsStateWithLifecycle(
         initialValue = false
@@ -448,6 +449,18 @@ fun HomeScreen(
                 ) {
                     LoadingIndicator()
                 }
+            }
+
+            if (continueWatchingRefreshing) {
+                Text(
+                    text = stringResource(R.string.home_updating_continue_watching),
+                    color = NuvioTheme.colors.TextPrimary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                        .padding(24.dp)
+                        .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                )
             }
 
             val startupAuthNotice = uiState.startupAuthNotice

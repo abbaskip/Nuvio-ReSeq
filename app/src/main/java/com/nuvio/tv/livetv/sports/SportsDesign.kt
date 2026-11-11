@@ -291,19 +291,30 @@ internal fun TeamBand(
         TeamLogo(side.team, logo)
         Spacer(Modifier.width(9.dp))
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                LiveText(side.team.name, color = if (dim && !cricket) Color.White.copy(alpha = 0.75f) else Color.White,
-                    size = if (cricket && showScore) name * 0.72f else name, weight = FontWeight.ExtraBold)
-                if (cricket && showScore) cricketScoreText(side.score).overs?.let {
-                    LiveText(" · $it", color = SportsLook.Dim, size = 10.sp)
+            if (cricket) {
+                com.nuvio.tv.ui.components.AutoResizeText(
+                    side.team.fullName.ifBlank { side.team.name }.removeSuffix(" Men") + if (followed) " ★" else "",
+                    Color.White, Modifier.fillMaxWidth(),
+                    style = androidx.compose.ui.text.TextStyle(fontSize = name, lineHeight = name,
+                        fontWeight = FontWeight.ExtraBold), minFontSize = 8.sp
+                )
+                if (showScore) {
+                    com.nuvio.tv.ui.components.AutoResizeText(
+                        compactCricketScore(side), Color.White, Modifier.fillMaxWidth(),
+                        style = androidx.compose.ui.text.TextStyle(fontSize = name, lineHeight = name,
+                            fontWeight = FontWeight.Bold), minFontSize = 7.sp
+                    )
                 }
-                if (followed) LiveText(" ★", color = Color(0xFFF5C400), size = name * 0.8f)
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LiveText(side.team.name, color = if (dim) Color.White.copy(alpha = 0.75f) else Color.White,
+                        size = name, weight = FontWeight.ExtraBold)
+                    if (followed) LiveText(" ★", color = Color(0xFFF5C400), size = name * 0.8f)
+                }
+                extra?.takeIf { it.isNotBlank() }?.let {
+                    LiveText(it, color = Color.White.copy(alpha = 0.6f), size = name * 0.68f, weight = FontWeight.SemiBold)
+                }
             }
-            if (cricket && showScore) {
-                val value = cricketScoreText(side.score)
-                LiveText(value.runs, size = if (side.score.isNullOrBlank()) 12.sp else if (score > 24.sp) 24.sp else 18.sp,
-                    weight = FontWeight.Black, maxLines = 2)
-            } else extra?.takeIf { it.isNotBlank() }?.let { LiveText(it, color = Color.White.copy(alpha = 0.6f), size = name * 0.68f, weight = FontWeight.SemiBold) }
         }
         if (showScore && !cricket) ScoreLabel(side.score.orEmpty(), dim, score)
         else trailing?.invoke()

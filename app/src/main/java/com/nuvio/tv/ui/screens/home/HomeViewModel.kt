@@ -129,6 +129,8 @@ class HomeViewModel @Inject constructor(
 
     internal val _uiState = MutableStateFlow(HomeUiState())
     internal val homeContentActive = MutableStateFlow(false)
+    internal val _continueWatchingRefreshing = MutableStateFlow(false)
+    val continueWatchingRefreshing: StateFlow<Boolean> = _continueWatchingRefreshing.asStateFlow()
     /** Layout consumers such as On Demand must not subscribe to Home's content projection. */
     val layoutState: StateFlow<HomeUiState> = _uiState.map { it.settingsOnly() }
         .distinctUntilChanged()

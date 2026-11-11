@@ -19,10 +19,8 @@ import com.nuvio.tv.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
@@ -31,7 +29,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.CacheControl
 import java.net.URLEncoder
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -132,9 +129,9 @@ class MetaRepositoryImpl @Inject constructor(
     private val serverMetaCache = createLruCacheMap<String, CachedMeta>(MAX_META_CACHE_ENTRIES)
 
     // In-flight deduplication: prevents concurrent coroutines from firing duplicate requests
-    private val inFlightMeta = ConcurrentHashMap<String, Deferred<Meta?>>()
-    private val inFlightAddonMeta = ConcurrentHashMap<String, Deferred<MetaLookupResult>>()
-    private val inFlightPrimaryMeta = ConcurrentHashMap<String, Deferred<Meta?>>()
+    private val inFlightMeta = SharedMetadataRequests<Meta?>(repositoryScope)
+    private val inFlightAddonMeta = SharedMetadataRequests<MetaLookupResult>(repositoryScope)
+    private val inFlightPrimaryMeta = SharedMetadataRequests<Meta?>(repositoryScope)
 
     override fun getMeta(
         addonBaseUrl: String,
@@ -201,33 +198,28 @@ class MetaRepositoryImpl @Inject constructor(
         emit(NetworkResult.Loading)
 
         val url = buildMetaUrl(addonBaseUrl, effectiveType, id)
-        val deferred = inFlightMeta.getOrPut(cacheKey) {
-            repositoryScope.async {
-                try {
-                    val response = api.getMeta(url)
-                    if (response.isSuccessful) {
-                        val metaDto = response.body()?.meta ?: return@async null
-                        val meta = metaDto.toDomain(context.getString(R.string.episodes_episode))
-                        val ttlMs = parseMaxAgeMs(response.headers()["Cache-Control"])
-                        val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
-                        metaCache[cacheKey] = cached
-                        addonMetaCache[metaLookupCacheKey(requestedType, id)] = cached
-                        meta
-                    } else {
-                        null
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Log.w(TAG, "getMeta failed for $url: ${e.message}")
+        val meta = inFlightMeta.await(cacheKey) {
+            try {
+                val response = api.getMeta(url)
+                if (response.isSuccessful) {
+                    val metaDto = response.body()?.meta ?: return@await null
+                    val meta = metaDto.toDomain(context.getString(R.string.episodes_episode))
+                    val ttlMs = parseMaxAgeMs(response.headers()["Cache-Control"])
+                    val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
+                    metaCache[cacheKey] = cached
+                    addonMetaCache[metaLookupCacheKey(requestedType, id)] = cached
+                    meta
+                } else {
                     null
-                } finally {
-                    inFlightMeta.remove(cacheKey)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "getMeta failed for $url: ${e.message}")
+                null
             }
         }
 
-        val meta = deferred.await()
         if (meta != null) {
             emit(NetworkResult.Success(meta))
         } else {
@@ -253,21 +245,7 @@ class MetaRepositoryImpl @Inject constructor(
             addonMetaCache.remove(cacheKey)
         }
 
-        inFlightAddonMeta[cacheKey]?.let { existingDeferred ->
-            when (val lookupResult = existingDeferred.await()) {
-                is MetaLookupResult.Found -> {
-                    emit(NetworkResult.Success(lookupResult.meta))
-                    return@flow
-                }
-                is MetaLookupResult.SourceSufficient -> {
-                    emit(NetworkResult.Error("Source addon sufficient", NetworkResult.SOURCE_SUFFICIENT_CODE))
-                    return@flow
-                }
-                is MetaLookupResult.NotFound -> {
-                    // Fall through — the in-flight request failed, try ourselves
-                }
-            }
-        }
+
 
         emit(NetworkResult.Loading)
 
@@ -386,89 +364,83 @@ class MetaRepositoryImpl @Inject constructor(
             return@flow
         }
 
-        val deferred = inFlightAddonMeta.getOrPut(cacheKey) {
-            repositoryScope.async {
-                try {
-                    // Kept here rather than in the enclosing flow's lists: this
-                    // Deferred is shared, so only its creator would see those, and
-                    // everyone else would report "no addon found" for addons tried.
-                    val loopAddonNames = linkedSetOf<String>()
-                    val loopFailures = mutableListOf<MetaAttemptFailure>()
-                    var attempted = 0
-                    var allMissing = true
+        val lookupResult = inFlightAddonMeta.await(cacheKey) {
+            // Kept here rather than in the enclosing flow's lists: this
+            // Deferred is shared, so only its creator would see those, and
+            // everyone else would report "no addon found" for addons tried.
+            val loopAddonNames = linkedSetOf<String>()
+            val loopFailures = mutableListOf<MetaAttemptFailure>()
+            var attempted = 0
+            var allMissing = true
 
-                    // Normalize source addon URL for comparison so we can detect
-                    // when the candidate is the same addon that served the catalog.
-                    val normalizedSourceUrl = sourceAddonBaseUrl?.let(::normalizedAddonKey)
+            // Normalize source addon URL for comparison so we can detect
+            // when the candidate is the same addon that served the catalog.
+            val normalizedSourceUrl = sourceAddonBaseUrl?.let(::normalizedAddonKey)
 
-                    for ((addon, candidateType) in prioritizedCandidates) {
-                        // If this candidate is the same addon that provided the catalog
-                        // data for this item, the item already carries its meta —
-                        // return immediately without making a request and without
-                        // trying further addons.
-                        if (normalizedSourceUrl != null) {
-                            if (normalizedAddonKey(addon.baseUrl) == normalizedSourceUrl) {
-                                Log.d(TAG, "Source addon matched, catalog meta is sufficient addon=${addon.name} type=$candidateType id=$id")
-                                return@async MetaLookupResult.SourceSufficient
-                            }
-                        }
-
-                        val url = buildMetaUrl(addon.baseUrl, candidateType, id)
-                        Log.d(TAG, "Trying meta addonId=${addon.id} addonName=${addon.name} type=$candidateType id=$id url=$url")
-                        loopAddonNames += addon.displayName
-                        attempted++
-                        try {
-                            val response = api.getMeta(url)
-                            if (response.isSuccessful) {
-                                val metaDto = response.body()?.meta
-                                if (metaDto != null) {
-                                    val meta = metaDto.toDomain(context.getString(R.string.episodes_episode))
-                                    val ttlMs = parseMaxAgeMs(response.headers()["Cache-Control"])
-                                    val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
-                                    addonMetaCache[cacheKey] = cached
-                                    metaCache[addonMetaCacheKey(addon.baseUrl, candidateType, id)] = cached
-                                    Log.d(TAG, "Meta fetch success addonId=${addon.id} type=$candidateType id=$id ttl=${ttlMs}ms")
-                                    return@async MetaLookupResult.Found(meta)
-                                }
-                                Log.d(TAG, "Meta response was null addonId=${addon.id} type=$candidateType id=$id")
-                                loopFailures += buildMissingMetaFailure(addon)
-                            } else {
-                                loopFailures += MetaAttemptFailure(
-                                    addonName = addon.displayName,
-                                    kind = if (response.code() == 404) MetaFailureKind.MISSING else MetaFailureKind.REQUEST_FAILED,
-                                    detail = response.message() ?: "HTTP ${response.code()}"
-                                )
-                                if (response.code() != 404) allMissing = false
-                            }
-                        } catch (e: kotlinx.coroutines.CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            Log.d(TAG, "Meta fetch failed addonId=${addon.id} type=$candidateType id=$id: ${e.message}")
-                            loopFailures += MetaAttemptFailure(
-                                addonName = addon.displayName,
-                                kind = MetaFailureKind.REQUEST_FAILED,
-                                detail = e.message ?: context.getString(R.string.network_error_unknown)
-                            )
-                            allMissing = false
-                            /* try next */
-                        }
+            for ((addon, candidateType) in prioritizedCandidates) {
+                // If this candidate is the same addon that provided the catalog
+                // data for this item, the item already carries its meta —
+                // return immediately without making a request and without
+                // trying further addons.
+                if (normalizedSourceUrl != null) {
+                    if (normalizedAddonKey(addon.baseUrl) == normalizedSourceUrl) {
+                        Log.d(TAG, "Source addon matched, catalog meta is sufficient addon=${addon.name} type=$candidateType id=$id")
+                        return@await MetaLookupResult.SourceSufficient
                     }
-                    // Comparing against the candidate list makes "every candidate was attempted"
-                    // explicit rather than implied by the loop never breaking early.
-                    MetaLookupResult.NotFound(
-                        attemptedAddonNames = loopAddonNames.toList(),
-                        failures = loopFailures,
-                        allAttemptsMissing = attempted > 0 &&
-                            attempted == prioritizedCandidates.size &&
-                            allMissing
+                }
+
+                val url = buildMetaUrl(addon.baseUrl, candidateType, id)
+                Log.d(TAG, "Trying meta addonId=${addon.id} addonName=${addon.name} type=$candidateType id=$id url=$url")
+                loopAddonNames += addon.displayName
+                attempted++
+                try {
+                    val response = api.getMeta(url)
+                    if (response.isSuccessful) {
+                        val metaDto = response.body()?.meta
+                        if (metaDto != null) {
+                            val meta = metaDto.toDomain(context.getString(R.string.episodes_episode))
+                            val ttlMs = parseMaxAgeMs(response.headers()["Cache-Control"])
+                            val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
+                            addonMetaCache[cacheKey] = cached
+                            metaCache[addonMetaCacheKey(addon.baseUrl, candidateType, id)] = cached
+                            Log.d(TAG, "Meta fetch success addonId=${addon.id} type=$candidateType id=$id ttl=${ttlMs}ms")
+                            return@await MetaLookupResult.Found(meta)
+                        }
+                        Log.d(TAG, "Meta response was null addonId=${addon.id} type=$candidateType id=$id")
+                        loopFailures += buildMissingMetaFailure(addon)
+                    } else {
+                        loopFailures += MetaAttemptFailure(
+                            addonName = addon.displayName,
+                            kind = if (response.code() == 404) MetaFailureKind.MISSING else MetaFailureKind.REQUEST_FAILED,
+                            detail = response.message() ?: "HTTP ${response.code()}"
+                        )
+                        if (response.code() != 404) allMissing = false
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.d(TAG, "Meta fetch failed addonId=${addon.id} type=$candidateType id=$id: ${e.message}")
+                    loopFailures += MetaAttemptFailure(
+                        addonName = addon.displayName,
+                        kind = MetaFailureKind.REQUEST_FAILED,
+                        detail = e.message ?: context.getString(R.string.network_error_unknown)
                     )
-                } finally {
-                    inFlightAddonMeta.remove(cacheKey)
+                    allMissing = false
+                    /* try next */
                 }
             }
+            // Comparing against the candidate list makes "every candidate was attempted"
+            // explicit rather than implied by the loop never breaking early.
+            MetaLookupResult.NotFound(
+                attemptedAddonNames = loopAddonNames.toList(),
+                failures = loopFailures,
+                allAttemptsMissing = attempted > 0 &&
+                    attempted == prioritizedCandidates.size &&
+                    allMissing
+            )
         }
 
-        when (val lookupResult = deferred.await()) {
+        when (lookupResult) {
             is MetaLookupResult.Found -> {
                 emit(NetworkResult.Success(lookupResult.meta))
             }
@@ -537,33 +509,28 @@ class MetaRepositoryImpl @Inject constructor(
             "Trying primary meta addonId=${addon.id} addonName=${addon.name} type=$candidateType id=$id url=$url"
         )
 
-        val deferred = inFlightPrimaryMeta.getOrPut(cacheKey) {
-            repositoryScope.async {
-                try {
-                    val response = api.getMeta(url)
-                    if (response.isSuccessful) {
-                        val metaDto = response.body()?.meta ?: return@async null
-                        val meta = metaDto.toDomain(context.getString(R.string.episodes_episode))
-                        val ttlMs = parseMaxAgeMs(response.headers()["Cache-Control"])
-                        val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
-                        primaryAddonMetaCache[cacheKey] = cached
-                        metaCache[addonMetaCacheKey(addon.baseUrl, candidateType, id)] = cached
-                        meta
-                    } else {
-                        null
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Log.w(TAG, "Primary meta fetch failed for $url: ${e.message}")
+        val meta = inFlightPrimaryMeta.await(cacheKey) {
+            try {
+                val response = api.getMeta(url)
+                if (response.isSuccessful) {
+                    val metaDto = response.body()?.meta ?: return@await null
+                    val meta = metaDto.toDomain(context.getString(R.string.episodes_episode))
+                    val ttlMs = parseMaxAgeMs(response.headers()["Cache-Control"])
+                    val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
+                    primaryAddonMetaCache[cacheKey] = cached
+                    metaCache[addonMetaCacheKey(addon.baseUrl, candidateType, id)] = cached
+                    meta
+                } else {
                     null
-                } finally {
-                    inFlightPrimaryMeta.remove(cacheKey)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Primary meta fetch failed for $url: ${e.message}")
+                null
             }
         }
 
-        val meta = deferred.await()
         if (meta != null) {
             emit(NetworkResult.Success(meta))
         } else {

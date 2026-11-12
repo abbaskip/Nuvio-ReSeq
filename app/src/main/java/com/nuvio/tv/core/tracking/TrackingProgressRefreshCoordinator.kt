@@ -14,11 +14,19 @@ data class TrackingProgressRefreshFailure(
 
 @Singleton
 class TrackingProgressRefreshCoordinator @Inject constructor(
-    private val providers: TrackingProgressProviderRegistry
+    private val providers: TrackingProgressProviderRegistry,
+    private val continueWatching: com.nuvio.tv.data.cw.ContinueWatchingRepository? = null
 ) {
+    suspend fun refreshProjection() {
+        try { continueWatching?.refreshProjection() }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (error: Exception) { android.util.Log.e("ContinueWatching", "Projection refresh failed", error) }
+    }
+
     suspend fun refreshConnected(intent: TrackingRefreshIntent): List<TrackingProgressRefreshFailure> =
         supervisorScope {
-            providers.providers()
+            refreshProjection()
+            val failures = providers.providers()
                 .filter { provider -> provider.isAuthenticated.first() }
                 .map { provider ->
                     async {
@@ -33,5 +41,7 @@ class TrackingProgressRefreshCoordinator @Inject constructor(
                     }
                 }
                 .mapNotNull { operation -> operation.await() }
+            refreshProjection()
+            failures
         }
 }

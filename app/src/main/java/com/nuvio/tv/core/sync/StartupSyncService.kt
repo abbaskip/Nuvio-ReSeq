@@ -804,6 +804,7 @@ class StartupSyncService @Inject constructor(
         useSnapshot: Boolean
     ): Result<Unit> {
         watchProgressRepository.isSyncingFromRemote = true
+        val cwLease = cwEnrichmentCache.repository.snapshot().lease
         try {
             val syncResult = if (useSnapshot) {
                 watchProgressSyncService.syncSnapshotFromRemote(profileId).getOrElse { throw it }
@@ -815,22 +816,11 @@ class StartupSyncService @Inject constructor(
                 TAG,
                 "Watch progress sync applied ${syncResult.upsertedEntries} upserts and ${syncResult.deletedEntries} deletes (snapshot=${syncResult.usedSnapshot})"
             )
-            // Evict deleted entries from CW enrichment cache so stale items
-            // don't persist on screen via loadContinueWatching() cache restore.
-            if (syncResult.deletedEntries > 0) {
-                val currentContentIds = watchProgressPreferences.getAllRawEntries(profileId)
-                    .values.mapTo(mutableSetOf()) { it.contentId }
-                val cachedInProgress = cwEnrichmentCache.getInProgressSnapshot()
-                val cachedNextUp = cwEnrichmentCache.getNextUpSnapshot()
-                val filteredInProgress = cachedInProgress.filter { it.contentId in currentContentIds }
-                val filteredNextUp = cachedNextUp.filter { it.contentId in currentContentIds }
-                if (filteredInProgress.size != cachedInProgress.size) {
-                    cwEnrichmentCache.saveInProgressSnapshot(filteredInProgress, force = true)
-                }
-                if (filteredNextUp.size != cachedNextUp.size) {
-                    cwEnrichmentCache.saveNextUpSnapshot(filteredNextUp, force = true)
-                }
+            if (syncResult.deletedEntries > 0 && cwLease.profileId == profileId) {
+                val supported = watchProgressPreferences.getAllRawEntries(profileId).values.mapTo(mutableSetOf()) { it.contentId }
+                cwEnrichmentCache.repository.pruneAfterSync(cwLease, supported)
             }
+            cwEnrichmentCache.repository.refreshProjection()
             if (pushUnsynced && syncResult.preservedLocalItems) {
                 Log.d(TAG, "Detected unsynced watch progress, pushing to remote")
                 watchProgressSyncService.pushToRemote(profileId)

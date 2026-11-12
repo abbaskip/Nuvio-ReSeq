@@ -48,6 +48,7 @@ internal fun mergeConcurrentContinueWatchingEnrichment(
 }
 
 internal suspend fun HomeViewModel.applyConclusiveOlderNextUpResults(
+    pipelineLease: com.nuvio.tv.data.cw.CwLease,
     resolvedItems: List<ContinueWatchingItem.NextUp>,
     conclusivelyProcessedContentIds: Set<String>,
     dismissedNextUpKeys: Set<String>,
@@ -77,31 +78,10 @@ internal suspend fun HomeViewModel.applyConclusiveOlderNextUpResults(
     }
     reconciledContentIds.forEach(cwEnrichedNextUpOverlay::remove)
 
-    _uiState.update { state ->
-        val reconciled = reconcileConclusiveNextUpItems(
-            currentItems = state.continueWatchingItems + state.upcomingItems,
-            resolvedItems = acceptedResolvedItems,
-            conclusivelyProcessedContentIds = conclusivelyProcessedContentIds,
-            dismissedNextUpKeys = dismissedNextUpKeys
-        )
-        val sorted = sortContinueWatchingItems(reconciled, sortMode)
-        val (main, upcoming) = splitUpcomingItems(sorted, sortMode)
-        if (state.continueWatchingItems == main && state.upcomingItems == upcoming) {
-            state
-        } else {
-            state.copy(continueWatchingItems = main, upcomingItems = upcoming)
-        }
-    }
+    // A resolver's empty result is not evidence that tracker support disappeared.
+    // The owner accepts compatible offers and retains all unresolved members.
+    publishCwEnrichment(pipelineLease, acceptedResolvedItems)
 
-    if (!persistSnapshot) return
-    withContext(Dispatchers.IO) {
-        if (profileManager.activeProfileId.value != pipelineProfileId) return@withContext
-        val snapshot = (_uiState.value.continueWatchingItems + _uiState.value.upcomingItems)
-            .toCachedNextUpSnapshot(com.nuvio.tv.ui.components.brokenImageUrls)
-        runCatching {
-            cwEnrichmentCache.saveNextUpSnapshot(snapshot, force = true)
-        }
-    }
 }
 
 /** A loading tracker snapshot may grow the row. Only a loaded tracker may shrink it. */
@@ -143,7 +123,8 @@ internal fun List<ContinueWatchingItem>.toCachedNextUpSnapshot(
         isNewSeasonRelease = info.isNewSeasonRelease,
         seedSeason = info.seedSeason,
         seedEpisode = info.seedEpisode,
-        contentLanguage = info.contentLanguage
+        contentLanguage = info.contentLanguage,
+        tvdbContext = info.tvdbContext, chooseEpisode = (item as ContinueWatchingItem.NextUp).chooseEpisode
     )
 }
 

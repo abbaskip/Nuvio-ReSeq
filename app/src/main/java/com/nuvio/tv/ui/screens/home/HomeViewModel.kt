@@ -360,6 +360,7 @@ class HomeViewModel @Inject constructor(
     internal var tvMixes: List<com.nuvio.tv.domain.model.TvMix> = emptyList()
 
     init {
+        observeContinueWatchingProjection()
         tvMixStore?.let { store -> viewModelScope.launch { store.mixes.collectLatest { mixes ->
             tvMixes = mixes
             rebuildCatalogOrder(addonsCache)
@@ -427,7 +428,7 @@ class HomeViewModel @Inject constructor(
                     cwEnrichedInProgressOverlay.clear()
                     cwLastShowIdSiblings = emptyMap()
                     _uiState.update {
-                        it.copy(layoutPreferencesReady = false, continueWatchingItems = emptyList())
+                        it.copy(layoutPreferencesReady = false)
                     }
                     clearFocusState()
                     _gridFocusState.value = HomeScreenFocusState()
@@ -486,7 +487,7 @@ class HomeViewModel @Inject constructor(
         cwEnrichedInProgressOverlay.clear()
         cwLastShowIdSiblings = emptyMap()
         watchedSeriesStateHolder.clearValidationState()
-        _uiState.update { it.copy(continueWatchingItems = emptyList(), upcomingItems = emptyList()) }
+        // Metadata invalidation does not revoke repository membership.
         // Bump trigger so the pipeline's collectLatest restarts with fresh state.
         cwPipelineRefreshTrigger.value++
     }
@@ -672,11 +673,7 @@ class HomeViewModel @Inject constructor(
                         cwEnrichedInProgressOverlay.clear()
                         discoveredOlderNextUpItems.clear()
                         cwLastProcessedNextUpContentIds.clear()
-                        // Clear disk cache for current profile.
-                        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                            runCatching { cwEnrichmentCache.saveNextUpSnapshot(emptyList(), force = true) }
-                            runCatching { cwEnrichmentCache.saveInProgressSnapshot(emptyList(), force = true) }
-                        }
+                        viewModelScope.launch { continueWatchingRepository.snapshot() }
                         // Reload CW from fresh source.
                         loadContinueWatching()
                     }
@@ -729,98 +726,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun loadContinueWatching() {
-        // Immediately restore last known CW from disk cache for instant display.
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val cachedInProgress = runCatching { cwEnrichmentCache.getInProgressSnapshot() }.getOrDefault(emptyList())
-            val cachedNextUp = runCatching { cwEnrichmentCache.getNextUpSnapshot() }.getOrDefault(emptyList())
-            if (cachedInProgress.isEmpty() && cachedNextUp.isEmpty()) return@launch
-            val cutoff = com.nuvio.tv.domain.model.continueWatchingCutoff(
-                traktSettingsDataStore.continueWatchingDaysCap.first(), System.currentTimeMillis())
-            val dismissedNextUp = traktSettingsDataStore.dismissedNextUpKeys.first()
-            // Render cached items immediately — don't wait for Trakt/allProgress.
-            // The pipeline will replace these with live data once it completes.
-            val inProgressItems = cachedInProgress
-                .filter { cutoff == null || it.lastWatched >= cutoff }
-                .filter { !watchProgressRepository.isDroppedShow(it.contentId) }
-                .map { cached ->
-                    ContinueWatchingItem.InProgress(
-                        progress = com.nuvio.tv.domain.model.WatchProgress(
-                            contentId = cached.contentId,
-                            contentType = cached.contentType,
-                            name = cached.name,
-                            poster = cached.poster,
-                            backdrop = cached.backdrop,
-                            logo = cached.logo,
-                            videoId = cached.videoId,
-                            season = cached.season,
-                            episode = cached.episode,
-                            episodeTitle = cached.episodeTitle,
-                            position = cached.position,
-                            duration = cached.duration,
-                            lastWatched = cached.lastWatched,
-                            progressPercent = cached.progressPercent, tvdbContext = cached.tvdbContext
-                        ),
-                        episodeThumbnail = cached.episodeThumbnail,
-                        episodeDescription = cached.episodeDescription,
-                        episodeImdbRating = if (cached.ratingVisible) cached.episodeImdbRating else null,
-                        genres = cached.genres,
-                        releaseInfo = cached.releaseInfo
-                    )
-                }
-            val nextUpItems = cachedNextUp
-                .filter { cutoff == null || maxOf(it.lastWatched, it.latestSeriesActivity ?: 0L) >= cutoff || recalculateCachedReleaseBadge(it).second }
-                .filter { !watchProgressRepository.isDroppedShow(it.contentId) }
-                .filter { nextUpDismissKey(it.contentId, it.seedSeason, it.seedEpisode) !in dismissedNextUp }
-                .map { cached ->
-                ContinueWatchingItem.NextUp(
-                    info = NextUpInfo(
-                        contentId = cached.contentId,
-                        contentType = cached.contentType,
-                        name = cached.name,
-                        poster = cached.poster,
-                        backdrop = cached.backdrop,
-                        logo = cached.logo,
-                        videoId = cached.videoId,
-                        season = cached.season,
-                        episode = cached.episode,
-                        episodeTitle = cached.episodeTitle,
-                        episodeDescription = cached.episodeDescription,
-                        thumbnail = cached.thumbnail,
-                        released = cached.released,
-                        hasAired = cached.hasAired,
-                        airDateLabel = cached.airDateLabel,
-                        lastWatched = cached.lastWatched,
-                        latestSeriesActivity = cached.latestSeriesActivity,
-                        imdbRating = if (cached.ratingVisible) cached.imdbRating else null,
-                        genres = cached.genres,
-                        releaseInfo = cached.releaseInfo,
-                        sortTimestamp = cached.sortTimestamp,
-                        releaseTimestamp = cached.releaseTimestamp,
-                        isReleaseAlert = cached.isReleaseAlert,
-                        isNewSeasonRelease = cached.isNewSeasonRelease,
-                        seedSeason = cached.seedSeason,
-                        seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId,
-                        contentLanguage = cached.contentLanguage
-                    )
-                )
-            }
-            val sortMode = layoutPreferenceDataStore.continueWatchingSortMode.first()
-            val items = mergeContinueWatchingItems(
-                inProgressItems = inProgressItems,
-                nextUpItems = nextUpItems,
-                mode = sortMode
-            )
-            if (items.isNotEmpty()) {
-                val (mainItems, upcomingOnly) = splitUpcomingItems(items, sortMode)
-                _uiState.update { state ->
-                    // A slow disk read must not replace a fresh result, including confirmed empty.
-                    if (!_initialCwResolved.value && state.continueWatchingItems.isEmpty() && state.upcomingItems.isEmpty())
-                        state.copy(continueWatchingItems = mainItems, upcomingItems = upcomingOnly)
-                    else state
-                }
-                _initialCwResolved.value = true
-            }
-        }
+        viewModelScope.launch { continueWatchingRepository.snapshot() }
         loadContinueWatchingPipeline()
     }
 

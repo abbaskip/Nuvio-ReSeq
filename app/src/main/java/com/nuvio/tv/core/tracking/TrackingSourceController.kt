@@ -97,8 +97,7 @@ class TrackingSourceController @Inject constructor(
     private suspend fun applyWatchProgressSource(source: WatchProgressSource, profileId: Int) {
         settingsDataStore.setWatchProgressSource(source, profileId)
         if (profileManager.activeProfileId.value != profileId) return
-        continueWatchingEnrichmentCache.saveInProgressSnapshot(emptyList(), force = true)
-        continueWatchingEnrichmentCache.saveNextUpSnapshot(emptyList(), force = true)
+        continueWatchingEnrichmentCache.repository.snapshot() // Switch namespaces; retain the old source projection.
         val provider = source.providerId?.let(progressProviders::provider)
         if (provider != null) {
             if (provider.clearsLocalProgressOnSelection) {

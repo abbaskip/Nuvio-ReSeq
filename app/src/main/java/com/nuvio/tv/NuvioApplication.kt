@@ -44,6 +44,7 @@ import javax.inject.Inject
 @HiltAndroidApp
 class NuvioApplication : Application(), SingletonImageLoader.Factory {
 
+    @Inject lateinit var continueWatching: com.nuvio.tv.data.cw.ContinueWatchingRepository
     @Inject lateinit var startupSyncService: StartupSyncService
     @Inject lateinit var androidTvChannelSyncService: AndroidTvChannelSyncService
     @Inject lateinit var sentrySettingsDataStore: SentrySettingsDataStore
@@ -90,6 +91,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         super.onCreate()
         SentryInitializer.start(this, sentrySettingsDataStore, sentrySetting)
         PluginRuntimeHooks.onApplicationCreate(this)
+        continueWatching.start()
         androidTvChannelSyncService.start()
         serverUserStateProjection.start()
         // Load locale synchronously so it's available before Activity.attachBaseContext.

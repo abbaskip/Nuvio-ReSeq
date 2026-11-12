@@ -357,6 +357,7 @@ open class MainActivity : ComponentActivity() {
     ) { result ->
         Log.d("MainActivity", "External player ActivityResult: $result")
         externalPlaybackTracker.onActivityResult(result)
+        lifecycleScope.launch { trackingProgressRefreshCoordinator.refreshProjection() }
     }
 
     /** True until the first onResume after onCreate completes. */
@@ -1000,7 +1001,7 @@ open class MainActivity : ComponentActivity() {
                         val contentType = intent.getStringExtra("contentType") ?: return@LaunchedEffect
                         val videoId = intent.getStringExtra("videoId")
                         val name = intent.getStringExtra("name")
-                        if (videoId != null && name != null) {
+                        if (intent.getStringExtra("launchMode") == "stream" && videoId != null && name != null) {
                             navController.navigate(
                                 Screen.Stream.createRoute(
                                     videoId = videoId,
@@ -1361,7 +1362,7 @@ open class MainActivity : ComponentActivity() {
     private fun captureLaunchIntent(intent: Intent?) {
         val contentId = intent?.getStringExtra("contentId") ?: return
         val launchMode = intent.getStringExtra("launchMode") ?: return
-        if (launchMode != "stream") return
+        if (launchMode != "stream" && launchMode != "detail") return
         pendingLaunchIntent.value = intent
     }
 

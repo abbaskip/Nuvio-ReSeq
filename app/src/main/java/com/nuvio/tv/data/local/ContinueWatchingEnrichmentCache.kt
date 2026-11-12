@@ -44,7 +44,8 @@ data class CachedNextUpItem(
     val ratingVisible: Boolean = true,
     val tvdbEpisodeId: Long? = null,
     val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null,
-    val latestSeriesActivity: Long? = null
+    val latestSeriesActivity: Long? = null,
+    val chooseEpisode: Boolean = false
 )
 
 data class CachedInProgressItem(
@@ -74,162 +75,28 @@ data class CachedInProgressItem(
 
 data class CwContentInvalidation(val profileId: Int, val contentIds: Set<String>, val version: Long)
 
+/** Compatibility boundary for metadata invalidation; membership lives in the repository. */
 @Singleton
 class ContinueWatchingEnrichmentCache @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val profileManager: ProfileManager
+    val repository: com.nuvio.tv.data.cw.ContinueWatchingRepository
 ) {
-    companion object {
-        private const val TAG = "CwEnrichCache"
-        private const val THROTTLE_MS = 1_000L
-    }
-
-    private val gson = Gson()
-    private val mutex = Mutex()
-    @Volatile private var lastNextUpWriteMs = 0L
-    @Volatile private var lastInProgressWriteMs = 0L
-    @Volatile private var lastNextUpHash = 0
-    @Volatile private var lastInProgressHash = 0
-
-    /** Incremented when cache is cleared; observers can collect to trigger refresh. */
     private val _cacheCleared = kotlinx.coroutines.flow.MutableStateFlow(0)
     val cacheCleared: kotlinx.coroutines.flow.StateFlow<Int> = _cacheCleared
-
     private val _contentInvalidated = kotlinx.coroutines.flow.MutableStateFlow<CwContentInvalidation?>(null)
     val contentInvalidated: kotlinx.coroutines.flow.StateFlow<CwContentInvalidation?> = _contentInvalidated
-
-    /** Incremented on every successful snapshot write; channel sync observes this. */
-    private val _snapshotVersion = kotlinx.coroutines.flow.MutableStateFlow(0)
-    val snapshotVersion: kotlinx.coroutines.flow.StateFlow<Int> = _snapshotVersion
-
-    // --- Next Up snapshot cache ---
-
-    private fun nextUpFile(profileId: Int = profileManager.activeProfileId.value): File {
-        val dir = File(context.filesDir, "cw_enrichment")
-        dir.mkdirs()
-        return File(dir, "nextup_${profileId}.json")
+    val projection get() = repository.projection
+    suspend fun getSnapshot() = repository.snapshot()
+    suspend fun getNextUpSnapshot() = repository.snapshot().nextUp
+    suspend fun getInProgressSnapshot() = repository.snapshot().inProgress
+    suspend fun invalidateContent(profileId: Int, contentIds: Set<String>) {
+        if (contentIds.isEmpty()) return
+        repository.invalidate(profileId, contentIds)
+        _contentInvalidated.value = CwContentInvalidation(profileId, contentIds, (_contentInvalidated.value?.version ?: 0L) + 1)
     }
-
-    suspend fun getNextUpSnapshot(): List<CachedNextUpItem> = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            try {
-                val file = nextUpFile()
-                if (!file.exists()) return@withContext emptyList()
-                gson.fromJson(file.readText(), object : TypeToken<List<CachedNextUpItem>>() {}.type)
-                    ?: emptyList()
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to read next-up cache: ${e.message}")
-                emptyList()
-            }
-        }
-    }
-
-    /**
-     * @param force bypass throttle and content-change check (use at end of pipeline or for clears)
-     */
-    suspend fun saveNextUpSnapshot(items: List<CachedNextUpItem>, force: Boolean = false) = withContext(Dispatchers.IO) {
-        val contentHash = items.hashCode()
-        if (!force) {
-            if (contentHash == lastNextUpHash) return@withContext
-            val now = System.currentTimeMillis()
-            if (now - lastNextUpWriteMs < THROTTLE_MS) return@withContext
-        }
-        mutex.withLock {
-            try {
-                val file = nextUpFile()
-                atomicWrite(file, gson.toJson(items))
-                lastNextUpWriteMs = System.currentTimeMillis()
-                lastNextUpHash = contentHash
-                _snapshotVersion.value++
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to write next-up cache: ${e.message}")
-            }
-        }
-    }
-
-    // --- In-progress snapshot cache ---
-
-    private fun inProgressFile(profileId: Int = profileManager.activeProfileId.value): File {
-        val dir = File(context.filesDir, "cw_enrichment")
-        dir.mkdirs()
-        return File(dir, "inprogress_${profileId}.json")
-    }
-
-    suspend fun getInProgressSnapshot(): List<CachedInProgressItem> = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            try {
-                val file = inProgressFile()
-                if (!file.exists()) return@withContext emptyList()
-                gson.fromJson(file.readText(), object : TypeToken<List<CachedInProgressItem>>() {}.type)
-                    ?: emptyList()
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to read in-progress cache: ${e.message}")
-                emptyList()
-            }
-        }
-    }
-
-    /**
-     * @param force bypass throttle and content-change check (use at end of pipeline or for clears)
-     */
-    suspend fun saveInProgressSnapshot(items: List<CachedInProgressItem>, force: Boolean = false) = withContext(Dispatchers.IO) {
-        val contentHash = items.hashCode()
-        if (!force) {
-            if (contentHash == lastInProgressHash) return@withContext
-            val now = System.currentTimeMillis()
-            if (now - lastInProgressWriteMs < THROTTLE_MS) return@withContext
-        }
-        mutex.withLock {
-            try {
-                val file = inProgressFile()
-                atomicWrite(file, gson.toJson(items))
-                lastInProgressWriteMs = System.currentTimeMillis()
-                lastInProgressHash = contentHash
-                _snapshotVersion.value++
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to write in-progress cache: ${e.message}")
-            }
-        }
-    }
-
-    /** Order changes refresh derived metadata, not the existing rendered snapshot.
-     * The normal pipeline replaces these cards after verified projection; its
-     * playback boundary independently validates a card restored from disk. */
-    suspend fun invalidateContent(profileId: Int, contentIds: Set<String>) = withContext(Dispatchers.IO) {
-        if (contentIds.isEmpty()) return@withContext
-        mutex.withLock {
-            lastNextUpHash = 0
-            lastInProgressHash = 0
-            lastNextUpWriteMs = 0L
-            lastInProgressWriteMs = 0L
-            _contentInvalidated.value = CwContentInvalidation(profileId, contentIds, (_contentInvalidated.value?.version ?: 0L) + 1)
-        }
-    }
-
-    /** Deletes all CW enrichment cache files for the active profile. */
-    suspend fun clearAll() = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            try {
-                nextUpFile().delete()
-                inProgressFile().delete()
-                lastNextUpHash = 0
-                lastInProgressHash = 0
-                Log.d(TAG, "Cleared CW enrichment cache for profile ${profileManager.activeProfileId.value}")
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to clear CW enrichment cache: ${e.message}")
-            }
-        }
+    /** Clear derived metadata, never the user's membership/progress. */
+    suspend fun clearAll() {
+        val state = repository.snapshot()
+        invalidateContent(state.profileId, state.members.keys)
         _cacheCleared.value++
     }
-
-    private fun atomicWrite(target: File, content: String) {
-        val tmp = File(target.parentFile, "${target.name}.tmp")
-        tmp.writeText(content)
-        if (!tmp.renameTo(target)) {
-            // renameTo can fail on some filesystems; fall back to copy+delete
-            tmp.copyTo(target, overwrite = true)
-            tmp.delete()
-        }
-    }
-
 }

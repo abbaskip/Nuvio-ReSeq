@@ -1368,7 +1368,10 @@ class SportsRepository @Inject constructor(
             _matches.update { previous ->
                 val matches = if (quick) SportsMatcher.keepGuideMatches(previous, result.matches,
                     setOf(event.id), input(false)) else result.matches
-                matches[event.id]?.let { previous + (event.id to it) } ?: (previous - event.id)
+                val found = matches[event.id]
+                // An empty refinement must not discard channels already shown on the game page.
+                if (!quick && found.isNullOrEmpty()) previous
+                else found?.let { previous + (event.id to it) } ?: (previous - event.id)
             }
         }
         val workContext = currentCoroutineContext()

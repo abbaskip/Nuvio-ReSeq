@@ -54,6 +54,13 @@ class SportsMySportsRefreshTest {
         assertTrue(sportsReplayLookup(recent, now))
         assertFalse(sportsReplayLookup(recent.copy(state = GameState.LIVE), now))
         assertFalse(sportsReplayLookup(next, now))
+        val old = recent.copy(startMs = now - 48 * 3_600_000L)
+        assertFalse(sportsReplayLookup(old.copy(state = GameState.LIVE, endMs = now - 1), now))
+        assertFalse(sportsReplayLookup(old.copy(endMs = now + 1), now))
+        assertFalse(sportsReplayLookup(old.copy(state = GameState.OFF), now))
+        assertTrue(sportsReplayLookup(old.copy(state = GameState.OFF, endMs = now - 1), now))
+        assertFalse(sportsReplayLookup(old.copy(leagueId = "ca/shield", state = GameState.OFF,
+            status = "Stumps", endMs = now + 48 * 3_600_000L), now))
     }
 
     @Test fun `cricket has no unverified external calendar capable of inventing an Ashes season`() {

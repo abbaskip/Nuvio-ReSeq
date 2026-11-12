@@ -302,6 +302,9 @@ open class MainActivity : ComponentActivity() {
     lateinit var driveSync: dagger.Lazy<com.nuvio.tv.livetv.sync.LiveTvDriveSync>
 
     @Inject
+    lateinit var liveTvPlaybackController: com.nuvio.tv.livetv.player.LiveTvPlaybackController
+
+    @Inject
     lateinit var liveTvPreferences: com.nuvio.tv.livetv.data.LiveTvPreferences
 
     @Inject
@@ -911,6 +914,7 @@ open class MainActivity : ComponentActivity() {
                     var optimisticRoute by remember { mutableStateOf<String?>(null) }
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val actualRoute = navBackStackEntry?.destination?.route
+                    com.nuvio.tv.livetv.ui.LiveTvRootPlaybackEffects(liveTvPlaybackController, actualRoute.orEmpty())
                     val currentRoute = optimisticRoute ?: actualRoute
                     startupDestination = startupDestinationForRoute(actualRoute ?: startDestination)
 

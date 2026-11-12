@@ -269,7 +269,6 @@ fun LiveTvGuideScreen(
     val now by viewModel.now.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
-    PauseLiveTvInBackground(viewModel.playback)
 
     // Keep the shared player alive while the guide is on screen.
     DisposableEffect(Unit) {

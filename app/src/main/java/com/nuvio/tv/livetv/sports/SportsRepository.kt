@@ -77,7 +77,7 @@ class SportsRepository @Inject constructor(
     private val matcher = SportsMatcher(guideDb, File(context.cacheDir, "sports-guide"))
     private val tvNowMatcher = SportsMatcher(guideDb)
     private var tvNowMatchIds = emptySet<String>()
-    private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
+    @Volatile private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
     private val sportsCache = SportsDiskCache.directory(context.filesDir, context.cacheDir)
     private val dir get() = sportsCache.apply { mkdirs() }
 
@@ -1338,8 +1338,9 @@ class SportsRepository @Inject constructor(
                 .filterKeys { it >= dayStart(-1) && it < dayStart(2) }
         }
         val obsolete = tvNowMatchIds - ids - protectedIds
-        _matches.update { previous -> SportsCurrentGuide.mergeMatches(previous - obsolete, tvNowFixtureMatches, matches, s) }
+        val previouslyOwned = tvNowFixtureMatches
         tvNowFixtureMatches = fixtureMatches
+        _matches.update { previous -> SportsCurrentGuide.mergeMatches(previous - obsolete, previouslyOwned, matches, s) }
         tvNowMatchIds = ids
         rebuildLiveScores()
         val confirmed = fixtureMatches.count { (_, list) -> list.any { it.sure && it.program != null } }
@@ -1408,11 +1409,23 @@ class SportsRepository @Inject constructor(
         val keys = channels.associateBy { it.key }
         fun input(list: List<SportsEvent>, guide: Boolean) = SportsMatcher.Input(list, channels,
             user.channelQuality, shift, s, now, includeGuide = guide)
+        fun keepCurrent(matches: Map<String, List<ChannelMatch>>): Map<String, List<ChannelMatch>> {
+            // A slow all-fixture pass must not overwrite newer current-programme discoveries.
+            val publishAt = System.currentTimeMillis()
+            val currentMatches = tvNowFixtureMatches.mapValues { (id, list) -> list.filter { match ->
+                match.channel.key in keys && "$id|${match.channel.key}" !in s.blocked &&
+                    match.program?.let { it.startMs <= publishAt && it.stopMs > publishAt } == true
+            } }.filterValues { it.isNotEmpty() }
+            return SportsCurrentGuide.mergeMatches(matches, emptyMap(), currentMatches, s)
+        }
         fun publish(result: SportsMatcher.Result, quick: Boolean = false) {
             val retained = if (quick) events.value.mapTo(HashSet()) { it.id } else HashSet<String>()
             focusedEvent.value?.let(retained::add)
-            _matches.update { previous -> SportsMatcher.keepGuideMatches(previous, result.matches,
-                retained, input(emptyList(), false)) }
+            _matches.update { previous ->
+                val merged = SportsMatcher.keepGuideMatches(previous, result.matches,
+                    retained, input(emptyList(), false))
+                keepCurrent(merged)
+            }
             rebuildLiveScores()
         }
         val guideLeagues = activeLeagues(s, f)
@@ -1462,7 +1475,13 @@ class SportsRepository @Inject constructor(
             }
             val matchStarted = System.currentTimeMillis()
             Log.d(TAG, "Matching ${current.size} events against ${channels.size} channels")
-            val result = matcher.match(input(current, true), checkpoint)
+            val result = matcher.matchProgressively(input(current, true), focusedEvent.value, { priority ->
+                _matches.update { previous ->
+                    keepCurrent(SportsCurrentGuide.mergeMatches(previous, emptyMap(), priority.matches, s))
+                }
+                rebuildLiveScores()
+                Log.d(TAG, "Priority guide matching: ${priority.matches.size} events published in ${System.currentTimeMillis() - matchStarted} ms")
+            }, checkpoint)
             Log.d(TAG, "Fixture matching finished in ${System.currentTimeMillis() - matchStarted} ms")
             publish(SportsMatcher.Result(result.matches + guideMatches, result.summary))
             saveMatches()

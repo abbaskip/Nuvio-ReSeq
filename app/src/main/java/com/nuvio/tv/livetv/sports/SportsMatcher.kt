@@ -101,7 +101,16 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         return NameData(fp, names, java.util.TreeMap<String, List<Int>>(tokenIndex), discNames).also { nameData = it }
     }
 
-    fun match(input: Input, checkpoint: () -> Unit = {}): Result {
+    fun match(input: Input, checkpoint: () -> Unit = {}): Result =
+        matchInternal(input, checkpoint)
+
+    /** Publish opened/live games before the rest, keeping the full fixture context for ambiguity checks. */
+    fun matchProgressively(input: Input, focusedEventId: String?,
+        onPriorityMatches: (Result) -> Unit, checkpoint: () -> Unit = {}): Result =
+        matchInternal(input, checkpoint, focusedEventId, onPriorityMatches)
+
+    private fun matchInternal(input: Input, checkpoint: () -> Unit, focusedEventId: String? = null,
+        onPriorityMatches: ((Result) -> Unit)? = null): Result {
         checkpoint()
         var operations = 0
         fun boundedCheckpoint() { if (operations++ % 64 == 0) checkpoint() }
@@ -196,12 +205,43 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             }
         }
 
+        fun matchesFor(ids: Set<String>? = null): Map<String, List<ChannelMatch>> {
+            val out = HashMap<String, List<ChannelMatch>>()
+            for ((eventId, m) in found) {
+                if (ids != null && eventId !in ids) continue
+                val ev = byId[eventId] ?: continue
+                val list = m.values
+                    .filter { "$eventId|${it.key}" !in input.settings.blocked }
+                    .mapNotNull { f ->
+                        val ch = byKey[f.key] ?: return@mapNotNull null
+                        ChannelMatch(
+                            channel = ch,
+                            score = f.score,
+                            how = f.how,
+                            program = f.program,
+                            quality = input.quality[ch.key] ?: nameQuality(ch.name),
+                            catchup = ch.catchup != null && CatchupUrlBuilder.isAvailable(ch.catchup, f.program?.startMs ?: ev.startMs, input.now)
+                        )
+                    }
+                if (list.isEmpty()) continue
+                out[eventId] = sortMatches(list, input.settings.bestChannelFirst, rank).limitSuggestions()
+            }
+            return out
+        }
+
         // ---- 1. The guide, a half-hour slot at a time.
         // Keep each paused fixture's future search separate: current games' broad country terms
         // can otherwise consume the database row limit before tomorrow's session is returned.
+        fun priority(ev: SportsEvent): Int = when {
+            onPriorityMatches == null -> 3
+            ev.id == focusedEventId -> 0
+            ev.state == GameState.LIVE -> 1
+            ev.id in pausedCricket -> 2
+            else -> 3
+        }
         if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) teamEvents.groupBy { ev ->
-            if (ev.id in pausedCricket) ev.id else ev.startMs / (30 * MINUTE)
-        }.forEach { (_, slot) ->
+            if (ev.id in pausedCricket || priority(ev) == 0) ev.id else ev.startMs / (30 * MINUTE)
+        }.values.sortedBy { slot -> slot.minOf(::priority) }.forEach { slot ->
             checkpoint()
             val slotStart = slot.minOf { it.startMs }
             val slotEnd = slot.maxOf { it.startMs }
@@ -279,6 +319,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     add(ev.id, key, score, "Guide: ${p.title}", p)
                 }
             }
+            val urgent = slot.filter { priority(it) < 3 }.mapTo(HashSet()) { it.id }
+            if (urgent.isNotEmpty()) onPriorityMatches?.invoke(Result(matchesFor(urgent), ""))
         }
         byGuide = found.size
         val tGuide = System.currentTimeMillis()
@@ -399,25 +441,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             }
         }
 
-        val out = HashMap<String, List<ChannelMatch>>()
-        for ((eventId, m) in found) {
-            val ev = byId[eventId] ?: continue
-            val list = m.values
-                .filter { "$eventId|${it.key}" !in input.settings.blocked }
-                .mapNotNull { f ->
-                    val ch = byKey[f.key] ?: return@mapNotNull null
-                    ChannelMatch(
-                        channel = ch,
-                        score = f.score,
-                        how = f.how,
-                        program = f.program,
-                        quality = input.quality[ch.key] ?: nameQuality(ch.name),
-                        catchup = ch.catchup != null && CatchupUrlBuilder.isAvailable(ch.catchup, f.program?.startMs ?: ev.startMs, input.now)
-                    )
-                }
-            if (list.isEmpty()) continue
-            out[eventId] = sortMatches(list, input.settings.bestChannelFirst, rank).limitSuggestions()
-        }
+        val out = matchesFor()
         // Events that run for days (golf, race weekends): what was looked for and found, for the report.
         val multi = teamEvents.filter { it.id in noStart }.joinToString(" | ") { ev ->
             val t = terms[ev.id]

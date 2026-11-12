@@ -1,5 +1,54 @@
 # Stability programme: Phase 2 design and work plan
 
+> **Maintainer override — lean staged loop, 12 November 2026.** Stage 1 is based
+> on `v0.1.0-beta.9.7`, verified commit **`3c7bd94dd1ae596fef6ff983518b121b5e261040`**.
+> The maintainer accepts the controls as settling the Onn memory question (no
+> 9.6.2 increase) and the 3 GB PID false alarm. No further baseline/control work.
+> Neither physical TV may be connected to, installed on or tested without fresh
+> explicit authorization; emulators only.
+>
+> This loop supersedes conflicting testing, evidence, threshold and reporting
+> rules in **§7–§8**, earlier stop gates and prior physical-device permissions.
+> **All proposed numeric memory ceilings below are withdrawn**: unchanged-build
+> variation makes them unsuitable. Flag crashes, OOM/ANR, or roughly >25% memory
+> changes from one before/after pair; no repeated runs, new baselines/manifests,
+> or lint re-baselining unless lint fails. Never skip or weaken a test.
+>
+> Plan in at most 15 bullets; proceed unless a maintainer decision is needed.
+> Develop one stage, split into a few reviewable PRs where useful. Prefer JVM
+> fake-clock/fixture tests; run affected suites while iterating, then the full JVM
+> suite and minified build once at stage end. Allow about 30 minutes on the 3 GB
+> emulator for the affected scenario, using large fixtures only for load/memory
+> work; Stage 3 uses its validated low-memory profile. Retry an infrastructure
+> failure once, then report it. Stage 1's asserted CW harness replaces G1.
+>
+> **Stage plan:**
+> 1. **CW structure + Live TV release:** §2/C1–C3 single membership owner, atomic
+>    durable off-Home projection, unified refresh/return path and safe old-format
+>    migration; preserve §1.2 semantics and cover §2.5 in JVM tests. Separately
+>    release Live TV/provider connection for regular playback, trailers and stream
+>    lists, and mount background pause at app level; preserve reminders/recording.
+> 2. **First-load speed + priorities:** first time playlist/channels, guide
+>    download/parse/write/matching, Sports cache/matching once idle and once with
+>    a Home trailer on the large fixture; report time sinks in the plan. Implement
+>    P1/P2, indexed Sports search and transactional batching; unify matchers (S2)
+>    if duplication is measured. Preserve identical results, live/open-game-first,
+>    status indicator and 9.7 guide-during-playback setting; report paired timings.
+> 3. **Low-memory devices:** validate a realistic 1 GB/low-RAM/small-heap emulator
+>    using actual memoryClass/largeMemoryClass/maxMemory; ask before proceeding if
+>    unrealistic. Measure the specified M1 journeys, then implement only justified
+>    M2–M4 changes, largest consumers first, with one before/after pair.
+>
+> P3, S1, A1/A2 and P4 remain deferred unless stage evidence requires them;
+> A1/A2 apply only if Stage 3 touches player/allocator. Report real issues without
+> starting deferred work. End each stage with signed local ARMv7/ARM64 APKs,
+> `0.1.0-beta.9.7.local.N`, versionCode **10053**, installed nowhere. **Stop** with
+> a report of at most 15 lines: changes, test outcomes, relevant measurements,
+> TV function-test readiness/instructions and decisions needed. Wait for feedback
+> before the next stage. Keep logs/evidence in the build folder. No publication,
+> tag changes or release workflow. Earlier text below remains historical/design
+> context wherever superseded; the document is otherwise unchanged.
+
 **Status: Phase 2 approved. Phase 3 base confirmed: 9.6.2 / 10052 /
 `6b1999648`. Repeated unchanged controls and PID-failure classification only
 are authorized now; stop with results before G1 or any implementation.**

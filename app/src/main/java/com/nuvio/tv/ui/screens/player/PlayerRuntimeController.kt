@@ -220,7 +220,10 @@ class PlayerRuntimeController(
     }
 
     // Closed on exit (stopAndRelease) or when the ViewModel is cleared, whichever comes first.
-    private val playerSession = com.nuvio.tv.core.player.PlayerSessionTracker.open()
+    private val playerSession = com.nuvio.tv.core.player.PlayerSessionTracker.open {
+        _uiState.value.let { it.isBuffering || it.showLoadingOverlay } ||
+            pendingSeekFlush || seekBufferingUiDeferred || pendingSeekTelemetryAwaitingFirstFrame
+    }
 
     internal var currentVideoHash: String? = navigationArgs.videoHash
     internal var currentVideoSize: Long? = navigationArgs.videoSize
@@ -611,11 +614,11 @@ class PlayerRuntimeController(
     internal var audioRouteChangeJob: Job? = null
 
     internal var lastBufferLogTimeMs: Long = 0L
-    internal var pendingSeekFlush: Boolean = false
+    @Volatile internal var pendingSeekFlush: Boolean = false
     internal var suppressBufferingUiForSeek: Boolean = false
     internal var isScrubbingModeActive: Boolean = false
     internal var seekBufferingUiJob: Job? = null
-    internal var seekBufferingUiDeferred: Boolean = false
+    @Volatile internal var seekBufferingUiDeferred: Boolean = false
     internal val seekBufferingUiDelayMs = 1000L
 
     internal var lastVodTelemetryRefreshTimeMs: Long = 0L
@@ -718,7 +721,7 @@ class PlayerRuntimeController(
     internal var pendingSeekTelemetryTargetMs: Long = -1L
     internal var pendingSeekTelemetryReadyAtMs: Long = 0L
     internal var pendingSeekTelemetryReadyLatencyMs: Long = -1L
-    internal var pendingSeekTelemetryAwaitingFirstFrame: Boolean = false
+    @Volatile internal var pendingSeekTelemetryAwaitingFirstFrame: Boolean = false
     internal var pendingSeekTelemetryReadyAssumed: Boolean = false
 
     internal var currentScrobbleItem: TrackingMediaReference? = null

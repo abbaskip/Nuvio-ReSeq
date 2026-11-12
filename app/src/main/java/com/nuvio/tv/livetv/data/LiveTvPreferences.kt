@@ -92,6 +92,7 @@ class LiveTvPreferences @Inject constructor(
         val updatePlaylistsOnOpen = booleanPreferencesKey("update_playlists_on_open")
         val epgRefresh = intPreferencesKey("epg_refresh_hours")
         val epgPast = intPreferencesKey("epg_past_hours")
+        val guideDuringPlayback = booleanPreferencesKey("guide_during_playback")
         val epgFuture = intPreferencesKey("epg_future_days")
         val epgDescriptions = booleanPreferencesKey("epg_descriptions")
         val clock24 = booleanPreferencesKey("clock_24h")
@@ -332,6 +333,7 @@ class LiveTvPreferences @Inject constructor(
             updatePlaylistsOnOpen = p[Keys.updatePlaylistsOnOpen] ?: d.updatePlaylistsOnOpen,
             epgRefreshHours = p[Keys.epgRefresh] ?: d.epgRefreshHours,
             epgPastHours = p[Keys.epgPast] ?: d.epgPastHours,
+            updateGuideDuringPlayback = p[Keys.guideDuringPlayback] ?: d.updateGuideDuringPlayback,
             epgFutureDays = p[Keys.epgFuture] ?: d.epgFutureDays,
             epgDescriptions = p[Keys.epgDescriptions] ?: d.epgDescriptions,
             use24HourClock = p[Keys.clock24] ?: d.use24HourClock,
@@ -557,6 +559,7 @@ class LiveTvPreferences @Inject constructor(
         p[Keys.updatePlaylistsOnOpen] = s.updatePlaylistsOnOpen
         p[Keys.epgRefresh] = s.epgRefreshHours
         p[Keys.epgPast] = s.epgPastHours
+        p[Keys.guideDuringPlayback] = s.updateGuideDuringPlayback
         p[Keys.epgFuture] = s.epgFutureDays
         p[Keys.epgDescriptions] = s.epgDescriptions
         p[Keys.clock24] = s.use24HourClock

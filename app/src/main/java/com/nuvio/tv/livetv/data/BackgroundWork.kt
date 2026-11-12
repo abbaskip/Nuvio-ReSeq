@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.update
  * player closes. Updates you start yourself (Update now) aren't held back.
  */
 object BackgroundWork {
+    @Volatile var livePlaybackUnstable: () -> Boolean = { false }
+    @Volatile var seekQuietUntilNanos: Long = 0
+    fun onLiveSeek() { seekQuietUntilNanos = System.nanoTime() + 2_000_000_000L }
+    val playbackUnstable: Boolean get() = livePlaybackUnstable() ||
+        System.nanoTime() < seekQuietUntilNanos || com.nuvio.tv.core.player.PlayerSessionTracker.playbackUnstable
+
     val liveChannelOpen = MutableStateFlow(false)
 
     @Volatile private var lastNavigationNanos = 0L

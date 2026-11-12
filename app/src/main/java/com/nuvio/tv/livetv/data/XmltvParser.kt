@@ -53,6 +53,32 @@ object XmltvParser {
         onPrograms: ((String, List<EpgProgram>) -> Unit)? = null,
         selectChannels: (Map<String, XmltvChannel>) -> Set<String>?
     ): XmltvResult {
+        return kotlinx.coroutines.runBlocking {
+            parseSuspending(input, windowStartMs, windowEndMs, keepUnlisted, onPrograms, selectChannels = selectChannels)
+        }
+    }
+
+    suspend fun parseSuspending(
+        input: InputStream,
+        windowStartMs: Long,
+        windowEndMs: Long,
+        /**
+         * For a guide with no channel list before its shows (so [selectChannels] can't pick
+         * any and returns null): whether to keep a channel's shows, asked once per channel id.
+         * Null keeps them all. Without it, every show in a big guide was held in memory, which
+         * on a low-memory box could slow the app down or close it.
+         * (Before [selectChannels], so `parse(…) { channels -> … }` still means selectChannels.)
+         */
+        keepUnlisted: ((String) -> Boolean)? = null,
+        /**
+         * Hands over each channel's shows as soon as that channel's run of shows ends (guides list
+         * a channel's shows together), instead of keeping the whole guide in memory. A channel whose
+         * shows are split up arrives in more than one part. With it, the result has no programs.
+         */
+        onPrograms: ((String, List<EpgProgram>) -> Unit)? = null,
+        checkpoint: suspend () -> Unit = {},
+        selectChannels: (Map<String, XmltvChannel>) -> Set<String>?
+    ): XmltvResult {
         val parser = Xml.newPullParser()
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
         // Forgiving mode, like other IPTV apps: a stray "&" in a title, an HTML entity such as
@@ -78,7 +104,9 @@ object XmltvParser {
         var error: String? = null
         try {
         var event = parser.eventType
+        var batch = 0
         while (event != XmlPullParser.END_DOCUMENT) {
+            if (++batch >= 128) { flush(); checkpoint(); batch = 0 }
             if (event == XmlPullParser.START_TAG) {
                 when (parser.name) {
                     "channel" -> readChannel(parser)?.let { channels[it.id] = it }

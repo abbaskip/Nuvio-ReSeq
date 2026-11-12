@@ -71,6 +71,9 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.execSQL("DROP INDEX IF EXISTS programs_ch_start")
             db.execSQL("DROP INDEX IF EXISTS programs_stop")
             db.execSQL("DROP INDEX IF EXISTS programs_start")
+            db.execSQL("DROP INDEX IF EXISTS next_programs_ch_start")
+            db.execSQL("DROP INDEX IF EXISTS next_programs_stop")
+            db.execSQL("DROP INDEX IF EXISTS next_programs_start")
             db.delete("programs", null, null)
             db.delete("auto", null, null)
             val stmt = db.compileStatement(
@@ -449,6 +452,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         private var rows = 0
         private val meta = HashMap<String, LongArray>() // count, lastStop, placeholders
         private var open = true
+        private var transactionOpen = true
 
         init {
             db.execSQL("DROP INDEX IF EXISTS stage_src_xid")
@@ -460,6 +464,14 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             stmt = db.compileStatement(
                 "INSERT INTO stage (src, xid, start, stop, title, descr, cat, ep, icon, year, people) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
             )
+        }
+
+        /** Release the SQLite thread affinity and write lock before suspending. */
+        fun pauseBatch() {
+            if (transactionOpen) { db.setTransactionSuccessful(); db.endTransaction(); transactionOpen = false }
+        }
+        fun resumeBatch() {
+            if (!transactionOpen) { db.beginTransaction(); transactionOpen = true }
         }
 
         fun add(xid: String, programs: List<EpgProgram>, isPlaceholder: (String) -> Boolean) {
@@ -512,11 +524,37 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             return meta.mapValues { (_, m) -> StagedMeta(m[0].toInt(), m[1], m[2].toInt()) }
         }
 
+        suspend fun finishBatched(stamp: String, channels: List<Triple<String,List<String>,String?>>, checkpoint: suspend () -> Unit): Map<String,StagedMeta> {
+            suspend fun nextBatch() { pauseBatch(); checkpoint(); resumeBatch() }
+            for (batch in meta.entries.chunked(128)) {
+                nextBatch()
+                batch.forEach { (xid,m) -> db.insertWithOnConflict("stage_meta",null,ContentValues().apply {
+                    put("src",src); put("xid",xid); put("cnt",m[0]); put("last_stop",m[1]); put("placeholders",m[2])
+                },SQLiteDatabase.CONFLICT_REPLACE) }
+            }
+            for (batch in channels.chunked(128)) {
+                nextBatch()
+                db.compileStatement("INSERT INTO stage_channels(src,xid,names,icon) VALUES(?,?,?,?)").use { ch ->
+                    batch.forEach { (id,names,icon) ->
+                        ch.clearBindings(); ch.bindString(1,src); ch.bindString(2,id)
+                        if (names.isEmpty()) ch.bindNull(3) else ch.bindString(3,names.joinToString("\u001F"))
+                        if (icon == null) ch.bindNull(4) else ch.bindString(4,icon)
+                        ch.executeInsert()
+                    }
+                }
+            }
+            db.insertWithOnConflict("stage_info",null,ContentValues().apply {
+                put("src",src); put("stamp",stamp); put("made",System.currentTimeMillis())
+            },SQLiteDatabase.CONFLICT_REPLACE)
+            pauseBatch(); open = false; stmt.close()
+            return meta.mapValues { (_,m) -> StagedMeta(m[0].toInt(),m[1],m[2].toInt()) }
+        }
+
         /** Something went wrong: what was written in this round is dropped (earlier parts stay until the next read). */
         fun abort() {
             if (!open) return
             open = false
-            runCatching { db.endTransaction() }
+            if (transactionOpen) runCatching { db.endTransaction() }
             runCatching {
                 db.beginTransaction()
                 try {
@@ -654,6 +692,9 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.execSQL("DROP INDEX IF EXISTS programs_ch_start")
             db.execSQL("DROP INDEX IF EXISTS programs_stop")
             db.execSQL("DROP INDEX IF EXISTS programs_start")
+            db.execSQL("DROP INDEX IF EXISTS next_programs_ch_start")
+            db.execSQL("DROP INDEX IF EXISTS next_programs_stop")
+            db.execSQL("DROP INDEX IF EXISTS next_programs_start")
             db.delete("programs", null, null)
             db.delete("auto", null, null)
             db.execSQL("DROP TABLE IF EXISTS temp.choice")
@@ -699,6 +740,75 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         } finally {
             db.endTransaction()
         }
+    }
+
+    /** Build a private replacement in bounded transactions, then publish it atomically. */
+    suspend fun replaceAllFromStageBatched(
+        fingerprint: String, choice: Map<String, EpgAssignment>, auto: Map<String, EpgAssignment>,
+        parts: String?, fromMs: Long, toMs: Long, checkpoint: suspend () -> Unit
+    ) {
+        val db = writableDatabase
+        fun transaction(block: () -> Unit) {
+            db.beginTransaction()
+            try { block(); db.setTransactionSuccessful() } finally { db.endTransaction() }
+        }
+        fun cleanup() {
+            db.execSQL("DROP TABLE IF EXISTS guide_next")
+            db.execSQL("DROP TABLE IF EXISTS guide_choice")
+            db.execSQL("DROP TABLE IF EXISTS auto_next")
+        }
+        cleanup()
+        db.execSQL("CREATE TABLE guide_next AS SELECT * FROM programs WHERE 0")
+        db.execSQL("CREATE TABLE guide_choice (src TEXT NOT NULL, xid TEXT NOT NULL, ch TEXT NOT NULL, PRIMARY KEY(src,xid,ch))")
+        db.execSQL("CREATE TABLE auto_next (ch TEXT PRIMARY KEY, source TEXT NOT NULL, xmltv TEXT NOT NULL)")
+        // Alternate index names so building the replacement never removes the live guide's indexes.
+        val prefix = db.rawQuery("SELECT 1 FROM sqlite_master WHERE type='index' AND name='programs_ch_start'", null).use {
+            if (it.moveToFirst()) "next_programs" else "programs"
+        }
+        try {
+            db.execSQL("CREATE INDEX ${prefix}_ch_start ON guide_next(ch,start)")
+            db.execSQL("CREATE INDEX ${prefix}_stop ON guide_next(stop)")
+            db.execSQL("CREATE INDEX ${prefix}_start ON guide_next(start)")
+            for (batch in choice.entries.chunked(128)) {
+                checkpoint()
+                transaction {
+                    db.compileStatement("INSERT OR IGNORE INTO guide_choice VALUES (?,?,?)").use { ins ->
+                        batch.forEach { (ch, a) ->
+                            ins.bindString(1,a.sourceId); ins.bindString(2,a.xmltvId); ins.bindString(3,ch); ins.executeInsert()
+                        }
+                    }
+                }
+            }
+            val maxRow = db.rawQuery("SELECT COALESCE(MAX(rowid),0) FROM stage", null).use { it.moveToFirst(); it.getLong(0) }
+            var row = 0L
+            while (row < maxRow) {
+                checkpoint()
+                transaction {
+                    db.execSQL("INSERT INTO guide_next (ch,start,stop,title,descr,cat,ep,icon,year,people) " +
+                        "SELECT c.ch,s.start,s.stop,s.title,${if (retainDescriptions) "s.descr" else "NULL"},s.cat,s.ep,s.icon,s.year,${if (retainDescriptions) "s.people" else "NULL"} " +
+                        "FROM stage s JOIN guide_choice c ON c.src=s.src AND c.xid=s.xid " +
+                        "WHERE s.rowid>? AND s.rowid<=? AND s.stop>? AND s.start<?",
+                        arrayOf<Any>(row,row+256,fromMs,toMs))
+                }
+                row += 256
+            }
+            for (batch in auto.entries.chunked(128)) {
+                checkpoint()
+                transaction {
+                    batch.forEach { (ch,a) -> db.insertOrThrow("auto_next",null,ContentValues().apply {
+                        put("ch",ch); put("source",a.sourceId); put("xmltv",a.xmltvId)
+                    }) }
+                }
+            }
+            checkpoint()
+            transaction {
+                db.execSQL("DROP TABLE programs")
+                db.execSQL("ALTER TABLE guide_next RENAME TO programs")
+                db.execSQL("DROP TABLE auto")
+                db.execSQL("ALTER TABLE auto_next RENAME TO auto")
+                putFingerprint(db,fingerprint,parts)
+            }
+        } finally { cleanup() }
     }
 
     /** Gives back space left empty by deleted listings (see [SqliteCompact]). */

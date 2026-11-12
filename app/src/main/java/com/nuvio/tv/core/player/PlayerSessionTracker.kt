@@ -30,14 +30,19 @@ object PlayerSessionTracker {
     val hasPlayback: Boolean get() = openSessions.value.hasPlayback
     val playbackActive: Flow<Boolean> = openSessions.map { it.hasPlayback }.distinctUntilChanged()
 
-    fun open(): Session {
+    private val pressure = java.util.concurrent.ConcurrentHashMap<Any, () -> Boolean>()
+    val playbackUnstable: Boolean get() = pressure.values.any { it() }
+
+    fun open(unstable: () -> Boolean = { true }): Session {
+        val key = Any(); pressure[key] = unstable
         openSessions.update { it.copy(players = it.players + 1) }
-        return Session { openSessions.update { it.copy(players = it.players - 1) } }
+        return Session { pressure.remove(key); openSessions.update { it.copy(players = it.players - 1) } }
     }
 
-    fun openTrailer(): Session {
+    fun openTrailer(unstable: () -> Boolean = { true }): Session {
+        val key = Any(); pressure[key] = unstable
         openSessions.update { it.copy(trailers = it.trailers + 1) }
-        return Session { openSessions.update { it.copy(trailers = it.trailers - 1) } }
+        return Session { pressure.remove(key); openSessions.update { it.copy(trailers = it.trailers - 1) } }
     }
 
     class Session internal constructor(private val onClose: () -> Unit) {

@@ -265,6 +265,7 @@ data class LiveTvSettings(
     val epgRefreshHours: Int = 12,
     val epgPastHours: Int = 24,
     val epgFutureDays: Int = 3,
+    val updateGuideDuringPlayback: Boolean = true,
     /** Detailed synopses/cast are optional; channel assignments and programme identity stay intact. */
     val epgDescriptions: Boolean = true,
     val use24HourClock: Boolean = false,

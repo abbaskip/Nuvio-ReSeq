@@ -1805,7 +1805,7 @@ class LiveTvRepository @Inject constructor(
 
     private fun checkGuideBudget() {
         if (BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying)
-            throw DeferGuide("Guide update queued until playback finishes", "Guide update waiting for playback to finish")
+            throw DeferGuide("Guide update queued until playback finishes", "Guide update paused while playing · stop playback to finish")
         val runtime = Runtime.getRuntime()
         val limit = runtime.maxMemory() * 0.85
         if (runtime.totalMemory() - runtime.freeMemory() > limit) {
@@ -1815,12 +1815,32 @@ class LiveTvRepository @Inject constructor(
         }
     }
 
+    private var guideStartedAt = 0L
+    private suspend fun guideCheckpoint(settings: LiveTvSettings) {
+        if (!settings.updateGuideDuringPlayback) { checkGuideBudget(); return }
+        while (true) {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            val playing = BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying
+            val rt = Runtime.getRuntime()
+            val fraction = (rt.totalMemory() - rt.freeMemory()).toDouble() / rt.maxMemory()
+            val age = System.currentTimeMillis() - guideStartedAt
+            val message = GuidePlaybackBudget.message(playing, BackgroundWork.playbackUnstable, fraction, age)
+            _guideUpdateNotice.value = message?.let { GuideUpdateNotice(it, waiting = true) }
+            if (GuidePlaybackBudget.paused(message)) { delay(1_000); continue }
+            if (playing) delay(if (age >= GuidePlaybackBudget.FINISH_AFTER_MS) 100 else 250)
+            else kotlinx.coroutines.yield()
+            if ((BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying) && BackgroundWork.playbackUnstable) continue
+            return
+        }
+    }
+
     private fun scheduleGuideRetry() {
         if (retryGuideJob?.isActive == true) return
         retryGuideJob = scope.launch {
             while (deferredGuide.exists()) {
                 delay(30_000)
-                kotlinx.coroutines.flow.combine(BackgroundWork.liveChannelOpen, BackgroundWork.nuvioPlaying) { live, vod -> !live && !vod }.first { it }
+                if (!prefs.currentSettings().updateGuideDuringPlayback)
+                    kotlinx.coroutines.flow.combine(BackgroundWork.liveChannelOpen, BackgroundWork.nuvioPlaying) { live, vod -> !live && !vod }.first { it }
                 mutex.withLock {
                     if (deferredGuide.exists()) {
                         try { buildPrograms(prefs.currentSettings(), collectEpgTargets()) }
@@ -1833,12 +1853,13 @@ class LiveTvRepository @Inject constructor(
 
     private suspend fun buildPrograms(settings: LiveTvSettings, targets: List<EpgTarget>) {
         val t0 = System.currentTimeMillis()
+        guideStartedAt = if (deferredGuide.exists()) deferredGuide.lastModified() else t0
         BackgroundWork.guideBuilding.value = true
         try {
-            checkGuideBudget()
-            _guideUpdateNotice.value = null
+            guideCheckpoint(settings)
             BackgroundWork.heavy { buildProgramsInner(settings, targets) }
             deferredGuide.delete()
+            _guideUpdateNotice.value = null
         } catch (defer: DeferGuide) {
             _guideUpdateNotice.value = GuideUpdateNotice(
                 defer.waitingMessage ?: defer.message.orEmpty(), waiting = defer.waitingMessage != null)
@@ -1921,7 +1942,7 @@ class LiveTvRepository @Inject constructor(
             if (!file.exists()) { LIVE_REPORT.add("Guide \"${target.name}\": no file downloaded yet"); continue }
             val src = target.fileId
             val stageStamp = targetStamp(target) + "|" + matchStamp + "|" + (now / HOUR)
-            checkGuideBudget()
+            guideCheckpoint(settings)
             val reuse = guideDb.stageInfo(src)?.first == stageStamp
             val step = if (targets.size > 1) " (${order + 1} of ${targets.size})" else ""
             val pinnedHere = overrides.filterValues { it.sourceId == target.fileId }
@@ -1952,7 +1973,7 @@ class LiveTvRepository @Inject constructor(
                     val now = System.currentTimeMillis()
                     if (now - shownAt > 750) {
                         shownAt = now
-                        checkGuideBudget()
+                        if (!settings.updateGuideDuringPlayback) checkGuideBudget()
                         setStatus(loading = true, message = "Reading guide \"${target.name}\"$step… ${(done * 100 / fileSize).coerceIn(0, 99)}%")
                     }
                 }
@@ -1962,8 +1983,13 @@ class LiveTvRepository @Inject constructor(
                 if (writer == null) throw DeferGuide("Guide storage unavailable. Keeping the previous listings.")
                 val parsed = runCatching {
                     openMaybeGzip(file, showProgress).use { input ->
-                        XmltvParser.parse(
+                        XmltvParser.parseSuspending(
                             input, windowStart, windowEnd,
+                            checkpoint = {
+                                writer.pauseBatch()
+                                guideCheckpoint(settings)
+                                writer.resumeBatch()
+                            },
                             // No channel list in this guide: keep only shows for channels the matching
                             // below can use (the same id / name test) or picked by hand.
                             keepUnlisted = { id ->
@@ -2005,8 +2031,12 @@ class LiveTvRepository @Inject constructor(
                     // No channel list: every channel the shows mention (kept or not), for Change EPG.
                     parsed.programChannelIds.map { EpgChannelEntry(it, emptyList(), null) }
                 }
-                meta = runCatching { writer.finish(stageStamp, entries.map { Triple(it.id, it.names, it.icon) }) }
-                    .onFailure { writer.abort(); Log.w(TAG, "Couldn't store ${target.name}", it) }
+                meta = runCatching {
+                    val storedChannels = entries.map { Triple(it.id, it.names, it.icon) }
+                    if (settings.updateGuideDuringPlayback) writer.finishBatched(stageStamp, storedChannels) { guideCheckpoint(settings) }
+                    else writer.finish(stageStamp, storedChannels)
+                }
+                    .onFailure { writer.abort(); if (it is kotlinx.coroutines.CancellationException) throw it; Log.w(TAG, "Couldn't store ${target.name}", it) }
                     .getOrNull() ?: throw DeferGuide("Guide storage unavailable. Keeping the previous listings.")
                 LIVE_REPORT.add("Guide \"${target.name}\": read and set aside in ${(System.currentTimeMillis() - readStart) / 1000} s (${meta.values.sumOf { it.count }} listings)")
             }
@@ -2106,13 +2136,15 @@ class LiveTvRepository @Inject constructor(
         }
         // The guide shown: from the staged guides, the chosen one for each channel (hand-picked
         // ones as given), all in one step.
-        checkGuideBudget()
+        guideCheckpoint(settings)
         val choice = auto + pinned
         val storeStart = System.currentTimeMillis()
         val stored = runCatching {
             val fp = guideFingerprint(settings, targets)
-            guideDb.replaceAllFromStage(fp, choice, emptyMap(), auto, guideParts(settings, targets, fp), windowStart, windowEnd)
-        }.onFailure { Log.w(TAG, "Couldn't store the guide", it) }.isSuccess
+            if (settings.updateGuideDuringPlayback)
+                guideDb.replaceAllFromStageBatched(fp, choice, auto, guideParts(settings, targets, fp), windowStart, windowEnd) { guideCheckpoint(settings) }
+            else guideDb.replaceAllFromStage(fp, choice, emptyMap(), auto, guideParts(settings, targets, fp), windowStart, windowEnd)
+        }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; Log.w(TAG, "Couldn't store the guide", it) }.isSuccess
         LIVE_REPORT.add("Guide: best guide per channel stored in ${(System.currentTimeMillis() - storeStart) / 1000} s")
         // The guides' working copies aren't kept once the guide is built (they'd double the storage).
         if (stored) {

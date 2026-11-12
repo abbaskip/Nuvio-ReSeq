@@ -240,11 +240,13 @@ class TrailerPlayerPool @Inject constructor(
             .apply {
                 repeatMode = Player.REPEAT_MODE_OFF
                 addListener(object : Player.Listener {
+                    @Volatile private var unstable = true
                     override fun onPlaybackStateChanged(playbackState: Int) {
+                        unstable = playbackState != Player.STATE_READY
                         if (this@apply !== _player) return
                         when (playbackState) {
                             Player.STATE_BUFFERING, Player.STATE_READY -> {
-                                if (trailerSession == null) trailerSession = PlayerSessionTracker.openTrailer()
+                                if (trailerSession == null) trailerSession = PlayerSessionTracker.openTrailer { unstable }
                             }
                             Player.STATE_IDLE, Player.STATE_ENDED -> closeTrailerSession()
                         }

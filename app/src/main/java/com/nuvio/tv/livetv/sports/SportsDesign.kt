@@ -279,7 +279,7 @@ internal fun TeamBand(
     /** Before the game: this team's place, form and chances, where the score goes later. */
     trailing: (@Composable () -> Unit)? = null
 ) {
-    val c = bandColor(teamColor(side.team))
+    val c = teamBandColor(side.team)
     val cricket = SportsCatalog.league(side.team.leagueId)?.sport == Sport.CRICKET
     Row(
         modifier

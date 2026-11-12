@@ -2,9 +2,31 @@ package com.nuvio.tv.livetv.sports
 
 import org.junit.Assert.*
 import org.junit.Test
+import androidx.compose.ui.graphics.luminance
 import java.time.Instant
 
 class CricketAustraliaTest {
+    @Test fun `state colours cover both domestic feeds and preserve other competitions`() {
+        val names = listOf("New South Wales", "Queensland Bulls", "Victoria", "South Australia", "Western Australia", "Tasmania Tigers")
+        val colors = listOf(0xFF6CACE4L, 0xFF7A0019L, 0xFF002B5CL, 0xFFE4002BL, 0xFFFFC72CL, 0xFF00843DL)
+        for (id in listOf("ca/shield", "ca/one-day", "cricket/espn-test")) {
+            for (competition in listOf("Sheffield Shield", "One-Day Cup")) {
+                val league = League(id, Sport.CRICKET, competition, "TEST")
+                for ((i, name) in names.withIndex()) for (suffix in listOf("", " Women")) {
+                    val team = TeamInfo(id, "$i", name + suffix, name + suffix, "", null, null, null, null)
+                    assertEquals(colors[i], stateCricketColor(team, league))
+                    if (id.startsWith("ca/")) {
+                        val band = teamBandColor(team)
+                        assertTrue("White band text must meet 4.5:1 contrast", 1.05f / (band.luminance() + 0.05f) >= 4.5f)
+                    }
+                }
+            }
+        }
+        val other = TeamInfo("cricket/19430", "1", "Victoria", "Victoria", "VIC", null, null, null, null)
+        assertNull(stateCricketColor(other))
+        assertNull(stateCricketColor(other.copy(leagueId = "ca/shield", name = "Pakistan", fullName = "Pakistan")))
+    }
+
     private val now = Instant.parse("2026-11-11T03:00:00Z").toEpochMilli()
     private fun fixture(status: String, live: Boolean = false, format: Int = 1, competition: String = "Pakistan v Sri Lanka Tests") =
         """{"fixtures":[{"id":40986,"gameTypeId":$format,"competition":{"name":"$competition"},

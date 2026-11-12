@@ -517,8 +517,8 @@ private fun HeroCard(
     ) {
         // ---- the colours: each team on its half, meeting in the middle
         if (sides.size == 2) {
-            val a = bandColor(teamColor(sides[0].team))
-            val b = bandColor(teamColor(sides[1].team))
+            val a = teamBandColor(sides[0].team)
+            val b = teamBandColor(sides[1].team)
             Row(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxHeight().background(Brush.horizontalGradient(0f to a.copy(alpha = 0.98f), 0.7f to a.copy(alpha = 0.75f), 1f to a.copy(alpha = 0.45f))))
                 Box(Modifier.width(2.dp).fillMaxHeight().background(Color.Black.copy(alpha = 0.35f)))

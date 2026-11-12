@@ -14,6 +14,17 @@ data class CwMember(
     val changedAtRevision: Long = 0
 )
 
+/** Compact positive completion evidence; identities are never derived from display order. */
+data class CwCompletion(
+    val videoId: String,
+    val season: Int?,
+    val episode: Int?,
+    val contentIds: Set<Long>,
+    val watchedIds: Set<Long>,
+    val at: Long,
+    val historyKey: String
+)
+
 data class CwProjection(
     val schema: Int = 1,
     val profileId: Int,
@@ -23,7 +34,8 @@ data class CwProjection(
     val members: Map<String, CwMember> = emptyMap(),
     val removals: Map<String, Long> = emptyMap(),
     val ignoredProgress: Map<String, Long> = emptyMap(),
-    val hiddenByProvider: Set<String> = emptySet()
+    val hiddenByProvider: Set<String> = emptySet(),
+    val completed: Map<String, Map<String, CwCompletion>> = emptyMap()
 ) {
     val lease get() = CwLease(profileId, source, epoch, revision)
     val inProgress get() = members.values.mapNotNull { it.inProgress }
@@ -73,9 +85,17 @@ object CwMembershipReducer {
     fun progress(state: CwProjection, updates: List<WatchProgress>, seeds: Boolean = false): CwProjection {
         val members = state.members.toMutableMap()
         val removals = state.removals.toMutableMap()
+        val completed = state.completed.toMutableMap()
         updates.sortedBy { it.lastWatched }.forEach { p ->
             if (p.lastWatched <= (state.ignoredProgress[p.historyKey()] ?: Long.MIN_VALUE)) return@forEach
             if (p.lastWatched <= (removals[p.contentId] ?: Long.MIN_VALUE)) return@forEach
+            if (p.isCompleted()) {
+                val records = completed[p.contentId].orEmpty()
+                val record = CwCompletion(p.videoId, p.season, p.episode, p.tvdbContentIds,
+                    p.tvdbWatchedIds, p.lastWatched, p.historyKey())
+                if (record.at >= (records[record.historyKey]?.at ?: Long.MIN_VALUE))
+                    completed[p.contentId] = records + (record.historyKey to record)
+            }
             val old = members[p.contentId]
             val priorActivity = old?.progress?.lastWatched ?: old?.inProgress?.lastWatched ?: old?.nextUp?.lastWatched
             if (priorActivity != null && p.lastWatched < priorActivity) return@forEach
@@ -87,7 +107,11 @@ object CwMembershipReducer {
             val member = when {
                 p.isCompleted() && !series -> null
                 p.isCompleted() || seeds -> {
-                    val next = old?.nextUp?.takeIf { it.chooseEpisode || !sameEpisode(it, p) }
+                    // An offer was resolved from a particular seed. Completing a different
+                    // episode invalidates it even when the offer is not that new completion.
+                    val sameSeed = old?.progress?.let { it.historyKey() == p.historyKey() } == true
+                    val next = old?.nextUp?.takeIf { sameSeed && (it.chooseEpisode ||
+                        completed[p.contentId].orEmpty().values.none { done -> matches(it, done) }) }
                     CwMember(p, nextUp = next?.copy(lastWatched = maxOf(next.lastWatched, p.lastWatched))
                         ?: p.seriesChoice(), changedAtRevision = state.revision + 1)
                 }
@@ -106,7 +130,7 @@ object CwMembershipReducer {
                 removals.remove(p.contentId)
             }
         }
-        return state.changed(members, removals)
+        return state.changed(members, removals, completed)
     }
 
     fun enrich(state: CwProjection, lease: CwLease,
@@ -128,6 +152,7 @@ object CwMembershipReducer {
             if (old.changedAtRevision > lease.revision || old.inProgress != null) return@forEach
             val p = old.progress
             if (p?.isCompleted() == true && !candidate.chooseEpisode && sameEpisode(candidate, p)) return@forEach
+            if (!candidate.chooseEpisode && state.completed[candidate.contentId].orEmpty().values.any { matches(candidate, it) }) return@forEach
             members[candidate.contentId] = old.copy(nextUp = candidate)
         }
         return state.changed(members)
@@ -147,17 +172,41 @@ object CwMembershipReducer {
         })
 
     /** Unwatching an episode revokes its completion evidence, not the whole series. */
-    fun historyRemoved(state: CwProjection, contentId: String, episodes: Set<Pair<Int, Int>>, at: Long): CwProjection {
-        val member = state.members[contentId] ?: return state
-        val p = member.progress ?: return invalidate(state, setOf(contentId))
-        if (p.season to p.episode !in episodes) return state
-        return state.copy(revision = state.revision + 1,
-            ignoredProgress = state.ignoredProgress + (p.historyKey() to at),
-            members = state.members + (contentId to CwMember(nextUp = p.seriesChoice(), changedAtRevision = state.revision + 1)))
+    fun historyRemoved(state: CwProjection, contentId: String, episodes: Set<Pair<Int, Int>>, at: Long,
+        tvdbIds: Set<Long> = emptySet()): CwProjection {
+        fun removed(season: Int?, episode: Int?, ids: Set<Long>) =
+            if (tvdbIds.isNotEmpty()) ids.any { it in tvdbIds }
+            else ids.isEmpty() && season to episode in episodes
+        val records = state.completed[contentId].orEmpty()
+        val revoked = records.filterValues { removed(it.season, it.episode, it.contentIds) }
+        val remaining = records.toMutableMap()
+        revoked.forEach { (key, done) ->
+            val keptIds = done.watchedIds - tvdbIds
+            if (tvdbIds.isNotEmpty() && keptIds.isNotEmpty()) remaining[key] = done.copy(watchedIds = keptIds)
+            else remaining.remove(key)
+        }
+        val member = state.members[contentId]
+        val p = member?.progress
+        val reset = p != null && removed(p.season, p.episode, p.tvdbContentIds)
+        val ignored = state.ignoredProgress + revoked.keys.associateWith { at } +
+            if (reset) mapOf(p!!.historyKey() to at) else emptyMap()
+        val members = if (reset) state.members + (contentId to CwMember(nextUp = p!!.seriesChoice(), changedAtRevision = state.revision + 1))
+            else state.members
+        return invalidate(state.copy(ignoredProgress = ignored,
+            completed = state.completed + (contentId to remaining), members = members), setOf(contentId))
     }
 
-    private fun CwProjection.changed(next: Map<String, CwMember>, hidden: Map<String, Long> = removals) =
-        if (members == next && removals == hidden) this else copy(revision = revision + 1, members = next, removals = hidden)
+    private fun CwProjection.changed(next: Map<String, CwMember>, hidden: Map<String, Long> = removals,
+        evidence: Map<String, Map<String, CwCompletion>> = completed) =
+        if (members == next && removals == hidden && completed == evidence) this
+        else copy(revision = revision + 1, members = next, removals = hidden, completed = evidence)
+
+    private fun matches(next: CachedNextUpItem, done: CwCompletion): Boolean {
+        val nextIds = next.tvdbContext?.episodeIds?.toSet() ?: setOfNotNull(next.tvdbEpisodeId)
+        if (nextIds.isNotEmpty() && done.contentIds.isNotEmpty()) return nextIds.any { it in done.watchedIds }
+        return next.videoId == done.videoId || (nextIds.isEmpty() && done.contentIds.isEmpty() &&
+            next.season == done.season && next.episode == done.episode)
+    }
 
     private fun sameEpisode(next: CachedNextUpItem, p: WatchProgress): Boolean {
         val nextIds = next.tvdbContext?.episodeIds?.toSet() ?: setOfNotNull(next.tvdbEpisodeId)

@@ -118,4 +118,20 @@ class ContinueWatchingRepositoryTest {
         assertNull(owner.snapshot().members.getValue("show").progress)
         assertTrue(owner.snapshot().nextUp.single().chooseEpisode)
     }
+
+    @Test fun `selected TVDB order without verified identity retains series choice until compatible progress arrives`() = runTest {
+        val orders = mockk<com.nuvio.tv.data.tvdb.TvdbOrderStore> {
+            coEvery { exportSelections(1) } returns mapOf("alias:show" to "123", "order:123" to "dvd")
+        }
+        val owner = ContinueWatchingRepository(mockk<Context> { every { filesDir } returns folder.root },
+            profiles, settings, Provider { progress }, tvdbOrders = orders)
+        owner.snapshot()
+        owner.committedProgress(1, listOf(p()))
+        assertTrue(owner.snapshot().inProgress.single().chooseEpisode)
+        val identified = p(time = 2_000).copy(tvdbContext = com.nuvio.tv.domain.model.TvdbPlaybackContext(
+            123, "dvd", 44, 2, 5, listOf(44), "show:1:1"))
+        owner.committedProgress(1, listOf(identified))
+        assertFalse(owner.snapshot().inProgress.single().chooseEpisode)
+        assertEquals(identified.tvdbContext, owner.snapshot().inProgress.single().tvdbContext)
+    }
 }

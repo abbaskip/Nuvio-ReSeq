@@ -17,7 +17,9 @@ internal class CwProjectionStore(private val directory: File) {
     fun read(profile: Int, source: String): CwProjection {
         val target = file(profile, source)
         if (target.exists()) {
-            val value = gson.fromJson(target.readText(), CwProjection::class.java)
+            val json = com.google.gson.JsonParser.parseString(target.readText()).asJsonObject
+            val decoded = gson.fromJson(json, CwProjection::class.java)
+            val value = if (json.has("completed")) decoded else decoded.copy(completed = emptyMap())
             require(value.schema == 1 && value.profileId == profile && value.source == source) { "Invalid CW projection" }
             return value
         }

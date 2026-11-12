@@ -178,12 +178,17 @@ private fun HomeViewModel.withTvdbLabels(state: HomeUiState): HomeUiState = stat
     upcomingItems = state.upcomingItems.map(::projectTvdbItem))
 
 private fun HomeViewModel.finishedShuffleSeeds() = combine(
-    watchProgressRepository.observeNextUpSeeds(),
+    combine(continueWatchingRepository.projection, traktSettingsDataStore.watchProgressSource) { state, source ->
+        state?.takeIf { it.source == source.name }
+    },
     traktSettingsDataStore.continueWatchingDaysCap,
     traktSettingsDataStore.dismissedNextUpKeys,
     episodeShuffleStore.profiles,
     combine(watchProgressRepository.allProgress, watchProgressRepository.watchedItems) { items, watched -> items to watched }
-) { seeds, daysCap, dismissed, profile, history ->
+) { projection, daysCap, dismissed, profile, history ->
+    // Shuffle changes presentation, never membership: a raw tracker replay must not
+    // resurrect a card that the repository removed or replaced with in-progress playback.
+    val seeds = ownedShuffleSeeds(projection, profile.profileId)
     val cutoff = watchProgressRepository.activeProviderContinueWatchingCutoffEpochMs(daysCap, System.currentTimeMillis())
     val recent = if (cutoff == null) emptyMap() else com.nuvio.tv.domain.model.latestShowActivity(history.first, seeds, history.second)
     // Populate the profile's lightweight selection snapshot once before checking aliases.
@@ -198,6 +203,11 @@ private fun HomeViewModel.finishedShuffleSeeds() = combine(
             shouldUseAsCompletedSeed(seed)
     }.sortedByDescending { it.lastWatched }.distinctBy { it.contentId }
 }.distinctUntilChanged()
+
+internal fun ownedShuffleSeeds(projection: com.nuvio.tv.data.cw.CwProjection?, profileId: Int): List<WatchProgress> =
+    projection?.takeIf { it.profileId == profileId }?.members?.values?.mapNotNull {
+        it.progress.takeIf { _ -> it.nextUp != null }
+    }.orEmpty()
 
 /** Keep a slow lookup alive across unrelated tracker emissions. Dropping a show or switching
  * profiles cancels its job. Failed lookups wake at their cooldown even on a static Home screen. */

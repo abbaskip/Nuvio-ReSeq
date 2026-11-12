@@ -2925,7 +2925,7 @@ internal fun HomeViewModel.removeContinueWatchingPipeline(
 ) {
     val profileId = profileManager.activeProfileId.value
     viewModelScope.launch {
-        continueWatchingRepository.remove(setOf(contentId), profileId)
+        continueWatchingRepository.remove(setOf(contentId), profileId, nextUpOnly = isNextUp)
         if (isNextUp) traktSettingsDataStore.addDismissedNextUpKey(nextUpDismissKey(contentId, season, episode))
         else watchProgressRepository.removeProgress(contentId = contentId, season = null, episode = null)
     }

@@ -1,16 +1,5 @@
 package com.nuvio.tv.data.local
 
-import android.content.Context
-import android.util.Log
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.nuvio.tv.core.profile.ProfileManager
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -70,7 +59,8 @@ data class CachedInProgressItem(
     val releaseInfo: String? = null,
     val contentLanguage: String? = null,
     val ratingVisible: Boolean = true,
-    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null
+    val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null,
+    val chooseEpisode: Boolean = false
 )
 
 data class CwContentInvalidation(val profileId: Int, val contentIds: Set<String>, val version: Long)

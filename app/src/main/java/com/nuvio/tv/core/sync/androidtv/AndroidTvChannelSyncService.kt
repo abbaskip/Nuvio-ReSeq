@@ -19,7 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -29,7 +29,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "TvChannelSync"
-private const val DEBOUNCE_MS = 2_000L
+private const val PUBLICATION_INTERVAL_MS = 500L
 
 /**
  * Keeps the Android TV "Continue Watching" preview channel in sync with the app's
@@ -54,10 +54,9 @@ class AndroidTvChannelSyncService @Inject constructor(
     private val reconcileMutex = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // The launcher channel is only visible while the app is in the background. Reconciling on
-    // every in-playback cache bump (~10s) thrashes the TvProvider and stops launchers like
-    // Projectivy from repainting. We instead reconcile once when the app goes to background
-    // (user returns to the launcher) — see [onForegroundChanged].
+    // Publish membership/offer changes promptly during playback. Suppress position-only
+    // provider writes until backgrounding so Projectivy can repaint without IPC churn.
+    private var lastPublishedStructure: Pair<String, List<WatchProgress>>? = null
     @Volatile private var appInForeground = false
 
     /** Called from the host Activity's onStart/onStop. On background we reconcile once so the
@@ -88,7 +87,7 @@ class AndroidTvChannelSyncService @Inject constructor(
             ) { _, daysCap, dismissed, useEpisodeThumbnails ->
                 ChannelSettingsSnapshot(daysCap, dismissed, useEpisodeThumbnails)
             }
-                .debounce(DEBOUNCE_MS)
+                .sample(PUBLICATION_INTERVAL_MS)
                 .collect { settings ->
                     reconcileFromCache(settings)
                 }
@@ -127,12 +126,17 @@ class AndroidTvChannelSyncService @Inject constructor(
             "Reconciling from cache: ${channelItems.size} items " +
                 "(${inProgressItems.size} in-progress, ${nextUpItems.size} next-up raw)"
         )
+        val structure = "${projection.profileId}:${projection.source}" to channelItems.map {
+            it.copy(position = 0, duration = 0, lastWatched = 0, progressPercent = null)
+        }
+        if (appInForeground && structure == lastPublishedStructure) return@withLock
         if (cwEnrichmentCache.getSnapshot().lease != projection.lease) return@withLock
         manager.reconcile(channelItems)
 
         runCatching {
             tvRecommendationManager.updateWatchNext(channelItems)
         }
+        lastPublishedStructure = structure
     }
 
     /**
@@ -208,9 +212,9 @@ private fun CachedInProgressItem.toWatchProgress(useEpisodeThumbnails: Boolean):
         poster = poster,
         backdrop = image,
         logo = logo,
-        videoId = videoId,
-        season = season,
-        episode = episode,
+        videoId = if (chooseEpisode) contentId else videoId,
+        season = season.takeUnless { chooseEpisode },
+        episode = episode.takeUnless { chooseEpisode },
         episodeTitle = episodeTitle,
         position = position,
         duration = duration,

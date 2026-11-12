@@ -952,6 +952,7 @@ fun LiveTvPlayerScreen(
                 else -> null
             }
             GearPanel(
+                onStop = { dialog = PlayerDialog.NONE; viewModel.playback.stop(); onBack() },
                 startPage = gearStart,
                 audioOptions = viewModel.playback.audioTracks(),
                 subtitleOptions = viewModel.playback.subtitleTracks(),

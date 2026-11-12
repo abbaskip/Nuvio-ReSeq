@@ -7,6 +7,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlayerSessionTrackerTest {
+    @Test fun `guide pressure follows buffering and releases closed sessions`() {
+        var buffering = true
+        val player = PlayerSessionTracker.open { buffering }
+        val trailer = PlayerSessionTracker.openTrailer { false }
+        try {
+            assertTrue(PlayerSessionTracker.playbackUnstable)
+            buffering = false
+            assertFalse(PlayerSessionTracker.playbackUnstable)
+            buffering = true
+            player.close()
+            assertFalse(PlayerSessionTracker.playbackUnstable)
+            assertTrue(PlayerSessionTracker.hasPlayback)
+        } finally { player.close(); trailer.close() }
+        assertFalse(PlayerSessionTracker.hasPlayback)
+    }
+
 
     @Test
     fun `stays open until every overlapping session closes`() = runTest {

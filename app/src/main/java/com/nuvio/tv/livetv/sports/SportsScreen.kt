@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -182,6 +183,7 @@ fun SportsScreen(
     val liveSettings by viewModel.liveSettings.collectAsStateWithLifecycle()
     val pictureShapes by viewModel.pictureShapes.collectAsStateWithLifecycle()
     var fullscreen by rememberSaveable { mutableStateOf(false) }
+    var previewOptions by remember { mutableStateOf(false) }
     var previewFocused by remember { mutableStateOf(false) }
     var returnFocusToPreview by remember { mutableStateOf(false) }
     val previewFocus = remember { FocusRequester() }
@@ -232,7 +234,8 @@ fun SportsScreen(
     val videoSlot: @Composable (Modifier) -> Unit = { m ->
         VideoSlot(m.focusRequester(previewFocus).onFocusChanged { previewFocused = it.isFocused }
             .semantics { contentDescription = previewDescription }
-            .clickable(enabled = previewState.hasPreviewContent, role = Role.Button, onClick = ::expandPreview)) { slot = it }
+            .combinedClickable(enabled = previewState.hasPreviewContent, role = Role.Button,
+                onLongClickLabel = "Playback options", onLongClick = { previewOptions = true }, onClick = ::expandPreview)) { slot = it }
     }
 
     DisposableEffect(fullscreen) {
@@ -450,6 +453,10 @@ fun SportsScreen(
             )
         }
     }
+    if (previewOptions) com.nuvio.tv.livetv.ui.LiveDialog(onDismiss = { previewOptions = false }) {
+        SportsMenuRow("Stop playback") { viewModel.playback.stop(); previewOptions = false }
+        SportsMenuRow("Cancel") { previewOptions = false }
+    }
     if (sportsPreferences) SportsPreferencesDialog(settings.excludedSportsNodes,
         region = SportsCatalog.regionOf(settings), onRegion = { region -> viewModel.repo.updateSettings { it.copy(region = region) } },
         onToggle = { id -> viewModel.repo.updateSettings { s -> s.copy(excludedSportsNodes =
@@ -516,7 +523,7 @@ private fun VideoLayer(slot: Rect?, root: Rect?, player: androidx.media3.common.
                 drawRoundRect(
                     color = Color.Black,
                     cornerRadius = CornerRadius(14.dp.toPx(), 14.dp.toPx()),
-                    blendMode = androidx.compose.ui.graphics.BlendMode.Clear
+                    blendMode = if (playing) androidx.compose.ui.graphics.BlendMode.Clear else androidx.compose.ui.graphics.BlendMode.SrcOver
                 )
             },
         contentAlignment = Alignment.Center

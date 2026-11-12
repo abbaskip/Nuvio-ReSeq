@@ -99,7 +99,7 @@ fun LiveTvLoadingHost(navController: NavController) {
             completed = false
         }
     }
-    val message = progress ?: waiting ?: retainedError ?:
+    val message = waiting ?: progress ?: retainedError ?:
         if (completed) "Channels and guide up to date" else null
     // How long it's been working, so a long first load reads as busy rather than stuck.
     val busy = progress != null

@@ -103,6 +103,12 @@ class LiveTvPlaybackController @Inject constructor(
 
     private val _state = MutableStateFlow(LivePlaybackState())
     val state: StateFlow<LivePlaybackState> = _state.asStateFlow()
+    init {
+        com.nuvio.tv.livetv.data.BackgroundWork.livePlaybackUnstable = {
+            val s = _state.value
+            s.channelKey != null && (s.isBuffering || (!s.isPlaying && !s.userPaused))
+        }
+    }
 
     private var currentChannel: LiveChannel? = null
         set(value) {
@@ -492,6 +498,7 @@ class LiveTvPlaybackController @Inject constructor(
         val p = _player ?: return
         if (!shiftCanSeek()) return
         val max = if (p.duration > 0) p.duration - 3_000 else p.currentPosition
+        com.nuvio.tv.livetv.data.BackgroundWork.onLiveSeek()
         p.seekTo((p.currentPosition + deltaMs).coerceIn(0L, max.coerceAtLeast(0L)))
     }
 
@@ -630,6 +637,7 @@ class LiveTvPlaybackController @Inject constructor(
         catchupStartMs: Long? = null,
         refreshPortalCommand: Boolean = false
     ) {
+        explicitlyStopped = false
         if (!settingsReady.value) {
             pendingPlayJob?.cancel()
             pendingPlayJob = scope.launch {
@@ -808,6 +816,7 @@ class LiveTvPlaybackController @Inject constructor(
         val wall = streamWallMs(p) ?: return false
         val target = p.currentPosition + (programStartMs + offsetMs - wall)
         if (target < 0) return false
+        com.nuvio.tv.livetv.data.BackgroundWork.onLiveSeek()
         p.seekTo(target)
         return true
     }
@@ -883,7 +892,18 @@ class LiveTvPlaybackController @Inject constructor(
         }
     }
 
+    @Volatile var explicitlyStopped = false
+        private set
+
     fun stop() {
+        explicitlyStopped = true
+        backgroundJob?.cancel()
+        backgroundJob = null
+        resumeAfterBackground = null
+        pausedForBackground = false
+        stallJob?.cancel()
+        stallJob = null
+        stopShift()
         pendingPlayJob?.cancel()
         pendingPlayJob = null
         portalLinkJob?.cancel()
@@ -1099,6 +1119,7 @@ class LiveTvPlaybackController @Inject constructor(
 
     fun seekBy(ms: Long) {
         val p = _player ?: return
+        com.nuvio.tv.livetv.data.BackgroundWork.onLiveSeek()
         p.seekTo((p.currentPosition + ms).coerceAtLeast(0))
     }
 
@@ -1544,11 +1565,18 @@ class LiveTvPlaybackController @Inject constructor(
                 val target = (startWall - windowStart).coerceAtMost(length)
                 archiveWallMapped = true
                 com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Catch-up came as the live stream with rewind; jumping back ${target / 60_000} min into it to the show's start")
+                com.nuvio.tv.livetv.data.BackgroundWork.onLiveSeek()
                 p.seekTo(target)
             } else {
                 com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Catch-up came as a live stream; starting from the beginning")
+                com.nuvio.tv.livetv.data.BackgroundWork.onLiveSeek()
                 p.seekTo(0L)
             }
+        }
+
+        override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
+            if (reason == Player.DISCONTINUITY_REASON_SEEK)
+                com.nuvio.tv.livetv.data.BackgroundWork.onLiveSeek()
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {

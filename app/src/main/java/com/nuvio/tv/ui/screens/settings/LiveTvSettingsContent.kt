@@ -1144,6 +1144,9 @@ internal fun LiveTvSettingsContent(
                     open = "listings" in open,
                     onToggle = { toggle("listings") }
                 ) {
+                    SettingsToggleRow("Update guide during playback",
+                        "Updates slowly while playback is stable; pauses while buffering or memory is tight",
+                        s.updateGuideDuringPlayback, { update { it.copy(updateGuideDuringPlayback = !it.updateGuideDuringPlayback) } })
                     SettingsActionRow(
                         "Days Ahead", "How far into the future the guide keeps shows",
                         if (s.epgFutureDays == 1) "1 day" else "${s.epgFutureDays} days", onClick = { dialog = LiveDialog.FutureDays }

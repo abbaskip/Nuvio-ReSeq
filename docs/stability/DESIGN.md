@@ -54,8 +54,8 @@ MIME routing, MPV audio-clock fallback for a zero-video-timestamp glitch, and Ho
 description scroll pacing. The app-source diff has **three production files and
 two player test files**. The separately owned Sports PR is not in this release.
 
-**Phase 3 must use 9.6.2 or later. B0 candidate: 9.6.2, pending fresh baseline
-results and explicit maintainer base confirmation.** Keep the design branch's
+**Phase 3 must use 9.6.2 or later. B0 intake on 9.6.2 is recorded in §1.3;
+explicit maintainer base confirmation remains pending.** Keep the design branch's
 10051 evidence history intact. B0 uses a separate 10052 measurement manifest and
 the unchanged Phase 1 harness overlay, not a silent rebase of PR #14 or #15.
 Re-measure playback controls because the published candidate changes player code;
@@ -85,6 +85,106 @@ new source in an existing manifest, or continue implementation on an assumed
 base. Check publication before starting a measurement and periodically while a
 long run is active. No automation is authorized here to publish, change tags,
 versions or holds, or dispatch the release workflow.
+
+### 1.3 Completed B0 intake; base confirmation pending
+
+On 12 November 2026, the unchanged Phase 1 verification overlay was applied to
+published **9.6.2 / 10052 / `6b1999648`** in a separate worktree. Application plus
+verification source is pinned at `682d1f03a320c54a5abcdd973f71850aefafbc03`;
+the evidence-only successor is `ce3793165bf4a9fd70e323669d5c8106e0704327`.
+The [10052 manifest](https://github.com/abbaskip/Nuvio-ReSeq/blob/ce3793165bf4a9fd70e323669d5c8106e0704327/docs/stability/b0-10052/manifest.json)
+records APK, source, harness, native-library and raw-evidence archive hashes,
+individual attempts, exclusions and restoration. The
+[measurements](https://github.com/abbaskip/Nuvio-ReSeq/blob/ce3793165bf4a9fd70e323669d5c8106e0704327/docs/stability/b0-10052/measurements.json)
+and [10051 comparison](https://github.com/abbaskip/Nuvio-ReSeq/blob/ce3793165bf4a9fd70e323669d5c8106e0704327/docs/stability/b0-10052/comparison-10051.json)
+are separate from the preserved Phase 1 history. PR #14 and this design PR were
+not rebased. No unmerged dependency or product fix was incorporated.
+
+Each local emulator completed minified launch, the five-minute cold CW check,
+ten-minute fixture soak, five LIVE cricket detail opens, CW/launcher timeline,
+fake tracker/TVDB, stalled NNTP and playback checks. The Onn completed only its
+permitted fixture subset. These are single completed workload observations per
+cohort, not the three repetitions required for calibration under §7.2.
+
+| 10052 cohort | Observed memoryClass / largeMemoryClass, MB | Soak total PSS peak, KiB | Cricket Dalvik allocation peak, KiB | Cricket logged GC pause maximum, ms |
+| --- | --- | --- | --- | --- |
+| Local 2,048 MB | 192 / 512 | 284,724 | 147,604 | 29.858 |
+| Local 3,072 MB, retry | 192 / 576 | 277,078 | 113,090 | 11.640 |
+| Local 4,096 MB | 192 / 576 | 264,748 | 163,662 | 17.741 |
+| Onn, approximately 3 GB | 256 / 384 | 411,678 | 196,692 | 36.088 |
+
+The emulator image did not honor the requested 256/384 MB heap settings. RAM
+tiers therefore do not reproduce the Onn heap class. These allocated-heap and
+PSS maxima are separate observations, not concurrent ownership measurements or
+retained-memory/leak estimates. Applying the proposed formula to the preserved
+single 10051 controls puts **2 GB, 4 GB and Onn cricket allocations above their
+proposed ceilings**, while soak total PSS remains below its proposed ceilings.
+No ceiling was raised. Repeat unchanged controls and review variance before
+implementation or numerical-limit calibration; this intake establishes neither
+equivalence nor a calibrated regression verdict. The old local 3 GB full cricket
+run had invalid PRE fixtures and is not a matched full-workload control.
+
+All three emulator tiers again reproduced the ordered show's disappearance
+after completion while identity was pending, and the control episode's stale
+snapshot/actual launcher intent off Home, in background and after Home return.
+A fresh isolated TVDB run retained all three supported shows through missing,
+invalid, timeout, unavailable and recovered conditions. The parked quiet worker
+remained about **62 seconds** in all four cohorts. Reminder delays were
+3,375–3,964 ms. NNTP fixtures recorded stalled requests on every emulator;
+sampled blocked dispatcher-worker peaks were **1 / 0 / 1** for 2/3/4 GB. The
+3 GB zero is a sampling observation, not evidence that transport is isolated.
+
+The host suite reported **127 tests, zero failures, one existing skip**; JVM
+results were **3,498 tests, zero failures/errors, two existing skips**. Each
+emulator instrumentation suite reported **91 passed, three failed and 13
+unchanged exclusions**, with the same exact test IDs/statuses as the corrected
+10051 local suite. Late-release footprint was **196,608 bytes** on every tier;
+concurrent late-release footprints were **43,188,224 / 33,357,824 / 39,452,672
+bytes**. Arena membership also remained red. The 2 GB concurrent observation is
+higher than its 10051 local control (39,911,424 bytes); a single sample does not
+establish a no-worse distribution. All raw failures remain visible, no test was
+newly skipped or quarantined, and A1 remains open under the scoped §7.1 rule.
+
+The changed player code received new synthetic control measurements: **all 12
+recorded checks passed**, covering stock and actual MPV pause/resume and
+forward/backward seeking, plus extensionless encoded-DASH playback and seeking
+with an octet-stream response. The six audio-clock unit tests and 20 media-source
+unit tests passed. The native zero-video-timestamp glitch was not injected;
+unit coverage does not replace that reproduction. These functional controls
+overlapped build work and do not establish timing or sustained-playback
+equivalence. Fresh lint has **zero guard failures** and seven retained external
+advisory changes; the two retired allowances remain absent (§7.1).
+
+One attempt is explicitly unsuccessful: the first 3 GB launch/seed run failed
+the harness PID-consistency check. Retained Android events show its original
+PID killed by harness cleanup, with no earlier process-death event; the
+triggering PID reply was not captured. **Cause remains unresolved.** The
+unchanged retry completed with host-side raw PID observation and the original
+assertions. Both attempts are retained. Classify this failure before claiming
+a reliable launch gate; the retry does not erase it.
+
+The 2 GB timed soak began after the build ended; the 4 GB timed soak began after
+3 GB instrumentation ended. Initial launch/cold-CW work did overlap those tasks.
+The host also had unrelated work, and the Onn used separate fixture state while
+an emulator ran. No controlled-host latency comparison is claimed. There is no
+new 10052 Linux CI cohort: earlier dispatch authorization pins `--ref` to the
+Phase 1 branch, which remains on 10051. Local tiers are recorded separately.
+
+The Onn was observed **Awake with logical display ON** before and after testing;
+physical TV power was not inferred. Test audio was muted, original settings
+and volume were restored and independently checked, and the separate test
+package was removed. Its production installation stayed on 10051. All owned
+AVDs, fixture servers and monitoring helpers have stopped; cleanup reports are
+empty. Raw evidence archives remain in `build/stability/b0-10052` with hashes in
+the manifest; the committed export removes the local workspace prefix and Onn
+network address.
+
+Publication checks during and after measurements still found 9.6.2 as latest;
+Sports PR #16 remained unmerged. **B0 intake is complete. Stop here for explicit
+confirmation of 9.6.2 / 10052 / `6b1999648` as the Phase 3 base.** Repeated-control
+calibration, unresolved-launch classification and matched allocator comparison
+remain required before the corresponding implementation/release claims. No G1,
+C1 or other implementation has started.
 
 ## 2. Continue Watching: membership first, enrichment second
 
@@ -872,8 +972,8 @@ the separately shipped hotfix contracts and their tests.
 
 ## 9. Approval boundary and remaining validation
 
-The maintainer approved this design with the amendments above. Complete B0 only,
-then obtain explicit base confirmation before starting G1, C1 or any other
+The maintainer approved this design with the amendments above. B0 intake is
+recorded in §1.3; obtain explicit base confirmation before starting G1, C1 or any other
 implementation work. C1–C3 do not depend on the unstarted large-NZB change; P3,
 M1 and M3d do. Reconfirm scope if queued upstream route/HLS changes ship. Numeric proposals need the unchanged-base variance/calibration
 steps specified above; they are not claimed as proven safe operating limits.
@@ -883,9 +983,10 @@ real-account compatibility; external-player implementations; sustained playback
 and all archive/repair paths; actual simultaneous guide contention; low-memory
 heap classes beyond these images; native engine lifetime after deterministic
 trim; and representative TV-on rendering. The Onn receives only its authorized
-fixture subset unless the maintainer expands that scope. No Phase 2 device run,
-app-code change, test edit, workflow change, dependency merge or publication has
-been performed.
+fixture subset unless the maintainer expands that scope. This PR changes only
+DESIGN.md. The separately recorded B0 verification reuses the approved Phase 1
+app/tooling overlay on 10052; it introduces no product fix, test assertion edit,
+workflow change, dependency merge or publication.
 
 **Stop after B0 and its new-base evidence. Await explicit Phase 3 base confirmation;
 a new published release triggers an earlier stop and confirmation request.**

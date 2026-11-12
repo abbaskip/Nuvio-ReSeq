@@ -84,6 +84,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     override fun onCreate() {
+        com.nuvio.tv.core.diagnostics.StabilityFixtureNetwork.install()
         // Before super.onCreate(): Hilt creates injected services there, and the budget is read once.
         MemoryBudget.init(this)
         com.nuvio.tv.core.usenet.UsenetMemoryProfile.init(this)

@@ -106,7 +106,7 @@ class SportsRepository @Inject constructor(
     /** Partial schedules/results from the free TheSportsDB API, by league id. */
     private val tsdbData = MutableStateFlow<Map<String, LeagueData>>(emptyMap())
     private val baseData = MutableStateFlow<List<SportsEvent>>(emptyList())
-    private val baseFeed by lazy { SportsBaseFeed(dir, com.nuvio.tv.BuildConfig.SPORTS_BASE_FEED_URL, allowLocalhost = com.nuvio.tv.BuildConfig.DEBUG) }
+    private val baseFeed by lazy { SportsBaseFeed(dir, com.nuvio.tv.BuildConfig.SPORTS_BASE_FEED_URL, allowLocalhost = com.nuvio.tv.BuildConfig.DEBUG || com.nuvio.tv.BuildConfig.STABILITY_FIXTURES) }
     private var appliedBaseAt = 0L
     private val baseApplyGate = kotlinx.coroutines.sync.Mutex()
     private val scoreAttempts = HashMap<String, Long>()

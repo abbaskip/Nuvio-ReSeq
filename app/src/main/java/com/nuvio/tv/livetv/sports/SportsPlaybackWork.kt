@@ -82,7 +82,9 @@ internal fun sportsScoresAllowed(
 
 /** Finished games need their original guide entries immediately, without a five-hour wait. */
 internal fun sportsReplayLookup(event: SportsEvent, now: Long): Boolean =
-    event.state == GameState.POST || event.startMs < now - 5 * 3_600_000L
+    event.state != GameState.LIVE && !event.isPausedOngoingCricket(now) &&
+        (event.endMs == null || event.endMs <= now) &&
+        (event.state == GameState.POST || event.endMs?.let { it <= now } == true)
 
 /** One page request or refinement, with no observer left behind after it finishes. */
 internal suspend fun StateFlow<Boolean>.whileAllowed(block: suspend () -> Unit) = coroutineScope {

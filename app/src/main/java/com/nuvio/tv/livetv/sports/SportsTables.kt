@@ -418,7 +418,7 @@ private fun StandingsLine(
     val sub = Color(0xFFC9CCD6)
     val team = TeamInfo(table.leagueId, row.id, row.shortName, row.name, row.abbr, null, row.color, row.altColor, row.logo)
     // The team's colour behind its name, fading out across the row (as on the game cards).
-    val band = if (row.color != null || row.altColor != null) bandColor(teamColor(team)) else null
+    val band = if (row.color != null || row.altColor != null) teamBandColor(team) else null
     Row(
         modifier
             .fillMaxWidth()
@@ -660,7 +660,7 @@ internal fun TeamCard(
         onDismiss = onDismiss,
         width = 560.dp,
         header = {
-            val c = bandColor(teamColor(team))
+            val c = teamBandColor(team)
             Row(
                 Modifier.fillMaxWidth().height(72.dp)
                     .background(Brush.horizontalGradient(0f to c.copy(alpha = 0.95f), 0.75f to c.copy(alpha = 0.3f), 1f to Color.Transparent))

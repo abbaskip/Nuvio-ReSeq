@@ -40,6 +40,12 @@ internal object SportsRows {
     /** Results kept at the start of a team's row. */
     private const val RESULTS = 5
 
+    /** Overnight and weather breaks belong ahead in a cricket timeline until the match ends. */
+    private fun ongoingCricket(ev: SportsEvent, now: Long): Boolean = ev.isPausedOngoingCricket(now)
+
+    private fun updatingCurrent(ev: SportsEvent, now: Long): Boolean = ev.awaitingUpdate &&
+        now < (ev.endMs ?: (ev.startMs + (SportsCatalog.league(ev.leagueId)?.minutes ?: 180) * 60_000L))
+
     /** The keys of My Sports' rows (not Live & Upcoming), in your order (see [SportsFollows.order]). */
     fun rowKeys(f: SportsFollows): List<String> {
         val consolidated = SportsCompetitions.follows(f)
@@ -80,7 +86,7 @@ internal object SportsRows {
 
         // ---- Live & Upcoming: everything you follow, on now or in the next week
         val soon = known.filter { ev ->
-            isMine(ev) && (ev.state == GameState.LIVE ||
+            isMine(ev) && (updatingCurrent(ev, now) || ev.state == GameState.LIVE || ongoingCricket(ev, now) ||
                 (ev.state == GameState.PRE && ev.startMs in (now - 3 * HOUR)..(now + 8 * DAY)))
         }.sortedWith(compareBy<SportsEvent> { if (it.state == GameState.LIVE) 0 else 1 }.thenBy { it.startMs })
         val fixtures = soon.filter { it.source != EventSource.GUIDE }.take(24)
@@ -106,8 +112,8 @@ internal object SportsRows {
             // This week (with the last two days' results); a league between rounds: its next games.
             // The last couple of days' results, then every game ahead we have (up to five weeks;
             // capped so a busy league like MLB stays a row you can get through).
-            val recent = all.filter { it.startMs >= now - 2 * DAY && (it.state == GameState.POST || it.state == GameState.OFF) }
-            val ahead = all.filter { it.state == GameState.LIVE || ((it.state == GameState.PRE || it.state == GameState.OFF) && it.startMs >= now - 3 * HOUR) }
+            val recent = all.filter { it.startMs >= now - 2 * DAY && (it.state == GameState.POST || it.state == GameState.OFF) && !ongoingCricket(it, now) }
+            val ahead = all.filter { updatingCurrent(it, now) || it.state == GameState.LIVE || ongoingCricket(it, now) || ((it.state == GameState.PRE || it.state == GameState.OFF) && it.startMs >= now - 3 * HOUR) }
                 .sortedBy { it.startMs }.take(60)
             val games = recent + ahead
             if (games.isEmpty()) continue
@@ -122,7 +128,7 @@ internal object SportsRows {
         }
 
         // The big card: games and events at a set time (not a week-long tournament).
-        val heroes = fixtures.filter { it.hasTime && (it.state == GameState.LIVE || (it.state == GameState.PRE && it.startMs >= now - HOUR)) }.take(8)
+        val heroes = fixtures.filter { it.hasTime && (updatingCurrent(it, now) || it.state == GameState.LIVE || ongoingCricket(it, now) || (it.state == GameState.PRE && it.startMs >= now - HOUR)) }.take(8)
         // Your order (Arrange My Sports); Live & Upcoming always first.
         val rank = rowKeys(follows).withIndex().associate { (i, k) -> k to i }
         val summaryKinds = setOf(SportsRow.Kind.UPCOMING, SportsRow.Kind.ON_AIR)
@@ -142,7 +148,7 @@ internal object SportsRows {
                 timeline("$key|shows", title, kind, shows, now, team, league, results)
         }
         val sorted = games.sortedBy { it.startMs }
-        val done = sorted.filter { it.state == GameState.POST || (it.state == GameState.OFF && it.startMs < now) }
+        val done = sorted.filter { it.state == GameState.POST || (it.state == GameState.OFF && it.startMs < now && !ongoingCricket(it, now)) }
         val doneIds = done.mapTo(HashSet()) { it.id }
         val ahead = sorted.filter { it.id !in doneIds }
         val past = done.takeLast(results)

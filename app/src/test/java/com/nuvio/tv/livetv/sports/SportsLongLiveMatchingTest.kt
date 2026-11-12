@@ -28,9 +28,12 @@ class SportsLongLiveMatchingTest {
             SportsSettings(region = "AU"), now)).matches[event.id].orEmpty()
 
     @Test fun fox505DayTwoListingMatchesAfterHoursOnAirUsingTheRealQueryBounds() {
-        val event = cricket()
+        fun side(name: String, abbr: String, home: Boolean) = Side(
+            TeamInfo("ca/shield", abbr, name, name, abbr, null, null, null, null), null, null, false, home)
+        val event = cricket().copy(leagueId = "ca/shield", title = "Victoria v Western Australia",
+            home = side("Victoria", "VIC", true), away = side("Western Australia", "WA", false))
         val programme = EpgProgram(now - 6 * hour, now + hour,
-            "Test: Pakistan vs Sri Lanka 1st Test Day 2 live", "Coverage of Test Cricket.")
+            "Sheffield Shield : VIC v WA Day 2 P2 ᴸᶦᵛᵉ", "Red ball cricket.")
         val db = mockk<EpgDatabase>()
         every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
             // The earlier test returned a row regardless of SQL bounds, hiding this miss.
@@ -39,6 +42,41 @@ class SportsLongLiveMatchingTest {
         }
         assertTrue(input(event, db).any { it.sure && it.program == programme })
         verify { db.findByWords(match { it >= now - 30 * hour }, any(), now, any(), any(), any()) }
+
+        // A future fixture first in the catalogue must not hold the live result until the full pass ends.
+        val future = event.copy(id = "tomorrow", state = GameState.PRE, startMs = now + 24 * hour)
+        val request = SportsMatcher.Input(listOf(future, event), listOf(channel), emptyMap(), 0, SportsSettings(), now)
+        val expected = SportsMatcher(db).match(request).matches
+        var published = false
+        var discoveryStarted = false
+        val order = mutableListOf<String>()
+        every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+            if (firstArg<Long>() > now) {
+                order += "future"
+                emptyList()
+            } else {
+                order += "live"
+                listOf(channel.key to programme)
+            }
+        }
+        for (focused in listOf(null, event.id)) {
+            published = false
+            discoveryStarted = false
+            order.clear()
+            val result = SportsMatcher(db).matchProgressively(request, focused, { partial ->
+                assertEquals(programme, partial.matches[event.id]!!.single().program)
+                published = true
+                order += "published"
+            }, beforeRemainingGuide = {
+                assertTrue("Live channels must precede whole-day guide discovery", published)
+                discoveryStarted = true
+                order += "discovery"
+            })
+            assertTrue(published)
+            assertTrue(discoveryStarted)
+            assertEquals(listOf("live", "published", "discovery", "future"), order)
+            assertEquals(expected, result.matches)
+        }
     }
 
     @Test fun snookerAndTennisRetainLongLiveSessionsIncludingTheFinalMinutes() {

@@ -101,7 +101,17 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         return NameData(fp, names, java.util.TreeMap<String, List<Int>>(tokenIndex), discNames).also { nameData = it }
     }
 
-    fun match(input: Input, checkpoint: () -> Unit = {}): Result {
+    fun match(input: Input, checkpoint: () -> Unit = {}): Result =
+        matchInternal(input, checkpoint)
+
+    /** Publish opened/live games before the rest, keeping the full fixture context for ambiguity checks. */
+    fun matchProgressively(input: Input, focusedEventId: String?,
+        onPriorityMatches: (Result) -> Unit, checkpoint: () -> Unit = {},
+        beforeRemainingGuide: () -> Unit = {}): Result =
+        matchInternal(input, checkpoint, focusedEventId, onPriorityMatches, beforeRemainingGuide)
+
+    private fun matchInternal(input: Input, checkpoint: () -> Unit, focusedEventId: String? = null,
+        onPriorityMatches: ((Result) -> Unit)? = null, beforeRemainingGuide: (() -> Unit)? = null): Result {
         checkpoint()
         var operations = 0
         fun boundedCheckpoint() { if (operations++ % 64 == 0) checkpoint() }
@@ -129,8 +139,11 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         // Their ids: with no start time of their own, only a show that names the competition ("Formula 1",
         // "Grand Prix"…) counts, not one that merely shares a word or two with the title ("United States").
         val noStart = HashSet<String>()
+        val pausedCricket = input.events.filter { it.isPausedOngoingCricket(input.now) }.associateBy { it.id }
+        fun nextSessionEnd(ev: SportsEvent) = minOf(pausedCricket.getValue(ev.id).cricketEndMs(), input.now + 36 * HOUR)
         val events = input.events.mapNotNull { ev ->
             when {
+                ev.id in pausedCricket -> ev.copy(startMs = input.now)
                 // Long live fixtures keep their original kickoff for sorting, but match
                 // the current session (including Test days 2–5 and long snooker matches).
                 !input.replay && ev.state == GameState.LIVE && ev.startMs < input.now &&
@@ -146,14 +159,14 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             }?.also { if (!ev.hasTime) noStart.add(ev.id) }
         }
         val wanted = events.filter { ev ->
-            ev.state != GameState.OFF &&
+            (ev.state != GameState.OFF || ev.id in pausedCricket) &&
                 ((ev.source == EventSource.GUIDE && ev.guideHits.any { (_, p) -> input.now >= p.startMs && input.now < p.stopMs }) ||
                     (input.replay && ev.startMs < input.now && byKey.isNotEmpty()) || ev.startMs in (input.now - 8 * HOUR)..(input.now + AHEAD_MS))
         }
         // A channel you picked yourself shows straight away, however far off the game is (the
         // search above only looks a couple of days ahead).
         val picked = events.filter { ev ->
-            ev.state != GameState.OFF && (input.replay || ev.startMs >= input.now - 8 * HOUR) &&
+            (ev.state != GameState.OFF || ev.id in pausedCricket) && (input.replay || ev.startMs >= input.now - 8 * HOUR) &&
                 (ev.id in input.settings.eventChannels || ev.leagueId in input.settings.leagueChannels ||
                     (input.settings.teamChannels.isNotEmpty() && ev.sides.any { teamChannelKey(ev.leagueId, it.team.id) in input.settings.teamChannels }))
         }
@@ -193,18 +206,62 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             }
         }
 
+        fun matchesFor(ids: Set<String>? = null): Map<String, List<ChannelMatch>> {
+            val out = HashMap<String, List<ChannelMatch>>()
+            for ((eventId, m) in found) {
+                if (ids != null && eventId !in ids) continue
+                val ev = byId[eventId] ?: continue
+                val list = m.values
+                    .filter { "$eventId|${it.key}" !in input.settings.blocked }
+                    .mapNotNull { f ->
+                        val ch = byKey[f.key] ?: return@mapNotNull null
+                        ChannelMatch(
+                            channel = ch,
+                            score = f.score,
+                            how = f.how,
+                            program = f.program,
+                            quality = input.quality[ch.key] ?: nameQuality(ch.name),
+                            catchup = ch.catchup != null && CatchupUrlBuilder.isAvailable(ch.catchup, f.program?.startMs ?: ev.startMs, input.now)
+                        )
+                    }
+                if (list.isEmpty()) continue
+                out[eventId] = sortMatches(list, input.settings.bestChannelFirst, rank).limitSuggestions()
+            }
+            return out
+        }
+
         // ---- 1. The guide, a half-hour slot at a time.
-        if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) teamEvents.groupBy { it.startMs / (30 * MINUTE) }.forEach { (_, slot) ->
+        // Keep each paused fixture's future search separate: current games' broad country terms
+        // can otherwise consume the database row limit before tomorrow's session is returned.
+        fun priority(ev: SportsEvent): Int = when {
+            onPriorityMatches == null -> 3
+            ev.id == focusedEventId -> 0
+            ev.state == GameState.LIVE -> 1
+            ev.id in pausedCricket -> 2
+            else -> 3
+        }
+        var remainingStarted = false
+        fun beginRemainingGuide() {
+            if (!remainingStarted) {
+                remainingStarted = true
+                beforeRemainingGuide?.invoke()
+            }
+        }
+        if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) teamEvents.groupBy { ev ->
+            if (ev.id in pausedCricket || priority(ev) == 0) ev.id else ev.startMs / (30 * MINUTE)
+        }.values.sortedBy { slot -> slot.minOf(::priority) }.forEach { slot ->
             checkpoint()
+            if (slot.minOf(::priority) == 3) beginRemainingGuide()
             val slotStart = slot.minOf { it.startMs }
             val slotEnd = slot.maxOf { it.startMs }
             val words = slot.flatMap { ev -> terms[ev.id]?.sqlWords.orEmpty() }.distinct()
             if (words.isEmpty()) return@forEach
-            val longLive = slot.any { it.state == GameState.LIVE && longSessionSport(SportsCatalog.league(it.leagueId)?.sport) }
+            val longLive = slot.any { it.id in pausedCricket || (it.state == GameState.LIVE && longSessionSport(SportsCatalog.league(it.leagueId)?.sport)) }
+            val until = slot.filter { it.id in pausedCricket }.maxOfOrNull(::nextSessionEnd)
             val queried = if (!input.includeGuide) emptyList() else runCatching {
                 db.findByWords(
                     fromMs = slotStart - (if (longLive) 30 * HOUR else 100 * MINUTE) - input.shiftMs,
-                    toMs = slotEnd + 70 * MINUTE - input.shiftMs,
+                    toMs = maxOf(slotEnd + 70 * MINUTE, until ?: 0L) - input.shiftMs,
                     minStopMs = (if (longLive) input.now else slotStart + 10 * MINUTE) - input.shiftMs,
                     words = words
                 )
@@ -213,6 +270,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 p.copy(startMs = p.startMs + input.shiftMs, stopMs = p.stopMs + input.shiftMs) } +
                 input.currentGuidePrograms.filter { (_, p) -> p.startMs <= input.now && p.stopMs > input.now })
                 .distinctBy { (key, p) -> key to p.startMs }
+                .let { if (until != null) it.sortedBy { (_, p) -> p.startMs } else it }
             if (hits.isEmpty()) return@forEach
             val prepared = hits.mapNotNull { (key, p0) ->
                 boundedCheckpoint()
@@ -246,8 +304,9 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     if (conflictingSports(eventSport, programmeSport) && !t.namesLeague(nt, "")) continue
                     // Disc golf shows never count for regular golf.
                     if (ev.id !in discIds && (hasWord(nt, "disc golf") || hasWord(nd, "disc golf"))) continue
-                    val ongoing = ev.state == GameState.LIVE && p.startMs <= input.now && p.stopMs > input.now &&
-                        longSessionSport(eventSport) && p.stopMs - p.startMs <= 30 * HOUR
+                    val ongoing = p.stopMs > input.now && p.stopMs - p.startMs <= 30 * HOUR &&
+                        ((ev.state == GameState.LIVE && p.startMs <= input.now && longSessionSport(eventSport)) ||
+                            (ev.id in pausedCricket && p.startMs < nextSessionEnd(ev)))
                     if (!ongoing && (p.startMs > ev.startMs + 60 * MINUTE || p.stopMs < ev.startMs + 15 * MINUTE)) continue
                     var score = t.scoreText(nt, nd)
                     // No start time (a race weekend, a tournament): a show on now that names this
@@ -269,7 +328,10 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     add(ev.id, key, score, "Guide: ${p.title}", p)
                 }
             }
+            val urgent = slot.filter { priority(it) < 3 }.mapTo(HashSet()) { it.id }
+            if (urgent.isNotEmpty()) onPriorityMatches?.invoke(Result(matchesFor(urgent), ""))
         }
+        beginRemainingGuide()
         byGuide = found.size
         val tGuide = System.currentTimeMillis()
 
@@ -389,25 +451,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             }
         }
 
-        val out = HashMap<String, List<ChannelMatch>>()
-        for ((eventId, m) in found) {
-            val ev = byId[eventId] ?: continue
-            val list = m.values
-                .filter { "$eventId|${it.key}" !in input.settings.blocked }
-                .mapNotNull { f ->
-                    val ch = byKey[f.key] ?: return@mapNotNull null
-                    ChannelMatch(
-                        channel = ch,
-                        score = f.score,
-                        how = f.how,
-                        program = f.program,
-                        quality = input.quality[ch.key] ?: nameQuality(ch.name),
-                        catchup = ch.catchup != null && CatchupUrlBuilder.isAvailable(ch.catchup, f.program?.startMs ?: ev.startMs, input.now)
-                    )
-                }
-            if (list.isEmpty()) continue
-            out[eventId] = sortMatches(list, input.settings.bestChannelFirst, rank).limitSuggestions()
-        }
+        val out = matchesFor()
         // Events that run for days (golf, race weekends): what was looked for and found, for the report.
         val multi = teamEvents.filter { it.id in noStart }.joinToString(" | ") { ev ->
             val t = terms[ev.id]

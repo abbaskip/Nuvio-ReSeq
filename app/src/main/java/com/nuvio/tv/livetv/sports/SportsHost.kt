@@ -331,7 +331,7 @@ fun SportsScoreTag(channelKey: String?) {
     ) {
         sides.forEachIndexed { i, s ->
             Row(
-                Modifier.background(bandColor(teamColor(s.team))).padding(horizontal = 6.dp, vertical = 1.dp),
+                Modifier.background(teamBandColor(s.team)).padding(horizontal = 6.dp, vertical = 1.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 LiveText(s.team.abbr.ifBlank { s.team.name }, color = Color.White, size = 10.sp, weight = FontWeight.Black)

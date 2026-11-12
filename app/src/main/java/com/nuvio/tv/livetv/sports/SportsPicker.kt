@@ -552,7 +552,7 @@ private fun TeamGrid(
 @Composable
 private fun TeamTile(team: TeamInfo, followed: Boolean, showLeague: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val c = bandColor(teamColor(team))
+    val c = teamBandColor(team)
     Box(
         modifier
             .fillMaxWidth()

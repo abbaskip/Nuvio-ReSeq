@@ -106,7 +106,7 @@ internal class CricketAustralia {
                 if (!used.add(ca.id)) return@mapNotNull null
                 fun score(side: Side?): Side? = side?.let { s -> ca.sides.firstOrNull { team(it.team.fullName.ifBlank { it.team.name }) == team(s.team.fullName.ifBlank { s.team.name }) }
                     ?.let { s.copy(score = it.score, periods = it.periods) } ?: s }
-                old.copy(state = ca.state, status = ca.status, endMs = ca.endMs, situation = ca.situation,
+                old.copy(state = ca.state, status = ca.status, endMs = ca.endMs, situation = ca.situation, awaitingUpdate = false,
                     home = score(old.home), away = score(old.away), updatedAt = ca.updatedAt, note = ca.note)
             }
             return merged + secondary.filterNot { it.id in used }

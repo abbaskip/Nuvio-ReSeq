@@ -156,7 +156,9 @@ data class SportsEvent(
     /** A few lines about the event (wrestling shows, from TheSportsDB). */
     val about: String? = null,
     val updatedAt: Long? = null,
-    val broadcastCoverage: List<SportsBroadcast> = emptyList()
+    val broadcastCoverage: List<SportsBroadcast> = emptyList(),
+    /** Saved fixture awaiting a current observation; never advertise its previous score/state. */
+    val awaitingUpdate: Boolean = false
 ) {
     // A guide's transmission time does not establish the original match's live status.
     val isReplay: Boolean by lazy {
@@ -179,7 +181,7 @@ data class SportsEvent(
     val liveLabel: String get() = if (isReplay) "REPLAY" else if (source == EventSource.GUIDE && !guideSaysLive) "ON AIR" else "LIVE"
     val finishedLabel: String get() = if (isReplay) "REPLAY" else if (source == EventSource.GUIDE) "AIRED" else "FINAL"
     val sides: List<Side> get() = listOfNotNull(away, home)
-    val hasScore: Boolean get() = (state == GameState.LIVE || state == GameState.POST ||
+    val hasScore: Boolean get() = !awaitingUpdate && (state == GameState.LIVE || state == GameState.POST ||
         (state == GameState.OFF && SportsCatalog.league(leagueId)?.sport == Sport.CRICKET)) && sides.size == 2 &&
         (if (SportsCatalog.league(leagueId)?.sport == Sport.CRICKET) sides.any { !it.score.isNullOrBlank() }
          else sides.all { !it.score.isNullOrBlank() })

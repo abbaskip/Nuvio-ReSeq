@@ -702,14 +702,19 @@ Retain all §1.5 restrictions and observe display state each run.
 | Reminder or freshness deadline, declared queue/pool bound, memory threshold exceeded | Fail the affected gate with raw timing/resource evidence; thresholds are versioned and cannot increase in the same PR to hide a regression. |
 
 **Lint is base-specific.** The 10051 local report had 4,065 raw errors (4,064
-inherited source errors) and six worsened external dependency advisories. That is
-historical evidence, not the status of 10052. The 9.6.2 publication record reports
-two permanently retired allowances and zero guard failures. B0 must rerun the
-complete lint report and guard on the exact candidate, preserve its raw report,
-confirm the retired allowances and record actual guard results in the 10052
-manifest. Until that rerun completes, do not label the new base red from the old
-six-advisory comparison or claim a fresh pass. Retain/ratchet the inherited budget;
-no blanket suppression, allowance inflation or unrelated upgrade to make it pass.
+inherited source errors) and six worsened external dependency advisories in its
+comparison without the released-reference option. That is historical evidence.
+The fresh B0 run on 9.6.2 plus unchanged Phase 1 tooling reports **zero guard
+failures**, with `--released-report` verified against the immutable reference
+digest and `--require-ratchet`. Both allowances retired by 9.6.2 remain absent;
+the proposed ratchet is identical to the committed baseline. No budget was edited.
+Seven external version-advice changes are explicitly listed by the guard, not
+counted as new source/severity regressions. Raw lint remains **4,065 errors,
+2,050 warnings and 48 hints**; the guard records 4,064 inherited source errors,
+one ignored non-source finding and 100 new warnings. Preserve the complete XML
+and drift list in the new 10052 manifest: a passing guard does not make raw lint
+green. Retain/ratchet the inherited budget; no blanket suppression, allowance
+inflation or unrelated upgrade to make it pass.
 
 **Allocator gating is scoped by affected behavior, as approved:**
 
@@ -742,8 +747,8 @@ unexplained regression is still a stop condition, regardless of the PR label.
 
 ### 7.2 Proposed numerical thresholds
 
-These thresholds are **proposals requiring this design's approval**, not measured
-improvements. Before implementation, run three unchanged-base repetitions per
+These thresholds are **approved initial guard proposals**, not measured
+improvements or calibrated limits. Before implementation, run three unchanged-base repetitions per
 execution environment to establish variance. Retain individual results and a
 frozen baseline manifest containing source/APK/fixture/runner/image hashes,
 heap class, graphics mode and host type. Local Windows, Linux CI and Onn remain

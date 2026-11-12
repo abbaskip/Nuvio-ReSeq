@@ -53,6 +53,9 @@ data class LiveTvStatus(
     val quiet: Boolean = false
 )
 
+/** Display-only result of the existing guide budget/storage checks. */
+data class GuideUpdateNotice(val message: String, val waiting: Boolean)
+
 /** Wakes the periodic check on app open, coalescing returns while that refresh is in progress. */
 internal suspend fun runPlaylistUpdateChecks(
     openRequested: MutableStateFlow<Boolean>,
@@ -148,6 +151,8 @@ class LiveTvRepository @Inject constructor(
 
     private val _status = MutableStateFlow(LiveTvStatus())
     val status: StateFlow<LiveTvStatus> = _status.asStateFlow()
+    private val _guideUpdateNotice = MutableStateFlow<GuideUpdateNotice?>(null)
+    val guideUpdateNotice: StateFlow<GuideUpdateNotice?> = _guideUpdateNotice.asStateFlow()
 
     private var initialized = false
     private val playlistRefreshOnOpen = MutableStateFlow(false)
@@ -662,6 +667,7 @@ class LiveTvRepository @Inject constructor(
                     }
                 }
                 if (err != null) {
+                    _status.value = _status.value.copy(error = err)
                     Log.w(TAG, "Playlist ${pl.name} failed: $err")
                     LIVE_REPORT.add("Playlist \"${pl.name}\" failed: $err" + if (pl.isXtream) " (Xtream login: server ${if (pl.xtreamServer.isBlank()) "missing" else "set"}, user ${if (pl.xtreamUsername.isBlank()) "missing" else "set"}, password ${if (pl.xtreamPassword.isBlank()) "missing" else "set"})" else "")
                 }
@@ -713,6 +719,7 @@ class LiveTvRepository @Inject constructor(
                     }
                 }
                 if (err != null) {
+                    _status.value = _status.value.copy(error = err)
                     Log.w(TAG, "EPG ${target.name} failed: $err")
                     LIVE_REPORT.add("Guide \"${target.name}\" failed: $err")
                 }
@@ -731,7 +738,7 @@ class LiveTvRepository @Inject constructor(
             setStatus(loading = true, message = "Matching guide data…")
             buildPrograms(settings, epgTargets)
         }
-        _status.value = LiveTvStatus(loading = false, loadedOnce = true)
+        _status.value = LiveTvStatus(loading = false, loadedOnce = true, error = _status.value.error)
     }
 
     private suspend fun rebuildLocked() {
@@ -781,7 +788,7 @@ class LiveTvRepository @Inject constructor(
         } else {
             LIVE_REPORT.add("Stored guide used: ${_programs.value.size} channels with listings in ${System.currentTimeMillis() - t0} ms")
         }
-        _status.value = LiveTvStatus(loading = false, loadedOnce = true)
+        _status.value = LiveTvStatus(loading = false, loadedOnce = true, error = _status.value.error)
     }
 
     /** Which parts of a saved copy's fingerprint differ (for the start-up report). */
@@ -979,7 +986,7 @@ class LiveTvRepository @Inject constructor(
             LIVE_REPORT.add("Guide: ${shownAgain.size} channels shown again, reading their listings")
             setStatus(loading = true, message = "Updating guide…")
             buildPrograms(prefs.currentSettings(), collectEpgTargets())
-            _status.value = LiveTvStatus(loading = false, loadedOnce = true)
+            _status.value = LiveTvStatus(loading = false, loadedOnce = true, error = _status.value.error)
             return@withContext
         }
         val newlyHidden = nowHidden - skipped
@@ -1685,7 +1692,9 @@ class LiveTvRepository @Inject constructor(
     }
 
     private fun setStatus(loading: Boolean, message: String?, quiet: Boolean = false) {
-        _status.value = _status.value.copy(loading = loading, message = message, quiet = quiet)
+        val previous = _status.value
+        _status.value = previous.copy(loading = loading, message = message, quiet = quiet,
+            error = if (loading && !previous.loading) null else previous.error)
     }
 
     private data class EpgTarget(
@@ -1792,17 +1801,17 @@ class LiveTvRepository @Inject constructor(
 
     private val deferredGuide get() = File(baseDir, "guide_refresh_pending")
     private var retryGuideJob: kotlinx.coroutines.Job? = null
-    private class DeferGuide(message: String) : kotlinx.coroutines.CancellationException(message)
+    private class DeferGuide(message: String, val waitingMessage: String? = null) : kotlinx.coroutines.CancellationException(message)
 
     private fun checkGuideBudget() {
         if (BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying)
-            throw DeferGuide("Guide update queued until playback finishes")
+            throw DeferGuide("Guide update queued until playback finishes", "Guide update waiting for playback to finish")
         val runtime = Runtime.getRuntime()
         val limit = runtime.maxMemory() * 0.85
         if (runtime.totalMemory() - runtime.freeMemory() > limit) {
             System.gc()
             if (runtime.totalMemory() - runtime.freeMemory() > limit)
-                throw DeferGuide("Guide update queued until memory is available")
+                throw DeferGuide("Guide update queued until memory is available", "Guide update waiting for memory")
         }
     }
 
@@ -1815,7 +1824,7 @@ class LiveTvRepository @Inject constructor(
                 mutex.withLock {
                     if (deferredGuide.exists()) {
                         try { buildPrograms(prefs.currentSettings(), collectEpgTargets()) }
-                        finally { _status.value = LiveTvStatus(loading = false, loadedOnce = true) }
+                        finally { _status.value = LiveTvStatus(loading = false, loadedOnce = true, error = _status.value.error) }
                     }
                 }
             }
@@ -1827,9 +1836,12 @@ class LiveTvRepository @Inject constructor(
         BackgroundWork.guideBuilding.value = true
         try {
             checkGuideBudget()
+            _guideUpdateNotice.value = null
             BackgroundWork.heavy { buildProgramsInner(settings, targets) }
             deferredGuide.delete()
         } catch (defer: DeferGuide) {
+            _guideUpdateNotice.value = GuideUpdateNotice(
+                defer.waitingMessage ?: defer.message.orEmpty(), waiting = defer.waitingMessage != null)
             baseDir.mkdirs()
             deferredGuide.createNewFile()
             LIVE_REPORT.add(defer.message.orEmpty())
@@ -2243,7 +2255,7 @@ class LiveTvRepository @Inject constructor(
                     setStatus(loading = true, message = "Updating guide…")
                     buildPrograms(prefs.currentSettings(), collectEpgTargets())
                 }
-                _status.value = LiveTvStatus(loading = false, loadedOnce = true)
+                _status.value = LiveTvStatus(loading = false, loadedOnce = true, error = _status.value.error)
             }
         }
     }
@@ -2358,7 +2370,7 @@ class LiveTvRepository @Inject constructor(
             mutex.withLock {
                 setStatus(loading = true, message = "Updating guide…")
                 buildPrograms(prefs.currentSettings(), collectEpgTargets())
-                _status.value = LiveTvStatus(loading = false, loadedOnce = true)
+                _status.value = LiveTvStatus(loading = false, loadedOnce = true, error = _status.value.error)
             }
         }
     }

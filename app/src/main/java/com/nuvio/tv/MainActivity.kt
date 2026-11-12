@@ -1235,6 +1235,8 @@ open class MainActivity : ComponentActivity() {
                                 }
                             }
 
+                            com.nuvio.tv.livetv.ui.LiveTvLoadingHost(navController)
+
                             val autoNextOverlay by externalPlaybackTracker.autoNextOverlay.collectAsState()
                             autoNextOverlay?.let { ov ->
                                 com.nuvio.tv.ui.screens.player.LoadingOverlay(

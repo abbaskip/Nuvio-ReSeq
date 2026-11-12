@@ -166,7 +166,6 @@ fun SportsScreen(
     onFindInNuvio: () -> Unit = {},
     viewModel: SportsViewModel = hiltViewModel()
 ) {
-    com.nuvio.tv.livetv.ui.PauseLiveTvInBackground(viewModel.playback)
     val events by viewModel.events.collectAsStateWithLifecycle()
     val known by viewModel.known.collectAsStateWithLifecycle()
     val matches by viewModel.matches.collectAsStateWithLifecycle()

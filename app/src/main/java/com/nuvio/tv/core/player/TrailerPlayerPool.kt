@@ -43,7 +43,8 @@ import kotlinx.coroutines.launch
 class TrailerPlayerPool @Inject constructor(
     @ApplicationContext private val context: Context,
     private val playerSettingsDataStore: PlayerSettingsDataStore,
-    private val trailerSettingsDataStore: TrailerSettingsDataStore
+    private val trailerSettingsDataStore: TrailerSettingsDataStore,
+    private val liveTv: dagger.Lazy<com.nuvio.tv.livetv.player.LiveTvPlaybackController>
 ) {
     companion object {
         private const val TAG = "TrailerPlayerPool"
@@ -240,6 +241,11 @@ class TrailerPlayerPool @Inject constructor(
             .apply {
                 repeatMode = Player.REPEAT_MODE_OFF
                 addListener(object : Player.Listener {
+                    override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                        // Release the IPTV connection as the new trailer is selected, before prepare.
+                        if (mediaItem != null) liveTv.get().releaseNow()
+                    }
+
                     @Volatile private var unstable = true
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         unstable = playbackState != Player.STATE_READY

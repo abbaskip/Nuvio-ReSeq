@@ -106,11 +106,12 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
 
     /** Publish opened/live games before the rest, keeping the full fixture context for ambiguity checks. */
     fun matchProgressively(input: Input, focusedEventId: String?,
-        onPriorityMatches: (Result) -> Unit, checkpoint: () -> Unit = {}): Result =
-        matchInternal(input, checkpoint, focusedEventId, onPriorityMatches)
+        onPriorityMatches: (Result) -> Unit, checkpoint: () -> Unit = {},
+        beforeRemainingGuide: () -> Unit = {}): Result =
+        matchInternal(input, checkpoint, focusedEventId, onPriorityMatches, beforeRemainingGuide)
 
     private fun matchInternal(input: Input, checkpoint: () -> Unit, focusedEventId: String? = null,
-        onPriorityMatches: ((Result) -> Unit)? = null): Result {
+        onPriorityMatches: ((Result) -> Unit)? = null, beforeRemainingGuide: (() -> Unit)? = null): Result {
         checkpoint()
         var operations = 0
         fun boundedCheckpoint() { if (operations++ % 64 == 0) checkpoint() }
@@ -239,10 +240,18 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             ev.id in pausedCricket -> 2
             else -> 3
         }
+        var remainingStarted = false
+        fun beginRemainingGuide() {
+            if (!remainingStarted) {
+                remainingStarted = true
+                beforeRemainingGuide?.invoke()
+            }
+        }
         if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) teamEvents.groupBy { ev ->
             if (ev.id in pausedCricket || priority(ev) == 0) ev.id else ev.startMs / (30 * MINUTE)
         }.values.sortedBy { slot -> slot.minOf(::priority) }.forEach { slot ->
             checkpoint()
+            if (slot.minOf(::priority) == 3) beginRemainingGuide()
             val slotStart = slot.minOf { it.startMs }
             val slotEnd = slot.maxOf { it.startMs }
             val words = slot.flatMap { ev -> terms[ev.id]?.sqlWords.orEmpty() }.distinct()
@@ -322,6 +331,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             val urgent = slot.filter { priority(it) < 3 }.mapTo(HashSet()) { it.id }
             if (urgent.isNotEmpty()) onPriorityMatches?.invoke(Result(matchesFor(urgent), ""))
         }
+        beginRemainingGuide()
         byGuide = found.size
         val tGuide = System.currentTimeMillis()
 

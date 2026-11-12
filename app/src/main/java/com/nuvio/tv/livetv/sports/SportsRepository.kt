@@ -1454,24 +1454,28 @@ class SportsRepository @Inject constructor(
             // EPG-only fixtures should not wait behind all of the API fixtures' channel searches.
             var guideMatches = emptyMap<String, List<ChannelMatch>>()
             val scanContext = currentCoroutineContext()
-            for (offset in listOf(0, 1, -1)) {
-                val scanStarted = System.currentTimeMillis()
-                val discovered = sportsCatching {
-                    val found = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues, f.words, keys, shift, now) { scanContext.ensureActive(); checkpoint() }
-                    val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
-                        f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
-                    SportsGuideEvents.merge(found, protectedIds.toSet())
-                }.getOrElse {
-                    if (it is kotlinx.coroutines.CancellationException) throw it
-                    Log.w(TAG, "Guide fixture discovery failed", it)
-                    emptyList()
+            fun discoverGuideMatches() {
+                for (offset in listOf(0, 1, -1)) {
+                    val scanStarted = System.currentTimeMillis()
+                    val discovered = try {
+                        checkpoint()
+                        val found = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues, f.words, keys, shift, now) { scanContext.ensureActive(); checkpoint() }
+                        val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
+                            f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
+                        SportsGuideEvents.merge(found, protectedIds.toSet())
+                    } catch (e: Exception) {
+                        checkpoint()
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        Log.w(TAG, "Guide fixture discovery failed", e)
+                        emptyList()
+                    }
+                    Log.d(TAG, "Guide day $offset: ${discovered.size} fixtures in ${System.currentTimeMillis() - scanStarted} ms")
+                    // Today's guide-only fixtures need not wait for tomorrow and yesterday's scans.
+                    guideData.update { previous -> (previous + (dayStart(offset) to discovered))
+                        .filterKeys { it >= dayStart(-1) && it < dayStart(2) } }
+                    guideMatches = matcher.match(input(guideData.value.values.flatten(), false), checkpoint).matches
+                    publish(SportsMatcher.Result(quick.matches + guideMatches, quick.summary), quick = true)
                 }
-                Log.d(TAG, "Guide day $offset: ${discovered.size} fixtures in ${System.currentTimeMillis() - scanStarted} ms")
-                // Today's guide-only fixtures need not wait for tomorrow and yesterday's scans.
-                guideData.update { previous -> (previous + (dayStart(offset) to discovered))
-                    .filterKeys { it >= dayStart(-1) && it < dayStart(2) } }
-                guideMatches = matcher.match(input(guideData.value.values.flatten(), false), checkpoint).matches
-                publish(SportsMatcher.Result(quick.matches + guideMatches, quick.summary), quick = true)
             }
             val matchStarted = System.currentTimeMillis()
             Log.d(TAG, "Matching ${current.size} events against ${channels.size} channels")
@@ -1481,7 +1485,7 @@ class SportsRepository @Inject constructor(
                 }
                 rebuildLiveScores()
                 Log.d(TAG, "Priority guide matching: ${priority.matches.size} events published in ${System.currentTimeMillis() - matchStarted} ms")
-            }, checkpoint)
+            }, checkpoint, beforeRemainingGuide = ::discoverGuideMatches)
             Log.d(TAG, "Fixture matching finished in ${System.currentTimeMillis() - matchStarted} ms")
             publish(SportsMatcher.Result(result.matches + guideMatches, result.summary))
             saveMatches()

@@ -48,19 +48,33 @@ class SportsLongLiveMatchingTest {
         val request = SportsMatcher.Input(listOf(future, event), listOf(channel), emptyMap(), 0, SportsSettings(), now)
         val expected = SportsMatcher(db).match(request).matches
         var published = false
+        var discoveryStarted = false
+        val order = mutableListOf<String>()
         every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
             if (firstArg<Long>() > now) {
-                assertTrue("Live channels must be published before querying tomorrow", published)
+                order += "future"
                 emptyList()
-            } else listOf(channel.key to programme)
+            } else {
+                order += "live"
+                listOf(channel.key to programme)
+            }
         }
         for (focused in listOf(null, event.id)) {
             published = false
+            discoveryStarted = false
+            order.clear()
             val result = SportsMatcher(db).matchProgressively(request, focused, { partial ->
                 assertEquals(programme, partial.matches[event.id]!!.single().program)
                 published = true
+                order += "published"
+            }, beforeRemainingGuide = {
+                assertTrue("Live channels must precede whole-day guide discovery", published)
+                discoveryStarted = true
+                order += "discovery"
             })
             assertTrue(published)
+            assertTrue(discoveryStarted)
+            assertEquals(listOf("live", "published", "discovery", "future"), order)
             assertEquals(expected, result.matches)
         }
     }

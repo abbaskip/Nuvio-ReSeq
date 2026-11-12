@@ -1228,13 +1228,14 @@ class LiveTvViewModel @Inject constructor(
 
     /** The channel to start in the preview when Live TV opens ("Resume last channel in preview"). */
     suspend fun resumeCandidate(): LiveChannel? {
+        if (playback.explicitlyStopped) return null
         val s = prefs.currentSettings()
         if (!s.resumeLastInPreview || !s.showPreview) return null
         val key = prefs.userState.first().lastChannelKey ?: return null
         val channels = withTimeoutOrNull(15_000) {
             displayChannels.first { list -> list.any { it.key == key } }
         } ?: return null
-        if (skipCrashed(key)) return null
+        if (playback.explicitlyStopped || skipCrashed(key)) return null
         return channels.firstOrNull { it.key == key }
     }
 
@@ -1253,6 +1254,7 @@ class LiveTvViewModel @Inject constructor(
 
     /** The last watched channel, once per app launch, when "auto-play last channel" is on. */
     suspend fun autoPlayCandidate(): LiveChannel? {
+        if (playback.explicitlyStopped) return null
         if (session.autoPlayedThisLaunch) return null
         session.autoPlayedThisLaunch = true
         if (!prefs.currentSettings().autoPlayLastChannel) return null
@@ -1260,7 +1262,7 @@ class LiveTvViewModel @Inject constructor(
         val channels = withTimeoutOrNull(15_000) {
             repository.channels.first { it.isNotEmpty() }
         } ?: return null
-        if (skipCrashed(key)) return null
+        if (playback.explicitlyStopped || skipCrashed(key)) return null
         return channels.firstOrNull { it.key == key }
             ?.let { c -> displayChannels.value.firstOrNull { it.key == c.key } ?: c }
     }

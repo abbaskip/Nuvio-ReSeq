@@ -61,6 +61,7 @@ import kotlinx.coroutines.delay
 internal fun GearPanel(
     /** Page to open on: "" (main), "audio", "subs", "sleep", "size" or "info". */
     startPage: String = "",
+    onStop: () -> Unit,
     audioOptions: List<com.nuvio.tv.livetv.player.LiveTrackOption>,
     subtitleOptions: List<com.nuvio.tv.livetv.player.LiveTrackOption>,
     moreSubtitleOptions: List<com.nuvio.tv.livetv.player.LiveTrackOption>,
@@ -241,6 +242,7 @@ internal fun GearPanel(
                     add(Triple("Previous channel", null, onPrevious))
                     add(Triple("Stream info", null, { page = "info" }))
                     onSearch?.let { add(Triple("Search", null, it)) }
+                    add(Triple("Stop playback", null, onStop))
                     add(Triple("Reload stream", null, onReload))
                     add(Triple("Hide channel", null, onHide))
                 }

@@ -630,6 +630,7 @@ class LiveTvPlaybackController @Inject constructor(
         catchupStartMs: Long? = null,
         refreshPortalCommand: Boolean = false
     ) {
+        explicitlyStopped = false
         if (!settingsReady.value) {
             pendingPlayJob?.cancel()
             pendingPlayJob = scope.launch {
@@ -883,7 +884,18 @@ class LiveTvPlaybackController @Inject constructor(
         }
     }
 
+    @Volatile var explicitlyStopped = false
+        private set
+
     fun stop() {
+        explicitlyStopped = true
+        backgroundJob?.cancel()
+        backgroundJob = null
+        resumeAfterBackground = null
+        pausedForBackground = false
+        stallJob?.cancel()
+        stallJob = null
+        stopShift()
         pendingPlayJob?.cancel()
         pendingPlayJob = null
         portalLinkJob?.cancel()

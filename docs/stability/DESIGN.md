@@ -1,7 +1,8 @@
 # Stability programme: Phase 2 design and work plan
 
-**Status: Phase 2 approved with the amendments recorded below. B0 only is
-authorized; implementation must wait for explicit Phase 3 base confirmation.**
+**Status: Phase 2 approved. Phase 3 base confirmed: 9.6.2 / 10052 /
+`6b1999648`. Repeated unchanged controls and PID-failure classification only
+are authorized now; stop with results before G1 or any implementation.**
 Phase 1 and its corrected findings remain approved. This design change touches
 only this document. All component names, limits and tests below are proposals,
 unless explicitly identified as existing code or measured evidence.
@@ -42,8 +43,9 @@ resource-management shortcut.
 
 | Dependency | State and required integration |
 | --- | --- |
-| Sports PR #16 | Open, unmerged: paused cricket in My Sports/matcher, 36-hour lookahead and a separate query group per paused fixture; Finding channels only on the first matching pass; page snapshot bounded to 512 events, eight matches per event and 2 MiB, with per-item freshness and a seven-day bound; cache decode/match restore on user-visible IO rather than the bulk pool. **The 15-minute re-match timer, on-entry kick, original fixture key and original guide invalidation remain.** Their proposed removals/replacements were reverted. Register the snapshot and dispatcher when this dependency lands; do not include unmerged Sports changes in B0. |
-| Large-NZB streaming fix | Not started under the maintainer's latest instruction; planned to branch from 9.6.2. Streaming/compact storage will replace the 12 MiB and 150,000-segment caps. Keep P3, M1 and M3d dependent on the completed fix. C1–C3 and P1–P2 do not wait for it. Register its actual storage/residency after merge; do not design against an unmerged implementation or restore the removed caps later. |
+| Sports PR #16 | Open, unmerged: paused cricket in My Sports/matcher, 36-hour lookahead and a separate query group per paused fixture; Finding channels only on the first matching pass; page snapshot bounded to 512 events, eight matches per event and 2 MiB, with per-item freshness and a seven-day bound; cache decode/match restore on user-visible IO rather than the bulk pool. **The 15-minute re-match timer, on-entry kick, original fixture key and original guide invalidation remain.** Their proposed removals/replacements were reverted. Pending follow-up: `sportsReplayLookup` must not run for live or paused ongoing events, and an empty detailed pass must preserve the event's existing list. Verify both at the actual merged commit. Register snapshot/dispatcher after merge into `dev`; exclude this unmerged code from unchanged controls. |
+| Large-NZB streaming fix, PR #17 | Draft at `a12e7aa08d502580d09627634cd5049165275dbc`, based on 9.6.2. Streaming/compact storage replaces the 12 MiB and 150,000-segment caps. P3, M1's NZB consumer and M3d wait for its merge into `dev`, recorded by merge commit; a release tag is not required. C1–C3 and P1–P2 do not wait for it. Measure actual storage/residency after merge; do not incorporate unmerged code into these controls or restore the caps. |
+| App-wide update status indicator | Independently owned change at local `codex/app-update-status` head `b54568f4f` at intake; no numbered PR was returned by the initial GitHub listing. Mounts `LiveTvLoadingHost` in `MainActivity`, with guide waiting/complete states from `LiveTvRepository` status. Register MainActivity/lifecycle collectors, notice state and finite display timers as USER_VISIBLE presentation in P1; register notice/guide-generation ownership and residency in M3a. It must observe existing work rather than introduce a second refresh/admission owner. Record the eventual PR and `dev` merge commit. |
 
 Release check on **12 November 2026, Sydney**: the latest published release is
 [`v0.1.0-beta.9.6.2`](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/v0.1.0-beta.9.6.2),
@@ -54,8 +56,8 @@ MIME routing, MPV audio-clock fallback for a zero-video-timestamp glitch, and Ho
 description scroll pacing. The app-source diff has **three production files and
 two player test files**. The separately owned Sports PR is not in this release.
 
-**Phase 3 must use 9.6.2 or later. B0 intake on 9.6.2 is recorded in §1.3;
-explicit maintainer base confirmation remains pending.** Keep the design branch's
+**The maintainer confirmed 9.6.2 / 10052 / `6b1999648` as the Phase 3 base.
+B0 intake is recorded in §1.3; repeated controls remain required before G1.** Keep the design branch's
 10051 evidence history intact. B0 uses a separate 10052 measurement manifest and
 the unchanged Phase 1 harness overlay, not a silent rebase of PR #14 or #15.
 Re-measure playback controls because the published candidate changes player code;
@@ -63,11 +65,15 @@ identify which native/encoded-DASH behaviors the fixtures actually exercise.
 
 At intake, record the published tag, peeled commit, version name/code, source
 changes, fixture/tooling overlay and artifact hashes. Rerun the unchanged baseline
-on 10052 and preserve the 10051 manifests. Record each independent dependency's
-merged commit and shipped release when it actually lands; it is not a prerequisite
-for unrelated CW work. A release must actually contain a dependency before the
-dependent work item can start. No implementation follows B0 until the maintainer
-confirms the base.
+on 10052 and preserve the 10051 manifests. The maintainer is testing Sports, large-NZB and the indicator together as local
+betas on the bedroom TV, outside this programme. Dependencies count once merged
+into `dev`, recorded by exact commit hash; **a published tag is not required**.
+S1, S2 and M3b wait for the Sports merge; P3, M1's NZB consumer and M3d wait for
+the NZB merge. P1/M3a must reconcile the indicator's actual merged status and
+lifecycle contract. These dependencies do not block unrelated CW work. Record
+merge ancestry and reconcile the affected files before dependent work starts;
+do not silently rebase an in-flight PR or change the confirmed control base.
+Publication timing remains the maintainer's decision.
 
 ### 1.2 Upstream publication is a base event
 
@@ -86,7 +92,7 @@ base. Check publication before starting a measurement and periodically while a
 long run is active. No automation is authorized here to publish, change tags,
 versions or holds, or dispatch the release workflow.
 
-### 1.3 Completed B0 intake; base confirmation pending
+### 1.3 Completed B0 intake; subsequent base confirmation
 
 On 12 November 2026, the unchanged Phase 1 verification overlay was applied to
 published **9.6.2 / 10052 / `6b1999648`** in a separate worktree. Application plus
@@ -180,11 +186,30 @@ the manifest; the committed export removes the local workspace prefix and Onn
 network address.
 
 Publication checks during and after measurements still found 9.6.2 as latest;
-Sports PR #16 remained unmerged. **B0 intake is complete. Stop here for explicit
-confirmation of 9.6.2 / 10052 / `6b1999648` as the Phase 3 base.** Repeated-control
+Sports PR #16 remained unmerged. **The maintainer subsequently confirmed
+9.6.2 / 10052 / `6b1999648` as the Phase 3 base.** Repeated-control
 calibration, unresolved-launch classification and matched allocator comparison
 remain required before the corresponding implementation/release claims. No G1,
 C1 or other implementation has started.
+
+### 1.4 Authorized repeated controls before G1
+
+Run the unchanged harness three times per build (10051 and 10052) on the Onn
+under programme §1.5, and three times on each 10052 emulator tier. Preserve B0
+and 10051 history. Use the frozen APKs and identical fixture/harness workloads;
+record each fresh install, heap class, display/power observation, memory series,
+raw failure and independent finally restoration. Host-only PID observation must
+not weaken or retry an assertion. Alternate the Onn builds to reduce order bias.
+
+Compare the repeated Onn soak PSS and cricket Dalvik allocation distributions,
+including per-phase GC and native/graphics data. Give a clear verdict supported
+by the repetitions, not the single B0 pair. If a real 9.6.2 memory increase is
+reproduced, identify its allocation cause using separately labelled diagnostic
+traces/dumps; do not mix profiling overhead into the unchanged controls. Stop:
+a published-release regression takes precedence over Phase 3. Classify the
+original 3 GB PID failure from retained evidence and new observations without
+turning a successful retry into proof that the original failure was harmless.
+Stop with results before G1 or any implementation.
 
 ## 2. Continue Watching: membership first, enrichment second
 
@@ -676,7 +701,7 @@ Large-NZB tests must exceed both removed caps and include multi-file season pack
 stored/split archives, out-of-order segments, seeking and cancellation. Demonstrate
 bounded working residency as segment count grows, while every segment remains
 addressable. Cache eviction must not require reparsing the whole input on every
-seek or break connection reuse. This work depends on the shipped streaming fix;
+seek or break connection reuse. This work depends on the streaming fix merged into `dev`;
 no adapter to its unmerged internals is specified here.
 
 ## 6. Sports scheduler and complete timer/trigger inventory
@@ -937,28 +962,28 @@ tests, measured comparison, rollback and remaining real-data validation.
 
 | Order / item | Scope and dependencies | Required acceptance | Logical release group |
 | --- | --- | --- | --- |
-| B0 Base intake — only currently authorized work | Verify 9.6.2/10052 at `6b1999648`; rerun unchanged baselines and playback controls into a new manifest, recheck lint, retain 10051 history. Dependency hotfixes are recorded, not merged or global blockers. | Candidate is 9.6.2 or later; exact source/overlay/artifact provenance and changed-player control measurements recorded. Any new published release stops work. Stop after B0 for explicit base confirmation. | No product release |
+| B0 Base intake — complete; repeated controls only now authorized | Verify 9.6.2/10052 at `6b1999648`; rerun unchanged baselines and playback controls into a new manifest, recheck lint, retain 10051 history. Dependency hotfixes are recorded, not merged or global blockers. | Candidate is 9.6.2 or later; exact source/overlay/artifact provenance and changed-player control measurements recorded. Any new published release stops work. Base confirmed; complete §1.4 repeated controls/classification and stop before G1. | No product release |
 | G1 Verification gates | Integrate approved Phase 1 tooling; assertion-mode CW/timeline checks, full native results, thresholds and restoration. Depends B0/design approval. | Existing red failures stay red; injected crash, missing sample, stale row and cleanup failure all fail; fixture-off packaging check executes. | Infrastructure only |
 | C1 CW removal owner | Extract/test membership decisions and typed fallback; route existing drop/removal paths through it. Depends B0/G1; preserve existing projection/shuffle fixes. | Pending ordered identity never removes supported series; authoritative/user removal and profile cases pass. | CW membership stabilization |
 | C2 Durable off-Home projection | Repository lifetime, single atomic projection, pending publication/recovery; migrate snapshot writers. Depends C1. | Non-Home completion and background timeline pass with actual provider intent/version; crash-window tests pass. | CW lifecycle stabilization |
 | C3 External/post-player convergence | Normalize player close, external return, resume and remote refresh through C2; bounded terminal publication. | Valid/absent/duplicate external result, old refresh, process restart and order/profile switches pass without altered tracking semantics. | CW external-return stabilization |
 | A1 Allocator adjudication and test contracts | Execute §3 against pinned binary/source; futures, deterministic trim/handle accounting, arena capacity/cleanup. Can investigate alongside C1–C3. | Original scenarios retained; no skip; full/isolated/randomized suites and actual teardown classified. Closure required before player/allocator/NNTP/memory releases. C1–C3/P1–P2 require no-worse base comparison with A1 active. | Test maintenance; no product release if engine is sound |
 | A2 Allocator/integration fix, only if A1 proves one | One identified lifetime defect per PR; matching-source AAR rebuild separately reviewable. Depends A1. | Native ownership balances, repeated teardown bounded, all shipped ABIs and stock/native playback paths pass. | Allocator stabilization, separate from CW |
-| P1 Policy state and registry | State adapters and generated/curated registration; observation first. Depends G1; CW requests register without reintroducing Home gating. | All current gate/scope/timer sites accounted; paused READY, preview stall, resume and profile tests pass; no new duplicate pools. | Policy infrastructure |
+| P1 Policy state and registry | Include the merged app-wide update indicator's MainActivity lifecycle collectors, guide notice state and finite UI timers as USER_VISIBLE presentation; State adapters and generated/curated registration; observation first. Depends G1; CW requests register without reintroducing Home gating. | All current gate/scope/timer sites accounted; paused READY, preview stall, resume and profile tests pass; no new duplicate pools. | Policy infrastructure |
 | P2 Suspending imports | Migrate import/parser/database checkpoints and remove blocking waits; reserve deadline lane. Depends P1. | No parked gate worker; actual active-guide/import/trailer reminder ≤15 s; restart/cancel/resume imports exact. | Import responsiveness |
-| P3 NNTP execution isolation | Dedicated bounded transport and cancellation; preserve shipped streaming NZB interface. Depends A1 closure, P1 and completed large-NZB dependency. | Stalls do not occupy shared IO workers; seek/handoff/cancel/provider allowances and archive/PAR2 matrices pass with no throughput/rebuffer regression. | Usenet scheduling |
-| M1 Ledger observation | Resource IDs, native/managed counters, adapters, pressure telemetry; no changed grants. Depends A1/P1 and merged NZB consumer. | Attributed measurements and safe floors for every §5 consumer; shared arena not double counted; unexplained residency quantified. | Memory infrastructure |
+| P3 NNTP execution isolation | Dedicated bounded transport and cancellation; preserve the NZB interface merged into `dev`. Depends A1 closure, P1 and completed large-NZB dependency. | Stalls do not occupy shared IO workers; seek/handoff/cancel/provider allowances and archive/PAR2 matrices pass with no throughput/rebuffer regression. | Usenet scheduling |
+| M1 Ledger observation | Resource IDs, native/managed counters, adapters, pressure telemetry; no changed grants. Depends A1/P1; its NZB consumer waits for PR #17 merged into `dev`. | Attributed measurements and safe floors for every §5 consumer; shared arena not double counted; unexplained residency quantified. | Memory infrastructure |
 | M2a Image-cache leases | Coil accounting and pressure trim. Depends M1. | Measured bounds; visible images and navigation remain usable; no duplicated bitmap charge. | Image-cache memory |
 | M2b CW derived-cache leases | Bounded derived state and eviction-safe fallbacks. Depends M1/C1–C3. | Repeated cycles meet thresholds; every supported card survives eviction/trim. | CW cache memory |
-| M3a Guide working sets | Build-batch and committed-generation leases. Depends M1/P2; preserve the actual guide invalidation contract, without assuming PR #16 made it revision-only. | Old readers remain valid until release; large guides complete under pressure without blocking reminders. | Guide memory |
-| M3b Sports working sets | Parsed feed/index/matcher caches plus PR #16 page snapshot and user-visible IO decode/restore dispatcher. Depends M1 and shipped Sports dependency. | Account 512 events/eight matches/2 MiB serialized bounds, per-item freshness/seven-day bound, decoded residency and dispatcher stacks/queue/concurrency; preserve fast restore under blocked bulk/preview and retain existing triggers. | Sports data memory |
+| M3a Guide working sets | Build-batch and committed-generation leases; account for the merged indicator's guide waiting/complete notice state and lifecycle, without duplicating guide work. Depends M1/P2; preserve the actual guide invalidation contract, without assuming PR #16 made it revision-only. | Old readers remain valid until release; large guides complete under pressure without blocking reminders. | Guide memory |
+| M3b Sports working sets | Parsed feed/index/matcher caches plus PR #16 page snapshot and user-visible IO decode/restore dispatcher. Depends M1 and Sports dependency merged into `dev`. | Account 512 events/eight matches/2 MiB serialized bounds, per-item freshness/seven-day bound, decoded residency and dispatcher stacks/queue/concurrency; preserve fast restore under blocked bulk/preview and retain existing triggers. | Sports data memory |
 | M3c On Demand working sets | Import/database batch and catalogue-window leases. Depends M1/P2. | Large imports finish exactly, suspend/resume safely and preserve all entries. | On Demand memory |
-| M3d NZB metadata working sets | Adapt the shipped compact/streaming representation to ledger accounting. Depends M1/P3 and NZB hotfix. | Inputs beyond both removed caps remain complete and seekable; no restored caps or whole-input reparse per seek; bounded hot residency. | NZB metadata memory |
+| M3d NZB metadata working sets | Adapt the compact/streaming representation merged into `dev` to ledger accounting. Depends M1/P3 and NZB hotfix. | Inputs beyond both removed caps remain complete and seekable; no restored caps or whole-input reparse per seek; bounded hot residency. | NZB metadata memory |
 | M4a VOD/range leases | Calibrated buffer/native-arena/parallel-range ownership and safe seek floor. Depends M1/A1–A2 as applicable. | Stock/optional engine startup, sustained playback, seek and rebuffer no worse than frozen controls; no premature free. | VOD buffer memory |
 | M4b Live TV buffer leases | Replace independent Live TV sizing with calibrated leases. Depends M1. | Preview/fullscreen/tune transitions preserve playback and avoid double charging. | Live TV buffer memory |
 | M4c Trailer leases | Pool accounting and inactive-player reclamation. Depends M1/P1. | Paused READY, resume, screen disposal and active preview behavior preserved; no indefinite gate. | Trailer memory |
 | M4d Usenet article/repair leases | Cache/window/repair/native buffer ownership. Depends M1/P3/M3d. | Stalled/seek/archive/PAR2 tests pass within grants without provider-allowance or rebuffer regression. | Usenet buffer memory |
-| S1 Sports scheduler | Preserve the shipped PR #16 scope and retained 9.6.1 triggers; consolidate ownership of S01–S16. Depends P1, Sports dependency and M1 accounting. | All triggers registered; keep on-entry kick, original fixture key/invalidation and 15-minute timer. Replace the timer only if time-advancing page-closed programme-boundary tests prove current matches. Narrower invalidation requires device diagnostics; no “no periodic bulk re-match” or “revision-only” assumption. Paused-cricket, first-pass spinner, snapshot/IO restore and playback freshness/reminders remain covered. | Sports scheduling |
+| S1 Sports scheduler | Preserve the PR #16 scope merged into `dev` and retained 9.6.1 triggers; consolidate ownership of S01–S16. Depends P1, Sports dependency and M1 accounting. | All triggers registered; keep on-entry kick, original fixture key/invalidation and 15-minute timer. Replace the timer only if time-advancing page-closed programme-boundary tests prove current matches. Narrower invalidation requires device diagnostics; no “no periodic bulk re-match” or “revision-only” assumption. Paused-cricket, first-pass spinner, snapshot/IO restore and playback freshness/reminders remain covered; live/paused ongoing events never enter replay lookup, and an empty detailed pass preserves the existing event list. | Sports scheduling |
 | S2 Matcher service | Unify indexes/caches while preserving targeted lane; remove temporary second-instance exception. Depends S1/M3b. | Blocked bulk scan cannot delay current-airing results; same matches/user overrides/replays; memory measured and bounded. | Sports matching infrastructure |
 | P4 Remaining gate retirement | Migrate residual adapters and remove old paths/pools only after zero callers; audit all §4.3 owners. | Inventory has no unregistered gate/scope; compatibility and full cross-feature suites pass. | Remaining policy stabilization |
 | V1 Candidate validation | Per-area candidate, not a combined feature release. | Applicable gates pass under §7.1 scope; raw allocator failures remain visible if the approved no-worse exception applies. Repeated-soak/restoration evidence and real-data limits recorded; maintainer chooses publication. | One area per release |
@@ -968,14 +993,15 @@ do not run two writers as a rollback mechanism. Policy/ledger observation and
 enforcement modes are registered, finite migration switches, removed after
 validation. Rollback cannot restore a known silent drop, reintroduce the removed
 NZB caps or silently waive a red gate. Rebase conflict resolution must preserve
-the separately shipped hotfix contracts and their tests.
+the separately merged dependency contracts and their tests.
 
 ## 9. Approval boundary and remaining validation
 
-The maintainer approved this design with the amendments above. B0 intake is
-recorded in §1.3; obtain explicit base confirmation before starting G1, C1 or any other
-implementation work. C1–C3 do not depend on the unstarted large-NZB change; P3,
-M1 and M3d do. Reconfirm scope if queued upstream route/HLS changes ship. Numeric proposals need the unchanged-base variance/calibration
+The maintainer approved this design and confirmed the 9.6.2 base. B0 intake is
+recorded in §1.3; complete only §1.4 repeated controls and PID classification,
+then stop with results before G1, C1 or any implementation. C1–C3 do not depend
+on draft large-NZB PR #17; P3,
+M1's NZB consumer and M3d do. Reconfirm scope if queued upstream route/HLS changes ship. Numeric proposals need the unchanged-base variance/calibration
 steps specified above; they are not claimed as proven safe operating limits.
 
 Still needs later validation: cold uncached TVDB/provider/order combinations;
@@ -988,5 +1014,6 @@ DESIGN.md. The separately recorded B0 verification reuses the approved Phase 1
 app/tooling overlay on 10052; it introduces no product fix, test assertion edit,
 workflow change, dependency merge or publication.
 
-**Stop after B0 and its new-base evidence. Await explicit Phase 3 base confirmation;
-a new published release triggers an earlier stop and confirmation request.**
+**Stop after repeated controls and PID classification, before G1. A reproduced
+published-release memory regression takes priority; a new published release
+triggers an earlier stop and confirmation request.**

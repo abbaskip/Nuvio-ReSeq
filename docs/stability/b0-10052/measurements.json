@@ -1,0 +1,2264 @@
+{
+  "schemaVersion": 1,
+  "candidate": "9.6.2 / 10052 / 6b1999648",
+  "sourceWithUnchangedVerificationOverlay": "682d1f03a",
+  "method": "Unchanged stability_summarize.py. Column peaks need not be simultaneous. Completion is workload execution, not an invariant pass. Units retained in field names.",
+  "summarizerSha256": "05b3485d852a3ea9e588ac9ad4ee860d9569c298c04b588d252576f21b417565",
+  "runs": {
+    "baseline-local-2048": {
+      "metadata": {
+        "startedUtc": "2026-11-12T00:03:44.601221+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T00:27:54.809895+00:00"
+      },
+      "result": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5580",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": [
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794441892951,
+          "largeMemoryClassMb": 512,
+          "maxHeapBytes": 536870912,
+          "elapsedMs": 1102272,
+          "hostPhase": "seed"
+        },
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794441930895,
+          "largeMemoryClassMb": 512,
+          "maxHeapBytes": 536870912,
+          "elapsedMs": 1140216,
+          "hostPhase": "cw-cold-start"
+        },
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794442833669,
+          "largeMemoryClassMb": 512,
+          "maxHeapBytes": 536870912,
+          "elapsedMs": 2042990,
+          "hostPhase": "cricket-cold-load"
+        }
+      ],
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "512m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 62,
+        "Dalvik HeapAllocKiB": {
+          "first": 11027,
+          "last": 55712,
+          "peak": 103854
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 17164,
+          "last": 58712,
+          "peak": 131552
+        },
+        "Native HeapAllocKiB": {
+          "first": 25918,
+          "last": 26476,
+          "peak": 42638
+        },
+        "Native HeapPssKiB": {
+          "first": 23588,
+          "last": 40492,
+          "peak": 89480
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 96708,
+          "last": 165262,
+          "peak": 284724
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 147604,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 162320,
+        "Native HeapAllocKiB": 72153,
+        "Native HeapPssKiB": 91716,
+        "TOTAL PSSPssKiB": 313973
+      },
+      "cricketMemorySamples": 86,
+      "gcPauseCricketMaxMs": 29.858,
+      "gcPauseSoakMaxMs": 23.539,
+      "nntpBlockedWorkerPeak": 1,
+      "reminderDelaysMs": [
+        3899
+      ],
+      "playbackIdlePausesMs": [
+        61944
+      ],
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.2660000000032596,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.34399999999732,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 121.11000000000058,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.17200000000594,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "cleanup": {
+        "errors": []
+      },
+      "timeline-assertions": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900001:1:false",
+            "tt9900002:1:false",
+            "tt9900003:1:false"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ],
+      "tvdb-invariants": [
+        {
+          "mode": "missing",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 63,
+            "guideBuilding": false,
+            "wallMs": 1794443114958,
+            "heapUsedBytes": 43407512,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 5,
+            "gc": {
+              "art.gc.blocking-gc-count": "99",
+              "art.gc.gc-time": "27120",
+              "art.gc.bytes-allocated": "8349545928",
+              "art.gc.bytes-freed": "8306138416",
+              "art.gc.gc-count-rate-histogram": "0:4,1:2,2:1,4:2,6:2,8:3,9:1,16:2,18:2,19:1,20:2,25:1,37:1,48:1,56:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:8,1:3,2:1,3:1,4:1,5:3,7:2,8:6,9:1",
+              "art.gc.gc-count": "351",
+              "art.gc.blocking-gc-time": "11677"
+            },
+            "nativeBytes": 22994880,
+            "snapshot": [
+              "tt9900001:1",
+              "tt9900002:1",
+              "tt9900003:1"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900003:1:true",
+              "tt9900002:1:true",
+              "tt9900001:1:true"
+            ],
+            "elapsedMs": 2324279,
+            "hostPhase": "tvdb-missing"
+          }
+        },
+        {
+          "mode": "invalid",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 74,
+            "guideBuilding": false,
+            "wallMs": 1794443148336,
+            "heapUsedBytes": 45187032,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "100",
+              "art.gc.gc-time": "27190",
+              "art.gc.bytes-allocated": "8355935632",
+              "art.gc.bytes-freed": "8310732216",
+              "art.gc.gc-count-rate-histogram": "0:6,1:3,2:1,4:2,6:2,8:3,9:1,16:2,18:2,19:1,20:2,25:1,37:1,48:1,56:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:10,1:4,2:1,3:1,4:1,5:3,7:2,8:6,9:1",
+              "art.gc.gc-count": "352",
+              "art.gc.blocking-gc-time": "11747"
+            },
+            "nativeBytes": 23273360,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900003:1:true",
+              "tt9900002:1:true",
+              "tt9900001:1:true"
+            ],
+            "elapsedMs": 2357657,
+            "hostPhase": "tvdb-invalid"
+          }
+        },
+        {
+          "mode": "timeout",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 67,
+            "guideBuilding": false,
+            "wallMs": 1794443204765,
+            "heapUsedBytes": 44073288,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "102",
+              "art.gc.gc-time": "27332",
+              "art.gc.bytes-allocated": "8363966256",
+              "art.gc.bytes-freed": "8319876584",
+              "art.gc.gc-count-rate-histogram": "0:10,1:5,2:1,4:2,6:2,8:3,9:1,16:2,18:2,19:1,20:2,25:1,37:1,48:1,56:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:14,1:6,2:1,3:1,4:1,5:3,7:2,8:6,9:1",
+              "art.gc.gc-count": "354",
+              "art.gc.blocking-gc-time": "11889"
+            },
+            "nativeBytes": 23121040,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 2414087,
+            "hostPhase": "tvdb-timeout"
+          }
+        },
+        {
+          "mode": "unavailable",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 67,
+            "guideBuilding": false,
+            "wallMs": 1794443238196,
+            "heapUsedBytes": 43433224,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "103",
+              "art.gc.gc-time": "27405",
+              "art.gc.bytes-allocated": "8368230376",
+              "art.gc.bytes-freed": "8324797152",
+              "art.gc.gc-count-rate-histogram": "0:12,1:6,2:1,4:2,6:2,8:3,9:1,16:2,18:2,19:1,20:2,25:1,37:1,48:1,56:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:16,1:7,2:1,3:1,4:1,5:3,7:2,8:6,9:1",
+              "art.gc.gc-count": "355",
+              "art.gc.blocking-gc-time": "11962"
+            },
+            "nativeBytes": 23043200,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 2447518,
+            "hostPhase": "tvdb-unavailable"
+          }
+        },
+        {
+          "mode": "available",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 69,
+            "guideBuilding": false,
+            "wallMs": 1794443271516,
+            "heapUsedBytes": 44564944,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "104",
+              "art.gc.gc-time": "27476",
+              "art.gc.bytes-allocated": "8373807040",
+              "art.gc.bytes-freed": "8329225712",
+              "art.gc.gc-count-rate-histogram": "0:14,1:7,2:1,4:2,6:2,8:3,9:1,16:2,18:2,19:1,20:2,25:1,37:1,48:1,56:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:18,1:8,2:1,3:1,4:1,5:3,7:2,8:6,9:1",
+              "art.gc.gc-count": "356",
+              "art.gc.blocking-gc-time": "12033"
+            },
+            "nativeBytes": 23137664,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 2480837,
+            "hostPhase": "tvdb-available"
+          }
+        }
+      ],
+      "power-before": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "power-after": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "display-before": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ],
+      "display-after": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ]
+    },
+    "baseline-local-3072": {
+      "metadata": {
+        "startedUtc": "2026-11-12T00:34:42.698237+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T00:36:01.272756+00:00"
+      },
+      "result": {
+        "status": "failed",
+        "error": "Test process died or restarted",
+        "device": "emulator",
+        "serial": "emulator-5582",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": [],
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "576m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": null,
+      "cricketMemoryPeak": {},
+      "cricketMemorySamples": 0,
+      "gcPauseCricketMaxMs": null,
+      "gcPauseSoakMaxMs": null,
+      "nntpBlockedWorkerPeak": null,
+      "reminderDelaysMs": [],
+      "playbackIdlePausesMs": [],
+      "repeatedCricketStates": [],
+      "coldWatching": [],
+      "cleanup": {
+        "errors": []
+      },
+      "power-before": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "power-after": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "display-before": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ],
+      "display-after": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ]
+    },
+    "baseline-local-3072-retry": {
+      "metadata": {
+        "startedUtc": "2026-11-12T00:40:06.451789+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T01:04:16.437026+00:00"
+      },
+      "result": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5582",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": [
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794444072214,
+          "largeMemoryClassMb": 576,
+          "maxHeapBytes": 603979776,
+          "elapsedMs": 589210,
+          "hostPhase": "seed"
+        },
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794444109074,
+          "largeMemoryClassMb": 576,
+          "maxHeapBytes": 603979776,
+          "elapsedMs": 626070,
+          "hostPhase": "cw-cold-start"
+        },
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794445011474,
+          "largeMemoryClassMb": 576,
+          "maxHeapBytes": 603979776,
+          "elapsedMs": 1528470,
+          "hostPhase": "cricket-cold-load"
+        }
+      ],
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "576m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 63,
+        "Dalvik HeapAllocKiB": {
+          "first": 11468,
+          "last": 55709,
+          "peak": 118954
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 12756,
+          "last": 58236,
+          "peak": 132336
+        },
+        "Native HeapAllocKiB": {
+          "first": 25106,
+          "last": 28908,
+          "peak": 36043
+        },
+        "Native HeapPssKiB": {
+          "first": 32080,
+          "last": 44360,
+          "peak": 91256
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 105024,
+          "last": 168334,
+          "peak": 277078
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 113090,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 175556,
+        "Native HeapAllocKiB": 75564,
+        "Native HeapPssKiB": 86044,
+        "TOTAL PSSPssKiB": 321779
+      },
+      "cricketMemorySamples": 89,
+      "gcPauseCricketMaxMs": 11.64,
+      "gcPauseSoakMaxMs": 4.553,
+      "nntpBlockedWorkerPeak": 0,
+      "reminderDelaysMs": [
+        3834
+      ],
+      "playbackIdlePausesMs": [
+        61951
+      ],
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.2189999999973224,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.28100000000268,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 120.07799999999406,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.20299999999406,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "cleanup": {
+        "errors": []
+      },
+      "timeline-assertions": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900001:1:false",
+            "tt9900002:1:false",
+            "tt9900003:1:false"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ],
+      "tvdb-invariants": [
+        {
+          "mode": "missing",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 58,
+            "guideBuilding": false,
+            "wallMs": 1794445291221,
+            "heapUsedBytes": 43561456,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 5,
+            "gc": {
+              "art.gc.blocking-gc-count": "101",
+              "art.gc.gc-time": "27125",
+              "art.gc.bytes-allocated": "8369182560",
+              "art.gc.bytes-freed": "8325604720",
+              "art.gc.gc-count-rate-histogram": "0:6,1:2,2:1,6:2,7:1,8:2,9:3,12:1,15:2,16:1,18:1,20:1,48:1,76:1,81:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:9,1:2,2:1,4:4,5:2,8:4,9:3,11:1",
+              "art.gc.gc-count": "368",
+              "art.gc.blocking-gc-time": "10852"
+            },
+            "nativeBytes": 27186224,
+            "snapshot": [
+              "tt9900001:1",
+              "tt9900002:1",
+              "tt9900003:1"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900003:1:true",
+              "tt9900002:1:true",
+              "tt9900001:1:true"
+            ],
+            "elapsedMs": 1808217,
+            "hostPhase": "tvdb-missing"
+          }
+        },
+        {
+          "mode": "invalid",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 70,
+            "guideBuilding": false,
+            "wallMs": 1794445324776,
+            "heapUsedBytes": 45391328,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "102",
+              "art.gc.gc-time": "27214",
+              "art.gc.bytes-allocated": "8375491496",
+              "art.gc.bytes-freed": "8330083784",
+              "art.gc.gc-count-rate-histogram": "0:8,1:3,2:1,6:2,7:1,8:2,9:3,12:1,15:2,16:1,18:1,20:1,48:1,76:1,81:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:11,1:3,2:1,4:4,5:2,8:4,9:3,11:1",
+              "art.gc.gc-count": "369",
+              "art.gc.blocking-gc-time": "10941"
+            },
+            "nativeBytes": 27447888,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900003:1:true",
+              "tt9900002:1:true",
+              "tt9900001:1:true"
+            ],
+            "elapsedMs": 1841772,
+            "hostPhase": "tvdb-invalid"
+          }
+        },
+        {
+          "mode": "timeout",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 65,
+            "guideBuilding": false,
+            "wallMs": 1794445381485,
+            "heapUsedBytes": 44209800,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "104",
+              "art.gc.gc-time": "27380",
+              "art.gc.bytes-allocated": "8383439656",
+              "art.gc.bytes-freed": "8339213472",
+              "art.gc.gc-count-rate-histogram": "0:13,1:5,2:1,6:2,7:1,8:2,9:3,12:1,15:2,16:1,18:1,20:1,48:1,76:1,81:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:16,1:5,2:1,4:4,5:2,8:4,9:3,11:1",
+              "art.gc.gc-count": "371",
+              "art.gc.blocking-gc-time": "11107"
+            },
+            "nativeBytes": 27306576,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 1898481,
+            "hostPhase": "tvdb-timeout"
+          }
+        },
+        {
+          "mode": "unavailable",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 65,
+            "guideBuilding": false,
+            "wallMs": 1794445415019,
+            "heapUsedBytes": 43594960,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "105",
+              "art.gc.gc-time": "27457",
+              "art.gc.bytes-allocated": "8387670992",
+              "art.gc.bytes-freed": "8344059648",
+              "art.gc.gc-count-rate-histogram": "0:15,1:6,2:1,6:2,7:1,8:2,9:3,12:1,15:2,16:1,18:1,20:1,48:1,76:1,81:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:18,1:6,2:1,4:4,5:2,8:4,9:3,11:1",
+              "art.gc.gc-count": "372",
+              "art.gc.blocking-gc-time": "11184"
+            },
+            "nativeBytes": 27498816,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 1932015,
+            "hostPhase": "tvdb-unavailable"
+          }
+        },
+        {
+          "mode": "available",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 64,
+            "guideBuilding": false,
+            "wallMs": 1794445448509,
+            "heapUsedBytes": 44778192,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2044,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "106",
+              "art.gc.gc-time": "27537",
+              "art.gc.bytes-allocated": "8393232088",
+              "art.gc.bytes-freed": "8348437512",
+              "art.gc.gc-count-rate-histogram": "0:17,1:7,2:1,6:2,7:1,8:2,9:3,12:1,15:2,16:1,18:1,20:1,48:1,76:1,81:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:20,1:7,2:1,4:4,5:2,8:4,9:3,11:1",
+              "art.gc.gc-count": "373",
+              "art.gc.blocking-gc-time": "11264"
+            },
+            "nativeBytes": 27315248,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 1965505,
+            "hostPhase": "tvdb-available"
+          }
+        }
+      ],
+      "power-before": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "power-after": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "display-before": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ],
+      "display-after": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ]
+    },
+    "baseline-local-4096": {
+      "metadata": {
+        "startedUtc": "2026-11-12T01:02:17.653522+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T01:26:28.625953+00:00"
+      },
+      "result": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5584",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": [
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794445405087,
+          "largeMemoryClassMb": 576,
+          "maxHeapBytes": 603979776,
+          "elapsedMs": 183087,
+          "hostPhase": "seed"
+        },
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794445444754,
+          "largeMemoryClassMb": 576,
+          "maxHeapBytes": 603979776,
+          "elapsedMs": 222754,
+          "hostPhase": "cw-cold-start"
+        },
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794446347782,
+          "largeMemoryClassMb": 576,
+          "maxHeapBytes": 603979776,
+          "elapsedMs": 1125782,
+          "hostPhase": "cricket-cold-load"
+        }
+      ],
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "576m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": {
+        "samples": 60,
+        "Dalvik HeapAllocKiB": {
+          "first": 11428,
+          "last": 54981,
+          "peak": 162559
+        },
+        "GraphicsPssKiB": {
+          "first": 0,
+          "last": 0,
+          "peak": 0
+        },
+        "Java HeapPssKiB": {
+          "first": 17104,
+          "last": 57500,
+          "peak": 124116
+        },
+        "Native HeapAllocKiB": {
+          "first": 25924,
+          "last": 23863,
+          "peak": 41065
+        },
+        "Native HeapPssKiB": {
+          "first": 26060,
+          "last": 38728,
+          "peak": 87280
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 96829,
+          "last": 162860,
+          "peak": 264748
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 163662,
+        "GraphicsPssKiB": 0,
+        "Java HeapPssKiB": 152376,
+        "Native HeapAllocKiB": 80162,
+        "Native HeapPssKiB": 91640,
+        "TOTAL PSSPssKiB": 293656
+      },
+      "cricketMemorySamples": 89,
+      "gcPauseCricketMaxMs": 17.741,
+      "gcPauseSoakMaxMs": 11.824,
+      "nntpBlockedWorkerPeak": 1,
+      "reminderDelaysMs": [
+        3964
+      ],
+      "playbackIdlePausesMs": [
+        61868
+      ],
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.3289999999979045,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 60,
+          "actualSeconds": 62.421999999991385,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 120,
+          "actualSeconds": 121.21899999999732,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        },
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 300,
+          "actualSeconds": 301.2039999999979,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "cleanup": {
+        "errors": []
+      },
+      "timeline-assertions": [
+        {
+          "phase": "launcher-timeline",
+          "expectedControlEpisode": "1",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900001:1:false",
+            "tt9900002:1:false",
+            "tt9900003:1:false"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": true,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": true
+        },
+        {
+          "phase": "launcher-closed-non-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-background",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        },
+        {
+          "phase": "launcher-returned-home",
+          "expectedControlEpisode": "2",
+          "snapshot": [
+            "tt9900003:1"
+          ],
+          "launcher": [
+            "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+          ],
+          "rawProgress": [
+            "tt9900003:1:true",
+            "tt9900002:1:true",
+            "tt9900001:1:true"
+          ],
+          "snapshotVersion": 5,
+          "snapshotMatchesExpected": false,
+          "launcherContainsControl": true,
+          "launcherMatchesExpected": false
+        }
+      ],
+      "tvdb-invariants": [
+        {
+          "mode": "missing",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 52,
+            "guideBuilding": false,
+            "wallMs": 1794446625754,
+            "heapUsedBytes": 43138512,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2043,
+            "snapshotVersion": 5,
+            "gc": {
+              "art.gc.blocking-gc-count": "99",
+              "art.gc.gc-time": "25158",
+              "art.gc.bytes-allocated": "8246859224",
+              "art.gc.bytes-freed": "8203704328",
+              "art.gc.gc-count-rate-histogram": "0:4,1:4,6:1,7:1,8:3,9:4,14:1,15:1,16:1,17:2,42:1,47:1,55:1,61:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:8,1:4,2:1,5:4,7:3,8:3,9:3",
+              "art.gc.gc-count": "362",
+              "art.gc.blocking-gc-time": "10529"
+            },
+            "nativeBytes": 27169536,
+            "snapshot": [
+              "tt9900001:1",
+              "tt9900002:1",
+              "tt9900003:1"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900003:1:true",
+              "tt9900002:1:true",
+              "tt9900001:1:true"
+            ],
+            "elapsedMs": 1403754,
+            "hostPhase": "tvdb-missing"
+          }
+        },
+        {
+          "mode": "invalid",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 63,
+            "guideBuilding": false,
+            "wallMs": 1794446659235,
+            "heapUsedBytes": 44855096,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2043,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "100",
+              "art.gc.gc-time": "25225",
+              "art.gc.bytes-allocated": "8253096776",
+              "art.gc.bytes-freed": "8208225296",
+              "art.gc.gc-count-rate-histogram": "0:6,1:5,6:1,7:1,8:3,9:4,14:1,15:1,16:1,17:2,42:1,47:1,55:1,61:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:10,1:5,2:1,5:4,7:3,8:3,9:3",
+              "art.gc.gc-count": "363",
+              "art.gc.blocking-gc-time": "10595"
+            },
+            "nativeBytes": 27391760,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900003:1:true",
+              "tt9900002:1:true",
+              "tt9900001:1:true"
+            ],
+            "elapsedMs": 1437235,
+            "hostPhase": "tvdb-invalid"
+          }
+        },
+        {
+          "mode": "timeout",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 60,
+            "guideBuilding": false,
+            "wallMs": 1794446716623,
+            "heapUsedBytes": 43907592,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2043,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "102",
+              "art.gc.gc-time": "25360",
+              "art.gc.bytes-allocated": "8261011864",
+              "art.gc.bytes-freed": "8217104272",
+              "art.gc.gc-count-rate-histogram": "0:10,1:7,6:1,7:1,8:3,9:4,14:1,15:1,16:1,17:2,42:1,47:1,55:1,61:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:14,1:7,2:1,5:4,7:3,8:3,9:3",
+              "art.gc.gc-count": "365",
+              "art.gc.blocking-gc-time": "10730"
+            },
+            "nativeBytes": 27280912,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 1494623,
+            "hostPhase": "tvdb-timeout"
+          }
+        },
+        {
+          "mode": "unavailable",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 60,
+            "guideBuilding": false,
+            "wallMs": 1794446749968,
+            "heapUsedBytes": 43246968,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2043,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "103",
+              "art.gc.gc-time": "25427",
+              "art.gc.bytes-allocated": "8265259600",
+              "art.gc.bytes-freed": "8222012632",
+              "art.gc.gc-count-rate-histogram": "0:12,1:8,6:1,7:1,8:3,9:4,14:1,15:1,16:1,17:2,42:1,47:1,55:1,61:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:16,1:8,2:1,5:4,7:3,8:3,9:3",
+              "art.gc.gc-count": "366",
+              "art.gc.blocking-gc-time": "10798"
+            },
+            "nativeBytes": 27207840,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 1527968,
+            "hostPhase": "tvdb-unavailable"
+          }
+        },
+        {
+          "mode": "available",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900003",
+            "tt9900001"
+          ],
+          "retainsSupportedShows": false,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 60,
+            "guideBuilding": false,
+            "wallMs": 1794446783306,
+            "heapUsedBytes": 43994000,
+            "cwIds": [
+              "tt9900003",
+              "tt9900001"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 2043,
+            "snapshotVersion": 7,
+            "gc": {
+              "art.gc.blocking-gc-count": "104",
+              "art.gc.gc-time": "25494",
+              "art.gc.bytes-allocated": "8270295464",
+              "art.gc.bytes-freed": "8226301464",
+              "art.gc.gc-count-rate-histogram": "0:14,1:9,6:1,7:1,8:3,9:4,14:1,15:1,16:1,17:2,42:1,47:1,55:1,61:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:18,1:9,2:1,5:4,7:3,8:3,9:3",
+              "art.gc.gc-count": "367",
+              "art.gc.blocking-gc-time": "10865"
+            },
+            "nativeBytes": 27267328,
+            "snapshot": [
+              "tt9900003:2",
+              "tt9900001:2"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 1561306,
+            "hostPhase": "tvdb-available"
+          }
+        }
+      ],
+      "power-before": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "power-after": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "display-before": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ],
+      "display-after": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ]
+    },
+    "baseline-onn": {
+      "metadata": {
+        "startedUtc": "2026-11-12T00:17:19.304574+00:00",
+        "apkSha256": "7c3c38abd6d2af7c5b0bdc5988370c41b8ed0d1018a2173f755f78135dc5aaff",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T00:32:08.365579+00:00"
+      },
+      "result": {
+        "status": "completed",
+        "error": null,
+        "device": "onn",
+        "serial": "authorized-onn",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": [
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 256,
+          "kind": "environment",
+          "wallMs": 1794442717679,
+          "largeMemoryClassMb": 384,
+          "maxHeapBytes": 402653184,
+          "elapsedMs": 477415842,
+          "hostPhase": "seed"
+        },
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 256,
+          "kind": "environment",
+          "wallMs": 1794442772379,
+          "largeMemoryClassMb": 384,
+          "maxHeapBytes": 402653184,
+          "elapsedMs": 477470542,
+          "hostPhase": "cw-cold-start"
+        },
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 256,
+          "kind": "environment",
+          "wallMs": 1794443376010,
+          "largeMemoryClassMb": 384,
+          "maxHeapBytes": 402653184,
+          "elapsedMs": 478074174,
+          "hostPhase": "cricket-cold-load"
+        }
+      ],
+      "deviceBefore": {
+        "model": "onn 4K Pro Streaming Device",
+        "android": "14",
+        "abis": "armeabi-v7a,armeabi",
+        "fingerprint": "onn/jarvis2/jarvis2:14/URO3.260203.035.A1/15640252:user/release-keys",
+        "heapgrowthlimit": "256m",
+        "heapsize": "384m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "3",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "1",
+          "system/screen_off_timeout": "600000"
+        },
+        "productionVersion": "versionCode=10051 minSdk=24 targetSdk=36\n    versionName=0.1.0-beta.9.6.1",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 25 in range [0..25]\n"
+      },
+      "soakMemory": {
+        "samples": 19,
+        "Dalvik HeapAllocKiB": {
+          "first": 10806,
+          "last": 58744,
+          "peak": 165729
+        },
+        "GraphicsPssKiB": {
+          "first": 28224,
+          "last": 38160,
+          "peak": 59380
+        },
+        "Java HeapPssKiB": {
+          "first": 37580,
+          "last": 149676,
+          "peak": 192872
+        },
+        "Native HeapAllocKiB": {
+          "first": 21417,
+          "last": 71322,
+          "peak": 71322
+        },
+        "Native HeapPssKiB": {
+          "first": 17932,
+          "last": 86932,
+          "peak": 86932
+        },
+        "TOTAL PSSPssKiB": {
+          "first": 150411,
+          "last": 359326,
+          "peak": 411678
+        }
+      },
+      "cricketMemoryPeak": {
+        "Dalvik HeapAllocKiB": 196692,
+        "GraphicsPssKiB": 43892,
+        "Java HeapPssKiB": 191184,
+        "Native HeapAllocKiB": 71447,
+        "Native HeapPssKiB": 89380,
+        "TOTAL PSSPssKiB": 394852
+      },
+      "cricketMemorySamples": 39,
+      "gcPauseCricketMaxMs": 36.088,
+      "gcPauseSoakMaxMs": 1.228,
+      "nntpBlockedWorkerPeak": null,
+      "reminderDelaysMs": [
+        3375
+      ],
+      "playbackIdlePausesMs": [
+        61829
+      ],
+      "repeatedCricketStates": [
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE",
+        "LIVE"
+      ],
+      "coldWatching": [
+        {
+          "phase": "cw-cold-start",
+          "requestedSeconds": 0,
+          "actualSeconds": 1.5,
+          "ids": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ]
+        }
+      ],
+      "cleanup": {
+        "errors": []
+      },
+      "power-before": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "power-after": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "display-before": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ],
+      "display-after": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ]
+    },
+    "tvdb-isolated-local-2048": {
+      "metadata": {
+        "startedUtc": "2026-11-12T00:28:33.830098+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T00:33:27.512722+00:00"
+      },
+      "result": {
+        "status": "completed",
+        "error": null,
+        "device": "emulator",
+        "serial": "emulator-5580",
+        "note": "Completed means journeys ran; invariants and measurements need analysis."
+      },
+      "environment": [
+        {
+          "fixture": true,
+          "package": "io.github.abbaskip.nuvioreseq.debug",
+          "lowRam": false,
+          "memoryClassMb": 192,
+          "kind": "environment",
+          "wallMs": 1794443380053,
+          "largeMemoryClassMb": 512,
+          "maxHeapBytes": 536870912,
+          "elapsedMs": 2589374,
+          "hostPhase": "seed"
+        }
+      ],
+      "deviceBefore": {
+        "model": "AOSP TV on x86",
+        "android": "14",
+        "abis": "x86,armeabi-v7a,armeabi",
+        "fingerprint": "google/sdk_google_atv_x86/emulator_x86_arm:14/UTT1.240131.001.F1/11825476:user/dev-keys",
+        "heapgrowthlimit": "192m",
+        "heapsize": "512m",
+        "settings": {
+          "global/stay_on_while_plugged_in": "1",
+          "secure/screensaver_enabled": "1",
+          "secure/screensaver_activate_on_sleep": "0",
+          "system/screen_off_timeout": "2147483647"
+        },
+        "productionVersion": "",
+        "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 3 in range [0..15]\n"
+      },
+      "soakMemory": null,
+      "cricketMemoryPeak": {},
+      "cricketMemorySamples": 0,
+      "gcPauseCricketMaxMs": null,
+      "gcPauseSoakMaxMs": null,
+      "nntpBlockedWorkerPeak": null,
+      "reminderDelaysMs": [],
+      "playbackIdlePausesMs": [],
+      "repeatedCricketStates": [],
+      "coldWatching": [],
+      "cleanup": {
+        "errors": []
+      },
+      "tvdb-invariants": [
+        {
+          "mode": "missing",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "retainsSupportedShows": true,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 98,
+            "guideBuilding": false,
+            "wallMs": 1794443448318,
+            "heapUsedBytes": 20145208,
+            "cwIds": [
+              "tt9900001",
+              "tt9900002",
+              "tt9900003"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 0,
+            "snapshotVersion": 9,
+            "gc": {
+              "art.gc.blocking-gc-count": "6",
+              "art.gc.gc-time": "1484",
+              "art.gc.bytes-allocated": "483748312",
+              "art.gc.bytes-freed": "463586720",
+              "art.gc.gc-count-rate-histogram": "0:9,1:3,29:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:9,1:3,2:1",
+              "art.gc.gc-count": "33",
+              "art.gc.blocking-gc-time": "508"
+            },
+            "nativeBytes": 20813232,
+            "snapshot": [
+              "tt9900001:1",
+              "tt9900002:1",
+              "tt9900003:1"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 2657639,
+            "hostPhase": "tvdb-missing"
+          }
+        },
+        {
+          "mode": "invalid",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "retainsSupportedShows": true,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 96,
+            "guideBuilding": false,
+            "wallMs": 1794443481759,
+            "heapUsedBytes": 20135328,
+            "cwIds": [
+              "tt9900001",
+              "tt9900002",
+              "tt9900003"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 0,
+            "snapshotVersion": 12,
+            "gc": {
+              "art.gc.blocking-gc-count": "7",
+              "art.gc.gc-time": "1521",
+              "art.gc.bytes-allocated": "487759888",
+              "art.gc.bytes-freed": "467608176",
+              "art.gc.gc-count-rate-histogram": "0:11,1:4,29:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:11,1:4,2:1",
+              "art.gc.gc-count": "34",
+              "art.gc.blocking-gc-time": "545"
+            },
+            "nativeBytes": 20808176,
+            "snapshot": [
+              "tt9900001:1",
+              "tt9900002:1",
+              "tt9900003:1"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 2691080,
+            "hostPhase": "tvdb-invalid"
+          }
+        },
+        {
+          "mode": "timeout",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "retainsSupportedShows": true,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 86,
+            "guideBuilding": false,
+            "wallMs": 1794443538320,
+            "heapUsedBytes": 20130240,
+            "cwIds": [
+              "tt9900001",
+              "tt9900002",
+              "tt9900003"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 0,
+            "snapshotVersion": 18,
+            "gc": {
+              "art.gc.blocking-gc-count": "9",
+              "art.gc.gc-time": "1605",
+              "art.gc.bytes-allocated": "493765176",
+              "art.gc.bytes-freed": "473618552",
+              "art.gc.gc-count-rate-histogram": "0:15,1:6,29:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:15,1:6,2:1",
+              "art.gc.gc-count": "36",
+              "art.gc.blocking-gc-time": "630"
+            },
+            "nativeBytes": 20770176,
+            "snapshot": [
+              "tt9900001:1",
+              "tt9900002:1",
+              "tt9900003:1"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 2747641,
+            "hostPhase": "tvdb-timeout"
+          }
+        },
+        {
+          "mode": "unavailable",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "retainsSupportedShows": true,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 85,
+            "guideBuilding": false,
+            "wallMs": 1794443571777,
+            "heapUsedBytes": 20178464,
+            "cwIds": [
+              "tt9900001",
+              "tt9900002",
+              "tt9900003"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 0,
+            "snapshotVersion": 24,
+            "gc": {
+              "art.gc.blocking-gc-count": "10",
+              "art.gc.gc-time": "1641",
+              "art.gc.bytes-allocated": "498704424",
+              "art.gc.bytes-freed": "478525960",
+              "art.gc.gc-count-rate-histogram": "0:17,1:7,29:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:17,1:7,2:1",
+              "art.gc.gc-count": "37",
+              "art.gc.blocking-gc-time": "666"
+            },
+            "nativeBytes": 20771168,
+            "snapshot": [
+              "tt9900001:1",
+              "tt9900002:1",
+              "tt9900003:1"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 2781098,
+            "hostPhase": "tvdb-unavailable"
+          }
+        },
+        {
+          "mode": "available",
+          "expectedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "observedIds": [
+            "tt9900001",
+            "tt9900002",
+            "tt9900003"
+          ],
+          "retainsSupportedShows": true,
+          "sample": {
+            "kind": "sample",
+            "threadCount": 86,
+            "guideBuilding": false,
+            "wallMs": 1794443605171,
+            "heapUsedBytes": 20138096,
+            "cwIds": [
+              "tt9900001",
+              "tt9900002",
+              "tt9900003"
+            ],
+            "dispatcherBlocked": 0,
+            "route": "home",
+            "heavyJobs": 0,
+            "sportsEvents": 0,
+            "snapshotVersion": 27,
+            "gc": {
+              "art.gc.blocking-gc-count": "11",
+              "art.gc.gc-time": "1675",
+              "art.gc.bytes-allocated": "502298640",
+              "art.gc.bytes-freed": "482144160",
+              "art.gc.gc-count-rate-histogram": "0:19,1:8,29:1",
+              "art.gc.blocking-gc-count-rate-histogram": "0:19,1:8,2:1",
+              "art.gc.gc-count": "38",
+              "art.gc.blocking-gc-time": "700"
+            },
+            "nativeBytes": 20780976,
+            "snapshot": [
+              "tt9900001:1",
+              "tt9900002:1",
+              "tt9900003:1"
+            ],
+            "launcher": [
+              "tt9900001_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900001;S.contentType=series;S.name=Fixture%20tt9900001;S.videoId=tt9900001%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900002_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900002;S.contentType=series;S.name=Fixture%20tt9900002;S.videoId=tt9900002%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end",
+              "tt9900003_s1e1|intent:#Intent;launchFlags=0x14000000;component=io.github.abbaskip.nuvioreseq.debug/com.nuvio.tv.MainActivity;i.episode=1;i.season=1;S.contentId=tt9900003;S.contentType=series;S.name=Fixture%20tt9900003;S.videoId=tt9900003%3A1%3A1;S.launchMode=stream;S.episodeTitle=Episode%201;end"
+            ],
+            "rawProgress": [
+              "tt9900001:1:false",
+              "tt9900002:1:false",
+              "tt9900003:1:false"
+            ],
+            "elapsedMs": 2814492,
+            "hostPhase": "tvdb-available"
+          }
+        }
+      ],
+      "power-before": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "power-after": [
+        "mWakefulness=Awake",
+        "mStayOn=true"
+      ],
+      "display-before": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ],
+      "display-after": [
+        "Display State=ON",
+        "mState=ON",
+        "mScreenState=ON"
+      ]
+    }
+  }
+}

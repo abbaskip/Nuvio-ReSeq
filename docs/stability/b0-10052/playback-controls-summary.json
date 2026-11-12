@@ -1,0 +1,232 @@
+{
+  "checks": {
+    "stockPause": true,
+    "stockResume": true,
+    "mpvPause": true,
+    "mpvResume": true,
+    "encoded-dashPause": true,
+    "encoded-dashResume": true,
+    "stockSeekForward": true,
+    "stockSeekBack": true,
+    "mpvSeekForward": true,
+    "mpvSeekBack": true,
+    "encodedDashAdvances": true,
+    "encodedDashSeek": true
+  },
+  "observations": {
+    "encoded-dash-pause": {
+      "state": "PAUSED(2)",
+      "positionMs": 8704,
+      "bufferedPositionMs": 60000,
+      "speed": 0.0
+    },
+    "encoded-dash-resume": {
+      "state": "PLAYING(3)",
+      "positionMs": 8727,
+      "bufferedPositionMs": 60000,
+      "speed": 1.0
+    },
+    "encoded-dash-seek": {
+      "state": "PLAYING(3)",
+      "positionMs": 26005,
+      "bufferedPositionMs": 74000,
+      "speed": 1.0
+    },
+    "encoded-dash-start": {
+      "state": "PLAYING(3)",
+      "positionMs": 0,
+      "bufferedPositionMs": 4000,
+      "speed": 1.0
+    },
+    "engine-control-pause": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "engine-control-start": {
+      "state": "PLAYING(3)",
+      "positionMs": 0,
+      "bufferedPositionMs": 22750,
+      "speed": 1.0
+    },
+    "engine-controls-visible": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "engine-focus-aspect": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "engine-focus-switch": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "engine-switch-dialog": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "focus-right-10": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "focus-right-11": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "focus-right-12": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "focus-right-13": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "initial": {
+      "state": "PLAYING(3)",
+      "positionMs": 3242,
+      "bufferedPositionMs": 54875,
+      "speed": 1.0
+    },
+    "left-engine": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "left-external": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "left-stream-info": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "more-actions": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "mpv-confirm-dialog": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "mpv-pause": {
+      "state": "PAUSED(2)",
+      "positionMs": 18542,
+      "bufferedPositionMs": 119598,
+      "speed": 0.0
+    },
+    "mpv-play": {
+      "state": "PLAYING(3)",
+      "positionMs": 16744,
+      "bufferedPositionMs": 119688,
+      "speed": 1.0
+    },
+    "mpv-resume": {
+      "state": "PLAYING(3)",
+      "positionMs": 21397,
+      "bufferedPositionMs": 119539,
+      "speed": 1.0
+    },
+    "mpv-seek-back": {
+      "state": "PLAYING(3)",
+      "positionMs": 31297,
+      "bufferedPositionMs": 119572,
+      "speed": 1.0
+    },
+    "mpv-seek-forward": {
+      "state": "PLAYING(3)",
+      "positionMs": 36227,
+      "bufferedPositionMs": 119671,
+      "speed": 1.0
+    },
+    "mpv-switch-focus": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "mpv-switch": {
+      "state": "PLAYING(3)",
+      "positionMs": 9135,
+      "bufferedPositionMs": 119666,
+      "speed": 1.0
+    },
+    "open-more": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "reopen-more": {
+      "state": "PAUSED(2)",
+      "positionMs": 4103,
+      "bufferedPositionMs": 54875,
+      "speed": 0.0
+    },
+    "stock-pause": {
+      "state": "PAUSED(2)",
+      "positionMs": 25840,
+      "bufferedPositionMs": 77875,
+      "speed": 0.0
+    },
+    "stock-resume": {
+      "state": "PLAYING(3)",
+      "positionMs": 25843,
+      "bufferedPositionMs": 77875,
+      "speed": 1.0
+    },
+    "stock-seek-back": {
+      "state": "PLAYING(3)",
+      "positionMs": 38016,
+      "bufferedPositionMs": 83833,
+      "speed": 1.0
+    },
+    "stock-seek-forward": {
+      "state": "PLAYING(3)",
+      "positionMs": 44010,
+      "bufferedPositionMs": 96250,
+      "speed": 1.0
+    },
+    "stock-show-controls": {
+      "state": "PLAYING(3)",
+      "positionMs": 41280,
+      "bufferedPositionMs": 93000,
+      "speed": 1.0
+    }
+  },
+  "cleanup": {
+    "errors": []
+  },
+  "limits": [
+    "120-second synthetic 640x360 H264/AAC clip; not sustained high bitrate or native zero-video-PTS injection.",
+    "Concurrent Gradle build; functional controls only, no latency regression claim.",
+    "MediaSession positions are snapshots of the last state update, not frame-accurate measurements.",
+    "HEAD probe returns 501; GET/Range and DASH segments succeed. Manifest served as application/octet-stream to exercise encoded URL MIME routing.",
+    "No diagnostic events because direct VOD launch leaves the opt-in diagnostic flag disabled; PID logs, MediaSession state and UI captures are retained."
+  ]
+}

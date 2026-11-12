@@ -1,0 +1,26 @@
+{
+  "checkedUtc": "2026-11-12T00:33:11.575059+00:00",
+  "checks": {
+    "settingsRestored": true,
+    "volumeRestored": true,
+    "ownedTestPackageAbsent": true,
+    "productionVersionUnchanged": true
+  },
+  "settings": {
+    "global/stay_on_while_plugged_in": "3",
+    "secure/screensaver_enabled": "1",
+    "secure/screensaver_activate_on_sleep": "1",
+    "system/screen_off_timeout": "600000"
+  },
+  "volume": "[V] will control stream=3 (STREAM_MUSIC)\n[V] will get volume\n[V] Connecting to AudioService\n[V] volume is 25 in range [0..25]",
+  "productionVersion": "versionCode=10051 minSdk=24 targetSdk=36\n    versionName=0.1.0-beta.9.6.1",
+  "power": [
+    "mWakefulness=Awake",
+    "mStayOn=true"
+  ],
+  "display": [
+    "Display State=ON"
+  ],
+  "physicalTvState": "Not inferred from Android logical display state.",
+  "ownership": "Only the freshly installed .debug test package and added reverse rules were removed. Pre-existing .iptvdebug packages were not touched."
+}

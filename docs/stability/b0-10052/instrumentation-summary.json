@@ -1,0 +1,1989 @@
+{
+  "2048": {
+    "total": 107,
+    "counts": {
+      "0": 91,
+      "-2": 3,
+      "-4": 13
+    },
+    "tests": [
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyFromArray",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyBetweenDirectBuffers",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyToArray",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testDynamicAllocationDeallocationLeak",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testDefaultAllocatorLateReleaseLeak",
+        "statusCode": -2,
+        "assertion": "AssertionError: Memory leak detected in DefaultAllocator footprint! expected:<0> but was:<196608>"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testWeakReferenceCacheDoesNotLeak",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeStressTest",
+        "test": "testConcurrentAllocationAndRelease",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeStressTest",
+        "test": "testConcurrentDefaultAllocatorLateRelease",
+        "statusCode": -2,
+        "assertion": "AssertionError: Memory leak under concurrent late release! expected:<0> but was:<43188224>"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testAllocationZeroAndNegativeSize",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testAllocationAndReleaseLifecycle",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testArenaPoolExhaustionAndReplenishment",
+        "statusCode": -2,
+        "assertion": "AssertionError: Should belong to Arena pool"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorTest",
+        "test": "testAllocationInNuvioMode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorTest",
+        "test": "testAllocationInStockMode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.PerformanceBenchmark",
+        "test": "runAllBenchmarks",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.PackagedServicesTvTest",
+        "test": "backendIsConfiguredAndPersonalTmdbBuildInputIsAbsent",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CatalogueStreamTvTest",
+        "test": "publicArchiveFilmPlaysFromStreamPicker",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CatalogueStreamTvTest",
+        "test": "installedPackagePlaysFromStreamPickerWithOnlyImdbIdAndTitle",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CloudStreamDnsTvTest",
+        "test": "retainedExtensionClientUsesEachSelectedResolver",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CloudStreamPreferencesTvTest",
+        "test": "remoteCanSelectLanguagesAndChangeDns",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.ExternalRepoStorageTvTest",
+        "test": "sourcePreferencesRemainIsolatedAndSurviveReopening",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.ExternalRepoStorageTvTest",
+        "test": "partialRefreshPreservesDisabledChoicesAndFailedPackages",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.MultiProviderTvTest",
+        "test": "resourcesAndAllProvidersSurvivePreloadAndCachedLookups",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicExtensionTvTest",
+        "test": "loadOfficialPackagesAndPlayArchiveProviderOutput",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "cineStreamSettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "superStreamSettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "streamPlaySettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.SettingsButtonTvTest",
+        "test": "providerRowOnlyOffersAvailableSettingsAndOpensThemWithTheRemote",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.SettingsHostTvTest",
+        "test": "pluginChoiceSurvivesClosingAndReopeningSettings",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.profile.ProtectedProfilePreferencesTest",
+        "test": "copiedOrCorruptedCredentialsAreRejectedWithoutAffectingOtherProfiles",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.profile.ProtectedProfilePreferencesTest",
+        "test": "encryptedCredentialsSurviveRecreationAndUseUniqueNonces",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveAccountTest",
+        "test": "approvedDeviceSessionRefreshAndReadSync",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveLibraryTest",
+        "test": "privateStaticListLifecycle",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveScrobbleTest",
+        "test": "existingEpisodeProgressSurvivesPauseResumeAndStop",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListTimestampTest",
+        "test": "fractionalActivityTimestampsDecodeOnAndroid",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "compactCataloguePreservesRowsImagesVariantsAndIndexedMatching",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "interruptedGuideImportsAndStartupSweepPreserveTheDisplayedGuide",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "catalogueMigrationActuallyReducesSettledBytesWithoutLosingTitles",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "maintenanceExpiresDerivedPostersAndPreservesCorrectionsSourcesAndRecordings",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "sourceOnlyModeAndCategorySelectionPreserveAllowedMatchingAndBoundArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "migrationFromVersion10PreservesCatalogueAndReindexesExistingEnglishNames",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "lowSpaceDefersCopyButKeepsEnglishSourcesAndCanFinishLater",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvStorageUiTvTest",
+        "test": "storageActionsAreReachableWithTheRemoteAndSizesStayReadable",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvStorageUiTvTest",
+        "test": "remoteControlsImportModesAndCategorySelectionsWithoutChangingOtherSourceFields",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.OnDemandImportIntegrationTvTest",
+        "test": "friendsEnglishSurvivesImportMigrationModesFailuresAndGooglePayloadRestore",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "pickupMovePutDownAndSave",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "nonAdjacentMultiSelectionPreservesListOrder",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "explicitSelectionModeWorksWithoutLongPress",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "alphabeticalWarningContinueStartsReplacement",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "alphabeticalWarningCancelLeavesCustomOrderUntouched",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "cancelDoesNotPersistDraft",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.GuideScrollProfile",
+        "test": "guideScroll",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "playerRangeAndScoreRounds",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "decodeAllocationsAndCacheReuse",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "streamEmissionsAndWatchProgress",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "failedSaveAllowsRetryWithoutStartingPlayback",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "shuffleBadgeAppearsInEveryCardStyleAndClickKeepsTheEpisode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "theSameButtonStopsShuffleAndThenOffersShuffleAgain",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "previewPreservesTheEpisodeWhenMetadataRefreshesAndHidesUnwatchedArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "backFromPreviewReturnsToTheSelectedFilterWithoutSaving",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "refreshedHistoryReturnsToChoicesWhenThePreviewIsNoLongerUnwatched",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "playbackWaitsForSavingAndIgnoresRepeatedInput",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "caughtUpShowsPreviewTheOnlyEpisodeWithoutOfferingShuffleAgain",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "emptyEpisodeListsHaveAnExit",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "unwatchedChoicePreviewsAndShufflesAgainBeforePlayingTheDisplayedEpisode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "backLeavesSavedSettingsAlone",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.home.TvMixHomeTvTest",
+        "test": "homeCardsExposeMixNamesPlayAndLongPressManagementWithMissingArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "emptyLibraryAllowsCreatingTheFirstListWithTheRemote",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "mdbListEditorOnlyOffersSupportedPrivacyAndFields",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "traktEditorRetainsDescriptionAndAllPrivacyChoices",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "remoteSelectionDistinguishesTraktAndMdbListWatchlists",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "pendingListOperationDisablesDuplicateManagementActions",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "mdbListManagementHidesReorderingAndAcceptsRemoteSelection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "exposesSingleItemControlsAndForwardsCommandsToMpvTarget",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "releaseStopsForwardingAndRefreshesWithoutChangingMpvPlayback",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "externalPauseRefreshNotifiesListenersAndAllowsOnePlayRequest",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "doesNotExposeSeekCommandsForUnseekableItem",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "externalSeekRefreshUpdatesPositionWhilePausedWithoutSendingCommands",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.PlayerProgressFillTest",
+        "test": "changingProgressRedrawsWithoutRecompositionOrRemeasure",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.PlayerProgressFillTest",
+        "test": "gradientUsesPlayedWidthRatherThanEntireTrackWidth",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest",
+        "test": "offscreenSelectionStaysVisibleWithoutStealingFocusAndNewAddonKeepsIdentity",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest",
+        "test": "rtlRemoteNavigationUsesSelectedChipAndRetainsThePhysicalDirection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "failedAuthorizationOffersRetryAndDisplaysItsError",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "connectedAccountShowsStatusAndDispatchesSyncAndDisconnect",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "syncingAccountPreventsDuplicateSyncAndDisconnect",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "deviceAuthorizationShowsCodeVerificationAddressQrAndCancel",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "sectionsAreListedInOrder",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "skipSegmentsGroupsAutomaticSkipping",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "frameRateAndDolbyVisionLiveUnderVideo",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "bufferSectionIsHiddenForLibmpvOnly",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "externalPlayerOptionsOnlyAppearForExternalPlayers",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "nextEpisodeRowsLiveUnderUpNextNotStreamSelection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "onlySectionHeadersShowIcons",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "selectedRailItemExposesNameTabRoleAndSelectedState",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "topBarTabExposesItsNameRoleAndSelectedState",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "railItemExposesClickActionAndName",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "TraktProgressEnablesEveryConnectedTraktFeature",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "remoteFocusMovesFromTraktThroughSimklToMdbList",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedProviderRowsShowUsernamesAndStatus",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "providerRowsAreOrderedAndShowDisconnectedStatus",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "awaitingDeviceAuthorizationShowsCodeAndCancelAction",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedMdbListDisplaysUsernameAndSelectedWatchSource",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedTraktWithNuvioProgressCanChooseHistoryWindow",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "disconnectedDeviceAuthorizationShowsRetryAction",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "disconnectedTraktHidesItsProviderFeatures",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.UpstreamRtlSliderTvTest",
+        "test": "negativeOffsetGlyphOrderAndRemoteDirectionStayCorrectInRtl",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.tvmix.TvMixNameEntryTvTest",
+        "test": "remoteCanLeaveTheNameEditorAndSaveWithoutLosingText",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.tvmix.TvMixStartupTvTest",
+        "test": "mainNavigationCanCreateTheSharedMixCoordinator",
+        "statusCode": 0,
+        "assertion": null
+      }
+    ],
+    "exactTestIdAndStatusMatch10051Local2048": true,
+    "cleanup": {
+      "errors": []
+    },
+    "commandResult": {
+      "adbExitCode": 0,
+      "note": "Read instrumentation statuses; adb exit zero does not imply test success."
+    },
+    "limits": "Each is one full-suite observation. Preserve all raw failures; no stress-distribution or no-worse release verdict is inferred. RAM/heap cohorts are separate."
+  },
+  "3072": {
+    "total": 107,
+    "counts": {
+      "0": 91,
+      "-2": 3,
+      "-4": 13
+    },
+    "tests": [
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyFromArray",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyBetweenDirectBuffers",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyToArray",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testDynamicAllocationDeallocationLeak",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testDefaultAllocatorLateReleaseLeak",
+        "statusCode": -2,
+        "assertion": "AssertionError: Memory leak detected in DefaultAllocator footprint! expected:<0> but was:<196608>"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testWeakReferenceCacheDoesNotLeak",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeStressTest",
+        "test": "testConcurrentAllocationAndRelease",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeStressTest",
+        "test": "testConcurrentDefaultAllocatorLateRelease",
+        "statusCode": -2,
+        "assertion": "AssertionError: Memory leak under concurrent late release! expected:<0> but was:<33357824>"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testAllocationZeroAndNegativeSize",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testAllocationAndReleaseLifecycle",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testArenaPoolExhaustionAndReplenishment",
+        "statusCode": -2,
+        "assertion": "AssertionError: Should belong to Arena pool"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorTest",
+        "test": "testAllocationInNuvioMode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorTest",
+        "test": "testAllocationInStockMode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.PerformanceBenchmark",
+        "test": "runAllBenchmarks",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.PackagedServicesTvTest",
+        "test": "backendIsConfiguredAndPersonalTmdbBuildInputIsAbsent",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CatalogueStreamTvTest",
+        "test": "publicArchiveFilmPlaysFromStreamPicker",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CatalogueStreamTvTest",
+        "test": "installedPackagePlaysFromStreamPickerWithOnlyImdbIdAndTitle",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CloudStreamDnsTvTest",
+        "test": "retainedExtensionClientUsesEachSelectedResolver",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CloudStreamPreferencesTvTest",
+        "test": "remoteCanSelectLanguagesAndChangeDns",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.ExternalRepoStorageTvTest",
+        "test": "sourcePreferencesRemainIsolatedAndSurviveReopening",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.ExternalRepoStorageTvTest",
+        "test": "partialRefreshPreservesDisabledChoicesAndFailedPackages",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.MultiProviderTvTest",
+        "test": "resourcesAndAllProvidersSurvivePreloadAndCachedLookups",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicExtensionTvTest",
+        "test": "loadOfficialPackagesAndPlayArchiveProviderOutput",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "cineStreamSettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "superStreamSettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "streamPlaySettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.SettingsButtonTvTest",
+        "test": "providerRowOnlyOffersAvailableSettingsAndOpensThemWithTheRemote",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.SettingsHostTvTest",
+        "test": "pluginChoiceSurvivesClosingAndReopeningSettings",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.profile.ProtectedProfilePreferencesTest",
+        "test": "copiedOrCorruptedCredentialsAreRejectedWithoutAffectingOtherProfiles",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.profile.ProtectedProfilePreferencesTest",
+        "test": "encryptedCredentialsSurviveRecreationAndUseUniqueNonces",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveAccountTest",
+        "test": "approvedDeviceSessionRefreshAndReadSync",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveLibraryTest",
+        "test": "privateStaticListLifecycle",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveScrobbleTest",
+        "test": "existingEpisodeProgressSurvivesPauseResumeAndStop",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListTimestampTest",
+        "test": "fractionalActivityTimestampsDecodeOnAndroid",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "compactCataloguePreservesRowsImagesVariantsAndIndexedMatching",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "interruptedGuideImportsAndStartupSweepPreserveTheDisplayedGuide",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "catalogueMigrationActuallyReducesSettledBytesWithoutLosingTitles",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "maintenanceExpiresDerivedPostersAndPreservesCorrectionsSourcesAndRecordings",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "sourceOnlyModeAndCategorySelectionPreserveAllowedMatchingAndBoundArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "migrationFromVersion10PreservesCatalogueAndReindexesExistingEnglishNames",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "lowSpaceDefersCopyButKeepsEnglishSourcesAndCanFinishLater",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvStorageUiTvTest",
+        "test": "storageActionsAreReachableWithTheRemoteAndSizesStayReadable",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvStorageUiTvTest",
+        "test": "remoteControlsImportModesAndCategorySelectionsWithoutChangingOtherSourceFields",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.OnDemandImportIntegrationTvTest",
+        "test": "friendsEnglishSurvivesImportMigrationModesFailuresAndGooglePayloadRestore",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "pickupMovePutDownAndSave",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "nonAdjacentMultiSelectionPreservesListOrder",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "explicitSelectionModeWorksWithoutLongPress",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "alphabeticalWarningContinueStartsReplacement",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "alphabeticalWarningCancelLeavesCustomOrderUntouched",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "cancelDoesNotPersistDraft",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.GuideScrollProfile",
+        "test": "guideScroll",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "playerRangeAndScoreRounds",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "decodeAllocationsAndCacheReuse",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "streamEmissionsAndWatchProgress",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "failedSaveAllowsRetryWithoutStartingPlayback",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "shuffleBadgeAppearsInEveryCardStyleAndClickKeepsTheEpisode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "theSameButtonStopsShuffleAndThenOffersShuffleAgain",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "previewPreservesTheEpisodeWhenMetadataRefreshesAndHidesUnwatchedArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "backFromPreviewReturnsToTheSelectedFilterWithoutSaving",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "refreshedHistoryReturnsToChoicesWhenThePreviewIsNoLongerUnwatched",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "playbackWaitsForSavingAndIgnoresRepeatedInput",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "caughtUpShowsPreviewTheOnlyEpisodeWithoutOfferingShuffleAgain",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "emptyEpisodeListsHaveAnExit",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "unwatchedChoicePreviewsAndShufflesAgainBeforePlayingTheDisplayedEpisode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "backLeavesSavedSettingsAlone",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.home.TvMixHomeTvTest",
+        "test": "homeCardsExposeMixNamesPlayAndLongPressManagementWithMissingArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "emptyLibraryAllowsCreatingTheFirstListWithTheRemote",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "mdbListEditorOnlyOffersSupportedPrivacyAndFields",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "traktEditorRetainsDescriptionAndAllPrivacyChoices",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "remoteSelectionDistinguishesTraktAndMdbListWatchlists",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "pendingListOperationDisablesDuplicateManagementActions",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "mdbListManagementHidesReorderingAndAcceptsRemoteSelection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "exposesSingleItemControlsAndForwardsCommandsToMpvTarget",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "releaseStopsForwardingAndRefreshesWithoutChangingMpvPlayback",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "externalPauseRefreshNotifiesListenersAndAllowsOnePlayRequest",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "doesNotExposeSeekCommandsForUnseekableItem",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "externalSeekRefreshUpdatesPositionWhilePausedWithoutSendingCommands",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.PlayerProgressFillTest",
+        "test": "changingProgressRedrawsWithoutRecompositionOrRemeasure",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.PlayerProgressFillTest",
+        "test": "gradientUsesPlayedWidthRatherThanEntireTrackWidth",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest",
+        "test": "offscreenSelectionStaysVisibleWithoutStealingFocusAndNewAddonKeepsIdentity",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest",
+        "test": "rtlRemoteNavigationUsesSelectedChipAndRetainsThePhysicalDirection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "failedAuthorizationOffersRetryAndDisplaysItsError",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "connectedAccountShowsStatusAndDispatchesSyncAndDisconnect",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "syncingAccountPreventsDuplicateSyncAndDisconnect",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "deviceAuthorizationShowsCodeVerificationAddressQrAndCancel",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "sectionsAreListedInOrder",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "skipSegmentsGroupsAutomaticSkipping",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "frameRateAndDolbyVisionLiveUnderVideo",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "bufferSectionIsHiddenForLibmpvOnly",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "externalPlayerOptionsOnlyAppearForExternalPlayers",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "nextEpisodeRowsLiveUnderUpNextNotStreamSelection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "onlySectionHeadersShowIcons",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "selectedRailItemExposesNameTabRoleAndSelectedState",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "topBarTabExposesItsNameRoleAndSelectedState",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "railItemExposesClickActionAndName",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "TraktProgressEnablesEveryConnectedTraktFeature",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "remoteFocusMovesFromTraktThroughSimklToMdbList",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedProviderRowsShowUsernamesAndStatus",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "providerRowsAreOrderedAndShowDisconnectedStatus",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "awaitingDeviceAuthorizationShowsCodeAndCancelAction",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedMdbListDisplaysUsernameAndSelectedWatchSource",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedTraktWithNuvioProgressCanChooseHistoryWindow",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "disconnectedDeviceAuthorizationShowsRetryAction",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "disconnectedTraktHidesItsProviderFeatures",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.UpstreamRtlSliderTvTest",
+        "test": "negativeOffsetGlyphOrderAndRemoteDirectionStayCorrectInRtl",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.tvmix.TvMixNameEntryTvTest",
+        "test": "remoteCanLeaveTheNameEditorAndSaveWithoutLosingText",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.tvmix.TvMixStartupTvTest",
+        "test": "mainNavigationCanCreateTheSharedMixCoordinator",
+        "statusCode": 0,
+        "assertion": null
+      }
+    ],
+    "exactTestIdAndStatusMatch10051Local2048": true,
+    "cleanup": {
+      "errors": []
+    },
+    "commandResult": {
+      "adbExitCode": 0,
+      "note": "Read instrumentation statuses; adb exit zero does not imply test success."
+    },
+    "limits": "Each is one full-suite observation. Preserve all raw failures; no stress-distribution or no-worse release verdict is inferred. RAM/heap cohorts are separate.",
+    "startUtc": "2026-11-12T01:04:17.1136644Z",
+    "endUtc": "2026-11-12T01:07:41.6454892Z"
+  },
+  "4096": {
+    "total": 107,
+    "counts": {
+      "0": 91,
+      "-2": 3,
+      "-4": 13
+    },
+    "tests": [
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyFromArray",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyBetweenDirectBuffers",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.source.SampleDataQueueNativeTest",
+        "test": "testCopyToArray",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testDynamicAllocationDeallocationLeak",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testDefaultAllocatorLateReleaseLeak",
+        "statusCode": -2,
+        "assertion": "AssertionError: Memory leak detected in DefaultAllocator footprint! expected:<0> but was:<196608>"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeLeakTest",
+        "test": "testWeakReferenceCacheDoesNotLeak",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeStressTest",
+        "test": "testConcurrentAllocationAndRelease",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeStressTest",
+        "test": "testConcurrentDefaultAllocatorLateRelease",
+        "statusCode": -2,
+        "assertion": "AssertionError: Memory leak under concurrent late release! expected:<0> but was:<39452672>"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testAllocationZeroAndNegativeSize",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testAllocationAndReleaseLifecycle",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorNativeTest",
+        "test": "testArenaPoolExhaustionAndReplenishment",
+        "statusCode": -2,
+        "assertion": "AssertionError: Should belong to Arena pool"
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorTest",
+        "test": "testAllocationInNuvioMode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.DefaultAllocatorTest",
+        "test": "testAllocationInStockMode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "androidx.media3.exoplayer.upstream.PerformanceBenchmark",
+        "test": "runAllBenchmarks",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.PackagedServicesTvTest",
+        "test": "backendIsConfiguredAndPersonalTmdbBuildInputIsAbsent",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CatalogueStreamTvTest",
+        "test": "publicArchiveFilmPlaysFromStreamPicker",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CatalogueStreamTvTest",
+        "test": "installedPackagePlaysFromStreamPickerWithOnlyImdbIdAndTitle",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CloudStreamDnsTvTest",
+        "test": "retainedExtensionClientUsesEachSelectedResolver",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.CloudStreamPreferencesTvTest",
+        "test": "remoteCanSelectLanguagesAndChangeDns",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.ExternalRepoStorageTvTest",
+        "test": "sourcePreferencesRemainIsolatedAndSurviveReopening",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.ExternalRepoStorageTvTest",
+        "test": "partialRefreshPreservesDisabledChoicesAndFailedPackages",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.MultiProviderTvTest",
+        "test": "resourcesAndAllProvidersSurvivePreloadAndCachedLookups",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicExtensionTvTest",
+        "test": "loadOfficialPackagesAndPlayArchiveProviderOutput",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "cineStreamSettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "superStreamSettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.PublicSettingsTvTest",
+        "test": "streamPlaySettings",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.SettingsButtonTvTest",
+        "test": "providerRowOnlyOffersAvailableSettingsAndOpensThemWithTheRemote",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.plugin.cloudstream.SettingsHostTvTest",
+        "test": "pluginChoiceSurvivesClosingAndReopeningSettings",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.profile.ProtectedProfilePreferencesTest",
+        "test": "copiedOrCorruptedCredentialsAreRejectedWithoutAffectingOtherProfiles",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.core.profile.ProtectedProfilePreferencesTest",
+        "test": "encryptedCredentialsSurviveRecreationAndUseUniqueNonces",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveAccountTest",
+        "test": "approvedDeviceSessionRefreshAndReadSync",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveLibraryTest",
+        "test": "privateStaticListLifecycle",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListLiveScrobbleTest",
+        "test": "existingEpisodeProgressSurvivesPauseResumeAndStop",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.data.mdblist.MdbListTimestampTest",
+        "test": "fractionalActivityTimestampsDecodeOnAndroid",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "compactCataloguePreservesRowsImagesVariantsAndIndexedMatching",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "interruptedGuideImportsAndStartupSweepPreserveTheDisplayedGuide",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "catalogueMigrationActuallyReducesSettledBytesWithoutLosingTitles",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "maintenanceExpiresDerivedPostersAndPreservesCorrectionsSourcesAndRecordings",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "sourceOnlyModeAndCategorySelectionPreserveAllowedMatchingAndBoundArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "migrationFromVersion10PreservesCatalogueAndReindexesExistingEnglishNames",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvDatabaseStorageTvTest",
+        "test": "lowSpaceDefersCopyButKeepsEnglishSourcesAndCanFinishLater",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvStorageUiTvTest",
+        "test": "storageActionsAreReachableWithTheRemoteAndSizesStayReadable",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.IptvStorageUiTvTest",
+        "test": "remoteControlsImportModesAndCategorySelectionsWithoutChangingOtherSourceFields",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.storage.OnDemandImportIntegrationTvTest",
+        "test": "friendsEnglishSurvivesImportMigrationModesFailuresAndGooglePayloadRestore",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "pickupMovePutDownAndSave",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "nonAdjacentMultiSelectionPreservesListOrder",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "explicitSelectionModeWorksWithoutLongPress",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "alphabeticalWarningContinueStartsReplacement",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "alphabeticalWarningCancelLeavesCustomOrderUntouched",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest",
+        "test": "cancelDoesNotPersistDraft",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.GuideScrollProfile",
+        "test": "guideScroll",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "playerRangeAndScoreRounds",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "decodeAllocationsAndCacheReuse",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.profiling.LocalOptimisationProfile",
+        "test": "streamEmissionsAndWatchProgress",
+        "statusCode": -4,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "failedSaveAllowsRetryWithoutStartingPlayback",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "shuffleBadgeAppearsInEveryCardStyleAndClickKeepsTheEpisode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "theSameButtonStopsShuffleAndThenOffersShuffleAgain",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "previewPreservesTheEpisodeWhenMetadataRefreshesAndHidesUnwatchedArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "backFromPreviewReturnsToTheSelectedFilterWithoutSaving",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "refreshedHistoryReturnsToChoicesWhenThePreviewIsNoLongerUnwatched",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "playbackWaitsForSavingAndIgnoresRepeatedInput",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "caughtUpShowsPreviewTheOnlyEpisodeWithoutOfferingShuffleAgain",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "emptyEpisodeListsHaveAnExit",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "unwatchedChoicePreviewsAndShufflesAgainBeforePlayingTheDisplayedEpisode",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest",
+        "test": "backLeavesSavedSettingsAlone",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.home.TvMixHomeTvTest",
+        "test": "homeCardsExposeMixNamesPlayAndLongPressManagementWithMissingArtwork",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "emptyLibraryAllowsCreatingTheFirstListWithTheRemote",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "mdbListEditorOnlyOffersSupportedPrivacyAndFields",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "traktEditorRetainsDescriptionAndAllPrivacyChoices",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "remoteSelectionDistinguishesTraktAndMdbListWatchlists",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "pendingListOperationDisablesDuplicateManagementActions",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.library.LibraryListDialogsTest",
+        "test": "mdbListManagementHidesReorderingAndAcceptsRemoteSelection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "exposesSingleItemControlsAndForwardsCommandsToMpvTarget",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "releaseStopsForwardingAndRefreshesWithoutChangingMpvPlayback",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "externalPauseRefreshNotifiesListenersAndAllowsOnePlayRequest",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "doesNotExposeSeekCommandsForUnseekableItem",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.MpvMediaSessionPlayerTest",
+        "test": "externalSeekRefreshUpdatesPositionWhilePausedWithoutSendingCommands",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.PlayerProgressFillTest",
+        "test": "changingProgressRedrawsWithoutRecompositionOrRemeasure",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.PlayerProgressFillTest",
+        "test": "gradientUsesPlayedWidthRatherThanEntireTrackWidth",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest",
+        "test": "offscreenSelectionStaysVisibleWithoutStealingFocusAndNewAddonKeepsIdentity",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest",
+        "test": "rtlRemoteNavigationUsesSelectedChipAndRetainsThePhysicalDirection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "failedAuthorizationOffersRetryAndDisplaysItsError",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "connectedAccountShowsStatusAndDispatchesSyncAndDisconnect",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "syncingAccountPreventsDuplicateSyncAndDisconnect",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.MdbListAccountDialogTest",
+        "test": "deviceAuthorizationShowsCodeVerificationAddressQrAndCancel",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "sectionsAreListedInOrder",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "skipSegmentsGroupsAutomaticSkipping",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "frameRateAndDolbyVisionLiveUnderVideo",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "bufferSectionIsHiddenForLibmpvOnly",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "externalPlayerOptionsOnlyAppearForExternalPlayers",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "nextEpisodeRowsLiveUnderUpNextNotStreamSelection",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest",
+        "test": "onlySectionHeadersShowIcons",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "selectedRailItemExposesNameTabRoleAndSelectedState",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "topBarTabExposesItsNameRoleAndSelectedState",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.SettingsAccessibilitySemanticsTest",
+        "test": "railItemExposesClickActionAndName",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "TraktProgressEnablesEveryConnectedTraktFeature",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "remoteFocusMovesFromTraktThroughSimklToMdbList",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedProviderRowsShowUsernamesAndStatus",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "providerRowsAreOrderedAndShowDisconnectedStatus",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "awaitingDeviceAuthorizationShowsCodeAndCancelAction",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedMdbListDisplaysUsernameAndSelectedWatchSource",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "connectedTraktWithNuvioProgressCanChooseHistoryWindow",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "disconnectedDeviceAuthorizationShowsRetryAction",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.TrackingSettingsOverviewTest",
+        "test": "disconnectedTraktHidesItsProviderFeatures",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.settings.UpstreamRtlSliderTvTest",
+        "test": "negativeOffsetGlyphOrderAndRemoteDirectionStayCorrectInRtl",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.tvmix.TvMixNameEntryTvTest",
+        "test": "remoteCanLeaveTheNameEditorAndSaveWithoutLosingText",
+        "statusCode": 0,
+        "assertion": null
+      },
+      {
+        "class": "com.nuvio.tv.ui.screens.tvmix.TvMixStartupTvTest",
+        "test": "mainNavigationCanCreateTheSharedMixCoordinator",
+        "statusCode": 0,
+        "assertion": null
+      }
+    ],
+    "exactTestIdAndStatusMatch10051Local2048": true,
+    "cleanup": {
+      "errors": []
+    },
+    "commandResult": {
+      "adbExitCode": 0,
+      "note": "Read instrumentation statuses; adb exit zero does not imply test success."
+    },
+    "limits": "Each is one full-suite observation. Preserve all raw failures; no stress-distribution or no-worse release verdict is inferred. RAM/heap cohorts are separate.",
+    "startUtc": "2026-11-12T01:26:29.4910808Z",
+    "endUtc": "2026-11-12T01:29:05.3303800Z"
+  }
+}

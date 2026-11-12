@@ -1,0 +1,95 @@
+{
+  "status": "Single-run intake comparison, not a calibrated release verdict",
+  "limits": [
+    "No threshold or historical measurement was edited. The three unchanged repetitions required by DESIGN 7.2 remain prerequisite to implementation and calibration.",
+    "Peaks are separate column maxima, not necessarily simultaneous or retained allocations. No causal leak or equivalence claim follows from a single pair.",
+    "10051 3 GB full cricket was PRE and the corrected LIVE run was focused. Preserve both; do not present a matched full-workload cricket comparison.",
+    "Windows local, Linux CI and Onn remain distinct cohorts. This B0 intake has no new 10052 Linux CI cohort."
+  ],
+  "matchedLocalAndOnnObservations": {
+    "baseline-local-2048": {
+      "observations": {
+        "soakTotalPssKiB": {
+          "10051": 262364,
+          "10052": 284724,
+          "deltaKiB": 22360,
+          "deltaPercent": 8.522510710310872
+        },
+        "cricketDalvikAllocKiB": {
+          "10051": 101972,
+          "10052": 147604,
+          "deltaKiB": 45632,
+          "deltaPercent": 44.74953908916173
+        },
+        "cricketTotalPssKiB": {
+          "10051": 326897,
+          "10052": 313973,
+          "deltaKiB": -12924,
+          "deltaPercent": -3.953538882277907
+        }
+      },
+      "illustrativeUnchanged10051Formula": {
+        "cricketDalvikCeilingKiB": 118356,
+        "exceedsCricketCeiling": true,
+        "soakPssCeilingKiB": 301718.6,
+        "exceedsSoakCeiling": false
+      }
+    },
+    "baseline-local-4096": {
+      "observations": {
+        "soakTotalPssKiB": {
+          "10051": 262982,
+          "10052": 264748,
+          "deltaKiB": 1766,
+          "deltaPercent": 0.6715288498832628
+        },
+        "cricketDalvikAllocKiB": {
+          "10051": 102401,
+          "10052": 163662,
+          "deltaKiB": 61261,
+          "deltaPercent": 59.824611087782344
+        },
+        "cricketTotalPssKiB": {
+          "10051": 262596,
+          "10052": 293656,
+          "deltaKiB": 31060,
+          "deltaPercent": 11.828055263598847
+        }
+      },
+      "illustrativeUnchanged10051Formula": {
+        "cricketDalvikCeilingKiB": 118785,
+        "exceedsCricketCeiling": true,
+        "soakPssCeilingKiB": 302429.3,
+        "exceedsSoakCeiling": false
+      }
+    },
+    "baseline-onn": {
+      "observations": {
+        "soakTotalPssKiB": {
+          "10051": 361804,
+          "10052": 411678,
+          "deltaKiB": 49874,
+          "deltaPercent": 13.784811665984908
+        },
+        "cricketDalvikAllocKiB": {
+          "10051": 155492,
+          "10052": 196692,
+          "deltaKiB": 41200,
+          "deltaPercent": 26.496540014920388
+        },
+        "cricketTotalPssKiB": {
+          "10051": 358584,
+          "10052": 394852,
+          "deltaKiB": 36268,
+          "deltaPercent": 10.11422707092342
+        }
+      },
+      "illustrativeUnchanged10051Formula": {
+        "cricketDalvikCeilingKiB": 178815.8,
+        "exceedsCricketCeiling": true,
+        "soakPssCeilingKiB": 416074.6,
+        "exceedsSoakCeiling": false
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "totals": {
+    "tests": 3498,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2
+  },
+  "changedPlayerSuites": [
+    {
+      "suite": "com.nuvio.tv.ui.screens.player.MpvPlaybackPositionTest",
+      "tests": "6",
+      "failures": "0",
+      "testNames": [
+        "zero video timestamp while audio plays uses the audio clock",
+        "video ahead of audio is never replaced",
+        "normal playback keeps the video position",
+        "seek target is trusted while seeking",
+        "audio delay widens the tolerance",
+        "missing audio clock keeps the video position"
+      ]
+    },
+    {
+      "suite": "com.nuvio.tv.ui.screens.player.PlayerMediaSourceFactoryTest",
+      "tests": "20",
+      "failures": "0",
+      "testNames": [
+        "normalizePlaybackRequest converts URL userinfo to authorization header",
+        "normalizePlaybackRequest strips userinfo containing a literal at sign",
+        "isLoopbackUrl returns false for external and non-loopback urls",
+        "isLoopbackUrl returns true for engine and local proxy loopback streams",
+        "inferMimeType uses filename star content disposition for octet stream responses",
+        "inferMimeType recognizes playlist endpoints with numeric or token ids as HLS",
+        "media segment 404 with an alternative prefers another HLS track",
+        "normalizePlaybackRequest strips URL userinfo without replacing explicit authorization",
+        "inferMimeType ignores generic playlist path without manifest evidence",
+        "manifest errors and missing alternatives do not trigger rendition fallback",
+        "inferMimeType prefers response content type for manifest urls without extension",
+        "inferMimeType prefers URL extension for adaptive formats even if headers specify different type",
+        "inferMimeType uses content disposition filename when content type is missing",
+        "inferMimeType recognizes explicit format query values",
+        "inferMimeType prefers filename extension for adaptive formats even if headers specify different type",
+        "normalizePlaybackRequest preserves encoded path query and fragment when stripping userinfo",
+        "normalizeMimeType recognizes redirected matroska file responses",
+        "parallelRangesRespectStreamTransport",
+        "inferMimeType preserves literal MIME plus signs and tolerates invalid escapes",
+        "inferMimeType recognizes percent encoded DASH MIME query values"
+      ]
+    }
+  ]
+}

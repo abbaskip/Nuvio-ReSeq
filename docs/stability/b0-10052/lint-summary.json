@@ -1,0 +1,97 @@
+{
+  "rawCounts": {
+    "Error": 4065,
+    "Warning": 2050,
+    "Hint": 48
+  },
+  "guard": {
+    "errors": 4064,
+    "external_version_advice": [
+      {
+        "artifact": "com.android.application",
+        "available": "9.5.1",
+        "declared": "8.13.2",
+        "id": "AndroidGradlePluginVersion",
+        "paths": [
+          "gradle/libs.versions.toml"
+        ],
+        "previous_available": "9.5.0"
+      },
+      {
+        "artifact": "androidx.test.uiautomator:uiautomator",
+        "available": "2.4.1",
+        "declared": "2.3.0",
+        "id": "GradleDependency",
+        "paths": [
+          "gradle/libs.versions.toml"
+        ],
+        "previous_available": "2.4.0"
+      },
+      {
+        "artifact": "io.mockk:mockk",
+        "available": "1.14.12",
+        "declared": "1.13.12",
+        "id": "NewerVersionAvailable",
+        "paths": [
+          "app/build.gradle.kts"
+        ],
+        "previous_available": "1.14.11"
+      },
+      {
+        "artifact": "org.conscrypt:conscrypt-android",
+        "available": "2.9.0",
+        "declared": "2.5.2",
+        "id": "NewerVersionAvailable",
+        "paths": [
+          "gradle/libs.versions.toml"
+        ],
+        "previous_available": "2.8.0"
+      },
+      {
+        "artifact": "org.jetbrains.kotlinx:kotlinx-serialization-json",
+        "available": "1.13.0",
+        "declared": "1.8.0",
+        "id": "NewerVersionAvailable",
+        "paths": [
+          "gradle/libs.versions.toml"
+        ],
+        "previous_available": "1.12.0"
+      },
+      {
+        "artifact": "io.sentry:sentry-android",
+        "available": "8.64.0",
+        "declared": "8.47.0",
+        "id": "NewerVersionAvailable",
+        "paths": [
+          "gradle/libs.versions.toml"
+        ],
+        "previous_available": "8.62.0"
+      },
+      {
+        "artifact": "io.sentry.android.gradle",
+        "available": "6.26.0",
+        "declared": "6.14.0",
+        "id": "NewerVersionAvailable",
+        "paths": [
+          "gradle/libs.versions.toml"
+        ],
+        "previous_available": "6.25.0"
+      }
+    ],
+    "failures": [],
+    "findings": 6162,
+    "ignored_non_source_findings": 1,
+    "inherited_errors": 4064,
+    "new_warnings": 100,
+    "passed": true
+  },
+  "retiredAllowances": [
+    "7fa69d91ad4012df382b1a972cab6540d1d88334c25d4fbe149d24f8660421a9",
+    "87a0086fb335736941222172901ae7110afa51b909d86721038932c8c05fab4d"
+  ],
+  "ratchetProposalEqualsCommittedBaseline": true,
+  "reportSha256": "a095dc329fff3813d11d8bbd4561b10170c34b073c108d4bb46992903c48f81a",
+  "releasedReferenceSha256": "df14141e82f99e9cf02e8b666f2373b592e26d829badfbf29e032552400ec9f2",
+  "rawGradleExitCode": 1,
+  "note": "Raw lint is red from inherited errors; version-verified guard passes without changing allowances. Advisory drift remains visible."
+}

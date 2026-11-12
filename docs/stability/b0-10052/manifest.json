@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "phase": "B0 only",
+  "status": "B0 intake measurements complete; awaiting explicit Phase 3 base confirmation",
+  "createdUtc": "2026-11-11T23:50:27.977801+00:00",
+  "candidate": {
+    "tag": "v0.1.0-beta.9.6.2",
+    "versionCode": 10052,
+    "commit": "6b1999648a46b9d54b5b924e7912e0f480d72689"
+  },
+  "verificationOverlay": {
+    "sourcePhase1Head": "bf3b0c45f",
+    "candidateWithOverlay": "682d1f03a",
+    "patchSha256": "789b78eed3d9f903f59ca47b75b38432323d97a3a278fa2278fee5a6cbb3c61d",
+    "scope": "Unchanged Phase 1 app diagnostics/fixture and scripts overlay; no product fixes or dependency code."
+  },
+  "history": {
+    "phase1Base": "c2b4d94f3 / 10051",
+    "preservedManifest": "<workspace>\\docs\\stability\\phase1-measurements.json",
+    "preservedManifestSha256": "3cf13be5d0d239f72ebcf57890036fb3dc8cc8600a323654cad1e41b612c8f22"
+  },
+  "host": {
+    "platform": "Windows WHPX; local cohort, not Linux CI",
+    "image": "Android TV API34 x86 r03",
+    "imageArchiveSha1": "8de1dcb502b0b4080e6f363828db64e609b3aa2a",
+    "observedMemory": {
+      "TotalVisibleMemorySize": 32945588,
+      "FreePhysicalMemory": 5563352,
+      "LastBootUpTime": "2026-11-11T05:47:10.330982+11:00"
+    },
+    "concurrentWork": "Other Sports work/emulator-5556 left untouched. B0 Onn fixture server overlaps part of emulator 2048/TVDB execution; separate fixture state. No controlled-host latency equivalence claim.",
+    "emulatorSerials": {
+      "2048": "emulator-5580",
+      "3072": "emulator-5582",
+      "4096": "emulator-5584"
+    }
+  },
+  "transport": {
+    "adapter": "<workspace>\\build\\stability\\b0-10052\\isolated_transport.py",
+    "adapterSha256": "f03e7af0c8aff432bd614c4ac12274b1bbce8a84f6c65f2a27652643e2ae7f17",
+    "devicePorts": [
+      38791,
+      38792,
+      38793
+    ],
+    "hostPorts": [
+      38991,
+      38992,
+      38993
+    ],
+    "reason": "Another concurrent verification owns the original host ports. Only bind/reverse/host control routing changes; fixture payloads, app URLs, workload and runner remain unchanged.",
+    "releaseGuard": "Checks a read-only release monitor event between samples; raises through original finally restoration. No change to baseline app, fixture payload or workload.",
+    "fixtureAndControlAdapterBeforeReleaseGuardSha256": "c466a552235c44e7358011320144c2314e0a8f4d48a15a9811d9b40967871e41",
+    "note": "Fixture server and supplementary controls started before the runner release-event guard was added. Their transport code is identical; both versions retained."
+  },
+  "sourceHashes": {
+    "scripts\\stability_run.py": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+    "scripts\\stability_fixtures.py": "0e8cf202d80805be68c3934190117f5ce8943072fa2e85c0091c01631f599ae4",
+    "baselineprofile\\fixtures\\server.py": "4acd1743016764ce434541acb44ab7a034307f9f524de57e06e7105758299cfe"
+  },
+  "runs": [
+    {
+      "id": "local2048",
+      "directory": "baseline-local-2048",
+      "status": "completed",
+      "initialOverlap": "Initial launch/seed/cold CW checkpoints overlap final lint analysis. Build log ended 00:09:34.590304Z, before the first timed soak sample at 00:11:00.258184Z; timed soak/cricket did not overlap this build.",
+      "firstSoakSampleWriteUtc": "2026-11-12T00:11:00.258184+00:00",
+      "metadata": {
+        "startedUtc": "2026-11-12T00:03:44.601221+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T00:27:54.809895+00:00"
+      }
+    },
+    {
+      "id": "onn",
+      "directory": "baseline-onn",
+      "status": "completed",
+      "transportAdapter": "onn_transport.py",
+      "transportAdapterSha256": "193d025019934d963e6478242bf70a710a3ddc45f02f4cce9a586aa98ea633fd",
+      "hostPorts": [
+        39091,
+        39092,
+        39093
+      ],
+      "scope": "Only original Onn full permitted subset: launch/soak/five LIVE cricket; no NNTP, timeline or TVDB scenarios. Separate fixture state; overlaps emulator execution on host.",
+      "metadata": {
+        "startedUtc": "2026-11-12T00:17:19.304574+00:00",
+        "apkSha256": "7c3c38abd6d2af7c5b0bdc5988370c41b8ed0d1018a2173f755f78135dc5aaff",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T00:32:08.365579+00:00"
+      }
+    },
+    {
+      "id": "tvdbIsolated2048",
+      "directory": "tvdb-isolated-local-2048",
+      "status": "completed",
+      "metadata": {
+        "startedUtc": "2026-11-12T00:28:33.830098+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T00:33:27.512722+00:00"
+      }
+    },
+    {
+      "id": "local3072",
+      "directory": "baseline-local-3072",
+      "status": "failed",
+      "serial": "emulator-5582",
+      "hostPorts": [
+        38991,
+        38992,
+        38993
+      ],
+      "fixtureProcess": "fresh server; counters and state reset",
+      "classification": "Unresolved PID check mismatch during launch. Retained Android events show the original process killed by harness cleanup, with no earlier process-death event; raw triggering PID reply was not captured. Not relabeled a pass.",
+      "metadata": {
+        "startedUtc": "2026-11-12T00:34:42.698237+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T00:36:01.272756+00:00"
+      }
+    },
+    {
+      "id": "local3072Retry",
+      "directory": "baseline-local-3072-retry",
+      "status": "completed",
+      "serial": "emulator-5582",
+      "observationAdapter": "trace_run.py",
+      "adapterSha256": "8c76ac215b421e66036705f2664da967ec5a4f4ac9fb529403f141b467d10d82",
+      "note": "Same baseline APK, workload and failure assertions. Adds raw PID-command logging and captures exit evidence before cleanup if the check fails again.",
+      "metadata": {
+        "startedUtc": "2026-11-12T00:40:06.451789+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T01:04:16.437026+00:00"
+      }
+    },
+    {
+      "id": "local4096",
+      "directory": "baseline-local-4096",
+      "status": "completed",
+      "serial": "emulator-5584",
+      "hostPorts": [
+        39091,
+        39092,
+        39093
+      ],
+      "transportAdapter": "tier4096_transport.py",
+      "transportAdapterSha256": "193d025019934d963e6478242bf70a710a3ddc45f02f4cce9a586aa98ea633fd",
+      "observationAdapter": "trace_run_4096.py",
+      "observationAdapterSha256": "cd4dd03e17f38b5c6b4a8afb9420258bec34923674cf27aaf0b67420a4cfa5bb",
+      "initialOverlap": "Launch/seed/cold CW overlaps final 3 GB functional checks and instrumentation, with separate fixture state. 3 GB instrumentation ended 01:07:41.6454892Z, before the first 4 GB soak sample at 01:09:35.883951Z; timed soak/cricket did not overlap that instrumentation.",
+      "metadata": {
+        "startedUtc": "2026-11-12T01:02:17.653522+00:00",
+        "apkSha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911",
+        "sourceHead": "682d1f03a320c54a5abcdd973f71850aefafbc03",
+        "runnerSha256": "e16348c035ffdd9580f128d66dfe3a0574884bb54dfece2bca34967f9f5cef05",
+        "endedUtc": "2026-11-12T01:26:28.625953+00:00"
+      }
+    }
+  ],
+  "controls": {
+    "status": "completed",
+    "mediaProvenance": "control-media-provenance.json",
+    "scope": "Separate synthetic 120-second video with audio and DASH. Does not replace unchanged baseline media.",
+    "summary": "playback-controls-2048/summary.json",
+    "driverSha256": "187466190c4a6d482616e578564f5e2509ed8a400a2830c91d84c18723cf9c07"
+  },
+  "calibration": "One full unchanged workload per local RAM tier and permitted Onn subset, plus the recorded 3 GB retry and isolated TVDB/control runs. Three unchanged repetitions per cohort remain required before implementation and numerical-limit calibration under DESIGN 7.2.",
+  "apks": {
+    "app\\build\\outputs\\apk\\androidTest\\full\\debug\\app-full-debug-androidTest.apk": {
+      "bytes": 1434848,
+      "sha256": "a979a0e2c2749164f0396b25f01e258ed53f5d2f0b918c3eb868e54f47ef8e8a"
+    },
+    "app\\build\\outputs\\apk\\full\\benchmark\\app-full-arm64-v8a-benchmark.apk": {
+      "bytes": 61738041,
+      "sha256": "0f57ae2766f8095e15374c99da9b8d31ada857ab76f6cdef82ea646946aa7f45"
+    },
+    "app\\build\\outputs\\apk\\full\\benchmark\\app-full-armeabi-v7a-benchmark.apk": {
+      "bytes": 59860629,
+      "sha256": "7c3c38abd6d2af7c5b0bdc5988370c41b8ed0d1018a2173f755f78135dc5aaff"
+    },
+    "app\\build\\outputs\\apk\\full\\benchmark\\app-full-universal-benchmark.apk": {
+      "bytes": 142563403,
+      "sha256": "2df74795c23b83ad2789bc413540c0657bfea778cadb54b72822d9472d0f8f38"
+    },
+    "app\\build\\outputs\\apk\\full\\benchmark\\app-full-x86-benchmark.apk": {
+      "bytes": 62424825,
+      "sha256": "f2b6a5af3f0a31e744d6161311b4d79b476225d0a517108afaadcb938d41e911"
+    },
+    "app\\build\\outputs\\apk\\full\\benchmark\\app-full-x86_64-benchmark.apk": {
+      "bytes": 63395975,
+      "sha256": "f9d753b82e57c14b0bbb8e7fb1457c1e9a3775e2131aa336963b2cf43802d1b8"
+    },
+    "app\\build\\outputs\\apk\\full\\debug\\app-full-arm64-v8a-debug.apk": {
+      "bytes": 104004474,
+      "sha256": "3d96ff172130249f6ac7d63122e43751a61c929dba012e05c688075bb70203a4"
+    },
+    "app\\build\\outputs\\apk\\full\\debug\\app-full-armeabi-v7a-debug.apk": {
+      "bytes": 102072286,
+      "sha256": "76693c1f4b19ca2cca33376620f2b2baf0f1f3f0530f6805cacf530bb14af095"
+    },
+    "app\\build\\outputs\\apk\\full\\debug\\app-full-universal-debug.apk": {
+      "bytes": 191291964,
+      "sha256": "0d7be80caae63d3fd46cc0843761dd1bcc216ae7f721615142e651d9dd4916c8"
+    },
+    "app\\build\\outputs\\apk\\full\\debug\\app-full-x86-debug.apk": {
+      "bytes": 105603146,
+      "sha256": "3058e55371f78f51845a7d417b17e619c79ed3c105b62b3cc231b50e1d9e7242"
+    },
+    "app\\build\\outputs\\apk\\full\\debug\\app-full-x86_64-debug.apk": {
+      "bytes": 106472112,
+      "sha256": "902d78c959cf18f96e453a9d3fa4fe98da8d72f2d73bcbc0d7caf5c94bd2a285"
+    }
+  },
+  "instrumentation": {
+    "summary": "instrumentation-summary.json",
+    "cohortsCompleted": [
+      2048,
+      3072,
+      4096
+    ],
+    "cohortsPending": [],
+    "nativeGate": "Raw allocator failures remain red; no test skipped/quarantined and no no-worse stress-distribution verdict inferred."
+  },
+  "hostTests": {
+    "tests": 127,
+    "failed": 0,
+    "skipped": 1,
+    "log": "host-tests.log"
+  },
+  "jvm": {
+    "summary": "jvm-summary.json",
+    "tests": 3498,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 2
+  },
+  "releaseMonitor": {
+    "script": "watch_releases.py",
+    "sha256": "dd86fa7e6bf5a15742dfe823305d07f04cf1a8cdee1feab13c06bbd863d82663",
+    "intervalSeconds": 60,
+    "log": "release-checks.jsonl",
+    "stopEvent": "new-release-event.json"
+  },
+  "lint": {
+    "summary": "lint-summary.json",
+    "guardPassed": true,
+    "guardFailures": 0,
+    "externalVersionAdvice": 7,
+    "retiredAllowances": 2,
+    "rawCounts": {
+      "Error": 4065,
+      "Warning": 2050,
+      "Hint": 48
+    }
+  },
+  "build": {
+    "log": "build-jvm-lint.log",
+    "exitCode": 1,
+    "reason": "Raw inherited lint errors; all requested APKs and JVM suite completed",
+    "observedCompletedUtc": "2026-11-12T00:10:49.331281+00:00",
+    "evidenceArchive": {
+      "path": "build-evidence.zip",
+      "sha256": "9e12706456911a9be792a94ba87767764b95039e77ef84964a79c52251e96ed7",
+      "files": 529
+    },
+    "logLastWriteUtc": "2026-11-12T00:09:34.590304+00:00"
+  },
+  "onnRestoration": "onn-final-restoration.json",
+  "bundledAllocatorAndEngine": {
+    "app\\libs\\lib-exoplayer-release.aar": "d8c5a4357c4672c289164597d0eb1a5088daffdb1b1bdb94fcf5899fc4ad4a95",
+    "app\\libs\\lib-nuvio-engine-android-0.1.6.aar": "66b049a3625bfdc39c3b5d25a0af9bbc127c530512617e9f57cd988c019d33d6"
+  },
+  "sportsDependencyFinalCheck": {
+    "headRefOid": "9ddc5569be19499d72c6987dc22bc60e859e23e8",
+    "isDraft": true,
+    "mergeCommit": null,
+    "mergedAt": null,
+    "number": 16,
+    "state": "OPEN",
+    "url": "https://github.com/abbaskip/Nuvio-ReSeq/pull/16"
+  },
+  "baseRule": "No new published release may be silently selected. PR #14 and PR #15 bases remain unchanged; Phase 3 base confirmation still required.",
+  "completedUtc": "2026-11-12T01:31:22.620499+00:00",
+  "releaseCheck": {
+    "checkedUtc": "2026-11-12T01:30:11.657902+00:00",
+    "latestPublished": {
+      "isDraft": false,
+      "publishedAt": "2026-11-11T16:23:33Z",
+      "tagName": "v0.1.0-beta.9.6.2"
+    },
+    "newPublishedReleaseDetected": false,
+    "monitorLog": "release-checks.jsonl"
+  },
+  "measurements": "measurements.json",
+  "historicalComparison": "comparison-10051.json",
+  "restoration": {
+    "allOwnedAvdsStopped": true,
+    "allOwnedFixtureServersStopped": true,
+    "releaseMonitorStopped": true,
+    "remainingAdbDevice": "authorized Onn; no further test/keep-awake operation active",
+    "onnVerification": "onn-final-restoration.json",
+    "allRunAndInstrumentationCleanupErrors": []
+  },
+  "findings": {
+    "cw": "All full emulator runs reproduce stale completed-episode snapshot/launcher and ordered-show disappearance after completion with identity pending. Fresh TVDB failure controls retain all three supported shows.",
+    "allocator": "Same three failure IDs/signatures, same 13 exclusion IDs on every RAM tier. Sequential footprint 196608 bytes; concurrent footprints 43188224 / 33357824 / 39452672 bytes for 2/3/4 GB. No tests hidden, skipped anew or quarantined.",
+    "launchObservation": "First 3 GB attempt failed a PID consistency check. Android events show its original PID killed during harness cleanup, with no earlier process-death event in retained evidence. Triggering PID reply was not saved; cause unresolved. Same-baseline retry completed with raw PID observations and unchanged assertions.",
+    "memory": "2 GB, 4 GB and Onn cricket allocation peaks exceed the illustrative formula applied to preserved 10051 local controls. Soak total PSS stays below that formula. No threshold changed and no calibrated equivalence, regression or leak verdict inferred.",
+    "workPriority": "Playback-idle worker waits remain approximately 62 seconds; reminder delays 3375-3964 ms. NNTP fixtures recorded stalls on every emulator; sampled blocked dispatcher peaks 1/0/1. Zero sampled blocking does not prove isolation.",
+    "controls": "Stock and MPV pause/resume/seeks plus extensionless encoded-DASH playback/seek pass the recorded synthetic control checks. Native zero-video-PTS failure was not injected; six audio-clock unit tests pass.",
+    "lint": "Fresh verified-reference guard passes with zero failures and unchanged ratcheted budget; seven external advisory changes retained. Raw lint remains red."
+  },
+  "remainingBeforeImplementation": [
+    "Explicit maintainer Phase 3 base confirmation; no G1/C1 or other implementation started.",
+    "Three unchanged controls per cohort and reviewed limit calibration under DESIGN 7.2; current observations are single-run intake data.",
+    "Resolve/classify the first 3 GB PID-check failure before claiming a reliable launch gate.",
+    "Use matched stress distributions for the scoped no-worse allocator policy; A1 remains open for player/allocator/NNTP/memory releases.",
+    "No new 10052 Linux CI cohort. Earlier manual workflow authorization pins --ref to the Phase 1 branch; B0 uses isolated local tiers and does not rebase PR #14 or dispatch on another ref."
+  ],
+  "runtimeEvidenceArchive": {
+    "path": "runtime-evidence.zip",
+    "bytes": 3055894,
+    "sha256": "8277b8373c31f3ceb8d3c9e7efb6b227860c7b0e64f506eaf6f6bda102108a4d",
+    "index": "evidence-index.json",
+    "indexSha256": "a9feb4b73fa8d9334e0d73e5c07accb6d4586043fb2794a0ccec57f7109f1e02",
+    "files": 1033
+  },
+  "publicExport": "Workspace path prefixes replaced with <workspace>; Onn serial rendered as authorized-onn. Raw local evidence and its hashes remain unchanged."
+}

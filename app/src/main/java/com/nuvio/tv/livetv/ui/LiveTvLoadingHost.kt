@@ -6,12 +6,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -46,7 +43,7 @@ interface LoadingEntryPoint {
 }
 
 /**
- * A small "working on it" pill below the top-right headers, anywhere in Nuvio, while playlists,
+ * A plain status line at the top-right edge, anywhere in Nuvio, while playlists,
  * TV guides or On Demand catalogs are downloading, with what's happening and a running count.
  * Hidden while something is playing full screen.
  */
@@ -120,12 +117,6 @@ fun LiveTvLoadingHost(navController: NavController) {
         kotlinx.coroutines.delay(if (n.text.length > 60) 6_000 else 4_000)
         com.nuvio.tv.livetv.record.LiveTvNotice.clear(n)
     }
-    // Leave the guide info panel and Sports' header/hero row in place above the pill.
-    val topInset = when (route) {
-        Screen.LiveTv.route -> 188.dp
-        Screen.Sports.route -> 244.dp
-        else -> 96.dp
-    }
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
         AnimatedVisibility(
             visible = notice != null && !playing,
@@ -145,22 +136,13 @@ fun LiveTvLoadingHost(navController: NavController) {
             )
         }
         AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
-            Row(
-                modifier = Modifier
-                    .padding(end = 28.dp, top = topInset)
-                    .background(Color.Black.copy(alpha = 0.78f), RoundedCornerShape(50))
-                    .border(1.dp, NuvioTheme.colors.Border, RoundedCornerShape(50))
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (busy) CircularProgressIndicator(
-                    modifier = Modifier.size(14.dp),
-                    color = NuvioTheme.colors.Secondary,
-                    strokeWidth = 2.dp
-                )
-                if (busy) Spacer(Modifier.width(10.dp))
-                LiveText(message.orEmpty() + elapsed, color = Color.White, size = 12.sp)
-            }
+            LiveText(
+                message.orEmpty() + elapsed,
+                modifier = Modifier.padding(top = 2.dp, end = 32.dp, start = 32.dp),
+                color = NuvioTheme.colors.TextSecondary,
+                size = 12.sp,
+                maxLines = 1
+            )
         }
     }
 }

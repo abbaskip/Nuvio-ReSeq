@@ -1026,7 +1026,7 @@ fun LiveTvGuideScreen(
                 playbackBuffering = playback.isBuffering,
                 playbackError = playback.error,
                 catchupTitle = playback.catchupTitle,
-                status = status.message.takeIf { status.loading }
+                status = null // App-wide status is rendered once by LiveTvLoadingHost.
             )
 
             // ---------------------------------------------------------------- groups + guide
@@ -1610,16 +1610,6 @@ fun LiveTvGuideScreen(
                         )
                     }
                 }
-            }
-        }
-        if (!fullscreen && (settings.showProgramDetails || settings.showPreview) && status.loading) {
-            status.message?.let {
-                LiveText(
-                    it,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 2.dp, end = 32.dp),
-                    color = NuvioTheme.colors.TextSecondary,
-                    size = 12.sp
-                )
             }
         }
 

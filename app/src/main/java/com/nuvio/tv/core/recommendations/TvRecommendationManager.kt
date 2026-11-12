@@ -29,25 +29,12 @@ import kotlin.math.abs
 class TvRecommendationManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val programBuilder: ProgramBuilder,
-    private val layoutPreferenceDataStore: LayoutPreferenceDataStore
+    private val layoutPreferenceDataStore: LayoutPreferenceDataStore,
+    private val cwRepository: com.nuvio.tv.data.cw.ContinueWatchingRepository
 ) {
 
     private val mutex = Mutex()
     private val syncedFingerprints = ConcurrentHashMap<String, ProgramFingerprint>()
-    private val deferScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    // Latest progress seen while frames are on screen. Leanback IPC is deferred until playback
-    // stops so the provider write does not hitch the player, and so the position is not dropped.
-    private var pendingWatchNext: WatchProgress? = null
-
-    init {
-        deferScope.launch {
-            isPlaybackActive.collect { active ->
-                if (!active) flushPendingWatchNext()
-            }
-        }
-    }
-
     private data class ProgramFingerprint(
         val title: String?,
         val position: Long,
@@ -75,8 +62,8 @@ class TvRecommendationManager @Inject constructor(
                     backdrop = item.info.backdrop,
                     logo = item.info.logo,
                     videoId = item.info.videoId,
-                    season = item.info.season,
-                    episode = item.info.episode,
+                    season = item.info.season.takeUnless { item.chooseEpisode },
+                    episode = item.info.episode.takeUnless { item.chooseEpisode },
                     episodeTitle = item.info.episodeTitle,
                     position = 0L,
                     duration = 0L,
@@ -141,64 +128,12 @@ class TvRecommendationManager @Inject constructor(
     }
 
     suspend fun updateSingleWatchNextProgram(progress: WatchProgress) {
-        if (!isTvDevice()) return
-        mutex.withLock {
-            pendingWatchNext = progress
-            if (isPlaybackActive.value) return@withLock
-            pendingWatchNext = null
-            upsertSingleWatchNextLocked(progress)
-        }
+        // All player-close notifications converge on committed repository progress.
+        // Never independently upsert the episode supplied by a closing player.
+        cwRepository.refreshProjection()
     }
 
-    private suspend fun flushPendingWatchNext() {
-        if (!isTvDevice()) return
-        mutex.withLock {
-            if (isPlaybackActive.value) return@withLock
-            val progress = pendingWatchNext ?: return@withLock
-            pendingWatchNext = null
-            upsertSingleWatchNextLocked(progress)
-        }
-    }
 
-    private suspend fun upsertSingleWatchNextLocked(progress: WatchProgress) {
-        withContext(Dispatchers.IO) {
-            if (isPlaybackActive.value) {
-                pendingWatchNext = progress
-                return@withContext
-            }
-            try {
-                val decorated = progress.withCustomPosterArt(recommendationPosterPattern())
-                val id = programBuilder.watchNextId(decorated)
-                val newFingerprint = ProgramFingerprint(
-                    title = decorated.name,
-                    position = decorated.position,
-                    duration = decorated.duration,
-                    poster = decorated.poster,
-                    backdrop = decorated.backdrop,
-                    season = decorated.season,
-                    episode = decorated.episode
-                )
-                val oldFingerprint = syncedFingerprints[id]
-                if (oldFingerprint != null &&
-                    oldFingerprint.title == newFingerprint.title &&
-                    oldFingerprint.poster == newFingerprint.poster &&
-                    oldFingerprint.backdrop == newFingerprint.backdrop &&
-                    oldFingerprint.season == newFingerprint.season &&
-                    oldFingerprint.episode == newFingerprint.episode &&
-                    oldFingerprint.duration == newFingerprint.duration &&
-                    abs(oldFingerprint.position - newFingerprint.position) < 2_000L
-                ) {
-                    return@withContext
-                }
-
-                val program = programBuilder.buildWatchNextProgram(decorated)
-                programBuilder.upsertWatchNextProgram(program, id)
-                syncedFingerprints[id] = newFingerprint
-            } catch (e: Exception) {
-                Log.w(TAG, "updateSingleWatchNextProgram failed", e)
-            }
-        }
-    }
 
     private suspend fun recommendationPosterPattern(): String {
         val pattern = layoutPreferenceDataStore.customPosterUrlPattern.first()
@@ -207,21 +142,8 @@ class TvRecommendationManager @Inject constructor(
     }
 
     suspend fun onProgressRemoved(contentId: String) {
-        if (!isTvDevice()) return
-        mutex.withLock {
-            pendingWatchNext?.let { pending ->
-                if (watchNextIdMatchesContentId(programBuilder.watchNextId(pending), contentId)) {
-                    pendingWatchNext = null
-                }
-            }
-            withContext(Dispatchers.IO) {
-                try {
-                    programBuilder.removeWatchNextByContentId(contentId)
-                    syncedFingerprints.keys.removeAll { watchNextIdMatchesContentId(it, contentId) }
-                } catch (_: Exception) {
-                }
-            }
-        }
+        // Completion is a projection change, not a command to remove the series.
+        cwRepository.refreshProjection()
     }
 
     private fun isTvDevice(): Boolean =

@@ -259,6 +259,7 @@ class TrailerPlayerPool @Inject constructor(
                     }
 
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
+                        if (isPlaying) liveTv.get().releaseNow()
                         _isTrailerPlaying.value = isPlaying
                     }
                 })

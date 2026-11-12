@@ -859,7 +859,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
     private suspend fun publishContinueWatching(profileId: Int, updates: List<WatchProgress>) {
         try {
             cwRepository?.committedProgress(profileId, updates)
-        } catch (cancelled: CancellationException) {
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
         } catch (error: Exception) {
             // The existing progress store is already committed. A projection I/O failure
@@ -1019,12 +1019,12 @@ class WatchProgressRepositoryImpl @Inject constructor(
 
     override suspend fun removeFromHistory(contentId: String, videoId: String?, season: Int?, episode: Int?) {
         val profileId = profileManager.activeProfileId.value
-        if (season == null || episode == null) cwRepository?.remove(setOf(contentId), profileId)
-        else cwRepository?.historyRemoved(profileId, contentId, setOf(season to episode))
         if (season != null && episode != null && tvdbTracking?.isSelected(profileId, contentId) == true) {
             removeSelectedTvdbEpisode(profileId, contentId, videoId, season, episode, history = true)
             return
         }
+        if (season == null || episode == null) cwRepository?.remove(setOf(contentId), profileId)
+        else cwRepository?.historyRemoved(profileId, contentId, setOf(season to episode))
         val remoteDeleteKeys = resolveRemoteDeleteKeys(contentId, season, episode, profileId = profileId)
         val watchedDeleteKey = WatchedMutationKey(contentId, season, episode)
         mutationStore.queueProgressDeletes(remoteDeleteKeys, profileId)
@@ -1070,11 +1070,11 @@ class WatchProgressRepositoryImpl @Inject constructor(
     ) {
         if (episodes.isEmpty()) return
         val profileId = profileManager.activeProfileId.value
-        cwRepository?.historyRemoved(profileId, contentId, episodes.mapTo(mutableSetOf()) { it.first to it.second })
         if (tvdbTracking?.isSelected(profileId, contentId) == true) {
             episodes.forEach { (season, number, id) -> removeSelectedTvdbEpisode(profileId, contentId, id ?: videoId, season, number, history = true) }
             return
         }
+        cwRepository?.historyRemoved(profileId, contentId, episodes.mapTo(mutableSetOf()) { it.first to it.second })
         val episodePairs = episodes.map { (season, episode, _) -> season to episode }
         val remoteDeleteKeys = episodes.map { (season, episode, _) ->
             "${contentId}_s${season}e${episode}"
@@ -1268,6 +1268,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
         val tvdb = tvdbTracking ?: return
         val reference = buildTrackingMediaReference("series", contentId, videoId, seasonNumber = season, episodeNumber = episode)
         val context = tvdb.selectionContext(profileId, reference) ?: return
+        if (history) cwRepository?.historyRemoved(profileId, contentId, emptySet(), context.episodeIds.toSet())
         val media = reference.copy(catalog = reference.catalog?.copy(tvdbContext = context))
         val entries = watchProgressPreferences.getAllRawEntries(profileId)
         val keys = entries.filter { (_, entry) -> entry.contentId == contentId && entry.tvdbContext != null &&

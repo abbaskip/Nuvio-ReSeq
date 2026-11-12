@@ -37,9 +37,14 @@ internal fun HomeViewModel.observeContinueWatchingProjection() {
 }
 
 internal suspend fun HomeViewModel.publishCwEnrichment(lease: CwLease, cards: List<ContinueWatchingItem>) {
+    val ratings = layoutPreferenceDataStore.detailImdbRatingsVisibility.first()
     continueWatchingRepository.enrich(lease,
-        inProgress = cards.mapNotNull { (it as? ContinueWatchingItem.InProgress)?.cachedCard() },
-        nextUp = cards.toCachedNextUpSnapshot(com.nuvio.tv.ui.components.brokenImageUrls))
+        inProgress = cards.mapNotNull { item -> (item as? ContinueWatchingItem.InProgress)?.let {
+            it.cachedCard().copy(ratingVisible = it.progress.contentType !in setOf("series", "tv", "anime") ||
+                ratings.showEpisodeRating(it.progress.isCompleted()))
+        } },
+        nextUp = cards.toCachedNextUpSnapshot(com.nuvio.tv.ui.components.brokenImageUrls)
+            .map { it.copy(ratingVisible = ratings.showEpisodeRating(isWatched = false)) })
 }
 
 internal fun CachedInProgressItem.homeCard(committed: WatchProgress? = null) = ContinueWatchingItem.InProgress(
@@ -48,7 +53,7 @@ internal fun CachedInProgressItem.homeCard(committed: WatchProgress? = null) = C
         episodeTitle, position, duration, lastWatched, progressPercent = progressPercent, tvdbContext = tvdbContext),
     episodeThumbnail = episodeThumbnail, episodeDescription = episodeDescription,
     episodeImdbRating = if (ratingVisible) episodeImdbRating else null, genres = genres,
-    releaseInfo = releaseInfo, contentLanguage = contentLanguage)
+    releaseInfo = releaseInfo, contentLanguage = contentLanguage, chooseEpisode = chooseEpisode)
 
 internal fun CachedNextUpItem.homeCard() = ContinueWatchingItem.NextUp(
     info = NextUpInfo(contentId = contentId, contentType = contentType, name = name, poster = poster,

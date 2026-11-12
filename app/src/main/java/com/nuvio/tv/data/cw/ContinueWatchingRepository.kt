@@ -26,7 +26,8 @@ class ContinueWatchingRepository @Inject constructor(
     private val profiles: ProfileManager,
     private val settings: TraktSettingsDataStore,
     private val progressProvider: Provider<WatchProgressRepository>,
-    private val trackingProviders: Provider<com.nuvio.tv.core.tracking.TrackingProgressProviderRegistry>? = null
+    private val trackingProviders: Provider<com.nuvio.tv.core.tracking.TrackingProgressProviderRegistry>? = null,
+    private val tvdbOrders: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null
 ) {
     private val store = CwProjectionStore(File(context.filesDir, "cw_enrichment"))
     private val mutex = Mutex()
@@ -64,12 +65,12 @@ class ContinueWatchingRepository @Inject constructor(
         mutex.withLock { load(profile, source) }
     }
 
-    private fun load(profile: Int, source: String): CwProjection {
+    private suspend fun load(profile: Int, source: String): CwProjection {
         val old = current
         if (old?.profileId == profile && old.source == source) return old
         val loaded = store.read(profile, source)
         epoch = maxOf(epoch + 1, loaded.epoch + 1)
-        return loaded.copy(epoch = epoch).also { current = it; _projection.value = it }
+        return approveIdentity(loaded.copy(epoch = epoch)).also { current = it; _projection.value = it }
     }
 
     private suspend fun mutate(lease: CwLease, transform: (CwProjection) -> CwProjection): CwProjection =
@@ -79,7 +80,7 @@ class ContinueWatchingRepository @Inject constructor(
                 if (profiles.activeProfileId.value != lease.profileId ||
                     settings.getWatchProgressSource(lease.profileId).name != lease.source ||
                     !CwMembershipReducer.accepts(state, lease)) return@withLock state
-                val next = transform(state)
+                val next = approveIdentity(transform(state))
                 if (next != state) {
                     store.write(next)
                     current = next
@@ -100,24 +101,27 @@ class ContinueWatchingRepository @Inject constructor(
             mutex.withLock {
                 val active = current?.takeIf { it.profileId == profileId && it.source == source }
                 val state = active ?: store.read(profileId, source)
-                val next = CwMembershipReducer.progress(state, updates)
+                val next = approveIdentity(CwMembershipReducer.progress(state, updates))
                 if (next != state) store.write(next)
                 if (active != null) { current = next; _projection.value = next }
             }
         }
     }
 
-    suspend fun remove(contentIds: Set<String>, profileId: Int = profiles.activeProfileId.value) {
+    suspend fun remove(contentIds: Set<String>, profileId: Int = profiles.activeProfileId.value, nextUpOnly: Boolean = false) {
         val state = snapshot()
         if (state.profileId != profileId) return
-        mutate(state.lease) { CwMembershipReducer.remove(it, state.lease,
-            CwRemovalProof(CwRemovalReason.USER_REMOVAL, contentIds, System.currentTimeMillis())) }
+        mutate(state.lease) { current ->
+            val ids = if (nextUpOnly) contentIds.filterTo(mutableSetOf()) { current.members[it]?.inProgress == null } else contentIds
+            CwMembershipReducer.remove(current, state.lease,
+                CwRemovalProof(CwRemovalReason.USER_REMOVAL, ids, System.currentTimeMillis()))
+        }
     }
 
-    suspend fun historyRemoved(profileId: Int, contentId: String, episodes: Set<Pair<Int, Int>>) {
+    suspend fun historyRemoved(profileId: Int, contentId: String, episodes: Set<Pair<Int, Int>>, tvdbIds: Set<Long> = emptySet()) {
         val state = snapshot()
         if (state.profileId != profileId) return
-        mutate(state.lease) { CwMembershipReducer.historyRemoved(it, contentId, episodes, System.currentTimeMillis()) }
+        mutate(state.lease) { CwMembershipReducer.historyRemoved(it, contentId, episodes, System.currentTimeMillis(), tvdbIds) }
     }
 
     suspend fun invalidate(profileId: Int, contentIds: Set<String>) {
@@ -151,5 +155,20 @@ class ContinueWatchingRepository @Inject constructor(
         val next = CwMembershipReducer.progress(CwMembershipReducer.progress(state, seeds, seeds = true), items)
         val hidden = next.members.keys.filterTo(mutableSetOf()) { progress.isDroppedShow(it) }
         return if (hidden == next.hiddenByProvider) next else next.copy(hiddenByProvider = hidden, revision = next.revision + 1)
+    }
+
+    private suspend fun approveIdentity(state: CwProjection): CwProjection {
+        val orders = tvdbOrders?.exportSelections(state.profileId) ?: return state
+        fun unresolved(id: String, context: com.nuvio.tv.domain.model.TvdbPlaybackContext?): Boolean {
+            val series = orders["alias:$id"]?.toLongOrNull()
+            val order = series?.let { orders["order:$it"] }
+            return if (order == null) context != null else context == null || context.seriesId != series || context.orderType != order
+        }
+        val members = state.members.mapValues { (id, member) ->
+            member.copy(
+                inProgress = member.inProgress?.let { if (unresolved(id, it.tvdbContext)) it.copy(chooseEpisode = true) else it },
+                nextUp = member.nextUp?.let { if (unresolved(id, it.tvdbContext)) it.copy(chooseEpisode = true) else it })
+        }
+        return if (members == state.members) state else state.copy(members = members, revision = state.revision + 1)
     }
 }

@@ -43,6 +43,40 @@ class CwMembershipReducerTest {
         assertFalse(resolved.nextUp.single().chooseEpisode)
     }
 
+    @Test fun `a different completion invalidates an offer resolved from an earlier seed`() {
+        val first = progress(complete = true)
+        val initial = state(first)
+        val offered = CwMembershipReducer.enrich(initial, initial.lease, nextUp = listOf(offer(first, 2)))
+        val after = CwMembershipReducer.progress(offered, listOf(progress(time = 2_000, episode = 3, complete = true)))
+        assertTrue(after.nextUp.single().chooseEpisode)
+        assertEquals(3, after.nextUp.single().seedEpisode)
+    }
+
+    @Test fun `current lease cannot offer an older completed episode after a newer completion`() {
+        val first = progress(complete = true)
+        val latest = progress(time = 2_000, episode = 2, complete = true)
+        val after = state(first, latest)
+        assertEquals(after, CwMembershipReducer.enrich(after, after.lease, nextUp = listOf(offer(latest, 1))))
+        val unwatched = CwMembershipReducer.historyRemoved(after, "show", setOf(1 to 1), 3_000)
+        val replay = CwMembershipReducer.progress(unwatched, listOf(first))
+        assertEquals(unwatched, replay)
+        assertEquals(1, CwMembershipReducer.enrich(unwatched, unwatched.lease, nextUp = listOf(offer(latest, 1))).nextUp.single().episode)
+        val rewatch = CwMembershipReducer.progress(unwatched, listOf(progress(time = 4_000)))
+        assertEquals(1, rewatch.inProgress.single().episode)
+    }
+
+    @Test fun `TVDB unwatch revokes only verified IDs without using display coordinates`() {
+        val combined = progress(complete = true).copy(tvdbContext = TvdbPlaybackContext(123, "dvd", 40, 5, 8, listOf(40, 41), "combined"))
+        val latest = progress(time = 2_000, episode = 2, complete = true)
+        val after = state(combined, latest)
+        val unwatched = CwMembershipReducer.historyRemoved(after, "show", emptySet(), 3_000, setOf(40))
+        val firstPart = offer(latest, 7).copy(tvdbEpisodeId = 40)
+        val secondPart = firstPart.copy(tvdbEpisodeId = 41)
+        assertEquals(40L, CwMembershipReducer.enrich(unwatched, unwatched.lease, nextUp = listOf(firstPart)).nextUp.single().tvdbEpisodeId)
+        assertEquals(unwatched, CwMembershipReducer.enrich(unwatched, unwatched.lease, nextUp = listOf(secondPart)))
+        assertEquals(unwatched, CwMembershipReducer.progress(unwatched, listOf(combined)))
+    }
+
     @Test fun `identity timeout missing key unavailable metadata and cancellation have no deletion input`() {
         val pending = state(progress(complete = true))
         listOf("timeout", "401", "503", "cancelled", "missing key", "trim").forEach { _ ->

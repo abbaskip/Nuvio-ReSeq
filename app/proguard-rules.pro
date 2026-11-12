@@ -21,6 +21,7 @@
 -keep class com.nuvio.tv.data.local.CachedInProgressItem { *; }
 -keep class com.nuvio.tv.data.cw.CwProjection { *; }
 -keep class com.nuvio.tv.data.cw.CwMember { *; }
+-keep class com.nuvio.tv.data.cw.CwCompletion { *; }
 # These queued native tracking writes are also persisted with Gson.
 -keep class com.nuvio.tv.core.sync.PendingProgressUpsert { *; }
 -keep class com.nuvio.tv.core.sync.PendingWatchedUpsert { *; }

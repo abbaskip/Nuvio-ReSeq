@@ -47,4 +47,22 @@ class CwProjectionStoreTest {
         val restored = store.read(1, "TRAKT")
         assertEquals(removed, CwMembershipReducer.progress(restored, listOf(p)))
     }
+
+    @Test fun `older completed episodes remain protected after process restart`() {
+        val store = CwProjectionStore(folder.root)
+        val first = p.copy(position = 100)
+        val second = first.copy(videoId = "show:1:2", episode = 2, lastWatched = 2_000)
+        store.write(CwMembershipReducer.progress(store.read(1, "TRAKT"), listOf(first, second)))
+        val restored = CwProjectionStore(folder.root).read(1, "TRAKT")
+        val stale = second.seriesChoice().copy(videoId = first.videoId, season = 1, episode = 1, chooseEpisode = false)
+        assertEquals(restored, CwMembershipReducer.enrich(restored, restored.lease, nextUp = listOf(stale)))
+    }
+
+    @Test fun `projection without completion ledger still loads nondestructively`() {
+        val store = CwProjectionStore(folder.root)
+        val before = CwMembershipReducer.progress(store.read(1, "TRAKT"), listOf(p))
+        val json = Gson().toJsonTree(before).asJsonObject.apply { remove("completed") }
+        File(folder.root, "projection_1_TRAKT.json").writeText(json.toString())
+        assertEquals(before, store.read(1, "TRAKT"))
+    }
 }

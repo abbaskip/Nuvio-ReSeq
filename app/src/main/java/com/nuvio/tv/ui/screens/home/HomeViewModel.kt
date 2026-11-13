@@ -152,7 +152,7 @@ class HomeViewModel @Inject constructor(
 
     // Pending batch of watched status updates — debounced before emission.
     internal val _pendingWatchedBatch = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    /** True once the CW pipeline has completed its first emission (items or empty). */
+    /** True only after the owned CW projection has been published into Home state (cards or empty). */
     internal val _initialCwResolved = MutableStateFlow(false)
     val initialCwResolved: StateFlow<Boolean> = _initialCwResolved.asStateFlow()
     val effectiveAutoplayEnabled = playerSettingsDataStore.playerSettings

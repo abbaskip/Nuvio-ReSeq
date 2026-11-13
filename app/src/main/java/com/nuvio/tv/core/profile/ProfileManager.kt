@@ -32,6 +32,9 @@ class ProfileManager @Inject constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /** Persisted selection, with no synthetic primary-profile emission during startup. */
+    val resolvedActiveProfileId = profileDataStore.activeProfileId
+
     val activeProfileId: StateFlow<Int> = profileDataStore.activeProfileId
         .stateIn(scope, SharingStarted.Eagerly, 1)
 

@@ -23,7 +23,7 @@ class ContinueWatchingRepositoryTest {
     private val source = MutableStateFlow(WatchProgressSource.TRAKT)
     private val remote = MutableStateFlow(emptyList<WatchProgress>())
     private val seeds = MutableStateFlow(emptyList<WatchProgress>())
-    private val profiles = mockk<ProfileManager> { every { activeProfileId } returns profile }
+    private val profiles = mockk<ProfileManager> { every { resolvedActiveProfileId } returns profile; every { activeProfileId } returns profile }
     private val settings = mockk<TraktSettingsDataStore> {
         coEvery { getWatchProgressSource(any()) } answers { source.value }
         every { watchProgressSource } returns source

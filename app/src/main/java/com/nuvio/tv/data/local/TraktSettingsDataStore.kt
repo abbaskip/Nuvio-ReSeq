@@ -118,6 +118,10 @@ class TraktSettingsDataStore @Inject constructor(
         }
     }.stateIn(scope, SharingStarted.Eagerly, DEFAULT_WATCH_PROGRESS_SOURCE)
 
+    /** Profile-bound source that waits for the stored preference instead of emitting a default. */
+    fun resolvedWatchProgressSource(profileId: Int): Flow<WatchProgressSource> =
+        store(profileId).data.map { WatchProgressSource.fromStorage(it[watchProgressSourceKey]) }
+
     suspend fun getWatchProgressSource(profileId: Int): WatchProgressSource =
         WatchProgressSource.fromStorage(store(profileId).data.first()[watchProgressSourceKey])
 

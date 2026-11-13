@@ -112,7 +112,17 @@ class ShuffleHomeRefreshTest {
     private fun StateFlow<HomeUiState>.onlyCard() = value.continueWatchingItems.single()
     private fun TestScope.minute() { advanceTimeBy(60_000); runCurrent() }
 
-    @Test fun leavingHomeStopsProjectionAndResumesWithCurrentInputs() = runTest {
+    @Test fun firstCardsDoNotWaitForTrackerHistoryOrShuffleDecoration() = runTest {
+        setup()
+        every { vm.watchProgressRepository.watchedItems } returns emptyFlow()
+        val home = home()
+        assertEquals(snapshot.continueWatchingItems, home.value.continueWatchingItems)
+        native.value = HomeUiState()
+        runCurrent()
+        assertTrue("an explicit removal must also publish without history", home.value.continueWatchingItems.isEmpty())
+    }
+
+    @Test fun leavingHomeStopsDecorationButRetainedStateKeepsUpdating() = runTest {
         setup()
         val home = home()
         val before = home.value
@@ -121,7 +131,9 @@ class ShuffleHomeRefreshTest {
         native.value = snapshot.copy(selectedItemId = "on-demand")
         refresh.update { it.copy(visit = 2) }
         minute()
-        assertSame("hidden Home must not rebuild its episode catalogues", before, home.value)
+        assertEquals("on-demand", home.value.selectedItemId)
+        assertEquals(before.continueWatchingItems.map { it.contentId() }, home.value.continueWatchingItems.map { it.contentId() })
+        assertTrue("hidden Home must not fetch episode catalogues", requests.isEmpty())
         homeActive.value = true
         runCurrent()
         assertEquals("on-demand", home.value.selectedItemId)

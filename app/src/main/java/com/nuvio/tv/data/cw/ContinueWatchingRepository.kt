@@ -43,7 +43,7 @@ class ContinueWatchingRepository @Inject constructor(
     fun start() {
         if (!started.compareAndSet(false, true)) return
         scope.launch {
-            combine(profiles.activeProfileId, settings.watchProgressSource) { profile, source -> profile to source }
+            observeProjection().map { it.profileId to it.source }.distinctUntilChanged()
                 .collectLatest {
                     val lease = snapshot().lease
                     val progress = progressProvider.get()
@@ -59,8 +59,16 @@ class ContinueWatchingRepository @Inject constructor(
         }
     }
 
+    /** Loading the durable projection is independent of progress, Home visibility and enrichment. */
+    fun observeProjection(): Flow<CwProjection> = scopedCwProjections(
+        profiles.resolvedActiveProfileId,
+        { profile -> settings.resolvedWatchProgressSource(profile).map { it.name } },
+        { profile, source -> withContext(Dispatchers.IO) { mutex.withLock { load(profile, source) } } },
+        projection
+    )
+
     suspend fun snapshot(): CwProjection = withContext(Dispatchers.IO) {
-        val profile = profiles.activeProfileId.value
+        val profile = profiles.resolvedActiveProfileId.first()
         val source = settings.getWatchProgressSource(profile).name
         mutex.withLock { load(profile, source) }
     }

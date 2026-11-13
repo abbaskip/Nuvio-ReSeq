@@ -579,7 +579,6 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                     val (mainItems, upcomingOnly) = splitUpcomingItems(initialItems, continueWatchingSortMode)
 
                     publishCwEnrichment(pipelineLease, mainItems + upcomingOnly)
-                    _initialCwResolved.value = true
                     debug.recordInitialRendered(
                         count = initialItems.size,
                         elapsedMs = SystemClock.elapsedRealtime() - cycleStartMs
@@ -987,13 +986,8 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                     count = normalItems.size,
                     elapsedMs = SystemClock.elapsedRealtime() - cycleStartMs
                 )
-                // Signal that the first CW cycle completed (items or confirmed empty).
-                if (!_initialCwResolved.value) {
-                    val hasRealData = normalItems.isNotEmpty() || !useTrackingProvider || items.isNotEmpty()
-                    if (hasRealData) {
-                        _initialCwResolved.value = true
-                    }
-                }
+                // Enrichment completion is not UI publication. Only the projection collector
+                // resolves CW, after it has written the committed cards into Home state.
 
                 // Rich metadata only runs after the final lightweight CW list is visible.
                 // If TMDB enrichment is enabled for CW, skip grace period to avoid

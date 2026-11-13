@@ -17,7 +17,7 @@ class TvdbContinueWatchingCacheTest {
 
     @Test fun `changing Office order retains its last snapshot until replacement across restart and profiles`() = runTest {
         val profile = MutableStateFlow(1)
-        val profiles = mockk<ProfileManager> { every { activeProfileId } returns profile }
+        val profiles = mockk<ProfileManager> { every { resolvedActiveProfileId } returns profile; every { activeProfileId } returns profile }
         val context = mockk<Context> { every { filesDir } returns folder.root }
         val settings = mockk<TraktSettingsDataStore> {
             coEvery { getWatchProgressSource(any()) } returns WatchProgressSource.TRAKT

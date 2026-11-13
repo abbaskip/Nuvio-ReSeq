@@ -14,18 +14,13 @@ internal val HomeViewModel.continueWatchingRepository get() = cwEnrichmentCache.
 /** The only publication path into Home's CW lists. Metadata workers cannot remove members. */
 internal fun HomeViewModel.observeContinueWatchingProjection() {
     viewModelScope.launch {
-        val scoped = combine(continueWatchingRepository.projection.filterNotNull(), profileManager.activeProfileId,
-            traktSettingsDataStore.watchProgressSource) { state, profile, source ->
-            if (state.profileId == profile && state.source == source.name) state
-            else com.nuvio.tv.data.cw.CwProjection(profileId = profile, source = source.name)
-        }
+        val scoped = continueWatchingRepository.observeProjection()
         combine(scoped,
             traktSettingsDataStore.continueWatchingDaysCap, traktSettingsDataStore.dismissedNextUpKeys,
             layoutPreferenceDataStore.showUnairedNextUp, layoutPreferenceDataStore.continueWatchingSortMode
         ) { state, days, dismissed, unaired, sort ->
             CwMembershipReducer.visible(state, days, dismissed, unaired, System.currentTimeMillis()) to sort
         }.collect { (state, sort) ->
-            if (state.profileId != profileManager.activeProfileId.value) return@collect
             val cards = applyContinueWatchingEnrichmentOverlay(state.members.values.mapNotNull { member ->
                 member.inProgress?.homeCard(member.progress) ?: member.nextUp?.homeCard()
             })

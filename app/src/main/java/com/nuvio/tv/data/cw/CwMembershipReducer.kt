@@ -87,7 +87,11 @@ object CwMembershipReducer {
         val removals = state.removals.toMutableMap()
         val completed = state.completed.toMutableMap()
         updates.sortedBy { it.lastWatched }.forEach { p ->
-            if (p.lastWatched <= (state.ignoredProgress[p.historyKey()] ?: Long.MIN_VALUE)) return@forEach
+            // Read old episode-specific replay markers too. A legacy series-only videoId
+            // is ambiguous and must never suppress every episode in that show's history.
+            val legacyIgnored = if (p.videoId != p.contentId) state.ignoredProgress[p.legacyHistoryKey()] else null
+            if (p.lastWatched <= maxOf(state.ignoredProgress[p.historyKey()] ?: Long.MIN_VALUE, legacyIgnored ?: Long.MIN_VALUE) ||
+                p.tvdbContentIds.any { p.lastWatched <= (state.ignoredProgress[tvdbRemovalKey(p.contentId, it)] ?: Long.MIN_VALUE) }) return@forEach
             if (p.lastWatched <= (removals[p.contentId] ?: Long.MIN_VALUE)) return@forEach
             if (p.isCompleted()) {
                 val records = completed[p.contentId].orEmpty()
@@ -97,7 +101,10 @@ object CwMembershipReducer {
                     completed[p.contentId] = records + (record.historyKey to record)
             }
             val old = members[p.contentId]
-            val priorActivity = old?.progress?.lastWatched ?: old?.inProgress?.lastWatched ?: old?.nextUp?.lastWatched
+            // A retained series placeholder (including one saved by local.1 after unwatch)
+            // has presentation recency, not committed progress that can reject older history.
+            val priorActivity = old?.progress?.lastWatched ?: old?.inProgress?.lastWatched ?:
+                old?.nextUp?.takeUnless { it.chooseEpisode }?.lastWatched
             if (priorActivity != null && p.lastWatched < priorActivity) return@forEach
             if (old?.progress != null && p.lastWatched < old.progress.lastWatched) return@forEach
             // An identical remote replay cannot undo a locally committed completion.
@@ -188,10 +195,17 @@ object CwMembershipReducer {
         val member = state.members[contentId]
         val p = member?.progress
         val reset = p != null && removed(p.season, p.episode, p.tvdbContentIds)
+        // A provider may use the series videoId for every seed. Revoke episode identities,
+        // not that shared videoId, and cover stale replays absent from our compact evidence.
+        val removedKeys = if (tvdbIds.isNotEmpty()) tvdbIds.map { tvdbRemovalKey(contentId, it) }
+            else episodes.map { (season, episode) -> episodeHistoryKey(contentId, season, episode) }
         val ignored = state.ignoredProgress + revoked.keys.associateWith { at } +
-            if (reset) mapOf(p!!.historyKey() to at) else emptyMap()
-        val members = if (reset) state.members + (contentId to CwMember(nextUp = p!!.seriesChoice(), changedAtRevision = state.revision + 1))
-            else state.members
+            removedKeys.associateWith { at } + if (reset) mapOf(p!!.historyKey() to at) else emptyMap()
+        // The revoked seed's activity is not a watermark for the remaining history. Let
+        // the existing committed seed flow and normal resolver rebuild this member (including
+        // selected TVDB order/furthest rules). No remaining seeds means no card, as in 9.7.
+        // Do not install a whole-show removal tombstone: older episodes remain valid support.
+        val members = if (reset) state.members - contentId else state.members
         return invalidate(state.copy(ignoredProgress = ignored,
             completed = state.completed + (contentId to remaining), members = members), setOf(contentId))
     }
@@ -215,7 +229,12 @@ object CwMembershipReducer {
     }
 }
 
-private fun WatchProgress.historyKey() = "$contentId|$videoId|${tvdbContentIds.sorted().joinToString(",")}"
+private fun episodeHistoryKey(contentId: String, season: Int, episode: Int) = "$contentId|episode:$season:$episode|"
+private fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"
+private fun WatchProgress.historyKey() = if (tvdbContentIds.isEmpty() && season != null && episode != null)
+    episodeHistoryKey(contentId, season, episode)
+else legacyHistoryKey()
+private fun WatchProgress.legacyHistoryKey() = "$contentId|$videoId|${tvdbContentIds.sorted().joinToString(",")}"
 
 internal fun WatchProgress.cached(old: CachedInProgressItem? = null) = CachedInProgressItem(
     contentId, contentType, name, poster ?: old?.poster, backdrop ?: old?.backdrop, logo ?: old?.logo,

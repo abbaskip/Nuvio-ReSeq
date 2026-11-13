@@ -214,8 +214,15 @@ class StabilityJourneyActivity : ComponentActivity() {
                             SportsLaunch.openEvent(target.id)
                         }
                         if (action == "preview") {
+                            // This activity bypasses LiveTvViewModel, including after the forced
+                            // cold restart. Mirror its cache initialization before requesting playback.
+                            live.ensureLoaded()
+                            val channels = checkNotNull(withTimeoutOrNull(30_000) {
+                                live.channels.first { it.isNotEmpty() }
+                            }) { "Fixture Live TV channels did not load after initialization" }
+                            Diag.event("preview-source-ready", mapOf("channels" to channels.size))
                             playback.attach().volume = 0f
-                            playback.play(live.channels.first { it.isNotEmpty() }.first())
+                            playback.play(channels.first())
                         }
                         route = action
                     }

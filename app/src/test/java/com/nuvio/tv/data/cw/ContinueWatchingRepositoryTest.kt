@@ -108,15 +108,34 @@ class ContinueWatchingRepositoryTest {
         assertTrue(owner.snapshot().members.isEmpty())
     }
 
-    @Test fun `history removal revokes completion evidence without dropping supported series`() = runTest {
+    @Test fun `removing the only watched episode drops the card and rejects its stale replay`() = runTest {
         val owner = repository()
         owner.snapshot()
         owner.committedProgress(1, listOf(p().copy(position = 100)))
         owner.historyRemoved(1, "show", setOf(1 to 1))
         remote.value = listOf(p().copy(position = 100))
         owner.refreshProjection()
-        assertNull(owner.snapshot().members.getValue("show").progress)
+        assertTrue(owner.snapshot().members.isEmpty())
+        assertTrue(repository().snapshot().members.isEmpty())
+    }
+
+    @Test fun `latest unwatch rehydrates older committed history and persists its recomputed offer`() = runTest {
+        val owner = repository()
+        owner.snapshot()
+        val earlier = p(4, 1000).copy(position = 100, videoId = "show")
+        val latest = p(5, 2000).copy(position = 100, videoId = "show")
+        owner.committedProgress(1, listOf(earlier, latest))
+        val oldLease = owner.snapshot().lease
+        owner.historyRemoved(1, "show", setOf(1 to 5))
+        seeds.value = listOf(earlier)
+        remote.value = listOf(latest) // delayed provider replay of the revoked episode
+        owner.refreshProjection()
+        assertEquals(earlier, owner.snapshot().members.getValue("show").progress)
+        val offer = earlier.seriesChoice().copy(videoId = "show:1:5", season = 1, episode = 5, chooseEpisode = false)
+        owner.enrich(oldLease, nextUp = listOf(offer.copy(episode = 6)))
         assertTrue(owner.snapshot().nextUp.single().chooseEpisode)
+        owner.enrich(owner.snapshot().lease, nextUp = listOf(offer))
+        assertEquals(offer, repository().snapshot().nextUp.single())
     }
 
     @Test fun `selected TVDB order without verified identity retains series choice until compatible progress arrives`() = runTest {

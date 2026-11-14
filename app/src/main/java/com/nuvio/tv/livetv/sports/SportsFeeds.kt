@@ -483,7 +483,13 @@ internal class SportsFeeds {
             var away: Side? = null
             for (c in 0 until competitors.length()) {
                 val co = competitors.optJSONObject(c) ?: continue
-                val team = team(league, co.optJSONObject("team"), co.optJSONObject("athlete")) ?: continue
+                val feedTeam = team(league, co.optJSONObject("team"), co.optJSONObject("athlete")) ?: continue
+                // Bilateral series can mix formats under one league; ESPN labels each match.
+                val matchFormat = listOfNotNull(comp.str("description"), headline,
+                    comp.optJSONObject("type")?.str("text"), comp.optJSONObject("type")?.str("abbreviation"))
+                    .joinToString(" ")
+                val team = SportsCricketColors.color(feedTeam, league, matchFormat)
+                    ?.let { feedTeam.copy(color = it, altColor = it) } ?: feedTeam
                 val scoreAny = co.opt("score")
                 val score = when (scoreAny) {
                     is JSONObject -> scoreAny.str("displayValue")

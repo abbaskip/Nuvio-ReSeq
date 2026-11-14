@@ -1759,7 +1759,7 @@ internal suspend fun HomeViewModel.selectedOrderSeed(seed: WatchProgress): Watch
     val snapshot = withTimeoutOrNull(8_000L) {
         watchProgressRepository.getAllEpisodeProgress(seed.contentId).first()
     } ?: return null
-    val completed = snapshot.values.filter { it.isCompleted() } + seed
+    val completed = snapshot.values.filter { it.isCompleted() }
     val resolved = completed.mapNotNull { entry ->
         com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(videos, entry)
             ?.takeIf { (it.displaySeason ?: 0) > 0 }?.let { it to entry }

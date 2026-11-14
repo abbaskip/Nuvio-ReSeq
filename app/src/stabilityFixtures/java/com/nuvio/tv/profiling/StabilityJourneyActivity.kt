@@ -138,6 +138,8 @@ class StabilityJourneyActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 when (action) {
+                    "tracker-unwatch-seed" -> seedTrackerUnwatch()
+                    "tracker-unwatch-latest" -> removeTrackerEpisode()
                     "unwatch-seed", "unwatch-seed-history" -> {
                         unwatchRetainedResume = action == "unwatch-seed"
                         seedUnwatch()
@@ -299,6 +301,62 @@ class StabilityJourneyActivity : ComponentActivity() {
         val movies = vod.categories(VodKind.MOVIE).filter { it.name == "Fixture movies" }.sumOf { it.count }
         check(movies == 20_000) { "Expected 20000 fixture movies, imported $movies" }
         Diag.event("seed-complete", mapOf("channels" to live.channels.value.size, "movies" to movies))
+    }
+
+    private suspend fun seedTrackerUnwatch() {
+        profiles.activeProfileReady.first { it }
+        addonPrefs.removeAddon("https://v3-cinemeta.strem.io")
+        addonPrefs.removeAddon("https://opensubtitles-v3.strem.io")
+        addons.addAddon("$HTTP/addon/manifest.json")
+        withTimeout(30_000) { addons.awaitInstalledAddons(setOf("stability.fixture")) }
+        orders.save(1, 9901, "dvd", listOf(SHOWS[1]))
+        tvdb.save(1, "synthetic-fixture-key")
+        layout.setNextUpFromFurthestEpisode(false)
+        auth.saveToken(TraktTokenResponseDto("fixture-token", "bearer", 86400, "fixture-refresh",
+            createdAt = System.currentTimeMillis() / 1000))
+        auth.saveUser("fixture", "fixture")
+        tracking.setWatchProgressSource(WatchProgressSource.TRAKT)
+        check(refresh.refreshConnected(TrackingRefreshIntent.INVALIDATED).isEmpty())
+        val details = ViewModelProvider(this)[com.nuvio.tv.ui.screens.detail.MetaDetailsViewModel::class.java]
+        unwatchDetails = details
+        val state = withTimeout(60_000) { details.uiState.first { state ->
+            val video = state.meta?.videos?.singleOrNull { it.displayEpisode == 5 }
+            video != null && video.episodeIdentity?.trackingEpisodeId == 990103L &&
+                state.episodeProgressMap[video.season to video.episode]?.isCompleted() == true
+        } }
+        check(state.meta!!.videos.single { it.displayEpisode == 4 }.episodeIdentity?.trackingEpisodeId == 990104L)
+        route = "home"
+        home.setHomeContentActive(true)
+        awaitTrackerCard(6)
+        sampleUnwatch("tracker-before")
+    }
+
+    private suspend fun awaitTrackerCard(episode: Int) {
+        withTimeout(90_000) { home.uiState.first { state -> state.continueWatchingItems.any {
+            it is ContinueWatchingItem.NextUp && it.info.contentId == SHOWS[1] && !it.chooseEpisode &&
+                it.info.tvdbContext?.episode == episode
+        } } }
+    }
+
+    private suspend fun removeTrackerEpisode() {
+        val details = checkNotNull(unwatchDetails)
+        val video = details.uiState.value.meta!!.videos.single { it.displayEpisode == 5 }
+        home.setHomeContentActive(false)
+        route = "details"
+        details.onEvent(com.nuvio.tv.ui.screens.detail.MetaDetailsEvent.OnToggleEpisodeWatched(video))
+        delay(5_000)
+        route = "home"
+        home.setHomeContentActive(true)
+        val remaining = progress.getAllEpisodeProgress(SHOWS[1]).first().values.filter { it.isCompleted() }
+        Diag.event("tracker-remaining", mapOf("episodes" to remaining.map { it.tvdbContext?.episode }))
+        try {
+            awaitTrackerCard(5)
+        } finally {
+            sampleUnwatch("tracker-after")
+        }
+        check(progress.getAllEpisodeProgress(SHOWS[1]).first().values.filter { it.isCompleted() }
+            .map { it.tvdbContext?.episode }.toSet() == setOf(4, 7))
+        Diag.event("unwatch-assertions-passed", mapOf("tracker" to true))
     }
 
     private suspend fun seedUnwatch() {

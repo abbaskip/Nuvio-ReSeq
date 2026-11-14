@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import subprocess
 import time
+from urllib.request import urlopen
 
 
 def main():
@@ -18,6 +19,7 @@ def main():
     parser.add_argument('--package', default='io.github.abbaskip.nuvioreseq.iptvdebug',
                         choices=['io.github.abbaskip.nuvioreseq.iptvdebug', 'io.github.abbaskip.nuvioreseq.debug'])
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--scenario', choices=['local', 'tracker'], default='local')
     args = parser.parse_args()
     if not args.serial.startswith('emulator-'):
         parser.error('Synthetic emulator only; physical TVs are forbidden')
@@ -32,11 +34,17 @@ def main():
     # Only the separate fixture app is restarted, never the release package.
     adb('shell', 'am', 'force-stop', args.package)
     result = []
-    for scenario in ('resume', 'history'):
+    scenarios = ('tracker',) if args.scenario == 'tracker' else ('resume', 'history')
+    if args.scenario == 'tracker':
+        with urlopen('http://127.0.0.1:38791/control?trackerUnwatch=true', timeout=5) as response:
+            assert json.load(response)['trackerUnwatch']
+    for scenario in scenarios:
         directory = args.output / scenario
         directory.mkdir(exist_ok=True)
-        for action, capture in (('unwatch-seed' if scenario == 'resume' else 'unwatch-seed-history', 'before'),
-                                ('unwatch-latest', 'after')):
+        actions = {'tracker': ('tracker-unwatch-seed', 'tracker-unwatch-latest'),
+                   'resume': ('unwatch-seed', 'unwatch-latest'),
+                   'history': ('unwatch-seed-history', 'unwatch-latest')}
+        for action, capture in zip(actions[scenario], ('before', 'after')):
             adb('logcat', '-c')
             adb('shell', 'am', 'start', '-n', args.package+'/com.nuvio.tv.profiling.StabilityJourneyActivity',
                 '--es', 'itemId', 'tt9900002', '--es', 'itemType', 'series', '--es', 'journey', action)
@@ -61,6 +69,9 @@ def main():
                         assert any(e.get('kind') == 'unwatch-assertions-passed' for e in events), 'Missing assertions'
                     break
                 time.sleep(2)
+        if scenario == 'tracker':
+            with urlopen('http://127.0.0.1:38791/stats', timeout=5) as response:
+                assert json.load(response)['requests']['tracker-removed-episodes'] == 1
         result.append({'scenario': scenario, 'passed': True})
         print(f'{scenario}: PASS', flush=True)
     (args.output/'result.json').write_text(json.dumps(result, indent=2), encoding='utf-8')

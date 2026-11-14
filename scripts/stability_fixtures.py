@@ -22,6 +22,24 @@ COUNTS = Counter()
 LOCK = Lock()
 STATE = {"tvdb": "available", "completed": False, "slowImport": False}
 SHOWS = ["tt9900001", "tt9900002", "tt9900003"]
+# A tracker-backed alternate order. Native E3 is display E5; native E7
+# was watched earlier than E4, exercising latest-by-time with a later badge.
+TRACKER_TITLES = ['The Arrival', 'Broken Compass', 'North Crossing', 'Open Water',
+                  'Old Friends', 'The Return', 'Lost Weekend', 'Second Chance']
+TRACKER_DVD = [1, 2, 5, 4, 3, 6, 7, 8]
+TRACKER_HISTORY = {}
+
+
+def tracker_time(seconds_ago):
+    return (datetime.now(timezone.utc) - timedelta(seconds=seconds_ago)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
+def tracker_episode(number):
+    return {'season': 1, 'number': number, 'title': TRACKER_TITLES[number-1],
+            'first_aired': '2020-01-01T00:00:00Z',
+            'ids': {'trakt': 100+number, 'tvdb': 990100+number}}
+
+
 PART_BYTES = 262144
 TOTAL_BYTES = PART_BYTES * 32
 
@@ -50,6 +68,10 @@ def now_iso():
 
 
 def meta(show):
+    if STATE.get('trackerUnwatch') and show == SHOWS[1]:
+        return {'id': show, 'imdb_id': show, 'type': 'series', 'name': 'Fixture ' + show,
+                'videos': [dict(tracker_episode(i), id=f'{show}:1:{i}', episode=i,
+                                released='2020-01-01T00:00:00.000Z') for i in range(1, 9)]}
     return {"id": show, "type": "series", "name": "Fixture " + show,
             "videos": [{"id": f"{show}:1:{i}", "title": f"Episode {i}", "season": 1,
                         "episode": i, "released": "2020-01-01T00:00:00.000Z"} for i in range(1, 9)]}
@@ -106,8 +128,20 @@ class Web(base.Web):
 
     def do_POST(self):
         # Deliberately never log request bodies or authorization headers.
-        self.rfile.read(int(self.headers.get('Content-Length', 0)))
+        body = self.rfile.read(int(self.headers.get('Content-Length', 0)))
         path = urlsplit(self.path).path
+        if STATE.get('trackerUnwatch') and path == '/trakt/sync/history/remove':
+            data = json.loads(body)
+            removed = 0
+            with LOCK:
+                for show in data.get('shows', []):
+                    if show['ids'].get('imdb') == SHOWS[1] or show['ids'].get('trakt') == 2:
+                        for season in show['seasons']:
+                            for episode in season['episodes']:
+                                if season['number'] == 1 and TRACKER_HISTORY.pop(episode['number'], None):
+                                    removed += 1
+                COUNTS['tracker-removed-episodes'] += removed
+            return self.send_json({'deleted': {'episodes': removed}})
         if path == '/tvdb/v4/login':
             return self.send_json({'status': 'success', 'data': {'token': 'fixture-token'}})
         if path.startswith('/trakt/scrobble/'):
@@ -120,6 +154,12 @@ class Web(base.Web):
         with LOCK:
             COUNTS[path] += 1
         if path == '/control':
+            if 'trackerUnwatch' in query:
+                with LOCK:
+                    STATE['trackerUnwatch'] = query['trackerUnwatch'][0] == 'true'
+                    TRACKER_HISTORY.clear()
+                    TRACKER_HISTORY.update({7: tracker_time(3600), 4: tracker_time(600), 3: tracker_time(60)})
+                    COUNTS['tracker-removed-episodes'] = 0
             if 'tvdb' in query:
                 STATE['tvdb'] = query['tvdb'][0]
             if 'completed' in query:
@@ -180,6 +220,12 @@ class Web(base.Web):
                 return self.send_json({}, 503)
             if STATE['tvdb'] == 'invalid':
                 return self.send_json({}, 401)
+            if STATE.get('trackerUnwatch') and '/episodes/' in path:
+                order = TRACKER_DVD if '/dvd' in path else range(1, 9)
+                return self.send_json({'status': 'success', 'data': {'episodes': [
+                    {'id': 990100+i, 'seasonNumber': 1, 'number': slot,
+                     'name': TRACKER_TITLES[i-1], 'aired': '2020-01-01', 'runtime': 45}
+                    for slot, i in enumerate(order, 1)]}, 'links': {'next': None}})
             if '/episodes/' in path:
                 return self.send_json({'status': 'success', 'data': {'episodes': [
                     {'id': 990100+i, 'seasonNumber': 1, 'number': i, 'name': f'Episode {i}',
@@ -218,6 +264,26 @@ class Web(base.Web):
     def trakt(self, path):
         shows = [{'title': 'Fixture '+s, 'year': 2020, 'ids': {'trakt': i+1, 'imdb': s, 'tvdb': 9901+i}}
                  for i, s in enumerate(SHOWS)]
+        if STATE.get('trackerUnwatch'):
+            show = shows[1]
+            if path.endswith('/search/imdb/'+SHOWS[1]):
+                return self.send_json([{'type': 'show', 'show': show}])
+            if path.endswith('/shows/2/seasons'):
+                return self.send_json([{'number': 1, 'episodes': [tracker_episode(i) for i in range(1, 9)]}])
+            with LOCK:
+                history = dict(TRACKER_HISTORY)
+            if path.endswith('/watched/shows'):
+                if parse_qs(urlsplit(self.path).query).get('page', ['1']) != ['1']:
+                    return self.send_json([])
+                return self.send_json([{'plays': len(history), 'show': show, 'last_watched_at': max(history.values()),
+                    'seasons': [{'number': 1, 'episodes': [{'number': i, 'plays': 1, 'last_watched_at': t}
+                                                           for i, t in history.items()]}]}])
+            if '/progress/watched' in path:
+                return self.send_json({'aired': 8, 'completed': len(history), 'seasons': [{'number': 1,
+                    'episodes': [{'number': i, 'completed': i in history, 'last_watched_at': history.get(i)}
+                                 for i in range(1, 9)]}]})
+            if '/sync/playback' in path or '/sync/history' in path:
+                return self.send_json([])
         ep = {'season': 1, 'number': 1, 'title': 'Episode 1', 'ids': {'trakt': 101, 'tvdb': 990101}}
         if path.endswith('/last_activities'):
             return self.send_json({'all': now_iso(), 'episodes': {'watched_at': now_iso(), 'paused_at': now_iso()}})

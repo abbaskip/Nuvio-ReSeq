@@ -39,25 +39,40 @@ import kotlinx.coroutines.launch
 
 internal data class HomeShuffleRefresh(val visit: Long = System.nanoTime(), val metadata: Int = 0)
 
+/** Decoration belongs to the exact durable card list it was calculated from. */
+internal data class HomeCwDecoration(
+    val input: Pair<List<ContinueWatchingItem>, List<ContinueWatchingItem>>,
+    val cards: HomeUiState
+)
+
+internal fun mergeHomeCwDecoration(state: HomeUiState, decoration: HomeCwDecoration?): HomeUiState =
+    if (decoration == null || decoration.input != (state.continueWatchingItems to state.upcomingItems)) state
+    else state.copy(continueWatchingItems = decoration.cards.continueWatchingItems,
+        upcomingItems = decoration.cards.upcomingItems)
+
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 internal fun HomeViewModel.createShuffleHomeState(
     projectionDispatcher: CoroutineDispatcher = Dispatchers.Default
-): StateFlow<HomeUiState> = homeContentActive.flatMapLatest { active ->
-    if (!active) emptyFlow() else flow {
-        coroutineScope {
-            // These jobs belong to the visible Home visit, including retries and seed collection.
-            val finished = finishedShuffleSeeds().stateIn(this, SharingStarted.Eagerly, 0 to emptyList())
-            requestHomeShuffleMetadata(finished, this)
-            emitAll(projectShuffleHomeState(finished, projectionDispatcher))
+): StateFlow<HomeUiState> {
+    val decoration = homeContentActive.flatMapLatest { active ->
+        flow<HomeCwDecoration?> {
+            emit(null)
+            if (active) coroutineScope {
+                // Only optional decoration/metadata work is visibility-gated. Retained cards are not.
+                val finished = finishedShuffleSeeds().stateIn(this, SharingStarted.Eagerly, 0 to emptyList())
+                requestHomeShuffleMetadata(finished, this)
+                emitAll(projectShuffleHomeState(finished, projectionDispatcher))
+            }
         }
-    }
-}.stateIn(viewModelScope, SharingStarted.Eagerly, HomeUiState())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    return combine(_uiState, decoration, ::mergeHomeCwDecoration)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, _uiState.value)
+}
 
 private fun HomeViewModel.projectShuffleHomeState(
     finished: StateFlow<Pair<Int, List<WatchProgress>>>,
     projectionDispatcher: CoroutineDispatcher
-): Flow<HomeUiState> {
-    val projected = combine(
+): Flow<HomeCwDecoration> = combine(
         _uiState.map { it.continueWatchingItems to it.upcomingItems }.distinctUntilChanged(),
         episodeShuffleStore.profiles,
         combine(watchProgressRepository.watchedItems, watchProgressRepository.allProgress) { watched, progress ->
@@ -102,16 +117,9 @@ private fun HomeViewModel.projectShuffleHomeState(
                         season = video.season, episode = video.episode, overview = video.overview, available = video.available,
                         episodeIdentity = video.episodeIdentity)
                 }
-            }.let { withTvdbLabels(it) }
+            }.let { HomeCwDecoration(items, withTvdbLabels(it)) }
         }
     }
-
-    // Focus, hero and catalogue changes must not rebuild every shuffle picker.
-    // Merge the projected cards into the latest presentation state instead.
-    return combine(_uiState, projected) { state, cards ->
-        state.copy(continueWatchingItems = cards.continueWatchingItems, upcomingItems = cards.upcomingItems)
-    }
-}
 
 private const val CW_TRACE_TAG = "NuvioCwTrace"
 
@@ -121,7 +129,10 @@ internal inline fun traceCwCard(id: String, reason: () -> String) {
 }
 
 private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueWatchingItem {
-    if (item.chooseEpisode) return item
+    // A retained resume may be awaiting identity verification in the durable projection.
+    // Let the selected catalogue resolve it; treating that flag as terminal strands it
+    // after unwatch exposes an older provider/default-order resume.
+    if (item.chooseEpisode && item is ContinueWatchingItem.NextUp) return item
     val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
     val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
     val meta = cachedCwMeta(type, id)
@@ -178,12 +189,17 @@ private fun HomeViewModel.withTvdbLabels(state: HomeUiState): HomeUiState = stat
     upcomingItems = state.upcomingItems.map(::projectTvdbItem))
 
 private fun HomeViewModel.finishedShuffleSeeds() = combine(
-    watchProgressRepository.observeNextUpSeeds(),
+    combine(continueWatchingRepository.projection, traktSettingsDataStore.watchProgressSource) { state, source ->
+        state?.takeIf { it.source == source.name }
+    },
     traktSettingsDataStore.continueWatchingDaysCap,
     traktSettingsDataStore.dismissedNextUpKeys,
     episodeShuffleStore.profiles,
     combine(watchProgressRepository.allProgress, watchProgressRepository.watchedItems) { items, watched -> items to watched }
-) { seeds, daysCap, dismissed, profile, history ->
+) { projection, daysCap, dismissed, profile, history ->
+    // Shuffle changes presentation, never membership: a raw tracker replay must not
+    // resurrect a card that the repository removed or replaced with in-progress playback.
+    val seeds = ownedShuffleSeeds(projection, profile.profileId)
     val cutoff = watchProgressRepository.activeProviderContinueWatchingCutoffEpochMs(daysCap, System.currentTimeMillis())
     val recent = if (cutoff == null) emptyMap() else com.nuvio.tv.domain.model.latestShowActivity(history.first, seeds, history.second)
     // Populate the profile's lightweight selection snapshot once before checking aliases.
@@ -198,6 +214,11 @@ private fun HomeViewModel.finishedShuffleSeeds() = combine(
             shouldUseAsCompletedSeed(seed)
     }.sortedByDescending { it.lastWatched }.distinctBy { it.contentId }
 }.distinctUntilChanged()
+
+internal fun ownedShuffleSeeds(projection: com.nuvio.tv.data.cw.CwProjection?, profileId: Int): List<WatchProgress> =
+    projection?.takeIf { it.profileId == profileId }?.members?.values?.mapNotNull {
+        it.progress.takeIf { _ -> it.nextUp != null }
+    }.orEmpty()
 
 /** Keep a slow lookup alive across unrelated tracker emissions. Dropping a show or switching
  * profiles cancels its job. Failed lookups wake at their cooldown even on a static Home screen. */

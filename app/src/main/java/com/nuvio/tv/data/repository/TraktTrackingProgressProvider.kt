@@ -3,7 +3,6 @@ package com.nuvio.tv.data.repository
 import com.nuvio.tv.core.tracking.TrackingProgressProvider
 import com.nuvio.tv.core.tracking.TrackingProviderId
 import com.nuvio.tv.core.tracking.TrackingRefreshIntent
-import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.data.local.TraktAuthDataStore
 import com.nuvio.tv.data.local.TraktSettingsDataStore
 import com.nuvio.tv.domain.model.WatchProgress
@@ -11,13 +10,11 @@ import com.nuvio.tv.domain.model.WatchedItem
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 @Singleton
 class TraktTrackingProgressProvider @Inject constructor(
     private val service: TraktProgressService,
-    private val layoutPreferences: LayoutPreferenceDataStore,
     authDataStore: TraktAuthDataStore
 ) : TrackingProgressProvider {
     override val providerId = TrackingProviderId.TRAKT
@@ -27,19 +24,7 @@ class TraktTrackingProgressProvider @Inject constructor(
     override val allProgress = service.observeAllProgress()
     override val remoteProgressLoaded = service.observeRemoteProgressLoaded()
     override val watchedMovieIds = service.observeAllWatchedMovieIds()
-    override val nextUpSeeds = combine(
-        service.observeWatchedShowSeeds(),
-        service.observeAllProgress().map { items ->
-            val now = System.currentTimeMillis()
-            items.filter { progress ->
-                progress.source == WatchProgress.SOURCE_TRAKT_HISTORY ||
-                    progress.isRecentCompletedPlaybackSeed(now)
-            }
-        },
-        layoutPreferences.nextUpFromFurthestEpisode
-    ) { canonical, optimistic, useFurthest ->
-        mergeTrackingNextUpSeeds(canonical, optimistic, useFurthest)
-    }
+    override val nextUpSeeds = service.observeWatchedShowSeeds()
 
     override fun episodeProgress(contentId: String) = service.observeEpisodeProgress(contentId)
 
@@ -125,46 +110,4 @@ internal fun shouldUseTraktNextUpSeed(progress: WatchProgress, nowEpochMs: Long)
     val explicitPercent = progress.progressPercent ?: return false
     if (explicitPercent < 95f) return false
     return nowEpochMs - progress.lastWatched in 0..3 * 60_000L
-}
-
-private fun WatchProgress.isRecentCompletedPlaybackSeed(nowEpochMs: Long): Boolean {
-    if (!contentType.equals("series", ignoreCase = true)) return false
-    if (!isCompleted() || source != WatchProgress.SOURCE_TRAKT_PLAYBACK) return false
-    if (season == null || episode == null || season == 0) return false
-    return nowEpochMs - lastWatched in 0..3 * 60_000L
-}
-
-private fun mergeTrackingNextUpSeeds(
-    canonical: List<WatchProgress>,
-    optimistic: List<WatchProgress>,
-    useFurthest: Boolean
-): List<WatchProgress> {
-    val merged = linkedMapOf<String, WatchProgress>()
-    canonical.forEach { seed -> merged[trackingNextUpKey(seed)] = seed }
-    optimistic.forEach { seed ->
-        val key = trackingNextUpKey(seed)
-        val existing = merged[key]
-        if (existing == null || shouldReplaceTrackingSeed(existing, seed, useFurthest)) {
-            merged[key] = seed
-        }
-    }
-    return merged.values.sortedByDescending(WatchProgress::lastWatched)
-}
-
-private fun trackingNextUpKey(progress: WatchProgress): String =
-    progress.traktShowId?.let { "trakt_show:$it" } ?: progress.contentId.trim()
-
-private fun shouldReplaceTrackingSeed(
-    existing: WatchProgress,
-    candidate: WatchProgress,
-    useFurthest: Boolean
-): Boolean {
-    if (!useFurthest) return candidate.lastWatched >= existing.lastWatched
-    val candidatePosition = (candidate.season ?: -1) to (candidate.episode ?: -1)
-    val existingPosition = (existing.season ?: -1) to (existing.episode ?: -1)
-    return candidatePosition.first > existingPosition.first ||
-        candidatePosition.first == existingPosition.first &&
-        (candidatePosition.second > existingPosition.second ||
-            candidatePosition.second == existingPosition.second &&
-            candidate.lastWatched >= existing.lastWatched)
 }

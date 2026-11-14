@@ -4,6 +4,10 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.network.NetworkResult
+import com.nuvio.tv.data.cw.CwMembershipReducer
+import com.nuvio.tv.data.cw.CwProjection
+import com.nuvio.tv.data.cw.CwRemovalProof
+import com.nuvio.tv.data.cw.CwRemovalReason
 import com.nuvio.tv.data.repository.traktRefreshEvents
 import com.nuvio.tv.data.local.EpisodeShuffleProfile
 import com.nuvio.tv.data.tvdb.TvdbOrderPreference
@@ -30,6 +34,7 @@ class ShuffleHomeRefreshTest {
     private val snapshot = HomeUiState(continueWatchingItems = listOf(card))
     private val native = MutableStateFlow(snapshot)
     private val seeds = MutableStateFlow(listOf(seed))
+    private val cwProjection = MutableStateFlow(CwProjection(profileId = 1, source = "TRAKT"))
     private val profile = MutableStateFlow(EpisodeShuffleProfile(1, true, mapOf(id to EpisodeShuffleSettings(true))))
     private val watched = MutableStateFlow(emptyList<WatchedItem>())
     private val progress = MutableStateFlow(emptyList<WatchProgress>())
@@ -61,6 +66,15 @@ class ShuffleHomeRefreshTest {
         every { vm.episodeShuffleStore.profiles } returns profile
         every { vm.traktSettingsDataStore.continueWatchingDaysCap } returns flowOf(-1)
         every { vm.traktSettingsDataStore.dismissedNextUpKeys } returns flowOf(emptySet())
+        every { vm.traktSettingsDataStore.watchProgressSource } returns MutableStateFlow(com.nuvio.tv.data.local.WatchProgressSource.TRAKT)
+        every { vm.cwEnrichmentCache.repository.projection } returns cwProjection
+        // Model the app-scoped owner independently of Home's presentation collector.
+        backgroundScope.launch {
+            combine(seeds, progress) { completed, active -> completed to active }.collect { (completed, active) ->
+                cwProjection.value = CwMembershipReducer.progress(
+                    CwMembershipReducer.progress(cwProjection.value, completed, seeds = true), active)
+            }
+        }
         every { vm.continueWatchingSortMode } returns ContinueWatchingSortMode.SPLIT_UPCOMING
         every { vm.profileManager.activeProfileId } returns MutableStateFlow(1)
         every { vm.tvdbOrderStore } returns store
@@ -98,7 +112,17 @@ class ShuffleHomeRefreshTest {
     private fun StateFlow<HomeUiState>.onlyCard() = value.continueWatchingItems.single()
     private fun TestScope.minute() { advanceTimeBy(60_000); runCurrent() }
 
-    @Test fun leavingHomeStopsProjectionAndResumesWithCurrentInputs() = runTest {
+    @Test fun firstCardsDoNotWaitForTrackerHistoryOrShuffleDecoration() = runTest {
+        setup()
+        every { vm.watchProgressRepository.watchedItems } returns emptyFlow()
+        val home = home()
+        assertEquals(snapshot.continueWatchingItems, home.value.continueWatchingItems)
+        native.value = HomeUiState()
+        runCurrent()
+        assertTrue("an explicit removal must also publish without history", home.value.continueWatchingItems.isEmpty())
+    }
+
+    @Test fun leavingHomeStopsDecorationButRetainedStateKeepsUpdating() = runTest {
         setup()
         val home = home()
         val before = home.value
@@ -107,7 +131,9 @@ class ShuffleHomeRefreshTest {
         native.value = snapshot.copy(selectedItemId = "on-demand")
         refresh.update { it.copy(visit = 2) }
         minute()
-        assertSame("hidden Home must not rebuild its episode catalogues", before, home.value)
+        assertEquals("on-demand", home.value.selectedItemId)
+        assertEquals(before.continueWatchingItems.map { it.contentId() }, home.value.continueWatchingItems.map { it.contentId() })
+        assertTrue("hidden Home must not fetch episode catalogues", requests.isEmpty())
         homeActive.value = true
         runCurrent()
         assertEquals("on-demand", home.value.selectedItemId)
@@ -549,6 +575,10 @@ class ShuffleHomeRefreshTest {
         runCurrent()
         assertEquals(id, details)
         seeds.value = emptyList()
+        runCurrent()
+        assertEquals("a partial refresh is not tracker removal evidence", id, home.onlyCard().contentId())
+        cwProjection.value = CwMembershipReducer.remove(cwProjection.value, cwProjection.value.lease,
+            CwRemovalProof(CwRemovalReason.AUTHORITATIVE_ABSENCE, setOf(id), currentTime))
         runCurrent()
         assertTrue(home.value.continueWatchingItems.isEmpty())
     }

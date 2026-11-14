@@ -278,7 +278,8 @@ class AndroidTvChannelManager @Inject constructor(
                 progress.season?.let { putExtra("season", it) }
                 progress.episode?.let { putExtra("episode", it) }
                 progress.episodeTitle?.let { putExtra("episodeTitle", it) }
-                putExtra("launchMode", "stream")
+                putExtra("launchMode", if (progress.contentType in setOf("series", "tv", "anime") &&
+                    progress.season == null && progress.episode == null) "detail" else "stream")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }.toUri(Intent.URI_INTENT_SCHEME)
         )

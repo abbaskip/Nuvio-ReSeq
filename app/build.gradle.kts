@@ -64,16 +64,26 @@ fun cmakePath(path: String): String {
     return resolved.absolutePath.replace("\\", "/")
 }
 
+val stabilityFixtures = providers.gradleProperty("stabilityFixtures").orNull == "true"
+val localBetaNumber = providers.gradleProperty("localBetaNumber").orNull?.also { require(it.matches(Regex("[1-9][0-9]*"))) }
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
+    if (!stabilityFixtures && localPropertiesFile.exists()) {
         load(localPropertiesFile.inputStream())
     }
 }
 
+if (stabilityFixtures) {
+    localProperties.setProperty("NUVIO_SUPABASE_URL", "http://127.0.0.1:38791")
+    localProperties.setProperty("NUVIO_SUPABASE_ANON_KEY", "stability-fixture-not-a-credential")
+    localProperties.setProperty("TRAKT_API_URL", "http://127.0.0.1:38791/trakt/")
+    localProperties.setProperty("TRAKT_CLIENT_ID", "stability-fixture")
+    localProperties.setProperty("SPORTS_BASE_FEED_URL", "http://127.0.0.1:38791/sports")
+}
+
 val devProperties = Properties().apply {
     val devPropertiesFile = rootProject.file("local.dev.properties")
-    if (devPropertiesFile.exists()) {
+    if (!stabilityFixtures && devPropertiesFile.exists()) {
         load(devPropertiesFile.inputStream())
     }
 }
@@ -135,8 +145,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 24
         targetSdk = 36
+        buildConfigField("boolean", "STABILITY_FIXTURES", stabilityFixtures.toString())
         versionCode = 10053
-        versionName = "0.1.0-beta.9.7"
+        versionName = "0.1.0-beta.9.7" + (localBetaNumber?.let { ".local.$it" } ?: "")
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")
@@ -301,8 +312,9 @@ android {
         abi {
             isEnable = !buildingAppBundle
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = true
+            if (localBetaNumber != null) include("armeabi-v7a", "arm64-v8a")
+            else include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = localBetaNumber == null
         }
     }
 
@@ -331,6 +343,16 @@ android {
     }
 
     sourceSets {
+        if (stabilityFixtures) {
+            for (fixtureBuild in listOf("benchmark", "debug")) {
+                maybeCreate(fixtureBuild).apply {
+                    java.srcDir("src/stabilityFixtures/java")
+                    manifest.srcFile(if (fixtureBuild == "debug") "src/stabilityFixtures/debug/AndroidManifest.xml"
+                        else "src/stabilityFixtures/AndroidManifest.xml")
+                }
+            }
+        }
+
         // Accessible only to the shell on the dedicated profile producer and benchmark APKs.
         for (profileBuild in listOf("fullNonMinifiedRelease", "fullBenchmarkRelease")) {
             maybeCreate(profileBuild).apply {

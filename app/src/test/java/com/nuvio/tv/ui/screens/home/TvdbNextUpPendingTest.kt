@@ -58,6 +58,17 @@ class TvdbNextUpPendingTest {
         confirmVerified(repository)
     }
 
+    @Test fun `revoked but identifiable incoming seed cannot outrank remaining history`() = runTest {
+        val revoked = effective.videos.single { it.title == "Shindig" }
+        val retained = effective.videos.first { it.episodeIdentity != null && it != revoked && it.hasResolvedSource }
+        val stale = seed.copy(tvdbContext = revoked.tvdbPlaybackContext(), lastWatched = 200)
+        val watched = seed.copy(tvdbContext = retained.tvdbPlaybackContext(), lastWatched = 100)
+        every { repository.getAllEpisodeProgress(effective.id) } returns flowOf(mapOf((1 to 2) to watched))
+        assertEquals(retained.tvdbPlaybackContext(), vm.selectedOrderSeed(stale)?.tvdbContext)
+        every { repository.getAllEpisodeProgress(effective.id) } returns flowOf(emptyMap())
+        assertNull(vm.selectedOrderSeed(stale))
+    }
+
     @Test fun `Provider Default bypasses TVDB seed resolution unchanged`() = runTest {
         coEvery { store.selected(1, any()) } returns null
         assertSame(seed, vm.selectedOrderSeed(seed))

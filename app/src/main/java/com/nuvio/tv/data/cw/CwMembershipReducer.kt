@@ -1,5 +1,6 @@
 package com.nuvio.tv.data.cw
 
+import android.util.Log
 import com.nuvio.tv.data.local.CachedInProgressItem
 import com.nuvio.tv.data.local.CachedNextUpItem
 import com.nuvio.tv.domain.model.WatchProgress
@@ -11,7 +12,10 @@ data class CwMember(
     val progress: WatchProgress? = null,
     val inProgress: CachedInProgressItem? = null,
     val nextUp: CachedNextUpItem? = null,
-    val changedAtRevision: Long = 0
+    val changedAtRevision: Long = 0,
+    // A furthest-episode seed can predate another completion. Persist its history
+    // timestamp separately from presentation recency and the episode's own watch time.
+    val latestCompletionAt: Long? = null
 )
 
 /** Compact positive completion evidence; identities are never derived from display order. */
@@ -105,8 +109,26 @@ object CwMembershipReducer {
             // has presentation recency, not committed progress that can reject older history.
             val priorActivity = old?.progress?.lastWatched ?: old?.inProgress?.lastWatched ?:
                 old?.nextUp?.takeUnless { it.chooseEpisode }?.lastWatched
-            if (priorActivity != null && p.lastWatched < priorActivity) return@forEach
-            if (old?.progress != null && p.lastWatched < old.progress.lastWatched) return@forEach
+            val completedSeed = p.isCompleted() || seeds
+            val seedActivity = if (completedSeed) p.completionActivityAt() else p.lastWatched
+            val comparingResume = old?.inProgress != null || !completedSeed
+            val incomingActivity = if (comparingResume) seedActivity else p.lastWatched
+            val prior = if (!completedSeed) {
+                old?.latestCompletionAt ?: completed[p.contentId]?.values?.maxOfOrNull { it.at }
+            } else null
+            val threshold = maxOf(priorActivity ?: Long.MIN_VALUE, prior ?: Long.MIN_VALUE)
+            if (Log.isLoggable("CwDecision", Log.DEBUG) && (old?.inProgress != null || !completedSeed)) {
+                val competitor = old?.progress
+                val id = p.contentId.takeIf { it.matches(Regex("tt[0-9]+|(?:tmdb|trakt|tvdb):[0-9]+")) } ?: "other"
+                val rejected = incomingActivity < threshold ||
+                    (competitor?.isCompleted() == true && competitor.lastWatched == p.lastWatched && !completedSeed)
+                Log.d("CwDecision", "show=$id candidate=${if (completedSeed) "completion" else "progress"} " +
+                    "source=${p.decisionSource()} episode=${p.season}x${p.episode} percent=${p.progressPercentage * 100} " +
+                    "watchedAt=${p.lastWatched} activity=$incomingActivity prior=${competitor?.decisionSource()} " +
+                    "priorEpisode=${competitor?.season}x${competitor?.episode} threshold=$threshold " +
+                    "decision=${if (rejected) "keep-prior" else "accept-activity"}")
+            }
+            if (incomingActivity < threshold) return@forEach
             // An identical remote replay cannot undo a locally committed completion.
             if (old?.progress?.isCompleted() == true && p.lastWatched == old.progress.lastWatched &&
                 !p.isCompleted()) return@forEach
@@ -120,7 +142,9 @@ object CwMembershipReducer {
                     val next = old?.nextUp?.takeIf { sameSeed && (it.chooseEpisode ||
                         completed[p.contentId].orEmpty().values.none { done -> matches(it, done) }) }
                     CwMember(p, nextUp = next?.copy(lastWatched = maxOf(next.lastWatched, p.lastWatched))
-                        ?: p.seriesChoice(), changedAtRevision = state.revision + 1)
+                        ?: p.seriesChoice(), changedAtRevision = state.revision + 1,
+                        latestCompletionAt = if (seeds) seedActivity else
+                            maxOf(seedActivity, old?.latestCompletionAt ?: Long.MIN_VALUE))
                 }
                 p.isInProgress() || (!p.isCompleted() && (p.position > 0 || (p.progressPercent ?: 0f) > 0) &&
                     p.source !in setOf(WatchProgress.SOURCE_TRAKT_HISTORY, WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS)) -> CwMember(p, inProgress = p.cached(old?.inProgress),
@@ -156,7 +180,13 @@ object CwMembershipReducer {
         }
         nextUp.forEach { candidate ->
             val old = members[candidate.contentId] ?: return@forEach
-            if (old.changedAtRevision > lease.revision || old.inProgress != null) return@forEach
+            if (old.changedAtRevision > lease.revision) return@forEach
+            if (old.inProgress != null) {
+                if (Log.isLoggable("CwDecision", Log.DEBUG)) Log.d("CwDecision",
+                    "decision=keep-resume source=${old.progress?.decisionSource()} episode=${old.inProgress.season}x${old.inProgress.episode} " +
+                        "watchedAt=${old.inProgress.lastWatched} next=${candidate.season}x${candidate.episode}")
+                return@forEach
+            }
             val p = old.progress
             if (p?.isCompleted() == true && !candidate.chooseEpisode && sameEpisode(candidate, p)) return@forEach
             if (!candidate.chooseEpisode && state.completed[candidate.contentId].orEmpty().values.any { matches(candidate, it) }) return@forEach
@@ -204,7 +234,11 @@ object CwMembershipReducer {
         // the existing committed seed flow and normal resolver rebuild this member (including
         // selected TVDB order/furthest rules). No remaining seeds means no card, as in 9.7.
         // Do not install a whole-show removal tombstone: older episodes remain valid support.
-        val members = if (reset) state.members - contentId else state.members
+        val members = when {
+            reset -> state.members - contentId
+            member?.latestCompletionAt != null -> state.members + (contentId to member.copy(latestCompletionAt = null))
+            else -> state.members
+        }
         return invalidate(state.copy(ignoredProgress = ignored,
             completed = state.completed + (contentId to remaining), members = members), setOf(contentId))
     }
@@ -227,6 +261,17 @@ object CwMembershipReducer {
         return next.videoId == p.videoId || (next.season == p.season && next.episode == p.episode)
     }
 }
+
+// Log only known source labels. Provider-controlled strings, titles and URLs never enter logcat.
+private fun WatchProgress.decisionSource(): String = when (source) {
+    WatchProgress.SOURCE_LOCAL, WatchProgress.SOURCE_TRAKT_PLAYBACK, WatchProgress.SOURCE_TRAKT_HISTORY,
+    WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS, WatchProgress.SOURCE_SIMKL_PLAYBACK,
+    WatchProgress.SOURCE_REMOTE_HISTORY, WatchProgress.SOURCE_REMOTE_PLAYBACK -> source
+    else -> "other"
+}
+
+/** A tracker seed carries the latest remaining completion even when another episode is the starting point. */
+internal fun WatchProgress.completionActivityAt(): Long = maxOf(lastWatched, latestSeriesActivity ?: lastWatched)
 
 private fun episodeHistoryKey(contentId: String, season: Int, episode: Int) = "$contentId|episode:$season:$episode|"
 private fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"

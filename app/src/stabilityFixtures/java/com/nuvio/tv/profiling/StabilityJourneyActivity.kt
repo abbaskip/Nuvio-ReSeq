@@ -356,7 +356,12 @@ class StabilityJourneyActivity : ComponentActivity() {
         }
         check(progress.getAllEpisodeProgress(SHOWS[1]).first().values.filter { it.isCompleted() }
             .map { it.tvdbContext?.episode }.toSet() == setOf(4, 7))
-        Diag.event("unwatch-assertions-passed", mapOf("tracker" to true))
+        // The retained 47% pause falls between the watch times of DVD E7 and E4.
+        // It must lose even when the furthest episode becomes the preferred seed.
+        layout.setNextUpFromFurthestEpisode(true)
+        awaitTrackerCard(8)
+        sampleUnwatch("tracker-after-furthest")
+        Diag.event("unwatch-assertions-passed", mapOf("tracker" to true, "furthest" to true))
     }
 
     private suspend fun seedUnwatch() {

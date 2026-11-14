@@ -157,6 +157,7 @@ class Web(base.Web):
             if 'trackerUnwatch' in query:
                 with LOCK:
                     STATE['trackerUnwatch'] = query['trackerUnwatch'][0] == 'true'
+                    STATE['trackerPausedAt'] = tracker_time(1800)
                     TRACKER_HISTORY.clear()
                     TRACKER_HISTORY.update({7: tracker_time(3600), 4: tracker_time(600), 3: tracker_time(60)})
                     COUNTS['tracker-removed-episodes'] = 0
@@ -282,6 +283,11 @@ class Web(base.Web):
                 return self.send_json({'aired': 8, 'completed': len(history), 'seasons': [{'number': 1,
                     'episodes': [{'number': i, 'completed': i in history, 'last_watched_at': history.get(i)}
                                  for i in range(1, 9)]}]})
+            if path.endswith('/sync/playback/episodes'):
+                # A genuine retained pause with no match in this alternate catalogue.
+                return self.send_json([{'id': 410, 'progress': 47, 'paused_at': STATE['trackerPausedAt'],
+                    'type': 'episode', 'show': show, 'episode': {'season': 1, 'number': 10,
+                    'title': 'Shareholder Meeting', 'ids': {'trakt': 410}}}])
             if '/sync/playback' in path or '/sync/history' in path:
                 return self.send_json([])
         ep = {'season': 1, 'number': 1, 'title': 'Episode 1', 'ids': {'trakt': 101, 'tvdb': 990101}}

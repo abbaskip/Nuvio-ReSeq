@@ -129,7 +129,10 @@ internal inline fun traceCwCard(id: String, reason: () -> String) {
 }
 
 private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueWatchingItem {
-    if (item.chooseEpisode) return item
+    // A retained resume may be awaiting identity verification in the durable projection.
+    // Let the selected catalogue resolve it; treating that flag as terminal strands it
+    // after unwatch exposes an older provider/default-order resume.
+    if (item.chooseEpisode && item is ContinueWatchingItem.NextUp) return item
     val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
     val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
     val meta = cachedCwMeta(type, id)

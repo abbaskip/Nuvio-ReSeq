@@ -56,7 +56,7 @@ internal fun projectTvdbContinueWatching(item: ContinueWatchingItem, videos: Lis
         is ContinueWatchingItem.InProgress -> item.copy(progress = item.progress.copy(videoId = video.id,
             season = video.season, episode = video.episode, tvdbEpisodeId = identity.trackingEpisodeId,
             episodeTitle = video.title, tvdbEpisodeIds = identity.trackingEpisodeIds, tvdbContext = video.tvdbPlaybackContext()), displaySeason = video.displaySeason, displayEpisode = video.displayEpisode,
-            episodeDescription = video.overview, episodeThumbnail = video.thumbnail)
+            episodeDescription = video.overview, episodeThumbnail = video.thumbnail, chooseEpisode = false)
         is ContinueWatchingItem.NextUp -> item.copy(info = item.info.copy(videoId = video.id,
             season = video.season!!, episode = video.episode!!, tvdbEpisodeId = identity.trackingEpisodeId,
             episodeTitle = video.title, tvdbContext = video.tvdbPlaybackContext(), displaySeason = video.displaySeason, displayEpisode = video.displayEpisode,

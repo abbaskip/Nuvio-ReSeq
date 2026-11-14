@@ -250,6 +250,7 @@ class WatchProgressRepositoryProfileIsolationTest {
             val harness = harness(1, tvdb, provider, WatchProgressSource.valueOf(id.name))
             val local = listOf(completed, partial)
             every { harness.progressPreferences.observeAllProgress(1) } returns flowOf(local)
+            every { harness.progressPreferences.observeAllRawProgress(1) } returns flowOf(local)
             every { harness.progressPreferences.observeEpisodeRecords("tt123", 1) } returns flowOf(local)
             // Wait for the selected provider rather than asserting against initial local fallback.
             kotlinx.coroutines.withTimeout(5000) {
@@ -300,6 +301,30 @@ class WatchProgressRepositoryProfileIsolationTest {
         coVerify(exactly = 0) { harness.watchedPreferences.unmarkAsWatched(any(), any(), any(), any()) }
     }
 
+    @Test fun `unwatch retains older TVDB completion seed behind a newer resume row`() = kotlinx.coroutines.runBlocking {
+        val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>(relaxed = true)
+        every { tvdb.observeSelectedSeries(1) } returns flowOf(setOf(1L))
+        val h = harness(1, tvdb)
+        every { h.watchedPreferences.allItems } returns flowOf(emptyList())
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(1, "dvd", 104, 1, 4, listOf(104), "show:1:4")
+        val e4 = progress("show", 100, 100).copy(contentType = "series", season = 1, episode = 4,
+            videoId = context.requestVideoId, tvdbContext = context, tvdbEpisodeIds = context.episodeIds)
+        val resume = e4.copy(videoId = "show:1:1", episode = 1, position = 47,
+            lastWatched = 200, tvdbContext = null, tvdbEpisodeIds = null)
+        val e5 = e4.copy(videoId = "show:1:5", episode = 5, lastWatched = 300,
+            tvdbEpisodeIds = listOf(105),
+            tvdbContext = context.copy(episodeId = 105, episode = 5, episodeIds = listOf(105), requestVideoId = "show:1:5"))
+        val records = MutableStateFlow(listOf(e4, resume, e5))
+        every { h.progressPreferences.observeAllRawProgress(1) } returns records
+        every { h.progressPreferences.observeAllProgress(1) } returns flowOf(listOf(resume))
+        kotlinx.coroutines.withTimeout(5_000) {
+            assertEquals(listOf(e5), h.repository.observeNextUpSeeds().first())
+            records.value = listOf(e4, resume) // committed deletion of E5
+            assertEquals(listOf(e4), h.repository.observeNextUpSeeds().first())
+        }
+        coVerify(exactly = 0) { h.progressPreferences.saveProgress(any(), any()) }
+    }
+
     private fun harness(activeProfileId: Int,
         tvdb: com.nuvio.tv.data.tvdb.TvdbTrackingResolver? = null,
         provider: com.nuvio.tv.core.tracking.TrackingProgressProvider? = null,
@@ -320,7 +345,9 @@ class WatchProgressRepositoryProfileIsolationTest {
         val repository = WatchProgressRepositoryImpl(
             watchProgressPreferences = progressPreferences,
             traktSettingsDataStore = traktSettings,
-            layoutPreferenceDataStore = mockk<LayoutPreferenceDataStore>(relaxed = true),
+            layoutPreferenceDataStore = mockk<LayoutPreferenceDataStore>(relaxed = true) {
+                every { nextUpFromFurthestEpisode } returns MutableStateFlow(true)
+            },
             watchProgressSyncService = mockk<WatchProgressSyncService>(relaxed = true),
             watchedItemsPreferences = watchedPreferences,
             watchedItemsSyncService = mockk<WatchedItemsSyncService>(relaxed = true),

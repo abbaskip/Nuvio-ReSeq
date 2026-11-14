@@ -81,6 +81,9 @@ class StabilityJourneyActivity : ComponentActivity() {
     @Inject lateinit var refresh: TrackingProgressRefreshCoordinator
     @Inject lateinit var channelSync: AndroidTvChannelSyncService
     @Inject lateinit var channelPrefs: TvChannelPreferences
+    @Inject lateinit var rawProgress: WatchProgressPreferences
+    private var unwatchDetails: com.nuvio.tv.ui.screens.detail.MetaDetailsViewModel? = null
+    private var unwatchRetainedResume = true
     private lateinit var home: HomeViewModel
     private var route by mutableStateOf("waiting")
     private var trailerView: PlayerView? = null
@@ -135,6 +138,40 @@ class StabilityJourneyActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 when (action) {
+                    "unwatch-seed", "unwatch-seed-history" -> {
+                        unwatchRetainedResume = action == "unwatch-seed"
+                        seedUnwatch()
+                    }
+                    "unwatch-latest" -> {
+                        val details = checkNotNull(unwatchDetails)
+                        home.setHomeContentActive(false)
+                        route = "details"
+                        val video = details.uiState.value.meta!!.videos.single { it.displayEpisode == 5 }
+                        check(details.uiState.value.watchedEpisodes.contains(video.season to video.episode) ||
+                            details.uiState.value.episodeProgressMap[video.season to video.episode]?.isCompleted() == true)
+                        details.onEvent(com.nuvio.tv.ui.screens.detail.MetaDetailsEvent.OnToggleEpisodeWatched(video))
+                        delay(5_000)
+                        route = "home"
+                        home.setHomeContentActive(true)
+                        delay(30_000)
+                        sampleUnwatch("after-unwatch")
+                        val card = home.uiState.value.continueWatchingItems.single()
+                        check(!card.chooseEpisode) { "Unwatch left a permanent series-choice card" }
+                        if (unwatchRetainedResume) {
+                            check(card is ContinueWatchingItem.InProgress && card.progress.episode == 1 &&
+                                card.progress.position == 47_000L && card.progress.tvdbContext?.orderType == "dvd") {
+                                "Retained resume did not resolve through the selected TVDB order"
+                            }
+                        } else {
+                            check(card is ContinueWatchingItem.NextUp && card.info.episode == 5) {
+                                "Remaining E4 history must offer unwatched E5"
+                            }
+                        }
+                        check(progress.observeNextUpSeeds().first().single().episode == 4) {
+                            "Remaining E4 completion was lost from the seed flow"
+                        }
+                        Diag.event("unwatch-assertions-passed", mapOf("retainedResume" to unwatchRetainedResume))
+                    }
                     "seed" -> { withContext(Dispatchers.IO) { withTimeout(240_000) { seed() } }; route = "ready" }
                     "sample" -> sample()
                     "refresh" -> {
@@ -262,6 +299,56 @@ class StabilityJourneyActivity : ComponentActivity() {
         val movies = vod.categories(VodKind.MOVIE).filter { it.name == "Fixture movies" }.sumOf { it.count }
         check(movies == 20_000) { "Expected 20000 fixture movies, imported $movies" }
         Diag.event("seed-complete", mapOf("channels" to live.channels.value.size, "movies" to movies))
+    }
+
+    private suspend fun seedUnwatch() {
+        profiles.activeProfileReady.first { it }
+        addonPrefs.removeAddon("https://v3-cinemeta.strem.io")
+        addonPrefs.removeAddon("https://opensubtitles-v3.strem.io")
+        addons.addAddon("$HTTP/addon/manifest.json")
+        withTimeout(30_000) { addons.awaitInstalledAddons(setOf("stability.fixture")) }
+        tracking.setWatchProgressSource(WatchProgressSource.NUVIO_SYNC)
+        orders.save(1, 9901, "dvd", listOf(SHOWS[1]))
+        tvdb.save(1, "synthetic-fixture-key")
+        val details = ViewModelProvider(this)[com.nuvio.tv.ui.screens.detail.MetaDetailsViewModel::class.java]
+        unwatchDetails = details
+        val state = withTimeout(60_000) { details.uiState.first { it.meta?.episodeOrder != null && it.meta.videos.size >= 6 } }
+        val videos = state.meta!!.videos
+        for (episode in listOf(4, 5)) {
+            val video = videos.single { it.displayEpisode == episode }
+            val context = checkNotNull(video.tvdbPlaybackContext())
+            progress.markAsCompleted(seedProgress(SHOWS[1]).copy(videoId = video.id,
+                season = video.season, episode = video.episode, episodeTitle = video.title,
+                tvdbEpisodeId = video.episodeIdentity!!.trackingEpisodeId,
+                tvdbEpisodeIds = context.episodeIds, tvdbContext = context))
+            if (episode == 4 && unwatchRetainedResume) {
+                delay(100)
+                // Retained provider-default resume predates the latest completion, like the TV evidence.
+                rawProgress.saveProgress(seedProgress(SHOWS[1]).copy(position = 47_000,
+                    tvdbEpisodeId = 990101, tvdbEpisodeIds = listOf(990101)), profileId = 1)
+                delay(100)
+            }
+        }
+        route = "home"
+        home.setHomeContentActive(true)
+        delay(30_000)
+        sampleUnwatch("before-unwatch")
+        val before = home.uiState.value.continueWatchingItems.single()
+        check(before is ContinueWatchingItem.NextUp && before.info.episode == 6 && !before.chooseEpisode) {
+            "Precondition: completed E5 must offer E6 before unwatch"
+        }
+    }
+
+    private suspend fun sampleUnwatch(phase: String) {
+        fun ContinueWatchingItem.description(): String = when (this) {
+            is ContinueWatchingItem.InProgress -> "resume:${progress.episode}:choose=$chooseEpisode:context=${progress.tvdbContext}:at=${progress.lastWatched}"
+            is ContinueWatchingItem.NextUp -> "next:${info.episode}:choose=$chooseEpisode:context=${info.tvdbContext}:at=${info.lastWatched}"
+        }
+        Diag.event("unwatch-flow", mapOf("phase" to phase,
+            "cards" to home.uiState.value.continueWatchingItems.map { it.description() },
+            "raw" to progress.allProgress.first().map { "${it.episode}:${it.isCompleted()}:${it.lastWatched}:${it.tvdbContext}" },
+            "seeds" to progress.observeNextUpSeeds().first().map { "${it.episode}:${it.lastWatched}:${it.tvdbContext}" },
+            "snapshot" to cache.getSnapshot().toString()))
     }
 
     private fun seedProgress(id: String) = WatchProgress(id, "series", "Fixture $id", null, null, null,

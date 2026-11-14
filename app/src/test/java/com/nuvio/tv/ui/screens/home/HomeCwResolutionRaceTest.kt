@@ -5,6 +5,7 @@ import com.nuvio.tv.data.cw.*
 import com.nuvio.tv.data.local.*
 import com.nuvio.tv.domain.model.*
 import com.nuvio.tv.domain.repository.*
+import com.nuvio.tv.data.tvdb.*
 import io.mockk.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -25,15 +26,18 @@ class HomeCwResolutionRaceTest {
     }
 
     private fun home(stored: CwProjection, firstEmission: CompletableDeferred<Unit>,
-        lightweightCompleted: CompletableDeferred<Unit>): HomeViewModel {
-        val owner = mockk<ContinueWatchingRepository>(relaxed = true) {
+        lightweightCompleted: CompletableDeferred<Unit>,
+        realOwner: ContinueWatchingRepository? = null,
+        progressSource: WatchProgressRepository? = null,
+        orders: TvdbOrderStore? = null): HomeViewModel {
+        val owner = realOwner ?: mockk<ContinueWatchingRepository>(relaxed = true) {
             every { projection } returns MutableStateFlow(stored)
             every { observeProjection() } returns flow { firstEmission.await(); emit(stored); awaitCancellation() }
             coEvery { snapshot() } returns stored
             coEvery { enrich(any(), any(), any()) } returns stored
         }
         val cache = ContinueWatchingEnrichmentCache(owner)
-        val progress = mockk<WatchProgressRepository>(relaxed = true) {
+        val progress = progressSource ?: mockk<WatchProgressRepository>(relaxed = true) {
             every { allProgress } returns flowOf(stored.members.values.mapNotNull { it.progress })
             every { observeNextUpSeeds() } returns flowOf(emptyList())
             every { observeRemoteProgressLoaded() } returns flowOf(true)
@@ -89,7 +93,8 @@ class HomeCwResolutionRaceTest {
                 // Hold unrelated startup work; start the real CW pipeline explicitly below.
                 every { activeProfileReady } returns MutableStateFlow(false)
             },
-            tvRecommendationManager = mockk(relaxed = true), serverCatalog = mockk(relaxed = true)
+            tvRecommendationManager = mockk(relaxed = true), serverCatalog = mockk(relaxed = true),
+            tvdbOrderStore = orders
         ).also { created += it; it.currentTmdbSettings = TmdbSettings(enabled = false) }
     }
 
@@ -128,6 +133,67 @@ class HomeCwResolutionRaceTest {
         firstEmission.complete(Unit)
         withTimeout(5_000) { vm.initialCwResolved.first { it } }
         assertTrue(vm._uiState.value.continueWatchingItems.isEmpty())
+    }
+
+    @Test fun unwatchPublicationResolvesRetainedResumeInSelectedOrder(): Unit = runBlocking {
+        val directory = java.nio.file.Files.createTempDirectory("cw-home-unwatch").toFile()
+        val effective = tvdbEpisodeOverlay(tvdbFixtureMeta(tvdbFixtureSource()), 78874, tvdbFixtureOrder())
+        val raw = WatchProgress(effective.id, "series", effective.name, null, null, null,
+            "${effective.id}:1:1", 1, 1, "The Train Job", 47, 100, System.currentTimeMillis())
+        val last = effective.videos.last()
+        val completed = raw.copy(videoId = last.id, season = last.season, episode = last.episode,
+            position = 100, lastWatched = raw.lastWatched + 1,
+            tvdbEpisodeId = last.episodeIdentity!!.trackingEpisodeId, tvdbContext = last.tvdbPlaybackContext())
+        val rows = MutableStateFlow(listOf(completed))
+        val seeds = MutableStateFlow(listOf(completed))
+        val source = mockk<WatchProgressRepository>(relaxed = true) {
+            every { allProgress } returns rows
+            every { observeNextUpSeeds() } returns seeds
+            every { watchedItems } returns flowOf(emptyList())
+            every { isDroppedShow(any()) } returns false
+        }
+        val order = mockk<TvdbOrderStore>(relaxed = true) {
+            coEvery { exportSelections(1) } returns mapOf("alias:${effective.id}" to "78874", "order:78874" to "dvd")
+            every { cachedSelection(1, effective.id) } returns TvdbOrderPreference(78874, "dvd")
+        }
+        val owner = ContinueWatchingRepository(
+            mockk { every { filesDir } returns directory },
+            mockk { every { resolvedActiveProfileId } returns flowOf(1); every { activeProfileId } returns MutableStateFlow(1) },
+            mockk {
+                coEvery { getWatchProgressSource(1) } returns WatchProgressSource.TRAKT
+                every { resolvedWatchProgressSource(1) } returns flowOf(WatchProgressSource.TRAKT)
+            }, javax.inject.Provider { source }, tvdbOrders = order)
+        val vm = home(owner.snapshot(), CompletableDeferred(Unit), CompletableDeferred(), owner, source, order)
+        try {
+            vm.setHomeContentActive(true)
+            owner.committedProgress(1, listOf(completed))
+            withTimeout(5_000) { vm.uiState.first { it.continueWatchingItems.singleOrNull() is ContinueWatchingItem.NextUp } }
+            // This is the real durable removal -> remaining provider progress -> Home flow.
+            owner.historyRemoved(1, effective.id, emptySet(), completed.tvdbContentIds)
+            seeds.value = emptyList()
+            rows.value = listOf(raw)
+            owner.refreshProjection()
+            assertTrue(owner.snapshot().inProgress.single().chooseEpisode)
+            withTimeout(5_000) { vm.uiState.first { it.continueWatchingItems.singleOrNull() is ContinueWatchingItem.InProgress } }
+            // Missing metadata keeps support visible; arrival must release the identity fallback.
+            assertTrue(vm.uiState.value.continueWatchingItems.single().chooseEpisode)
+            vm.cwMetaCache["series:${effective.id}"] = CwMetaSummary(effective.id, effective.name,
+                null, null, null, null, emptyList(), null, null, null, null,
+                effective.videos.map { CwVideoSummary(it.id, it.title, it.released, it.thumbnail,
+                    it.season, it.episode, it.overview, episodeIdentity = it.episodeIdentity) }, tvdbOrder = true)
+            vm.shuffleHomeRefresh.value = HomeShuffleRefresh(metadata = 1)
+            val result = withTimeout(5_000) { vm.uiState.first {
+                it.continueWatchingItems.singleOrNull()?.let { card -> !card.chooseEpisode &&
+                    (card as? ContinueWatchingItem.InProgress)?.progress?.tvdbContext != null } == true
+            } }.continueWatchingItems.single() as ContinueWatchingItem.InProgress
+            assertEquals(2, result.displayEpisode) // Provider E1 is DVD E2, never numeric guessing.
+            assertEquals(47L, result.progress.position)
+            assertEquals(297989L, result.progress.tvdbEpisodeId)
+            assertEquals(listOf(raw), rows.value) // Identity decoration does not rewrite tracker progress.
+        } finally {
+            vm.viewModelScope.cancel()
+            directory.deleteRecursively()
+        }
     }
 }
 

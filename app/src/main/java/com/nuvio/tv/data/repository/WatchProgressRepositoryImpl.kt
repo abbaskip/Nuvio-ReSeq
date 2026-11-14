@@ -700,7 +700,9 @@ class WatchProgressRepositoryImpl @Inject constructor(
             }
             .distinctUntilChanged()
         return profileManager.activeProfileId.flatMapLatest { profileId ->
-            combine(existing, watchProgressPreferences.observeAllProgress(profileId),
+            // Seeds need the remaining completed episodes, not the latest row per show.
+            // After unwatch that row can be an older resume hiding retained TVDB history.
+            combine(existing, watchProgressPreferences.observeAllRawProgress(profileId),
                 tvdbTracking?.observeSelectedSeries(profileId) ?: flowOf(emptySet<Long>()),
                 activeProgressProviderFlow()) { seeds, records, selected, provider ->
                 val parts = records.filter { it.tvdbContext?.seriesId in selected && it.isCompleted() && provider.retainsTvdbLocalProgress(it) }

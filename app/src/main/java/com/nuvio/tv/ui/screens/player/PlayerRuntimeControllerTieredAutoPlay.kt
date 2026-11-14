@@ -22,7 +22,7 @@ internal fun PlayerRuntimeController.cancelSourceAutoPlay() {
     nextEpisodeAutoPlayJob?.cancel()
     nextEpisodeAutoPlayJob = null
     _uiState.update { state ->
-        state.copy(autoPlayFallback = null,
+        state.copy(autoPlayFallback = null, isEpisodeAutoPlaySearching = false,
             isLoadingEpisodeStreams = if (wasPending && state.showEpisodeStreams) false else state.isLoadingEpisodeStreams,
             postPlayDismissedForCurrentEpisode = wasPending || state.postPlayDismissedForCurrentEpisode,
             postPlayMode = state.postPlayMode.takeUnless { it is PostPlayMode.AutoPlay && it.searching })
@@ -52,7 +52,7 @@ internal suspend fun PlayerRuntimeController.playNextEpisodeWithTiers(
             state.copy(
                 showEpisodesPanel = true, showEpisodeStreams = true, showSourcesPanel = false,
                 showControls = true, postPlayMode = null,
-                isLoadingEpisodeStreams = !snapshot.complete,
+                isLoadingEpisodeStreams = !snapshot.complete, isEpisodeAutoPlaySearching = false,
                 episodeStreamsError = lastError.takeIf { snapshot.streams.isEmpty() },
                 episodeAllStreams = snapshot.streams,
                 episodeFilteredStreams = if (filter == null) snapshot.streams else snapshot.streams.filter { it.addonName == filter },
@@ -67,7 +67,8 @@ internal suspend fun PlayerRuntimeController.playNextEpisodeWithTiers(
         }
     }
 
-    _uiState.update { it.copy(autoPlayFallback = null, episodeSelectedAddonFilter = null) }
+    _uiState.update { it.copy(autoPlayFallback = null, episodeSelectedAddonFilter = null,
+        isEpisodeAutoPlaySearching = true) }
     updatePicker()
     val search = launch {
         try {
@@ -119,7 +120,7 @@ internal suspend fun PlayerRuntimeController.playNextEpisodeWithTiers(
         } else {
             pickerVisible = true
             updatePicker()
-            _uiState.update { it.copy(autoPlayFallback = null) }
+            _uiState.update { it.copy(autoPlayFallback = null, isEpisodeAutoPlaySearching = false) }
         }
     } finally {
         search.cancel()

@@ -818,11 +818,11 @@ Klaida: Bandomoji simuliuojama klaida — tai nėra tikras gedimas. Šaltinis gr
     <string name="library_delete_confirm">Ištrinti</string>
     <string name="library_source_local">VIETINĖ</string>
     <string name="library_type_all">Visi</string>
-    <string name="library_type_items">elementai</string>
-    <string name="library_empty_local_title">Kol kas čia nieko nėra</string>
-    <string name="library_empty_trakt_title">Šiame sąraše nieko nėra</string>
-    <string name="library_empty_local_subtitle">Išsaugokite mėgstamiausius, kad pamatytumėte juos čia</string>
-    <string name="library_empty_trakt_subtitle">Naudokite „+“ informacijos lange turiniui pridėti į žiūrėjimo ar kitus sąrašus</string>
+    
+    
+    
+    
+    
 
     <!-- AccountSettingsContent -->
     <string name="account_loading">Įkeliama…</string>

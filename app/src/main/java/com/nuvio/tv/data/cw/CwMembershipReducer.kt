@@ -182,8 +182,7 @@ object CwMembershipReducer {
     fun historyRemoved(state: CwProjection, contentId: String, episodes: Set<Pair<Int, Int>>, at: Long,
         tvdbIds: Set<Long> = emptySet()): CwProjection {
         fun removed(season: Int?, episode: Int?, ids: Set<Long>) =
-            if (tvdbIds.isNotEmpty()) ids.any { it in tvdbIds }
-            else ids.isEmpty() && season to episode in episodes
+            if (ids.isNotEmpty()) ids.any { it in tvdbIds } else season to episode in episodes
         val records = state.completed[contentId].orEmpty()
         val revoked = records.filterValues { removed(it.season, it.episode, it.contentIds) }
         val remaining = records.toMutableMap()
@@ -197,8 +196,8 @@ object CwMembershipReducer {
         val reset = p != null && removed(p.season, p.episode, p.tvdbContentIds)
         // A provider may use the series videoId for every seed. Revoke episode identities,
         // not that shared videoId, and cover stale replays absent from our compact evidence.
-        val removedKeys = if (tvdbIds.isNotEmpty()) tvdbIds.map { tvdbRemovalKey(contentId, it) }
-            else episodes.map { (season, episode) -> episodeHistoryKey(contentId, season, episode) }
+        val removedKeys = tvdbIds.map { tvdbRemovalKey(contentId, it) } +
+            episodes.map { (season, episode) -> episodeHistoryKey(contentId, season, episode) }
         val ignored = state.ignoredProgress + revoked.keys.associateWith { at } +
             removedKeys.associateWith { at } + if (reset) mapOf(p!!.historyKey() to at) else emptyMap()
         // The revoked seed's activity is not a watermark for the remaining history. Let

@@ -1270,8 +1270,18 @@ class WatchProgressRepositoryImpl @Inject constructor(
         val tvdb = tvdbTracking ?: return
         val reference = buildTrackingMediaReference("series", contentId, videoId, seasonNumber = season, episodeNumber = episode)
         val context = tvdb.selectionContext(profileId, reference) ?: return
-        if (history) cwRepository?.historyRemoved(profileId, contentId, emptySet(), context.episodeIds.toSet())
         val media = reference.copy(catalog = reference.catalog?.copy(tvdbContext = context))
+        if (history && cwRepository != null) {
+            // A durable seed can predate TVDB enrichment. Revoke a native identity only
+            // when the active tracker's catalogue proves which parent and episode it was.
+            val primary = profileProgressProviderFlow(profileId).first()
+            val native = primary?.let { provider ->
+                tvdb.resolveAll(profileId, provider.providerId, media).orEmpty().filter { target ->
+                    target.catalog?.contentId == contentId && target.episode?.numberingProvider == provider.providerId.storageId
+                }.mapNotNull { target -> target.episode?.let { ep -> ep.season?.let { it to ep.number } } }.toSet()
+            }.orEmpty()
+            cwRepository.historyRemoved(profileId, contentId, native, context.episodeIds.toSet())
+        }
         val entries = watchProgressPreferences.getAllRawEntries(profileId)
         val keys = entries.filter { (_, entry) -> entry.contentId == contentId && entry.tvdbContext != null &&
             (entry.tvdbContext == context || entry.tvdbContentIds.any(context.episodeIds::contains)) }.keys

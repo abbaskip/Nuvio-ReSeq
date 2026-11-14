@@ -26,7 +26,8 @@ object OnDemandStreams {
     internal fun stream(s: OnDemandRepository.OnDemandSource, sourceName: String): Stream {
         val t = s.tech
         val quality = t?.quality
-        return Stream(name = listOfNotNull(sourceName, quality).joinToString("\n"), title = s.label,
+        return Stream(name = listOfNotNull(sourceName, quality).joinToString("\n"),
+            title = listOfNotNull(s.label, VodLanguagePreference.display(s.languages)).joinToString(" · "),
             description = describe(s), url = s.url, ytId = null, infoHash = null, fileIdx = null, externalUrl = null,
             behaviorHints = StreamBehaviorHints(notWebReady = if (s.headers.isEmpty()) null else true,
                 bingeGroup = "iptv-playlist:${s.playlistId}", countryWhitelist = null,
@@ -47,8 +48,9 @@ object OnDemandStreams {
         val head = "🎬 " + s.title + (s.year?.let { " ($it)" } ?: "") + (s.episodeTag?.let { " · $it" } ?: "")
         val line2 = listOfNotNull(
             t?.estimatedBytes?.let { "💾 ~" + formatSize(it) },
-            t?.language?.let { "🗣 $it" },
-            "📡 ${s.providerName}"
+            (VodLanguagePreference.display(s.languages) ?: t?.language)?.let { "🗣 $it" },
+            "📡 ${s.providerName}",
+            s.categoryName.takeIf { it.isNotBlank() }?.let { "📁 $it" }
         ).joinToString(" | ")
         val video = listOfNotNull(
             t?.quality,

@@ -4,6 +4,7 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.network.NetworkResult
+import com.nuvio.tv.data.cw.completionActivityAt
 import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.core.util.isEpisodeReleaseAired
 import com.nuvio.tv.core.util.parseEpisodeReleaseInstant
@@ -430,9 +431,19 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                         )
                     }
                 }
+                // Compare before resolving or merging cards: a stale pause must not
+                // suppress a lookup, occupy the cached row, or hide the resolved episode.
+                val completedAt = (items.asSequence() + nextUpSeeds.asSequence())
+                    .filter { isSeriesTypeCW(it.contentType) && shouldUseAsCompletedSeed(it) }
+                    .groupingBy { it.contentId }.fold(Long.MIN_VALUE) { latest, episode ->
+                        maxOf(latest, episode.completionActivityAt())
+                    }
                 val inProgressOnly = buildList {
                     val liveInProgress = deduplicateInProgress(
-                        recentItems.filter { shouldTreatAsInProgressForContinueWatching(it) }
+                        recentItems.filter { progress ->
+                            shouldTreatAsInProgressForContinueWatching(progress) &&
+                                progress.lastWatched >= (completedAt[progress.contentId] ?: Long.MIN_VALUE)
+                        }
                     )
                     if (liveInProgress.isNotEmpty()) {
                         liveInProgress.forEach { progress ->
@@ -473,6 +484,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                         )
                     ) {
                         cachedInProgress.forEach { cached ->
+                            if (cached.lastWatched < (completedAt[cached.contentId] ?: Long.MIN_VALUE)) return@forEach
                             if (cutoffMs != null && cached.lastWatched < cutoffMs) return@forEach
                             add(
                                 ContinueWatchingItem.InProgress(
@@ -592,7 +604,6 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 val partialPublishMutex = Mutex()
                 val nextUpItems = buildLightweightNextUpItems(
                     pipelineLease = pipelineLease,
-                    allProgress = recentItems,
                     nextUpSeeds = recentNextUpSeeds,
                     inProgressItems = inProgressOnly,
                     dismissedNextUp = dismissedNextUp,
@@ -1060,14 +1071,6 @@ internal fun HomeViewModel.shouldUseAsCompletedSeed(progress: WatchProgress): Bo
     return watchProgressRepository.shouldUseAsNextUpSeed(progress, System.currentTimeMillis())
 }
 
-private fun HomeViewModel.shouldTreatAsActiveInProgressForNextUpSuppression(
-    progress: WatchProgress,
-    latestCompletedAt: Long?
-): Boolean {
-    if (!shouldTreatAsInProgressForContinueWatching(progress)) return false
-    if (latestCompletedAt == null || latestCompletedAt == Long.MIN_VALUE) return true
-    return progress.lastWatched >= latestCompletedAt
-}
 
 private fun logNextUpDecision(message: String) {
     if (com.nuvio.tv.BuildConfig.IS_DEBUG_BUILD) Log.d("ContinueWatchingNextUp", message)
@@ -1210,7 +1213,6 @@ private fun resolveVideoForProgress(progress: WatchProgress, meta: CwMetaSummary
 
 private suspend fun HomeViewModel.buildLightweightNextUpItems(
     pipelineLease: com.nuvio.tv.data.cw.CwLease,
-    allProgress: List<WatchProgress>,
     nextUpSeeds: List<WatchProgress>,
     inProgressItems: List<ContinueWatchingItem.InProgress>,
     dismissedNextUp: Set<String>,
@@ -1222,26 +1224,7 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
     val pipelineProfileId = profileManager.activeProfileId.value
     // Move seed filtering/grouping/sorting off the main thread.
     val (latestCompletedBySeries, inProgressIds) = withContext(Dispatchers.Default) {
-        val latestCompletedByContent = allProgress
-            .asSequence()
-            .filter { isSeriesTypeCW(it.contentType) }
-            .filter { it.contentId.isNotBlank() }
-            .filter { shouldUseAsCompletedSeed(it) }
-            .groupBy { it.contentId }
-            .mapValues { (_, items) ->
-                items.maxOfOrNull { it.lastWatched } ?: Long.MIN_VALUE
-            }
-
-        val ipIds = inProgressItems
-            .map { it.progress }
-            .filter { progress ->
-                shouldTreatAsActiveInProgressForNextUpSuppression(
-                    progress = progress,
-                    latestCompletedAt = latestCompletedByContent[progress.contentId]
-                )
-            }
-            .map { it.contentId }
-            .toSet()
+        val ipIds = inProgressItems.mapTo(mutableSetOf()) { it.progress.contentId }
 
         val seeds = nextUpSeeds
             .filter { progress ->

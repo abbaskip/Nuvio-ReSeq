@@ -14,6 +14,43 @@ class CwMembershipReducerTest {
     private fun offer(p: WatchProgress, episode: Int) = p.seriesChoice().copy(
         videoId = "${p.contentId}:1:$episode", season = 1, episode = episode, chooseEpisode = false)
 
+    @Test fun `unwatch in alternate order compares a 47 percent pause with the most recent remaining completion`() {
+        fun completed(display: Int, native: Int, time: Long): WatchProgress {
+            val videoId = "show:6:$native"
+            val id = 1000L + native
+            return progress(time = time, episode = native, complete = true).copy(season = 6, videoId = videoId,
+                source = WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS,
+                tvdbContext = TvdbPlaybackContext(42, "alttwo", id, 6, display, listOf(id), videoId))
+        }
+        val previous = completed(19, 17, 3_000)
+        val latest = completed(20, 18, 4_000)
+        val furthest = completed(23, 21, 1_000)
+        val pause = progress(time = 2_000, episode = 11).copy(season = 6, position = 0, duration = 0,
+            progressPercent = 47f, episodeTitle = "Shareholder Meeting", source = WatchProgress.SOURCE_TRAKT_PLAYBACK)
+        val before = state(furthest, pause, previous, latest)
+        val removed = CwMembershipReducer.historyRemoved(before, "show", setOf(6 to 18), 5_000, latest.tvdbContentIds)
+
+        // Resume can arrive before the updated tracker history. The preferred seed for
+        // furthest numbering is older than the pause, even though the show was watched later.
+        for (seed in listOf(previous, furthest.copy(latestSeriesActivity = previous.lastWatched))) {
+            for (pauseFirst in listOf(false, true)) {
+                var state = removed
+                if (pauseFirst) state = CwMembershipReducer.progress(state, listOf(pause))
+                state = CwMembershipReducer.progress(state, listOf(seed), seeds = true)
+                state = CwMembershipReducer.progress(state, listOf(pause))
+                val display = seed.tvdbContext!!.episode + 1
+                val candidate = offer(seed, display).copy(tvdbContext = seed.tvdbContext.copy(
+                    episodeId = 1100L + display, episodeIds = listOf(1100L + display), episode = display))
+                val published = CwMembershipReducer.enrich(state, state.lease, nextUp = listOf(candidate))
+                assertEquals("seed ${seed.episode}, pauseFirst=$pauseFirst", display, published.nextUp.singleOrNull()?.tvdbContext?.episode)
+                assertTrue(published.inProgress.isEmpty())
+                val replay = CwMembershipReducer.progress(published, listOf(pause.copy(lastWatched = 3_500)))
+                assertEquals(47f, replay.inProgress.single().progressPercent)
+                assertEquals(replay, CwMembershipReducer.enrich(replay, replay.lease, nextUp = listOf(candidate)))
+            }
+        }
+    }
+
     @Test fun `partial or empty refresh retains all supported shows through five minute sequence`() {
         val cached = state(progress("a"), progress("b"), progress("c", complete = true))
         var current = cached

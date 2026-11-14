@@ -9,6 +9,7 @@ import com.nuvio.tv.livetv.ui.formatClock
 /** A team's color that reads on a dark screen: the alternate color when the main one is near white. */
 internal fun teamColor(t: TeamInfo?): Color {
     stateCricketColor(t)?.let { return Color(it) }
+    SportsCricketColors.color(t)?.let { return Color(it) }
     val main = t?.color?.let { Color(it) }
     val alt = t?.altColor?.let { Color(it) }
     val pick = when {

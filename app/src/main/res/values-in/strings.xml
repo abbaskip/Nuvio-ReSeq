@@ -2470,4 +2470,12 @@
     <string name="episodes_remove_partial_watch">Hapus progres tontonan sebagian</string>
     <string name="episodes_partial_watch_removed">Progres tontonan sebagian dihapus</string>
     <string name="episodes_partial_watch_failed">Tidak dapat menyelesaikan penghapusan progres tontonan sebagian</string>
+    <string name="stream_test_btn_measuring_parallel1">Mengukur Paralel (1 koneksi)...</string>
+    <string name="stream_test_btn_measuring_parallel4">Mengukur Paralel (4 koneksi)...</string>
+    <string name="stream_test_btn_measuring_parallel8">Mengukur Paralel (8 koneksi)...</string>
+    <string name="stream_test_btn_measuring_parallel16">Mengukur Paralel (16 koneksi)...</string>
+    <string name="stream_test_label_parallel1">Koneksi Paralel (1 koneksi)</string>
+    <string name="stream_test_label_parallel4">Koneksi Paralel (4 koneksi)</string>
+    <string name="stream_test_label_parallel8">Koneksi Paralel (8 koneksi)</string>
+    <string name="stream_test_label_parallel16">Koneksi Paralel (16 koneksi)</string>
 </resources>

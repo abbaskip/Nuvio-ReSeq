@@ -45,7 +45,8 @@ data class VodTech(
     val channels: Int?,
     val language: String?,
     val bitrateKbps: Int?,
-    val durationSecs: Int?
+    val durationSecs: Int?,
+    val languageCode: String? = null
 ) {
     /** "4K", "1080p", "720p" or "SD". */
     val quality: String?
@@ -577,6 +578,7 @@ class OnDemandRepository @Inject constructor(
         val all = runCatching { db.versions(item) }.getOrDefault(listOf(item)).ifEmpty { listOf(item) }
         val playlists = prefs.playlists.first().associateBy { it.id }
         val catNames = HashMap<String, Map<String, String>>()
+        val preferredLanguage = systemLanguage()
         all.map { v ->
             val cats = catNames.getOrPut(v.playlistId) { runCatching { db.categoryNames(v.playlistId, v.kind) }.getOrDefault(emptyMap()) }
             val quality = qualityOf(v.name)
@@ -586,8 +588,10 @@ class OnDemandRepository @Inject constructor(
                 cats[v.categoryId],
                 v.year?.toString()
             ).joinToString(" · ")
-            Version(v, label, detail)
-        }.sortedByDescending { qualityRank(it.label) }
+            val category = cats[v.categoryId].orEmpty()
+            Version(v, label, detail) to VodSourceRanking.key(
+                VodLanguagePreference.resolve(null, null, v.name, category), preferredLanguage, null, v.name, category)
+        }.sortedWith(compareBy(VodSourceRanking.comparator) { it.second }).map { it.first }
     }
 
     private fun qualityOf(name: String): String? {
@@ -599,14 +603,6 @@ class OnDemandRepository @Inject constructor(
             Regex("""\b(sd|480p)\b""").containsMatchIn(n) -> "SD"
             else -> null
         }?.let { q -> if (Regex("""\b(hevc|x265|h265)\b""").containsMatchIn(n)) "$q HEVC" else q }
-    }
-
-    private fun qualityRank(label: String) = when {
-        label.startsWith("4K") -> 4
-        label.startsWith("Full HD") -> 3
-        label.startsWith("HD") -> 2
-        label.startsWith("SD") -> 1
-        else -> 0
     }
 
     /** Genres from your addons' metadata, saved for titles the provider sent none for. */
@@ -822,7 +818,10 @@ class OnDemandRepository @Inject constructor(
         val ext: String? = null,
         val tech: VodTech? = null,
         val episodeTag: String? = null,
-        val playlistId: String = ""
+        val playlistId: String = "",
+        val languages: Set<String> = emptySet(),
+        val categoryName: String = "",
+        val episodeTitle: String = ""
     )
 
     /** Indexed title lookup; no catalogue import or broad scan is required to open an episode. */
@@ -839,6 +838,7 @@ class OnDemandRepository @Inject constructor(
         val user = prefs.userState.first()
         val settings = prefs.settings.first()
         val headers = if (pl.userAgent.isBlank()) emptyMap() else mapOf("User-Agent" to pl.userAgent)
+        val preferredLanguage = systemLanguage()
         val allowed = candidates.values.filter { item ->
             item.playlistId == playlistId && "${item.kind.key}:${item.playlistId}:${item.categoryId}" !in user.vodHiddenCategories &&
                 !com.nuvio.tv.livetv.parental.ParentalControls.isLocked("vod:${item.kind.key}:${item.playlistId}:${item.categoryId}",
@@ -853,16 +853,20 @@ class OnDemandRepository @Inject constructor(
                     val detail = if (target.kind == VodKind.SERIES || !VodMatchPolicy.titleMatches(target, item)) info(item) else null
                     if (!VodMatchPolicy.parentMatches(target, item, detail)) return@withPermit emptyList()
                     val episodes = if (target.kind == VodKind.SERIES) VodMatchPolicy.episodes(target, detail?.episodes.orEmpty(), item.name) else emptyList()
+                    val category = db.categoryName(item.playlistId, item.kind, item.categoryId).orEmpty()
                     Log.d("IptvVod", "Catalogue detail: episodes=${detail?.episodes?.size ?: 0} matched=${episodes.size}")
                     if (target.kind == VodKind.SERIES) episodes.map { episode ->
                         OnDemandSource("${pl.name} · S${episode.season}E${episode.episode} · ${episode.ext.uppercase()}", episode.url, headers,
                             item.name, item.year, pl.name, episode.ext, episode.tech,
-                            "S%02dE%02d".format(episode.season, episode.episode), pl.id)
+                            "S%02dE%02d".format(episode.season, episode.episode), pl.id,
+                            VodLanguagePreference.resolve(episode.tech?.languageCode ?: episode.tech?.language, episode.title, item.name, category), category, episode.title)
                     } else movieUrl(item)?.let { url -> listOf(OnDemandSource(
                         "${pl.name} · ${(item.ext ?: "mp4").uppercase()}", url, headers,
-                        item.name, item.year, pl.name, item.ext ?: "mp4", detail?.tech, playlistId = pl.id)) }.orEmpty()
+                        item.name, item.year, pl.name, item.ext ?: "mp4", detail?.tech, playlistId = pl.id,
+                        languages = VodLanguagePreference.resolve(detail?.tech?.languageCode ?: detail?.tech?.language, null, item.name, category), categoryName = category)) }.orEmpty()
                 }
             } }.let { kotlinx.coroutines.awaitAll(*it.toTypedArray()).flatten() }
+                .let { VodSourceRanking.sort(it, preferredLanguage) }
         }
     }
 
@@ -911,10 +915,12 @@ class OnDemandRepository @Inject constructor(
             fps = fps,
             hdr = hdr,
             audioCodec = a?.optString("codec_name")?.takeIf { it.isNotBlank() },
-            channels = a?.optInt("channels")?.takeIf { it > 0 },
+            channels = a?.optInt("channels")?.takeIf { it > 0 }
+                ?: a?.optString("channel_layout")?.let(VodSourceRanking::layoutChannels),
             language = lang,
             bitrateKbps = bitrate,
-            durationSecs = duration
+            durationSecs = duration,
+            languageCode = a?.optJSONObject("tags")?.optString("language")?.takeIf { it.isNotBlank() && it != "und" }
         )
     }
 
@@ -922,6 +928,9 @@ class OnDemandRepository @Inject constructor(
         s?.let { Regex("""(19|20)\d{2}""").find(it)?.value?.toIntOrNull() }
 
     companion object {
+        internal fun systemLanguage(): java.util.Locale = runCatching {
+            android.content.res.Resources.getSystem().configuration.locales.get(0)
+        }.getOrNull() ?: java.util.Locale.getDefault()
         private const val TAG = "OnDemand"
         private val IMDB_ID = Regex("tt[0-9]+")
         /** Re-import each provider once a day. */

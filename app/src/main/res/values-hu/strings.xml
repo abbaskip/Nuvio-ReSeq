@@ -3438,4 +3438,7 @@ Próbálj meg egy másik forrást. [%1$s]</string>
     <string name="plugin_dns_description">Válassz DNS-szolgáltatót a CloudStream-kérésekhez. Váltáshoz nyomd meg az OK gombot.</string>
     <string name="continue_watching_window_summary">A megtekintési előzmények figyelembe vett időszaka</string>
     <string name="cw_choose_episode">Nyisd meg a sorozatot az epizód kiválasztásához</string>
+    <string name="episodes_remove_partial_watch">Részleges lejátszási előrehaladás törlése</string>
+    <string name="episodes_partial_watch_removed">Részleges lejátszási előrehaladás törölve</string>
+    <string name="episodes_partial_watch_failed">Nem sikerült teljesen törölni a részleges lejátszási előrehaladást</string>
 </resources>

@@ -3538,4 +3538,7 @@
     <string name="plugin_dns_description">Wybierz serwer DNS dla żądań CloudStream. Naciśnij OK, aby zmienić.</string>
     <string name="continue_watching_window_summary">Jak długi okres historii oglądania uwzględnić</string>
     <string name="cw_choose_episode">Otwórz serial, aby wybrać odcinek</string>
+    <string name="episodes_remove_partial_watch">Usuń postęp częściowego oglądania</string>
+    <string name="episodes_partial_watch_removed">Postęp częściowego oglądania usunięty</string>
+    <string name="episodes_partial_watch_failed">Nie udało się zakończyć usuwania postępu częściowego oglądania</string>
 </resources>

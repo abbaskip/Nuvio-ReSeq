@@ -2913,4 +2913,7 @@
     <string name="plugin_dns_description">Zgjidh shërbimin DNS për kërkesat CloudStream. Shtyp OK për ta ndryshuar.</string>
     <string name="continue_watching_window_summary">Periudha e historikut të shikimit që përfshihet</string>
     <string name="cw_choose_episode">Hap serialin për të zgjedhur një episod</string>
+    <string name="episodes_remove_partial_watch">Hiq përparimin e shikimit të pjesshëm</string>
+    <string name="episodes_partial_watch_removed">Përparimi i shikimit të pjesshëm u hoq</string>
+    <string name="episodes_partial_watch_failed">Nuk u përfundua heqja e përparimit të shikimit të pjesshëm</string>
 </resources>

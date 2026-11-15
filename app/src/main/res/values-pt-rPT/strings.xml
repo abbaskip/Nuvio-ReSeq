@@ -2599,4 +2599,7 @@
     <string name="plugin_dns_description">Escolha o resolvedor dos pedidos CloudStream. Prima OK para mudar.</string>
     <string name="continue_watching_window_summary">Período do histórico de visualização a considerar</string>
     <string name="cw_choose_episode">Abra a série para escolher um episódio</string>
+    <string name="episodes_remove_partial_watch">Remover o progresso parcial</string>
+    <string name="episodes_partial_watch_removed">Progresso parcial removido</string>
+    <string name="episodes_partial_watch_failed">Não foi possível concluir a remoção do progresso parcial</string>
 </resources>

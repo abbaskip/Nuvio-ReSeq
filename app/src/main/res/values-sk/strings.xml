@@ -3475,4 +3475,7 @@
     <string name="plugin_dns_description">Vyberte DNS pre požiadavky CloudStream. Zmeníte ho tlačidlom OK.</string>
     <string name="continue_watching_window_summary">Aké dlhé obdobie histórie sledovania zahrnúť</string>
     <string name="cw_choose_episode">Otvorte seriál a vyberte epizódu</string>
+    <string name="episodes_remove_partial_watch">Odstrániť priebeh čiastočného sledovania</string>
+    <string name="episodes_partial_watch_removed">Priebeh čiastočného sledovania bol odstránený</string>
+    <string name="episodes_partial_watch_failed">Nepodarilo sa dokončiť odstránenie priebehu čiastočného sledovania</string>
 </resources>

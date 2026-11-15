@@ -3251,4 +3251,7 @@
     <string name="plugin_dns_description">選擇 CloudStream 要求使用的 DNS 服務。按 OK 切換。</string>
     <string name="continue_watching_window_summary">要查看多久以內的觀看紀錄</string>
     <string name="cw_choose_episode">開啟影集以選擇集數</string>
+    <string name="episodes_remove_partial_watch">清除部分觀看進度</string>
+    <string name="episodes_partial_watch_removed">已清除部分觀看進度</string>
+    <string name="episodes_partial_watch_failed">無法完成清除部分觀看進度</string>
 </resources>

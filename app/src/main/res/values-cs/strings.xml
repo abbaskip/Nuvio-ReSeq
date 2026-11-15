@@ -2855,4 +2855,7 @@
     <string name="plugin_dns_description">Zvolte překladač DNS pro požadavky CloudStream. Změňte jej tlačítkem OK.</string>
     <string name="continue_watching_window_summary">Jak dlouhé období historie sledování zahrnout</string>
     <string name="cw_choose_episode">Otevřete seriál a vyberte epizodu</string>
+    <string name="episodes_remove_partial_watch">Smazat průběh částečného sledování</string>
+    <string name="episodes_partial_watch_removed">Průběh částečného sledování byl smazán</string>
+    <string name="episodes_partial_watch_failed">Nepodařilo se dokončit smazání průběhu částečného sledování</string>
 </resources>

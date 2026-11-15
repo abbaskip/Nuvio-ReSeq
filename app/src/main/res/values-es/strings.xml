@@ -3453,4 +3453,7 @@ Utilizas esta función bajo tu entera responsabilidad. P2P se puede desactivar e
     <string name="plugin_dns_description">Elige el resolvedor para las solicitudes de CloudStream. Pulsa OK para cambiar.</string>
     <string name="continue_watching_window_summary">Qué período del historial se incluye</string>
     <string name="cw_choose_episode">Abre la serie para elegir un episodio</string>
+    <string name="episodes_remove_partial_watch">Eliminar el progreso parcial</string>
+    <string name="episodes_partial_watch_removed">Progreso parcial eliminado</string>
+    <string name="episodes_partial_watch_failed">No se pudo terminar de eliminar el progreso parcial</string>
 </resources>

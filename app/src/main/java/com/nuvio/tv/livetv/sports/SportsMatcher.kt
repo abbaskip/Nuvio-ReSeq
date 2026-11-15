@@ -277,6 +277,9 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 val ch = byKey[key] ?: return@mapNotNull null
                 val p = p0
                 if (fillerOrLoop(ch, p, allowLongSession = longLive)) return@mapNotNull null
+                // A bulletin can name both countries, or even report on this fixture.
+                // Check the programme itself before treating its description as an episode title.
+                if (nonEventProgramme(p)) return@mapNotNull null
                 // The guide's own label for studio shows and replays, when it has one.
                 val cat = norm(p.category.orEmpty())
                 if (hasWord(cat, "sports non event") || hasWord(cat, "classic sport event")) return@mapNotNull null
@@ -302,6 +305,12 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     val (nt, nd) = texts
                     val programmeSport = programmeSports[key to p.startMs]
                     if (conflictingSports(eventSport, programmeSport) && !t.namesLeague(nt, "")) continue
+                    // Country names in ordinary prose do not establish cricket coverage.
+                    // Retain sport/competition labels and explicit match-up listings, including
+                    // generic titles whose description carries the actual fixture.
+                    if (eventSport == Sport.CRICKET && programmeSport != Sport.CRICKET &&
+                        !t.namesLeague(nt, nd) && !t.inName(nt) &&
+                        !(t.inName(nd) && MATCHUP.containsMatchIn(nd))) continue
                     // Disc golf shows never count for regular golf.
                     if (ev.id !in discIds && (hasWord(nt, "disc golf") || hasWord(nd, "disc golf"))) continue
                     val ongoing = p.stopMs > input.now && p.stopMs - p.startMs <= 30 * HOUR &&
@@ -420,6 +429,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                             val showText = p?.let { norm(it.title + " " + (it.episode ?: "")) }
                             val score = when {
                                 !countryAllowed -> 0
+                                p != null && nonEventProgramme(p) -> 0
                                 ev.id !in discIds && showText != null && hasWord(showText, "disc golf") -> 0
                                 p == null -> if (!input.includeGuide || input.replay || reported.isNotEmpty()) 55 else if (keys.size < 400 && national) 45 else 0
                                 // The guide says it's a different game: not this one.
@@ -823,6 +833,14 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
 
     private fun conflictingSports(event: Sport?, listing: Sport?): Boolean =
         event != null && listing != null && event != Sport.OTHER && listing != Sport.OTHER && event != listing
+
+    private fun nonEventProgramme(p: EpgProgram): Boolean {
+        // Ignore trailing schedule notes such as " - News follows" on real coverage.
+        val title = norm(p.title.substringBefore(" - ").substringBefore(" – ")
+            .substringBefore(" — ").substringBefore(" | "))
+        val category = norm(p.category.orEmpty())
+        return listOf("news", "current affairs", "weather").any { hasWord(title, it) || hasWord(category, it) }
+    }
 
     private fun termsFor(ev: SportsEvent): Terms {
         val league = SportsCatalog.league(ev.leagueId)

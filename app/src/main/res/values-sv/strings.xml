@@ -1785,4 +1785,7 @@
     <string name="plugin_dns_description">Välj DNS-tjänst för CloudStream-förfrågningar. Tryck OK för att byta.</string>
     <string name="continue_watching_window_summary">Hur långt tillbaka i visningshistoriken du vill gå</string>
     <string name="cw_choose_episode">Öppna serien för att välja ett avsnitt</string>
+    <string name="episodes_remove_partial_watch">Rensa delvis uppspelningsförlopp</string>
+    <string name="episodes_partial_watch_removed">Delvis uppspelningsförlopp har rensats</string>
+    <string name="episodes_partial_watch_failed">Det gick inte att slutföra rensningen av delvis uppspelningsförlopp</string>
 </resources>

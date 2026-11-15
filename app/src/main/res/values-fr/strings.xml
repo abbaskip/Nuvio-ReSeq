@@ -3454,4 +3454,7 @@
     <string name="plugin_dns_description">Choisissez le résolveur des requêtes CloudStream. Appuyez sur OK pour changer.</string>
     <string name="continue_watching_window_summary">Période de votre historique de visionnage à prendre en compte</string>
     <string name="cw_choose_episode">Ouvrez la série pour choisir un épisode</string>
+    <string name="episodes_remove_partial_watch">Effacer la progression partielle</string>
+    <string name="episodes_partial_watch_removed">Progression partielle effacée</string>
+    <string name="episodes_partial_watch_failed">Impossible d’effacer complètement la progression partielle</string>
 </resources>

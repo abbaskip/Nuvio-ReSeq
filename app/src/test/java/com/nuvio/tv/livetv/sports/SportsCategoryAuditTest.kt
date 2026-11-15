@@ -11,8 +11,8 @@ class SportsCategoryAuditTest {
             assertEquals(region, "basketball/nba", leagues.first { it.sport == Sport.BASKETBALL }.id)
             assertEquals(region, "football/nfl", leagues.first { it.sport == Sport.AMERICAN_FOOTBALL }.id)
             assertEquals(region, listOf("MLB", "World Series"), leagues.filter { it.sport == Sport.BASEBALL }.take(2).map { it.name })
-            assertEquals(region, listOf("Test Matches", "ODIs", "T20 Internationals", "IPL", "BBL", "The Hundred"),
-                leagues.filter { it.sport == Sport.CRICKET }.take(6).map { it.name })
+            assertEquals(region, listOf("International Cricket", "Test Matches", "ODIs", "T20 Internationals", "IPL", "BBL", "The Hundred"),
+                leagues.filter { it.sport == Sport.CRICKET }.take(7).map { it.name })
         }
     }
 

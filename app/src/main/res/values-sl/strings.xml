@@ -2194,4 +2194,7 @@
     <string name="plugin_dns_description">Izberite DNS za zahteve CloudStream. Za menjavo pritisnite OK.</string>
     <string name="continue_watching_window_summary">Kolikšno obdobje zgodovine ogledov naj se upošteva</string>
     <string name="cw_choose_episode">Odprite serijo in izberite epizodo</string>
+    <string name="episodes_remove_partial_watch">Odstrani napredek delnega ogleda</string>
+    <string name="episodes_partial_watch_removed">Napredek delnega ogleda je odstranjen</string>
+    <string name="episodes_partial_watch_failed">Odstranjevanja napredka delnega ogleda ni bilo mogoče dokončati</string>
 </resources>

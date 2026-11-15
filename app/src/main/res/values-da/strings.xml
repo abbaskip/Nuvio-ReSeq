@@ -2720,4 +2720,7 @@
     <string name="plugin_dns_description">Vælg DNS-tjeneste til CloudStream-anmodninger. Tryk OK for at skifte.</string>
     <string name="continue_watching_window_summary">Hvor langt tilbage i din seerhistorik der skal søges</string>
     <string name="cw_choose_episode">Åbn serien for at vælge en episode</string>
+    <string name="episodes_remove_partial_watch">Fjern delvis afspilningsstatus</string>
+    <string name="episodes_partial_watch_removed">Delvis afspilningsstatus fjernet</string>
+    <string name="episodes_partial_watch_failed">Kunne ikke fuldføre fjernelse af delvis afspilningsstatus</string>
 </resources>

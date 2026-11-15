@@ -3427,4 +3427,7 @@
     <string name="plugin_dns_description">Изберете DNS за заявките на CloudStream. Натиснете OK за смяна.</string>
     <string name="continue_watching_window_summary">Какъв период от историята на гледане да се включи</string>
     <string name="cw_choose_episode">Отворете сериала, за да изберете епизод</string>
+    <string name="episodes_remove_partial_watch">Изтриване на напредъка на частичното гледане</string>
+    <string name="episodes_partial_watch_removed">Напредъкът на частичното гледане е изтрит</string>
+    <string name="episodes_partial_watch_failed">Неуспешно завършване на изтриването на напредъка на частичното гледане</string>
 </resources>

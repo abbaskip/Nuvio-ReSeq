@@ -3052,4 +3052,7 @@
     <string name="plugin_dns_description">اختر خدمة DNS لطلبات CloudStream. اضغط OK للتبديل.</string>
     <string name="continue_watching_window_summary">المدة التي يشملها سجل المشاهدة</string>
     <string name="cw_choose_episode">افتح المسلسل لاختيار حلقة</string>
+    <string name="episodes_remove_partial_watch">حذف تقدم المشاهدة الجزئية</string>
+    <string name="episodes_partial_watch_removed">تم حذف تقدم المشاهدة الجزئية</string>
+    <string name="episodes_partial_watch_failed">تعذر إكمال حذف تقدم المشاهدة الجزئية</string>
 </resources>

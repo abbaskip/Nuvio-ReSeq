@@ -12,8 +12,9 @@ class EpisodePartialWatchTest {
     private val parent = "tt0386676"
     private val video = Video("$parent:6:11", "Shareholder Meeting", null, null,
         season = 6, episode = 11, overview = null)
-    private val pause = WatchProgress(parent, "series", "The Office", null, null, video.id,
-        6, 11, video.title, 0, 0, 1L, progressPercent = 47.18f)
+    private val pause = WatchProgress(contentId = parent, contentType = "series", name = "The Office",
+        poster = null, backdrop = null, logo = null, videoId = video.id, season = 6, episode = 11,
+        episodeTitle = video.title, position = 0, duration = 0, lastWatched = 1L, progressPercent = 47.18f)
 
     @Test fun percentageOnlyRewatchCanBeRemovedWithoutMatchingCompletedOrSiblingRecords() {
         assertTrue(pause.matchesPartialEpisode(parent, video))

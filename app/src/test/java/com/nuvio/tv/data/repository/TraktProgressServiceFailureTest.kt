@@ -110,8 +110,10 @@ class TraktProgressServiceFailureTest {
         coEvery { traktApi.getPlayback(any(), "episodes", page = 1, limit = 100) } returns
             Response.success(listOf(sibling, latest, old))
         coEvery { traktApi.deletePlayback(any(), 32) } returns Response.success(Unit)
-        val resume = WatchProgress(showId, "series", "The Office", null, null, "$showId:6:16",
-            6, 16, ep.title, 0, 0, 1, progressPercent = 47.18f, traktEpisodeId = 182129)
+        val resume = WatchProgress(contentId = showId, contentType = "series", name = "The Office",
+            poster = null, backdrop = null, logo = null, videoId = "$showId:6:16", season = 6, episode = 16,
+            episodeTitle = ep.title, position = 0, duration = 0, lastWatched = 1L, progressPercent = 47.18f,
+            traktEpisodeId = 182129)
         val target = buildTrackingMediaReference("series", showId, resume.videoId, seasonNumber = 6, episodeNumber = 16)
         service.removeEpisodePause(target, resume)
         coVerify(exactly = 1) { traktApi.deletePlayback(any(), 32) }

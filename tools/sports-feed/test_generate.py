@@ -21,21 +21,23 @@ class Responses:
 
 
 class ProducerTests(unittest.TestCase):
-    def test_requested_motorsport_schedules_survive_later_discovery_rate_limits(self):
+    def test_world_cup_and_motorsport_schedules_survive_later_discovery_rate_limits(self):
         class Limited(Responses):
             def __init__(self):
                 super().__init__()
                 self.urls = []
             def get(self, url, ttl):
                 self.urls.append(url)
-                if len(self.urls) > 3:
+                if len(self.urls) > 4:
                     return None
                 ident = url.split("id=")[1]
                 return {"fetchedAt": NOW, "payload": {"events": [{"idEvent": ident, "idLeague": ident}]}}
         responses = Limited()
         output = g.build([], responses, NOW, 0, 0)
-        self.assertEqual(g.PRIORITY_SEEDS, [url.split("id=")[1] for url in responses.urls[:3]])
-        self.assertTrue(all("eventsnextleague.php" in url for url in responses.urls[:3]))
+        self.assertEqual("5806", g.PRIORITY_SEEDS[0])
+        self.assertTrue(any(row.get("idLeague") == "5806" and row.get("strSport") == "Rugby" for row in output["metadata"]["leagues"]))
+        self.assertEqual(g.PRIORITY_SEEDS, [url.split("id=")[1] for url in responses.urls[:4]])
+        self.assertTrue(all("eventsnextleague.php" in url for url in responses.urls[:4]))
         self.assertEqual({"tsdb/" + ident for ident in g.PRIORITY_SEEDS}, {e["leagueId"] for e in output["entries"]})
         self.assertTrue(all(len(e["payload"]["events"]) == 1 for e in output["entries"]))
 

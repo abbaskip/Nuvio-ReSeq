@@ -263,3 +263,31 @@ provenance. Commit and validate all five queued items together with compatible
 upstream changes. Include them in the beta 9 release notes. If source cannot be
 found or validation is blocked, hold publication and report the missing evidence.
 
+
+
+## 16 November 2026: current queue after beta 9.8
+
+The historical beta 9 / beta 9.1 queue above is delivered. Do not replay its
+NNTP, Live TV Home, Stalker, Discover, defaults, avatar or optimisation snapshots
+over current development. Run 20261115T150400Z-d7c158 starts at published/dev
+03437926667ba94094233a515570604a465994de (beta 9.8).
+
+Five upstream changes are prepared ONLY in the isolated unpublished review branch
+`automation/upstream-20261115T150400Z-d7c158`: folder/Home hero preferences,
+media-server sidecar-subtitle persistence, Ambient keyboard dismissal,
+stream-test connection labels, and an adapted installer-cancellation guard.
+The cancellation change preserves genuine-failure fallback and download retention;
+its two new Robolectric tests still require execution. No upstream relaunch policy
+or new installer defaults were imported. All app builds, JVM tests, lint and
+functional acceptance remain outstanding because disk is below the mandatory
+6 GiB build reserve. Python tooling and resource consistency checks do not
+establish application compatibility.
+
+The durable ledger records 121 new dispositions and preserves all 201 historical
+records unchanged. Sixty-four additional source/merge-resolution entries remain
+in the adaptation/validation queue, with concrete reasons in the ledger; existing
+product-decision holds remain protected. Empty-resolution merges do not approve
+their held parents. Complete patches and merge-resolution evidence are retained
+in the durable run evidence. Follow pending-integration.json and retain this review
+branch ancestry on the next run. Resume full exact-candidate validation after
+sufficient disk is available; do not reset the ledger or start from old snapshots.

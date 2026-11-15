@@ -597,7 +597,7 @@ fun EpisodesRow(
                 }
             } ?: false,
             onRemovePartialWatch = if (selectedEpisode.hasResolvedSource &&
-                episodeProgressMap[selectedEpisode.season to selectedEpisode.episode]?.isInProgress() == true) {
+                episodeProgressMap[selectedEpisode.season to selectedEpisode.episode]?.hasRemovableEpisodePause() == true) {
                 {
                     onRemovePartialWatch(selectedEpisode)
                     optionsEpisode = null

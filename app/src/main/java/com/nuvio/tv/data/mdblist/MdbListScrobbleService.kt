@@ -22,10 +22,15 @@ class MdbListScrobbleService @Inject constructor(
         }
     }
 
-    suspend fun clearEpisodePause(scope: MdbListAuthScope, contentId: String, season: Int, episode: Int, tmdbId: Long?) {
+    suspend fun clearEpisodePause(scope: MdbListAuthScope, contentId: String, season: Int, episode: Int,
+                                 identity: com.nuvio.tv.core.tracking.TrackingEpisode) {
         val rows = decodeMdbListPlayback(api.get("/sync/playback", scope = scope).body)
         val matches = rows.filter { it.type == MdbListItemType.EPISODE && contentId in it.media.ids.aliases() &&
-            (if (tmdbId != null && it.episodeTmdbId != null) it.episodeTmdbId == tmdbId else it.season == season && it.episode == episode) }
+            when {
+                identity.tmdbId != null && it.episodeTmdbId != null -> it.episodeTmdbId == identity.tmdbId
+                identity.tvdbId != null && it.episodeTvdbId != null -> it.episodeTvdbId == identity.tvdbId
+                else -> !identity.usesTvdbSeasonMapping && it.season == season && it.episode == episode
+            } }
         if (matches.isEmpty()) return
         // MDBList clears by episode, so a duplicate address cannot target an individual session.
         val row = matches.single()

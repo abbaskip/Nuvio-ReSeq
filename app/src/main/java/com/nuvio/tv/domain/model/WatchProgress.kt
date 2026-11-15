@@ -84,6 +84,9 @@ data class WatchProgress(
     fun isInProgress(startThreshold: Float = STARTED_THRESHOLD, endThreshold: Float = completionThreshold()): Boolean =
         progressPercentage >= startThreshold && (progressPercentage < endThreshold || tvdbCoverageVerified == false)
 
+    fun hasRemovableEpisodePause(): Boolean = season != null && episode != null &&
+        progressPercentage > 0f && progressPercentage < 1f && !isCompleted() && tvdbWatchedIds.isEmpty()
+
     private fun completionThreshold(): Float =
         completionThresholdOverride?.takeIf { it.isFinite() && it > 0f && it <= 1f }
             ?: if (source == SOURCE_SIMKL_PLAYBACK) SIMKL_COMPLETED_THRESHOLD else COMPLETED_THRESHOLD

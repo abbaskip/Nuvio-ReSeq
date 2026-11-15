@@ -109,7 +109,7 @@ class MdbListTrackingProgressProvider @Inject constructor(
             requireNotNull(it.toTmdb(requireNotNull(episode.season), episode.number))
         }
         scrobbles.clearEpisodePause(scope, parent.contentId, mapped?.season ?: requireNotNull(episode.season),
-            mapped?.episode ?: episode.number, episode.tmdbId)
+            mapped?.episode ?: episode.number, episode)
     }
 
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {

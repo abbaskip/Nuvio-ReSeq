@@ -2547,7 +2547,7 @@ class MetaDetailsViewModel @Inject constructor(
         if (!video.hasResolvedSource) return
         val season = video.season ?: return
         val episode = video.episode ?: return
-        val resume = _uiState.value.episodeProgressMap[season to episode]?.takeIf { it.isInProgress() } ?: return
+        val resume = _uiState.value.episodeProgressMap[season to episode]?.takeIf { it.hasRemovableEpisodePause() } ?: return
         val contentId = _effectiveContentId.value
         val key = episodePendingKey(video)
         if (key in _uiState.value.episodeWatchedPendingKeys) return

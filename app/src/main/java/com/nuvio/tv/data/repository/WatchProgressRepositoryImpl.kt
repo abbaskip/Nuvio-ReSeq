@@ -964,30 +964,43 @@ class WatchProgressRepositoryImpl @Inject constructor(
     }
 
     override suspend fun removeEpisodePartialWatch(contentId: String, video: Video, resume: WatchProgress) {
-        require(resume.isInProgress() && resume.tvdbWatchedIds.isEmpty())
+        require(resume.hasRemovableEpisodePause())
         val profile = profileManager.activeProfileId.value
         val context = video.tvdbPlaybackContext()
+        require(context == null || context.episodeIds.isNotEmpty())
         val source = buildTrackingMediaReference("series", contentId, video.id, seasonNumber = requireNotNull(video.season),
             episodeNumber = requireNotNull(video.episode), episodeTitle = video.title)
         val reference = source.copy(catalog = requireNotNull(source.catalog).copy(tvdbContext = context))
         val local = watchProgressPreferences.getAllRawEntries(profile)
             .filterValues { it.matchesPartialEpisode(contentId, video) }
-        val remote = if (authManager.isAuthenticated && !ServerItemRef.isServerId(contentId)) {
-            watchProgressSyncService.pullFromRemote(profile, forTvdbResume = true, rawKeys = true).getOrThrow()
-                .filter { (_, entry) -> entry.matchesPartialEpisode(contentId, video) }.map { it.first }
-        } else emptyList()
-
+        var complete = true
         for (provider in connectedProgressProviders()) {
             check(profileManager.activeProfileId.value == profile)
-            val targets = if (tvdbTracking == null) listOf(reference)
-                else requireNotNull(tvdbTracking.resolveAll(profile, provider.providerId, reference))
-            for (target in targets) provider.removeEpisodePause(target, resume)
+            try {
+                val targets = if (tvdbTracking == null) listOf(reference)
+                    else requireNotNull(tvdbTracking.resolveAll(profile, provider.providerId, reference))
+                check(targets.isNotEmpty())
+                for (target in targets) provider.removeEpisodePause(target, resume)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Episode pause removal unavailable for ${provider.providerId.storageId}", e)
+                complete = false
+            }
         }
         check(profileManager.activeProfileId.value == profile)
-        if (remote.isNotEmpty()) watchProgressSyncService.deleteFromRemote(remote, profile).getOrThrow()
+        if (authManager.isAuthenticated && !ServerItemRef.isServerId(contentId)) {
+            val remote = watchProgressSyncService.pullFromRemote(profile, forTvdbResume = true, rawKeys = true)
+            val keys = remote.getOrNull().orEmpty().filter { (_, row) -> row.matchesPartialEpisode(contentId, video) }
+                .map { it.first }
+            if (remote.isFailure || (keys.isNotEmpty() && watchProgressSyncService.deleteFromRemote(keys, profile).isFailure)) {
+                complete = false
+            }
+        }
         mutationStore.acknowledgeProgressUpserts(local, profile)
         watchProgressPreferences.removeMatchingProgress(local, profile)
         triggerRemoteSync(profile)
+        check(complete)
     }
 
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {
@@ -1541,10 +1554,10 @@ class WatchProgressRepositoryImpl @Inject constructor(
 }
 
 internal fun WatchProgress.matchesPartialEpisode(parent: String, video: Video): Boolean {
-    if (contentId != parent || !isInProgress() || tvdbWatchedIds.isNotEmpty()) return false
+    if (contentId != parent || !hasRemovableEpisodePause()) return false
     val target = video.tvdbPlaybackContext()
     if (target == null) return tvdbContext == null && season == video.season && episode == video.episode &&
-        videoId == video.id
+        videoId == video.id && (episodeTitle.isNullOrBlank() || episodeTitle.equals(video.title, ignoreCase = true))
     if (tvdbContentIds.isNotEmpty()) return tvdbContentIds == target.episodeIds.toSet()
     return target.providerSources.orEmpty().any { source ->
         source.episodeIds.toSet() == target.episodeIds.toSet() && source.videoId == videoId &&

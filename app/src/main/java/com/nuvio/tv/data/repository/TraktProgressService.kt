@@ -898,14 +898,25 @@ class TraktProgressService @Inject constructor(
         val episode = requireNotNull(target.episode)
         val parent = requireNotNull(target.catalog)
         val mapping = if (parent.providerDefault) null else resolveCanonicalEpisodeMapping(resume)
-        val sessions = checkNotNull(getPlayback("episodes", force = true))
+        val sessions = mutableListOf<TraktPlaybackItemDto>()
+        var page = 1
+        do {
+            val result = checkNotNull(traktAuthService.executeAuthorizedRequest {
+                traktApi.getPlayback(it, "episodes", page = page, limit = 100)
+            })
+            check(result.isSuccessful)
+            sessions += requireNotNull(result.body())
+            page++
+        } while (page <= (result.headers()["X-Pagination-Page-Count"]?.toIntOrNull() ?: 1))
+        val expectedTitle = mapping?.title ?: episode.title
         val latest = sessions.filter { row ->
-            normalizeContentId(row.show?.ids) == parent.contentId && row.episode != null && when {
+            normalizeContentId(row.show?.ids) == parent.contentId && row.episode != null &&
+                (resume.traktPlaybackId == null || row.id == resume.traktPlaybackId) && when {
                 episode.traktId != null -> row.episode.ids?.trakt == episode.traktId
                 resume.traktEpisodeId != null -> row.episode.ids?.trakt == resume.traktEpisodeId
                 else -> row.episode.season == (mapping?.season ?: episode.season) &&
                     row.episode.number == (mapping?.episode ?: episode.number) &&
-                    (episode.title.isNullOrBlank() || row.episode.title.equals(episode.title, ignoreCase = true))
+                    (expectedTitle.isNullOrBlank() || row.episode.title.equals(expectedTitle, ignoreCase = true))
             }
         }.maxByOrNull { parseIsoToMillis(it.pausedAt) } ?: return
         val response = traktAuthService.executeAuthorizedWriteRequest {

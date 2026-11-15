@@ -16,6 +16,10 @@ import com.nuvio.tv.data.remote.dto.trakt.TraktPlaybackItemDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktShowDto
 import com.nuvio.tv.domain.repository.MetaRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
+import com.nuvio.tv.core.tracking.buildTrackingMediaReference
+import com.nuvio.tv.data.remote.dto.trakt.TraktEpisodeDto
+import com.nuvio.tv.domain.model.WatchProgress
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.async
@@ -94,6 +98,28 @@ class TraktProgressServiceFailureTest {
         io.mockk.coVerify(exactly = 1) { traktApi.getShowProgressWatched(any(), any()) }
     }
 
+    @Test
+    fun `removing a rewatch deletes only the latest matching pause and never removes history`() = runBlocking {
+        val service = createService()
+        val showId = "tt0386676"
+        val show = TraktShowDto(title = "The Office", ids = TraktIdsDto(imdb = showId))
+        val ep = TraktEpisodeDto(title = "The Delivery", season = 6, number = 16, ids = TraktIdsDto(trakt = 182129))
+        val old = TraktPlaybackItemDto(31, "episode", 10f, "2026-11-10T01:00:00.000Z", show = show, episode = ep)
+        val latest = old.copy(id = 32, pausedAt = "2026-11-14T01:10:51.000Z", progress = 47.18f)
+        val sibling = latest.copy(id = 33, episode = ep.copy(number = 10, ids = TraktIdsDto(trakt = 182123)))
+        coEvery { traktApi.getPlayback(any(), "episodes", page = 1, limit = 100) } returns
+            Response.success(listOf(sibling, latest, old))
+        coEvery { traktApi.deletePlayback(any(), 32) } returns Response.success(Unit)
+        val resume = WatchProgress(showId, "series", "The Office", null, null, "$showId:6:16",
+            6, 16, ep.title, 0, 0, 1, progressPercent = 47.18f, traktEpisodeId = 182129)
+        val target = buildTrackingMediaReference("series", showId, resume.videoId, seasonNumber = 6, episodeNumber = 16)
+        service.removeEpisodePause(target, resume)
+        coVerify(exactly = 1) { traktApi.deletePlayback(any(), 32) }
+        coVerify(exactly = 0) { traktApi.deletePlayback(any(), 31) }
+        coVerify(exactly = 0) { traktApi.deletePlayback(any(), 33) }
+        coVerify(exactly = 0) { traktApi.removeHistory(any(), any()) }
+    }
+
     private fun createService(): TraktProgressService {
         coEvery { traktApi.getLastActivities(any()) } returns Response.success(
             TraktLastActivitiesResponseDto(
@@ -123,6 +149,9 @@ class TraktProgressServiceFailureTest {
         val authService = mockk<TraktAuthService>()
         every { authService.isCircuitClosed() } returns true
         coEvery { authService.executeAuthorizedRequest<Any?>(any()) } coAnswers {
+            firstArg<suspend (String) -> Response<Any?>>().invoke("Bearer test")
+        }
+        coEvery { authService.executeAuthorizedWriteRequest<Any?>(any()) } coAnswers {
             firstArg<suspend (String) -> Response<Any?>>().invoke("Bearer test")
         }
 

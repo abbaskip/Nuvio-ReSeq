@@ -9,6 +9,18 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_low_disk_blocks_builds_and_clears_stale_validation(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            run = {"worktree": directory, "base": "base", "validation": {"result": "passed"}}
+            with patch.object(sync, "ancestor", return_value=True), patch.object(sync, "git", side_effect=["", "head"]), \
+                    patch.object(sync.shutil, "disk_usage", return_value=SimpleNamespace(free=sync.MIN_BUILD_FREE - 1)), \
+                    patch.object(sync.subprocess, "run") as execute:
+                with self.assertRaisesRegex(RuntimeError, "6 GiB"):
+                    sync.validation(run)
+                execute.assert_not_called()
+                self.assertIsNone(run["validation"])
+
     def test_prepared_base_cannot_hide_additional_unreviewed_ancestry(self):
         for parents in ("feature", "released feature", "dev released feature"):
             with patch.object(sync, "git", side_effect=["candidate", parents]):

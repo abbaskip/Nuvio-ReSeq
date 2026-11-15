@@ -14,6 +14,22 @@ class CwMembershipReducerTest {
     private fun offer(p: WatchProgress, episode: Int) = p.seriesChoice().copy(
         videoId = "${p.contentId}:1:$episode", season = 1, episode = episode, chooseEpisode = false)
 
+    @Test fun `remote completions retire both cleared and stale pauses and preserve later rewatches`() {
+        fun paused(id: String, at: Long) = progress(id, time = at).copy(
+            contentType = "movie", season = null, episode = null, position = 33, duration = 100)
+        val old = listOf("cleared", "stale", "rewatch", "undated").map { paused(it, 1000) }
+        val history = mapOf("cleared" to 2000L, "stale" to 2000L, "rewatch" to 2000L, "undated" to null)
+        val partialRefresh = listOf(paused("stale", 1000), paused("rewatch", 3000))
+        val initial = CwMembershipReducer.progress(empty, old + progress("series"))
+        val updated = CwMembershipReducer.progress(initial, partialRefresh)
+        val result = CwMembershipReducer.reconcileWatchedMovies(updated, history + ("series" to 5000L))
+        assertEquals(setOf("rewatch", "series", "undated"), result.members.keys)
+        assertEquals(mapOf("cleared" to 2000L, "stale" to 2000L), result.removals)
+        assertEquals(result, CwMembershipReducer.progress(result, listOf(paused("stale", 2000))))
+        val later = CwMembershipReducer.progress(result, listOf(paused("cleared", 4000)))
+        assertEquals(4000L, CwMembershipReducer.reconcileWatchedMovies(later, history).members["cleared"]?.inProgress?.lastWatched)
+    }
+
     @Test fun `unwatch in alternate order compares a 47 percent pause with the most recent remaining completion`() {
         fun completed(display: Int, native: Int, time: Long): WatchProgress {
             val videoId = "show:6:$native"

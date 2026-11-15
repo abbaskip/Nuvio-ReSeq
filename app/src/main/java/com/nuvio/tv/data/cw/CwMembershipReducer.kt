@@ -164,6 +164,21 @@ object CwMembershipReducer {
         return state.changed(members, removals, completed)
     }
 
+    /** Only positive dated history can retire a movie. Keep its cutoff for older playback replays. */
+    fun reconcileWatchedMovies(state: CwProjection, history: Map<String, Long?>): CwProjection {
+        if (history.isEmpty()) return state
+        val finished = buildMap {
+            for ((id, member) in state.members) {
+                val resume = member.inProgress ?: continue
+                if (!resume.contentType.equals("movie", ignoreCase = true)) continue
+                val at = history[id] ?: continue
+                if (at > 0 && at >= resume.lastWatched) put(id, at)
+            }
+        }
+        if (finished.isEmpty()) return state
+        return state.changed(state.members - finished.keys, state.removals + finished)
+    }
+
     fun enrich(state: CwProjection, lease: CwLease,
         inProgress: List<CachedInProgressItem> = emptyList(), nextUp: List<CachedNextUpItem> = emptyList()
     ): CwProjection {

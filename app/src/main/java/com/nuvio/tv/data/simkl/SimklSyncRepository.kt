@@ -224,7 +224,7 @@ class SimklSyncRepository @Inject constructor(
         if (profileId == profileManager.activeProfileId.value) {
             loadedProfileId = profileId
             _projection.value = projection
-            _state.value = SimklSyncState(snapshot = snapshot, hasLoaded = true)
+            _state.value = SimklSyncState(snapshot = snapshot, hasLoaded = true, profileId = profileId)
         }
     }
 
@@ -269,7 +269,7 @@ class SimklSyncRepository @Inject constructor(
         storage.save(profileId, encodeSnapshot(storedSnapshot))
         if (isCurrent(profileId, generation)) {
             _projection.value = projection
-            _state.value = SimklSyncState(snapshot = storedSnapshot, hasLoaded = true)
+            _state.value = SimklSyncState(snapshot = storedSnapshot, hasLoaded = true, profileId = profileId)
         }
     }
 

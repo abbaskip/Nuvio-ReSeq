@@ -3,6 +3,7 @@ package com.nuvio.tv.data.repository
 import android.os.SystemClock
 import com.nuvio.tv.core.tracking.TrackingMediaReference
 import android.util.Log
+import com.nuvio.tv.core.tracking.movieCompletionIndex
 import androidx.annotation.VisibleForTesting
 import com.nuvio.tv.BuildConfig
 import com.nuvio.tv.core.profile.ProfileManager
@@ -211,7 +212,12 @@ class TraktProgressService @Inject constructor(
     private val remoteProgress = MutableStateFlow<List<WatchProgress>>(emptyList())
     private val optimisticProgress = MutableStateFlow<Map<String, OptimisticProgressEntry>>(emptyMap())
     private val metadataState = MutableStateFlow<Map<String, ContentMetadata>>(emptyMap())
-    private val watchedMoviesState = MutableStateFlow<Set<String>>(emptySet())
+    private data class MovieHistory(val profileId: Int? = null, val byId: Map<String, Long?> = emptyMap())
+    private val watchedMoviesState = MutableStateFlow(MovieHistory())
+
+    fun movieCompletionTimes(profileId: Int): Flow<Map<String, Long?>> = watchedMoviesState.map {
+        if (it.profileId == profileId) it.byId else emptyMap()
+    }
     private val histories = MutableStateFlow<Map<String, ShowHistory>>(emptyMap())
     /** Content IDs of shows dropped on Trakt (from users/hidden/progress_watched). */
     private val hiddenProgressShowIds = MutableStateFlow<Set<String>>(emptySet())
@@ -348,7 +354,7 @@ class TraktProgressService @Inject constructor(
         remoteProgress.value = emptyList()
         optimisticProgress.value = emptyMap()
         metadataState.value = emptyMap()
-        watchedMoviesState.value = emptySet()
+        watchedMoviesState.value = MovieHistory()
         histories.value = emptyMap()
         hiddenProgressShowIds.value = emptySet()
         hasLoadedRemoteProgress.value = false
@@ -692,9 +698,8 @@ class TraktProgressService @Inject constructor(
             when {
                 optimisticEntry?.isCompleted() == true -> true
                 optimisticEntry?.isInProgress() == true -> false
-                else -> watchedMovies.contains(rawKey)
-                    || watchedMovies.contains(canonicalKey)
-                    || (videoCanonicalKey != null && watchedMovies.contains(videoCanonicalKey))
+                else -> rawKey in watchedMovies.byId || canonicalKey in watchedMovies.byId ||
+                    (videoCanonicalKey != null && videoCanonicalKey in watchedMovies.byId)
             }
         }
             .onStart { isMovieWatched(rawKey, videoId) }
@@ -703,7 +708,7 @@ class TraktProgressService @Inject constructor(
 
     fun observeAllWatchedMovieIds(): Flow<Set<String>> {
         return combine(watchedMoviesState, optimisticProgress) { watchedMovies, optimistic ->
-            val result = watchedMovies.toMutableSet()
+            val result = watchedMovies.byId.keys.toMutableSet()
             optimistic.forEach { (key, entry) ->
                 when {
                     entry.progress.isCompleted() -> result.add(key)
@@ -1333,35 +1338,36 @@ class TraktProgressService @Inject constructor(
     private suspend fun getWatchedMoviesSnapshot(forceRefresh: Boolean): Set<String> {
         val now = System.currentTimeMillis()
         return watchedMoviesMutex.withLock {
-            val hasFreshCache = hasLoadedWatchedMovies &&
+            val profileId = profileManager.activeProfileId.value
+            val generation = refreshGeneration.get()
+            val cached = watchedMoviesState.value.takeIf { it.profileId == profileId }?.byId
+            val hasFreshCache = cached != null && hasLoadedWatchedMovies &&
                 !watchedMoviesStale &&
                 now - watchedMoviesUpdatedAtMs <= watchedMoviesCacheTtlMs
             if (!forceRefresh && hasFreshCache) {
-                trace("watched-movies cache hit: size=${watchedMoviesState.value.size}")
-                return@withLock watchedMoviesState.value
+                trace("watched-movies cache hit: size=${cached.orEmpty().size}")
+                return@withLock cached.orEmpty().keys
             }
             if (!forceRefresh && now - watchedMoviesLastAttemptAtMs < watchedMoviesFetchThrottleMs) {
                 trace("watched-movies fetch throttled: ${now - watchedMoviesLastAttemptAtMs}ms since last attempt")
-                return@withLock watchedMoviesState.value
+                return@withLock cached.orEmpty().keys
             }
 
             watchedMoviesLastAttemptAtMs = now
-            val watchedMovieItems = fetchWatchedMoviePages() ?: run {
-                return@withLock watchedMoviesState.value
+            val watchedMovieItems = fetchWatchedMoviePages() ?: return@withLock cached.orEmpty().keys
+            if (profileId != profileManager.activeProfileId.value || generation != refreshGeneration.get()) {
+                return@withLock emptySet()
             }
-
-            val watchedMovies = watchedMovieItems
-                .flatMap { item ->
-                    watchedMovieLookupKeys(item.movie?.ids)
-                }
-                .toSet()
-
-            watchedMoviesState.value = watchedMovies
+            // An undated watched entry can set the watched badge but cannot retire a resume.
+            val watchedMovies = movieCompletionIndex(watchedMovieItems.asSequence(), { watchedMovieLookupKeys(it.movie?.ids) }) { item ->
+                item.lastWatchedAt?.let { runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull() }
+            }
+            watchedMoviesState.value = MovieHistory(profileId, watchedMovies)
             watchedMoviesUpdatedAtMs = System.currentTimeMillis()
             hasLoadedWatchedMovies = true
             watchedMoviesStale = false
             trace("watched-movies cache refreshed: size=${watchedMovies.size}")
-            watchedMovies
+            watchedMovies.keys
         }
     }
 
@@ -1550,13 +1556,12 @@ class TraktProgressService @Inject constructor(
         val keys = setOf(rawKey, canonicalLookupKey(rawKey)).filter { it.isNotBlank() }
         if (keys.isEmpty()) return
         watchedMoviesMutex.withLock {
-            val updated = watchedMoviesState.value.toMutableSet()
-            if (watched) {
-                updated.addAll(keys)
-            } else {
-                updated.removeAll(keys)
+            val profileId = profileManager.activeProfileId.value
+            val updated = watchedMoviesState.value.takeIf { it.profileId == profileId }?.byId.orEmpty().toMutableMap()
+            for (key in keys) {
+                if (watched) updated.putIfAbsent(key, null) else updated.remove(key)
             }
-            watchedMoviesState.value = updated
+            watchedMoviesState.value = MovieHistory(profileId, updated)
             watchedMoviesUpdatedAtMs = System.currentTimeMillis()
             hasLoadedWatchedMovies = true
             watchedMoviesStale = false
@@ -1572,7 +1577,7 @@ class TraktProgressService @Inject constructor(
 
     private fun suppressKnownWatchedPlayback(snapshot: List<WatchProgress>): List<WatchProgress> {
         if (snapshot.none { it.source == WatchProgress.SOURCE_TRAKT_PLAYBACK }) return snapshot
-        val watchedMovies = watchedMoviesState.value
+        val watchedMovies = watchedMoviesState.value.byId.keys
         val watchedEpisodes = getWatchedShowEpisodes()
         val fullyWatchedSeries = watchedSeriesStateHolder.fullyWatchedSeriesIds.value
         return snapshot.filterNot { progress ->

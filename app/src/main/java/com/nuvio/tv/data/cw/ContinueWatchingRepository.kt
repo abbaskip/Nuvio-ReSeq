@@ -47,14 +47,13 @@ class ContinueWatchingRepository @Inject constructor(
                 .collectLatest {
                     val lease = snapshot().lease
                     val progress = progressProvider.get()
-                    combine(progress.allProgress, progress.observeNextUpSeeds()) { items, seeds -> items to seeds }
-                        .collect { (items, seeds) ->
-                            val active = snapshot().lease
-                            if (active.profileId != lease.profileId || active.source != lease.source) return@collect
-                            mutate(active) { state ->
-                                reduceProgress(state, items, seeds, progress)
-                            }
-                        }
+                    combine(progress.allProgress, progress.observeNextUpSeeds(), movieCompletionTimes(lease)) {
+                        items, seeds, movies -> Triple(items, seeds, movies)
+                    }.collect { (items, seeds, movies) ->
+                        val active = snapshot().lease
+                        if (active.profileId != lease.profileId || active.source != lease.source) return@collect
+                        mutate(active) { state -> reduceProgress(state, items, seeds, progress, movies) }
+                    }
                 }
         }
     }
@@ -155,12 +154,22 @@ class ContinueWatchingRepository @Inject constructor(
         val progress = progressProvider.get()
         val seeds = progress.observeNextUpSeeds().first()
         val items = progress.allProgress.first()
-        mutate(state.lease) { reduceProgress(it, items, seeds, progress) }
+        val movies = movieCompletionTimes(state.lease).first()
+        mutate(state.lease) { reduceProgress(it, items, seeds, progress, movies) }
+    }
+
+    private fun movieCompletionTimes(lease: CwLease): Flow<Map<String, Long?>> {
+        val provider = trackingProviders?.get()?.providers()?.firstOrNull { it.providerId.name == lease.source }
+            ?: return flowOf(emptyMap())
+        return combine(provider.isAuthenticated, provider.movieCompletionTimes(lease.profileId)) { connected, history ->
+            if (connected) history else emptyMap()
+        }
     }
 
     private fun reduceProgress(state: CwProjection, items: List<WatchProgress>, seeds: List<WatchProgress>,
-        progress: WatchProgressRepository): CwProjection {
-        val next = CwMembershipReducer.progress(CwMembershipReducer.progress(state, seeds, seeds = true), items)
+        progress: WatchProgressRepository, movies: Map<String, Long?>): CwProjection {
+        val updated = CwMembershipReducer.progress(CwMembershipReducer.progress(state, seeds, seeds = true), items)
+        val next = CwMembershipReducer.reconcileWatchedMovies(updated, movies)
         val hidden = next.members.keys.filterTo(mutableSetOf()) { progress.isDroppedShow(it) }
         return if (hidden == next.hiddenByProvider) next else next.copy(hiddenByProvider = hidden, revision = next.revision + 1)
     }

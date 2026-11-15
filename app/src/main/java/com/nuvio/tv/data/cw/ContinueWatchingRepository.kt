@@ -127,9 +127,28 @@ class ContinueWatchingRepository @Inject constructor(
     }
 
     suspend fun historyRemoved(profileId: Int, contentId: String, episodes: Set<Pair<Int, Int>>, tvdbIds: Set<Long> = emptySet()) {
-        val state = snapshot()
-        if (state.profileId != profileId) return
-        mutate(state.lease) { CwMembershipReducer.historyRemoved(it, contentId, episodes, System.currentTimeMillis(), tvdbIds) }
+        var state = snapshot()
+        val source = state.source
+        val removedAt = System.currentTimeMillis()
+        // The tracker may have emitted its remaining history before its write returned.
+        // Read the current values even when there will be no further flow emission.
+        val progress = progressProvider.get()
+        while (state.profileId == profileId && state.source == source) {
+            val seeds = progress.observeNextUpSeeds().first().filter { it.contentId == contentId }
+            val items = progress.allProgress.first().filter { it.contentId == contentId }
+            var committed = false
+            val updated = mutate(state.lease) { current ->
+                val revoked = CwMembershipReducer.historyRemoved(current, contentId, episodes, removedAt, tvdbIds)
+                committed = true
+                reduceProgress(revoked, items, seeds, progress, emptyMap())
+            }
+            if (committed) {
+                updated.members[contentId]?.let { resolvePendingPauses(updated.lease, listOf(it)) }
+                return
+            }
+            // Another history edit or order change committed while the history was being read.
+            state = snapshot()
+        }
     }
 
     suspend fun invalidate(profileId: Int, contentIds: Set<String>) {
@@ -165,8 +184,12 @@ class ContinueWatchingRepository @Inject constructor(
         // outside the store lock, so a slow catalogue cannot delay playback or unrelated cards.
         val state = mutate(lease) { reduceProgress(it, items, seeds, progress, movies) }
         if (!CwMembershipReducer.accepts(state, lease)) return
+        resolvePendingPauses(lease, state.members.values)
+    }
+
+    private suspend fun resolvePendingPauses(lease: CwLease, members: Collection<CwMember>) {
         val resolver = tvdbTracking ?: return
-        for (member in state.members.values) {
+        for (member in members) {
             val raw = member.progress ?: continue
             if (member.inProgress?.chooseEpisode != true || raw.source != WatchProgress.SOURCE_TRAKT_PLAYBACK ||
                 raw.tvdbContext != null || raw.traktEpisodeId == null || raw.providerDefaultPlayback) continue

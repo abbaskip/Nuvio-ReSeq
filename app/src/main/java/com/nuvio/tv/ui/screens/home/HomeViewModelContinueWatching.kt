@@ -306,8 +306,11 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 arrayOf(daysCap, dismissedNextUp, showUnairedNextUp, nextUpFromFurthest, sortMode)
             },
             watchProgressRepository.watchedItems,
-            cwPipelineRefreshTrigger
-        ) { progressSnapshot, settingsSnapshot, watchedItemsVersion, _ ->
+            cwPipelineRefreshTrigger,
+            // A history edit can finish after its seed was emitted. Resolve the new
+            // projection even if the remaining history and settings no longer change.
+            continueWatchingRepository.projection.filterNotNull().map { it.epoch }.distinctUntilChanged()
+        ) { progressSnapshot, settingsSnapshot, watchedItemsVersion, _, _ ->
             val (items, nextUpSeeds, hasLoadedRemoteProgress) = progressSnapshot
             @Suppress("UNCHECKED_CAST")
             val daysCap = settingsSnapshot[0] as Int

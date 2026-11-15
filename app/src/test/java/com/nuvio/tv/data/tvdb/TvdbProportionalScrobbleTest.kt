@@ -92,6 +92,21 @@ class TvdbProportionalScrobbleTest {
         }
     }
 
+    @Test fun `valid source numbers cannot substitute for a different assigned ReSeq episode`() = runTest {
+        val playback = event(50.0)
+        val catalog = requireNotNull(playback.media.catalog)
+        val other = effective.videos.single { it.displaySeason == 6 && it.displayEpisode == 17 }
+        val wrongIdentity = playback.media.copy(catalog = catalog.copy(tvdbContext = other.tvdbPlaybackContext()))
+        for (provider in TrackingProviderId.entries) {
+            for (action in TrackingScrobbleAction.entries) {
+                assertTrue(resolver.scrobbleEvents(provider, action, playback.copy(media = wrongIdentity)).orEmpty().isEmpty())
+            }
+            for (completion in listOf(true, null)) {
+                assertTrue(resolver.resolveAll(1, provider, wrongIdentity, completed = completion).orEmpty().isEmpty())
+            }
+        }
+    }
+
     @Test fun officeAlternateOrderTrackerContract() = runTest {
         val events = mutableListOf<String>()
         val actual = mutableListOf<String>()

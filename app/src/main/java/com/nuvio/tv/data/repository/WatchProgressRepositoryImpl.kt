@@ -1068,7 +1068,6 @@ class WatchProgressRepositoryImpl @Inject constructor(
             return
         }
         if (season == null || episode == null) cwRepository?.remove(setOf(contentId), profileId)
-        else cwRepository?.historyRemoved(profileId, contentId, setOf(season to episode))
         val remoteDeleteKeys = resolveRemoteDeleteKeys(contentId, season, episode, profileId = profileId)
         val watchedDeleteKey = WatchedMutationKey(contentId, season, episode)
         mutationStore.queueProgressDeletes(remoteDeleteKeys, profileId)
@@ -1091,6 +1090,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
         )
         watchProgressPreferences.removeProgress(contentId, season, episode, profileId)
         watchedItemsPreferences.unmarkAsWatched(contentId, season, episode, profileId = profileId)
+        if (season != null && episode != null) cwRepository?.historyRemoved(profileId, contentId, setOf(season to episode))
         if (authManager.isAuthenticated && remoteDeleteKeys.isNotEmpty()) {
             watchProgressSyncService.deleteFromRemote(remoteDeleteKeys, profileId)
                 .onFailure { error ->
@@ -1118,7 +1118,6 @@ class WatchProgressRepositoryImpl @Inject constructor(
             episodes.forEach { (season, number, id) -> removeSelectedTvdbEpisode(profileId, contentId, id ?: videoId, season, number, history = true) }
             return
         }
-        cwRepository?.historyRemoved(profileId, contentId, episodes.mapTo(mutableSetOf()) { it.first to it.second })
         val episodePairs = episodes.map { (season, episode, _) -> season to episode }
         val remoteDeleteKeys = episodes.map { (season, episode, _) ->
             "${contentId}_s${season}e${episode}"
@@ -1145,6 +1144,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             )
         }
         broadcastHistoryRemoval(profileId, media)
+        cwRepository?.historyRemoved(profileId, contentId, episodePairs.toSet())
         syncServerWatched(
             episodes.map { (season, episode, epVideoId) ->
                 ServerWatchMark(contentId, "series", epVideoId ?: videoId, season, episode)

@@ -6,6 +6,10 @@ import com.nuvio.tv.data.local.TraktSettingsDataStore
 import com.nuvio.tv.data.local.WatchProgressSource
 import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.domain.repository.WatchProgressRepository
+import com.nuvio.tv.domain.model.ContinueWatchingSortMode
+import com.nuvio.tv.ui.screens.home.ContinueWatchingItem
+import com.nuvio.tv.ui.screens.home.homeCard
+import com.nuvio.tv.ui.screens.home.sortContinueWatchingItems
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -136,6 +140,29 @@ class ContinueWatchingRepositoryTest {
         assertTrue(owner.snapshot().nextUp.single().chooseEpisode)
         owner.enrich(owner.snapshot().lease, nextUp = listOf(offer))
         assertEquals(offer, repository().snapshot().nextUp.single())
+    }
+
+    @Test fun `unwatch uses already emitted remaining history and puts the show back in activity order`() = runTest {
+        val owner = repository()
+        owner.snapshot()
+        // In DVD order the removed E5 is tracker E3. E4 was watched before the other show.
+        val remaining = p(4, 1_000).copy(position = 100)
+        val other = p(1, 2_000).copy(contentId = "other", position = 100)
+        val revoked = p(3, 3_000).copy(position = 100)
+        owner.committedProgress(1, listOf(remaining, other, revoked))
+        seeds.value = listOf(remaining, other)
+        remote.value = listOf(p(10, 500).copy(progressPercent = 47f))
+        owner.refreshProjection() // Tracker already published before its unwatch callback.
+        val before = owner.snapshot()
+        assertEquals(revoked, before.members.getValue("show").progress)
+
+        owner.historyRemoved(1, "show", setOf(1 to 3), setOf(990103L))
+
+        // No additional remote emission or foreground refresh.
+        val after = repository().snapshot()
+        assertEquals(remaining, after.members.getValue("show").progress)
+        val sorted = sortContinueWatchingItems(after.nextUp.map { it.homeCard() }, ContinueWatchingSortMode.DEFAULT)
+        assertEquals(listOf("other", "show"), sorted.map { (it as ContinueWatchingItem.NextUp).info.contentId })
     }
 
     @Test fun `selected TVDB order without verified identity retains series choice until compatible progress arrives`() = runTest {

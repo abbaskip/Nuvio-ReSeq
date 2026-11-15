@@ -194,9 +194,10 @@ class ShuffleHomeRefreshTest {
         setup()
         val home = home()
         assertEquals(id, home.onlyCard().contentId())
+        val signals = MutableSharedFlow<Unit>()
         var rounds = 0
         backgroundScope.launch {
-            traktRefreshEvents(emptyFlow()) { 60_000L }.drop(1).collect {
+            traktRefreshEvents(signals).drop(1).collect {
                 rounds++
                 watched.value = listOf(WatchedItem(id, "series", "Show", 1, 1, currentTime))
                 progress.value = listOf(seed)
@@ -204,6 +205,9 @@ class ShuffleHomeRefreshTest {
             }
         }
         minute()
+        assertEquals(0, rounds)
+        signals.emit(Unit)
+        runCurrent()
         assertEquals(1, rounds)
         assertEquals(id, home.onlyCard().contentId())
     }

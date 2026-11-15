@@ -208,6 +208,7 @@ class MetaRepositoryImpl @Inject constructor(
                     val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
                     metaCache[cacheKey] = cached
                     addonMetaCache[metaLookupCacheKey(requestedType, id)] = cached
+                    catalogueUpdates.tryEmit(id)
                     meta
                 } else {
                     null
@@ -317,6 +318,7 @@ class MetaRepositoryImpl @Inject constructor(
                             val ttlMs = parseMaxAgeMs(response.headers()["Cache-Control"])
                             val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
                             addonMetaCache[cacheKey] = cached
+                            catalogueUpdates.tryEmit(id)
                             metaCache[addonMetaCacheKey(addon.baseUrl, requestedType, id)] = cached
                             emit(NetworkResult.Success(meta))
                             return@flow
@@ -402,6 +404,7 @@ class MetaRepositoryImpl @Inject constructor(
                             val ttlMs = parseMaxAgeMs(response.headers()["Cache-Control"])
                             val cached = CachedMeta(meta, System.currentTimeMillis() + ttlMs)
                             addonMetaCache[cacheKey] = cached
+                            catalogueUpdates.tryEmit(id)
                             metaCache[addonMetaCacheKey(addon.baseUrl, candidateType, id)] = cached
                             Log.d(TAG, "Meta fetch success addonId=${addon.id} type=$candidateType id=$id ttl=${ttlMs}ms")
                             return@await MetaLookupResult.Found(meta)
@@ -771,6 +774,10 @@ class MetaRepositoryImpl @Inject constructor(
         serverMetaCache[key] = CachedMeta(meta, System.currentTimeMillis() + SERVER_META_TTL_MS)
         emit(NetworkResult.Success(meta))
     }
+
+    private val catalogueUpdates = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 32,
+        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST)
+    override val cachedCatalogueUpdates: Flow<String> get() = catalogueUpdates
 
     override fun getCachedMeta(type: String, id: String): Meta? {
         if (ServerItemRef.isServerId(id)) return serverMetaCache[id]?.takeIf { !it.isExpired() }?.meta

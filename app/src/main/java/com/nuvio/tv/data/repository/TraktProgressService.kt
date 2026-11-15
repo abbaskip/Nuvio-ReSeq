@@ -73,16 +73,7 @@ import kotlin.math.abs
 import javax.inject.Inject
 import javax.inject.Singleton
 
-internal fun traktRefreshEvents(signals: Flow<Unit>, intervalMs: () -> Long): Flow<Unit> {
-    val ticks = flow {
-        while (true) {
-            delay(intervalMs())
-            // Player close already requests a refresh. Leave scrobble and manual signals live.
-            if (!com.nuvio.tv.core.player.PlayerSessionTracker.hasOpenSession) emit(Unit)
-        }
-    }
-    return merge(ticks, signals).onStart { emit(Unit) }
-}
+internal fun traktRefreshEvents(signals: Flow<Unit>): Flow<Unit> = signals.onStart { emit(Unit) }
 
 @Singleton
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -160,7 +151,8 @@ class TraktProgressService @Inject constructor(
             }
             details?.playback.orEmpty().forEach { (raw, mapped) ->
                 val episode = if (native) raw else mapped
-                put(episode.season!! to episode.episode!!, episode)
+                val key = episode.season!! to episode.episode!!
+                if (episode.lastWatched > (get(key)?.lastWatched ?: Long.MIN_VALUE)) put(key, episode)
             }
         }
     }
@@ -268,7 +260,7 @@ class TraktProgressService @Inject constructor(
      *  cancelled refresh does not leave that change unfetched. */
     @Volatile
     private var activityRefreshPending: Boolean = false
-    /** Set when a forced refresh completes. The first poll at or after this time refetches
+    /** Set when a forced refresh completes. The next requested refresh at or after this time refetches
      *  playback and history once more, in case Trakt had not caught up with the action yet. */
     @Volatile
     private var progressRecheckAtMs: Long = 0L
@@ -301,12 +293,6 @@ class TraktProgressService @Inject constructor(
     private val metadataFetchSemaphore = Semaphore(5)
     private val fastSyncThrottleMs = 3_000L
     private val manualRefreshSignalThrottleMs = 2_000L
-    private val baseRefreshIntervalMs = 60_000L
-    private val maxRefreshIntervalMs = 10 * 60_000L
-    @Volatile
-    private var refreshIntervalMs = baseRefreshIntervalMs
-    @Volatile
-    private var consecutiveRefreshFailures = 0
     @Volatile
     private var continueWatchingWindowDays: Int = TraktSettingsDataStore.DEFAULT_CONTINUE_WATCHING_DAYS_CAP
 
@@ -333,15 +319,14 @@ class TraktProgressService @Inject constructor(
             }
         }
         scope.launch {
-            refreshEvents().collectLatest {
-                val success = try {
+            traktRefreshEvents(refreshSignals).collectLatest {
+                try {
                     refreshRemoteSnapshot()
-                    true
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to refresh remote snapshot", e)
-                    false
                 }
-                updateRefreshBackoff(success)
             }
         }
     }
@@ -378,8 +363,6 @@ class TraktProgressService @Inject constructor(
         progressRecheckAtMs = 0L
         lastManualRefreshSignalMs = 0L
         metadataWarmupScheduled = false
-        refreshIntervalMs = baseRefreshIntervalMs
-        consecutiveRefreshFailures = 0
         episodeProgressActivityVersion.set(0L)
         refreshGeneration.incrementAndGet()
 
@@ -1026,30 +1009,6 @@ class TraktProgressService @Inject constructor(
         refreshNow()
     }
 
-    private fun refreshEvents() = traktRefreshEvents(refreshSignals) { refreshIntervalMs }
-
-    private fun updateRefreshBackoff(success: Boolean) {
-        if (success) {
-            if (consecutiveRefreshFailures > 0 || refreshIntervalMs != baseRefreshIntervalMs) {
-                Log.d(TAG, "Refresh recovered. Resetting Trakt poll interval to ${baseRefreshIntervalMs}ms")
-            }
-            consecutiveRefreshFailures = 0
-            refreshIntervalMs = baseRefreshIntervalMs
-            return
-        }
-
-        consecutiveRefreshFailures += 1
-        val nextInterval = (baseRefreshIntervalMs shl (consecutiveRefreshFailures - 1))
-            .coerceAtMost(maxRefreshIntervalMs)
-        if (nextInterval != refreshIntervalMs) {
-            Log.w(
-                TAG,
-                "Refresh failed $consecutiveRefreshFailures time(s). Backing off Trakt poll interval to ${nextInterval}ms"
-            )
-        }
-        refreshIntervalMs = nextInterval
-    }
-
     @VisibleForTesting
     internal suspend fun refreshRemoteSnapshot() {
         if (!traktAuthService.isCircuitClosed()) {
@@ -1062,7 +1021,7 @@ class TraktProgressService @Inject constructor(
         val force = now < forceDeadline
 
         // Read last_activities on forced refreshes too, so the fingerprints and stale
-        // flags already include this refresh's changes and the next poll skips them.
+        // flags already include this refresh's changes and the next requested refresh skips them.
         val activityChanged = checkActivityChanged()
         if (activityChanged == true) activityRefreshPending = true
         val shouldRefresh = activityRefreshPending ||
@@ -1119,7 +1078,7 @@ class TraktProgressService @Inject constructor(
             }
 
             if (snapshot == null) {
-                // Keep the current snapshot, and let the next poll retry instead of
+                // Keep the current snapshot, and let the next requested refresh retry instead of
                 // treating this activity change as already fetched.
                 lastKnownActivityFingerprint = null
                 throw IOException("Progress snapshot fetch failed")

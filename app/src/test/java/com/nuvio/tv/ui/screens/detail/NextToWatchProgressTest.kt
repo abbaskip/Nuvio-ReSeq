@@ -6,6 +6,22 @@ import org.junit.Test
 
 class NextToWatchProgressTest {
 
+    @Test fun normalSeriesResolvesFromTheCommittedEpisodeWhenTheCatalogueBecomesAvailable() = kotlinx.coroutines.test.runTest {
+        val context = io.mockk.mockk<android.content.Context>(relaxed = true)
+        val resolver = SeriesNextToWatch(context)
+        for (show in listOf("Ghost Wars", "Love It or List It Vancouver", "Mary Berry's Quick Cooking")) {
+            val completed = progress("video4", 7, 4, 100, 100, 2_000, 100f)
+            val older = progress("video1", 7, 1, 47, 100, 1_000, 47f)
+            val history = mapOf((7 to 4) to completed, (7 to 1) to older)
+            suspend fun offer(videos: List<com.nuvio.tv.domain.model.Video>) =
+                resolver.resolve(show, "series", show, videos, false, null, history, setOf(7 to 4), false) { emptyMap() }
+            assertEquals(null, offer(emptyList()).nextEpisode)
+            val videos = (1..6).map { n -> com.nuvio.tv.domain.model.Video("video$n", "Episode $n",
+                null, null, season = 7, episode = n, overview = null) }
+            assertEquals("video5", offer(videos).nextVideoId)
+        }
+    }
+
     @Test
     fun `resume half watched earlier season wins over completed later season mark`() {
         val s4Completed = progress(

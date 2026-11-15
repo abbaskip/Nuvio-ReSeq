@@ -98,7 +98,9 @@ class HomeViewModel @Inject constructor(
         mdbListRepository
     ),
     internal val tvdbOrderStore: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null,
-    internal val tvMixStore: com.nuvio.tv.data.local.TvMixStore? = null
+    internal val tvMixStore: com.nuvio.tv.data.local.TvMixStore? = null,
+    internal val watchedHistory: com.nuvio.tv.data.local.WatchedItemsPreferences? = null,
+    private val progressRefresh: com.nuvio.tv.core.tracking.TrackingProgressRefreshCoordinator? = null
 ) : ViewModel() {
     companion object {
         internal const val TAG = "HomeViewModel"
@@ -137,7 +139,13 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> by lazy { createShuffleHomeState() }
 
     fun setHomeContentActive(active: Boolean) {
-        homeContentActive.value = active
+        if (homeContentActive.compareAndSet(!active, active) && active) {
+            synchronized(cwNextUpResolutionCache) { cwNextUpResolutionCache.values.removeAll { it == null } }
+            synchronized(cwMetaCache) { cwMetaCache.values.removeAll { it == null } }
+            cwMetaNegativeCacheTimestamps.clear()
+            cwNextUpNegativeCacheTimestamps.clear()
+            viewModelScope.launch { progressRefresh?.refreshConnected(com.nuvio.tv.core.tracking.TrackingRefreshIntent.INVALIDATED) }
+        }
     }
 
     fun beginShuffleHomeVisit() {
@@ -404,6 +412,19 @@ class HomeViewModel @Inject constructor(
             observeCollections()
             observeInstalledAddons()
             observeManualAddonRefresh()
+            viewModelScope.launch {
+                metaRepository.cachedCatalogueUpdates.collect { id ->
+                    val retry = synchronized(cwMetaNegativeCacheTimestamps) {
+                        cwMetaNegativeCacheTimestamps.keys.removeAll { it.substringAfter(':') == id }
+                    }
+                    if (retry) {
+                        synchronized(cwNextUpResolutionCache) {
+                            cwNextUpResolutionCache.entries.removeAll { it.key.substringBefore('|') == id && it.value == null }
+                        }
+                        cwPipelineRefreshTrigger.update { it + 1 }
+                    }
+                }
+            }
 
             // Clear CW state when profile changes so items don't leak between profiles.
             var previousProfileId = profileManager.activeProfileId.value

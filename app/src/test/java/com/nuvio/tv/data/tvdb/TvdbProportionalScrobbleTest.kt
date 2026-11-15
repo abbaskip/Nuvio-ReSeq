@@ -168,6 +168,53 @@ class TvdbProportionalScrobbleTest {
         assertEquals(reference, actual)
     }
 
+    @Test fun deliveryThresholdAdvancesAtTheEndOfEachSelectedPart() = runTest {
+        val first = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719652L }
+        val second = effective.videos.single { it.displaySeason == first.displaySeason && it.displayEpisode == first.displayEpisode!! + 1 }
+        val ids = listOf(first, second).flatMap { it.tvdbPlaybackContext()!!.episodeIds }
+        val pause = WatchProgress(original.id, "series", "The Office", null, null, null, "native", 6, 16,
+            "The Delivery", 0, 0, 1234, source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 182129)
+        fun parts(percent: Float) = projectTrackerParts(pause.copy(progressPercent = percent), ids, effective.videos, .98f)
+        assertFalse(parts(48.9f).single().isCompleted())
+        assertTrue(parts(49f).single().isCompleted())
+        val later = parts(55f)
+        assertEquals(first.id, later.single { it.isCompleted() }.videoId)
+        assertEquals(10f, later.single { !it.isCompleted() }.progressPercent!!, .001f)
+        assertTrue(parts(99f).all { it.isCompleted() })
+        val weighted = listOf(first, second).map { part ->
+            part.copy(episodeIdentity = part.episodeIdentity!!.copy(providerSources = emptyList(),
+                contentRuntimeMinutes = ids.zip(listOf(20, 40)).toMap()))
+        }
+        fun weightedFirst(percent: Float) = projectTrackerParts(pause.copy(progressPercent = percent), ids, weighted, .98f)
+            .single { it.videoId == first.id }
+        assertFalse(weightedFirst(32.6f).isCompleted())
+        assertTrue(weightedFirst(32.7f).isCompleted())
+        val next = resolver.continueWatchingResume(1, pause.copy(progressPercent = 50f))!!
+        assertEquals(second.id, next.videoId)
+        assertEquals(0f, next.progressPercentage)
+        val completed = resolver.continueWatchingResume(1, pause.copy(progressPercent = 100f))!!
+        assertEquals(second.displayEpisode!! + 1, completed.tvdbContext!!.episode)
+    }
+
+    @Test fun combinedLectureCircuitRetainsIndependentEvidenceForBothNativeEpisodes() {
+        val nativeIds = lecture.tvdbPlaybackContext()!!.episodeIds
+        assertEquals(2, nativeIds.size)
+        val raw = WatchProgress(original.id, "series", original.name, null, null, null, "native",
+            5, 14, null, 0, 0, 1_000, source = WatchProgress.SOURCE_TRAKT_PLAYBACK)
+        fun read(secondPercent: Float, includeFirst: Boolean): WatchProgress {
+            val first = if (includeFirst) projectTrackerParts(raw.copy(progressPercent = 100f),
+                nativeIds.take(1), listOf(lecture), .98f) else emptyList()
+            val second = projectTrackerParts(raw.copy(progressPercent = secondPercent, lastWatched = 2_000),
+                nativeIds.takeLast(1), listOf(lecture), .98f)
+            return reconcileTvdbProgress(effective, emptyMap(), projected = first + second).getValue(lecture.season!! to lecture.episode!!)
+        }
+        assertFalse(read(100f, false).isCompleted())
+        assertEquals(75f, read(50f, true).progressPercent!!, .001f)
+        assertFalse(read(95f, true).isCompleted())
+        assertTrue(read(96f, true).isCompleted())
+        assertTrue(read(100f, true).isCompleted())
+    }
+
     @Test fun splitOfficePauseSurvivesProviderReplayAndHomeRestart() = runTest {
         val show = original.id
         val raw = WatchProgress(show, "series", "The Office", null, null, null, "$show:6:11", 6, 11,

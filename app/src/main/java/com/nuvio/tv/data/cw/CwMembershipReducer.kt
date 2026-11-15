@@ -86,6 +86,19 @@ object CwMembershipReducer {
     fun accepts(state: CwProjection, lease: CwLease): Boolean =
         state.profileId == lease.profileId && state.source == lease.source && state.epoch == lease.epoch
 
+    /** The seed and playback lists describe one snapshot. A transient competitor between
+     * the two reductions must not invalidate an offer for the same final history. */
+    fun refresh(state: CwProjection, seeds: List<WatchProgress>, items: List<WatchProgress>): CwProjection {
+        val updated = progress(progress(state, seeds, seeds = true), items)
+        if (updated === state) return state
+        val members = updated.members.mapValues { (id, member) ->
+            val old = state.members[id]
+            if (old != null && old.progress == member.progress && old.latestCompletionAt == member.latestCompletionAt &&
+                state.completed[id] == updated.completed[id]) old else member.copy(changedAtRevision = state.revision + 1)
+        }
+        return state.changed(members, updated.removals, updated.completed)
+    }
+
     fun progress(state: CwProjection, updates: List<WatchProgress>, seeds: Boolean = false): CwProjection {
         val members = state.members.toMutableMap()
         val removals = state.removals.toMutableMap()
@@ -106,7 +119,15 @@ object CwMembershipReducer {
             }
             val old = members[p.contentId]
             // A duplicate tracker notification cannot undo the verified presentation of this same pause.
-            if (!seeds && old?.progress == p && old.inProgress?.tvdbContext != null && p.tvdbContext == null) return@forEach
+            if (!seeds && old?.progress == p && (old.inProgress?.tvdbContext != null || old.nextUp?.tvdbContext != null) && p.tvdbContext == null) return@forEach
+            // Metadata aliases and artwork can differ between the history and playback feeds.
+            // They describe the same watch and cannot invalidate an in-flight episode lookup.
+            val priorProgress = old?.progress
+            if (priorProgress != null && priorProgress.lastWatched == p.lastWatched &&
+                priorProgress.historyKey() == p.historyKey() && priorProgress.tvdbContext == p.tvdbContext &&
+                priorProgress.progressPercentage == p.progressPercentage && priorProgress.isCompleted() == p.isCompleted() &&
+                priorProgress.tvdbWatchedIds == p.tvdbWatchedIds &&
+                (!seeds || old.latestCompletionAt == p.completionActivityAt())) return@forEach
             // A retained series placeholder (including one saved by local.1 after unwatch)
             // has presentation recency, not committed progress that can reject older history.
             val priorActivity = old?.progress?.lastWatched ?: old?.inProgress?.lastWatched ?:
@@ -140,7 +161,11 @@ object CwMembershipReducer {
                 p.isCompleted() || seeds -> {
                     // An offer was resolved from a particular seed. Completing a different
                     // episode invalidates it even when the offer is not that new completion.
-                    val sameSeed = old?.progress?.let { it.historyKey() == p.historyKey() } == true
+                    val sameSeed = old?.progress?.let { previous ->
+                        previous.historyKey() == p.historyKey() || (previous.season != null && previous.episode != null &&
+                            previous.season == p.season && previous.episode == p.episode &&
+                            previous.tvdbContentIds == p.tvdbContentIds && previous.tvdbContext == p.tvdbContext)
+                    } == true
                     val next = old?.nextUp?.takeIf { sameSeed && (it.chooseEpisode ||
                         completed[p.contentId].orEmpty().values.none { done -> matches(it, done) }) }
                     CwMember(p, nextUp = next?.copy(lastWatched = maxOf(next.lastWatched, p.lastWatched))
@@ -198,6 +223,7 @@ object CwMembershipReducer {
         nextUp.forEach { candidate ->
             val old = members[candidate.contentId] ?: return@forEach
             if (old.changedAtRevision > lease.revision) return@forEach
+            if (candidate.chooseEpisode && old.nextUp?.chooseEpisode == false) return@forEach
             if (old.inProgress != null) {
                 if (Log.isLoggable("CwDecision", Log.DEBUG)) Log.d("CwDecision",
                     "decision=keep-resume source=${old.progress?.decisionSource()} episode=${old.inProgress.season}x${old.inProgress.episode} " +
@@ -253,6 +279,9 @@ object CwMembershipReducer {
         // Do not install a whole-show removal tombstone: older episodes remain valid support.
         val members = when {
             reset -> state.members - contentId
+            tvdbIds.isNotEmpty() && p?.source == WatchProgress.SOURCE_TRAKT_PLAYBACK &&
+                p.tvdbContext == null && member.inProgress?.tvdbContext != null ->
+                state.members + (contentId to member.copy(inProgress = member.inProgress.copy(chooseEpisode = true)))
             member?.latestCompletionAt != null -> state.members + (contentId to member.copy(latestCompletionAt = null))
             else -> state.members
         }
@@ -268,14 +297,14 @@ object CwMembershipReducer {
     private fun matches(next: CachedNextUpItem, done: CwCompletion): Boolean {
         val nextIds = next.tvdbContext?.episodeIds?.toSet() ?: setOfNotNull(next.tvdbEpisodeId)
         if (nextIds.isNotEmpty() && done.contentIds.isNotEmpty()) return nextIds.any { it in done.watchedIds }
-        return next.videoId == done.videoId || (nextIds.isEmpty() && done.contentIds.isEmpty() &&
+        return (next.videoId != next.contentId && next.videoId == done.videoId) || (nextIds.isEmpty() && done.contentIds.isEmpty() &&
             next.season == done.season && next.episode == done.episode)
     }
 
     private fun sameEpisode(next: CachedNextUpItem, p: WatchProgress): Boolean {
         val nextIds = next.tvdbContext?.episodeIds?.toSet() ?: setOfNotNull(next.tvdbEpisodeId)
         if (nextIds.isNotEmpty() && p.tvdbContentIds.isNotEmpty()) return nextIds.any { it in p.tvdbWatchedIds }
-        return next.videoId == p.videoId || (next.season == p.season && next.episode == p.episode)
+        return (next.videoId != next.contentId && next.videoId == p.videoId) || (nextIds.isEmpty() && p.tvdbContentIds.isEmpty() && next.season == p.season && next.episode == p.episode)
     }
 }
 
@@ -291,7 +320,7 @@ private fun WatchProgress.decisionSource(): String = when (source) {
 internal fun WatchProgress.completionActivityAt(): Long = maxOf(lastWatched, latestSeriesActivity ?: lastWatched)
 
 private fun episodeHistoryKey(contentId: String, season: Int, episode: Int) = "$contentId|episode:$season:$episode|"
-private fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"
+internal fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"
 private fun WatchProgress.historyKey() = if (tvdbContentIds.isEmpty() && season != null && episode != null)
     episodeHistoryKey(contentId, season, episode)
 else legacyHistoryKey()

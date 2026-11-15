@@ -1875,10 +1875,10 @@ private suspend fun HomeViewModel.enrichNextUpItem(
     } else null
 
     val meta = resolveMetaForProgress(progressSeed, metaCache, debug) ?: return@coroutineScope item
-    val video = if (meta.tvdbOrder) meta.videos.singleOrNull {
-        if (item.info.tvdbEpisodeId != null) it.episodeIdentity?.tvdbEpisodeId == item.info.tvdbEpisodeId
-        else it.id == item.info.videoId && it.title == item.info.episodeTitle
-    } else resolveNextUpVideoFromMeta(progressSeed, meta)
+    // Enrich the offer selected from committed history. A metadata refresh must never pick another episode.
+    val video = meta.videos.singleOrNull { it.id == item.info.videoId && it.season == item.info.season &&
+        it.episode == item.info.episode && (item.info.tvdbContext == null ||
+        it.episodeIdentity?.tvdbEpisodeId == item.info.tvdbContext.episodeId) }
 
     val rawTmdbData = if (shouldEnrichTmdb) {
         val earlyTmdbId = tmdbIdDeferred?.await()
@@ -2062,7 +2062,19 @@ private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
         }
         return null
     }
-    val nextVideo = resolveNextUpVideoFromMeta(progress, meta, showUnairedNextUp)
+    val progressFlow = watchProgressRepository.getAllEpisodeProgress(contentId)
+    val committed = withTimeoutOrNull(150L) { progressFlow.first { it.isNotEmpty() } } ?: progressFlow.first()
+    val watchedTimes = watchedHistory?.getWatchedEpisodesWithTimestamps(contentId)?.first().orEmpty()
+    val key = season to episode
+    val history = if (key in committed) committed else committed + (key to progress)
+    val choice = com.nuvio.tv.ui.screens.detail.SeriesNextToWatch(appContext).resolve(
+        contentId, progress.contentType, meta.name, meta.videos.map { it.asTvdbVideo() }, meta.tvdbOrder,
+        null, history, if (meta.tvdbOrder) emptySet() else watchedTimes.keys,
+        layoutPreferenceDataStore.nextUpFromFurthestEpisode.first()) { watchedTimes }
+    val shared = meta.videos.firstOrNull { it.id == choice.nextVideoId && it.season == choice.nextSeason &&
+        it.episode == choice.nextEpisode && it.available != false }
+    // Keep Home's existing unaired release alerts and legacy single-season addon numbering.
+    val nextVideo = shared ?: resolveNextUpVideoFromMeta(progress, meta, showUnairedNextUp)
     if (nextVideo == null) {
         debug?.recordNextUpResult(
             progress = progress,
@@ -2243,6 +2255,9 @@ private suspend fun HomeViewModel.resolveMetaForProgress(
     val cacheKey = "${progress.contentType}:${progress.contentId}"
     val profile = profileManager.activeProfileId.value
     metaCache[cacheKey]?.takeIf { hasUsableCwCatalogue(it, profile, progress.contentId) }?.let { return it }
+    metaRepository.getCachedMeta(progress.contentType, progress.contentId)?.toCwSummary()?.takeIf {
+        it.videos.isNotEmpty() && hasUsableCwCatalogue(it, profile, progress.contentId)
+    }?.let { metaCache[cacheKey] = it; return it }
     return cwMetadataLoads.await(viewModelScope, profile, progress.contentType, progress.contentId) {
         if (profileManager.activeProfileId.value != profile) return@await null
         loadCwMetadata(progress, metaCache, debug, profile, cacheKey)

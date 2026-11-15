@@ -46,7 +46,15 @@ internal fun projectTvdbContinueWatching(item: ContinueWatchingItem, videos: Lis
         is ContinueWatchingItem.InProgress -> resolveTvdbProgressVideo(videos, item.progress)
         is ContinueWatchingItem.NextUp -> {
             val info = item.info
-            if (info.tvdbEpisodeId != null) videos.filter { it.episodeIdentity?.trackingEpisodeId == info.tvdbEpisodeId }.singleEpisodeSource()
+            val context = info.tvdbContext
+            if (context != null) videos.filter { video ->
+                val identity = video.episodeIdentity
+                identity != null && identity.tvdbEpisodeId == context.episodeId &&
+                    (info.tvdbEpisodeId == null || info.tvdbEpisodeId in identity.trackingEpisodeIds) && video.tvdbPlaybackContext()?.let {
+                    it.seriesId == context.seriesId && it.orderType == context.orderType && it.episodeIds == context.episodeIds
+                } == true
+            }.singleEpisodeSource()
+            else if (info.tvdbEpisodeId != null) videos.filter { it.episodeIdentity?.trackingEpisodeId == info.tvdbEpisodeId }.singleEpisodeSource()
             else videos.filter { it.id == info.videoId && it.season == info.season && it.episode == info.episode &&
                 !info.episodeTitle.isNullOrBlank() && (it.title == info.episodeTitle || it.episodeIdentity?.providerTitle == info.episodeTitle) }.singleEpisodeSource()
         }

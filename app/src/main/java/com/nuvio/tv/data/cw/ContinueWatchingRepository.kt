@@ -143,7 +143,7 @@ class ContinueWatchingRepository @Inject constructor(
                 reduceProgress(revoked, items, seeds, progress, emptyMap())
             }
             if (committed) {
-                updated.members[contentId]?.let { resolvePendingPauses(updated.lease, listOf(it)) }
+                updated.members[contentId]?.let { resolvePendingPauses(updated, listOf(it)) }
                 return
             }
             // Another history edit or order change committed while the history was being read.
@@ -184,17 +184,18 @@ class ContinueWatchingRepository @Inject constructor(
         // outside the store lock, so a slow catalogue cannot delay playback or unrelated cards.
         val state = mutate(lease) { reduceProgress(it, items, seeds, progress, movies) }
         if (!CwMembershipReducer.accepts(state, lease)) return
-        resolvePendingPauses(lease, state.members.values)
+        resolvePendingPauses(state, state.members.values)
     }
 
-    private suspend fun resolvePendingPauses(lease: CwLease, members: Collection<CwMember>) {
+    private suspend fun resolvePendingPauses(state: CwProjection, members: Collection<CwMember>) {
+        val lease = state.lease
         val resolver = tvdbTracking ?: return
         for (member in members) {
             val raw = member.progress ?: continue
-            if (member.inProgress?.chooseEpisode != true || raw.source != WatchProgress.SOURCE_TRAKT_PLAYBACK ||
+            if ((member.inProgress?.chooseEpisode != true && member.nextUp?.chooseEpisode != true) || raw.source != WatchProgress.SOURCE_TRAKT_PLAYBACK ||
                 raw.tvdbContext != null || raw.traktEpisodeId == null || raw.providerDefaultPlayback) continue
             val resolved = try {
-                resolver.get().continueWatchingResume(lease.profileId, raw)
+                resolver.get().continueWatchingResume(lease.profileId, raw, state.ignoredProgress)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -203,9 +204,14 @@ class ContinueWatchingRepository @Inject constructor(
             } ?: continue
             mutate(lease) { current ->
                 val latest = current.members[raw.contentId]
-                if (latest?.progress != raw || latest.inProgress?.chooseEpisode != true) current
+                if (latest?.progress != raw || (latest.inProgress?.chooseEpisode != true && latest.nextUp?.chooseEpisode != true)) current
                 else current.copy(revision = current.revision + 1, members = current.members +
-                    (raw.contentId to latest.copy(inProgress = resolved.cached(latest.inProgress),
+                    (raw.contentId to latest.copy(
+                        inProgress = resolved.takeIf { it.progressPercentage > 0 }?.cached(latest.inProgress),
+                        nextUp = resolved.takeIf { it.progressPercentage == 0f }?.let {
+                            raw.seriesChoice().copy(videoId = it.videoId, season = it.season!!, episode = it.episode!!,
+                                episodeTitle = it.episodeTitle, tvdbEpisodeId = it.tvdbEpisodeId, tvdbContext = it.tvdbContext, chooseEpisode = false)
+                        },
                         changedAtRevision = current.revision + 1)))
             }
         }
@@ -221,7 +227,7 @@ class ContinueWatchingRepository @Inject constructor(
 
     private fun reduceProgress(state: CwProjection, items: List<WatchProgress>, seeds: List<WatchProgress>,
         progress: WatchProgressRepository, movies: Map<String, Long?>): CwProjection {
-        val updated = CwMembershipReducer.progress(CwMembershipReducer.progress(state, seeds, seeds = true), items)
+        val updated = CwMembershipReducer.refresh(state, seeds, items)
         val next = CwMembershipReducer.reconcileWatchedMovies(updated, movies)
         val hidden = next.members.keys.filterTo(mutableSetOf()) { progress.isDroppedShow(it) }
         return if (hidden == next.hiddenByProvider) next else next.copy(hiddenByProvider = hidden, revision = next.revision + 1)

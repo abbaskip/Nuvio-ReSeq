@@ -10,15 +10,15 @@ internal fun resolveNextToWatchLatestProgress(
     val resumeOverride = progressEntries
         .filter(isResumable)
         .maxWithOrNull(
-            compareByDescending<WatchProgress> { it.lastWatched }
-                .thenByDescending { it.season ?: 0 }
-                .thenByDescending { it.episode ?: 0 }
+            compareBy<WatchProgress> { it.lastWatched }
+                .thenBy { it.season ?: 0 }
+                .thenBy { it.episode ?: 0 }
         )
     return when {
         resumeOverride != null && (
             latestProgress == null ||
-                !isResumable(latestProgress) ||
-                resumeOverride.lastWatched >= latestProgress.lastWatched
+                resumeOverride.lastWatched >= maxOf(latestProgress.lastWatched,
+                    progressEntries.filter { it.isCompleted() }.maxOfOrNull { it.lastWatched } ?: Long.MIN_VALUE)
             ) -> resumeOverride
         else -> latestProgress
     }

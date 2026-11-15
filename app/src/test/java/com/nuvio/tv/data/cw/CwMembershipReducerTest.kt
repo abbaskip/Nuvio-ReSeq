@@ -14,6 +14,34 @@ class CwMembershipReducerTest {
     private fun offer(p: WatchProgress, episode: Int) = p.seriesChoice().copy(
         videoId = "${p.contentId}:1:$episode", season = 1, episode = episode, chooseEpisode = false)
 
+    @Test fun identicalSeedAndPlaybackSnapshotKeepsTheResolvedCardAndItsRevision() {
+        val seed = progress(time = 2_000, episode = 4, complete = true)
+        val playback = progress(time = 2_000, episode = 5, complete = true)
+        val before = CwMembershipReducer.refresh(empty, listOf(seed), listOf(playback))
+        val offer = offer(playback, 6)
+        val resolved = CwMembershipReducer.enrich(before, before.lease, nextUp = listOf(offer))
+        assertEquals(offer, resolved.nextUp.single())
+        repeat(5) { assertSame(resolved, CwMembershipReducer.refresh(resolved, listOf(seed), listOf(playback))) }
+    }
+
+    @Test fun repeatedRefreshesDoNotInvalidateSlowLookupsOrReplacePlayableOffers() {
+        for (show in listOf("Ghost Wars", "Love It or List It Vancouver", "Mary Berry's Quick Cooking")) {
+            val seed = progress(id = show, episode = 4, complete = true).copy(season = 7)
+            val initial = state(seed)
+            var current = initial
+            repeat(5) { current = CwMembershipReducer.progress(current, listOf(seed.copy(poster = "new-art")), seeds = true) }
+            assertEquals(initial, current)
+            current = CwMembershipReducer.progress(current, listOf(progress(id = "unrelated")))
+            val ready = offer(seed, 5).copy(season = 7)
+            val resolved = CwMembershipReducer.enrich(current, initial.lease, nextUp = listOf(ready))
+            assertEquals(ready, resolved.members.getValue(show).nextUp)
+            repeat(5) {
+                assertEquals(resolved, CwMembershipReducer.progress(resolved, listOf(seed), seeds = true))
+                assertEquals(resolved, CwMembershipReducer.enrich(resolved, resolved.lease, nextUp = listOf(seed.seriesChoice())))
+            }
+        }
+    }
+
     @Test fun `remote completions retire both cleared and stale pauses and preserve later rewatches`() {
         fun paused(id: String, at: Long) = progress(id, time = at).copy(
             contentType = "movie", season = null, episode = null, position = 33, duration = 100)

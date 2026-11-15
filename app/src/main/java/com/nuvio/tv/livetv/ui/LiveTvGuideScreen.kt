@@ -55,6 +55,7 @@ import androidx.compose.material.icons.filled.ManageSearch
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -2151,11 +2152,11 @@ private fun GuideHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(if (small) 116.dp else 176.dp)
+            .height(if (small) 140.dp else 176.dp)
             .padding(start = 56.dp, end = 24.dp, top = if (small) 12.dp else 20.dp, bottom = if (small) 4.dp else 6.dp)
             .onGloballyPositioned { onGlassBounds(it.boundsInRoot()) }
             .glass(guideInfoGlass(settings.guideInfoBackground), RoundedCornerShape(if (small) 16.dp else 20.dp))
-            .padding(horizontal = 18.dp, vertical = if (small) 8.dp else 14.dp),
+            .padding(horizontal = 18.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(if (small) 16.dp else 20.dp)
     ) {
         // Posters off: just the channel logo, in a logo-shaped space (not a poster box).
@@ -2189,80 +2190,81 @@ private fun GuideHeader(
         // Each part of the panel can be switched off on its own (⚙ → Guide display).
         val hid = remember(settings.guideInfoHidden) { BarPart.parse(settings.guideInfoHidden) }
         Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-            if (settings.showProgramDetails && channel != null) {
-                if (!small && (GuideInfoPart.CHANNEL !in hid || GuideInfoPart.TAGS !in hid)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (GuideInfoPart.CHANNEL !in hid) {
-                        if (settings.showChannelLogos) {
-                            ChannelLogo(channel.logo, 28.dp)
-                            Spacer(Modifier.width(10.dp))
+            // Keep metadata rows short even when the surrounding theme uses a taller line height.
+            ProvideTextStyle(TextStyle(lineHeight = if (small) 16.sp else 17.sp)) {
+                if (settings.showProgramDetails && channel != null) {
+                    if (GuideInfoPart.CHANNEL !in hid || GuideInfoPart.TAGS !in hid) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (GuideInfoPart.CHANNEL !in hid) {
+                                val label = buildString {
+                                    if (settings.showChannelNumbers) append("${channel.number}  ")
+                                    append(channel.name)
+                                    playlistName?.let { append("  ·  $it") }
+                                }
+                                LiveText(
+                                    label,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                    color = NuvioTheme.colors.TextSecondary,
+                                    size = if (small) 12.sp else 13.sp,
+                                    weight = FontWeight.Medium
+                                )
+                            }
+                            // On now (red LIVE tag) and catch-up, as tags beside the channel.
+                            if (GuideInfoPart.TAGS !in hid && block != null && now in block.startMs until block.stopMs) {
+                                Spacer(Modifier.width(10.dp))
+                                LiveTag("LIVE", LIVE_RED, Color.White)
+                            }
+                            if (GuideInfoPart.TAGS !in hid && channel.catchup != null) {
+                                Spacer(Modifier.width(6.dp))
+                                LiveTag("CATCH-UP", Color.Transparent, NuvioTheme.colors.TextSecondary,
+                                    Modifier.border(1.dp, NuvioTheme.colors.Border, RoundedCornerShape(5.dp)))
+                            }
                         }
-                        val label = buildString {
-                            if (settings.showChannelNumbers) append("${channel.number}  ")
-                            append(channel.name)
-                            playlistName?.let { append("  ·  $it") }
-                        }
-                        LiveText(label, color = NuvioTheme.colors.TextSecondary, size = 14.sp, weight = FontWeight.Medium)
-                        }
-                        // On now (red LIVE tag) and catch-up, as tags beside the channel.
-                        if (GuideInfoPart.TAGS !in hid && block != null && now in block.startMs until block.stopMs) {
-                            Spacer(Modifier.width(10.dp))
-                            LiveTag("LIVE", LIVE_RED, Color.White)
-                        }
-                        if (GuideInfoPart.TAGS !in hid && channel.catchup != null) {
-                            Spacer(Modifier.width(6.dp))
-                            LiveTag("CATCH-UP", Color.Transparent, NuvioTheme.colors.TextSecondary,
-                                Modifier.border(1.dp, NuvioTheme.colors.Border, RoundedCornerShape(5.dp)))
+                        Spacer(Modifier.height(if (small) 2.dp else 3.dp))
+                    }
+                    val p = rememberShowDetails(channel.key, block?.program)
+                    if (GuideInfoPart.TITLE !in hid) {
+                        LiveText(
+                            text = p?.title?.let { titleMarks(it).title } ?: channel.name,
+                            modifier = Modifier.fillMaxWidth(),
+                            size = if (small) 18.sp else 22.sp,
+                            lineHeight = if (small) 22.sp else 26.sp,
+                            weight = FontWeight.Bold,
+                            maxLines = 1,
+                            marquee = true
+                        )
+                        Spacer(Modifier.height(2.dp))
+                    }
+                    if (block != null) {
+                        val meta = buildList {
+                            if (GuideInfoPart.TIME !in hid) add(formatDayClock(block.startMs, now, settings.use24HourClock) + " – " + formatClock(block.stopMs, settings.use24HourClock))
+                            if (GuideInfoPart.LEFT !in hid && now in block.startMs until block.stopMs) add(minutesLeftLabel(block.stopMs, now))
+                            p?.episode?.takeIf { settings.showEpisodeNumbers }?.let { add(it) }
+                            if (GuideInfoPart.CATEGORY !in hid) p?.category?.let { add(it) }
+                        }.joinToString("  ·  ")
+                        if (meta.isNotBlank()) LiveText(meta, color = NuvioTheme.colors.TextSecondary, size = if (small) 12.sp else 13.sp)
+                        if (GuideInfoPart.PROGRESS !in hid && now in block.startMs until block.stopMs) {
+                            Spacer(Modifier.height(if (small) 2.dp else 4.dp))
+                            ProgressBar(fraction = ((now - block.startMs).toFloat() / (block.stopMs - block.startMs).coerceAtLeast(1)).coerceIn(0f, 1f))
                         }
                     }
-                    Spacer(Modifier.height(6.dp))
-                }
-                val p = rememberShowDetails(channel.key, block?.program)
-                if (GuideInfoPart.TITLE !in hid) {
-                    LiveText(
-                        text = p?.title?.let { titleMarks(it).title } ?: channel.name,
-                        modifier = Modifier.fillMaxWidth(),
-                        size = if (small) 22.sp else 28.sp,
-                        weight = FontWeight.ExtraBold,
-                        maxLines = 1,
-                        marquee = true
-                    )
-                    Spacer(Modifier.height(if (small) 2.dp else 4.dp))
-                }
-                if (block != null) {
-                    val meta = buildList {
-                        if (GuideInfoPart.TIME !in hid) add(formatDayClock(block.startMs, now, settings.use24HourClock) + " – " + formatClock(block.stopMs, settings.use24HourClock))
-                        if (GuideInfoPart.LEFT !in hid && now in block.startMs until block.stopMs) add(minutesLeftLabel(block.stopMs, now))
-                        p?.episode?.takeIf { settings.showEpisodeNumbers }?.let { add(it) }
-                        if (GuideInfoPart.CATEGORY !in hid) p?.category?.let { add(it) }
-                        // The standard panel shows catch-up as a tag; the small one has no room for it.
-                        if (small && channel.catchup != null) add("Catch-up")
-                        // The small info panel has no channel line, so the playlist goes here.
-                        if (small) playlistName?.let { add(it) }
-                    }.joinToString("  ·  ")
-                    if (meta.isNotBlank()) LiveText(meta, color = NuvioTheme.colors.TextSecondary, size = if (small) 13.sp else 14.sp)
-                    if (GuideInfoPart.PROGRESS !in hid && now in block.startMs until block.stopMs) {
-                        Spacer(Modifier.height(if (small) 4.dp else 6.dp))
-                        ProgressBar(fraction = ((now - block.startMs).toFloat() / (block.stopMs - block.startMs).coerceAtLeast(1)).coerceIn(0f, 1f))
+                    Spacer(Modifier.height(4.dp))
+                    // Match ScrollingDescription's actual line height so all available lines are used.
+                    if (GuideInfoPart.DESCRIPTION in hid) Spacer(Modifier.weight(1f))
+                    else BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                        val textSize = if (small) 13.sp else 14.sp
+                        val lineHeight = with(androidx.compose.ui.platform.LocalDensity.current) { (textSize * 1.3f).toDp() }
+                        val lines = (maxHeight / lineHeight).toInt().coerceIn(1, 8)
+                        ScrollingDescription(
+                            text = p?.description ?: if (p == null) "No program information" else "",
+                            color = NuvioTheme.colors.TextSecondary,
+                            size = textSize,
+                            maxLines = lines
+                        )
                     }
+                } else if (status != null) {
+                    LiveText(status, color = NuvioTheme.colors.TextSecondary)
                 }
-                Spacer(Modifier.height(if (small) 4.dp else 6.dp))
-                // As many lines as fit in the space left (it was one line on the small panel and
-                // two on the standard one, however much room there was).
-                if (GuideInfoPart.DESCRIPTION in hid) Spacer(Modifier.weight(1f))
-                else BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                    val textSize = if (small) 13.sp else 14.sp
-                    val lineHeight = with(androidx.compose.ui.platform.LocalDensity.current) { textSize.toDp() } * 1.45f
-                    val lines = (maxHeight / lineHeight).toInt().coerceIn(1, 8)
-                    ScrollingDescription(
-                        text = p?.description ?: if (p == null) "No program information" else "",
-                        color = NuvioTheme.colors.TextSecondary,
-                        size = textSize,
-                        maxLines = lines
-                    )
-                }
-            } else if (status != null) {
-                LiveText(status, color = NuvioTheme.colors.TextSecondary)
             }
         }
         // The ⚙ for the guide's display settings, in the corner of the panel.

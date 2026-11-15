@@ -100,7 +100,8 @@ internal fun LiveText(
     align: TextAlign? = null,
     marquee: Boolean = false,
     /** A soft dark shadow, for text over the picture (the info panel). */
-    shadow: Boolean = false
+    shadow: Boolean = false,
+    lineHeight: TextUnit = TextUnit.Unspecified
 ) {
     Text(
         style = if (shadow) androidx.compose.material3.LocalTextStyle.current.copy(shadow = TEXT_OVER_PICTURE) else androidx.compose.material3.LocalTextStyle.current,
@@ -114,6 +115,7 @@ internal fun LiveText(
         } else modifier,
         color = color,
         fontSize = size,
+        lineHeight = lineHeight,
         fontWeight = weight,
         maxLines = maxLines,
         softWrap = !(marquee && maxLines == 1),

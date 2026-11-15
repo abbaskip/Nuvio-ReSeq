@@ -318,7 +318,10 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
                             teams == null -> LiveText("Getting the teams…", color = colors.TextSecondary, size = 13.sp)
                             league.national && teams.orEmpty().isNotEmpty() -> Column(Modifier.weight(1f)) {
                                 LiveText(
-                                    if (league.id == InternationalCricket.LEAGUE_ID) "Follow a country across Tests, ODIs and T20 internationals."
+                                    if (league.id == InternationalCricket.LEAGUE_ID) "Follow a team here to follow matches by the national team in all formats."
+                                    else if (SportsCompetitions.same(league.id, "taxonomy/cricket.tests-first-class.test-cricket")) "Follow a team here to follow matches by the national team in Test match cricket."
+                                    else if (SportsCompetitions.same(league.id, "taxonomy/cricket.odi-one-day.odi-internationals")) "Follow a team here to follow matches by the national team in One Day International (ODI) cricket."
+                                    else if (SportsCompetitions.same(league.id, "taxonomy/cricket.t20-internationals.t20-internationals")) "Follow a team here to follow matches by the national team in T20 International cricket."
                                     else if (league.women) "Countries: follow one to see all its games, from friendlies and the Nations League to the Euros and the World Cup."
                                     else if (league.sport == Sport.RUGBY) "Countries: follow one to see all its games, from the Six Nations and the Nations Championship to the World Cup."
                                     else "Countries: follow one to see all its games, from qualifiers and the Nations League to friendlies, the World Cup and the Euros.",

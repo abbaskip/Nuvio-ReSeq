@@ -440,6 +440,7 @@ object SportsCatalog {
         Sport.HOCKEY to listOf("hockey/nhl"),
         Sport.BASEBALL to listOf("baseball/mlb", "taxonomy/baseball.mlb-postseason-events.world-series"),
         Sport.CRICKET to listOf(
+            InternationalCricket.LEAGUE_ID,
             "taxonomy/cricket.tests-first-class.test-cricket",
             "taxonomy/cricket.odi-one-day.odi-internationals",
             "taxonomy/cricket.t20-internationals.t20-internationals",

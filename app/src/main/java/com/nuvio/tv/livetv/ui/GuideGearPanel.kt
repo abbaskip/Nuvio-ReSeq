@@ -120,7 +120,7 @@ internal fun GuideGearPanel(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    part(Modifier.weight(1f), GuideInfoPart.CHANNEL, "Channel name & logo")
+                    part(Modifier.weight(1f), GuideInfoPart.CHANNEL, "Channel name")
                     part(Modifier.weight(1f), GuideInfoPart.TAGS, "Tags", "Live, catch-up")
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

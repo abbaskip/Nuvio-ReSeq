@@ -76,7 +76,7 @@ class SportsCompetitionsTest {
                 League("tsdb/99998", Sport.CRICKET, "Indian Premier League", "IPL")
             ))
             val cricket = browse().filter { it.sport == Sport.CRICKET }
-            assertEquals(listOf("Test Matches", "ODIs", "T20 Internationals", "IPL", "BBL", "The Hundred"), cricket.take(6).map { it.name })
+            assertEquals(listOf("International Cricket", "Test Matches", "ODIs", "T20 Internationals", "IPL", "BBL", "The Hundred"), cricket.take(7).map { it.name })
             assertEquals(1, cricket.count { it.name == "BBL" })
             assertEquals("tsdb/4461", cricket.single { it.name == "BBL" }.id)
             assertTrue(SportsCompetitions.hasTeams(cricket.single { it.name == "IPL" }.id))

@@ -42,6 +42,8 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import okio.buffer
+import okio.source
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -566,11 +568,32 @@ class SportsRepository @Inject constructor(
         }
         currentCoroutineContext().ensureActive()
         if (!loaded) return@withLock
+        if (parsed.none { it.leagueId == "tsdb/5806" }) appendLocalWorldCupSchedule(parsed)
         _problem.value = null
         baseData.value = parsed
         if (snapshot.generatedAt > pageSnapshotAt) pageData.value = emptyList()
         appliedBaseAt = snapshot.generatedAt
         _updatedAt.value = snapshot.generatedAt
+    }
+
+    // This Onn candidate uses the generator's tournament slice until the shared feed carries it.
+    private fun appendLocalWorldCupSchedule(events: MutableList<SportsEvent>) {
+        val now = System.currentTimeMillis()
+        val entries = mutableListOf<SportsBaseFeed.Entry>()
+        val snapshot = try {
+            context.assets.open("onn-world-cup.json").source().buffer().use { source ->
+                SportsBaseFeed.parse(source, now) { entries.add(it) }
+            }
+        } catch (_: IllegalArgumentException) {
+            return // The bundled schedule has aged out of the normal feed window.
+        }
+        if (SportsCatalog.league("tsdb/5806") == null) applyFreeLeagues(snapshot.metadata.toString())
+        for (entry in entries) {
+            val league = SportsCatalog.league(entry.leagueId) ?: continue
+            FreeSportsDb.events(league, entry.payload, entry.fetchedAt).mapNotNullTo(events) {
+                SportsPageSnapshot.display(SportsBaseFeed.scheduled(it, entry.fetchedAt), entry.fetchedAt, now)
+            }
+        }
     }
 
     private suspend fun updateSharedScores(now: Long) {

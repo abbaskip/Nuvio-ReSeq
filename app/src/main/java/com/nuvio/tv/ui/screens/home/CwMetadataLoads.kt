@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.withPermit
 
 /** The tracker pipeline and shuffle may await the same series. One cancelled waiter must
  * not restart the other's lookup. With no waiters the underlying request is cancelled. */
-internal class CwMetadataLoads {
+internal class CwMetadataLoads(val elapsedRealtime: () -> Long = android.os.SystemClock::elapsedRealtime) {
     private data class Key(val profile: Int, val type: String, val id: String)
     private class Load(val result: Deferred<CwMetaSummary?>, var waiters: Int = 0)
     private val active = mutableMapOf<Key, Load>()

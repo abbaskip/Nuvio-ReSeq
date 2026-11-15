@@ -2,10 +2,13 @@
 from __future__ import annotations
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import time
+from urllib.request import urlopen
 from stability_run import Session, device_session, PACKAGE, ACTIVITY
 
 EXPECTED = {'tt9900001', 'tt9900002', 'tt9900003'}
@@ -161,6 +164,7 @@ def main():
     parser.add_argument('--aapt', required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--minutes', type=int, default=30)
+    parser.add_argument('--scenario', choices=('cw', 'cw-unwatch', 'office'), default='cw')
     args = parser.parse_args()
     # This check precedes every ADB command. Physical devices are never queried.
     if not re.fullmatch(r'emulator-\d+', args.serial):
@@ -173,7 +177,31 @@ def main():
     error = None
     try:
         with device_session(s):
-            execute(s, args.minutes)
+            if args.scenario == 'office':
+                s.control('office=true&tvdb=available')
+                try:
+                    s.adb('shell', 'am', 'start', '-W', '-n', PACKAGE+'/com.nuvio.tv.MainActivity')
+                    s.start_log('office')
+                    s.phase = 'office-split'
+                    s.journey('office-split', 180)
+                    with urlopen('http://127.0.0.1:38791/office-calls', timeout=5) as response:
+                        calls = json.load(response)
+                    s.save('tracker-requests.json', json.dumps(calls, indent=2))
+                    expected = [['start', 6, 16, 0], ['pause', 6, 16, 23.5],
+                                ['start', 6, 16, 23.5], ['pause', 6, 16, 47.1796]]
+                    require(calls == expected, 'Trakt requests differ from published 9.8')
+                    s.observations.append({'check': 'split-episode-round-trip', 'passed': True})
+                finally:
+                    s.control('office=false')
+            else:
+                execute(s, args.minutes)
+                if args.scenario == 'cw-unwatch':
+                    s.stop_log()
+                    subprocess.run([sys.executable, str(Path(__file__).with_name('stability_unwatch.py')),
+                                    '--adb', args.adb, '--adb-port', os.environ.get('ANDROID_ADB_SERVER_PORT', '5037'),
+                                    '--serial', args.serial, '--package', PACKAGE, '--scenario', 'tracker',
+                                    '--output', str(args.output/'unwatch')], check=True)
+                    s.observations.append({'check': 'details-unwatch', 'passed': True})
     except BaseException as failure:
         error = {'type': type(failure).__name__, 'message': str(failure)}
     finally:

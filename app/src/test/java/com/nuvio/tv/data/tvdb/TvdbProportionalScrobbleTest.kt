@@ -9,6 +9,7 @@ import com.nuvio.tv.data.remote.api.*
 import com.nuvio.tv.data.remote.dto.trakt.*
 import com.nuvio.tv.data.repository.*
 import com.nuvio.tv.domain.model.*
+import com.nuvio.tv.ui.screens.home.homeCard
 import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -88,6 +89,102 @@ class TvdbProportionalScrobbleTest {
                     assertEquals("tt0386676:5:16", event(percent).media.catalog!!.videoId)
                 }
             }
+        }
+    }
+
+    @Test fun officeAlternateOrderTrackerContract() = runTest {
+        val events = mutableListOf<String>()
+        val actual = mutableListOf<String>()
+        val mapping = mockk<TraktEpisodeMappingService>(relaxUnitFun = true)
+        coEvery { auth.getCurrentAuthState() } returns com.nuvio.tv.data.local.TraktAuthState("fixture", "fixture")
+        every { auth.hasRequiredCredentials() } returns true
+        coEvery { auth.executeAuthorizedWriteRequest<Any?>(any()) } coAnswers {
+            firstArg<suspend (String) -> Response<Any?>>().invoke("fixture")
+        }
+        val progress = spyk(TraktProgressService(mockk(relaxed = true), trakt, auth, mockk(relaxed = true),
+            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mapping, profiles,
+            mockk(relaxed = true)))
+        coEvery { progress.refreshNow() } returns Unit
+        val tracker = TraktTrackingScrobbler(TraktScrobbleService(trakt, auth, progress, profiles), mapping)
+        val history = TraktTrackingHistoryWriter(progress, profiles)
+        fun scrobble(action: String, body: TraktScrobbleRequestDto): Response<TraktScrobbleResponseDto> {
+            events += listOf(action, body.show?.ids, body.episode, body.progress).joinToString("|")
+            return Response.success(TraktScrobbleResponseDto(action))
+        }
+        coEvery { trakt.scrobbleStart("fixture", any()) } coAnswers { scrobble("start", secondArg()) }
+        coEvery { trakt.scrobblePause("fixture", any()) } coAnswers { scrobble("pause", secondArg()) }
+        coEvery { trakt.scrobbleStop("fixture", any()) } coAnswers { scrobble("stop", secondArg()) }
+        coEvery { trakt.addHistory("fixture", any()) } coAnswers {
+            val body = secondArg<TraktHistoryAddRequestDto>()
+            events += "add|" + body.shows.orEmpty().map { show ->
+                show.ids to show.seasons.orEmpty().map { it.number to it.episodes.orEmpty().map { ep -> ep.number to ep.ids } }
+            } + "|" + body.episodes.orEmpty().map { it.number to it.ids }
+            Response.success(TraktHistoryAddResponseDto(added = TraktHistoryRemoveCountDto(episodes = 2)))
+        }
+        coEvery { trakt.removeHistory("fixture", any()) } coAnswers {
+            events += "remove|" + secondArg<TraktHistoryRemoveRequestDto>()
+            Response.success(TraktHistoryRemoveResponseDto(deleted = TraktHistoryRemoveCountDto(episodes = 2)))
+        }
+        val registry = mockk<TrackingProviderRegistry> { every { connectedScrobblers() } returns listOf(tracker) }
+        val coordinator = TrackingScrobbleCoordinator(registry, resolver)
+        val split = tvdbEpisodeOverlay(original, 73244, orders.getValue("alternate"))
+        for ((meta, video) in listOf(effective to lecture,
+            effective to effective.videos.single { it.displaySeason == 6 && it.displayEpisode == 17 },
+            split to split.videos.first { tvdbEpisodeBaseTitle(it.title) == tvdbEpisodeBaseTitle("Weight Loss") })) {
+            coEvery { overlay.forOrder(1, original, any()) } returns meta
+            events.clear()
+            for ((action, at) in listOf(TrackingScrobbleAction.START to 0.0, TrackingScrobbleAction.PAUSE to 47.0,
+                TrackingScrobbleAction.START to 47.0, TrackingScrobbleAction.STOP to 94.3592)) {
+                assertTrue(coordinator.scrobble(action, event(at, video)).isEmpty())
+            }
+            assertTrue("The fixture must actually deliver playback", events.size >= 4)
+            val media = event(100.0, video).media
+            for (watched in listOf(true, false)) {
+                val targets = resolver.resolveAll(1, tracker.providerId, media, completed = true.takeIf { watched })
+                requireNotNull(targets)
+                events += if (watched) "WATCHED" else "UNWATCHED"
+                if (watched) history.addToHistory(1, targets.map { TrackingHistoryItem(it, 1_700_000_000_000) })
+                else history.removeFromHistory(1, targets)
+            }
+            actual += events.map { "OFFICE_CONTRACT|${video.episodeIdentity!!.tvdbEpisodeId}|$it" }
+        }
+        val reference = javaClass.getResourceAsStream("/tvdb/office-98-tracker-contract.txt")!!
+            .bufferedReader().use { it.readLines() }
+        assertEquals(reference, actual)
+    }
+
+    @Test fun splitOfficePauseSurvivesProviderReplayAndHomeRestart() = runTest {
+        val show = original.id
+        val raw = WatchProgress(show, "series", "The Office", null, null, null, "$show:6:11", 6, 11,
+            "Shareholder Meeting", 0, 0, 1234L, progressPercent = 47.1796f,
+            source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 182129, tvdbEpisodeId = 1832421L)
+        val directory = java.nio.file.Files.createTempDirectory("office-cw").toFile()
+        val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
+            every { allProgress } returns MutableStateFlow(listOf(raw))
+            every { observeNextUpSeeds() } returns MutableStateFlow(emptyList())
+            every { isDroppedShow(any()) } returns false
+        }
+        coEvery { store.exportSelections(1) } returns mapOf("alias:$show" to "73244", "order:73244" to "alttwo")
+        every { profiles.resolvedActiveProfileId } returns MutableStateFlow(1)
+        fun owner() = com.nuvio.tv.data.cw.ContinueWatchingRepository(
+            mockk { every { filesDir } returns directory }, profiles,
+            mockk { coEvery { getWatchProgressSource(1) } returns com.nuvio.tv.data.local.WatchProgressSource.TRAKT },
+            javax.inject.Provider { remote }, tvdbOrders = store, tvdbTracking = javax.inject.Provider { resolver })
+        try {
+            val cw = owner()
+            repeat(2) { cw.refreshProjection() }
+            val member = owner().snapshot().members.getValue(show)
+            val card = member.inProgress!!.homeCard(member.progress)
+            assertEquals(raw, member.progress)
+            assertFalse(card.chooseEpisode)
+            assertEquals(10719652L, card.progress.tvdbContext?.episodeId)
+            assertEquals("The Delivery Part 1 (Extended Cut)", card.progress.episodeTitle)
+            assertEquals(94.3592f, card.progress.progressPercent!!, 0.001f)
+            assertFalse(card.progress.isCompleted())
+            coVerify(exactly = 0) { trakt.scrobbleStart(any(), any()); trakt.scrobblePause(any(), any())
+                trakt.scrobbleStop(any(), any()); trakt.addHistory(any(), any()); trakt.removeHistory(any(), any()) }
+        } finally {
+            directory.deleteRecursively()
         }
     }
 

@@ -1,6 +1,5 @@
 package com.nuvio.tv.ui.screens.home
 
-import android.os.SystemClock
 import android.widget.Toast
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.network.NetworkResult
@@ -53,16 +52,17 @@ class ShuffleHomeRefreshTest {
 
     private fun TestScope.setup() {
         mockkStatic("androidx.lifecycle.ViewModelKt")
-        mockkStatic(SystemClock::class)
-        every { SystemClock.elapsedRealtime() } answers { testScheduler.currentTime }
+        val scheduler = testScheduler
+        val loads = CwMetadataLoads { scheduler.currentTime }
+        val shuffle = EpisodeShuffle()
         every { vm.viewModelScope } returns backgroundScope
         every { vm._uiState } returns native
         every { vm.shuffleHomeRefresh } returns refresh
         every { vm.homeContentActive } returns homeActive
-        every { vm.cwMetadataLoads } returns CwMetadataLoads()
+        every { vm.cwMetadataLoads } returns loads
         every { vm.cwMetaCache } returns cache
         every { vm.cwMetaNegativeCacheTimestamps } returns negative
-        every { vm.episodeShuffle } returns EpisodeShuffle()
+        every { vm.episodeShuffle } returns shuffle
         every { vm.episodeShuffleStore.profiles } returns profile
         every { vm.traktSettingsDataStore.continueWatchingDaysCap } returns flowOf(-1)
         every { vm.traktSettingsDataStore.dismissedNextUpKeys } returns flowOf(emptySet())
@@ -103,7 +103,6 @@ class ShuffleHomeRefreshTest {
 
     @After fun cleanup() {
         unmockkStatic("androidx.lifecycle.ViewModelKt")
-        unmockkStatic(SystemClock::class)
         unmockkStatic(Toast::class)
     }
 

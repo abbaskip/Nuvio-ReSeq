@@ -28,6 +28,12 @@ TRACKER_TITLES = ['The Arrival', 'Broken Compass', 'North Crossing', 'Open Water
                   'Old Friends', 'The Return', 'Lost Weekend', 'Second Chance']
 TRACKER_DVD = [1, 2, 5, 4, 3, 6, 7, 8]
 TRACKER_HISTORY = {}
+OFFICE = 'tt0386676'
+OFFICE_FIXTURES = ROOT / 'app/src/test/resources/tvdb'
+OFFICE_ORDERS = json.loads((OFFICE_FIXTURES / 'office-all-orders.json').read_text(encoding='utf8'))
+OFFICE_TRAKT = json.loads((OFFICE_FIXTURES / 'office-trakt-episodes.json').read_text(encoding='utf8'))
+OFFICE_SHOW = {'title': 'The Office', 'ids': {'imdb': OFFICE, 'trakt': 100, 'tvdb': 73244}}
+OFFICE_CALLS = []
 
 
 def tracker_time(seconds_ago):
@@ -68,6 +74,11 @@ def now_iso():
 
 
 def meta(show):
+    if show == OFFICE:
+        return {'id': show, 'imdb_id': show, 'type': 'series', 'name': 'The Office',
+                'videos': [{'id': f"{show}:{row['seasonNumber']}:{row['number']}", 'title': row['name'],
+                            'season': row['seasonNumber'], 'episode': row['number'], 'released': row.get('aired')}
+                           for row in OFFICE_ORDERS['official']]}
     if STATE.get('trackerUnwatch') and show == SHOWS[1]:
         return {'id': show, 'imdb_id': show, 'type': 'series', 'name': 'Fixture ' + show,
                 'videos': [dict(tracker_episode(i), id=f'{show}:1:{i}', episode=i,
@@ -130,6 +141,12 @@ class Web(base.Web):
         # Deliberately never log request bodies or authorization headers.
         body = self.rfile.read(int(self.headers.get('Content-Length', 0)))
         path = urlsplit(self.path).path
+        if STATE.get('office') and path.startswith('/trakt/scrobble/'):
+            payload = json.loads(body)
+            ep = payload['episode']
+            with LOCK:
+                OFFICE_CALLS.append([path.rsplit('/', 1)[1], ep['season'], ep['number'], payload['progress']])
+            return self.send_json({'action': 'pause', 'progress': payload['progress']})
         if STATE.get('trackerUnwatch') and path == '/trakt/sync/history/remove':
             data = json.loads(body)
             removed = 0
@@ -154,6 +171,10 @@ class Web(base.Web):
         with LOCK:
             COUNTS[path] += 1
         if path == '/control':
+            if 'office' in query:
+                with LOCK:
+                    STATE['office'] = query['office'][0] == 'true'
+                    OFFICE_CALLS.clear()
             if 'trackerUnwatch' in query:
                 with LOCK:
                     STATE['trackerUnwatch'] = query['trackerUnwatch'][0] == 'true'
@@ -168,6 +189,9 @@ class Web(base.Web):
             if 'slowImport' in query:
                 STATE['slowImport'] = query['slowImport'][0] == 'true'
             return self.send_json(STATE)
+        if path == '/office-calls':
+            with LOCK:
+                return self.send_json(list(OFFICE_CALLS))
         if path == '/stats':
             return self.send_json({'requests': dict(COUNTS), 'state': STATE,
                                   'channels': len(base.CHANNELS), 'programmes': len(base.CHANNELS)*48,
@@ -207,7 +231,7 @@ class Web(base.Web):
         if path == '/addon/manifest.json':
             return self.send_json({'id': 'stability.fixture', 'name': 'Stability fixtures', 'version': '1.0.0',
                 'description': 'Synthetic local data only', 'types': ['series'], 'resources': ['meta', 'stream', 'catalog'],
-                'catalogs': [{'type': 'series', 'id': 'fixture', 'name': 'Fixture series'}], 'idPrefixes': ['tt990']})
+                'catalogs': [{'type': 'series', 'id': 'fixture', 'name': 'Fixture series'}], 'idPrefixes': ['tt990', OFFICE]})
         if path.startswith('/addon/catalog/'):
             return self.send_json({'metas': [meta(s) for s in SHOWS]})
         if path.startswith('/addon/meta/'):
@@ -215,6 +239,14 @@ class Web(base.Web):
         if path.startswith('/addon/stream/'):
             return self.send_json({'streams': [{'name': 'Local fixture', 'url': base.BASE+'/movie/fixture/fixture/1.mp4'}]})
         if path.startswith('/tvdb/'):
+            if '/series/73244/' in path:
+                if '/episodes/' in path:
+                    order = path.split('/episodes/', 1)[1].split('/')[0]
+                    return self.send_json({'status': 'success', 'data': {'episodes': OFFICE_ORDERS[order]},
+                                           'links': {'next': None}})
+                return self.send_json({'status': 'success', 'data': {'id': 73244, 'name': 'The Office',
+                    'seasons': [{'id': 1000+i, 'number': 1, 'type': {'type': order, 'name': order}}
+                                for i, order in enumerate(OFFICE_ORDERS)]}})
             if STATE['tvdb'] == 'timeout':
                 time.sleep(25)
             if STATE['tvdb'] == 'unavailable':
@@ -263,6 +295,21 @@ class Web(base.Web):
         super().do_GET()
 
     def trakt(self, path):
+        if STATE.get('office'):
+            if path.endswith('/search/imdb/'+OFFICE):
+                return self.send_json([{'type': 'show', 'show': OFFICE_SHOW}])
+            if path.endswith('/shows/100/seasons'):
+                return self.send_json(OFFICE_TRAKT)
+            if path.endswith('/sync/playback/episodes'):
+                with LOCK:
+                    played = list(OFFICE_CALLS)
+                if not played:
+                    return self.send_json([])
+                _, season, number, percent = played[-1]
+                ep = next(ep for group in OFFICE_TRAKT if group['number'] == season
+                          for ep in group['episodes'] if ep['number'] == number)
+                return self.send_json([{'id': 4321, 'type': 'episode', 'episode': ep, 'show': OFFICE_SHOW,
+                                        'paused_at': '2026-11-14T01:10:51Z', 'progress': percent}])
         shows = [{'title': 'Fixture '+s, 'year': 2020, 'ids': {'trakt': i+1, 'imdb': s, 'tvdb': 9901+i}}
                  for i, s in enumerate(SHOWS)]
         if STATE.get('trackerUnwatch'):

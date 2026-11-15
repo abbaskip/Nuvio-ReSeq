@@ -1313,17 +1313,6 @@ class WatchProgressRepositoryImpl @Inject constructor(
         val reference = buildTrackingMediaReference("series", contentId, videoId, seasonNumber = season, episodeNumber = episode)
         val context = tvdb.selectionContext(profileId, reference) ?: return
         val media = reference.copy(catalog = reference.catalog?.copy(tvdbContext = context))
-        if (history && cwRepository != null) {
-            // A durable seed can predate TVDB enrichment. Revoke a native identity only
-            // when the active tracker's catalogue proves which parent and episode it was.
-            val primary = profileProgressProviderFlow(profileId).first()
-            val native = primary?.let { provider ->
-                tvdb.resolveAll(profileId, provider.providerId, media).orEmpty().filter { target ->
-                    target.catalog?.contentId == contentId && target.episode?.numberingProvider == provider.providerId.storageId
-                }.mapNotNull { target -> target.episode?.let { ep -> ep.season?.let { it to ep.number } } }.toSet()
-            }.orEmpty()
-            cwRepository.historyRemoved(profileId, contentId, native, context.episodeIds.toSet())
-        }
         val entries = watchProgressPreferences.getAllRawEntries(profileId)
         val keys = entries.filter { (_, entry) -> entry.contentId == contentId && entry.tvdbContext != null &&
             (entry.tvdbContext == context || entry.tvdbContentIds.any(context.episodeIds::contains)) }.keys
@@ -1331,12 +1320,19 @@ class WatchProgressRepositoryImpl @Inject constructor(
         watchProgressPreferences.removeProgressKeys(keys, profileId)
         if (authManager.isAuthenticated && keys.isNotEmpty()) watchProgressSyncService.deleteFromRemote(keys.toList(), profileId)
         if (history) {
-            broadcastHistoryRemoval(profileId, listOf(media))
+            val removed = broadcastHistoryRemoval(profileId, listOf(media))
             val native = tvdb.nativeEpisodes(profileId, contentId, context)
             native.forEach { coordinates -> watchedItemsPreferences.unmarkAsWatched(contentId, coordinates.season, coordinates.episode, profileId) }
             mutationStore.queueWatchedDeletes(native.map { WatchedMutationKey(contentId, it.season, it.episode) }, profileId)
             if (authManager.isAuthenticated && native.isNotEmpty())
                 watchedItemsSyncService.deleteFromRemoteBatch(contentId, native.map { it.season to it.episode }, profileId)
+            if (cwRepository != null) {
+                val primary = profileProgressProviderFlow(profileId).first()?.providerId
+                val coordinates = removed[primary].orEmpty().filter { it.catalog?.contentId == contentId }
+                    .mapNotNull { it.episode }.filter { it.numberingProvider == primary?.storageId }
+                    .mapNotNull { ep -> ep.season?.let { it to ep.number } }.toSet()
+                cwRepository.historyRemoved(profileId, contentId, coordinates, context.episodeIds.toSet())
+            }
         } else {
             connectedProgressProviders().forEach { provider ->
                 tvdb.resolveAll(profileId, provider.providerId, media).orEmpty().forEach { target ->
@@ -1407,11 +1403,11 @@ class WatchProgressRepositoryImpl @Inject constructor(
     private suspend fun broadcastHistoryRemoval(
         profileId: Int,
         items: Collection<TrackingMediaReference>
-    ) {
+    ): Map<TrackingProviderId, Collection<TrackingMediaReference>> {
         val items = items.filterNot { ServerItemRef.isServerId(it.catalog?.contentId) }
-        if (items.isEmpty()) return
+        if (items.isEmpty()) return emptyMap()
         val connectedIds = connectedProgressProviders().mapTo(mutableSetOf()) { it.providerId }
-        supervisorScope {
+        return supervisorScope {
             trackingHistoryWriters.writers()
                 .filter { writer -> writer.providerId in connectedIds }
                 .map { writer ->
@@ -1420,14 +1416,15 @@ class WatchProgressRepositoryImpl @Inject constructor(
                             val resolved = if (tvdbTracking == null) items else items.flatMap {
                                 tvdbTracking.resolveAll(profileId, writer.providerId, it).orEmpty()
                             }
-                            writer.removeFromHistory(profileId, resolved)
+                            val result = writer.removeFromHistory(profileId, resolved)
+                            writer.providerId to resolved.takeIf { result.isComplete }.orEmpty()
                         }
                             .onFailure { error ->
                                 Log.w(TAG, "Failed ${writer.providerId.storageId} history removal", error)
-                            }
+                            }.getOrNull()
                     }
                 }
-                .forEach { operation -> operation.await() }
+                .mapNotNull { operation -> operation.await() }.toMap()
         }
     }
 

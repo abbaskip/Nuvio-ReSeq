@@ -43,7 +43,13 @@ internal suspend fun HomeViewModel.publishCwEnrichment(lease: CwLease, cards: Li
 }
 
 internal fun CachedInProgressItem.homeCard(committed: WatchProgress? = null) = ContinueWatchingItem.InProgress(
-    progress = committed?.copy(name = name, poster = poster, backdrop = backdrop, logo = logo, episodeTitle = episodeTitle)
+    progress = committed?.let { raw ->
+        val card = raw.copy(name = name, poster = poster, backdrop = backdrop, logo = logo, episodeTitle = episodeTitle)
+        if (chooseEpisode || tvdbContext == null || raw.tvdbContext != null) card else card.copy(
+            videoId = videoId, season = season, episode = episode, tvdbEpisodeId = tvdbContext.episodeIds.firstOrNull(),
+            tvdbEpisodeIds = tvdbContext.episodeIds, tvdbContext = tvdbContext, position = position, duration = duration,
+            progressPercent = progressPercent, completionThresholdOverride = 1f, tvdbCompletedEpisodeIds = emptyList())
+    }
         ?: WatchProgress(contentId, contentType, name, poster, backdrop, logo, videoId, season, episode,
         episodeTitle, position, duration, lastWatched, progressPercent = progressPercent, tvdbContext = tvdbContext),
     episodeThumbnail = episodeThumbnail, episodeDescription = episodeDescription,

@@ -2260,7 +2260,7 @@ private suspend fun HomeViewModel.loadCwMetadata(
             }
             val negativeCachedAt = cwMetaNegativeCacheTimestamps[cacheKey]
             if (negativeCachedAt != null &&
-                SystemClock.elapsedRealtime() - negativeCachedAt < CW_META_NEGATIVE_CACHE_TTL_MS
+                cwMetadataLoads.elapsedRealtime() - negativeCachedAt < CW_META_NEGATIVE_CACHE_TTL_MS
             ) {
                 debug?.recordMetaCacheHit(progress)
                 return cached
@@ -2370,7 +2370,7 @@ private suspend fun HomeViewModel.loadCwMetadata(
         if (profileManager.activeProfileId.value != profile) return null
         metaCache[cacheKey] = resolved
         if (resolved == null || resolved.tvdbPending) {
-            cwMetaNegativeCacheTimestamps[cacheKey] = SystemClock.elapsedRealtime()
+            cwMetaNegativeCacheTimestamps[cacheKey] = cwMetadataLoads.elapsedRealtime()
         } else {
             cwMetaNegativeCacheTimestamps.remove(cacheKey)
         }

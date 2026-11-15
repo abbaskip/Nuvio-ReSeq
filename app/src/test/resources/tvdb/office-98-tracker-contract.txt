@@ -1,0 +1,21 @@
+OFFICE_CONTRACT|10718533|start|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Lecture Circuit (1), season=5, number=14, ids=null, firstAired=null)|0.0
+OFFICE_CONTRACT|10718533|pause|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Lecture Circuit (1), season=5, number=14, ids=null, firstAired=null)|79.0
+OFFICE_CONTRACT|10718533|start|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Lecture Circuit (1), season=5, number=14, ids=null, firstAired=null)|79.0
+OFFICE_CONTRACT|10718533|stop|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Lecture Circuit (1), season=5, number=14, ids=null, firstAired=null)|100.0
+OFFICE_CONTRACT|10718533|stop|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Lecture Circuit (2), season=5, number=15, ids=null, firstAired=null)|100.0
+OFFICE_CONTRACT|10718533|WATCHED
+OFFICE_CONTRACT|10718533|add|[(TraktIdsDto(trakt=null, slug=null, imdb=tt0386676, tmdb=null, tvdb=null), [(5, [(14, null), (15, null)])])]|[]
+OFFICE_CONTRACT|10718533|UNWATCHED
+OFFICE_CONTRACT|10718533|remove|TraktHistoryRemoveRequestDto(movies=null, shows=[TraktHistoryShowRemoveDto(ids=TraktIdsDto(trakt=null, slug=null, imdb=tt0386676, tmdb=null, tvdb=null), seasons=[TraktHistorySeasonRemoveDto(number=5, episodes=[TraktHistoryEpisodeRemoveDto(number=14), TraktHistoryEpisodeRemoveDto(number=15)])])], episodes=null)
+OFFICE_CONTRACT|10719652|start|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=The Delivery, season=6, number=16, ids=null, firstAired=null)|0.0
+OFFICE_CONTRACT|10719652|pause|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=The Delivery, season=6, number=16, ids=null, firstAired=null)|23.5
+OFFICE_CONTRACT|10719652|start|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=The Delivery, season=6, number=16, ids=null, firstAired=null)|23.5
+OFFICE_CONTRACT|10719652|pause|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=The Delivery, season=6, number=16, ids=null, firstAired=null)|47.1796
+OFFICE_CONTRACT|10719652|WATCHED
+OFFICE_CONTRACT|10719652|UNWATCHED
+OFFICE_CONTRACT|7931974|start|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Weight Loss, season=5, number=1, ids=null, firstAired=null)|0.0
+OFFICE_CONTRACT|7931974|pause|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Weight Loss, season=5, number=1, ids=null, firstAired=null)|23.5
+OFFICE_CONTRACT|7931974|start|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Weight Loss, season=5, number=1, ids=null, firstAired=null)|23.5
+OFFICE_CONTRACT|7931974|pause|TraktIdsDto(trakt=100, slug=null, imdb=tt0386676, tmdb=null, tvdb=73244)|TraktEpisodeDto(title=Weight Loss, season=5, number=1, ids=null, firstAired=null)|47.1796
+OFFICE_CONTRACT|7931974|WATCHED
+OFFICE_CONTRACT|7931974|UNWATCHED

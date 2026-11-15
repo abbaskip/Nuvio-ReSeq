@@ -105,6 +105,8 @@ object CwMembershipReducer {
                     completed[p.contentId] = records + (record.historyKey to record)
             }
             val old = members[p.contentId]
+            // A duplicate tracker notification cannot undo the verified presentation of this same pause.
+            if (!seeds && old?.progress == p && old.inProgress?.tvdbContext != null && p.tvdbContext == null) return@forEach
             // A retained series placeholder (including one saved by local.1 after unwatch)
             // has presentation recency, not committed progress that can reject older history.
             val priorActivity = old?.progress?.lastWatched ?: old?.inProgress?.lastWatched ?:

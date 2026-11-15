@@ -78,6 +78,8 @@ class StabilityJourneyActivity : ComponentActivity() {
     @Inject lateinit var tvdbClient: com.nuvio.tv.data.tvdb.TvdbClient
     @Inject lateinit var auth: TraktAuthDataStore
     @Inject lateinit var tracking: TraktSettingsDataStore
+    @Inject lateinit var scrobbles: com.nuvio.tv.core.tracking.TrackingScrobbleCoordinator
+    @Inject lateinit var catalogue: com.nuvio.tv.domain.repository.MetaRepository
     @Inject lateinit var refresh: TrackingProgressRefreshCoordinator
     @Inject lateinit var channelSync: AndroidTvChannelSyncService
     @Inject lateinit var channelPrefs: TvChannelPreferences
@@ -138,6 +140,7 @@ class StabilityJourneyActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 when (action) {
+                    "office-split" -> officeSplit()
                     "tracker-unwatch-seed" -> seedTrackerUnwatch()
                     "tracker-unwatch-latest" -> removeTrackerEpisode()
                     "unwatch-seed", "unwatch-seed-history" -> {
@@ -301,6 +304,42 @@ class StabilityJourneyActivity : ComponentActivity() {
         val movies = vod.categories(VodKind.MOVIE).filter { it.name == "Fixture movies" }.sumOf { it.count }
         check(movies == 20_000) { "Expected 20000 fixture movies, imported $movies" }
         Diag.event("seed-complete", mapOf("channels" to live.channels.value.size, "movies" to movies))
+    }
+
+    private suspend fun officeSplit() {
+        val id = "tt0386676"
+        profiles.activeProfileReady.first { it }
+        addonPrefs.removeAddon("https://v3-cinemeta.strem.io")
+        addonPrefs.removeAddon("https://opensubtitles-v3.strem.io")
+        addons.addAddon("$HTTP/addon/manifest.json")
+        withTimeout(30_000) { addons.awaitInstalledAddons(setOf("stability.fixture")) }
+        orders.save(1, 73244, "alttwo", listOf(id))
+        tvdb.save(1, "synthetic-fixture-key")
+        auth.saveToken(TraktTokenResponseDto("fixture-token", "bearer", 86400, "fixture-refresh",
+            createdAt = System.currentTimeMillis() / 1000))
+        auth.saveUser("fixture", "fixture")
+        tracking.setWatchProgressSource(WatchProgressSource.TRAKT)
+        val result = catalogue.getMetaFromAllAddons("series", id).first { it !is com.nuvio.tv.core.network.NetworkResult.Loading }
+        val video = (result as com.nuvio.tv.core.network.NetworkResult.Success).data.videos.single {
+            it.episodeIdentity?.tvdbEpisodeId == 10719652L
+        }
+        val reference = com.nuvio.tv.core.tracking.buildTrackingMediaReference("series", id, video.id, "The Office",
+            seasonNumber = video.season, episodeNumber = video.episode, episodeTitle = video.title)
+        val media = reference.copy(catalog = reference.catalog!!.copy(tvdbContext = video.tvdbPlaybackContext(), tvdbCoverageVerified = true))
+        for ((action, at) in listOf(com.nuvio.tv.core.tracking.TrackingScrobbleAction.START to 0.0,
+            com.nuvio.tv.core.tracking.TrackingScrobbleAction.PAUSE to 47.0,
+            com.nuvio.tv.core.tracking.TrackingScrobbleAction.START to 47.0,
+            com.nuvio.tv.core.tracking.TrackingScrobbleAction.STOP to 94.3592)) {
+            check(scrobbles.scrobble(action, com.nuvio.tv.core.tracking.TrackingScrobbleEvent(media, at)).isEmpty())
+        }
+        check(refresh.refreshConnected(TrackingRefreshIntent.INVALIDATED).isEmpty())
+        home.setHomeContentActive(true)
+        route = "home"
+        withTimeout(90_000) {
+            home.uiState.first { state -> state.continueWatchingItems.filterIsInstance<ContinueWatchingItem.InProgress>()
+                .any { it.progress.contentId == id && !it.chooseEpisode && it.progress.tvdbContext?.episodeId == 10719652L &&
+                    kotlin.math.abs(it.progress.progressPercentage * 100 - 94.3592f) < 0.01f } }
+        }
     }
 
     private suspend fun seedTrackerUnwatch() {

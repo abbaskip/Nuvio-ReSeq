@@ -27,7 +27,8 @@ class ContinueWatchingRepository @Inject constructor(
     private val settings: TraktSettingsDataStore,
     private val progressProvider: Provider<WatchProgressRepository>,
     private val trackingProviders: Provider<com.nuvio.tv.core.tracking.TrackingProgressProviderRegistry>? = null,
-    private val tvdbOrders: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null
+    private val tvdbOrders: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null,
+    private val tvdbTracking: Provider<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>? = null
 ) {
     private val store = CwProjectionStore(File(context.filesDir, "cw_enrichment"))
     private val mutex = Mutex()
@@ -52,7 +53,7 @@ class ContinueWatchingRepository @Inject constructor(
                     }.collect { (items, seeds, movies) ->
                         val active = snapshot().lease
                         if (active.profileId != lease.profileId || active.source != lease.source) return@collect
-                        mutate(active) { state -> reduceProgress(state, items, seeds, progress, movies) }
+                        publishTrackerProgress(active, items, seeds, progress, movies)
                     }
                 }
         }
@@ -155,7 +156,36 @@ class ContinueWatchingRepository @Inject constructor(
         val seeds = progress.observeNextUpSeeds().first()
         val items = progress.allProgress.first()
         val movies = movieCompletionTimes(state.lease).first()
-        mutate(state.lease) { reduceProgress(it, items, seeds, progress, movies) }
+        publishTrackerProgress(state.lease, items, seeds, progress, movies)
+    }
+
+    private suspend fun publishTrackerProgress(lease: CwLease, items: List<WatchProgress>,
+        seeds: List<WatchProgress>, progress: WatchProgressRepository, movies: Map<String, Long?>) {
+        // Publish membership immediately. Resolve only the winning pauses for ordered shows,
+        // outside the store lock, so a slow catalogue cannot delay playback or unrelated cards.
+        val state = mutate(lease) { reduceProgress(it, items, seeds, progress, movies) }
+        if (!CwMembershipReducer.accepts(state, lease)) return
+        val resolver = tvdbTracking ?: return
+        for (member in state.members.values) {
+            val raw = member.progress ?: continue
+            if (member.inProgress?.chooseEpisode != true || raw.source != WatchProgress.SOURCE_TRAKT_PLAYBACK ||
+                raw.tvdbContext != null || raw.traktEpisodeId == null || raw.providerDefaultPlayback) continue
+            val resolved = try {
+                resolver.get().continueWatchingResume(lease.profileId, raw)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("ContinueWatching", "Episode catalogue unavailable (${e.javaClass.simpleName})")
+                null
+            } ?: continue
+            mutate(lease) { current ->
+                val latest = current.members[raw.contentId]
+                if (latest?.progress != raw || latest.inProgress?.chooseEpisode != true) current
+                else current.copy(revision = current.revision + 1, members = current.members +
+                    (raw.contentId to latest.copy(inProgress = resolved.cached(latest.inProgress),
+                        changedAtRevision = current.revision + 1)))
+            }
+        }
     }
 
     private fun movieCompletionTimes(lease: CwLease): Flow<Map<String, Long?>> {

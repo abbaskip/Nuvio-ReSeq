@@ -1,6 +1,5 @@
 package com.nuvio.tv.ui.screens.home
 
-import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.player.PlayerSessionTracker
@@ -266,10 +265,10 @@ private fun HomeViewModel.requestHomeShuffleMetadata(
                 val cacheKey = "${seed.contentType}:${seed.contentId}"
                 while (needsMetadata()) {
                     val last = listOfNotNull(lastAttempt[key], cwMetaNegativeCacheTimestamps[cacheKey]).maxOrNull()
-                    if (last != null) delay((last + CW_META_NEGATIVE_CACHE_TTL_MS - SystemClock.elapsedRealtime()).coerceAtLeast(0))
+                    if (last != null) delay((last + CW_META_NEGATIVE_CACHE_TTL_MS - cwMetadataLoads.elapsedRealtime()).coerceAtLeast(0))
                     slots.withPermit {
                         if (needsMetadata()) {
-                            lastAttempt[key] = SystemClock.elapsedRealtime()
+                            lastAttempt[key] = cwMetadataLoads.elapsedRealtime()
                             try {
                                 val resolved = resolveCwMeta(seed)
                                 if (resolved?.tvdbOrder == true && !shuffleEnabled && !_uiState.value.let { state ->

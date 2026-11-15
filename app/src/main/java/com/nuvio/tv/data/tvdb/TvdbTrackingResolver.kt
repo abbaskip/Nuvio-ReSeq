@@ -37,6 +37,35 @@ class TvdbTrackingResolver @Inject constructor(
     private val mdbList: dagger.Lazy<com.nuvio.tv.data.mdblist.MdbListSyncRepository>? = null
 ) {
     suspend fun isSelected(profileId: Int, contentId: String) = store.selected(profileId, listOf(contentId)) != null
+
+    /** A tracker pause is measured on the native episode's timeline. Only CW consumes this view. */
+    internal suspend fun continueWatchingResume(profileId: Int, pause: WatchProgress): WatchProgress? {
+        val episodeId = pause.traktEpisodeId ?: return null
+        val meta = effectiveMetadata(profileId, pause.contentId, pause.contentType) ?: return null
+        val target = traktTargets(profileId, meta).singleOrNull {
+            it.matchesParent(pause) && it.episode.traktId == episodeId
+        } ?: return null
+        // Catalogue coverage is ordered by the canonical parts of the native video.
+        val nativeIds = target.contentIds.toList()
+        val fraction = pause.progressPercentage.toDouble()
+        val matches = meta.videos.filter { it.hasResolvedSource }.mapNotNull { video ->
+            val context = video.tvdbPlaybackContext() ?: return@mapNotNull null
+            if (context.episodeIds.none(target.contentIds::contains)) return@mapNotNull null
+            val weights = context.progressWeights(additionalIds = nativeIds)
+            if (context.episodeIds.progressRanges(context.progressWeights()) != context.episodeIds.progressRanges(weights))
+                return@mapNotNull null
+            val active = nativeIds.progressRanges(weights).entries.firstOrNull { fraction < it.value.endInclusive }?.key
+                ?: nativeIds.last()
+            if (active !in context.episodeIds) return@mapNotNull null
+            val displayed = projectTvdbFraction(nativeIds, context.episodeIds, weights, fraction) ?: return@mapNotNull null
+            pause.copy(videoId = video.id, season = video.season, episode = video.episode, episodeTitle = video.title,
+                position = 0, duration = 0, progressPercent = (displayed * 100).toFloat(),
+                tvdbContext = context, tvdbEpisodeId = context.episodeIds.first(), tvdbEpisodeIds = context.episodeIds,
+                // This provider record establishes a pause. Only committed history establishes a watch.
+                completionThresholdOverride = 1f, tvdbCompletedEpisodeIds = emptyList())
+        }
+        return matches.singleOrNull()
+    }
     fun observeSelection(profileId: Int, contentId: String) = store.observeSelection(profileId, contentId)
     fun observeSelectedSeries(profileId: Int) = store.observeSelectedSeries(profileId)
 

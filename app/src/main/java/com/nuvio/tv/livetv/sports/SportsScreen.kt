@@ -601,7 +601,7 @@ private fun SportsHub(
     // ---- what this day holds
     val dayStart = viewModel.repo.dayStart(day)
     val dayEnd = viewModel.repo.dayStart(day + 1)
-    val active = remember(settings, follows) { viewModel.repo.activeLeagues(settings, follows).map { it.id }.toSet() + SportsMatcher.OTHER_ID }
+    val active = remember(settings, follows, known) { viewModel.repo.activeLeagues(settings, follows).map { it.id }.toSet() + SportsMatcher.OTHER_ID }
     // "Only games on my channels": once channels have been looked for, games on now or coming up
     // that none of them show are left out (results, your teams' games and names you follow stay).
     val filterToChannels = settings.onlyOnMyChannels && hasChannels && matches.isNotEmpty()
@@ -649,9 +649,9 @@ private fun SportsHub(
             }
         }
     }
-    val dayEvents = remember(events, dayStart, dayEnd, active, filterToChannels, matches, follows, now) {
-        SportsEventListings.allEvents(events, dayStart, dayEnd, now).filter { ev ->
-            ev.leagueId in active &&
+    val dayEvents = remember(known, dayStart, dayEnd, active, filterToChannels, matches, follows, now) {
+        SportsEventListings.allEvents(known, dayStart, dayEnd, now).filter { ev ->
+            (ev.leagueId in active || isMine(ev, follows)) &&
                 (!filterToChannels || ev.state == GameState.POST || isMine(ev, follows) || matches[ev.id]?.isNotEmpty() == true)
         }
     }

@@ -39,6 +39,17 @@ class InternationalCricketTest {
         assertTrue(related.any { it.contains("t20-internationals") })
         assertFalse("cricket/8048" in related)
     }
+    @Test fun `a busy main row includes the ODI shown in the cricket row`() {
+        val odi = SportsEvent("odi", "cricket/19430", 2000, true, GameState.PRE,
+            "Australia v England", null, null, Side(team("Australia ODI"), null, null, false, false), null)
+        val others = (1..30).map { odi.copy(id = "other-$it", leagueId = "soccer/fifa.world", startMs = it.toLong()) }
+        val events = others + odi
+        for (sport in listOf(null, Sport.CRICKET)) {
+            val page = SportsRows.build(events, follows, 0, sport) { true }
+            assertTrue(odi in page.rows.single { it.kind == SportsRow.Kind.UPCOMING }.events)
+        }
+    }
+
     @Test fun `format fixtures share one My Sports country row`() {
         val events = listOf("Australia Test", "Australia ODI", "Australia T20").mapIndexed { i, name ->
             SportsEvent("match-$i", "cricket/19430", 1000L + i, true, GameState.PRE,

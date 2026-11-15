@@ -1,6 +1,7 @@
 package com.nuvio.tv.data.simkl
 
 import com.nuvio.tv.core.tracking.TrackingProgressProvider
+import com.nuvio.tv.core.tracking.TrackingMediaReference
 import com.nuvio.tv.core.tracking.TrackingProviderId
 import com.nuvio.tv.core.tracking.TrackingRefreshIntent
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
@@ -75,6 +76,23 @@ class SimklTrackingProgressProvider @Inject constructor(
     }
 
     override suspend fun refresh(intent: TrackingRefreshIntent) = syncRepository.refresh(intent)
+
+    override suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
+        val episode = requireNotNull(target.episode)
+        val parent = requireNotNull(target.catalog)
+        syncRepository.ensureLoaded()
+        val matchingMedia = syncRepository.state.value.snapshot.entries.filter { it.matchesSimklContentId(parent.contentId) }
+        val latest = SimklApiSyncRemote(apiClient).fetchPlayback().filter { row ->
+            val media = row.media ?: return@filter false
+            val ep = row.episode ?: return@filter false
+            (media.canonicalContentId() == parent.contentId || matchingMedia.any { it.media == media }) &&
+                (if (resume.simklPlaybackId != null) row.id == resume.simklPlaybackId else
+                    (ep.tvdbSeason ?: ep.season) == episode.season && (ep.tvdbNumber ?: ep.number) == episode.number)
+        }.maxByOrNull { it.pausedAt.orEmpty() } ?: return
+        val id = requireNotNull(latest.id)
+        apiClient.execute(SimklApiRequest(SimklHttpMethod.DELETE, "/sync/playback/$id"))
+        syncRepository.removePlaybackSessions(setOf(id))
+    }
 
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {
         syncRepository.ensureLoaded()

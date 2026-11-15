@@ -22,6 +22,22 @@ class MdbListScrobbleService @Inject constructor(
         }
     }
 
+    suspend fun clearEpisodePause(scope: MdbListAuthScope, contentId: String, season: Int, episode: Int, tmdbId: Long?) {
+        val rows = decodeMdbListPlayback(api.get("/sync/playback", scope = scope).body)
+        val matches = rows.filter { it.type == MdbListItemType.EPISODE && contentId in it.media.ids.aliases() &&
+            (if (tmdbId != null && it.episodeTmdbId != null) it.episodeTmdbId == tmdbId else it.season == season && it.episode == episode) }
+        if (matches.isEmpty()) return
+        // MDBList clears by episode, so a duplicate address cannot target an individual session.
+        val row = matches.single()
+        val target = MdbListMutationTarget(row.type, row.media, row.season, row.episode)
+        check(rows.count(target::matches) == 1)
+        sync.write(scope, setOf(MdbListSyncBucket.PLAYBACK)) { snapshot ->
+            val body = mdbListResponseElement(api.post("/scrobble/clear", target.scrobbleBody().toString(), scope).body).objectValue()
+            check(body.text("action") == "clear" && body.flag("deleted") != null)
+            snapshot.copy(playback = snapshot.playback.filterNot(target::matches)) to Unit
+        }
+    }
+
     suspend fun clear(scope: MdbListAuthScope, contentId: String, season: Int?, episode: Int?) {
         sync.ensureLoaded()
         val sessions = sync.currentSnapshot()?.playback.orEmpty().filter { session ->

@@ -303,7 +303,8 @@ class WatchProgressSyncService @Inject constructor(
         profileId: Int = profileManager.activeProfileId.value,
         sinceLastWatched: Long? = null,
         limit: Int? = null,
-        forTvdbResume: Boolean = false
+        forTvdbResume: Boolean = false,
+        rawKeys: Boolean = false
     ): Result<List<Pair<String, WatchProgress>>> = withContext(Dispatchers.IO) {
         try {
             if (!forTvdbResume && !shouldUseSupabaseWatchProgressSync(profileId)) {
@@ -352,7 +353,7 @@ class WatchProgressSyncService @Inject constructor(
                 )
             }
 
-            val normalized = normalizePulledEntries(pulled)
+            val normalized = if (rawKeys) pulled else normalizePulledEntries(pulled)
             Log.d(TAG, "pullFromRemote: normalized ${pulled.size} -> ${normalized.size} entries")
             Result.success(normalized)
         } catch (e: Exception) {

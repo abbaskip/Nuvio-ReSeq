@@ -33,6 +33,11 @@ interface TrackingProgressProvider {
     suspend fun showIdSiblings(): Map<String, Set<String>>
     fun isWatchedByVideoId(videoId: String, episode: Int): Boolean? = null
     suspend fun refresh(intent: TrackingRefreshIntent)
+    suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
+        val episode = requireNotNull(target.episode)
+        removeProgress(requireNotNull(target.catalog).contentId, requireNotNull(episode.season), episode.number)
+    }
+
     suspend fun removeProgress(contentId: String, season: Int?, episode: Int?)
     fun applyOptimisticProgress(progress: WatchProgress, quiet: Boolean)
     fun applyOptimisticRemoval(contentId: String, season: Int?, episode: Int?)

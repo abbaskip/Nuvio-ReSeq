@@ -134,6 +134,8 @@ interface WatchProgressRepository {
      */
     suspend fun saveProgressBatch(progressList: List<WatchProgress>, syncRemote: Boolean = true)
     
+    suspend fun removeEpisodePartialWatch(contentId: String, video: com.nuvio.tv.domain.model.Video, resume: WatchProgress)
+
     suspend fun removeProgress(contentId: String, season: Int? = null, episode: Int? = null)
 
     suspend fun removeFromHistory(contentId: String, videoId: String? = null, season: Int? = null, episode: Int? = null)

@@ -98,6 +98,7 @@ internal fun EpisodeOptionsOverlay(
     isSeasonFullyWatched: Boolean = false,
     hasPreviousEpisodes: Boolean = false,
     hasProgress: Boolean = false,
+    onRemovePartialWatch: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onPlay: () -> Unit,
     isPlayEnabled: Boolean = true,
@@ -249,6 +250,10 @@ internal fun EpisodeOptionsOverlay(
                     onClick = onPlayManually
                 )
             )
+        }
+        if (onRemovePartialWatch != null) {
+            add(EpisodeOverlayAction(label = stringResource(R.string.episodes_remove_partial_watch),
+                enabled = !isPending, onClick = onRemovePartialWatch))
         }
         if (hasProgress && isPlayEnabled) {
             add(

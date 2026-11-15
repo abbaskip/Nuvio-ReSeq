@@ -1,6 +1,7 @@
 package com.nuvio.tv.data.repository
 
 import com.nuvio.tv.core.tracking.TrackingProgressProvider
+import com.nuvio.tv.core.tracking.TrackingMediaReference
 import com.nuvio.tv.core.tracking.TrackingProviderId
 import com.nuvio.tv.core.tracking.TrackingRefreshIntent
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
@@ -63,6 +64,9 @@ class TraktTrackingProgressProvider @Inject constructor(
     override suspend fun showIdSiblings() = service.getShowIdSiblings()
 
     override suspend fun refresh(intent: TrackingRefreshIntent) = service.refreshNow()
+
+    override suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) =
+        service.removeEpisodePause(target, resume)
 
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) =
         service.removeProgress(contentId, season, episode)

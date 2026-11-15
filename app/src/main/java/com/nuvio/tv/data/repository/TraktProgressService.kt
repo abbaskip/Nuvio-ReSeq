@@ -1,6 +1,7 @@
 package com.nuvio.tv.data.repository
 
 import android.os.SystemClock
+import com.nuvio.tv.core.tracking.TrackingMediaReference
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.nuvio.tv.BuildConfig
@@ -891,6 +892,27 @@ class TraktProgressService @Inject constructor(
         return watchedMovies.contains(rawKey)
             || watchedMovies.contains(canonicalKey)
             || (videoCanonicalKey != null && watchedMovies.contains(videoCanonicalKey))
+    }
+
+    suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
+        val episode = requireNotNull(target.episode)
+        val parent = requireNotNull(target.catalog)
+        val mapping = if (parent.providerDefault) null else resolveCanonicalEpisodeMapping(resume)
+        val sessions = checkNotNull(getPlayback("episodes", force = true))
+        val latest = sessions.filter { row ->
+            normalizeContentId(row.show?.ids) == parent.contentId && row.episode != null && when {
+                episode.traktId != null -> row.episode.ids?.trakt == episode.traktId
+                resume.traktEpisodeId != null -> row.episode.ids?.trakt == resume.traktEpisodeId
+                else -> row.episode.season == (mapping?.season ?: episode.season) &&
+                    row.episode.number == (mapping?.episode ?: episode.number) &&
+                    (episode.title.isNullOrBlank() || row.episode.title.equals(episode.title, ignoreCase = true))
+            }
+        }.maxByOrNull { parseIsoToMillis(it.pausedAt) } ?: return
+        val response = traktAuthService.executeAuthorizedWriteRequest {
+            traktApi.deletePlayback(it, requireNotNull(latest.id))
+        }
+        check(response?.isSuccessful == true || response?.code() == 404)
+        refreshNow()
     }
 
     suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {

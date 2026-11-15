@@ -2,6 +2,7 @@ package com.nuvio.tv.data.mdblist
 
 import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.core.tracking.TrackingProgressProvider
+import com.nuvio.tv.core.tracking.TrackingMediaReference
 import com.nuvio.tv.core.tracking.TrackingProviderId
 import com.nuvio.tv.core.tracking.TrackingRefreshIntent
 import com.nuvio.tv.core.tracking.parseTrackingExternalIds
@@ -98,6 +99,18 @@ class MdbListTrackingProgressProvider @Inject constructor(
     }
 
     override suspend fun refresh(intent: TrackingRefreshIntent) = sync.refresh(intent)
+
+    override suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
+        val episode = requireNotNull(target.episode)
+        val parent = requireNotNull(target.catalog)
+        val scope = sync.currentScope()
+        val mapping = if (parent.providerDefault) null else episodeMapping(parent.contentId, currentProjection())
+        val mapped = mapping?.takeIf { it.remaps }?.let {
+            requireNotNull(it.toTmdb(requireNotNull(episode.season), episode.number))
+        }
+        scrobbles.clearEpisodePause(scope, parent.contentId, mapped?.season ?: requireNotNull(episode.season),
+            mapped?.episode ?: episode.number, episode.tmdbId)
+    }
 
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {
         val scope = sync.currentScope()

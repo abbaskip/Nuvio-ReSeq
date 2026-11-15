@@ -392,6 +392,7 @@ fun EpisodesRow(
     canPlayEpisode: (Video) -> Boolean = { true },
     onEpisodeManualPlayClick: (Video) -> Unit = onEpisodeClick,
     onEpisodeStartFromBeginningClick: (Video) -> Unit = onEpisodeClick,
+    onRemovePartialWatch: (Video) -> Unit,
     onToggleEpisodeWatched: (Video) -> Unit,
     showManualPlayOption: Boolean = false,
     onMarkSeasonWatched: (Int) -> Unit = {},
@@ -595,6 +596,13 @@ fun EpisodesRow(
                     }
                 }
             } ?: false,
+            onRemovePartialWatch = if (selectedEpisode.hasResolvedSource &&
+                episodeProgressMap[selectedEpisode.season to selectedEpisode.episode]?.isInProgress() == true) {
+                {
+                    onRemovePartialWatch(selectedEpisode)
+                    optionsEpisode = null
+                }
+            } else null,
             onDismiss = { optionsEpisode = null },
             onNavigateEpisode = { step ->
                 adjacentEpisode(dedupedEpisodes, selectedEpisode, step)?.let { optionsEpisode = it }

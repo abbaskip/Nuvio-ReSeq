@@ -15,6 +15,8 @@ import com.nuvio.tv.data.mediaserver.ServerItemRef
 import com.nuvio.tv.data.mediaserver.ServerWatchMark
 import com.nuvio.tv.data.mediaserver.ServerWatched
 import com.nuvio.tv.domain.model.WatchProgress
+import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.tvdbPlaybackContext
 import com.nuvio.tv.domain.model.storageKey
 import com.nuvio.tv.domain.model.WatchedItem
 import com.nuvio.tv.domain.model.WatchedMutationKey
@@ -961,6 +963,33 @@ class WatchProgressRepositoryImpl @Inject constructor(
         recordTvdbNativeWatched(profileId, progressList.filter { it.isCompleted() && it.tvdbContext != null }, syncRemote)
     }
 
+    override suspend fun removeEpisodePartialWatch(contentId: String, video: Video, resume: WatchProgress) {
+        require(resume.isInProgress() && resume.tvdbWatchedIds.isEmpty())
+        val profile = profileManager.activeProfileId.value
+        val context = video.tvdbPlaybackContext()
+        val source = buildTrackingMediaReference("series", contentId, video.id, seasonNumber = requireNotNull(video.season),
+            episodeNumber = requireNotNull(video.episode), episodeTitle = video.title)
+        val reference = source.copy(catalog = requireNotNull(source.catalog).copy(tvdbContext = context))
+        val local = watchProgressPreferences.getAllRawEntries(profile)
+            .filterValues { it.matchesPartialEpisode(contentId, video) }
+        val remote = if (authManager.isAuthenticated && !ServerItemRef.isServerId(contentId)) {
+            watchProgressSyncService.pullFromRemote(profile, forTvdbResume = true, rawKeys = true).getOrThrow()
+                .filter { (_, entry) -> entry.matchesPartialEpisode(contentId, video) }.map { it.first }
+        } else emptyList()
+
+        for (provider in connectedProgressProviders()) {
+            check(profileManager.activeProfileId.value == profile)
+            val targets = if (tvdbTracking == null) listOf(reference)
+                else requireNotNull(tvdbTracking.resolveAll(profile, provider.providerId, reference))
+            for (target in targets) provider.removeEpisodePause(target, resume)
+        }
+        check(profileManager.activeProfileId.value == profile)
+        if (remote.isNotEmpty()) watchProgressSyncService.deleteFromRemote(remote, profile).getOrThrow()
+        mutationStore.acknowledgeProgressUpserts(local, profile)
+        watchProgressPreferences.removeMatchingProgress(local, profile)
+        triggerRemoteSync(profile)
+    }
+
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {
         val profileId = profileManager.activeProfileId.value
         if (season != null && episode != null && tvdbTracking?.isSelected(profileId, contentId) == true) {
@@ -1509,4 +1538,16 @@ class WatchProgressRepositoryImpl @Inject constructor(
         return resolvedKeys
     }
 
+}
+
+internal fun WatchProgress.matchesPartialEpisode(parent: String, video: Video): Boolean {
+    if (contentId != parent || !isInProgress() || tvdbWatchedIds.isNotEmpty()) return false
+    val target = video.tvdbPlaybackContext()
+    if (target == null) return tvdbContext == null && season == video.season && episode == video.episode &&
+        videoId == video.id
+    if (tvdbContentIds.isNotEmpty()) return tvdbContentIds == target.episodeIds.toSet()
+    return target.providerSources.orEmpty().any { source ->
+        source.episodeIds.toSet() == target.episodeIds.toSet() && source.videoId == videoId &&
+            source.coordinates.season == season && source.coordinates.episode == episode
+    }
 }

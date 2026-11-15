@@ -455,6 +455,17 @@ class WatchProgressPreferences @Inject constructor(
         }
     }
 
+    suspend fun removeMatchingProgress(expected: Map<String, WatchProgress>, profileId: Int) {
+        if (expected.isEmpty()) return
+        storageMutex.withLock {
+            ensureStorageLocked(profileId)
+            val current = readBucketsLocked(profileId)
+            val recent = current.recent.filterNot { (key, entry) -> expected[key] == entry }
+            val archive = current.archive.filterNot { (key, entry) -> expected[key] == entry }
+            writeBucketsLocked(profileId, current, WatchProgressBuckets(recent, archive))
+        }
+    }
+
     suspend fun removeProgressKeys(keys: Collection<String>, profileId: Int) {
         if (keys.isEmpty()) return
         storageMutex.withLock {

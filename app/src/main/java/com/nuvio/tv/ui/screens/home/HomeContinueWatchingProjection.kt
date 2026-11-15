@@ -65,7 +65,7 @@ internal fun CachedNextUpItem.homeCard() = ContinueWatchingItem.NextUp(
         genres = genres, releaseInfo = releaseInfo, sortTimestamp = sortTimestamp, releaseTimestamp = releaseTimestamp,
         isReleaseAlert = isReleaseAlert, isNewSeasonRelease = isNewSeasonRelease, seedSeason = seedSeason,
         seedEpisode = seedEpisode, tvdbEpisodeId = tvdbEpisodeId, tvdbContext = tvdbContext,
-        contentLanguage = contentLanguage), chooseEpisode = chooseEpisode)
+        contentLanguage = contentLanguage, offeredEpisodeWatchedAt = offeredEpisodeWatchedAt), chooseEpisode = chooseEpisode)
 
 internal fun ContinueWatchingItem.InProgress.cachedCard(): CachedInProgressItem {
     val p = progress

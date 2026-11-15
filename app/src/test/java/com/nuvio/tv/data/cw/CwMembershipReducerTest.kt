@@ -14,6 +14,36 @@ class CwMembershipReducerTest {
     private fun offer(p: WatchProgress, episode: Int) = p.seriesChoice().copy(
         videoId = "${p.contentId}:1:$episode", season = 1, episode = episode, chooseEpisode = false)
 
+    @Test fun aVerifiedRewatchCanAdvanceToAnOlderWatchedEpisodeButAFreshCompletionStillWins() {
+        val happyHour = progress(id = "The Office", episode = 21, time = 1_000, complete = true)
+        val newLeads = progress(id = "The Office", episode = 20, time = 2_000, complete = true)
+        val initial = state(happyHour, newLeads)
+        val next = offer(newLeads, 21).copy(offeredEpisodeWatchedAt = happyHour.lastWatched)
+        val resolved = CwMembershipReducer.enrich(initial, initial.lease, nextUp = listOf(next))
+        assertEquals(next, resolved.nextUp.single())
+        val advanced = CwMembershipReducer.progress(resolved, listOf(happyHour.copy(lastWatched = 3_000)))
+        assertTrue(advanced.nextUp.single().chooseEpisode)
+        assertEquals(advanced, CwMembershipReducer.enrich(advanced, advanced.lease, nextUp = listOf(next)))
+    }
+
+    @Test fun coldStartWithOnlyTheBulkSeedKeepsTheOfferFromRemappedTraktHistory() {
+        val seed = progress(id = "Vancouver", episode = 17, complete = true).copy(
+            source = WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS)
+        val recent = seed.copy(episode = 18, videoId = "Vancouver:1:18", tvdbEpisodeId = 123,
+            source = WatchProgress.SOURCE_TRAKT_HISTORY,
+            traktHistoryEpisode = com.nuvio.tv.domain.model.EpisodeCoordinates(1, 17))
+        val seeded = CwMembershipReducer.refresh(empty, listOf(seed), emptyList())
+        val resolved = CwMembershipReducer.enrich(seeded, seeded.lease, nextUp = listOf(offer(seed, 19)))
+        val detailed = CwMembershipReducer.refresh(resolved, listOf(seed), listOf(recent))
+        assertEquals(19, detailed.nextUp.single().episode)
+        repeat(3) {
+            assertSame(detailed, CwMembershipReducer.refresh(detailed, listOf(seed), emptyList()))
+            assertSame(detailed, CwMembershipReducer.refresh(detailed, listOf(seed), listOf(recent)))
+        }
+        val different = seed.copy(episode = 20, lastWatched = seed.lastWatched + 1)
+        assertTrue(CwMembershipReducer.refresh(detailed, listOf(different), emptyList()).nextUp.single().chooseEpisode)
+    }
+
     @Test fun identicalSeedAndPlaybackSnapshotKeepsTheResolvedCardAndItsRevision() {
         val seed = progress(time = 2_000, episode = 4, complete = true)
         val playback = progress(time = 2_000, episode = 5, complete = true)

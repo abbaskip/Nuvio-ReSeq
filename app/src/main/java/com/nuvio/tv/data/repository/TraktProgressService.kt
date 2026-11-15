@@ -1867,6 +1867,7 @@ class TraktProgressService @Inject constructor(
             lastWatched = lastWatched,
             progressPercent = 100f,
             source = WatchProgress.SOURCE_TRAKT_HISTORY,
+            traktHistoryEpisode = com.nuvio.tv.domain.model.EpisodeCoordinates(season, number),
             traktShowId = show.ids?.trakt,
             tvdbEpisodeId = episode.ids?.tvdb?.toLong(),
             traktEpisodeId = episode.ids?.trakt

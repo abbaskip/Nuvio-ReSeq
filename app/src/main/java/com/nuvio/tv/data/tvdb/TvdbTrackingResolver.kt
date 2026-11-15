@@ -60,21 +60,27 @@ class TvdbTrackingResolver @Inject constructor(
     }
 
     /** A tracker pause is measured on the native episode's timeline. Only CW consumes this view. */
-    internal suspend fun continueWatchingResume(profileId: Int, pause: WatchProgress, revoked: Map<String, Long> = emptyMap()): WatchProgress? {
-        val episodeId = pause.traktEpisodeId ?: return null
+    internal suspend fun continueWatchingResume(profileId: Int, pause: WatchProgress, revoked: Map<String, Long> = emptyMap(),
+        projectedHistory: (suspend () -> Collection<WatchProgress>)? = null): WatchProgress? {
         val meta = effectiveMetadata(profileId, pause.contentId, pause.contentType) ?: return null
-        val target = traktTargets(profileId, meta).singleOrNull {
-            it.matchesParent(pause) && it.episode.traktId == episodeId
+        val ids = when (pause.source) {
+            WatchProgress.SOURCE_TRAKT_PLAYBACK -> traktTargets(profileId, meta).singleOrNull {
+                it.matchesParent(pause) && pause.traktEpisodeId != null && it.episode.traktId == pause.traktEpisodeId
+            }?.contentIds?.toList()
+            else -> nativePauseIds(pause, meta) ?: otherPauseTargets(meta, pause).verifiedPauseIds(pause)
         } ?: return null
-        val parts = projectTrackerParts(pause, target.contentIds.toList(), meta.videos, partThreshold())
-        // When this native episode is just one segment of a longer playable episode,
-        // use the other native history rows too, exactly as Details does.
-        val projected = if (parts.any { !target.contentIds.containsAll(it.tvdbContentIds) }) {
-            val records = withTimeoutOrNull(8_000) { canonicalTraktRecords(profileId, pause.contentId)?.first() }.orEmpty()
+        val parts = projectTrackerParts(pause, ids, meta.videos, partThreshold())
+        // A longer playable episode needs completion evidence for its other native segments.
+        val projected = if (parts.any { !ids.containsAll(it.tvdbContentIds) }) {
             val identities = parts.mapNotNull { it.tvdbContext?.episodeId }.toSet()
-            projectProgress(profileId, pause.contentId, emptyMap(), records + pause).values.filter {
-                it.tvdbContext?.episodeId in identities
-            }
+            val history = withTimeoutOrNull(8_000) {
+                if (projectedHistory != null) projectedHistory()
+                else {
+                    val records = canonicalTraktRecords(profileId, pause.contentId)?.first().orEmpty()
+                    projectProgress(profileId, pause.contentId, emptyMap(), records + pause).values
+                }
+            }.orEmpty()
+            history.filter { it.tvdbContext?.episodeId in identities }
         } else parts
         val unwatched = projected.filter { part -> part.tvdbContentIds.any { id ->
             (revoked[com.nuvio.tv.data.cw.tvdbRemovalKey(pause.contentId, id)] ?: Long.MIN_VALUE) >= pause.lastWatched
@@ -124,9 +130,16 @@ class TvdbTrackingResolver @Inject constructor(
             val entries = progress.values + localRecords
             val traktEntries = entries.filter { it.trackingProviderId == "trakt" || it.source.startsWith("trakt_") }.toHashSet()
             val targets = if (traktEntries.isNotEmpty()) traktTargets(profileId, meta) else emptyList()
-            val otherTargets = if (entries.any { it.contentId != contentId && it.trackingProviderId == "simkl" }) simklTargets(meta) else emptyList()
-            val mdbTargets = if (entries.any { it.contentId != contentId && it.trackingProviderId == "mdblist" })
-                mdbListTargets(meta, meta.videos.flatMap { it.episodeIdentity?.trackingEpisodeIds.orEmpty() }.toSet()) else emptyList()
+            fun needsCatalogue(entry: WatchProgress) = entry.contentId != contentId ||
+                entry.isNativeTrackerPause() && nativePauseIds(entry, meta) == null
+            val otherTargets = if (entries.any { it.trackingProviderId == "simkl" && needsCatalogue(it) })
+                simklTargets(meta) else emptyList()
+            val mdbTargets = when {
+                entries.any { it.trackingProviderId == "mdblist" && it.contentId != contentId } ->
+                    mdbListTargets(meta, meta.videos.flatMap { it.episodeIdentity?.trackingEpisodeIds.orEmpty() }.toSet())
+                entries.any { it.trackingProviderId == "mdblist" && needsCatalogue(it) } -> mdbListTargets(meta, emptySet())
+                else -> emptyList()
+            }
             val threshold = partThreshold()
             val projected = mutableListOf<WatchProgress>()
             val identified = entries.mapNotNull { entry ->
@@ -141,6 +154,13 @@ class TvdbTrackingResolver @Inject constructor(
                     }
                     if (target == null) entry.copy(tvdbEpisodeId = null, tvdbEpisodeIds = emptyList())
                     else entry.copy(contentId = contentId, tvdbEpisodeId = target.contentIds.first(), tvdbEpisodeIds = target.contentIds.toList())
+                } else if (entry.isNativeTrackerPause()) {
+                    val candidates = if (entry.trackingProviderId == "simkl") otherTargets else mdbTargets
+                    val ids = nativePauseIds(entry, meta) ?: candidates.verifiedPauseIds(entry)
+                    if (ids != null) {
+                        projected += projectTrackerParts(entry.copy(contentId = contentId), ids, meta.videos, threshold)
+                        null
+                    } else entry.takeIf { it.contentId == contentId }
                 } else if (entry.contentId != contentId) {
                     val selectedTargets = when (entry.trackingProviderId) { "simkl" -> otherTargets; "mdblist" -> mdbTargets; else -> emptyList() }
                     val target = selectedTargets.filter { it.matchesParent(entry) }.singleOrNull {
@@ -226,6 +246,20 @@ class TvdbTrackingResolver @Inject constructor(
 
     private val traktCatalogue = TvdbTraktCatalogue(trakt, traktAuth)
     private suspend fun traktTargets(profileId: Int, meta: Meta, ids: Set<Long>? = null) = traktCatalogue.targets(profileId, meta, ids)
+
+    private fun nativePauseIds(pause: WatchProgress, meta: Meta): List<Long>? =
+        pause.tvdbEpisodeId?.let { id -> meta.episodeOrder?.content?.singleOrNull { it.tvdbId == id }?.episodeIds }
+
+    private fun List<TvdbTrackingTarget>.verifiedPauseIds(pause: WatchProgress): List<Long>? = singleOrNull {
+        it.matchesParent(pause) && it.episode.season == pause.season && it.episode.number == pause.episode &&
+            (pause.tvdbEpisodeId == null || pause.tvdbEpisodeId == it.episode.tvdbId)
+    }?.contentIds?.toList()
+
+    private suspend fun otherPauseTargets(meta: Meta, pause: WatchProgress) = when (pause.trackingProviderId) {
+        "simkl" -> simklTargets(meta)
+        "mdblist" -> mdbListTargets(meta, emptySet())
+        else -> emptyList()
+    }
 
     private suspend fun simklTargets(meta: Meta): List<TvdbTrackingTarget> {
         val repository = simkl?.get() ?: return emptyList()
@@ -402,4 +436,11 @@ class TvdbTrackingResolver @Inject constructor(
         }
     }
 
+}
+
+internal fun WatchProgress.isNativeTrackerPause(): Boolean = tvdbContext == null && !providerDefaultPlayback && when (source) {
+    WatchProgress.SOURCE_TRAKT_PLAYBACK -> traktEpisodeId != null
+    WatchProgress.SOURCE_SIMKL_PLAYBACK -> trackingProviderId == "simkl"
+    WatchProgress.SOURCE_REMOTE_PLAYBACK -> trackingProviderId == "mdblist"
+    else -> false
 }

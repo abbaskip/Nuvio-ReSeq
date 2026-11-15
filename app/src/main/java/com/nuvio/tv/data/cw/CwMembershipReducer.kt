@@ -1,6 +1,7 @@
 package com.nuvio.tv.data.cw
 
 import android.util.Log
+import com.nuvio.tv.data.tvdb.isNativeTrackerPause
 import com.nuvio.tv.data.local.CachedInProgressItem
 import com.nuvio.tv.data.local.CachedNextUpItem
 import com.nuvio.tv.domain.model.WatchProgress
@@ -123,6 +124,11 @@ object CwMembershipReducer {
             // Metadata aliases and artwork can differ between the history and playback feeds.
             // They describe the same watch and cannot invalidate an in-flight episode lookup.
             val priorProgress = old?.progress
+            // The bulk watched list can arrive before the recent history endpoint on startup.
+            // It has native coordinates only. The detailed replay of that same watch carries
+            // verified IDs and may have different addon coordinates. Keep that richer record.
+            if (seeds && priorProgress != null && priorProgress.isDetailedHistoryFor(p) &&
+                old.latestCompletionAt == p.completionActivityAt()) return@forEach
             if (priorProgress != null && priorProgress.lastWatched == p.lastWatched &&
                 priorProgress.historyKey() == p.historyKey() && priorProgress.tvdbContext == p.tvdbContext &&
                 priorProgress.progressPercentage == p.progressPercentage && priorProgress.isCompleted() == p.isCompleted() &&
@@ -162,7 +168,8 @@ object CwMembershipReducer {
                     // An offer was resolved from a particular seed. Completing a different
                     // episode invalidates it even when the offer is not that new completion.
                     val sameSeed = old?.progress?.let { previous ->
-                        previous.historyKey() == p.historyKey() || (previous.season != null && previous.episode != null &&
+                        previous.isDetailedHistoryFor(p) || p.isDetailedHistoryFor(previous) ||
+                            previous.historyKey() == p.historyKey() || (previous.season != null && previous.episode != null &&
                             previous.season == p.season && previous.episode == p.episode &&
                             previous.tvdbContentIds == p.tvdbContentIds && previous.tvdbContext == p.tvdbContext)
                     } == true
@@ -279,8 +286,7 @@ object CwMembershipReducer {
         // Do not install a whole-show removal tombstone: older episodes remain valid support.
         val members = when {
             reset -> state.members - contentId
-            tvdbIds.isNotEmpty() && p?.source == WatchProgress.SOURCE_TRAKT_PLAYBACK &&
-                p.tvdbContext == null && member.inProgress?.tvdbContext != null ->
+            tvdbIds.isNotEmpty() && p?.isNativeTrackerPause() == true && member.inProgress?.tvdbContext != null ->
                 state.members + (contentId to member.copy(inProgress = member.inProgress.copy(chooseEpisode = true)))
             member?.latestCompletionAt != null -> state.members + (contentId to member.copy(latestCompletionAt = null))
             else -> state.members
@@ -295,6 +301,9 @@ object CwMembershipReducer {
         else copy(revision = revision + 1, members = next, removals = hidden, completed = evidence)
 
     private fun matches(next: CachedNextUpItem, done: CwCompletion): Boolean {
+        // Details can deliberately advance a rewatch to an episode watched in the past.
+        // A later completion still invalidates it, as does a completion unseen by the resolver.
+        if (next.offeredEpisodeWatchedAt?.let { done.at <= it && it < next.lastWatched } == true) return false
         val nextIds = next.tvdbContext?.episodeIds?.toSet() ?: setOfNotNull(next.tvdbEpisodeId)
         if (nextIds.isNotEmpty() && done.contentIds.isNotEmpty()) return nextIds.any { it in done.watchedIds }
         return (next.videoId != next.contentId && next.videoId == done.videoId) || (nextIds.isEmpty() && done.contentIds.isEmpty() &&
@@ -318,6 +327,12 @@ private fun WatchProgress.decisionSource(): String = when (source) {
 
 /** A tracker seed carries the latest remaining completion even when another episode is the starting point. */
 internal fun WatchProgress.completionActivityAt(): Long = maxOf(lastWatched, latestSeriesActivity ?: lastWatched)
+
+private fun WatchProgress.isDetailedHistoryFor(seed: WatchProgress): Boolean =
+    source == WatchProgress.SOURCE_TRAKT_HISTORY && seed.source == WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS &&
+        lastWatched == seed.lastWatched && traktHistoryEpisode?.let {
+            it.season == seed.season && it.episode == seed.episode
+        } == true
 
 private fun episodeHistoryKey(contentId: String, season: Int, episode: Int) = "$contentId|episode:$season:$episode|"
 internal fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"

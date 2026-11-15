@@ -233,7 +233,9 @@ internal data class NextUpResolution(
     val released: String?,
     val hasAired: Boolean,
     val airDateLabel: String?,
-    val lastWatched: Long
+    val lastWatched: Long,
+    val video: CwVideoSummary,
+    val offeredEpisodeWatchedAt: Long?
 )
 
 private data class NextUpReleaseState(
@@ -428,6 +430,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                             releaseTimestamp = cached.releaseTimestamp,
                             isReleaseAlert = cached.isReleaseAlert,
                             isNewSeasonRelease = cached.isNewSeasonRelease,
+                            offeredEpisodeWatchedAt = cached.offeredEpisodeWatchedAt,
                             seedSeason = cached.seedSeason,
                             seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId, tvdbContext = cached.tvdbContext,
                             contentLanguage = cached.contentLanguage
@@ -577,6 +580,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                             releaseTimestamp = cached.releaseTimestamp,
                             isReleaseAlert = freshIsReleaseAlert,
                             isNewSeasonRelease = freshIsNewSeasonRelease,
+                            offeredEpisodeWatchedAt = cached.offeredEpisodeWatchedAt,
                             seedSeason = cached.seedSeason,
                             seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId, tvdbContext = cached.tvdbContext,
                             contentLanguage = cached.contentLanguage
@@ -903,10 +907,11 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                 releaseTimestamp = cached.releaseTimestamp,
                                 isReleaseAlert = freshIsReleaseAlert,
                                 isNewSeasonRelease = freshIsNewSeasonRelease,
+                                offeredEpisodeWatchedAt = cached.offeredEpisodeWatchedAt,
                                 seedSeason = cached.seedSeason,
                                 seedEpisode = cached.seedEpisode, tvdbEpisodeId = cached.tvdbEpisodeId, tvdbContext = cached.tvdbContext,
                                 contentLanguage = cached.contentLanguage
-                            )
+                            ), chooseEpisode = cached.chooseEpisode
                         )
                     }
                 val recentIds = nextUpItems.map { it.info.contentId }.toSet()
@@ -1697,9 +1702,7 @@ private suspend fun HomeViewModel.buildNextUpItem(
         nextReleased = nextUp.released,
         hasAired = nextUp.hasAired
     )
-    val nextUpVideo = seedMeta?.videos?.firstOrNull {
-        it.season == nextUp.season && it.episode == nextUp.episode
-    }
+    val nextUpVideo = nextUp.video
     val info = NextUpInfo(
         contentId = progress.contentId,
         contentType = progress.contentType,
@@ -1708,13 +1711,14 @@ private suspend fun HomeViewModel.buildNextUpItem(
         backdrop = progress.backdrop.normalizeImageUrl() ?: seedMeta?.backdropUrl.normalizeImageUrl(),
         logo = progress.logo.normalizeImageUrl() ?: seedMeta?.logo.normalizeImageUrl(),
         videoId = nextUp.videoId,
-        tvdbEpisodeId = nextUpVideo?.episodeIdentity?.trackingEpisodeId,
-        tvdbContext = nextUpVideo?.asTvdbVideo()?.tvdbPlaybackContext(),
+        offeredEpisodeWatchedAt = nextUp.offeredEpisodeWatchedAt,
+        tvdbEpisodeId = nextUpVideo.episodeIdentity?.trackingEpisodeId,
+        tvdbContext = nextUpVideo.asTvdbVideo()?.tvdbPlaybackContext(),
         season = nextUp.season,
         episode = nextUp.episode,
-        episodeTitle = nextUp.episodeTitle ?: nextUpVideo?.title,
-        episodeDescription = nextUpVideo?.overview,
-        thumbnail = nextUpVideo?.thumbnail.normalizeImageUrl(),
+        episodeTitle = nextUp.episodeTitle ?: nextUpVideo.title,
+        episodeDescription = nextUpVideo.overview,
+        thumbnail = nextUpVideo.thumbnail.normalizeImageUrl(),
         released = nextUp.released,
         hasAired = nextUp.hasAired,
         airDateLabel = nextUp.airDateLabel,
@@ -2115,7 +2119,13 @@ private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
             if (computedHasAired) null
             else formatEpisodeAirDateLabel(releaseDate)
         },
-        lastWatched = progress.lastWatched
+        lastWatched = progress.lastWatched,
+        video = nextVideo,
+        offeredEpisodeWatchedAt = if (shared == null) null else {
+            val target = nextSeason to nextEpisode
+            history[target]?.takeIf { it.isCompleted() }?.lastWatched
+                ?: watchedTimes[target]?.takeUnless { meta.tvdbOrder }
+        }
     )
     debug?.recordNextUpResult(
         progress = progress,

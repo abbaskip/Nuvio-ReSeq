@@ -34,7 +34,9 @@ data class CachedNextUpItem(
     val tvdbEpisodeId: Long? = null,
     val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null,
     val latestSeriesActivity: Long? = null,
-    val chooseEpisode: Boolean = false
+    val chooseEpisode: Boolean = false,
+    /** The shared Details resolver selected this episode with this earlier watch in its input. */
+    val offeredEpisodeWatchedAt: Long? = null
 )
 
 data class CachedInProgressItem(

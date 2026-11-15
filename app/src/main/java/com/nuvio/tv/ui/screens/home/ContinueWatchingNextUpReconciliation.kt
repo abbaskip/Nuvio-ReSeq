@@ -124,6 +124,7 @@ internal fun List<ContinueWatchingItem>.toCachedNextUpSnapshot(
         seedSeason = info.seedSeason,
         seedEpisode = info.seedEpisode,
         contentLanguage = info.contentLanguage,
+        offeredEpisodeWatchedAt = info.offeredEpisodeWatchedAt,
         tvdbContext = info.tvdbContext, chooseEpisode = (item as ContinueWatchingItem.NextUp).chooseEpisode
     )
 }

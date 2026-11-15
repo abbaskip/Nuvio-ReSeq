@@ -150,7 +150,8 @@ data class NextUpInfo(
     val displayEpisode: Int? = null,
     val tvdbEpisodeId: Long? = null,
     val tvdbContext: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null,
-    val latestSeriesActivity: Long? = null
+    val latestSeriesActivity: Long? = null,
+    val offeredEpisodeWatchedAt: Long? = null
 )
 
 @Immutable

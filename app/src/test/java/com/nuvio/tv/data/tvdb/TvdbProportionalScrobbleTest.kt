@@ -196,6 +196,26 @@ class TvdbProportionalScrobbleTest {
         assertEquals(second.displayEpisode!! + 1, completed.tvdbContext!!.episode)
     }
 
+    @Test fun nativeSimklAndMdbListPausesUseTheSameVerifiedSplitForDetailsAndHome() = runTest {
+        val first = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719652L }
+        val second = effective.videos.single { it.displaySeason == first.displaySeason && it.displayEpisode == first.displayEpisode!! + 1 }
+        val combinedId = 123456789L
+        val content = EpisodeContentIdentity(combinedId, "The Delivery", null, EpisodeCoordinates(6, 16),
+            listOf(first, second).flatMap { it.tvdbPlaybackContext()!!.episodeIds })
+        val order = requireNotNull(effective.episodeOrder)
+        coEvery { overlay.apply(1, original) } returns effective.copy(episodeOrder = order.copy(content = order.content + content))
+        for ((provider, origin) in listOf("simkl" to WatchProgress.SOURCE_SIMKL_PLAYBACK, "mdblist" to WatchProgress.SOURCE_REMOTE_PLAYBACK)) {
+            val paused = WatchProgress(original.id, "series", "The Office", null, null, null, "native", 6, 16, "The Delivery",
+                0, 0, 1234, source = origin, trackingProviderId = provider, tvdbEpisodeId = combinedId, progressPercent = 55f)
+            val details = resolver.projectProgress(1, original.id, mapOf((6 to 16) to paused))
+            assertTrue(details.getValue(first.season!! to first.episode!!).isCompleted())
+            val focused = resolver.continueWatchingResume(1, paused)!!
+            assertEquals(second.id, focused.videoId)
+            assertEquals(10f, focused.progressPercent!!, .001f)
+            assertEquals(focused.progressPercent, details.getValue(second.season!! to second.episode!!).progressPercent)
+        }
+    }
+
     @Test fun combinedLectureCircuitRetainsIndependentEvidenceForBothNativeEpisodes() {
         val nativeIds = lecture.tvdbPlaybackContext()!!.episodeIds
         assertEquals(2, nativeIds.size)

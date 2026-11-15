@@ -1,5 +1,6 @@
 package com.nuvio.tv.data.cw
 
+import com.nuvio.tv.data.tvdb.isNativeTrackerPause
 import android.content.Context
 import android.util.Log
 import com.nuvio.tv.core.profile.ProfileManager
@@ -192,10 +193,11 @@ class ContinueWatchingRepository @Inject constructor(
         val resolver = tvdbTracking ?: return
         for (member in members) {
             val raw = member.progress ?: continue
-            if ((member.inProgress?.chooseEpisode != true && member.nextUp?.chooseEpisode != true) || raw.source != WatchProgress.SOURCE_TRAKT_PLAYBACK ||
-                raw.tvdbContext != null || raw.traktEpisodeId == null || raw.providerDefaultPlayback) continue
+            if ((member.inProgress?.chooseEpisode != true && member.nextUp?.chooseEpisode != true) || !raw.isNativeTrackerPause()) continue
             val resolved = try {
-                resolver.get().continueWatchingResume(lease.profileId, raw, state.ignoredProgress)
+                resolver.get().continueWatchingResume(lease.profileId, raw, state.ignoredProgress) {
+                    progressProvider.get().getAllEpisodeProgress(raw.contentId, lease.profileId).first { it.isNotEmpty() }.values
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

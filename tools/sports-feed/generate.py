@@ -14,8 +14,8 @@ import urllib.request
 DAY = 86_400_000
 SCHEMA = 1
 COVERAGE = json.loads((Path(__file__).resolve().parents[2] / "app/src/main/resources/sports-provider-coverage.json").read_text(encoding="utf-8"))
-PRIORITY_SEEDS = ["4489", "4486", "4487"]
-SEEDS = list(dict.fromkeys(PRIORITY_SEEDS + ["4416", "4415", "4461", "5806", "5282"] + [row["id"] for row in COVERAGE["leagues"]]))
+PRIORITY_SEEDS = ["5806", "4489", "4486", "4487"]
+SEEDS = list(dict.fromkeys(PRIORITY_SEEDS + ["4416", "4415", "4461", "5282"] + [row["id"] for row in COVERAGE["leagues"]]))
 DISCOVERY = [row["name"] for row in COVERAGE["sports"]]
 
 
@@ -140,6 +140,7 @@ def build(leagues, fetcher, now, days_back=7, days_ahead=14, only=None, previous
     entries = []
     metadata = {row["id"]: {"idLeague": row["id"], "strLeague": row["name"], "strSport": "Motorsport",
                            "strLeagueAlternate": ", ".join(row["aliases"])} for row in COVERAGE["leagues"]}
+    metadata["5806"] = {"idLeague": "5806", "strLeague": "Rugby League World Cup", "strSport": "Rugby"}
     metadata.update({str(row["idLeague"]): row for row in (previous or {}).get("metadata", {}).get("leagues", []) if row.get("idLeague")})
     selected = set(only or [])
     previous_entries = {(e["provider"], e["leagueId"]): e for e in (previous or {}).get("entries", [])}

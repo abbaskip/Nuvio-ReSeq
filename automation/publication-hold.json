@@ -1,11 +1,10 @@
 {
   "schema": 1,
   "hold": false,
-  "reason": "Maintainer explicitly selected publication of beta 9.6.1 on 11 November 2026 so existing beta 9.6 installations receive the tested fixes through the updater.",
-  "clear_when": "The maintainer explicitly authorizes publication after the remaining beta 9.6 work and required validation are complete.",
-  "release": "v0.1.0-beta.9.6.1",
-  "evidence": "releases/0.1.0-beta.9.6.1.md",
-  "version_code": 10051,
-  "tested_fixes_source": "98d71862c5ccb162347bdfaaa2a85e7a30c44e31",
-  "tested_fixes_artifact_run": 42983632608
+  "reason": "Maintainer explicitly authorized publication of beta 9.8 after testing the signed local candidate on the Onn and reviewing passing local regression and lint checks.",
+  "clear_when": "Publish beta 9.8 only after the release workflow's validation and signed-artifact checks pass.",
+  "release": "v0.1.0-beta.9.8",
+  "evidence": "releases/0.1.0-beta.9.8.md",
+  "version_code": 10054,
+  "tested_fixes_source": "12dfc8ebbdc7e0a7386c27ebe8ba7e26f83e64ff"
 }

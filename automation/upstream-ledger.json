@@ -2386,6 +2386,732 @@
       "reason": "Verified merge adds no independent resolution patch. Constituent review remains authoritative, including any validation hold; merge does not authorise held features.",
       "run": "20261111T150130Z-4bd1e4",
       "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+    },
+    "aaf8ed3508ed626d5919c92a3202c9b76efc5979": {
+      "outcome": "held",
+      "reason": "Review together: non-series watched actions and pending external-provider marks alter watched-source reconciliation. Adapt to ReSeq TVDB identity, source switching and custom content types; exercise marks, unmarks, profile switching and native trackers before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "bd09e354f86d9e516f5b690d365727b013a4ed8b": {
+      "outcome": "held",
+      "reason": "Review together: non-series watched actions and pending external-provider marks alter watched-source reconciliation. Adapt to ReSeq TVDB identity, source switching and custom content types; exercise marks, unmarks, profile switching and native trackers before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "3e21b7a2c80935b134541730cb5441ac30d6e1ae": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "9914a5bc7662d49db16be8f9b174fbfcd4fc3a8f": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "c6bbfa0399cbfe6a698528077766ae7a149851e1": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "b1336c32cd2462fdf8d8b50126ba536bb61ab3eb": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "a83e8c83411bed067c4eb256e657e094f8167735": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "c70a9ad1b42a523c6c2c31706abc983299ccccd7": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "28fda36352977fd4613ee9a8cae98a52050ac2c7": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "8a0b393ce8afd28de3ef86f492fc5b5865ce4ed3": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "a1f935fd09385548e6c47752b91f39110ecd1a1e": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "707ceabd4883da2e10ae2111e06c8e948f244230": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "49486e8e82a15774295fb0641cd896a17dbcae79": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "3dbe332f996f6a1ecd99d651ab277e40518e5553": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "d4c51d081bdd2d5d86b0401eaf90a49388b8faf0": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "a4b96179b5530a6e2d97699f496732644ecd589c": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "e72921b68c3be63216572c1450be2f7afd9a1ddc": {
+      "outcome": "held",
+      "reason": "Raw expired-link refresh overlaps approved shipped ReSeq stream-cache adaptations, NNTP ephemeral URLs, Stalker recovery and source tiers. Preserve the existing raw-upstream holds; adapt and test URL expiry, identity and async retry ownership before integrating. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "5a048202ac65f230ba2e7e1a267f6b0ecec83b2f": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "87da95685e3da26863da1f410e92a151d3bf3ae7": {
+      "outcome": "held",
+      "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "6f6133370df7fc635a9e2c7c000da477282db09b": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "6faea6ad5cdfb66c528b5d483b88ed0433bca6ec": {
+      "outcome": "held",
+      "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "39e7301bf0abe97fc1c08f29a463b5d90ac839af": {
+      "outcome": "held",
+      "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "3c8ca8aa8a7dce65ca5254b74f100263440cd40f": {
+      "outcome": "held",
+      "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "56625112ae6735454934446de8f8b08084a55a14": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "0b7dce79a6f8c5aace43257f4ef83d6cd6ee9324": {
+      "outcome": "held",
+      "reason": "ReSeq has profile-generation guards, refresh signals and backoff. Adapt signed-out polling/rejected-token handling without losing sign-in refresh or profile cache isolation; test those lifecycles before promotion. No approval of held TVDB identity replacements. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "f3e1b2569f91f12d7e60c77e47071f1a58938f9f": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "1d56f7ee33547d807fa537e27f86b65efabbfba2": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "57d4249b2b34f9bc96c6058a110326d2ea23e47c": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "a51f73a7fcc0759cf1101bc241a5311d01cfcd62": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "d93b3a82c448595835fef886f521bf449a0bbb37": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "45b66a3e16e4a82a38505e45d55dd13ccadab919": {
+      "outcome": "held",
+      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "dd54bafb87c1348ee4e11e408ee6e21ea785c761": {
+      "outcome": "held",
+      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "6e8bd992a45d679cb545df8e556f15657e216ff8": {
+      "outcome": "held",
+      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "cd47093e36f4f1447613cbab65c106edb01f6063": {
+      "outcome": "held",
+      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "16a972ae75daffb8ddcf13879312c1eb35a06cd2": {
+      "outcome": "held",
+      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "1cb2f067f48b55dc99afb38f3719c2cf07f4f3f5": {
+      "outcome": "held",
+      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "61bbd39d827fcefcd54a928abe01ee38dbb045c6": {
+      "outcome": "held",
+      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "5e0c9a0b3b54f54f9ce9d9f38085d89d0493db51": {
+      "outcome": "held",
+      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "44de79d9ba7d560f621ff1ff811b6d2addee8d47": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "6c6302a54f46749ab5fa2191041938c111ecd14b": {
+      "outcome": "held",
+      "reason": "Remote search-focus improvement queued for current ReSeq focus, keyboard and touch regression fixtures, alongside search state fixes. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "eb81a6fe799a27640524538ba60969f438edf215": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "ec0edb0a2b3850657f487af8b8532ac7678b94cb": {
+      "outcome": "held",
+      "reason": "Library bottom-inset correction queued for ReSeq custom filters/layout, focus and touch acceptance; inspect current equivalent layout before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "8eb731563f153d6c00bbb85bfbae02b0116e06cb": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "76a5fb20f452eb2657467b4ec52506e4a58dec7e": {
+      "outcome": "held",
+      "reason": "Do not take permanent shutdown after three NaNs: the official thermal API documents transient/rate-limited NaN results. Prepare rate-aware bounded retry while retaining valid thermal readings and status updates. Engineering adaptation, not a maintainer design decision. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "f6e73fbb27099134fd3e9db5e9de14674130ecce": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "1b54716f7c2da09f7e8249818519a21498f441c0": {
+      "outcome": "held",
+      "reason": "AV1 HDR10+ OBU parsing and Matroska handling need malformed/truncated bitstream, Dolby RPU/static metadata preservation and current extractor regression tests before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "aa4f5cd42004605d733fd4c302d6e69af8ccb76e": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "5924f3c95f8d6db5866fbe7af74079b7203d1cd7": {
+      "outcome": "held",
+      "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "7d4875ea1a0e4fbe47b19674035cbb2699a88965": {
+      "outcome": "held",
+      "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "f05eba678c0546569351c75d9930b414d969e8d6": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "be6cee67dd432034b9469967246807ff9aeb01b1": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "00c3749f721c738cc64262cf4ac582440aa2a79f": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "5ec204dffc325d17309c15d3435edf47b3af35ec": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "1fb2a9e9d6b5ec1f0a06c110af75e3ade431b9e7": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "34772fa1c91ef025c488e104194cfc941cd3d3e6": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "96358e296533b9748dc405fca8ca1d747706bcfc": {
+      "outcome": "integrated",
+      "reason": "Folder follows existing Home hero auto-scroll and landscape-clearlogo preferences; no defaults changed. Source commit 4a70f23f6. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "11689894f02ddc7f81c513abc1de1afe9247db1c": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "fd021995008f4ddb669b6ed0221ba576332dcdb9": {
+      "outcome": "held",
+      "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "01759ead32569aa306c02f5821c37eb6c2b10d4b": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "c3a27b5e271a6c34d2a9a79222f6f6aba8328394": {
+      "outcome": "held",
+      "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "f4e4d64b3e5b956b47323844b48d0c3cafe1ada8": {
+      "outcome": "held",
+      "reason": "Playing-source focus touches protected ReSeq StreamSourcesSidePanel adaptation. Preserve shipped indexing/source ordering and test focus with selected/sorted/filtered sources; no protective hold removed. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "35e75a44ffaa941e23041558f86cc0d36710093e": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "e30649bc008535c4d962f39433fadbaadf6d754b": {
+      "outcome": "held",
+      "reason": "Letterbox masking must preserve user-positioned libass subtitles and overlay/crop behavior; validate both player engines and aspect modes before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "7fd63cafe31c65c35f28695ce942986143e42e55": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "a1c9229fd907246c2cd25d89f41e5276df401523": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "5ad41476aaf09fed6cc5c45947fdc328b84ada4d": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "6b6e37edf2ee2d0b6881a2714f6d4372cfb34348": {
+      "outcome": "held",
+      "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "4b87a8262d49e457c2df757b0976f0f74d6babdd": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "9dfc70be49cddd746e7a3c69439341d5d14cca09": {
+      "outcome": "irrelevant",
+      "reason": "Upstream version bookkeeping; retain independent ReSeq version codes and release channel.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "eea656fd19d16c829f0fc2cb5e23a3c3c73bd269": {
+      "outcome": "held",
+      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "020afec44f88d08777b77ecb7c82f5be6dc26175": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "520fb67ccf6ffd953f37bbf51576aa1e365bba09": {
+      "outcome": "held",
+      "reason": "HTTP source-switch resume needs adaptation for current NNTP, media-server, YouTube, debrid/torrent and asynchronous player-init routes. Verify seek position, saved-progress ownership and cancellation before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "bad6ca479dd986aefc5743ca12e450e854e12e12": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "dee2434978b0fde313723877d3f4715456caa32c": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "b17bb0fa7e6b168aa3d45d53a471c3d7d98ab358": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "a393c34a32254e990243d4e4fc6c620a06861bdc": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "b0876102fc0999a0eb03f7646af1c86c2e308993": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "659f759d6e0dce2e33175434f0817d1c42e36d38": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "d3c5f13b913f471c28ab457b7942078ef4041223": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "25043e714322e2db9223968a6ad168d6473c6700": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "fc916ad0950f2729adda836437848b77af592d52": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "64cfb8138227a0ba6d6d2ea58c5d8b5017927881": {
+      "outcome": "held",
+      "reason": "New auto-reopen and installer policy depend on upstream relaunch receiver absent in ReSeq. Keep current update channel, installer/security and user preferences; only independently compatible cancellation guard prepared separately. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "59313c18f60f09154571922ff10d447eea81e648": {
+      "outcome": "integrated",
+      "reason": "Adapt cancellation only: STATUS_FAILURE_ABORTED no longer triggers automatic reinstall, retaining APK and genuine failure fallbacks. Upstream relaunch/settings behavior not imported. Two targeted Robolectric tests added but unrun. Source commit 39a157d47. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "a3532b819f29881b2e9438095424799bbeb88282": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "05addea1885ce3c43b4256ddb6fbd7c6a8390413": {
+      "outcome": "held",
+      "reason": "Tracker-aware library empty states move account/settings actions and translated text. Preserve ReSeq custom filters and remote/touch discoverability; apply coherent feature plus merge-resolution wording with tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "9981725ab85621ebe5c4b58353df2678a4888f19": {
+      "outcome": "held",
+      "reason": "Tracker-aware library empty states move account/settings actions and translated text. Preserve ReSeq custom filters and remote/touch discoverability; apply coherent feature plus merge-resolution wording with tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "ec3863cea226b42fef84966449b35da1b30d947a": {
+      "outcome": "held",
+      "reason": "Autoplay episode loading state must preserve current NNTP and source-tier async transitions, retries and cancellation. Acceptance tests needed before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "a093c2e1f1032166ff62757d9cf7d60d7424ae66": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "8850a555d1ed84499b6b703ce4b4adb585629b35": {
+      "outcome": "held",
+      "reason": "Add-on QR local-install focus fix queued for ReSeq pairing, keyboard, Back and touch validation; no live account access permitted. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "20f14abb433648f77622992f605d2e9592e9c19c": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "c19a0e87a7f58a02888e7d4ada39f61a8f77fbe2": {
+      "outcome": "integrated",
+      "reason": "Persist media-server sidecar subtitles after playback-info mapping so they are not overwritten. Source commit 0f72cc72f. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "05c741dbe10d06d4c9e1c0030cc4d9eca6af2380": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "ae84205a1f1df88bbcc1c096a668c190c1e30b4f": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "619fa3528349ee4adc6fa1acec2d47cafe641556": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "f6f7d0567cf2939a1d7d2a9b1785cc0138add9d5": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "d020e4af7a638c309a975f5bb6ae0f9a7f4bdb95": {
+      "outcome": "held",
+      "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "b10a11d7075fc4b96e3d9c5a7d30e5414c721e66": {
+      "outcome": "held",
+      "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "7e14ee4846fa9fae9edeb935825d024bdd944dfc": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "95232910cc6c54c9264a88a73b462d2825338cf3": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "42b8f0753e8de03e4cc18843dc96daaebebaf0b9": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "3858c8299fc49b402500ed0f14acd3d052b599b2": {
+      "outcome": "irrelevant",
+      "reason": "Verified empty source diff; no functional change to integrate.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "4e2097a56ed28dbb0c3879f8eaf01f7834d3326e": {
+      "outcome": "irrelevant",
+      "reason": "Verified empty source diff; no functional change to integrate.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "d0f8587c21d781422f66bfd55abbcedf8e5e1770": {
+      "outcome": "irrelevant",
+      "reason": "Verified empty source diff; no functional change to integrate.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "429aefc60e570322bcead0710ed86770b14f7c86": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "72b6f0c0e4744ad5b791215a4dafedeb692f4165": {
+      "outcome": "held",
+      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "79c456f8bc7976e9f784bac3c2cc5807fc32cfdd": {
+      "outcome": "irrelevant",
+      "reason": "Verified empty source diff; no functional change to integrate.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "981e90a7f096493335f8ab31459abf5ffa318705": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "9ad4f4f5b63e60ec1c7f5268f73a68e7e7b1cbb9": {
+      "outcome": "integrated",
+      "reason": "Correct stream-test labels to actual 1/4/8/16 connections in 27 locales; sparse Indonesian/Lithuanian resources surgically adapted, unrelated locale values preserved. Source commit 04917b4a2. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "c890896dce8ce97dda8550b74eee8630f380662b": {
+      "outcome": "held",
+      "reason": "Merge resolution retains Arabic-specific stream-test terminology; compare final adapted Arabic strings and avoid replaying raw resource merge. Resolution patch retained in evidence; not a no-op merge.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "f2781a118716333a40ba52c9985aa35133df96b1": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "965e8d1a1d25f60dfbde86aedf2c6e59fd59e05e": {
+      "outcome": "held",
+      "reason": "Nonempty Arabic library-empty-state merge resolution belongs with held library feature and its obsolete-key cleanup. Resolution patch retained in evidence; not a no-op merge.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "6ab8a5735f897b11cf94e1c12873cb9cb1906542": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "868e6a4f0b5c9799d24eb1a7f26d616c8b2b6986": {
+      "outcome": "held",
+      "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "9c86bb0e07c70992673903b4c3498b172ce5a2e4": {
+      "outcome": "held",
+      "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "d1215e03eeb9ea347120b4c5c3c16c44c367e27d": {
+      "outcome": "held",
+      "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "9ce49f45122d30af2aed3d954a9641771d7fa2b2": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "c91ecb4ff11cc27578a1b2adba59807ec5923bb2": {
+      "outcome": "equivalent",
+      "reason": "Original Ambient keyboard patch and final e0e830b601 have identical stable patch IDs; final effective reapplication selected, not this superseded history.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "670875f344c7b1274ca4ab964b9e0b5e73345b4b": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "7327eabf39c1481ad1e759e6b43aa14537009869": {
+      "outcome": "irrelevant",
+      "reason": "Temporary upstream reversal of Ambient keyboard patch subsequently reapplied at e0e830b601; do not replay the reversal over the final effective fix.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "5086df3c865dce2b8aff0ce28b4567355a43ded1": {
+      "outcome": "equivalent",
+      "reason": "Audited git remerge-diff: no independent resolution patch. Constituent commit decisions remain authoritative, including all held functionality; this disposition does not integrate held parents.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
+    },
+    "e0e830b60147e128df744da987b184f47cf8e646": {
+      "outcome": "integrated",
+      "reason": "Hide both Compose and platform keyboard when entering Ambient; selected effective reapplication after temporary upstream revert. Source commit a86dddb6c. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "run": "20261115T150400Z-d7c158",
+      "base": "03437926667ba94094233a515570604a465994de"
     }
   }
 }

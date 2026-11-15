@@ -89,7 +89,7 @@ internal object SportsRows {
             isMine(ev) && (updatingCurrent(ev, now) || ev.state == GameState.LIVE || ongoingCricket(ev, now) ||
                 (ev.state == GameState.PRE && ev.startMs in (now - 3 * HOUR)..(now + 8 * DAY)))
         }.sortedWith(compareBy<SportsEvent> { if (it.state == GameState.LIVE) 0 else 1 }.thenBy { it.startMs })
-        val fixtures = soon.filter { it.source != EventSource.GUIDE }.take(24)
+        val fixtures = soon.filter { it.source != EventSource.GUIDE }
         val shows = soon.filter { it.source == EventSource.GUIDE }.take(24)
         if (fixtures.isNotEmpty()) rows += SportsRow("up", "Live & Upcoming Events", SportsRow.Kind.UPCOMING, events = fixtures)
         if (shows.isNotEmpty()) rows += SportsRow("onair", "On Air & Upcoming Shows", SportsRow.Kind.ON_AIR, events = shows)

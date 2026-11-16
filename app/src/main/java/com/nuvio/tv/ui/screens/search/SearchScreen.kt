@@ -1237,10 +1237,11 @@ private fun SearchInputField(
     }
     val editScope = rememberCoroutineScope()
     var pendingEdit by remember { mutableStateOf<Job?>(null) }
+    val queryEchoes = remember { SearchEditAcknowledgements() }
     val latestQuery by rememberUpdatedState(query)
     val latestOnQueryChanged by rememberUpdatedState(onQueryChanged)
     LaunchedEffect(query) {
-        if (pendingEdit?.isActive != true && editValue.text != query) {
+        if (!queryEchoes.acknowledge(query) && pendingEdit?.isActive != true && editValue.text != query) {
             editValue = TextFieldValue(query, TextRange(query.length))
         }
     }
@@ -1254,7 +1255,10 @@ private fun SearchInputField(
             // restoration coalesces here; a real clear or backspace still commits.
             pendingEdit = editScope.launch {
                 withFrameNanos { }
-                if (editValue.text != latestQuery) latestOnQueryChanged(editValue.text)
+                if (editValue.text != latestQuery) {
+                    queryEchoes.sent(editValue.text)
+                    latestOnQueryChanged(editValue.text)
+                }
                 pendingEdit = null
             }
         }

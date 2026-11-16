@@ -25,7 +25,6 @@ class TrackingProgressRefreshCoordinator @Inject constructor(
 
     suspend fun refreshConnected(intent: TrackingRefreshIntent): List<TrackingProgressRefreshFailure> =
         supervisorScope {
-            refreshProjection()
             val failures = providers.providers()
                 .filter { provider -> provider.isAuthenticated.first() }
                 .map { provider ->

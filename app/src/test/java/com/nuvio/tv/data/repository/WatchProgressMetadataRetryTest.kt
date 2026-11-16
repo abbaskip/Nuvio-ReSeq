@@ -53,6 +53,7 @@ class WatchProgressMetadataRetryTest {
         val attempts = AtomicInteger()
 
         val profileManager = mockk<ProfileManager> {
+            every { resolvedActiveProfileId } returns activeProfile
             every { activeProfileId } returns activeProfile
         }
         val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true) {
@@ -60,6 +61,7 @@ class WatchProgressMetadataRetryTest {
         }
         val traktSettings = mockk<TraktSettingsDataStore>(relaxed = true) {
             every { watchProgressSource } returns MutableStateFlow(WatchProgressSource.SIMKL)
+            every { resolvedWatchProgressSource(any()) } returns flowOf(WatchProgressSource.SIMKL)
         }
         val metaRepository = mockk<MetaRepository>(relaxed = true) {
             every { getMetaFromPrimaryAddon(any(), contentId) } answers {
@@ -134,6 +136,7 @@ class WatchProgressMetadataRetryTest {
         val successAttempts = AtomicInteger()
 
         val profileManager = mockk<ProfileManager> {
+            every { resolvedActiveProfileId } returns activeProfile
             every { activeProfileId } returns activeProfile
         }
         val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true) {
@@ -141,6 +144,7 @@ class WatchProgressMetadataRetryTest {
         }
         val traktSettings = mockk<TraktSettingsDataStore>(relaxed = true) {
             every { watchProgressSource } returns MutableStateFlow(WatchProgressSource.SIMKL)
+            every { resolvedWatchProgressSource(any()) } returns flowOf(WatchProgressSource.SIMKL)
         }
         val metaRepository = mockk<MetaRepository>(relaxed = true) {
             every { getMetaFromPrimaryAddon(any(), failId) } answers {

@@ -42,7 +42,11 @@ class TvdbNextUpPendingTest {
         val video = effective.videos.single { it.title == "Shindig" }
         val verified = seed.copy(videoId = video.id, season = video.season, episode = video.episode,
             tvdbEpisodeId = video.episodeIdentity!!.trackingEpisodeId, tvdbContext = video.tvdbPlaybackContext())
-        every { repository.getAllEpisodeProgress(effective.id) } returns flow { delay(500); emit(mapOf((1 to 4) to verified)) }
+        every { repository.getAllEpisodeProgress(effective.id) } returns flow {
+            emit(emptyMap())
+            delay(500)
+            emit(mapOf((1 to 4) to verified))
+        }
         val result = vm.selectedOrderSeed(seed)!!
         assertEquals(1 to 4, result.season to result.episode)
         assertEquals(297994L, result.tvdbEpisodeId)

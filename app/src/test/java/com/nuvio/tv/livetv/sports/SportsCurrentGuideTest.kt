@@ -19,6 +19,16 @@ class SportsCurrentGuideTest {
         home = null, away = null, espnId = null, guideHits = listOf(channel.key to p))
     private fun match(p: EpgProgram? = programme, score: Int = 100) = ChannelMatch(channel, score, "Guide", p, "HD", false)
 
+    @Test fun initialGuideMatchesUseShiftedCurrentListingsAcrossChannelVariants() {
+        val db = io.mockk.mockk<com.nuvio.tv.livetv.data.EpgDatabase>()
+        val matcher = SportsMatcher(db)
+        val shift = 2 * hour
+        val raw = programme.copy(startMs = programme.startMs - shift, stopMs = programme.stopMs - shift)
+        val window = listOf(raw.copy(stopMs = now - shift), raw, raw.copy(title = "Weather"))
+        val hits = matcher.visibleFixturePrograms(listOf(fixture()), mapOf("one" to window, "two" to window), shift, now) {}
+        assertEquals(listOf("one" to programme, "two" to programme), hits)
+
+    }
     @Test fun stumpsOverridesLiveTvMetadataWithoutRemovingTheAiring() {
         val stopped = fixture().copy(state = GameState.OFF, status = "Stumps")
         val shown = SportsCurrentGuide.withFixtures(listOf(airing()), listOf(stopped),

@@ -15,8 +15,8 @@ internal object SportsCurrentGuide {
 
     /** Score/clock updates redraw from the fixture; they do not trigger another programme read. */
     fun fixtureKeys(events: List<SportsEvent>): List<FixtureKey> = fixtures(events).map {
-        FixtureKey(it.id, it.leagueId, it.startMs, it.endMs, it.title, it.sides.map { side -> side.team })
-    }
+        FixtureKey(it.id, it.leagueId, it.startMs, it.endMs, it.title, it.sides.map { side -> side.team.copy(record = null) })
+    }.sortedBy { it.id }
 
     /** A fixture can identify a sports airing even when its title contains only the participants. */
     fun additionalAirings(airings: List<SportsEvent>, fixtures: List<SportsEvent>,

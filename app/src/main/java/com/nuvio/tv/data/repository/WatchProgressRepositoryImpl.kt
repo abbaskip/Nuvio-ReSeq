@@ -52,8 +52,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -391,16 +390,16 @@ class WatchProgressRepositoryImpl @Inject constructor(
     }
 
     @OptIn(FlowPreview::class)
-    private val progressProviderConnections = combine(
-        trackingProgressProviders.providers().map { provider ->
-            provider.isAuthenticated.map { authenticated -> provider.providerId to authenticated }
-        }
-    ) { states -> states.toMap() }
+    private val progressProviderConnections: Flow<Map<TrackingProviderId, Boolean>> = trackingProgressProviders.providers().map { provider ->
+        provider.isAuthenticated.map { authenticated -> provider.providerId to authenticated }
+    }.let { connections ->
+        if (connections.isEmpty()) flowOf(emptyMap()) else combine(connections) { states -> states.toMap() }
+    }
     @Volatile private var activeProgressProviderId: TrackingProviderId? = null
 
     @OptIn(FlowPreview::class)
-    private val activeProgressProviderState: StateFlow<TrackingProgressProvider?> = combine(
-        traktSettingsDataStore.watchProgressSource,
+    private val activeProgressProviderState = combine(
+        profileManager.resolvedActiveProfileId.flatMapLatest(traktSettingsDataStore::resolvedWatchProgressSource),
         progressProviderConnections
     ) { requested, connections ->
         effectiveWatchProgressSource(requested) { providerId -> connections[providerId] == true }
@@ -409,15 +408,10 @@ class WatchProgressRepositoryImpl @Inject constructor(
     }.debounce { provider ->
         if (provider == null) 100L else 0L
     }.distinctUntilChanged()
-        .stateIn(syncScope, SharingStarted.Eagerly, null)
-
-    init {
-        syncScope.launch {
-            activeProgressProviderState.collect { provider ->
-                activeProgressProviderId = provider?.providerId
-            }
-        }
-    }
+        .onEach { activeProgressProviderId = it?.providerId }
+        // An actual disconnected selection may use local history. Before the saved source
+        // and sign-ins have loaded, emitting null would replay that history into a tracker.
+        .shareIn(syncScope, SharingStarted.Eagerly, replay = 1)
 
     private fun activeProgressProviderFlow(): Flow<TrackingProgressProvider?> = activeProgressProviderState
 

@@ -28,6 +28,7 @@ class ContinueWatchingRepositoryTest {
     private val source = MutableStateFlow(WatchProgressSource.TRAKT)
     private val remote = MutableStateFlow(emptyList<WatchProgress>())
     private val seeds = MutableStateFlow(emptyList<WatchProgress>())
+    private val loaded = MutableStateFlow(false)
     private val profiles = mockk<ProfileManager> { every { resolvedActiveProfileId } returns profile; every { activeProfileId } returns profile }
     private val settings = mockk<TraktSettingsDataStore> {
         coEvery { getWatchProgressSource(any()) } answers { source.value }
@@ -36,12 +37,37 @@ class ContinueWatchingRepositoryTest {
     private val progress = mockk<WatchProgressRepository> {
         every { allProgress } returns remote
         every { observeNextUpSeeds() } returns seeds
+        every { observeRemoteProgressLoaded() } returns loaded
+        every { hasActiveTrackingProgressProvider() } returns true
         every { isDroppedShow(any()) } returns false
     }
     private fun repository() = ContinueWatchingRepository(
         mockk<Context> { every { filesDir } returns folder.root }, profiles, settings, Provider { progress })
     private fun p(episode: Int = 1, time: Long = 1_000) = WatchProgress("show", "series", "Show", null, null,
         null, "show:1:$episode", 1, episode, null, 20, 100, time)
+
+    @Test fun `restored placeholder and stale completions yield to current tracker history after restart`() = runTest {
+        val stale = p(5, 4_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        repository().committedProgress(1, listOf(stale))
+        val owner = repository()
+        val initial = owner.snapshot()
+        assertTrue(initial.nextUp.single().chooseEpisode)
+        val current = p(4, 2_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        seeds.value = listOf(current)
+        owner.refreshProjection()
+        assertEquals(stale, owner.snapshot().members.getValue("show").progress)
+
+        loaded.value = true
+        owner.refreshProjection()
+        val rebuilt = owner.snapshot()
+        assertEquals(current, rebuilt.members.getValue("show").progress)
+        val next = current.seriesChoice().copy(videoId = stale.videoId, season = 1, episode = 5, chooseEpisode = false)
+        owner.enrich(initial.lease, nextUp = listOf(next))
+        assertTrue(owner.snapshot().nextUp.single().chooseEpisode)
+        owner.enrich(rebuilt.lease, nextUp = listOf(next))
+        owner.refreshProjection()
+        assertEquals(next, repository().snapshot().nextUp.single())
+    }
 
     @Test fun `completion without Home survives stale return refreshes and process restart`() = runTest {
         val owner = repository()
@@ -57,6 +83,64 @@ class ContinueWatchingRepositoryTest {
         val restored = repository().snapshot()
         assertTrue(restored.nextUp.single().chooseEpisode)
         assertTrue(restored.members.getValue("show").progress!!.isCompleted())
+    }
+
+    @Test fun `startup provider cache cannot erase a resolved offer for the same refreshed episode`() = runTest {
+        val seed = p(4, 2_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        val offer = seed.seriesChoice().copy(videoId = "show:1:5", season = 1, episode = 5, chooseEpisode = false)
+        val first = repository()
+        first.committedProgress(1, listOf(seed))
+        first.enrich(first.snapshot().lease, nextUp = listOf(offer))
+        val restarted = repository()
+        seeds.value = listOf(p(5, 3_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY))
+        restarted.refreshProjection()
+        assertEquals(offer, restarted.snapshot().nextUp.single())
+        seeds.value = listOf(seed.copy(name = "Updated tracker title", poster = "updated-artwork"))
+        loaded.value = true
+        restarted.refreshProjection()
+        assertEquals(offer, restarted.snapshot().nextUp.single())
+        assertEquals(seeds.value.single(), restarted.snapshot().members.getValue("show").progress)
+    }
+    @Test fun `a verified split episode remains visible during a tracker rebuild and a changed pause replaces it`() = runTest {
+        val raw = p().copy(source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 12, tvdbEpisodeId = 45L)
+        val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(32, "alttwo", 46, 1, 2, listOf(46), "show:1:2")
+        val offer = raw.seriesChoice().copy(videoId = context.requestVideoId, season = 1, episode = 2,
+            tvdbEpisodeId = 46, tvdbContext = context, chooseEpisode = false)
+        CwProjectionStore(java.io.File(folder.root, "cw_enrichment")).write(CwProjection(
+            profileId = 1, source = source.value.name, members = mapOf("show" to CwMember(progress = raw, nextUp = offer))))
+        remote.value = listOf(raw.copy(poster = "new"))
+        loaded.value = true
+        val restarted = repository()
+        restarted.refreshProjection()
+        assertEquals(offer, restarted.snapshot().nextUp.single())
+        assertTrue(restarted.snapshot().inProgress.isEmpty())
+        // A subsequent feed emission adds older history while the tracker replays the
+        // same pause, this time outside the initial restore pass.
+        val otherHistory = p(3, 500).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        seeds.value = listOf(p(3, raw.lastWatched).copy(position = 0, source = WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS))
+        remote.value = listOf(otherHistory, raw)
+        restarted.refreshProjection()
+        assertEquals(offer, restarted.snapshot().nextUp.single())
+        seeds.value = emptyList()
+        remote.value = listOf(raw.copy(position = 72, lastWatched = 3_000))
+        repository().also { next ->
+            next.refreshProjection()
+            assertTrue(next.snapshot().nextUp.isEmpty())
+            assertEquals(72L, next.snapshot().inProgress.single().position)
+        }
+    }
+
+    @Test fun `late tracker response cannot undo playback committed after restoring the cache`() = runTest {
+        val prior = p(4, 2_000).copy(source = WatchProgress.SOURCE_TRAKT_PLAYBACK)
+        repository().committedProgress(1, listOf(prior))
+        val restarted = repository()
+        restarted.snapshot()
+        val completed = prior.copy(source = WatchProgress.SOURCE_LOCAL, position = 100, lastWatched = 3_000)
+        restarted.committedProgress(1, listOf(completed))
+        remote.value = listOf(prior)
+        loaded.value = true
+        restarted.refreshProjection()
+        assertEquals(completed, restarted.snapshot().members.getValue("show").progress)
     }
 
     @Test fun `profile source and order changes reject in flight enrichment without clearing old namespace`() = runTest {

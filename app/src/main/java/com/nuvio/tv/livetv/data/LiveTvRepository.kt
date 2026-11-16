@@ -56,6 +56,18 @@ data class LiveTvStatus(
 /** Display-only result of the existing guide budget/storage checks. */
 data class GuideUpdateNotice(val message: String, val waiting: Boolean)
 
+/** The same channels, assignments and sources may keep displaying their committed listings
+ * while updated copies of those sources are imported. */
+internal fun sameGuideWithUpdatedFiles(stored: String, expected: String): Boolean {
+    val old = stored.split('|')
+    val new = expected.split('|')
+    if (old.size != 7 || new.size != 7 || old.indices.any { it != 4 && old[it] != new[it] }) return false
+    fun sources(stamps: String) = stamps.split(',').filter { it.isNotEmpty() }
+        .map { it.substringBeforeLast(':').substringBeforeLast(':') }
+    val previous = sources(old[4])
+    return previous.isNotEmpty() && previous == sources(new[4])
+}
+
 /** Wakes the periodic check on app open, coalescing returns while that refresh is in progress. */
 internal suspend fun runPlaylistUpdateChecks(
     openRequested: MutableStateFlow<Boolean>,
@@ -776,12 +788,7 @@ class LiveTvRepository @Inject constructor(
                 if (deferredGuide.exists() && previous != null && targets.isNotEmpty() && !guideInDb) {
                     // Serve the committed guide while the replacement waits. Channel keys include
                     // their playlist, so a removed playlist cannot supply another channel's rows.
-                    loadedFrom = previous.from
-                    loadedTo = previous.to
-                    lightPrograms = true
-                    guideInDb = true
-                    _programs.value = previous.window
-                    _guideGeneration.value++
+                    showCommittedWindow(previous)
                 }
                 LIVE_REPORT.add("Guide refresh checked in ${System.currentTimeMillis() - t0} ms")
             }
@@ -1043,6 +1050,16 @@ class LiveTvRepository @Inject constructor(
     /** What [preReadGuide] read ahead: the stored fingerprint, and the priority channels' listings. */
     private class GuidePreRead(val fingerprint: String?, val from: Long, val to: Long, val window: Map<String, List<EpgProgram>>)
 
+    private fun showCommittedWindow(previous: GuidePreRead) {
+        loadedFrom = previous.from
+        loadedTo = previous.to
+        lightPrograms = true
+        guideInDb = true
+        _programs.value = previous.window
+        fullRangeChannels.clear()
+        _guideGeneration.value++
+    }
+
     /** Channels to fill in first: the group you were last looking at, and your Favorites. */
     private val priorityFile get() = File(baseDir, "guide_priority.txt")
 
@@ -1099,6 +1116,9 @@ class LiveTvRepository @Inject constructor(
         val stored = pre?.fingerprint ?: runCatching { guideDb.fingerprint() }.getOrNull()
         if (stored != expected) {
             LIVE_REPORT.add(if (stored == null) "No stored guide yet" else "Stored guide out of date: ${fingerprintDiff(stored, expected)}")
+            if (!guideInDb && pre != null && stored != null && sameGuideWithUpdatedFiles(stored, expected)) {
+                showCommittedWindow(pre)
+            }
             return@withContext false
         }
         val now = System.currentTimeMillis()
@@ -1751,11 +1771,13 @@ class LiveTvRepository @Inject constructor(
             if (!file.exists()) continue
             setStatus(loading = true, message = "Reading channels from \"${pl.name}\"" + (if (playlists.size > 1) " (${plIndex + 1} of ${playlists.size})" else "") + "…")
             var channelCount = 0
+            var parsedEntries = 0
             // Do not retain a second full playlist (including all VOD entries from get.php)
             // while constructing the live channel list.
             val parsed = runCatching {
                 openMaybeGzip(file).bufferedReader().use { reader ->
                     M3uParser.parse(reader, onEntry = entry@ { e ->
+                        if (++parsedEntries % 256 == 0) BackgroundWork.yieldToNavigation()
                         // Many providers' M3U links ("m3u_plus") also list every movie and episode,
                         // often 100,000+ entries. Those aren't TV channels, and loading them all into the
                         // guide used enough memory to crash Live TV on some devices.
@@ -2139,50 +2161,57 @@ class LiveTvRepository @Inject constructor(
         guideCheckpoint(settings)
         val choice = auto + pinned
         val storeStart = System.currentTimeMillis()
-        val stored = runCatching {
-            val fp = guideFingerprint(settings, targets)
-            if (settings.updateGuideDuringPlayback)
-                guideDb.replaceAllFromStageBatched(fp, choice, auto, guideParts(settings, targets, fp), windowStart, windowEnd) { guideCheckpoint(settings) }
-            else guideDb.replaceAllFromStage(fp, choice, emptyMap(), auto, guideParts(settings, targets, fp), windowStart, windowEnd)
-        }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; Log.w(TAG, "Couldn't store the guide", it) }.isSuccess
-        LIVE_REPORT.add("Guide: best guide per channel stored in ${(System.currentTimeMillis() - storeStart) / 1000} s")
-        // The guides' working copies aren't kept once the guide is built (they'd double the storage).
-        if (stored) {
-            runCatching { guideDb.dropStagesExcept(emptyList()) }
-            _autoMatches.value = auto
-            _epgSources.value = sourceLists
-            saveSourceLists(targets, sourceLists)
-            // Each channel's logo in the guide it's matched to (or assigned), for playlists that
-            // prefer the guide's logos, and for channels whose playlist has none.
-            val iconsBySource = sourceMeta.associate { (target, _, entries) ->
-                target.fileId to entries.mapNotNull { e -> e.icon?.takeIf { it.isNotBlank() }?.let { e.id to it } }.toMap()
-            }
-            val logos = HashMap<String, String>()
-            (auto + overrides).forEach { (key, a) -> iconsBySource[a.sourceId]?.get(a.xmltvId)?.let { logos[key] = it } }
-            _epgLogos.value = logos
-            saveEpgLogos(logos)
-            epgDetailsPending = false
-            // Playlist variants often share one XMLTV channel. Read and retain one window
-            // per assignment even if dozens of playlist channels display that schedule.
-            val representatives = HashMap<EpgAssignment, String>()
-            choice.forEach { (key, assignment) -> representatives.putIfAbsent(assignment, key) }
-            val windows = guideDb.range(winFrom, winTo, light = true, channels = representatives.values)
-            _programs.value = buildMap {
-                choice.forEach { (key, assignment) ->
-                    windows[representatives[assignment]]?.let { put(key, it) }
-                }
-            }
-            lightPrograms = true
-            fullRangeChannels.clear(); _guideGeneration.value++
-            loadedFrom = winFrom
-            loadedTo = winTo
-            guideInDb = true
-            saveSkipped(skipped)
-            if (skipped.isNotEmpty()) LIVE_REPORT.add("Guide: ${skipped.size} hidden channels left out")
-            scheduleCompact()
-        } else {
-            throw DeferGuide("Guide update could not be saved. Keeping the previous listings.")
+        if (targets.isNotEmpty() && sourceMeta.isEmpty() && guideDb.fingerprint() != null) {
+            throw DeferGuide("Guide sources unavailable. Keeping the previous listings.")
         }
+        val fp = guideFingerprint(settings, targets)
+        try {
+            guideDb.replaceAllFromStageBatched(fp, choice, auto, guideParts(settings, targets, fp), windowStart, windowEnd) {
+                guideCheckpoint(settings)
+            }
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.w(TAG, "Couldn't store the guide", e)
+            val reason = when (e) {
+                is android.database.sqlite.SQLiteFullException -> "Device storage is full."
+                is android.database.sqlite.SQLiteDatabaseLockedException -> "Guide storage is busy."
+                else -> "Guide update could not be saved."
+            }
+            LIVE_REPORT.add("Guide save failed (${e.javaClass.simpleName})")
+            throw DeferGuide("$reason Keeping the previous listings.")
+        }
+        LIVE_REPORT.add("Guide: best guide per channel stored in ${(System.currentTimeMillis() - storeStart) / 1000} s")
+        runCatching { guideDb.dropStagesExcept(emptyList()) }
+        _autoMatches.value = auto
+        _epgSources.value = sourceLists
+        saveSourceLists(targets, sourceLists)
+        // Each channel's logo in the guide it's matched to (or assigned), for playlists that
+        // prefer the guide's logos, and for channels whose playlist has none.
+        val iconsBySource = sourceMeta.associate { (target, _, entries) ->
+            target.fileId to entries.mapNotNull { e -> e.icon?.takeIf { it.isNotBlank() }?.let { e.id to it } }.toMap()
+        }
+        val logos = HashMap<String, String>()
+        (auto + overrides).forEach { (key, a) -> iconsBySource[a.sourceId]?.get(a.xmltvId)?.let { logos[key] = it } }
+        _epgLogos.value = logos
+        saveEpgLogos(logos)
+        epgDetailsPending = false
+        // Playlist variants often share one XMLTV channel. Read and retain one window
+        // per assignment even if dozens of playlist channels display that schedule.
+        val representatives = HashMap<EpgAssignment, String>()
+        choice.forEach { (key, assignment) -> representatives.putIfAbsent(assignment, key) }
+        val windows = guideDb.range(winFrom, winTo, light = true, channels = representatives.values)
+        _programs.value = buildMap {
+            choice.forEach { (key, assignment) ->
+                windows[representatives[assignment]]?.let { put(key, it) }
+            }
+        }
+        lightPrograms = true
+        fullRangeChannels.clear(); _guideGeneration.value++
+        loadedFrom = winFrom
+        loadedTo = winTo
+        guideInDb = true
+        saveSkipped(skipped)
+        if (skipped.isNotEmpty()) LIVE_REPORT.add("Guide: ${skipped.size} hidden channels left out")
+        scheduleCompact()
     }
 
     /**

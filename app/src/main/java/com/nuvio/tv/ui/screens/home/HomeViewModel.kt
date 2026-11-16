@@ -140,11 +140,14 @@ class HomeViewModel @Inject constructor(
 
     fun setHomeContentActive(active: Boolean) {
         if (homeContentActive.compareAndSet(!active, active) && active) {
-            synchronized(cwNextUpResolutionCache) { cwNextUpResolutionCache.values.removeAll { it == null } }
+            cwNextUpResolutionCache.clear()
             synchronized(cwMetaCache) { cwMetaCache.values.removeAll { it == null } }
             cwMetaNegativeCacheTimestamps.clear()
             cwNextUpNegativeCacheTimestamps.clear()
-            viewModelScope.launch { progressRefresh?.refreshConnected(com.nuvio.tv.core.tracking.TrackingRefreshIntent.INVALIDATED) }
+            viewModelScope.launch {
+                progressRefresh?.refreshConnected(com.nuvio.tv.core.tracking.TrackingRefreshIntent.INVALIDATED)
+                cwPipelineRefreshTrigger.update { it + 1 }
+            }
         }
     }
 

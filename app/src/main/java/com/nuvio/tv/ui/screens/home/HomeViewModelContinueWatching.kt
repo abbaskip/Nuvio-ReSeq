@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.update
@@ -256,7 +257,6 @@ private class CwDebugSession {
     fun recordInProgressCount(count: Int) = Unit
     fun recordNextUpBuildComplete(count: Int, elapsedMs: Long) = Unit
     fun recordLightweightRendered(count: Int, elapsedMs: Long) = Unit
-    fun recordInitialRendered(count: Int, elapsedMs: Long) = Unit
     fun recordPartialRendered(count: Int, elapsedMs: Long) = Unit
     fun recordEnrichmentDelay(delayMs: Long) = Unit
     fun recordEnrichmentComplete(elapsedMs: Long, changed: Boolean) = Unit
@@ -335,7 +335,9 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
             coroutineScope {
             val debug = CwDebugSession()
             val pipelineProfileId = profileManager.activeProfileId.value
-            val pipelineLease = continueWatchingRepository.snapshot().lease
+            val projection = continueWatchingRepository.snapshot()
+            val pipelineLease = projection.lease
+            val pendingEpisodes = projection.members.filterValues { it.nextUp?.chooseEpisode == true }.keys
             if (pipelineLease.profileId != pipelineProfileId) return@coroutineScope
             try {
                 debug.markPhase("filter-snapshot")
@@ -587,24 +589,6 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                         ), chooseEpisode = cached.chooseEpisode
                     )
                 }
-                if (inProgressOnly.isNotEmpty() || cachedNextUpItems.isNotEmpty()) {
-                    val initialItems = applyContinueWatchingEnrichmentOverlay(
-                        mergeContinueWatchingItems(
-                            inProgressItems = inProgressOnly,
-                            nextUpItems = cachedNextUpItems,
-                            mode = continueWatchingSortMode
-                        )
-                    )
-                    val (mainItems, upcomingOnly) = splitUpcomingItems(initialItems, continueWatchingSortMode)
-
-                    publishCwEnrichment(pipelineLease, mainItems + upcomingOnly)
-                    debug.recordInitialRendered(
-                        count = initialItems.size,
-                        elapsedMs = SystemClock.elapsedRealtime() - cycleStartMs
-                    )
-
-                }
-
                 debug.markPhase("build-next-up")
                 val nextUpStartMs = SystemClock.elapsedRealtime()
                 val publishedPartialNextUpCount = AtomicInteger(0)
@@ -612,6 +596,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 val nextUpItems = buildLightweightNextUpItems(
                     pipelineLease = pipelineLease,
                     nextUpSeeds = recentNextUpSeeds,
+                    pendingEpisodes = pendingEpisodes,
                     inProgressItems = inProgressOnly,
                     dismissedNextUp = dismissedNextUp,
                     showUnairedNextUp = showUnairedNextUp,
@@ -734,12 +719,14 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                 for (seed in uncachedSeeds) {
                                     val seedKey = buildNextUpSeedCacheKey(seed, showUnairedNextUp)
                                     val processedKey = "$seedKey|$daysCap|${inWindow(seed.contentId, seed.lastWatched)}"
-                                    if (cwProcessedOlderSeedContentIds[seed.contentId] == processedKey ||
-                                        fullyWatchedSeriesIds.isSeedValidationFresh(seed.contentId, seedKey)) continue
+                                    if (seed.contentId !in pendingEpisodes &&
+                                        (cwProcessedOlderSeedContentIds[seed.contentId] == processedKey ||
+                                            fullyWatchedSeriesIds.isSeedValidationFresh(seed.contentId, seedKey))) continue
                                     var identityPending = false
                                     val item = buildNextUpItem(
                                         progress = seed,
                                         showUnairedNextUp = showUnairedNextUp,
+                                        recheckEpisode = seed.contentId in pendingEpisodes,
                                         onPendingIdentity = { identityPending = true }
                                     ).also { resolved ->
                                         logSimklAsyncNextUpResolution(
@@ -1222,6 +1209,7 @@ private fun resolveVideoForProgress(progress: WatchProgress, meta: CwMetaSummary
 private suspend fun HomeViewModel.buildLightweightNextUpItems(
     pipelineLease: com.nuvio.tv.data.cw.CwLease,
     nextUpSeeds: List<WatchProgress>,
+    pendingEpisodes: Set<String>,
     inProgressItems: List<ContinueWatchingItem.InProgress>,
     dismissedNextUp: Set<String>,
     showUnairedNextUp: Boolean,
@@ -1272,6 +1260,7 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
             // The cache key includes season+episode, so a changed seed (user watched
             // a new episode) produces a cache miss and is always processed.
             .filter { progress ->
+                if (progress.contentId in pendingEpisodes) return@filter true
                 val cacheKey = buildNextUpSeedCacheKey(progress, showUnairedNextUp)
                 val inCache = synchronized(cwNextUpResolutionCache) {
                     cwNextUpResolutionCache.containsKey(cacheKey)
@@ -1319,6 +1308,7 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
                     progress = remappedProgress,
                     showUnairedNextUp = showUnairedNextUp,
                     debug = debug,
+                    recheckEpisode = progress.contentId in pendingEpisodes,
                     onPendingIdentity = { identityPending = true }
                 ) ?: run {
                     // If meta was not available (network error, addon timeout),
@@ -1633,6 +1623,7 @@ private suspend fun HomeViewModel.buildNextUpItem(
     progress: WatchProgress,
     showUnairedNextUp: Boolean,
     debug: CwDebugSession? = null,
+    recheckEpisode: Boolean = false,
     onPendingIdentity: () -> Unit = {}
 ): ContinueWatchingItem.NextUp? {
     val progress = selectedOrderSeed(progress) ?: run {
@@ -1647,6 +1638,7 @@ private suspend fun HomeViewModel.buildNextUpItem(
         )
     }
     val nextUp = findNextUpEpisodeFromMetaSeed(
+        recheckEpisode = recheckEpisode,
         progress = progress,
         showUnairedNextUp = showUnairedNextUp,
         debug = debug
@@ -1746,14 +1738,14 @@ internal suspend fun HomeViewModel.selectedOrderSeed(seed: WatchProgress): Watch
     val meta = resolveMetaForProgress(seed, cwMetaCache) ?: return null
     if (!meta.tvdbOrder) return null
     val videos = meta.videos.map { it.asTvdbVideo() }
-    val snapshot = withTimeoutOrNull(8_000L) {
-        watchProgressRepository.getAllEpisodeProgress(seed.contentId).first()
+    val resolved = withTimeoutOrNull(8_000L) {
+        watchProgressRepository.getAllEpisodeProgress(seed.contentId).map { snapshot ->
+            snapshot.values.filter { it.isCompleted() }.mapNotNull { entry ->
+                com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(videos, entry)
+                    ?.takeIf { (it.displaySeason ?: 0) > 0 }?.let { it to entry }
+            }
+        }.firstOrNull { it.isNotEmpty() }
     } ?: return null
-    val completed = snapshot.values.filter { it.isCompleted() }
-    val resolved = completed.mapNotNull { entry ->
-        com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(videos, entry)
-            ?.takeIf { (it.displaySeason ?: 0) > 0 }?.let { it to entry }
-    }
     val furthest = layoutPreferenceDataStore.nextUpFromFurthestEpisode.first()
     val sequence = compareBy<Pair<Video, WatchProgress>>(
         { it.first.displaySeason }, { it.first.displayEpisode })
@@ -1982,12 +1974,13 @@ private suspend fun HomeViewModel.enrichNextUpItem(
 private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
     progress: WatchProgress,
     showUnairedNextUp: Boolean,
+    recheckEpisode: Boolean,
     debug: CwDebugSession? = null
 ): NextUpResolution? {
     val startedAtMs = SystemClock.elapsedRealtime()
     val cacheKey = buildNextUpSeedCacheKey(progress, showUnairedNextUp)
     synchronized(cwNextUpResolutionCache) {
-        if (cwNextUpResolutionCache.containsKey(cacheKey)) {
+        if (!recheckEpisode && cwNextUpResolutionCache.containsKey(cacheKey)) {
             val cached = cwNextUpResolutionCache[cacheKey]
             if (cached != null) {
                 debug?.recordNextUpCacheHit(

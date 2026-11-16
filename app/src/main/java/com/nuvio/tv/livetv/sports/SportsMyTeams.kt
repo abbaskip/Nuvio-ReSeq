@@ -108,6 +108,7 @@ private val ROW_TOP_INSET = 33.dp
 @Composable
 internal fun MyTeamsRows(
     page: MyTeamsPage,
+    loading: Boolean,
     /** Team key -> where it stands ("2nd in Premier League"), shown by its row's name. */
     places: Map<String, String> = emptyMap(),
     /** The sport picked on the top bar (null: everything you follow). */
@@ -240,6 +241,7 @@ internal fun MyTeamsRows(
                 ) {
                     LiveText(
                         when {
+                            loading -> "Getting today’s games…"
                             follows.isEmpty -> "Follow teams and leagues to see their games here."
                             sport != null -> "Nothing coming up in ${sport.label} yet."
                             else -> "Nothing coming up yet."

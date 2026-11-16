@@ -91,13 +91,20 @@ object CwMembershipReducer {
 
     /** The seed and playback lists describe one snapshot. A transient competitor between
      * the two reductions must not invalidate an offer for the same final history. */
-    fun refresh(state: CwProjection, seeds: List<WatchProgress>, items: List<WatchProgress>): CwProjection {
+    fun refresh(state: CwProjection, seeds: List<WatchProgress>, items: List<WatchProgress>,
+        recheckOrderedPause: (String) -> Unit = {}): CwProjection {
         val updated = progress(progress(state, seeds, seeds = true), items)
         if (updated === state) return state
         val members = updated.members.mapValues { (id, member) ->
             val old = state.members[id]
             if (old != null && old.progress == member.progress && old.latestCompletionAt == member.latestCompletionAt &&
-                state.completed[id] == updated.completed[id]) old else member.copy(changedAtRevision = state.revision + 1)
+                state.completed[id] == updated.completed[id]) old else {
+                // Additional history and playback rows can arrive in different emissions.
+                // A replay of the same native pause still has its verified selected-order target.
+                val ordered = if (old == null) member else restoreOrderedPause(updated, old, member)
+                if (ordered !== member) recheckOrderedPause(id)
+                ordered.copy(changedAtRevision = state.revision + 1)
+            }
         }
         return state.changed(members, updated.removals, updated.completed)
     }
@@ -169,12 +176,7 @@ object CwMembershipReducer {
                 p.isCompleted() || seeds -> {
                     // An offer was resolved from a particular seed. Completing a different
                     // episode invalidates it even when the offer is not that new completion.
-                    val sameSeed = old?.progress?.let { previous ->
-                        previous.isDetailedHistoryFor(p) || p.isDetailedHistoryFor(previous) ||
-                            previous.historyKey() == p.historyKey() || (previous.season != null && previous.episode != null &&
-                            previous.season == p.season && previous.episode == p.episode &&
-                            previous.tvdbContentIds == p.tvdbContentIds && previous.tvdbContext == p.tvdbContext)
-                    } == true
+                    val sameSeed = old?.progress?.sameEpisodeSeed(p) == true
                     val next = old?.nextUp?.takeIf { sameSeed && (it.chooseEpisode ||
                         completed[p.contentId].orEmpty().values.none { done -> matches(it, done) }) }
                     CwMember(p, nextUp = next?.copy(lastWatched = maxOf(next.lastWatched, p.lastWatched))
@@ -247,6 +249,25 @@ object CwMembershipReducer {
             members[candidate.contentId] = old.copy(nextUp = candidate)
         }
         return state.changed(members)
+    }
+
+    /** A tracker pause can map to the beginning of the next segment in the selected order.
+     * Reuse that interpretation only for the identical playback event until it is rechecked. */
+    fun restoreOrderedPause(state: CwProjection, old: CwMember, rebuilt: CwMember): CwMember {
+        val raw = rebuilt.progress ?: return rebuilt
+        val prior = old.progress ?: return rebuilt
+        if (rebuilt.inProgress == null || !raw.isNativeTrackerPause() || prior.source != raw.source ||
+            prior.videoId != raw.videoId || prior.tvdbEpisodeId != raw.tvdbEpisodeId ||
+            prior.traktEpisodeId != raw.traktEpisodeId || prior.lastWatched != raw.lastWatched ||
+            prior.progressPercentage != raw.progressPercentage || prior.trackingProviderId != raw.trackingProviderId) return rebuilt
+        val offer = old.nextUp
+        if (offer?.tvdbContext != null && !offer.chooseEpisode &&
+            state.completed[raw.contentId].orEmpty().values.none { matches(offer, it) }) {
+            return rebuilt.copy(inProgress = null, nextUp = offer)
+        }
+        val resume = old.inProgress
+        if (resume?.tvdbContext != null && !resume.chooseEpisode) return rebuilt.copy(inProgress = resume)
+        return rebuilt
     }
 
     fun remove(state: CwProjection, lease: CwLease, proof: CwRemovalProof): CwProjection {
@@ -331,6 +352,14 @@ private fun WatchProgress.decisionSource(): String = when (source) {
 
 /** A tracker seed carries the latest remaining completion even when another episode is the starting point. */
 internal fun WatchProgress.completionActivityAt(): Long = maxOf(lastWatched, latestSeriesActivity ?: lastWatched)
+
+/** Artwork, titles and provider presentation timestamps can change without changing the watched episode. */
+internal fun WatchProgress.sameEpisodeSeed(other: WatchProgress): Boolean =
+    contentId == other.contentId && (
+        isDetailedHistoryFor(other) || other.isDetailedHistoryFor(this) ||
+        historyKey() == other.historyKey() ||
+        (season != null && episode != null && season == other.season && episode == other.episode &&
+            tvdbContentIds == other.tvdbContentIds && tvdbContext == other.tvdbContext))
 
 private fun WatchProgress.isDetailedHistoryFor(seed: WatchProgress): Boolean =
     source == WatchProgress.SOURCE_TRAKT_HISTORY && seed.source == WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS &&

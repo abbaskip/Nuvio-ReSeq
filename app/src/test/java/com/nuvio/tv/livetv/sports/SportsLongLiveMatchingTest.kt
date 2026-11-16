@@ -135,17 +135,20 @@ class SportsLongLiveMatchingTest {
     @Test fun oneCurrentReadAlsoFindsParticipantOnlyListingsWithoutScanningTheFullGuide() {
         val event = cricket()
         val p = EpgProgram(now - 8 * hour, now + hour, "Pakistan vs Sri Lanka", "Live from Rawalpindi")
+        val early = mutableListOf<Pair<String, EpgProgram>>()
         val db = mockk<EpgDatabase> {
             every { fingerprint() } returns "guide"
             every { contentRevision() } returns "1"
             every { visitCurrentPrograms(now, any(), any()) } answers {
                 thirdArg<(String, EpgProgram) -> Unit>().invoke(channel.key, p)
+                assertEquals(listOf(channel.key to p), early)
                 thirdArg<(String, EpgProgram) -> Unit>().invoke("food", p.copy(title = "MasterChef", description = null))
             }
         }
         val channels = listOf(channel, channel.copy(key = "food")).associateBy { it.key }
         val matcher = SportsMatcher(db)
-        val snapshot = matcher.tvNowSnapshot(SportsCatalog.all, emptyList(), channels, 0, now, listOf(event))
+        val snapshot = matcher.tvNowSnapshot(SportsCatalog.all, emptyList(), channels, 0, now, listOf(event),
+            onFixturePrograms = { early.addAll(it) })
         assertEquals(listOf(channel.key to p), snapshot.fixturePrograms)
         val matched = matcher.match(SportsMatcher.Input(listOf(event), listOf(channel), emptyMap(), 0, SportsSettings(), now,
             includeGuide = false, currentGuidePrograms = snapshot.fixturePrograms)).matches

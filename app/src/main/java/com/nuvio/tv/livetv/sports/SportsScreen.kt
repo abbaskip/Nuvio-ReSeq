@@ -705,14 +705,14 @@ private fun SportsHub(
     val status: String? = dayProblem ?: problem
     val statusLine: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {
         // Top corner: a spinner while your channels are being searched for games; gone when done.
-        if (matching || dayLoading) {
+        if (matching || dayLoading || loading) {
             Row(
                 Modifier.align(Alignment.TopEnd).padding(end = 32.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 com.nuvio.tv.livetv.ui.LoadingSpinner()
                 Spacer(Modifier.width(8.dp))
-                LiveText(if (dayLoading) "Getting events for this date…" else "Finding channels for today's games…", color = SportsLook.Dim, size = 11.sp, weight = FontWeight.Bold)
+                LiveText(if (loading) "Loading sports schedule…" else if (dayLoading) "Getting events for this date…" else "Finding channels for today's games…", color = SportsLook.Dim, size = 11.sp, weight = FontWeight.Bold)
             }
         }
         status?.let {
@@ -857,6 +857,7 @@ private fun SportsHub(
         val page = remember(known, follows, minute, rowsSport) { SportsRows.build(known, follows, now, rowsSport) { isMine(it, follows) } }
         Box(Modifier.fillMaxSize()) {
             MyTeamsRows(
+                loading = loading,
                 page = page,
                 places = places,
                 sport = rowsSport,

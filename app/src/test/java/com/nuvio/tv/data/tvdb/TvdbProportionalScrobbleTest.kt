@@ -245,6 +245,7 @@ class TvdbProportionalScrobbleTest {
         val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
             every { allProgress } returns MutableStateFlow(listOf(raw))
             every { observeNextUpSeeds() } returns MutableStateFlow(emptyList())
+            every { observeRemoteProgressLoaded() } returns MutableStateFlow(true)
             every { isDroppedShow(any()) } returns false
         }
         coEvery { store.exportSelections(1) } returns mapOf("alias:$show" to "73244", "order:73244" to "alttwo")

@@ -296,7 +296,7 @@ private fun HomeViewModel.requestHomeShuffleMetadata(
                             try {
                                 val resolved = resolveCwMeta(seed)
                                 if (resolved?.tvdbOrder == true && !shuffleEnabled && !_uiState.value.let { state ->
-                                        (state.continueWatchingItems + state.upcomingItems).any { it.contentId() == seed.contentId }
+                                        (state.continueWatchingItems + state.upcomingItems).any { it.contentId() == seed.contentId && !it.chooseEpisode }
                                     }) {
                                     cwPipelineRefreshTrigger.update { it + 1 }
                                 }

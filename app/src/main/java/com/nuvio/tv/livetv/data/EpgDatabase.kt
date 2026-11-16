@@ -17,7 +17,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
-    SQLiteOpenHelper(context, "livetv_guide.db", null, 3) {
+    SQLiteOpenHelper(context, "livetv_guide.db", null, 4) {
 
     @Volatile var retainDescriptions: Boolean = true
 
@@ -28,11 +28,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        db.execSQL(
-            """CREATE TABLE programs (
-                ch TEXT NOT NULL, start INTEGER NOT NULL, stop INTEGER NOT NULL, title TEXT NOT NULL,
-                descr TEXT, cat TEXT, ep TEXT, icon TEXT, year INTEGER, people TEXT)"""
-        )
+        db.execSQL("CREATE TABLE programs ($PROGRAM_COLUMNS)")
+        createChannelMap(db)
         db.execSQL("CREATE INDEX programs_ch_start ON programs(ch, start)")
         db.execSQL("CREATE INDEX programs_stop ON programs(stop)")
         db.execSQL("CREATE INDEX IF NOT EXISTS programs_start ON programs(start)")
@@ -51,10 +48,20 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                     db.execSQL("DROP TABLE IF EXISTS auto")
                     db.execSQL("DROP TABLE IF EXISTS meta")
                     onCreate(db)
+                    return
                 }
         }
         // Version 3: guides staged while they're read (see StageWriter).
         if (oldVersion < 3) createStageTables(db)
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE programs ADD COLUMN shared INTEGER NOT NULL DEFAULT 0")
+            createChannelMap(db)
+        }
+    }
+
+    private fun createChannelMap(db: SQLiteDatabase) {
+        db.execSQL("CREATE TABLE schedule_channels (ch TEXT PRIMARY KEY, ref TEXT NOT NULL)")
+        db.execSQL("CREATE INDEX schedule_ref ON schedule_channels(ref)")
     }
 
     /** Replaces the whole guide (after a guide update), in one transaction. */
@@ -74,6 +81,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.execSQL("DROP INDEX IF EXISTS next_programs_ch_start")
             db.execSQL("DROP INDEX IF EXISTS next_programs_stop")
             db.execSQL("DROP INDEX IF EXISTS next_programs_start")
+            db.delete("schedule_channels", null, null)
             db.delete("programs", null, null)
             db.delete("auto", null, null)
             val stmt = db.compileStatement(
@@ -126,7 +134,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         db.beginTransaction()
         try {
             channels.forEach { ch ->
-                db.delete("programs", "ch = ?", arrayOf(ch))
+                db.delete("schedule_channels", "ch = ?", arrayOf(ch))
+                db.delete("programs", "shared = 0 AND ch = ?", arrayOf(ch))
                 db.delete("auto", "ch = ?", arrayOf(ch))
             }
             val stmt = db.compileStatement(
@@ -208,11 +217,13 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             playlistIds.forEach { id ->
                 val prefix = "$id|"
                 val args = arrayOf(prefix.length.toString(), prefix)
-                db.delete("programs", "substr(ch, 1, ?) = ?", args)
+                db.delete("schedule_channels", "substr(ch, 1, ?) = ?", args)
+                db.delete("programs", "shared = 0 AND substr(ch, 1, ?) = ?", args)
                 db.delete("auto", "substr(ch, 1, ?) = ?", args)
             }
             channels.forEach { ch ->
-                db.delete("programs", "ch = ?", arrayOf(ch))
+                db.delete("schedule_channels", "ch = ?", arrayOf(ch))
+                db.delete("programs", "shared = 0 AND ch = ?", arrayOf(ch))
                 db.delete("auto", "ch = ?", arrayOf(ch))
             }
             putFingerprint(db, fingerprint, parts)
@@ -243,15 +254,29 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         channels: Collection<String>? = null
     ): Map<String, List<EpgProgram>> {
         val out = HashMap<String, ArrayList<EpgProgram>>()
+        val schedules = HashMap<String, ArrayList<EpgProgram>>()
+        val aliases = HashMap<String, String>()
         val columns = if (light) "ch, start, stop, title, ep, icon" else "ch, start, stop, title, descr, cat, ep, icon, year, people"
         // Read by start time (indexed): shows starting in the window, plus ones that started up
         // to [MAX_SHOW_MS] earlier and are still on. Looking up "everything that ends after the
         // start of the window" instead meant reading every future listing in the guide.
         val timeArgs = listOf((fromMs - MAX_SHOW_MS).toString(), toMs.toString(), fromMs.toString())
-        fun read(chFilter: String, chArgs: List<String>) {
-            val sql = "SELECT $columns FROM programs WHERE $chFilter start >= ? AND start < ? AND stop > ?"
+        fun read(chFilter: String, chArgs: List<String>, allChannels: Boolean = false) {
+            val window = "start >= ? AND start < ? AND stop > ?"
+            // Read the payload once per physical schedule on startup. The aliases are in the
+            // same statement so that they always refer to the same committed generation.
+            val sql = if (allChannels) {
+                val extra = if (light) "NULL,NULL" else "NULL,NULL,NULL,NULL,NULL,NULL"
+                "SELECT $columns,shared FROM programs WHERE $window UNION ALL " +
+                    "SELECT ref,NULL,NULL,ch,$extra,2 FROM schedule_channels"
+            } else "SELECT $columns FROM $GUIDE_LISTINGS WHERE $chFilter $window"
             readableDatabase.rawQuery(sql, (chArgs + timeArgs).toTypedArray()).use { c ->
                 while (c.moveToNext()) {
+                    val kind = if (allChannels) c.getInt(c.columnCount - 1) else 0
+                    if (kind == 2) {
+                        aliases[c.getString(3)] = c.getString(0)
+                        continue
+                    }
                     val p = if (light) EpgProgram(
                         startMs = c.getLong(1),
                         stopMs = c.getLong(2),
@@ -269,7 +294,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                         year = if (c.isNull(8)) null else c.getInt(8),
                         people = if (c.isNull(9)) emptyList() else c.getString(9).split('\u001F')
                     )
-                    out.getOrPut(c.getString(0)) { ArrayList() } += p
+                    val rows = if (kind == 1) schedules else out
+                    rows.getOrPut(c.getString(0)) { ArrayList() } += p
                 }
             }
         }
@@ -278,9 +304,18 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             channels != null -> channels.distinct().chunked(400).forEach { part ->
                 read("ch IN (" + part.joinToString(",") { "?" } + ") AND", part)
             }
-            else -> read("", emptyList())
+            else -> read("", emptyList(), allChannels = true)
         }
         out.values.forEach { l -> l.sortBy { it.startMs } }
+        schedules.values.forEach { it.sortBy { p -> p.startMs } }
+        for ((channel, ref) in aliases) {
+            val shared = schedules[ref] ?: continue
+            val direct = out[channel]
+            if (direct == null) out[channel] = shared else {
+                direct.addAll(shared)
+                direct.sortBy { it.startMs }
+            }
+        }
         return out
     }
 
@@ -296,7 +331,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         while (start < toMs) {
             val end = minOf(toMs, start + 15 * 60_000L)
             readableDatabase.rawQuery(
-                "SELECT ch, start, stop, title, descr, cat FROM programs WHERE start >= ? AND start < ?",
+                "SELECT ch, start, stop, title, descr, cat FROM $GUIDE_LISTINGS WHERE start >= ? AND start < ?",
                 arrayOf(start.toString(), end.toString())
             ).use { c ->
                 while (c.moveToNext()) visit(c.getString(0), EpgProgram(
@@ -311,7 +346,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
     /** Stream committed current listings, including full-day sports sessions, during guide imports. */
     fun visitCurrentPrograms(atMs: Long, channels: Collection<String>, visit: (String, EpgProgram) -> Unit) {
         channels.distinct().chunked(400).forEach { part ->
-            val sql = "SELECT ch, start, stop, title, descr, cat FROM programs WHERE ch IN (" +
+            val sql = "SELECT ch, start, stop, title, descr, cat FROM $GUIDE_LISTINGS WHERE ch IN (" +
                 part.joinToString(",") { "?" } + ") AND start >= ? AND start <= ? AND stop > ?"
             val args = part + listOf((atMs - 30L * 60 * 60_000).toString(), atMs.toString(), atMs.toString())
             readableDatabase.rawQuery(sql, args.toTypedArray()).use { c ->
@@ -343,7 +378,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             }.joinToString(" OR ")
             val args = listOf(fromMs.toString(), toMs.toString(), minStopMs.toString()) +
                 part.flatMap { w -> if (inDescription) listOf(like(w), like(w)) else listOf(like(w)) }
-            val sql = "SELECT ch, start, stop, title, descr, cat FROM programs WHERE start >= ? AND start < ? AND stop > ? AND ($conds) LIMIT ${limit - out.size}"
+            val sql = "SELECT ch, start, stop, title, descr, cat FROM $GUIDE_LISTINGS WHERE start >= ? AND start < ? AND stop > ? AND ($conds) LIMIT ${limit - out.size}"
             readableDatabase.rawQuery(sql, args.toTypedArray()).use { c ->
                 while (c.moveToNext()) {
                     val ch = c.getString(0)
@@ -386,7 +421,12 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         val db = writableDatabase
         db.beginTransaction()
         try {
-            db.delete("programs", "ch = ? AND start >= ? AND start < ?", arrayOf(ch, fromMs.toString(), toMs.toString()))
+            // A catch-up edit belongs to just this channel. Detach its full schedule first.
+            db.execSQL("INSERT INTO programs (ch,start,stop,title,descr,cat,ep,icon,year,people) " +
+                "SELECT a.ch,p.start,p.stop,p.title,p.descr,p.cat,p.ep,p.icon,p.year,p.people " +
+                "FROM schedule_channels a JOIN programs p ON p.ch=a.ref AND p.shared=1 WHERE a.ch=?", arrayOf(ch))
+            db.delete("schedule_channels", "ch = ?", arrayOf(ch))
+            db.delete("programs", "shared = 0 AND ch = ? AND start >= ? AND start < ?", arrayOf(ch, fromMs.toString(), toMs.toString()))
             val stmt = db.compileStatement(
                 "INSERT INTO programs (ch, start, stop, title, descr, cat, ep, icon, year, people) VALUES (?,?,?,?,?,?,?,?,?,?)"
             )
@@ -410,7 +450,10 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         val db = writableDatabase
         db.beginTransaction()
         try {
-            channels.forEach { ch -> db.delete("programs", "ch = ?", arrayOf(ch)) }
+            channels.forEach { ch ->
+                db.delete("schedule_channels", "ch = ?", arrayOf(ch))
+                db.delete("programs", "shared = 0 AND ch = ?", arrayOf(ch))
+            }
             bumpContentRevision(db)
             db.setTransactionSuccessful()
         } finally {
@@ -695,6 +738,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.execSQL("DROP INDEX IF EXISTS next_programs_ch_start")
             db.execSQL("DROP INDEX IF EXISTS next_programs_stop")
             db.execSQL("DROP INDEX IF EXISTS next_programs_start")
+            db.delete("schedule_channels", null, null)
             db.delete("programs", null, null)
             db.delete("auto", null, null)
             db.execSQL("DROP TABLE IF EXISTS temp.choice")
@@ -756,11 +800,13 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.execSQL("DROP TABLE IF EXISTS guide_next")
             db.execSQL("DROP TABLE IF EXISTS guide_choice")
             db.execSQL("DROP TABLE IF EXISTS auto_next")
+            db.execSQL("DROP TABLE IF EXISTS channels_next")
         }
         cleanup()
-        db.execSQL("CREATE TABLE guide_next AS SELECT * FROM programs WHERE 0")
-        db.execSQL("CREATE TABLE guide_choice (src TEXT NOT NULL, xid TEXT NOT NULL, ch TEXT NOT NULL, PRIMARY KEY(src,xid,ch))")
+        db.execSQL("CREATE TABLE guide_next ($PROGRAM_COLUMNS)")
+        db.execSQL("CREATE TABLE guide_choice (src TEXT NOT NULL, xid TEXT NOT NULL, ch TEXT NOT NULL, PRIMARY KEY(src,xid))")
         db.execSQL("CREATE TABLE auto_next (ch TEXT PRIMARY KEY, source TEXT NOT NULL, xmltv TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE channels_next (ch TEXT PRIMARY KEY, ref TEXT NOT NULL)")
         // Alternate index names so building the replacement never removes the live guide's indexes.
         val prefix = db.rawQuery("SELECT 1 FROM sqlite_master WHERE type='index' AND name='programs_ch_start'", null).use {
             if (it.moveToFirst()) "next_programs" else "programs"
@@ -769,12 +815,24 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.execSQL("CREATE INDEX ${prefix}_ch_start ON guide_next(ch,start)")
             db.execSQL("CREATE INDEX ${prefix}_stop ON guide_next(stop)")
             db.execSQL("CREATE INDEX ${prefix}_start ON guide_next(start)")
-            for (batch in choice.entries.chunked(128)) {
+            val representatives = HashMap<EpgAssignment, String>()
+            for (batch in choice.asSequence().chunked(512)) {
                 checkpoint()
                 transaction {
-                    db.compileStatement("INSERT OR IGNORE INTO guide_choice VALUES (?,?,?)").use { ins ->
-                        batch.forEach { (ch, a) ->
-                            ins.bindString(1,a.sourceId); ins.bindString(2,a.xmltvId); ins.bindString(3,ch); ins.executeInsert()
+                    db.compileStatement("INSERT INTO guide_choice VALUES (?,?,?)").use { schedule ->
+                        db.compileStatement("INSERT INTO channels_next VALUES (?,?)").use { channel ->
+                            for ((ch, assignment) in batch) {
+                                val ref = representatives.getOrPut(assignment) {
+                                    schedule.bindString(1, assignment.sourceId)
+                                    schedule.bindString(2, assignment.xmltvId)
+                                    schedule.bindString(3, ch)
+                                    schedule.executeInsert()
+                                    ch
+                                }
+                                channel.bindString(1, ch)
+                                channel.bindString(2, ref)
+                                channel.executeInsert()
+                            }
                         }
                     }
                 }
@@ -784,15 +842,15 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             while (row < maxRow) {
                 checkpoint()
                 transaction {
-                    db.execSQL("INSERT INTO guide_next (ch,start,stop,title,descr,cat,ep,icon,year,people) " +
-                        "SELECT c.ch,s.start,s.stop,s.title,${if (retainDescriptions) "s.descr" else "NULL"},s.cat,s.ep,s.icon,s.year,${if (retainDescriptions) "s.people" else "NULL"} " +
-                        "FROM stage s JOIN guide_choice c ON c.src=s.src AND c.xid=s.xid " +
+                    db.execSQL("INSERT INTO guide_next (ch,start,stop,title,descr,cat,ep,icon,year,people,shared) " +
+                        "SELECT c.ch,s.start,s.stop,s.title,${if (retainDescriptions) "s.descr" else "NULL"},s.cat,s.ep,s.icon,s.year,${if (retainDescriptions) "s.people" else "NULL"},1 " +
+                        "FROM stage s CROSS JOIN guide_choice c ON c.src=s.src AND c.xid=s.xid " +
                         "WHERE s.rowid>? AND s.rowid<=? AND s.stop>? AND s.start<?",
-                        arrayOf<Any>(row,row+256,fromMs,toMs))
+                        arrayOf<Any>(row,row+1024,fromMs,toMs))
                 }
-                row += 256
+                row += 1024
             }
-            for (batch in auto.entries.chunked(128)) {
+            for (batch in auto.asSequence().chunked(512)) {
                 checkpoint()
                 transaction {
                     batch.forEach { (ch,a) -> db.insertOrThrow("auto_next",null,ContentValues().apply {
@@ -802,6 +860,9 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             }
             checkpoint()
             transaction {
+                db.execSQL("DROP TABLE schedule_channels")
+                db.execSQL("ALTER TABLE channels_next RENAME TO schedule_channels")
+                db.execSQL("CREATE INDEX schedule_ref ON schedule_channels(ref)")
                 db.execSQL("DROP TABLE programs")
                 db.execSQL("ALTER TABLE guide_next RENAME TO programs")
                 db.execSQL("DROP TABLE auto")
@@ -816,6 +877,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
 
     fun clear() {
         val db = writableDatabase
+        db.delete("schedule_channels", null, null)
         db.delete("programs", null, null)
         db.delete("auto", null, null)
         db.delete("meta", null, null)
@@ -827,3 +889,12 @@ private val STAGING_TABLES = listOf("stage", "stage_meta", "stage_channels", "st
 
 /** Longest single listing assumed when reading a time window (longer ones are very rare). */
 private const val MAX_SHOW_MS = 6L * 60 * 60 * 1000
+
+private const val PROGRAM_COLUMNS = "ch TEXT NOT NULL, start INTEGER NOT NULL, stop INTEGER NOT NULL, title TEXT NOT NULL, " +
+    "descr TEXT, cat TEXT, ep TEXT, icon TEXT, year INTEGER, people TEXT, shared INTEGER NOT NULL DEFAULT 0"
+
+// Old installations and per-channel overrides have direct rows. Each shared XMLTV listing
+// is exposed under every playlist channel assigned to its schedule.
+private const val GUIDE_LISTINGS = "(SELECT ch,start,stop,title,descr,cat,ep,icon,year,people FROM programs WHERE shared=0 " +
+    "UNION ALL SELECT a.ch,p.start,p.stop,p.title,p.descr,p.cat,p.ep,p.icon,p.year,p.people " +
+    "FROM schedule_channels a JOIN programs p ON p.ch=a.ref AND p.shared=1)"

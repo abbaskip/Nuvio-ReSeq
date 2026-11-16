@@ -59,8 +59,7 @@ class HomeCwResolutionRaceTest {
             every { watchProgressSource } returns MutableStateFlow(WatchProgressSource.TRAKT)
         }
         val metadata = mockk<MetaRepository>(relaxed = true) {
-            // Rich enrichment is reached only after the actual initial and final lightweight
-            // publications (and both former early-resolution writes). Keep it suspended here.
+            // Hold enrichment after the tracker-derived lightweight cards have been submitted.
             every { getMetaFromAllAddons(any(), any()) } returns flow {
                 lightweightCompleted.complete(Unit)
                 awaitCancellation()
@@ -116,7 +115,7 @@ class HomeCwResolutionRaceTest {
         try {
             vm.loadContinueWatchingPipeline()
             withTimeout(10_000) { lightweightCompleted.await() }
-            coVerify(atLeast = 2) { vm.continueWatchingRepository.enrich(any(), any(), any()) }
+            coVerify(exactly = 1) { vm.continueWatchingRepository.enrich(any(), any(), any()) }
             assertEquals(3, vm.continueWatchingRepository.projection.value!!.members.size)
             assertTrue(vm._uiState.value.continueWatchingItems.isEmpty())
             assertFalse("lightweight completion is not UI publication", vm.initialCwResolved.value)
@@ -149,6 +148,7 @@ class HomeCwResolutionRaceTest {
         val seeds = MutableStateFlow(listOf(completed))
         val source = mockk<WatchProgressRepository>(relaxed = true) {
             every { allProgress } returns rows
+            every { observeRemoteProgressLoaded() } returns flowOf(true)
             every { observeNextUpSeeds() } returns seeds
             every { watchedItems } returns flowOf(emptyList())
             every { isDroppedShow(any()) } returns false

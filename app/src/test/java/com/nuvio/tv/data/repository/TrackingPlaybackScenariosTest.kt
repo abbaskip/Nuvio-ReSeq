@@ -213,6 +213,7 @@ class TrackingPlaybackScenariosTest {
     fun `scenario 3 - switching profiles isolates progress for the same content without cross-profile leakage`() = runTest {
         val activeProfile = MutableStateFlow(1)
         val profileManager = mockk<ProfileManager> {
+            every { resolvedActiveProfileId } returns activeProfile
             every { activeProfileId } returns activeProfile
         }
         val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true)
@@ -254,6 +255,7 @@ class TrackingPlaybackScenariosTest {
 
         val traktSettings = mockk<TraktSettingsDataStore>(relaxed = true) {
             every { watchProgressSource } returns MutableStateFlow(WatchProgressSource.NUVIO_SYNC)
+            every { resolvedWatchProgressSource(any()) } returns flowOf(WatchProgressSource.NUVIO_SYNC)
         }
 
         val repository = WatchProgressRepositoryImpl(

@@ -38,6 +38,9 @@ class ContinueWatchingRepository @Inject constructor(
     })
     private val started = AtomicBoolean()
     private var current: CwProjection? = null
+    // Disk supplies the first frame. Rebuild each restored series as its tracker data arrives.
+    // Accessed under mutex, scoped to the currently loaded profile and source.
+    private val restoredSeries = mutableSetOf<String>()
     private var epoch = 0L
     private val _projection = MutableStateFlow<CwProjection?>(null)
     val projection: StateFlow<CwProjection?> = _projection.asStateFlow()
@@ -49,12 +52,14 @@ class ContinueWatchingRepository @Inject constructor(
                 .collectLatest {
                     val lease = snapshot().lease
                     val progress = progressProvider.get()
-                    combine(progress.allProgress, progress.observeNextUpSeeds(), movieCompletionTimes(lease)) {
-                        items, seeds, movies -> Triple(items, seeds, movies)
-                    }.collect { (items, seeds, movies) ->
-                        val active = snapshot().lease
-                        if (active.profileId != lease.profileId || active.source != lease.source) return@collect
-                        publishTrackerProgress(active, items, seeds, progress, movies)
+                    progress.observeRemoteProgressLoaded().distinctUntilChanged().collectLatest { loaded ->
+                        // On readiness, subscribe to the current rows again. The loaded flag
+                        // can overtake an older list still being processed by a collector.
+                        combine(progress.allProgress, progress.observeNextUpSeeds(), movieCompletionTimes(lease)) { items, seeds, movies ->
+                            val active = snapshot().lease
+                            if (active.profileId == lease.profileId && active.source == lease.source)
+                                publishTrackerProgress(active, items, seeds, progress, movies, loaded)
+                        }.collect()
                     }
                 }
         }
@@ -78,11 +83,16 @@ class ContinueWatchingRepository @Inject constructor(
         val old = current
         if (old?.profileId == profile && old.source == source) return old
         val loaded = store.read(profile, source)
-        epoch = maxOf(epoch + 1, loaded.epoch + 1)
+        restoredSeries.clear()
+        restoredSeries.addAll(loaded.members.filterValues { member ->
+            (member.inProgress?.contentType ?: member.nextUp?.contentType) in setOf("series", "tv", "anime")
+        }.keys)
+        epoch = maxOf(epoch, old?.epoch ?: 0, loaded.epoch) + 1
         return approveIdentity(loaded.copy(epoch = epoch)).also { current = it; _projection.value = it }
     }
 
-    private suspend fun mutate(lease: CwLease, transform: (CwProjection) -> CwProjection): CwProjection =
+    private suspend fun mutate(lease: CwLease, afterCommit: () -> Unit = {},
+        transform: (CwProjection) -> CwProjection): CwProjection =
         withContext(Dispatchers.IO + NonCancellable) {
             mutex.withLock {
                 val state = current ?: load(lease.profileId, lease.source)
@@ -95,6 +105,7 @@ class ContinueWatchingRepository @Inject constructor(
                     current = next
                     _projection.value = next // Publish only after durable commit.
                 }
+                afterCommit()
                 next
             }
         }
@@ -112,7 +123,11 @@ class ContinueWatchingRepository @Inject constructor(
                 val state = active ?: store.read(profileId, source)
                 val next = approveIdentity(CwMembershipReducer.progress(state, updates))
                 if (next != state) store.write(next)
-                if (active != null) { current = next; _projection.value = next }
+                if (active != null) {
+                    updates.forEach { restoredSeries.remove(it.contentId) }
+                    current = next
+                    _projection.value = next
+                }
             }
         }
     }
@@ -138,7 +153,7 @@ class ContinueWatchingRepository @Inject constructor(
             val seeds = progress.observeNextUpSeeds().first().filter { it.contentId == contentId }
             val items = progress.allProgress.first().filter { it.contentId == contentId }
             var committed = false
-            val updated = mutate(state.lease) { current ->
+            val updated = mutate(state.lease, afterCommit = { restoredSeries.remove(contentId) }) { current ->
                 val revoked = CwMembershipReducer.historyRemoved(current, contentId, episodes, removedAt, tvdbIds)
                 committed = true
                 reduceProgress(revoked, items, seeds, progress, emptyMap())
@@ -173,27 +188,79 @@ class ContinueWatchingRepository @Inject constructor(
     suspend fun refreshProjection() {
         val state = snapshot()
         val progress = progressProvider.get()
+        val loaded = progress.observeRemoteProgressLoaded().first()
         val seeds = progress.observeNextUpSeeds().first()
         val items = progress.allProgress.first()
         val movies = movieCompletionTimes(state.lease).first()
-        publishTrackerProgress(state.lease, items, seeds, progress, movies)
+        publishTrackerProgress(state.lease, items, seeds, progress, movies, loaded)
     }
 
     private suspend fun publishTrackerProgress(lease: CwLease, items: List<WatchProgress>,
-        seeds: List<WatchProgress>, progress: WatchProgressRepository, movies: Map<String, Long?>) {
+        seeds: List<WatchProgress>, progress: WatchProgressRepository, movies: Map<String, Long?>, loaded: Boolean) {
         // Publish membership immediately. Resolve only the winning pauses for ordered shows,
         // outside the store lock, so a slow catalogue cannot delay playback or unrelated cards.
-        val state = mutate(lease) { reduceProgress(it, items, seeds, progress, movies) }
-        if (!CwMembershipReducer.accepts(state, lease)) return
-        resolvePendingPauses(state, state.members.values)
+        var replace = emptySet<String>()
+        val recheckPauses = mutableSetOf<String>()
+        val state = mutate(lease, afterCommit = { restoredSeries.removeAll(replace) }) { current ->
+            val restoringTracker = restoredSeries.isNotEmpty() && progress.hasActiveTrackingProgressProvider()
+            if (restoringTracker && !loaded) {
+                // Startup may emit yesterday's provider cache before the network result. It cannot
+                // invalidate a resolved episode. A local playback write may have reached its own
+                // store immediately before process death, without reaching the projection.
+                val applicable = items.filter { row ->
+                    row.contentId !in restoredSeries || (row.source == WatchProgress.SOURCE_LOCAL &&
+                        row.trackingProviderId == null && row.lastWatched >
+                        (current.members[row.contentId]?.progress?.lastWatched ?: Long.MAX_VALUE))
+                }
+                replace = applicable.mapNotNullTo(mutableSetOf()) { it.contentId.takeIf(restoredSeries::contains) }
+                return@mutate reduceProgress(current, applicable,
+                    seeds.filterNot { it.contentId in restoredSeries }, progress, movies)
+            }
+            if (restoringTracker) {
+                val playback = items.asSequence().filter { it.isCompleted() || it.position > 0 || (it.progressPercent ?: 0f) > 0 }
+                replace = (seeds.asSequence() + playback).filter {
+                    it.source != WatchProgress.SOURCE_LOCAL || it.trackingProviderId != null
+                }.map { it.contentId }.filter(restoredSeries::contains).toSet()
+            }
+            if (replace.isEmpty()) return@mutate reduceProgress(current, items, seeds, progress, movies, recheckPauses::add)
+            val base = current.copy(
+                members = current.members - replace, completed = current.completed - replace,
+                epoch = current.epoch + 1, revision = current.revision + 1)
+            val rebuilt = reduceProgress(base, items, seeds, progress, movies, recheckPauses::add)
+            // Keep a verified card on screen while the resolver recalculates the same seed.
+            // A different winning seed must acquire its own episode and progress.
+            val resumes = ArrayList<CachedInProgressItem>()
+            val offers = ArrayList<CachedNextUpItem>()
+            val members = rebuilt.members.toMutableMap()
+            for (id in replace) {
+                val old = current.members[id] ?: continue
+                val member = rebuilt.members[id] ?: continue
+                val winner = member.progress ?: continue
+                val ordered = CwMembershipReducer.restoreOrderedPause(rebuilt, old, member)
+                if (ordered !== member) {
+                    members[id] = ordered
+                    recheckPauses.add(id)
+                    continue
+                }
+                if (old.progress == winner) old.inProgress?.takeUnless { it.chooseEpisode }?.let(resumes::add)
+                val offer = old.nextUp?.takeUnless { it.chooseEpisode } ?: continue
+                if (old.progress?.sameEpisodeSeed(winner) == true) {
+                    offers += offer.copy(lastWatched = maxOf(offer.lastWatched, winner.lastWatched))
+                }
+            }
+            CwMembershipReducer.enrich(rebuilt.copy(members = members), rebuilt.lease, inProgress = resumes, nextUp = offers)
+        }
+        if (state.profileId != lease.profileId || state.source != lease.source) return
+        resolvePendingPauses(state, state.members.values, recheckPauses)
     }
 
-    private suspend fun resolvePendingPauses(state: CwProjection, members: Collection<CwMember>) {
+    private suspend fun resolvePendingPauses(state: CwProjection, members: Collection<CwMember>, recheck: Set<String> = emptySet()) {
         val lease = state.lease
         val resolver = tvdbTracking ?: return
         for (member in members) {
             val raw = member.progress ?: continue
-            if ((member.inProgress?.chooseEpisode != true && member.nextUp?.chooseEpisode != true) || !raw.isNativeTrackerPause()) continue
+            val previouslyResolved = raw.contentId in recheck
+            if ((!previouslyResolved && member.inProgress?.chooseEpisode != true && member.nextUp?.chooseEpisode != true) || !raw.isNativeTrackerPause()) continue
             val resolved = try {
                 resolver.get().continueWatchingResume(lease.profileId, raw, state.ignoredProgress) {
                     progressProvider.get().getAllEpisodeProgress(raw.contentId, lease.profileId).first { it.isNotEmpty() }.values
@@ -206,7 +273,8 @@ class ContinueWatchingRepository @Inject constructor(
             } ?: continue
             mutate(lease) { current ->
                 val latest = current.members[raw.contentId]
-                if (latest?.progress != raw || (latest.inProgress?.chooseEpisode != true && latest.nextUp?.chooseEpisode != true)) current
+                if (latest?.progress != raw || (latest.inProgress?.chooseEpisode != true && latest.nextUp?.chooseEpisode != true &&
+                    (!previouslyResolved || latest != member))) current
                 else current.copy(revision = current.revision + 1, members = current.members +
                     (raw.contentId to latest.copy(
                         inProgress = resolved.takeIf { it.progressPercentage > 0 }?.cached(latest.inProgress),
@@ -228,8 +296,8 @@ class ContinueWatchingRepository @Inject constructor(
     }
 
     private fun reduceProgress(state: CwProjection, items: List<WatchProgress>, seeds: List<WatchProgress>,
-        progress: WatchProgressRepository, movies: Map<String, Long?>): CwProjection {
-        val updated = CwMembershipReducer.refresh(state, seeds, items)
+        progress: WatchProgressRepository, movies: Map<String, Long?>, recheckOrderedPause: (String) -> Unit = {}): CwProjection {
+        val updated = CwMembershipReducer.refresh(state, seeds, items, recheckOrderedPause)
         val next = CwMembershipReducer.reconcileWatchedMovies(updated, movies)
         val hidden = next.members.keys.filterTo(mutableSetOf()) { progress.isDroppedShow(it) }
         return if (hidden == next.hiddenByProvider) next else next.copy(hiddenByProvider = hidden, revision = next.revision + 1)

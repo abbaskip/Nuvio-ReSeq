@@ -22,6 +22,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -43,6 +44,9 @@ class WatchProgressRepositoryProfileIsolationTest {
         val harness = harness(1, tvdb)
         every { harness.progressPreferences.observeEpisodeRecords("tt0386676", 1) } returns flowOf(emptyList())
         every { harness.progressPreferences.getAllEpisodeProgress("tt0386676", 1) } returns flowOf(mapOf((4 to 14) to native))
+        // This test changes episode order after startup. Wait for the real local source;
+        // the repository no longer emits a provisional local source on construction.
+        harness.repository.observeRemoteProgressLoaded().first()
         val values = mutableListOf<Map<Pair<Int, Int>, WatchProgress>>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { harness.repository.getAllEpisodeProgress("tt0386676", 1).collect { values += it } }
         runCurrent()
@@ -325,12 +329,29 @@ class WatchProgressRepositoryProfileIsolationTest {
         coVerify(exactly = 0) { h.progressPreferences.saveProgress(any(), any()) }
     }
 
+    @Test fun `startup waits for the selected tracker before reporting history readiness`() = kotlinx.coroutines.runBlocking {
+        val source = kotlinx.coroutines.CompletableDeferred<WatchProgressSource>()
+        val provider = mockk<com.nuvio.tv.core.tracking.TrackingProgressProvider> {
+            every { providerId } returns com.nuvio.tv.core.tracking.TrackingProviderId.TRAKT
+            every { isAuthenticated } returns flowOf(true)
+            every { remoteProgressLoaded } returns flowOf(false)
+        }
+        val h = harness(1, provider = provider, selectedSource = kotlinx.coroutines.flow.flow { emit(source.await()) })
+        val first = async(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            h.repository.observeRemoteProgressLoaded().first()
+        }
+        source.complete(WatchProgressSource.TRAKT)
+        assertEquals(false, kotlinx.coroutines.withTimeout(5_000) { first.await() })
+    }
+
     private fun harness(activeProfileId: Int,
         tvdb: com.nuvio.tv.data.tvdb.TvdbTrackingResolver? = null,
         provider: com.nuvio.tv.core.tracking.TrackingProgressProvider? = null,
-        progressSource: WatchProgressSource = WatchProgressSource.NUVIO_SYNC): Harness {
+        progressSource: WatchProgressSource = WatchProgressSource.NUVIO_SYNC,
+        selectedSource: kotlinx.coroutines.flow.Flow<WatchProgressSource> = flowOf(progressSource)): Harness {
         val activeProfile = MutableStateFlow(activeProfileId)
         val profileManager = mockk<ProfileManager>()
+        every { profileManager.resolvedActiveProfileId } returns activeProfile
         every { profileManager.activeProfileId } returns activeProfile
 
         val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true)
@@ -341,6 +362,7 @@ class WatchProgressRepositoryProfileIsolationTest {
         every { authManager.isAuthenticated } returns false
         val traktSettings = mockk<TraktSettingsDataStore>(relaxed = true)
         every { traktSettings.watchProgressSource } returns MutableStateFlow(progressSource)
+        every { traktSettings.resolvedWatchProgressSource(any()) } returns selectedSource
 
         val repository = WatchProgressRepositoryImpl(
             watchProgressPreferences = progressPreferences,

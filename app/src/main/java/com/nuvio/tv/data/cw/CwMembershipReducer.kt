@@ -244,6 +244,13 @@ object CwMembershipReducer {
                 return@forEach
             }
             val p = old.progress
+            // Home may finish enriching an older history suggestion after the pause resolver
+            // has selected a different part. Only the resolver can change that episode.
+            val offer = old.nextUp
+            if (p?.isNativeTrackerPause() == true && !p.isCompleted() &&
+                (offer?.tvdbContext != null || candidate.tvdbContext != null) &&
+                (candidate.lastWatched != p.lastWatched || candidate.videoId != offer?.videoId ||
+                    candidate.tvdbContext != offer?.tvdbContext)) return@forEach
             if (p?.isCompleted() == true && !candidate.chooseEpisode && sameEpisode(candidate, p)) return@forEach
             if (!candidate.chooseEpisode && state.completed[candidate.contentId].orEmpty().values.any { matches(candidate, it) }) return@forEach
             members[candidate.contentId] = old.copy(nextUp = candidate)
@@ -261,7 +268,7 @@ object CwMembershipReducer {
             prior.traktEpisodeId != raw.traktEpisodeId || prior.lastWatched != raw.lastWatched ||
             prior.progressPercentage != raw.progressPercentage || prior.trackingProviderId != raw.trackingProviderId) return rebuilt
         val offer = old.nextUp
-        if (offer?.tvdbContext != null && !offer.chooseEpisode &&
+        if (offer?.tvdbContext != null && !offer.chooseEpisode && offer.lastWatched == raw.lastWatched &&
             state.completed[raw.contentId].orEmpty().values.none { matches(offer, it) }) {
             return rebuilt.copy(inProgress = null, nextUp = offer)
         }

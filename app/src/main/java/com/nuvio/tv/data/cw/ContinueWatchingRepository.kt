@@ -82,7 +82,16 @@ class ContinueWatchingRepository @Inject constructor(
     private suspend fun load(profile: Int, source: String): CwProjection {
         val old = current
         if (old?.profileId == profile && old.source == source) return old
-        val loaded = store.read(profile, source)
+        val saved = store.read(profile, source)
+        val loaded = saved.copy(members = saved.members.mapValues { (_, member) ->
+            val pause = member.progress
+            val offer = member.nextUp
+            if (pause != null && pause.isNativeTrackerPause() && !pause.isCompleted() &&
+                offer?.tvdbContext != null && offer.lastWatched != pause.lastWatched) {
+                // Older releases could save an offer from history alongside a newer tracker pause.
+                member.copy(inProgress = pause.cached(), nextUp = null)
+            } else member
+        })
         restoredSeries.clear()
         restoredSeries.addAll(loaded.members.filterValues { member ->
             (member.inProgress?.contentType ?: member.nextUp?.contentType) in setOf("series", "tv", "anime")

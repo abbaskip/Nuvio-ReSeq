@@ -3,6 +3,7 @@ package com.nuvio.tv.data.tvdb
 import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.core.tmdb.TmdbService
 import com.nuvio.tv.core.tracking.*
+import com.nuvio.tv.data.cw.*
 import com.nuvio.tv.data.local.WatchProgressPreferences
 import com.nuvio.tv.data.mdblist.*
 import com.nuvio.tv.data.remote.api.*
@@ -234,6 +235,52 @@ class TvdbProportionalScrobbleTest {
         assertFalse(read(95f, true).isCompleted())
         assertTrue(read(96f, true).isCompleted())
         assertTrue(read(100f, true).isCompleted())
+    }
+
+    @Test fun staleDeliveryPartOneYieldsToLatestPauseAndCannotOverwritePartTwo() = runTest {
+        val show = original.id
+        val raw = WatchProgress(show, "series", "The Office", null, null, null, "$show:6:11", 6, 11,
+            "Shareholder Meeting", 0, 1_680_000, 1_794_747_546_000L, progressPercent = 49.75f,
+            source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 182129, tvdbEpisodeId = 1832421L)
+        val first = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719652L }
+        val stale = raw.seriesChoice().copy(videoId = first.id, season = 6, episode = 17, episodeTitle = first.title,
+            tvdbContext = first.tvdbPlaybackContext(), tvdbEpisodeId = 7931991, chooseEpisode = false,
+            lastWatched = 1_794_541_740_000L)
+        val directory = java.nio.file.Files.createTempDirectory("office-cw-upgrade").toFile()
+        val configuredResolver = TvdbTrackingResolver(store, dagger.Lazy { overlay }, source, profiles, trakt, auth,
+            mockk(), mockk(), playerSettings = mockk {
+                every { playerSettings } returns MutableStateFlow(mockk { every { nextEpisodeThresholdPercent } returns 98f })
+            })
+        val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
+            every { allProgress } returns MutableStateFlow(listOf(raw))
+            every { observeNextUpSeeds() } returns MutableStateFlow(emptyList())
+            every { observeRemoteProgressLoaded() } returns MutableStateFlow(true)
+            every { hasActiveTrackingProgressProvider() } returns true
+            every { isDroppedShow(any()) } returns false
+        }
+        coEvery { store.exportSelections(1) } returns mapOf("alias:$show" to "73244", "order:73244" to "alttwo")
+        every { profiles.resolvedActiveProfileId } returns MutableStateFlow(1)
+        fun owner() = ContinueWatchingRepository(mockk { every { filesDir } returns directory }, profiles,
+            mockk { coEvery { getWatchProgressSource(1) } returns com.nuvio.tv.data.local.WatchProgressSource.TRAKT },
+            javax.inject.Provider { remote }, tvdbOrders = store, tvdbTracking = javax.inject.Provider { configuredResolver })
+        try {
+            CwProjectionStore(java.io.File(directory, "cw_enrichment")).write(CwProjection(profileId = 1, source = "TRAKT",
+                members = mapOf(show to CwMember(progress = raw, nextUp = stale))))
+            val cw = owner()
+            assertTrue(cw.snapshot().nextUp.isEmpty())
+            cw.refreshProjection()
+            val rebuilt = cw.snapshot()
+            val partTwo = rebuilt.nextUp.single()
+            assertEquals("The Delivery Part 2 (Extended Cut)", partTwo.episodeTitle)
+            assertEquals(raw.lastWatched, partTwo.lastWatched)
+            cw.enrich(rebuilt.lease, nextUp = listOf(stale))
+            assertEquals(partTwo, cw.snapshot().nextUp.single())
+            cw.enrich(rebuilt.lease, nextUp = listOf(stale.copy(lastWatched = raw.lastWatched)))
+            assertEquals(partTwo, cw.snapshot().nextUp.single())
+            val withArtwork = partTwo.copy(thumbnail = "new-thumbnail")
+            cw.enrich(rebuilt.lease, nextUp = listOf(withArtwork))
+            assertEquals(withArtwork, owner().snapshot().nextUp.single())
+        } finally { directory.deleteRecursively() }
     }
 
     @Test fun splitOfficePauseSurvivesProviderReplayAndHomeRestart() = runTest {

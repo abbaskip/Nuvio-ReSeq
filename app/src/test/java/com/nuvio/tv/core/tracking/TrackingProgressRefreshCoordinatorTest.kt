@@ -102,6 +102,7 @@ class TrackingProgressRefreshCoordinatorTest {
         override val remoteProgressLoaded = flowOf(true)
         override val nextUpSeeds = flowOf(emptyList<WatchProgress>())
         override val watchedMovieIds = flowOf(emptySet<String>())
+        override fun movieCompletionTimes(profileId: Int) = flowOf(emptyMap<String, Long?>())
         override val watchedItems = flowOf(emptyList<WatchedItem>())
         var refreshCount = 0
         var lastIntent: TrackingRefreshIntent? = null

@@ -40,7 +40,9 @@ data class WatchProgress(
     val providerDefaultPlayback: Boolean = false,
     val tvdbCoverageVerified: Boolean? = null,
     /** Show activity for Home's history window when the chosen next-up seed is an older episode. */
-    @Transient val latestSeriesActivity: Long? = null
+    @Transient val latestSeriesActivity: Long? = null,
+    /** Original Trakt history coordinates before matching the addon's episode catalogue. */
+    val traktHistoryEpisode: EpisodeCoordinates? = null
 ) : TrackingAttributedItem {
     override val trackingContentId: String
         get() = contentId

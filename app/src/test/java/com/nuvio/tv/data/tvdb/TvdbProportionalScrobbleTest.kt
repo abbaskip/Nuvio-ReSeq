@@ -9,6 +9,7 @@ import com.nuvio.tv.data.remote.api.*
 import com.nuvio.tv.data.remote.dto.trakt.*
 import com.nuvio.tv.data.repository.*
 import com.nuvio.tv.domain.model.*
+import com.nuvio.tv.ui.screens.home.homeCard
 import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -88,6 +89,184 @@ class TvdbProportionalScrobbleTest {
                     assertEquals("tt0386676:5:16", event(percent).media.catalog!!.videoId)
                 }
             }
+        }
+    }
+
+    @Test fun `valid source numbers cannot substitute for a different assigned ReSeq episode`() = runTest {
+        val playback = event(50.0)
+        val catalog = requireNotNull(playback.media.catalog)
+        val other = effective.videos.single { it.displaySeason == 6 && it.displayEpisode == 17 }
+        val wrongIdentity = playback.media.copy(catalog = catalog.copy(tvdbContext = other.tvdbPlaybackContext()))
+        for (provider in TrackingProviderId.entries) {
+            for (action in TrackingScrobbleAction.entries) {
+                assertTrue(resolver.scrobbleEvents(provider, action, playback.copy(media = wrongIdentity)).orEmpty().isEmpty())
+            }
+            for (completion in listOf(true, null)) {
+                assertTrue(resolver.resolveAll(1, provider, wrongIdentity, completed = completion).orEmpty().isEmpty())
+            }
+        }
+    }
+
+    @Test fun officeAlternateOrderTrackerContract() = runTest {
+        val events = mutableListOf<String>()
+        val actual = mutableListOf<String>()
+        val mapping = mockk<TraktEpisodeMappingService>(relaxUnitFun = true)
+        coEvery { auth.getCurrentAuthState() } returns com.nuvio.tv.data.local.TraktAuthState("fixture", "fixture")
+        every { auth.hasRequiredCredentials() } returns true
+        coEvery { auth.executeAuthorizedWriteRequest<Any?>(any()) } coAnswers {
+            firstArg<suspend (String) -> Response<Any?>>().invoke("fixture")
+        }
+        val progress = spyk(TraktProgressService(mockk(relaxed = true), trakt, auth, mockk(relaxed = true),
+            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mapping, profiles,
+            mockk(relaxed = true)))
+        coEvery { progress.refreshNow() } returns Unit
+        val tracker = TraktTrackingScrobbler(TraktScrobbleService(trakt, auth, progress, profiles), mapping)
+        val history = TraktTrackingHistoryWriter(progress, profiles)
+        fun scrobble(action: String, body: TraktScrobbleRequestDto): Response<TraktScrobbleResponseDto> {
+            events += listOf(action, body.show?.ids, body.episode, body.progress).joinToString("|")
+            return Response.success(TraktScrobbleResponseDto(action))
+        }
+        coEvery { trakt.scrobbleStart("fixture", any()) } coAnswers { scrobble("start", secondArg()) }
+        coEvery { trakt.scrobblePause("fixture", any()) } coAnswers { scrobble("pause", secondArg()) }
+        coEvery { trakt.scrobbleStop("fixture", any()) } coAnswers { scrobble("stop", secondArg()) }
+        coEvery { trakt.addHistory("fixture", any()) } coAnswers {
+            val body = secondArg<TraktHistoryAddRequestDto>()
+            events += "add|" + body.shows.orEmpty().map { show ->
+                show.ids to show.seasons.orEmpty().map { it.number to it.episodes.orEmpty().map { ep -> ep.number to ep.ids } }
+            } + "|" + body.episodes.orEmpty().map { it.number to it.ids }
+            Response.success(TraktHistoryAddResponseDto(added = TraktHistoryRemoveCountDto(episodes = 2)))
+        }
+        coEvery { trakt.removeHistory("fixture", any()) } coAnswers {
+            events += "remove|" + secondArg<TraktHistoryRemoveRequestDto>()
+            Response.success(TraktHistoryRemoveResponseDto(deleted = TraktHistoryRemoveCountDto(episodes = 2)))
+        }
+        val registry = mockk<TrackingProviderRegistry> { every { connectedScrobblers() } returns listOf(tracker) }
+        val coordinator = TrackingScrobbleCoordinator(registry, resolver)
+        val split = tvdbEpisodeOverlay(original, 73244, orders.getValue("alternate"))
+        for ((meta, video) in listOf(effective to lecture,
+            effective to effective.videos.single { it.displaySeason == 6 && it.displayEpisode == 17 },
+            split to split.videos.first { tvdbEpisodeBaseTitle(it.title) == tvdbEpisodeBaseTitle("Weight Loss") })) {
+            coEvery { overlay.forOrder(1, original, any()) } returns meta
+            events.clear()
+            for ((action, at) in listOf(TrackingScrobbleAction.START to 0.0, TrackingScrobbleAction.PAUSE to 47.0,
+                TrackingScrobbleAction.START to 47.0, TrackingScrobbleAction.STOP to 94.3592)) {
+                assertTrue(coordinator.scrobble(action, event(at, video)).isEmpty())
+            }
+            assertTrue("The fixture must actually deliver playback", events.size >= 4)
+            val media = event(100.0, video).media
+            for (watched in listOf(true, false)) {
+                val targets = resolver.resolveAll(1, tracker.providerId, media, completed = true.takeIf { watched })
+                requireNotNull(targets)
+                events += if (watched) "WATCHED" else "UNWATCHED"
+                if (watched) history.addToHistory(1, targets.map { TrackingHistoryItem(it, 1_700_000_000_000) })
+                else history.removeFromHistory(1, targets)
+            }
+            actual += events.map { "OFFICE_CONTRACT|${video.episodeIdentity!!.tvdbEpisodeId}|$it" }
+        }
+        val reference = javaClass.getResourceAsStream("/tvdb/office-98-tracker-contract.txt")!!
+            .bufferedReader().use { it.readLines() }
+        assertEquals(reference, actual)
+    }
+
+    @Test fun deliveryThresholdAdvancesAtTheEndOfEachSelectedPart() = runTest {
+        val first = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719652L }
+        val second = effective.videos.single { it.displaySeason == first.displaySeason && it.displayEpisode == first.displayEpisode!! + 1 }
+        val ids = listOf(first, second).flatMap { it.tvdbPlaybackContext()!!.episodeIds }
+        val pause = WatchProgress(original.id, "series", "The Office", null, null, null, "native", 6, 16,
+            "The Delivery", 0, 0, 1234, source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 182129)
+        fun parts(percent: Float) = projectTrackerParts(pause.copy(progressPercent = percent), ids, effective.videos, .98f)
+        assertFalse(parts(48.9f).single().isCompleted())
+        assertTrue(parts(49f).single().isCompleted())
+        val later = parts(55f)
+        assertEquals(first.id, later.single { it.isCompleted() }.videoId)
+        assertEquals(10f, later.single { !it.isCompleted() }.progressPercent!!, .001f)
+        assertTrue(parts(99f).all { it.isCompleted() })
+        val weighted = listOf(first, second).map { part ->
+            part.copy(episodeIdentity = part.episodeIdentity!!.copy(providerSources = emptyList(),
+                contentRuntimeMinutes = ids.zip(listOf(20, 40)).toMap()))
+        }
+        fun weightedFirst(percent: Float) = projectTrackerParts(pause.copy(progressPercent = percent), ids, weighted, .98f)
+            .single { it.videoId == first.id }
+        assertFalse(weightedFirst(32.6f).isCompleted())
+        assertTrue(weightedFirst(32.7f).isCompleted())
+        val next = resolver.continueWatchingResume(1, pause.copy(progressPercent = 50f))!!
+        assertEquals(second.id, next.videoId)
+        assertEquals(0f, next.progressPercentage)
+        val completed = resolver.continueWatchingResume(1, pause.copy(progressPercent = 100f))!!
+        assertEquals(second.displayEpisode!! + 1, completed.tvdbContext!!.episode)
+    }
+
+    @Test fun nativeSimklAndMdbListPausesUseTheSameVerifiedSplitForDetailsAndHome() = runTest {
+        val first = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719652L }
+        val second = effective.videos.single { it.displaySeason == first.displaySeason && it.displayEpisode == first.displayEpisode!! + 1 }
+        val combinedId = 123456789L
+        val content = EpisodeContentIdentity(combinedId, "The Delivery", null, EpisodeCoordinates(6, 16),
+            listOf(first, second).flatMap { it.tvdbPlaybackContext()!!.episodeIds })
+        val order = requireNotNull(effective.episodeOrder)
+        coEvery { overlay.apply(1, original) } returns effective.copy(episodeOrder = order.copy(content = order.content + content))
+        for ((provider, origin) in listOf("simkl" to WatchProgress.SOURCE_SIMKL_PLAYBACK, "mdblist" to WatchProgress.SOURCE_REMOTE_PLAYBACK)) {
+            val paused = WatchProgress(original.id, "series", "The Office", null, null, null, "native", 6, 16, "The Delivery",
+                0, 0, 1234, source = origin, trackingProviderId = provider, tvdbEpisodeId = combinedId, progressPercent = 55f)
+            val details = resolver.projectProgress(1, original.id, mapOf((6 to 16) to paused))
+            assertTrue(details.getValue(first.season!! to first.episode!!).isCompleted())
+            val focused = resolver.continueWatchingResume(1, paused)!!
+            assertEquals(second.id, focused.videoId)
+            assertEquals(10f, focused.progressPercent!!, .001f)
+            assertEquals(focused.progressPercent, details.getValue(second.season!! to second.episode!!).progressPercent)
+        }
+    }
+
+    @Test fun combinedLectureCircuitRetainsIndependentEvidenceForBothNativeEpisodes() {
+        val nativeIds = lecture.tvdbPlaybackContext()!!.episodeIds
+        assertEquals(2, nativeIds.size)
+        val raw = WatchProgress(original.id, "series", original.name, null, null, null, "native",
+            5, 14, null, 0, 0, 1_000, source = WatchProgress.SOURCE_TRAKT_PLAYBACK)
+        fun read(secondPercent: Float, includeFirst: Boolean): WatchProgress {
+            val first = if (includeFirst) projectTrackerParts(raw.copy(progressPercent = 100f),
+                nativeIds.take(1), listOf(lecture), .98f) else emptyList()
+            val second = projectTrackerParts(raw.copy(progressPercent = secondPercent, lastWatched = 2_000),
+                nativeIds.takeLast(1), listOf(lecture), .98f)
+            return reconcileTvdbProgress(effective, emptyMap(), projected = first + second).getValue(lecture.season!! to lecture.episode!!)
+        }
+        assertFalse(read(100f, false).isCompleted())
+        assertEquals(75f, read(50f, true).progressPercent!!, .001f)
+        assertFalse(read(95f, true).isCompleted())
+        assertTrue(read(96f, true).isCompleted())
+        assertTrue(read(100f, true).isCompleted())
+    }
+
+    @Test fun splitOfficePauseSurvivesProviderReplayAndHomeRestart() = runTest {
+        val show = original.id
+        val raw = WatchProgress(show, "series", "The Office", null, null, null, "$show:6:11", 6, 11,
+            "Shareholder Meeting", 0, 0, 1234L, progressPercent = 47.1796f,
+            source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 182129, tvdbEpisodeId = 1832421L)
+        val directory = java.nio.file.Files.createTempDirectory("office-cw").toFile()
+        val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
+            every { allProgress } returns MutableStateFlow(listOf(raw))
+            every { observeNextUpSeeds() } returns MutableStateFlow(emptyList())
+            every { isDroppedShow(any()) } returns false
+        }
+        coEvery { store.exportSelections(1) } returns mapOf("alias:$show" to "73244", "order:73244" to "alttwo")
+        every { profiles.resolvedActiveProfileId } returns MutableStateFlow(1)
+        fun owner() = com.nuvio.tv.data.cw.ContinueWatchingRepository(
+            mockk { every { filesDir } returns directory }, profiles,
+            mockk { coEvery { getWatchProgressSource(1) } returns com.nuvio.tv.data.local.WatchProgressSource.TRAKT },
+            javax.inject.Provider { remote }, tvdbOrders = store, tvdbTracking = javax.inject.Provider { resolver })
+        try {
+            val cw = owner()
+            repeat(2) { cw.refreshProjection() }
+            val member = owner().snapshot().members.getValue(show)
+            val card = member.inProgress!!.homeCard(member.progress)
+            assertEquals(raw, member.progress)
+            assertFalse(card.chooseEpisode)
+            assertEquals(10719652L, card.progress.tvdbContext?.episodeId)
+            assertEquals("The Delivery Part 1 (Extended Cut)", card.progress.episodeTitle)
+            assertEquals(94.3592f, card.progress.progressPercent!!, 0.001f)
+            assertFalse(card.progress.isCompleted())
+            coVerify(exactly = 0) { trakt.scrobbleStart(any(), any()); trakt.scrobblePause(any(), any())
+                trakt.scrobbleStop(any(), any()); trakt.addHistory(any(), any()); trakt.removeHistory(any(), any()) }
+        } finally {
+            directory.deleteRecursively()
         }
     }
 

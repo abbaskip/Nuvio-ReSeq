@@ -19,24 +19,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.dropWhile
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "TvChannelSync"
-private const val DEBOUNCE_MS = 2_000L
+private const val PUBLICATION_INTERVAL_MS = 500L
 
 /**
  * Keeps the Android TV "Continue Watching" preview channel in sync with the app's
  * CW enrichment cache. Uses the same enriched data that the in-app Continue Watching
  * section displays, respecting user settings (days cap, show unaired, etc.).
  *
- * Items are sourced from [ContinueWatchingEnrichmentCache] which is populated by the
- * HomeViewModel CW pipeline. This ensures the launcher channel shows the same items
- * the user sees in the app UI.
+ * Items come from the durable app-scoped projection, including off-Home completion.
+ * Membership and visibility decisions are made by the repository reducer.
  *
  * Before publishing new programs, all stale programs are removed first to avoid
  * the launcher showing outdated tiles while new ones are being inserted.
@@ -50,12 +51,12 @@ class AndroidTvChannelSyncService @Inject constructor(
     private val traktSettingsDataStore: TraktSettingsDataStore,
     private val tvRecommendationManager: TvRecommendationManager
 ) {
+    private val reconcileMutex = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // The launcher channel is only visible while the app is in the background. Reconciling on
-    // every in-playback cache bump (~10s) thrashes the TvProvider and stops launchers like
-    // Projectivy from repainting. We instead reconcile once when the app goes to background
-    // (user returns to the launcher) — see [onForegroundChanged].
+    // Publish membership/offer changes promptly during playback. Suppress position-only
+    // provider writes until backgrounding so Projectivy can repaint without IPC churn.
+    private var lastPublishedStructure: Pair<String, List<WatchProgress>>? = null
     @Volatile private var appInForeground = false
 
     /** Called from the host Activity's onStart/onStop. On background we reconcile once so the
@@ -77,26 +78,17 @@ class AndroidTvChannelSyncService @Inject constructor(
         TvChannelRefreshJobService.schedulePeriodic(context)
 
         scope.launch {
-            // Observe cache snapshot updates and settings changes to trigger reconciliation.
-            // snapshotVersion bumps every time the CW pipeline writes new data to disk cache.
-            // We drop the initial value (0) to avoid reconciling with stale disk cache before
-            // the pipeline has had a chance to produce fresh data.
+            // A durable projection is safe to publish on startup and while Home is absent.
             combine(
-                cwEnrichmentCache.snapshotVersion
-                    .dropWhile { it == 0 },
+                cwEnrichmentCache.projection.filterNotNull(),
                 traktSettingsDataStore.continueWatchingDaysCap,
                 traktSettingsDataStore.dismissedNextUpKeys,
                 layoutPreferenceDataStore.useEpisodeThumbnailsInCw
             ) { _, daysCap, dismissed, useEpisodeThumbnails ->
                 ChannelSettingsSnapshot(daysCap, dismissed, useEpisodeThumbnails)
             }
-                .debounce(DEBOUNCE_MS)
+                .sample(PUBLICATION_INTERVAL_MS)
                 .collect { settings ->
-                    // Skip while the app is foregrounded — the launcher channel isn't visible
-                    // then, and reconciling on every ~10s in-playback cache bump thrashes the
-                    // provider (and stops launchers like Projectivy from repainting). The
-                    // background transition (onForegroundChanged) + periodic job cover it.
-                    if (appInForeground) return@collect
                     reconcileFromCache(settings)
                 }
         }
@@ -106,7 +98,7 @@ class AndroidTvChannelSyncService @Inject constructor(
      * Reads the CW enrichment cache and reconciles the launcher channel.
      * Called both from the live observer and from [TvChannelRefreshJobService].
      */
-    suspend fun reconcileFromCache(settings: ChannelSettingsSnapshot? = null) {
+    suspend fun reconcileFromCache(settings: ChannelSettingsSnapshot? = null) = reconcileMutex.withLock {
         val resolvedSettings = settings ?: run {
             val daysCap = traktSettingsDataStore.continueWatchingDaysCap.first()
             val dismissed = traktSettingsDataStore.dismissedNextUpKeys.first()
@@ -114,10 +106,12 @@ class AndroidTvChannelSyncService @Inject constructor(
             ChannelSettingsSnapshot(daysCap, dismissed, useEpisodeThumbnails)
         }
 
-        val inProgressItems = runCatching { cwEnrichmentCache.getInProgressSnapshot() }
-            .getOrDefault(emptyList())
-        val nextUpItems = runCatching { cwEnrichmentCache.getNextUpSnapshot() }
-            .getOrDefault(emptyList())
+        val projection = cwEnrichmentCache.getSnapshot()
+        val eligible = com.nuvio.tv.data.cw.CwMembershipReducer.visible(projection,
+            resolvedSettings.daysCap, resolvedSettings.dismissedNextUp, showUnaired = false,
+            now = System.currentTimeMillis(), launcher = true)
+        val inProgressItems = eligible.inProgress
+        val nextUpItems = eligible.nextUp
 
         val posterPattern = patternForScreen(
             layoutPreferenceDataStore.customPosterUrlPattern.first(),
@@ -132,11 +126,17 @@ class AndroidTvChannelSyncService @Inject constructor(
             "Reconciling from cache: ${channelItems.size} items " +
                 "(${inProgressItems.size} in-progress, ${nextUpItems.size} next-up raw)"
         )
+        val structure = "${projection.profileId}:${projection.source}" to channelItems.map {
+            it.copy(position = 0, duration = 0, lastWatched = 0, progressPercent = null)
+        }
+        if (appInForeground && structure == lastPublishedStructure) return@withLock
+        if (cwEnrichmentCache.getSnapshot().lease != projection.lease) return@withLock
         manager.reconcile(channelItems)
 
         runCatching {
             tvRecommendationManager.updateWatchNext(channelItems)
         }
+        lastPublishedStructure = structure
     }
 
     /**
@@ -153,18 +153,8 @@ class AndroidTvChannelSyncService @Inject constructor(
         nextUp: List<CachedNextUpItem>,
         settings: ChannelSettingsSnapshot
     ): List<WatchProgress> {
-        val cutoffMs = com.nuvio.tv.domain.model.continueWatchingCutoff(settings.daysCap, System.currentTimeMillis())
-
-        // Filter in-progress items by days cap
         val filteredInProgress = inProgress
-            .filter { cutoffMs == null || it.lastWatched >= cutoffMs }
-
-        // Filter next-up items: exclude unaired (launcher should only show playable content),
-        // respect days cap and dismissed keys
         val filteredNextUp = nextUp
-            .filter { it.hasAired }  // Never show unaired in launcher — can't be played
-            .filter { cutoffMs == null || maxOf(it.lastWatched, it.latestSeriesActivity ?: 0L) >= cutoffMs }
-            .filter { nextUpDismissKey(it) !in settings.dismissedNextUp }
 
         // Deduplicate: in-progress wins over next-up for same contentId
         val inProgressContentIds = filteredInProgress.mapTo(mutableSetOf()) { it.contentId }
@@ -222,9 +212,9 @@ private fun CachedInProgressItem.toWatchProgress(useEpisodeThumbnails: Boolean):
         poster = poster,
         backdrop = image,
         logo = logo,
-        videoId = videoId,
-        season = season,
-        episode = episode,
+        videoId = if (chooseEpisode) contentId else videoId,
+        season = season.takeUnless { chooseEpisode },
+        episode = episode.takeUnless { chooseEpisode },
         episodeTitle = episodeTitle,
         position = position,
         duration = duration,
@@ -252,8 +242,8 @@ private fun CachedNextUpItem.toWatchProgress(useEpisodeThumbnails: Boolean): Wat
         backdrop = image,
         logo = logo,
         videoId = videoId,
-        season = season,
-        episode = episode,
+        season = season.takeUnless { chooseEpisode },
+        episode = episode.takeUnless { chooseEpisode },
         episodeTitle = episodeTitle,
         position = 0,
         duration = 0,

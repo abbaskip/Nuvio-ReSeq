@@ -151,6 +151,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
     private val mutationStore: WatchStateMutationStore,
     private val serverWatched: ServerWatched,
     private val tvdbTracking: com.nuvio.tv.data.tvdb.TvdbTrackingResolver? = null,
+    private val cwRepository: com.nuvio.tv.data.cw.ContinueWatchingRepository? = null,
 ) : WatchProgressRepository {
     companion object {
         private const val TAG = "WatchProgressRepo"
@@ -461,7 +462,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
                             providerEntries = items,
                             localEntries = localItems.filter { it.tvdbContext == null },
                             retainsLocalProgress = provider::retainsLocalProgress
-                        ) + localItems.filter { it.tvdbContext?.seriesId in selectedSeries && provider.retainsTvdbLocalProgress(it) })
+                        ) + localItems.filter { it.tvdbContext?.seriesId in selectedSeries }.mapNotNull { retainedSelectedProgress(provider, profileId, it) })
                             .map { progress -> enrichWithMetadata(progress, metadata) }
                             .sortedByDescending(WatchProgress::lastWatched)
                     }.onEach { items ->
@@ -593,9 +594,16 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 else if (provider != null) combine(provider.episodeProgress(contentId), provider.allProgress) { episodes, all ->
                     (episodes.values + all).distinctBy { Triple(it.contentId, it.season, it.episode) }
                 } else flowOf(emptyList())
-            combine(remote, watchProgressPreferences.observeEpisodeRecords(contentId, profileId)) { entries, records ->
+            val revoked = cwRepository?.projection?.map { state ->
+                state?.takeIf { it.profileId == profileId && it.source == provider?.providerId?.name }?.ignoredProgress.orEmpty()
+            }?.distinctUntilChanged() ?: flowOf(emptyMap())
+            combine(remote, watchProgressPreferences.observeEpisodeRecords(contentId, profileId), revoked) { entries, records, ignored ->
                 tvdb.projectProgress(profileId, contentId, emptyMap(),
-                    records.filter { provider.retainsTvdbLocalProgress(it) } + entries, context)
+                    records.mapNotNull { retainedSelectedProgress(provider, profileId, it) } + entries, context).filterValues { part ->
+                    part.tvdbContentIds.none { id ->
+                        (ignored[com.nuvio.tv.data.cw.tvdbRemovalKey(contentId, id)] ?: Long.MIN_VALUE) >= part.lastWatched
+                    }
+                }
             }
 
         }.distinctUntilChanged()
@@ -641,6 +649,22 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 provider?.airedEpisodeOrder(contentId) ?: flowOf(emptyList())
             }
             .distinctUntilChanged()
+    }
+
+    private suspend fun retainedSelectedProgress(provider: TrackingProgressProvider?, profileId: Int,
+        row: WatchProgress): WatchProgress? {
+        val context = row.tvdbContext ?: return row.takeIf { provider.retainsTvdbLocalProgress(it) }
+        val tvdb = tvdbTracking
+        if (provider != null && tvdb != null) {
+            val media = buildTrackingMediaReference(row.contentType, row.contentId, row.videoId,
+                seasonNumber = row.season, episodeNumber = row.episode)
+            if (tvdb.isPartialTrackerEpisode(profileId, provider.providerId, media.copy(catalog = media.catalog?.copy(tvdbContext = context)))) {
+                val threshold = tvdb.partThreshold()
+                return row.copy(completionThresholdOverride = threshold,
+                    tvdbCompletedEpisodeIds = if (row.isCompleted(threshold)) context.episodeIds else emptyList())
+            }
+        }
+        return row.takeIf { provider.retainsTvdbLocalProgress(it) }
     }
 
     override fun observeNextUpSeeds(): Flow<List<WatchProgress>> {
@@ -701,10 +725,12 @@ class WatchProgressRepositoryImpl @Inject constructor(
             }
             .distinctUntilChanged()
         return profileManager.activeProfileId.flatMapLatest { profileId ->
-            combine(existing, watchProgressPreferences.observeAllProgress(profileId),
+            // Seeds need the remaining completed episodes, not the latest row per show.
+            // After unwatch that row can be an older resume hiding retained TVDB history.
+            combine(existing, watchProgressPreferences.observeAllRawProgress(profileId),
                 tvdbTracking?.observeSelectedSeries(profileId) ?: flowOf(emptySet<Long>()),
                 activeProgressProviderFlow()) { seeds, records, selected, provider ->
-                val parts = records.filter { it.tvdbContext?.seriesId in selected && it.isCompleted() && provider.retainsTvdbLocalProgress(it) }
+                val parts = records.filter { it.tvdbContext?.seriesId in selected && it.isCompleted() }.mapNotNull { retainedSelectedProgress(provider, profileId, it) }.filter { it.isCompleted() }
                 if (parts.isEmpty()) seeds else (seeds + parts).groupBy { it.contentId }.values.map { it.maxBy(WatchProgress::lastWatched) }
             }
         }.distinctUntilChanged()
@@ -857,6 +883,22 @@ class WatchProgressRepositoryImpl @Inject constructor(
             }
     }
 
+    private suspend fun publishContinueWatching(profileId: Int, updates: List<WatchProgress>) {
+        try {
+            val owner = cwRepository ?: return
+            val provider = if (updates.any { it.tvdbContext != null }) profileProgressProviderFlow(profileId).first() else null
+            owner.committedProgress(profileId, updates.map { row ->
+                if (row.tvdbContext == null) row else retainedSelectedProgress(provider, profileId, row) ?: row
+            })
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            // The existing progress store is already committed. A projection I/O failure
+            // must not suppress watched/scrobble delivery; refresh replays that progress.
+            Log.e(TAG, "CW projection commit failed; committed progress will be replayed", error)
+        }
+    }
+
     override suspend fun saveProgress(progress: WatchProgress, syncRemote: Boolean) {
         val profileId = profileManager.activeProfileId.value
         saveProgress(progress, profileId, syncRemote)
@@ -891,6 +933,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             activeProgressProvider()?.applyOptimisticProgress(progress, quiet = !syncRemote)
         }
         watchProgressPreferences.saveProgress(progress, profileId = profileId)
+        publishContinueWatching(profileId, listOf(progress))
 
         if (shouldPushRemote) {
             syncScope.launch(NonCancellable) {
@@ -943,6 +986,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             }
         }
         watchProgressPreferences.saveProgressBatch(progressList, profileId = profileId)
+        publishContinueWatching(profileId, progressList)
 
         if (syncRemote && authManager.isAuthenticated) {
             triggerRemoteSync(profileId = profileId)
@@ -1005,6 +1049,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
 
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {
         val profileId = profileManager.activeProfileId.value
+        if (season == null && episode == null) cwRepository?.remove(setOf(contentId), profileId)
         if (season != null && episode != null && tvdbTracking?.isSelected(profileId, contentId) == true) {
             removeSelectedTvdbEpisode(profileId, contentId, null, season, episode, history = false)
             return
@@ -1049,6 +1094,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             removeSelectedTvdbEpisode(profileId, contentId, videoId, season, episode, history = true)
             return
         }
+        if (season == null || episode == null) cwRepository?.remove(setOf(contentId), profileId)
         val remoteDeleteKeys = resolveRemoteDeleteKeys(contentId, season, episode, profileId = profileId)
         val watchedDeleteKey = WatchedMutationKey(contentId, season, episode)
         mutationStore.queueProgressDeletes(remoteDeleteKeys, profileId)
@@ -1071,6 +1117,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
         )
         watchProgressPreferences.removeProgress(contentId, season, episode, profileId)
         watchedItemsPreferences.unmarkAsWatched(contentId, season, episode, profileId = profileId)
+        if (season != null && episode != null) cwRepository?.historyRemoved(profileId, contentId, setOf(season to episode))
         if (authManager.isAuthenticated && remoteDeleteKeys.isNotEmpty()) {
             watchProgressSyncService.deleteFromRemote(remoteDeleteKeys, profileId)
                 .onFailure { error ->
@@ -1124,6 +1171,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             )
         }
         broadcastHistoryRemoval(profileId, media)
+        cwRepository?.historyRemoved(profileId, contentId, episodePairs.toSet())
         syncServerWatched(
             episodes.map { (season, episode, epVideoId) ->
                 ServerWatchMark(contentId, "series", epVideoId ?: videoId, season, episode)
@@ -1185,6 +1233,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             if (completed.tvdbEpisodeIds == null) activeProgressProvider()?.applyOptimisticProgress(completed, quiet = false)
         }
         watchProgressPreferences.saveProgress(completed, profileId = profileId)
+        publishContinueWatching(profileId, listOf(completed))
         if (completed.tvdbContext != null) {
             recordTvdbNativeWatched(profileId, listOf(completed), syncRemote = true)
             broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(now)), coverageChangesOnly = !broadcastTrackingHistory)
@@ -1240,6 +1289,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             }
         }
         watchProgressPreferences.saveProgressBatch(completedList, profileId = profileId)
+        publishContinueWatching(profileId, completedList)
         val watchedItems = completedList.filter { it.tvdbContext == null }.map { progress -> progress.toWatchedItem(watchedAt = now) }
         recordTvdbNativeWatched(profileId, completedList.filter { it.tvdbContext != null && it.isCompleted() }, syncRemote = true)
         watchedItemsPreferences.markAsWatchedBatch(watchedItems, profileId = profileId)
@@ -1297,12 +1347,19 @@ class WatchProgressRepositoryImpl @Inject constructor(
         watchProgressPreferences.removeProgressKeys(keys, profileId)
         if (authManager.isAuthenticated && keys.isNotEmpty()) watchProgressSyncService.deleteFromRemote(keys.toList(), profileId)
         if (history) {
-            broadcastHistoryRemoval(profileId, listOf(media))
+            val removed = broadcastHistoryRemoval(profileId, listOf(media))
             val native = tvdb.nativeEpisodes(profileId, contentId, context)
             native.forEach { coordinates -> watchedItemsPreferences.unmarkAsWatched(contentId, coordinates.season, coordinates.episode, profileId) }
             mutationStore.queueWatchedDeletes(native.map { WatchedMutationKey(contentId, it.season, it.episode) }, profileId)
             if (authManager.isAuthenticated && native.isNotEmpty())
                 watchedItemsSyncService.deleteFromRemoteBatch(contentId, native.map { it.season to it.episode }, profileId)
+            if (cwRepository != null) {
+                val primary = profileProgressProviderFlow(profileId).first()?.providerId
+                val coordinates = removed[primary].orEmpty().filter { it.catalog?.contentId == contentId }
+                    .mapNotNull { it.episode }.filter { it.numberingProvider == primary?.storageId }
+                    .mapNotNull { ep -> ep.season?.let { it to ep.number } }.toSet()
+                cwRepository.historyRemoved(profileId, contentId, coordinates, context.episodeIds.toSet())
+            }
         } else {
             connectedProgressProviders().forEach { provider ->
                 tvdb.resolveAll(profileId, provider.providerId, media).orEmpty().forEach { target ->
@@ -1373,11 +1430,11 @@ class WatchProgressRepositoryImpl @Inject constructor(
     private suspend fun broadcastHistoryRemoval(
         profileId: Int,
         items: Collection<TrackingMediaReference>
-    ) {
+    ): Map<TrackingProviderId, Collection<TrackingMediaReference>> {
         val items = items.filterNot { ServerItemRef.isServerId(it.catalog?.contentId) }
-        if (items.isEmpty()) return
+        if (items.isEmpty()) return emptyMap()
         val connectedIds = connectedProgressProviders().mapTo(mutableSetOf()) { it.providerId }
-        supervisorScope {
+        return supervisorScope {
             trackingHistoryWriters.writers()
                 .filter { writer -> writer.providerId in connectedIds }
                 .map { writer ->
@@ -1386,14 +1443,15 @@ class WatchProgressRepositoryImpl @Inject constructor(
                             val resolved = if (tvdbTracking == null) items else items.flatMap {
                                 tvdbTracking.resolveAll(profileId, writer.providerId, it).orEmpty()
                             }
-                            writer.removeFromHistory(profileId, resolved)
+                            val result = writer.removeFromHistory(profileId, resolved)
+                            writer.providerId to resolved.takeIf { result.isComplete }.orEmpty()
                         }
                             .onFailure { error ->
                                 Log.w(TAG, "Failed ${writer.providerId.storageId} history removal", error)
-                            }
+                            }.getOrNull()
                     }
                 }
-                .forEach { operation -> operation.await() }
+                .mapNotNull { operation -> operation.await() }.toMap()
         }
     }
 
@@ -1409,6 +1467,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             return
         }
         watchProgressPreferences.clearAll(profileId)
+        cwRepository?.snapshot()?.let { cwRepository.remove(it.members.keys, profileId) }
     }
 
     override fun isDroppedShow(contentId: String): Boolean {

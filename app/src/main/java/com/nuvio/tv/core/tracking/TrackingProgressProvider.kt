@@ -7,6 +7,19 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
+/** Keep the latest actual completion across aliases and duplicate history rows.
+ * An unknown date still supports a watched badge, but gives CW no removal evidence. */
+internal fun <T> movieCompletionIndex(rows: Sequence<T>, ids: (T) -> Iterable<String>,
+    watchedAt: (T) -> Long?): Map<String, Long?> = buildMap {
+    for (row in rows) {
+        val at = watchedAt(row)?.takeIf { it > 0 }
+        for (id in ids(row)) {
+            val previous = get(id)
+            if (previous == null || (at != null && at > previous)) put(id, at)
+        }
+    }
+}
+
 interface TrackingProgressProvider {
     val providerId: TrackingProviderId
     val isAuthenticated: Flow<Boolean>
@@ -14,6 +27,8 @@ interface TrackingProgressProvider {
     val remoteProgressLoaded: Flow<Boolean>
     val nextUpSeeds: Flow<List<WatchProgress>>
     val watchedMovieIds: Flow<Set<String>>
+    /** Actual watch times, in epoch milliseconds, indexed by movie identity for this profile. */
+    fun movieCompletionTimes(profileId: Int): Flow<Map<String, Long?>>
     val ownsCompletedHistoryProjection: Boolean
         get() = false
     val clearsLocalProgressOnSelection: Boolean

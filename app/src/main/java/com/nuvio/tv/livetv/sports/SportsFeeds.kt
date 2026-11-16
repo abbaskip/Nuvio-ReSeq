@@ -20,6 +20,7 @@ data class ScoringPlay(val clock: String, val teamAbbr: String?, val text: Strin
 internal class SportsFeeds {
 
     private val http: OkHttpClient = OkHttpClient.Builder()
+        .apply { if (com.nuvio.tv.BuildConfig.STABILITY_FIXTURES) addInterceptor(com.nuvio.tv.core.diagnostics.StabilityFixtureNetwork.sports()) }
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .callTimeout(40, TimeUnit.SECONDS)

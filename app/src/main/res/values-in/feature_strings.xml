@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Explicit English fallbacks for upstream feature text without a supplied translation. -->
+    <string name="autoplay_fallback_next_source">Fallback to next matching source on failure</string>
+    <string name="autoplay_fallback_next_source_sub">If a stream fails or does not start in time, try the next playable stream in the current source tier.</string>
+    <string name="autoplay_fallback_max_sources">Sources to try on failure</string>
+    <string name="autoplay_fallback_max_sources_sub">Maximum number of additional sources to try in the current tier before showing the error.</string>
+    <string name="autoplay_fallback_startup_timeout">Time for a source to start</string>
+    <string name="autoplay_fallback_startup_timeout_sub">How long to wait for a source to start before trying the next one.</string>
+    <string name="autoplay_fallback_startup_timeout_value">%1$ds</string>
+    <string name="player_error_source_startup_timeout">The source did not start within %1$d seconds.</string>
+    <string name="library_empty_title">No items to display</string>
+    <string name="library_empty_local_hint">Change your filters or start saving your favorites to see them here</string>
+    <string name="library_empty_trakt_hint">Change your filters or use + in details to add items to watchlist or lists</string>
+    <string name="library_empty_simkl_hint">Change your filters or use + in details to add items to a Simkl status</string>
+</resources>

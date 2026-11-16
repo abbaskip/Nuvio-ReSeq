@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Explicit English fallbacks for upstream feature text without a supplied translation. -->
+    <string name="library_empty_title">No items to display</string>
+    <string name="library_empty_local_hint">Change your filters or start saving your favorites to see them here</string>
+    <string name="library_empty_trakt_hint">Change your filters or use + in details to add items to watchlist or lists</string>
+    <string name="library_empty_simkl_hint">Change your filters or use + in details to add items to a Simkl status</string>
+</resources>

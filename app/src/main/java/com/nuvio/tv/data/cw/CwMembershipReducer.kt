@@ -6,6 +6,8 @@ import com.nuvio.tv.data.local.CachedInProgressItem
 import com.nuvio.tv.data.local.CachedNextUpItem
 import com.nuvio.tv.domain.model.WatchProgress
 
+private const val CW_DECISION_TAG = "CwDecision"
+
 /** Namespace + publication lease. A metadata task cannot publish across a source/order switch. */
 data class CwLease(val profileId: Int, val source: String, val epoch: Long, val revision: Long)
 
@@ -146,12 +148,12 @@ object CwMembershipReducer {
                 old?.latestCompletionAt ?: completed[p.contentId]?.values?.maxOfOrNull { it.at }
             } else null
             val threshold = maxOf(priorActivity ?: Long.MIN_VALUE, prior ?: Long.MIN_VALUE)
-            if (Log.isLoggable("CwDecision", Log.DEBUG) && (old?.inProgress != null || !completedSeed)) {
+            if (Log.isLoggable(CW_DECISION_TAG, Log.DEBUG) && (old?.inProgress != null || !completedSeed)) {
                 val competitor = old?.progress
                 val id = p.contentId.takeIf { it.matches(Regex("tt[0-9]+|(?:tmdb|trakt|tvdb):[0-9]+")) } ?: "other"
                 val rejected = incomingActivity < threshold ||
                     (competitor?.isCompleted() == true && competitor.lastWatched == p.lastWatched && !completedSeed)
-                Log.d("CwDecision", "show=$id candidate=${if (completedSeed) "completion" else "progress"} " +
+                Log.d(CW_DECISION_TAG, "show=$id candidate=${if (completedSeed) "completion" else "progress"} " +
                     "source=${p.decisionSource()} episode=${p.season}x${p.episode} percent=${p.progressPercentage * 100} " +
                     "watchedAt=${p.lastWatched} activity=$incomingActivity prior=${competitor?.decisionSource()} " +
                     "priorEpisode=${competitor?.season}x${competitor?.episode} threshold=$threshold " +
@@ -232,8 +234,8 @@ object CwMembershipReducer {
             if (old.changedAtRevision > lease.revision) return@forEach
             if (candidate.chooseEpisode && old.nextUp?.chooseEpisode == false) return@forEach
             if (old.inProgress != null) {
-                if (Log.isLoggable("CwDecision", Log.DEBUG)) {
-                    Log.d("CwDecision",
+                if (Log.isLoggable(CW_DECISION_TAG, Log.DEBUG)) {
+                    Log.d(CW_DECISION_TAG,
                         "decision=keep-resume source=${old.progress?.decisionSource()} episode=${old.inProgress.season}x${old.inProgress.episode} " +
                             "watchedAt=${old.inProgress.lastWatched} next=${candidate.season}x${candidate.episode}")
                 }

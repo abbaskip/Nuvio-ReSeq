@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="autoplay_fallback_next_source">Nepavykus bandyti kitą šaltinį</string>
+    <string name="autoplay_fallback_next_source_sub">Jei srautas neveikia arba laiku nepasileidžia, bandyti kitą leidžiamą srautą dabartinėje šaltinių grupėje.</string>
+    <string name="autoplay_fallback_max_sources">Papildomų šaltinių skaičius</string>
+    <string name="autoplay_fallback_max_sources_sub">Didžiausias papildomų šaltinių skaičius dabartinėje grupėje prieš rodant klaidą.</string>
+    <string name="autoplay_fallback_startup_timeout">Šaltinio paleidimo laikas</string>
+    <string name="autoplay_fallback_startup_timeout_sub">Kiek laukti, kol šaltinis pradės veikti, prieš bandant kitą.</string>
+    <string name="autoplay_fallback_startup_timeout_value">%1$d s</string>
+    <string name="player_error_source_startup_timeout">Šaltinis nepasileido per %1$d sek.</string>
+    <string name="playback_chapter_title_title">Rodyti skyriaus pavadinimą</string>
+    <string name="playback_chapter_title_sub">Rodyti dabartinio skyriaus pavadinimą virš eigos juostos.</string>
+    <string name="sub_appearance">Subtitrų išvaizda</string>
+    <string name="sub_appearance_desc">Šriftas, spalvos, fonas ir šešėlis</string>
+    <string name="sub_appearance_hint">Taikoma tekstiniams subtitrams. Stilizuoti ASS ir vaizdiniai subtitrai išlaiko pradinę išvaizdą.</string>
+    <string name="sub_preview">Peržiūra</string>
+    <string name="sub_preview_text">Kiekviena istorija prasideda mažu smalsumu.</string>
+    <string name="sub_font">Šriftas</string>
+    <string name="sub_font_default">Numatytasis</string>
+    <string name="sub_font_serif">Su užraitais</string>
+    <string name="sub_font_mono">Vienodo pločio</string>
+    <string name="sub_font_import">Importuoti iš telefono</string>
+    <string name="sub_font_import_desc">Pridėkite iki 10 MB .ttf arba .otf šriftą. Šriftai lieka šiame televizoriuje.</string>
+    <string name="sub_font_import_qr">Nuskaitykite telefonu, kad pridėtumėte .ttf arba .otf šriftą</string>
+    <string name="sub_font_missing">Šriftas šiame įrenginyje nepasiekiamas. Naudojamas numatytasis šriftas.</string>
+    <string name="sub_font_remove">Pašalinti %1$s</string>
+    <string name="sub_background">Fonas</string>
+    <string name="sub_bg_opacity">Fono nepermatomumas</string>
+    <string name="sub_bg_roundness">Kampų apvalumas</string>
+    <string name="sub_shadow">Šešėlis</string>
+    <string name="sub_shadow_desc">Atskirti tekstą nuo šviesių scenų</string>
+    <string name="sub_shadow_opacity">Šešėlio nepermatomumas</string>
+    <string name="sub_shadow_size">Šešėlio dydis</string>
+    <string name="sub_reset_appearance">Atkurti išvaizdą</string>
+    <string name="web_subtitle_font_title">Subtitrų šriftai</string>
+    <string name="web_subtitle_font_subtitle">Pasirinkite .ttf arba .otf failą televizoriaus subtitrams.</string>
+    <string name="web_subtitle_font_choose">Pasirinkti šrifto failą</string>
+    <string name="web_subtitle_font_uploading">Įkeliama…</string>
+    <string name="web_subtitle_font_added">Pridėta televizoriuje</string>
+    <string name="web_subtitle_font_error">Nepavyko importuoti. Pasirinkite tinkamą .ttf arba .otf failą iki 10 MB.</string>
+    <string name="web_subtitle_font_connection_error">Ryšio klaida</string>
+    <string name="library_empty_title">Nėra rodytinų elementų</string>
+    <string name="library_empty_local_hint">Pakeiskite filtrus arba išsaugokite mėgstamus elementus, kad jie būtų rodomi čia</string>
+    <string name="library_empty_trakt_hint">Pakeiskite filtrus arba naudokite + informacijos lange, kad pridėtumėte elementų į žiūrėjimo ar kitus sąrašus</string>
+    <string name="library_empty_simkl_hint">Pakeiskite filtrus arba naudokite + informacijos lange, kad priskirtumėte elementams Simkl būseną</string>
+</resources>

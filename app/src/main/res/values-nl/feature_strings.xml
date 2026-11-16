@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="autoplay_fallback_next_source">Bij een fout de volgende bron proberen</string>
+    <string name="autoplay_fallback_next_source_sub">Als een stream mislukt of niet op tijd start, probeer dan de volgende afspeelbare stream in de huidige brongroep.</string>
+    <string name="autoplay_fallback_max_sources">Aantal extra bronnen bij fouten</string>
+    <string name="autoplay_fallback_max_sources_sub">Maximaal aantal extra bronnen binnen de huidige groep voordat de fout wordt getoond.</string>
+    <string name="autoplay_fallback_startup_timeout">Wachttijd voor starten</string>
+    <string name="autoplay_fallback_startup_timeout_sub">Hoelang te wachten voordat de volgende bron wordt geprobeerd.</string>
+    <string name="autoplay_fallback_startup_timeout_value">%1$d s</string>
+    <string name="player_error_source_startup_timeout">De bron startte niet binnen %1$d seconden.</string>
+    <string name="playback_chapter_title_title">Hoofdstuktitel tonen</string>
+    <string name="playback_chapter_title_sub">Toon de naam van het huidige hoofdstuk boven de voortgangsbalk.</string>
+    <string name="sub_appearance">Ondertitelweergave</string>
+    <string name="sub_appearance_desc">Lettertype, kleuren, achtergrond en schaduw</string>
+    <string name="sub_appearance_hint">Geldt voor tekstondertitels. Opgemaakte ASS- en beeldondertitels behouden hun oorspronkelijke uiterlijk.</string>
+    <string name="sub_preview">Voorbeeld</string>
+    <string name="sub_preview_text">Elk verhaal begint met een beetje nieuwsgierigheid.</string>
+    <string name="sub_font">Lettertype</string>
+    <string name="sub_font_default">Standaard</string>
+    <string name="sub_font_serif">Met schreef</string>
+    <string name="sub_font_mono">Vaste tekenbreedte</string>
+    <string name="sub_font_import">Importeren vanaf telefoon</string>
+    <string name="sub_font_import_desc">Voeg een .ttf- of .otf-lettertype tot 10 MB toe. Het blijft op deze tv.</string>
+    <string name="sub_font_import_qr">Scan met uw telefoon om een .ttf- of .otf-lettertype toe te voegen</string>
+    <string name="sub_font_missing">Lettertype niet beschikbaar op dit apparaat. Het standaardlettertype wordt gebruikt.</string>
+    <string name="sub_font_remove">%1$s verwijderen</string>
+    <string name="sub_background">Achtergrond</string>
+    <string name="sub_bg_opacity">Dekking achtergrond</string>
+    <string name="sub_bg_roundness">Afronding hoeken</string>
+    <string name="sub_shadow">Slagschaduw</string>
+    <string name="sub_shadow_desc">Maak tekst leesbaar in heldere scènes</string>
+    <string name="sub_shadow_opacity">Dekking schaduw</string>
+    <string name="sub_shadow_size">Grootte schaduw</string>
+    <string name="sub_reset_appearance">Weergave herstellen</string>
+    <string name="web_subtitle_font_title">Ondertitellettertypen</string>
+    <string name="web_subtitle_font_subtitle">Kies een .ttf- of .otf-bestand voor ondertitels op uw tv.</string>
+    <string name="web_subtitle_font_choose">Lettertypebestand kiezen</string>
+    <string name="web_subtitle_font_uploading">Uploaden…</string>
+    <string name="web_subtitle_font_added">Toegevoegd aan uw tv</string>
+    <string name="web_subtitle_font_error">Importeren mislukt. Kies een geldig .ttf- of .otf-bestand kleiner dan 10 MB.</string>
+    <string name="web_subtitle_font_connection_error">Verbindingsfout</string>
+    <string name="library_empty_title">Geen items om te tonen</string>
+    <string name="library_empty_local_hint">Wijzig uw filters of sla favorieten op om ze hier te zien</string>
+    <string name="library_empty_trakt_hint">Wijzig uw filters of gebruik + bij details om items aan uw kijklijst of lijsten toe te voegen</string>
+    <string name="library_empty_simkl_hint">Wijzig uw filters of gebruik + bij details om items aan een Simkl-status toe te voegen</string>
+</resources>

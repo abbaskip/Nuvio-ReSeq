@@ -3048,7 +3048,6 @@
     <string name="episodes_remove_partial_watch">حذف تقدم المشاهدة الجزئية</string>
     <string name="episodes_partial_watch_removed">تم حذف تقدم المشاهدة الجزئية</string>
     <string name="episodes_partial_watch_failed">تعذر إكمال حذف تقدم المشاهدة الجزئية</string>
-    <string name="playback_auto_switch_internal_player_blocked_by_fallback">عطّل الرجوع إلى المصدر المطابق التالي لتفعيل هذا الخيار.</string>
     <string name="autoplay_fallback_next_source">الرجوع إلى المصدر المطابق التالي عند الفشل</string>
     <string name="autoplay_fallback_next_source_sub">إذا فشل البث أو لم يبدأ في الوقت المحدد، فجرّب البث التالي القابل للتشغيل ضمن مجموعة المصادر الحالية.</string>
     <string name="autoplay_fallback_max_sources">المصادر التي تُجرَّب عند الفشل</string>
@@ -3056,7 +3055,6 @@
     <string name="autoplay_fallback_startup_timeout">الوقت اللازم لبدء المصدر</string>
     <string name="autoplay_fallback_startup_timeout_sub">مدة الانتظار لبدء المصدر قبل تجربة المصدر التالي.</string>
     <string name="autoplay_fallback_startup_timeout_value">%1$d ث</string>
-    <string name="autoplay_fallback_next_source_blocked_by_engine_switch">أوقف التبديل التلقائي للمحرك عند خطأ البدء لاستخدام هذا الخيار.</string>
     <string name="player_error_source_startup_timeout">لم يبدأ المصدر خلال %1$d ثانية.</string>
     <string name="playback_exo_chapters_title">إظهار الفصول</string>
     <string name="playback_exo_chapters_sub">قراءة فصول ملفات MKV لتمييزها على شريط التقدم والتنقل بينها.</string>

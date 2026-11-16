@@ -3480,7 +3480,6 @@
     <string name="web_subtitle_font_added">Đã thêm vào TV</string>
     <string name="web_subtitle_font_error">Không thể nhập phông chữ này. Chọn tệp .ttf hoặc .otf hợp lệ có dung lượng dưới 10 MB.</string>
     <string name="web_subtitle_font_connection_error">Lỗi kết nối</string>
-    <string name="playback_auto_switch_internal_player_blocked_by_fallback">Tắt chuyển sang nguồn phát khớp tiếp theo để dùng tính năng này.</string>
     <string name="autoplay_fallback_next_source">Chuyển sang nguồn phát khớp tiếp theo khi lỗi</string>
     <string name="autoplay_fallback_next_source_sub">Nếu luồng bị lỗi hoặc không bắt đầu kịp thời, thử luồng có thể phát tiếp theo trong nhóm nguồn hiện tại.</string>
     <string name="autoplay_fallback_max_sources">Nguồn phát sẽ thử khi lỗi</string>
@@ -3488,6 +3487,5 @@
     <string name="autoplay_fallback_startup_timeout">Thời gian để nguồn phát khởi chạy</string>
     <string name="autoplay_fallback_startup_timeout_sub">Thời gian chờ một nguồn phát khởi chạy trước khi chuyển sang thử nguồn phát tiếp theo.</string>
     <string name="autoplay_fallback_startup_timeout_value">%1$ds</string>
-    <string name="autoplay_fallback_next_source_blocked_by_engine_switch">Tắt tự động chuyển lõi trình phát khi phát lại lỗi để sử dụng tùy chọn này.</string>
     <string name="player_error_source_startup_timeout">Nguồn phát đã không khởi chạy trong vòng %1$d giây.</string>
 </resources>

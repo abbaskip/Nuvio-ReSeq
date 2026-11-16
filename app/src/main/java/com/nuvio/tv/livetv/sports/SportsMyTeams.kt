@@ -145,15 +145,25 @@ internal fun MyTeamsRows(
     val hero = heroes.getOrNull(heroAt)
     val heroReq = requesterFor("hero")
     var focusedOnce by remember { mutableStateOf(false) }
-    LaunchedEffect(hero != null, page.rows.isNotEmpty()) {
+    val entryRow = page.rows.firstOrNull { it.kind == SportsRow.Kind.UPCOMING && it.events.isNotEmpty() }
+    val entryKey = entryRow?.focusKey(entryRow.startIndex)
+    LaunchedEffect(hero != null, page.rows.isNotEmpty(), entryKey) {
         delay(140)
         if (focusedOnce || !autoFocus) return@LaunchedEffect
         // Still loading your teams' games: wait for them (the highlight would be lost otherwise).
         if (hero == null && page.rows.isEmpty() && !follows.isEmpty) return@LaunchedEffect
         focusedOnce = true
         val back = if (returning) lastFocus?.let { requesterFor(it) } else null
+        if (back == null) {
+            // Fresh entry starts at Live & Upcoming, even if another sport left the shared
+            // column scrolled down. Returning from a game keeps its previous card and position.
+            columnState.scrollToItem(0)
+            entryRow?.let { rowState(it.key, it.startIndex).scrollToItem(it.startIndex) }
+            delay(80)
+        }
+        val target = back ?: entryKey?.let { requesterFor(it) } ?: heroReq
         onReturned()
-        runCatching { (back ?: heroReq).requestFocus() }
+        runCatching { target.requestFocus() }
             .onFailure { runCatching { heroReq.requestFocus() } }
     }
 

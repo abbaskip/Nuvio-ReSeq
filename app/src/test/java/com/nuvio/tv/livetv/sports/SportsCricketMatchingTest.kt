@@ -18,6 +18,47 @@ class SportsCricketMatchingTest {
     private fun channel(key: String, name: String) = LiveChannel(key, "playlist", "Test", name,
         null, null, null, "general", "Australian TV", 1, "https://example.invalid/live")
 
+    @Test fun `South Africa abbreviation does not become South Australia`() {
+        val team = TeamInfo(league, "sa", "SA", "South Africa", "SA", null, null, null, null)
+        val names = SportsCatalog.teamNames(team, requireNotNull(SportsCatalog.league(league))).first
+        assertFalse("south australia" in names)
+        assertFalse("s australia" in names)
+    }
+
+    @Test fun `simultaneous One Day Cup fixtures match their own Sky guide listings`() {
+        val leagueId = "ca/one-day"
+        val guideNames = listOf("New South Wales v S Australia", "Victoria v W Australia", "Queensland v Tasmania")
+        val identities = listOf(
+            listOf("NSW" to "SA", "VIC" to "WA", "QLD" to "TAS"),
+            listOf("New South Wales" to "South Australia", "Victoria" to "Western Australia", "Queensland" to "Tasmania"),
+            listOf("NSW Blues" to "South Australia Redbacks", "Victoria" to "Western Australia", "Queensland Bulls" to "Tasmanian Tigers"))
+        val channels = guideNames.indices.map { channel("sky-${it + 3}", "NZ SKY Sport ${it + 3}") }
+        val programmes = channels.mapIndexed { i, ch -> ch.key to EpgProgram(now - 2 * 3_600_000,
+            now + 3_600_000, "LIVE Cricket: Marsh One Day Cup : ODC: ${guideNames[i]}") }
+        for (names in identities) for (currentOnly in listOf(false, true)) {
+            fun domesticSide(name: String, home: Boolean) = Side(
+                TeamInfo(leagueId, name, name, name, name, null, null, null, null), null, null, false, home)
+            val events = names.mapIndexed { i, (home, away) -> SportsEvent("domestic-$i", leagueId,
+                now - 2 * 3_600_000, true, GameState.LIVE, "$home vs $away", null, null,
+                domesticSide(away, false), domesticSide(home, true)) }
+            val db = mockk<EpgDatabase>()
+            every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+                // Respect the database's candidate search, rather than returning every row.
+                val words = arg<Collection<String>>(3).filter { it.length >= 3 }
+                programmes.filter { (_, p) -> words.any { p.title.contains(it, ignoreCase = true) } }
+            }
+            val result = SportsMatcher(db).match(SportsMatcher.Input(events, channels, emptyMap(), 0,
+                SportsSettings(), now, includeGuide = !currentOnly,
+                currentGuidePrograms = if (currentOnly) programmes else emptyList()))
+            events.forEachIndexed { i, event ->
+                val matches = result.matches[event.id].orEmpty()
+                assertEquals("$names / currentOnly=$currentOnly / ${event.title}",
+                    listOf(channels[i].key), matches.map { it.channel.key })
+                assertTrue(matches.all { it.sure })
+            }
+        }
+    }
+
     private fun match(rows: List<Pair<LiveChannel, EpgProgram>>, currentOnly: Boolean): List<ChannelMatch> {
         val db = mockk<EpgDatabase>()
         val programmes = rows.map { (ch, p) -> ch.key to p }

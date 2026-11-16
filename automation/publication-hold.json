@@ -1,10 +1,10 @@
 {
   "schema": 1,
   "hold": false,
-  "reason": "Maintainer explicitly authorized publication of beta 9.8 after testing the signed local candidate on the Onn and reviewing passing local regression and lint checks.",
-  "clear_when": "Publish beta 9.8 only after the release workflow's validation and signed-artifact checks pass.",
-  "release": "v0.1.0-beta.9.8",
-  "evidence": "releases/0.1.0-beta.9.8.md",
-  "version_code": 10054,
-  "tested_fixes_source": "12dfc8ebbdc7e0a7386c27ebe8ba7e26f83e64ff"
+  "reason": "Maintainer explicitly authorized merging the domestic cricket matching and My Sports initial-position fixes with candidate 9.9 and publishing 9.9 with no further testing.",
+  "clear_when": "Publication authorized on 2026-11-16; build and package the final signed APKs without another test run.",
+  "release": "v0.1.0-beta.9.9",
+  "evidence": "releases/0.1.0-beta.9.9.md",
+  "version_code": 10056,
+  "candidate_source": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
 }

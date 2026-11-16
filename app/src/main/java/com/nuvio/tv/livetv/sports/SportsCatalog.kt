@@ -601,6 +601,17 @@ object SportsCatalog {
     /** "FC", "AFC" and similar on the end or start of names: guides often leave them off. */
     private val CLUB_BITS = Regex("""^(fc|afc|cf|sc|ac|ss|ssc|as|rc|cd|ca|sv|vfb|vfl|tsg|1 fc) | (fc|afc|cf|sc)$""")
 
+    // Domestic cricket feeds mix state abbreviations, full names and team nicknames.
+    // Keep these aliases within cricket (NSW and Queensland also play other sports).
+    private val CRICKET_STATE_NAMES = listOf(
+        listOf("new south wales", "nsw", "nsw blues", "new south wales blues"),
+        listOf("south australia", "s australia", "sa", "south australia redbacks", "south australian redbacks", "redbacks", "west end redbacks"),
+        listOf("queensland", "qld", "queensland bulls"),
+        listOf("tasmania", "tas", "tasmania tigers", "tasmanian tigers"),
+        listOf("victoria", "vic", "victorian bushrangers", "victoria bushrangers"),
+        listOf("western australia", "w australia", "wa", "western warriors", "western australia warriors")
+    )
+
     /**
      * How a guide might name [team]: strong names (enough on their own, with the other team) and
      * weak ones (a city: Detroit plays four sports). College teams go by their school.
@@ -631,6 +642,15 @@ object SportsCatalog {
         }
         listOfNotNull(full, nick).forEach { k -> ALIASES[k]?.let { strong += it } }
         strong.removeAll { it.length < 3 }
+        if (league.sport == Sport.CRICKET) {
+            // Prefer spelled-out identities: South Africa can also abbreviate to SA.
+            val labels = listOf(team.fullName, team.name).map { norm(it).trim() }
+            val identities = labels.filter { it.length > 4 }.ifEmpty {
+                labels + norm(team.abbr).trim()
+            }
+            CRICKET_STATE_NAMES.filter { names -> identities.any { it in names } }
+                .forEach { strong += it }
+        }
         weak.removeAll(strong)
         return strong.toList() to weak.toList()
     }

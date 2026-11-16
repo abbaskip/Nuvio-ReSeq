@@ -27,6 +27,7 @@ import com.nuvio.tv.domain.model.WatchProgress
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -49,76 +50,99 @@ internal fun mergeHomeCwDecoration(state: HomeUiState, decoration: HomeCwDecorat
     else state.copy(continueWatchingItems = decoration.cards.continueWatchingItems,
         upcomingItems = decoration.cards.upcomingItems)
 
+private data class HomeShuffleInputs(
+    val profile: EpisodeShuffleProfile,
+    val history: Pair<Map<String, Set<Pair<Int, Int>>>, List<WatchProgress>>,
+    val refresh: HomeShuffleRefresh,
+    val finished: Pair<Int, List<WatchProgress>>
+)
+
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 internal fun HomeViewModel.createShuffleHomeState(
     projectionDispatcher: CoroutineDispatcher = Dispatchers.Default
 ): StateFlow<HomeUiState> {
-    val decoration = homeContentActive.flatMapLatest { active ->
-        flow<HomeCwDecoration?> {
-            emit(null)
+    val inputs = homeContentActive.flatMapLatest { active ->
+        flow<HomeShuffleInputs?> {
             if (active) coroutineScope {
-                // Only optional decoration/metadata work is visibility-gated. Retained cards are not.
                 val finished = finishedShuffleSeeds().stateIn(this, SharingStarted.Eagerly, 0 to emptyList())
                 requestHomeShuffleMetadata(finished, this)
-                emitAll(projectShuffleHomeState(finished, projectionDispatcher))
-            }
+                emitAll(observeShuffleInputs(finished, projectionDispatcher))
+            } else emit(null)
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    return combine(_uiState, decoration, ::mergeHomeCwDecoration)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, _uiState.value)
+
+    // Publish each CW update with its shuffle choice already applied. Focus and other
+    // unrelated Home updates reuse the same result without running the picker again.
+    var previousInputs: HomeShuffleInputs? = null
+    var decoration: HomeCwDecoration? = null
+    return combine(_uiState, inputs) { state, current ->
+        val items = state.continueWatchingItems to state.upcomingItems
+        if (current == null) {
+            decoration = null
+        } else if (current !== previousInputs || decoration?.input != items) {
+            decoration = withContext(projectionDispatcher) {
+                val rows = HomeUiState(continueWatchingItems = items.first, upcomingItems = items.second)
+                HomeCwDecoration(items, projectShuffleHomeState(rows, current))
+            }
+        }
+        previousInputs = current
+        val latest = _uiState.value
+        if (inputs.value !== current || items != (latest.continueWatchingItems to latest.upcomingItems)) null
+        else mergeHomeCwDecoration(latest, decoration)
+    }.filterNotNull().stateIn(viewModelScope, SharingStarted.Eagerly, _uiState.value)
 }
 
-private fun HomeViewModel.projectShuffleHomeState(
+private fun HomeViewModel.observeShuffleInputs(
     finished: StateFlow<Pair<Int, List<WatchProgress>>>,
     projectionDispatcher: CoroutineDispatcher
-): Flow<HomeCwDecoration> = combine(
-        _uiState.map { it.continueWatchingItems to it.upcomingItems }.distinctUntilChanged(),
-        episodeShuffleStore.profiles,
-        combine(watchProgressRepository.watchedItems, watchProgressRepository.allProgress) { watched, progress ->
-            val keys = watched.mapNotNull { item ->
-                item.season?.let { season -> item.episode?.let { item.contentId to (season to it) } }
-            } + progress.filter { it.isCompleted() }.mapNotNull { item ->
-                item.season?.let { season -> item.episode?.let { item.contentId to (season to it) } }
-            }
-            keys.groupBy({ it.first }, { it.second }).mapValues { it.value.toSet() } to progress
-        }.distinctUntilChanged().flowOn(projectionDispatcher),
-        shuffleHomeRefresh,
-        finished
-    ) { items, profile, history, refresh, seedSnapshot ->
-        withContext(projectionDispatcher) {
-            val state = HomeUiState(continueWatchingItems = items.first, upcomingItems = items.second)
-            val seeds = seedSnapshot.second.takeIf { seedSnapshot.first == profile.profileId }.orEmpty()
-            val watched = history.first.toMutableMap()
-            (state.continueWatchingItems + state.upcomingItems).forEach { item ->
-                val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
-                val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
-                cachedCwMeta(type, id)?.takeIf { it.tvdbOrder }?.let { meta ->
-                    val videos = meta.videos.map { it.asTvdbVideo() }
-                    watched[id] = history.second.filter { it.contentId == id && it.isCompleted() }.mapNotNull { progress ->
-                        com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(videos, progress)?.let { video -> video.season!! to video.episode!! }
-                    }.toSet()
-                }
-            }
-            val cards = seeds.mapNotNull { seed ->
-                val meta = cachedCwMeta(seed.contentType, seed.contentId)
-                val shuffleEnabled = profile.settings(seed.contentId, seed.contentType).enabled
-                if (!shuffleEnabled && meta?.tvdbOrder == true) return@mapNotNull null
-                if (meta == null) traceCwCard(seed.contentId) { "tracker seed without cached metadata" }
-                seed.toShuffleCard(meta)
-            }
-            applyHomeShuffle(state, profile, watched, episodeShuffle, refresh.visit, continueWatchingSortMode, cards) { id, type ->
-                val cached = cachedCwMeta(type, id)
-                if (cached == null) traceCwCard(id) {
-                    if (cwMetaNegativeCacheTimestamps.containsKey("$type:$id")) "negative metadata entry" else "cold metadata cache"
-                }
-                cached?.takeIf { hasUsableCwCatalogue(it, profile.profileId, id) }?.videos?.map { video ->
-                    Video(video.id, video.title.orEmpty(), video.released, video.thumbnail,
-                        season = video.season, episode = video.episode, overview = video.overview, available = video.available,
-                        episodeIdentity = video.episodeIdentity)
-                }
-            }.let { HomeCwDecoration(items, withTvdbLabels(it)) }
+): Flow<HomeShuffleInputs> = combine(
+    episodeShuffleStore.profiles,
+    combine(watchProgressRepository.watchedItems, watchProgressRepository.allProgress) { watched, progress ->
+        val keys = watched.mapNotNull { item ->
+            item.season?.let { season -> item.episode?.let { item.contentId to (season to it) } }
+        } + progress.filter { it.isCompleted() }.mapNotNull { item ->
+            item.season?.let { season -> item.episode?.let { item.contentId to (season to it) } }
+        }
+        keys.groupBy({ it.first }, { it.second }).mapValues { it.value.toSet() } to progress
+    }.distinctUntilChanged().flowOn(projectionDispatcher),
+    shuffleHomeRefresh,
+    finished,
+    ::HomeShuffleInputs
+)
+
+private fun HomeViewModel.projectShuffleHomeState(state: HomeUiState, inputs: HomeShuffleInputs): HomeUiState {
+    val (profile, history, refresh, seedSnapshot) = inputs
+    val seeds = seedSnapshot.second.takeIf { seedSnapshot.first == profile.profileId }.orEmpty()
+    val watched = history.first.toMutableMap()
+    (state.continueWatchingItems + state.upcomingItems).forEach { item ->
+        val id = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentId; is ContinueWatchingItem.NextUp -> item.info.contentId }
+        val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
+        cachedCwMeta(type, id)?.takeIf { it.tvdbOrder }?.let { meta ->
+            val videos = meta.videos.map { it.asTvdbVideo() }
+            watched[id] = history.second.filter { it.contentId == id && it.isCompleted() }.mapNotNull { progress ->
+                com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(videos, progress)?.let { video -> video.season!! to video.episode!! }
+            }.toSet()
         }
     }
+    val cards = seeds.mapNotNull { seed ->
+        val meta = cachedCwMeta(seed.contentType, seed.contentId)
+        val shuffleEnabled = profile.settings(seed.contentId, seed.contentType).enabled
+        if (!shuffleEnabled && meta?.tvdbOrder == true) return@mapNotNull null
+        if (meta == null) traceCwCard(seed.contentId) { "tracker seed without cached metadata" }
+        seed.toShuffleCard(meta)
+    }
+    return applyHomeShuffle(state, profile, watched, episodeShuffle, refresh.visit, continueWatchingSortMode, cards) { id, type ->
+        val cached = cachedCwMeta(type, id)
+        if (cached == null) traceCwCard(id) {
+            if (cwMetaNegativeCacheTimestamps.containsKey("$type:$id")) "negative metadata entry" else "cold metadata cache"
+        }
+        cached?.takeIf { hasUsableCwCatalogue(it, profile.profileId, id) }?.videos?.map { video ->
+            Video(video.id, video.title.orEmpty(), video.released, video.thumbnail,
+                season = video.season, episode = video.episode, overview = video.overview, available = video.available,
+                episodeIdentity = video.episodeIdentity)
+        }
+    }.let { withTvdbLabels(it) }
+}
 
 private const val CW_TRACE_TAG = "NuvioCwTrace"
 

@@ -228,6 +228,47 @@ class ShuffleHomeRefreshTest {
         assertEquals(id, home().onlyCard().contentId())
     }
 
+    @Test fun publicHomeNeverEmitsSequentialNextUpBetweenShuffleProjections() = runTest {
+        setup()
+        val pending = ArrayDeque<Runnable>()
+        val dispatcher = java.util.concurrent.Executor { pending.addLast(it) }.asCoroutineDispatcher()
+        val home = vm.createShuffleHomeState(dispatcher)
+        fun finishProjection() {
+            runCurrent()
+            while (pending.isNotEmpty()) {
+                pending.removeFirst().run()
+                runCurrent()
+            }
+        }
+        finishProjection()
+        val chosen = home.onlyCard() as ContinueWatchingItem.NextUp
+        assertTrue(chosen.shufflePlayback)
+        val emissions = mutableListOf<ContinueWatchingItem.NextUp>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            home.collect { emissions += it.continueWatchingItems.filterIsInstance<ContinueWatchingItem.NextUp>() }
+        }
+        repeat(3) { index ->
+            val sequential = card.copy(info = card.info.copy(videoId = "$id:1:3", episode = 3,
+                episodeTitle = "Sequential next", poster = "poster-$index"))
+            native.value = snapshot.copy(continueWatchingItems = listOf(sequential))
+            runCurrent() // Home is rendering while the shuffle dispatcher is still busy.
+            finishProjection()
+            assertEquals("poster-$index", (home.onlyCard() as ContinueWatchingItem.NextUp).info.poster)
+        }
+        assertTrue("A render exposed a sequential episode or dropped the shuffle icon: " +
+            emissions.map { it.info.videoId to it.shufflePlayback },
+            emissions.all { it.shufflePlayback && it.info.videoId == chosen.info.videoId })
+        profile.value = EpisodeShuffleProfile(1, true)
+        finishProjection()
+        assertFalse("turning shuffle off must take effect", home.onlyCard().shufflePlayback)
+        native.value = HomeUiState()
+        finishProjection()
+        seeds.value = emptyList()
+        cwProjection.value = CwProjection(profileId = 1, source = "TRAKT")
+        finishProjection()
+        assertTrue(home.value.continueWatchingItems.isEmpty())
+    }
+
     @Test fun metadataEvictionAndTrackerReplacementKeepTheSelectedShuffleEpisode() = runTest {
         setup()
         val home = home()

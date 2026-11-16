@@ -11,7 +11,12 @@ import kotlinx.coroutines.launch
  * on ExoPlayer. Turning the setting on mid-stream reads them again on the next tick.
  */
 internal fun PlayerRuntimeController.refreshMpvChapters(view: NuvioMpvSurfaceView) {
-    val showChapters = _uiState.value.chaptersEnabled
+    val showChapters = currentPlayerSettingsForReport?.mpvChaptersEnabled ?: true
+    if (_uiState.value.chaptersEnabled != showChapters) {
+        _uiState.update { it.copy(chaptersEnabled = showChapters,
+            chapters = if (showChapters) it.chapters else emptyList(),
+            showChaptersPanel = it.showChaptersPanel && showChapters) }
+    }
     if (mpvChaptersStreamUrl == currentStreamUrl &&
         skipDetectionChapters.isNotEmpty() &&
         (!showChapters || _uiState.value.chapters.isNotEmpty())

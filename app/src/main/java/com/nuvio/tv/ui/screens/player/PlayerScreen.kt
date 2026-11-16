@@ -1288,7 +1288,8 @@ fun PlayerScreen(
                             tunneledSurfaceFill = uiState.tunneledSurfaceFill,
                             useLibass = uiState.useLibass,
                             libassRenderMode = uiState.libassRenderMode,
-                            letterboxMaskEnabled = !(transparentLetterbox && playerSurfaceIsFullscreen),
+                            letterboxMaskEnabled = !(transparentLetterbox && playerSurfaceIsFullscreen) &&
+                                uiState.effectiveSubtitleStyle.verticalOffset == SubtitleStyleSettings().verticalOffset,
                             subtitleStyle = uiState.effectiveSubtitleStyle,
                             subtitleLiftPx = subtitleLiftPx,
                             onBindSubtitleView = viewModel::bindExoSubtitleView,

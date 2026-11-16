@@ -259,6 +259,10 @@ class PlaybackSettingsViewModel @Inject constructor(
         playerSettingsDataStore.setExoChaptersEnabled(enabled)
     }
 
+    suspend fun setMpvChaptersEnabled(enabled: Boolean) {
+        playerSettingsDataStore.setMpvChaptersEnabled(enabled)
+    }
+
     suspend fun setChapterTitleEnabled(enabled: Boolean) {
         playerSettingsDataStore.setChapterTitleEnabled(enabled)
     }

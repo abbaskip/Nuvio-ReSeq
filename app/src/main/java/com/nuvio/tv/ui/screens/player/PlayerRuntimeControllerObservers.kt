@@ -318,6 +318,8 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
             rememberAudioDelayPerDeviceEnabled = settings.rememberAudioDelayPerDevice
             val resolvedInternalPlayerEngine =
                 runtimeInternalPlayerEngineOverride ?: resolvedAutoPlayerEngine ?: settings.internalPlayerEngine
+            val showChapters = if (resolvedInternalPlayerEngine == InternalPlayerEngine.MVP_PLAYER)
+                settings.mpvChaptersEnabled else settings.exoChaptersEnabled
             val resolvedAudioAmplificationDb = when {
                 !hasInitializedAudioAmplificationForSession -> {
                     hasInitializedAudioAmplificationForSession = true
@@ -363,11 +365,11 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
                     },
                     pauseOverlayEnabled = settings.pauseOverlayEnabled,
                     osdClockEnabled = settings.osdClockEnabled,
-                    chaptersEnabled = settings.exoChaptersEnabled,
+                    chaptersEnabled = showChapters,
                     showChapterTitle = settings.chapterTitleEnabled,
                     // Turning chapters off hides them at once; skip intro keeps its own copy.
-                    chapters = if (settings.exoChaptersEnabled) state.chapters else emptyList(),
-                    showChaptersPanel = state.showChaptersPanel && settings.exoChaptersEnabled,
+                    chapters = if (showChapters) state.chapters else emptyList(),
+                    showChaptersPanel = state.showChaptersPanel && showChapters,
                     internalPlayerEngine = resolvedInternalPlayerEngine,
                     frameRateMatchingMode = settings.frameRateMatchingMode,
                     tunnelingEnabled = settings.effectiveTunnelingEnabled &&

@@ -354,6 +354,8 @@ data class PlayerSettings(
      * Matroska chapters itself over HTTP; mpv lists them. Chapters still feed skip intro when off.
      */
     val exoChaptersEnabled: Boolean = false,
+    /** MPV already exposed container chapters before the shared chapter controls. */
+    val mpvChaptersEnabled: Boolean = true,
     /** The current chapter's title above the progress bar, when chapters are shown. */
     val chapterTitleEnabled: Boolean = true,
     val mpvHi10pGnextSoftwareFallbackEnabled: Boolean = false,
@@ -699,6 +701,7 @@ class PlayerSettingsDataStore @Inject constructor(
     private val dv7LibdoviModeOverrideKey = intPreferencesKey("dv7_libdovi_mode_override")
     private val stripHdr10PlusSeiKey = booleanPreferencesKey("strip_hdr10plus_sei")
     private val exoChaptersEnabledKey = booleanPreferencesKey("exo_chapters_enabled")
+    private val mpvChaptersEnabledKey = booleanPreferencesKey("mpv_chapters_enabled")
     private val chapterTitleEnabledKey = booleanPreferencesKey("chapter_title_enabled")
     private val mpvHi10pGnextSoftwareFallbackEnabledKey =
         booleanPreferencesKey("mpv_hi10p_gnext_software_fallback_enabled")
@@ -1109,6 +1112,7 @@ class PlayerSettingsDataStore @Inject constructor(
                 dv7LibdoviModeOverride = (prefs[dv7LibdoviModeOverrideKey] ?: -1).coerceIn(-1, 4),
                 stripHdr10PlusSei = prefs[stripHdr10PlusSeiKey] ?: false,
                 exoChaptersEnabled = prefs[exoChaptersEnabledKey] ?: false,
+                mpvChaptersEnabled = prefs[mpvChaptersEnabledKey] ?: true,
                 chapterTitleEnabled = prefs[chapterTitleEnabledKey] ?: true,
                 mpvHi10pGnextSoftwareFallbackEnabled =
                     prefs[mpvHi10pGnextSoftwareFallbackEnabledKey] ?: false,
@@ -1848,6 +1852,7 @@ class PlayerSettingsDataStore @Inject constructor(
     suspend fun setDv7LibdoviModeOverride(mode: Int) { store().edit { it[dv7LibdoviModeOverrideKey] = mode.coerceIn(-1, 4) } }
     suspend fun setStripHdr10PlusSei(enabled: Boolean) { store().edit { it[stripHdr10PlusSeiKey] = enabled } }
     suspend fun setExoChaptersEnabled(enabled: Boolean) { store().edit { it[exoChaptersEnabledKey] = enabled } }
+    suspend fun setMpvChaptersEnabled(enabled: Boolean) { store().edit { it[mpvChaptersEnabledKey] = enabled } }
     suspend fun setChapterTitleEnabled(enabled: Boolean) { store().edit { it[chapterTitleEnabledKey] = enabled } }
 
     // Subtitle styles

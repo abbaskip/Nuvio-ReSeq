@@ -179,11 +179,16 @@ internal fun PlaybackPlayerInterfaceSection(
         enabled = internalPlayer
     )
     // Chapters work on both engines.
+    val mpvChapters = settings.internalPlayerEngine == InternalPlayerEngine.MVP_PLAYER
+    val chaptersEnabled = if (mpvChapters) settings.mpvChaptersEnabled else settings.exoChaptersEnabled
     SettingsToggleRow(
         title = stringResource(R.string.playback_exo_chapters_title),
         subtitle = stringResource(R.string.playback_exo_chapters_sub),
-        checked = settings.exoChaptersEnabled,
-        onToggle = { onUpdate { setExoChaptersEnabled(!settings.exoChaptersEnabled) } },
+        checked = chaptersEnabled,
+        onToggle = { onUpdate {
+            if (mpvChapters) setMpvChaptersEnabled(!chaptersEnabled)
+            else setExoChaptersEnabled(!chaptersEnabled)
+        } },
         enabled = internalPlayer
     )
     SettingsToggleRow(
@@ -191,7 +196,7 @@ internal fun PlaybackPlayerInterfaceSection(
         subtitle = stringResource(R.string.playback_chapter_title_sub),
         checked = settings.chapterTitleEnabled,
         onToggle = { onUpdate { setChapterTitleEnabled(!settings.chapterTitleEnabled) } },
-        enabled = internalPlayer && settings.exoChaptersEnabled
+        enabled = internalPlayer && chaptersEnabled
     )
 }
 

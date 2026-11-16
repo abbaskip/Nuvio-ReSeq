@@ -288,6 +288,12 @@ interface TraktApi {
         @Body body: TraktHistoryRemoveRequestDto
     ): Response<TraktHistoryRemoveResponseDto>
 
+    @POST("sync/history/remove")
+    suspend fun removeHistoryPlay(
+        @Header("Authorization") authorization: String,
+        @Body body: com.nuvio.tv.data.remote.dto.trakt.TraktHistoryPlayRemoval
+    ): Response<TraktHistoryRemoveResponseDto>
+
     @GET("users/{id}/lists")
     suspend fun getUserLists(
         @Header("Authorization") authorization: String,

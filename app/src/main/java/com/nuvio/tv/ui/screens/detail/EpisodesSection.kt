@@ -91,6 +91,7 @@ import coil3.request.crossfade
 import coil3.request.transformations
 import com.nuvio.tv.R
 import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.domain.model.hasResolvedSource
 import com.nuvio.tv.domain.model.episodeListKey
 import com.nuvio.tv.domain.model.EpisodeOptionsOverlayStyle
@@ -392,7 +393,7 @@ fun EpisodesRow(
     canPlayEpisode: (Video) -> Boolean = { true },
     onEpisodeManualPlayClick: (Video) -> Unit = onEpisodeClick,
     onEpisodeStartFromBeginningClick: (Video) -> Unit = onEpisodeClick,
-    onRemovePartialWatch: (Video) -> Unit,
+    onRemoveWatch: (Video, WatchProgress, Boolean) -> Unit,
     onToggleEpisodeWatched: (Video) -> Unit,
     showManualPlayOption: Boolean = false,
     onMarkSeasonWatched: (Int) -> Unit = {},
@@ -578,6 +579,7 @@ fun EpisodesRow(
             firstEpisodeInSeason?.episode != null &&
             selectedEpisode.episode > firstEpisodeInSeason.episode
 
+        val watch = episodeProgressMap[selectedEpisode.season to selectedEpisode.episode]
         EpisodeOptionsOverlay(
             episode = selectedEpisode,
             imdbRating = selectedEpisode.season?.let { season ->
@@ -596,10 +598,19 @@ fun EpisodesRow(
                     }
                 }
             } ?: false,
-            onRemovePartialWatch = if (selectedEpisode.hasResolvedSource &&
-                episodeProgressMap[selectedEpisode.season to selectedEpisode.episode]?.hasRemovableEpisodePause() == true) {
+            lastWatchDate = watch?.takeIf { it.hasRemovableTraktWatch() }?.let {
+                java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+                    .format(java.util.Date(it.lastWatched))
+            },
+            onRemoveWatch = if (selectedEpisode.hasResolvedSource && watch?.hasRemovableTraktWatch() == true) {
                 {
-                    onRemovePartialWatch(selectedEpisode)
+                    onRemoveWatch(selectedEpisode, watch, true)
+                    optionsEpisode = null
+                }
+            } else null,
+            onRemovePartialWatch = if (selectedEpisode.hasResolvedSource && watch?.hasRemovableEpisodePause() == true) {
+                {
+                    onRemoveWatch(selectedEpisode, watch, false)
                     optionsEpisode = null
                 }
             } else null,

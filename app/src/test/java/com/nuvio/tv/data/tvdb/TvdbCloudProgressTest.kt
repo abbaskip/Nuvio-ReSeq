@@ -65,8 +65,9 @@ class TvdbCloudProgressTest {
         val part1 = combined.copy(episodeIds = listOf(101), providerSources = listOf(native))
         val part2 = combined.copy(episodeIds = listOf(102), providerSources = listOf(native))
         assertEquals(0.25f, progress(0.5, part1).forNuvioCloud().single().progressPercentage, 0.001f)
-        assertEquals(0.75f, progress(0.5, part2).forNuvioCloud().single().progressPercentage, 0.001f)
-        assertFalse(progress(1.0, part2).forNuvioCloud().single().isCompleted())
+        assertTrue(progress(0.5, part2).forNuvioCloud().isEmpty())
+        assertTrue(progress(1.0, part2).forNuvioCloud().isEmpty())
+        assertEquals(0.75f, progress(0.5, part2).forNuvioCloud(setOf(101)).single().progressPercentage, 0.001f)
         assertTrue(progress(1.0, part2).forNuvioCloud(setOf(101)).single().isCompleted())
     }
 

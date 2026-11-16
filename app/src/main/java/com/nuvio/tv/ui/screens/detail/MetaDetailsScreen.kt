@@ -962,7 +962,7 @@ fun MetaDetailsScreen(
                     onToggleLibrary = { viewModel.onEvent(MetaDetailsEvent.OnToggleLibrary) },
                     onLibraryLongPress = { viewModel.onEvent(MetaDetailsEvent.OnLibraryLongPress) },
                     onToggleMovieWatched = { viewModel.onEvent(MetaDetailsEvent.OnToggleMovieWatched) },
-                    onRemovePartialWatch = viewModel::removePartialWatch,
+                    onRemoveWatch = viewModel::removeEpisodeWatch,
                     onToggleEpisodeWatched = { video ->
                         viewModel.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(video))
                     },
@@ -1265,7 +1265,7 @@ private fun MetaDetailsContent(
     onToggleLibrary: () -> Unit,
     onLibraryLongPress: () -> Unit,
     onToggleMovieWatched: () -> Unit,
-    onRemovePartialWatch: (Video) -> Unit,
+    onRemoveWatch: (Video, WatchProgress, Boolean) -> Unit,
     onToggleEpisodeWatched: (Video) -> Unit,
     onMarkSeasonWatched: (Int) -> Unit,
     onMarkSeasonUnwatched: (Int) -> Unit,
@@ -2602,7 +2602,7 @@ private fun MetaDetailsContent(
                                 onEpisodeStartFromBeginningClick(video)
                             },
                             showManualPlayOption = showManualPlayOption,
-                            onRemovePartialWatch = onRemovePartialWatch,
+                            onRemoveWatch = onRemoveWatch,
                             onToggleEpisodeWatched = onToggleEpisodeWatched,
                             onMarkSeasonWatched = onMarkSeasonWatched,
                             onMarkSeasonUnwatched = onMarkSeasonUnwatched,

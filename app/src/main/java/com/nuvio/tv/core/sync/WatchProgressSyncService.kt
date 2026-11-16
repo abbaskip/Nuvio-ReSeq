@@ -131,6 +131,19 @@ class WatchProgressSyncService @Inject constructor(
         }
     }
 
+    /** Only discard mirrors that still describe the selected play. A delayed key-only delete
+     * could otherwise erase a subsequent rewatch that reused the same progress key. */
+    suspend fun removeWatchMirrors(profileId: Int, matches: (WatchProgress) -> Boolean) = withContext(Dispatchers.IO) {
+        outboundSyncMutex(profileId).withLock {
+            val keys = pullFromRemote(profileId, forTvdbResume = true, rawKeys = true).getOrThrow()
+                .filter { matches(it.second) }.map { it.first }
+            if (keys.isNotEmpty()) {
+                deleteFromRemoteLocked(keys, profileId).getOrThrow()
+                cachedTvdbResume = null
+            }
+        }
+    }
+
     private suspend fun deleteFromRemoteLocked(
         keys: Collection<String>,
         profileId: Int

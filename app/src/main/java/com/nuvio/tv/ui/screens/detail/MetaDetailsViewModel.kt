@@ -2251,23 +2251,29 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    fun removePartialWatch(video: Video) {
+    fun removeEpisodeWatch(video: Video, resume: WatchProgress, lastWatchOnly: Boolean) {
         if (!video.hasResolvedSource) return
         val season = video.season ?: return
         val episode = video.episode ?: return
-        val resume = _uiState.value.episodeProgressMap[season to episode]?.takeIf { it.hasRemovableEpisodePause() } ?: return
+        if (_uiState.value.episodeProgressMap[season to episode] != resume) return
         val contentId = _effectiveContentId.value
         val key = episodePendingKey(video)
         if (key in _uiState.value.episodeWatchedPendingKeys) return
         viewModelScope.launch {
             _uiState.update { it.copy(episodeWatchedPendingKeys = it.episodeWatchedPendingKeys + key) }
             try {
-                watchProgressRepository.removeEpisodePartialWatch(contentId, video.forEpisodeSource(), resume)
-                showMessage(localizedContext.getString(R.string.episodes_partial_watch_removed))
+                if (lastWatchOnly) {
+                    watchProgressRepository.removeLastTraktWatch(contentId, video.forEpisodeSource(), resume)
+                    showMessage(localizedContext.getString(R.string.episodes_last_watch_removed))
+                } else {
+                    watchProgressRepository.removeEpisodePartialWatch(contentId, video.forEpisodeSource(), resume)
+                    showMessage(localizedContext.getString(R.string.episodes_partial_watch_removed))
+                }
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
             } catch (_: Exception) {
-                showMessage(localizedContext.getString(R.string.episodes_partial_watch_failed), isError = true)
+                showMessage(localizedContext.getString(if (lastWatchOnly) R.string.episodes_last_watch_failed
+                    else R.string.episodes_partial_watch_failed), isError = true)
             } finally {
                 _uiState.update { it.copy(episodeWatchedPendingKeys = it.episodeWatchedPendingKeys - key) }
             }

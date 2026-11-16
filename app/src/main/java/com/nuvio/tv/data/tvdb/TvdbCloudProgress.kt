@@ -32,6 +32,8 @@ internal fun WatchProgress.forNuvioCloud(completedIds: Set<Long> = emptySet()): 
     val completed = completedIds + tvdbWatchedIds
     return refs.mapNotNull { native ->
         if (fraction <= 0.0) return@mapNotNull null
+        val prefix = native.episodeIds.takeWhile { it !in context.episodeIds }
+        if (!completed.containsAll(prefix)) return@mapNotNull null
         val played = projectTvdbFraction(context.episodeIds, native.episodeIds, weights, fraction)
             ?.takeIf { it > 0.0 } ?: return@mapNotNull null
         val covered = context.episodeIds.containsAll(native.episodeIds) || completed.containsAll(native.episodeIds)

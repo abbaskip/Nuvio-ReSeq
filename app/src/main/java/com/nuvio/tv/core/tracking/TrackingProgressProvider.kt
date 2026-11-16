@@ -29,6 +29,7 @@ interface TrackingProgressProvider {
     val watchedMovieIds: Flow<Set<String>>
     /** Actual watch times, in epoch milliseconds, indexed by movie identity for this profile. */
     fun movieCompletionTimes(profileId: Int): Flow<Map<String, Long?>>
+    fun confirmsRemovedWatch(profileId: Int, event: WatchProgress): Boolean = false
     val ownsCompletedHistoryProjection: Boolean
         get() = false
     val clearsLocalProgressOnSelection: Boolean

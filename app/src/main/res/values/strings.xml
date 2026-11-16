@@ -3515,6 +3515,9 @@
     <string name="usenet_opening">Opening Usenet video…</string>
     <string name="cw_choose_episode">Open series to choose an episode</string>
     <string name="episodes_remove_partial_watch">Remove partial watch</string>
+    <string name="episodes_remove_last_watch">Remove last watch · %1$s</string>
+    <string name="episodes_last_watch_removed">Last watch removed from Trakt</string>
+    <string name="episodes_last_watch_failed">Couldn’t remove that watch. Refresh the episode and try again.</string>
     <string name="episodes_partial_watch_removed">Partial watch removed</string>
     <string name="episodes_partial_watch_failed">Couldn’t finish removing this partial watch</string>
 </resources>

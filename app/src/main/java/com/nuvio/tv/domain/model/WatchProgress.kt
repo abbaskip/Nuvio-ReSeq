@@ -89,6 +89,13 @@ data class WatchProgress(
     fun hasRemovableEpisodePause(): Boolean = season != null && episode != null &&
         progressPercentage > 0f && progressPercentage < 1f && !isCompleted() && tvdbWatchedIds.isEmpty()
 
+    fun hasRemovableTraktWatch(): Boolean = season != null && episode != null && lastWatched > 0 && when (source) {
+        SOURCE_TRAKT_PLAYBACK -> traktPlaybackId != null && traktEpisodeId != null
+        SOURCE_TRAKT_HISTORY, SOURCE_TRAKT_SHOW_PROGRESS ->
+            traktEpisodeId != null || (traktShowId != null && traktHistoryEpisode != null)
+        else -> false
+    }
+
     private fun completionThreshold(): Float =
         completionThresholdOverride?.takeIf { it.isFinite() && it > 0f && it <= 1f }
             ?: if (source == SOURCE_SIMKL_PLAYBACK) SIMKL_COMPLETED_THRESHOLD else COMPLETED_THRESHOLD

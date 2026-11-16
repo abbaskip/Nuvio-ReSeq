@@ -237,6 +237,25 @@ class TvdbProportionalScrobbleTest {
         assertTrue(read(100f, true).isCompleted())
     }
 
+    @Test fun officeRewatchPreservesBothTheNewPlaybackSessionAndTheOlderCompletion() = runTest {
+        val played = WatchProgress(original.id, "series", "The Office", null, null, null, "native", 6, 16,
+            "The Delivery", 1, 1, 1_500_000_000_000L, progressPercent = 100f,
+            source = WatchProgress.SOURCE_TRAKT_HISTORY, traktEpisodeId = 182129)
+        val pause = played.copy(source = WatchProgress.SOURCE_TRAKT_PLAYBACK, lastWatched = 1_794_747_546_000L,
+            position = 0, duration = 0, progressPercent = 49.75f, traktPlaybackId = 77)
+        for (fraction in listOf(49.75f, 50f)) {
+            val rows = resolver.projectProgress(1, original.id, emptyMap(), listOf(played, pause.copy(progressPercent = fraction)))
+            val first = rows.values.single { it.tvdbContext?.episodeId == 10719652L }
+            val second = rows.values.single { it.tvdbContext?.season == 6 && it.tvdbContext?.episode == 18 }
+            assertTrue(first.hasRemovableTraktWatch())
+            assertEquals(77L, first.traktPlaybackId)
+            assertEquals(pause.lastWatched, first.lastWatched)
+            assertTrue(second.isCompleted())
+            assertEquals(played.lastWatched, second.lastWatched)
+            assertNull(second.traktPlaybackId)
+        }
+    }
+
     @Test fun staleDeliveryPartOneYieldsToLatestPauseAndCannotOverwritePartTwo() = runTest {
         val show = original.id
         val raw = WatchProgress(show, "series", "The Office", null, null, null, "$show:6:11", 6, 11,
@@ -358,9 +377,9 @@ class TvdbProportionalScrobbleTest {
         assertEquals(TrackingScrobbleAction.PAUSE, first.first)
         assertFalse(first.second.allowCompletion)
         assertEquals(49.5, first.second.progressPercent, 0.01)
-        val second = resolver.scrobbleEvents(TrackingProviderId.TRAKT, TrackingScrobbleAction.STOP, event(99.0, parts[1]))!!.single()
-        assertEquals(TrackingScrobbleAction.PAUSE, second.first)
-        assertEquals(79.0, second.second.progressPercent, 0.01)
+        for (action in TrackingScrobbleAction.entries) {
+            assertTrue(resolver.scrobbleEvents(TrackingProviderId.TRAKT, action, event(99.0, parts[1]))!!.isEmpty())
+        }
         val completed = WatchProgress(original.id, "series", "Example", null, null, null, parts[0].id,
             parts[0].season, parts[0].episode, parts[0].title, 1, 1, 1, tvdbContext = parts[0].tvdbPlaybackContext())
         coEvery { local.getAllRawEntries(1) } returns mapOf("part" to completed)

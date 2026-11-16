@@ -129,7 +129,8 @@ class TraktProgressService @Inject constructor(
         fun completion(key: Pair<Int, Int>, at: Long) = WatchProgress(
             contentId, "series", name, null, null, null, "$contentId:${key.first}:${key.second}",
             key.first, key.second, null, 1, 1, at, progressPercent = 100f,
-            source = WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS, traktShowId = traktId
+            source = WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS, traktShowId = traktId,
+            traktHistoryEpisode = com.nuvio.tv.domain.model.EpisodeCoordinates(key.first, key.second)
         )
 
         fun seed(furthest: Boolean): WatchProgress? {
@@ -211,6 +212,28 @@ class TraktProgressService @Inject constructor(
         if (it.profileId == profileId) it.byId else emptyMap()
     }
     private val histories = MutableStateFlow<Map<String, ShowHistory>>(emptyMap())
+    fun hasWatchedNativeEpisode(profileId: Int, showId: Long?, season: Int?, episode: Int): Boolean =
+        profileId == profileManager.activeProfileId.value && confirmedHistoryProfile == profileId && season != null &&
+            showId != null && histories.value.history("trakt:$showId")?.watched?.containsKey(season to episode) == true
+    private data class PlaybackWindow(val profile: Int, val since: Long, val until: Long, val sessions: Set<Long>)
+    @Volatile private var confirmedPlayback: PlaybackWindow? = null
+    @Volatile private var confirmedHistoryProfile: Int? = null
+
+    fun confirmsRemovedWatch(profileId: Int, event: WatchProgress): Boolean {
+        if (profileManager.activeProfileId.value != profileId || event.lastWatched <= 0) return false
+        if (event.source == WatchProgress.SOURCE_TRAKT_PLAYBACK) {
+            val window = confirmedPlayback ?: return false
+            return window.profile == profileId && event.lastWatched in window.since..window.until &&
+                event.traktPlaybackId != null && event.traktPlaybackId !in window.sessions
+        }
+        if (confirmedHistoryProfile != profileId || event.source !in setOf(WatchProgress.SOURCE_TRAKT_HISTORY,
+                WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS) || event.lastWatched > watchedShowSeedsUpdatedAtMs) return false
+        val episode = event.traktHistoryEpisode ?: return false
+        val parent = event.traktShowId ?: return false
+        val show = histories.value.history("trakt:$parent") ?: return false
+        if (show.traktId != parent) return false
+        return (show.watched[episode.season to episode.episode] ?: 0L) < event.lastWatched
+    }
     /** Content IDs of shows dropped on Trakt (from users/hidden/progress_watched). */
     private val hiddenProgressShowIds = MutableStateFlow<Set<String>>(emptySet())
     private var hiddenProgressShowsLoadedAtMs: Long = 0L
@@ -336,6 +359,8 @@ class TraktProgressService @Inject constructor(
     }
 
     private suspend fun resetProfileScopedState() {
+        confirmedPlayback = null
+        confirmedHistoryProfile = null
         remoteProgress.value = emptyList()
         optimisticProgress.value = emptyMap()
         metadataState.value = emptyMap()
@@ -640,6 +665,18 @@ class TraktProgressService @Inject constructor(
             .distinctUntilChanged()
     }
 
+    /** TVDB may split one native episode. A replay of its first part and an older
+     * completion of the rest must both reach the selected-order projection. */
+    fun observeCanonicalWatchRecords(contentId: String): Flow<List<WatchProgress>> {
+        val key = canonicalLookupKey(contentId)
+        return histories.map { state ->
+            val show = state.history(key) ?: return@map null
+            val details = show.details ?: return@map null
+            show.watched.map { (episode, at) -> show.completion(episode, at) } + details.playback.map { it.first }
+        }.filterNotNull().onStart { scope.launch { ensureEpisodeProgressSnapshot(key, forceRefresh = false) } }
+            .distinctUntilChanged()
+    }
+
     fun observeAiredEpisodes(contentId: String): Flow<List<Pair<Int, Int>>> {
         val cacheKey = canonicalLookupKey(contentId)
         return histories
@@ -838,7 +875,46 @@ class TraktProgressService @Inject constructor(
             || (videoCanonicalKey != null && watchedMovies.contains(videoCanonicalKey))
     }
 
-    suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
+    suspend fun removeLastEpisodeWatch(profileId: Int, event: WatchProgress) {
+        require(event.hasRemovableTraktWatch())
+        check(profileManager.activeProfileId.value == profileId)
+        if (event.source == WatchProgress.SOURCE_TRAKT_PLAYBACK) {
+            val target = com.nuvio.tv.core.tracking.buildTrackingMediaReference("series", event.contentId, event.videoId,
+                seasonNumber = event.season, episodeNumber = event.episode)
+            removeEpisodePause(target, event, expectedProfile = profileId)
+        } else {
+            val episodeId = event.traktEpisodeId ?: run {
+                val native = requireNotNull(event.traktHistoryEpisode)
+                val seasons = traktAuthService.executeAuthorizedRequest {
+                    traktApi.getShowSeasons(it, requireNotNull(event.traktShowId).toString(), "episodes,full")
+                }
+                check(seasons?.isSuccessful == true)
+                requireNotNull(seasons.body()?.singleOrNull { it.number == native.season }
+                    ?.episodes?.singleOrNull { it.number == native.episode }?.ids?.trakt)
+            }
+            val history = traktAuthService.executeAuthorizedRequest { traktApi.getHistoryById(it, "episodes", episodeId.toString()) }
+            check(history?.isSuccessful == true)
+            val plays = requireNotNull(history.body())
+            val latest = plays.firstOrNull()
+            check(latest?.episode?.ids?.trakt == episodeId && exactWatchTime(latest.watchedAt) == event.lastWatched) {
+                "The last watch has changed"
+            }
+            check(plays.count { exactWatchTime(it.watchedAt) == event.lastWatched } == 1) { "Ambiguous watch time" }
+            check(profileManager.activeProfileId.value == profileId)
+            val result = traktAuthService.executeAuthorizedWriteRequest {
+                traktApi.removeHistoryPlay(it, com.nuvio.tv.data.remote.dto.trakt.TraktHistoryPlayRemoval(listOf(requireNotNull(latest.id))))
+            }
+            check(result?.isSuccessful == true && result.body()?.deleted?.episodes == 1)
+        }
+        if (profileManager.activeProfileId.value != profileId) return
+        cacheMutex.withLock { cachedEpisodesPlayback = null }
+        episodeProgressActivityVersion.incrementAndGet()
+        watchedShowSeedsStale = true
+        ensureEpisodeProgressSnapshot(event.contentId, forceRefresh = true)
+        refreshNow()
+    }
+
+    suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress, expectedProfile: Int? = null) {
         val episode = requireNotNull(target.episode)
         val parent = requireNotNull(target.catalog)
         val mapping = if (parent.providerDefault) null else resolveCanonicalEpisodeMapping(resume)
@@ -854,7 +930,9 @@ class TraktProgressService @Inject constructor(
         } while (page <= (result.headers()["X-Pagination-Page-Count"]?.toIntOrNull() ?: 1))
         val expectedTitle = mapping?.title ?: episode.title
         val latest = sessions.filter { row ->
-            normalizeContentId(row.show?.ids) == parent.contentId && row.episode != null &&
+            (normalizeContentId(row.show?.ids) == parent.contentId ||
+                (expectedProfile != null && resume.traktShowId != null && resume.traktShowId == row.show?.ids?.trakt)) && row.episode != null &&
+                (expectedProfile == null || exactWatchTime(row.pausedAt) == resume.lastWatched) &&
                 (resume.traktPlaybackId == null || row.id == resume.traktPlaybackId) && when {
                 episode.traktId != null -> row.episode.ids?.trakt == episode.traktId
                 resume.traktEpisodeId != null -> row.episode.ids?.trakt == resume.traktEpisodeId
@@ -862,7 +940,12 @@ class TraktProgressService @Inject constructor(
                     row.episode.number == (mapping?.episode ?: episode.number) &&
                     (expectedTitle.isNullOrBlank() || row.episode.title.equals(expectedTitle, ignoreCase = true))
             }
-        }.maxByOrNull { parseIsoToMillis(it.pausedAt) } ?: return
+        }.maxByOrNull { parseIsoToMillis(it.pausedAt) }
+        if (latest == null) {
+            check(expectedProfile == null) { "The playback session has changed" }
+            return
+        }
+        check(expectedProfile == null || profileManager.activeProfileId.value == expectedProfile)
         val response = traktAuthService.executeAuthorizedWriteRequest {
             traktApi.deletePlayback(it, requireNotNull(latest.id))
         }
@@ -1435,6 +1518,7 @@ class TraktProgressService @Inject constructor(
             showIdSiblingsMap = siblingsMap
 
             watchedShowSeedsUpdatedAtMs = System.currentTimeMillis()
+            confirmedHistoryProfile = profileManager.activeProfileId.value
             hasLoadedWatchedShowSeeds = true
             watchedShowSeedsStale = false
             trace("watched-shows cache refreshed: size=${fetched.size}")
@@ -1935,6 +2019,8 @@ class TraktProgressService @Inject constructor(
         endAt: String? = null
     ): List<TraktPlaybackItemDto>? {
         val now = System.currentTimeMillis()
+        val profile = profileManager.activeProfileId.value
+        val generation = refreshGeneration.get()
         if (startAt == null && endAt == null) {
             cacheMutex.withLock {
                 val cache = when (type) {
@@ -1958,7 +2044,13 @@ class TraktProgressService @Inject constructor(
         } ?: return null
         if (!response.isSuccessful) return null
 
-        val value = response.body().orEmpty()
+        val value = response.body() ?: return null
+        if (type == "episodes" && endAt == null && generation == refreshGeneration.get() && profileManager.activeProfileId.value == profile) {
+            val pages = response.headers()["X-Pagination-Page-Count"]?.toIntOrNull()
+            val since = exactWatchTime(startAt) ?: 0L
+            confirmedPlayback = if ((pages == 1 || value.isEmpty()) && (startAt == null || since > 0) && value.all { it.id != null })
+                PlaybackWindow(profile, since, now, value.mapTo(mutableSetOf()) { requireNotNull(it.id) }) else null
+        }
         if (startAt == null && endAt == null) {
             cacheMutex.withLock {
                 val timed = TimedCache(value = value, updatedAtMs = now)
@@ -1969,6 +2061,10 @@ class TraktProgressService @Inject constructor(
             }
         }
         return value
+    }
+
+    private fun exactWatchTime(timestamp: String?): Long? = timestamp?.let {
+        runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull()
     }
 
     private suspend fun mapPlaybackMovie(item: TraktPlaybackItemDto): WatchProgress? {

@@ -130,6 +130,34 @@ class ContinueWatchingRepositoryTest {
         }
     }
 
+    @Test fun `a second box reconciles a deleted rewatch to its surviving older watch during a warm refresh`() = runTest {
+        val old = p(16, 1_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY, traktEpisodeId = 182129)
+        val pause = old.copy(position = 0, progressPercent = 49.75f, lastWatched = 9_000,
+            source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktPlaybackId = 77)
+        var deleted = false
+        val tracker = mockk<com.nuvio.tv.core.tracking.TrackingProgressProvider> {
+            every { providerId } returns com.nuvio.tv.core.tracking.TrackingProviderId.TRAKT
+            every { isAuthenticated } returns kotlinx.coroutines.flow.flowOf(true)
+            every { movieCompletionTimes(1) } returns kotlinx.coroutines.flow.flowOf(emptyMap())
+            every { confirmsRemovedWatch(1, any()) } answers { deleted && secondArg<WatchProgress>().traktPlaybackId == 77L }
+        }
+        val registry = com.nuvio.tv.core.tracking.TrackingProgressProviderRegistry(setOf(tracker))
+        val secondBox = ContinueWatchingRepository(mockk { every { filesDir } returns folder.root }, profiles, settings,
+            Provider { progress }, trackingProviders = Provider { registry })
+        remote.value = listOf(pause)
+        seeds.value = listOf(old)
+        loaded.value = true
+        secondBox.refreshProjection()
+        assertEquals(pause, secondBox.snapshot().members.getValue("show").progress)
+        deleted = true
+        secondBox.refreshProjection() // an older in-flight playback emission can still contain the removed session
+        assertEquals(old, secondBox.snapshot().members.getValue("show").progress)
+        assertEquals(old, repository().snapshot().members.getValue("show").progress)
+        remote.value = listOf(pause.copy(lastWatched = 12_000, traktPlaybackId = 88))
+        secondBox.refreshProjection()
+        assertEquals(88L, secondBox.snapshot().members.getValue("show").progress?.traktPlaybackId)
+    }
+
     @Test fun `late tracker response cannot undo playback committed after restoring the cache`() = runTest {
         val prior = p(4, 2_000).copy(source = WatchProgress.SOURCE_TRAKT_PLAYBACK)
         repository().committedProgress(1, listOf(prior))

@@ -153,7 +153,8 @@ class TvdbTrackingResolver @Inject constructor(
                         return@mapNotNull null
                     }
                     if (target == null) entry.copy(tvdbEpisodeId = null, tvdbEpisodeIds = emptyList())
-                    else entry.copy(contentId = contentId, tvdbEpisodeId = target.contentIds.first(), tvdbEpisodeIds = target.contentIds.toList())
+                    else entry.copy(contentId = contentId, traktEpisodeId = target.episode.traktId,
+                        tvdbEpisodeId = target.contentIds.first(), tvdbEpisodeIds = target.contentIds.toList())
                 } else if (entry.isNativeTrackerPause()) {
                     val candidates = if (entry.trackingProviderId == "simkl") otherTargets else mdbTargets
                     val ids = nativePauseIds(entry, meta) ?: candidates.verifiedPauseIds(entry)
@@ -239,8 +240,8 @@ class TvdbTrackingResolver @Inject constructor(
             val parents = meta?.let { traktTargets(profileId, it).mapNotNull { row ->
                 row.parentIds?.imdb ?: row.parentIds?.trakt?.let { id -> "trakt:$id" }
             } }.orEmpty()
-            val flows = (listOf(contentId) + parents).distinct().map(native::observeCanonicalEpisodeProgress)
-            emitAll(kotlinx.coroutines.flow.combine(flows) { maps -> maps.flatMap { it.values } })
+            val flows = (listOf(contentId) + parents).distinct().map(native::observeCanonicalWatchRecords)
+            emitAll(kotlinx.coroutines.flow.combine(flows) { records -> records.flatMap { it } })
         }
     }
 
@@ -426,6 +427,14 @@ class TvdbTrackingResolver @Inject constructor(
                 }
                 val activeId = context.activeProgressPart(event.progressPercent, resolved.weights) ?: return@withContext emptyList()
                 val target = resolved.targets.singleOrNull { activeId in it.contentIds } ?: return@withContext emptyList()
+                val missingPrefix = target.contentIds.takeWhile { it != activeId } - context.episodeIds.toSet()
+                if (missingPrefix.isNotEmpty()) {
+                    val prior = local?.getAllRawEntries(profileId)?.values.orEmpty()
+                        .filter { it.contentId == reference.catalog.contentId }.flatMap { it.tvdbWatchedIds }.toSet()
+                    if (!prior.containsAll(missingPrefix) && !(provider == TrackingProviderId.TRAKT &&
+                        traktProgress?.get()?.hasWatchedNativeEpisode(profileId, target.parentIds?.trakt,
+                            target.episode.season, target.episode.number) == true)) return@withContext emptyList()
+                }
                 val fraction = projectTvdbFraction(context.episodeIds, target.contentIds.toList(), resolved.weights,
                     (event.progressPercent / 100).coerceIn(0.0, 1.0)) ?: return@withContext emptyList()
                 val mapped = event.copy(media = reference.forTarget(target, context.seriesId),

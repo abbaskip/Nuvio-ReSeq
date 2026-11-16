@@ -15,6 +15,7 @@ internal fun projectTrackerParts(record: WatchProgress, nativeIds: List<Long>, v
         val weights = context.progressWeights(additionalIds = nativeIds)
         val fraction = record.progressPercentage.toDouble()
         val value = projectTvdbFraction(nativeIds, ids, weights, fraction) ?: return@mapNotNull null
+        if (fraction > 0.0 && value == 0.0) return@mapNotNull null
         val nativeRanges = nativeIds.progressRanges(weights)
         val completedIds = ids.filter { id ->
             val part = nativeRanges[id] ?: return@filter false

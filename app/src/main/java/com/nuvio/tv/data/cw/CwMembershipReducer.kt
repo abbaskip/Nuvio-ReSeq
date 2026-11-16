@@ -114,6 +114,7 @@ object CwMembershipReducer {
         val removals = state.removals.toMutableMap()
         val completed = state.completed.toMutableMap()
         updates.sortedBy { it.lastWatched }.forEach { p ->
+            if (p.watchEventKeys().any(state.ignoredProgress::containsKey)) return@forEach
             // Read old episode-specific replay markers too. A legacy series-only videoId
             // is ambiguous and must never suppress every episode in that show's history.
             val legacyIgnored = if (p.videoId != p.contentId) state.ignoredProgress[p.legacyHistoryKey()] else null
@@ -284,6 +285,22 @@ object CwMembershipReducer {
         return state.changed(state.members - ids, state.removals + ids.associateWith { proof.at })
     }
 
+    fun removeWatchEvent(state: CwProjection, event: WatchProgress): CwProjection {
+        val id = event.contentId
+        val keys = event.watchEventKeys()
+        if (keys.isEmpty()) return state
+        val member = state.members[id]
+        val removed = member?.progress?.watchEventKeys().orEmpty().any(keys::contains)
+        val records = state.completed[id].orEmpty().filterValues { record ->
+            record.at != event.lastWatched || event.source == WatchProgress.SOURCE_TRAKT_PLAYBACK ||
+                !(record.contentIds.any(event.tvdbContentIds::contains) ||
+                    event.traktHistoryEpisode?.let { it.season == record.season && it.episode == record.episode } == true)
+        }
+        return state.copy(epoch = state.epoch + 1, revision = state.revision + 1,
+            members = if (removed) state.members - id else state.members,
+            completed = state.completed + (id to records), ignoredProgress = state.ignoredProgress + keys.associateWith { event.lastWatched })
+    }
+
     fun invalidate(state: CwProjection, ids: Set<String>): CwProjection = state.copy(
         epoch = state.epoch + 1, revision = state.revision + 1,
         members = state.members.mapValues { (id, member) ->
@@ -376,6 +393,16 @@ private fun WatchProgress.isDetailedHistoryFor(seed: WatchProgress): Boolean =
 
 private fun episodeHistoryKey(contentId: String, season: Int, episode: Int) = "$contentId|episode:$season:$episode|"
 internal fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"
+private fun WatchProgress.watchEventKeys(): Set<String> {
+    if (source == WatchProgress.SOURCE_TRAKT_PLAYBACK && traktPlaybackId != null)
+        return setOf("$contentId|playback:$traktPlaybackId|$lastWatched")
+    if (source != WatchProgress.SOURCE_TRAKT_HISTORY && source != WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS) return emptySet()
+    return buildSet {
+        traktEpisodeId?.let { add("$contentId|watch:$it|$lastWatched") }
+        traktHistoryEpisode?.let { add("$contentId|watch:${it.season}:${it.episode}|$lastWatched") }
+    }
+}
+
 private fun WatchProgress.historyKey() = if (tvdbContentIds.isEmpty() && season != null && episode != null)
     episodeHistoryKey(contentId, season, episode)
 else legacyHistoryKey()

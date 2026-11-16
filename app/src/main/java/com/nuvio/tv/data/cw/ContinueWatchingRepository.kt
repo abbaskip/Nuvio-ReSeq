@@ -176,6 +176,13 @@ class ContinueWatchingRepository @Inject constructor(
         }
     }
 
+    suspend fun lastWatchRemoved(profileId: Int, event: WatchProgress) {
+        val state = snapshot()
+        if (state.profileId != profileId || state.source != "TRAKT") return
+        mutate(state.lease) { CwMembershipReducer.removeWatchEvent(it, event) }
+        refreshProjection()
+    }
+
     suspend fun invalidate(profileId: Int, contentIds: Set<String>) {
         val state = snapshot()
         if (state.profileId != profileId) return
@@ -210,7 +217,15 @@ class ContinueWatchingRepository @Inject constructor(
         // outside the store lock, so a slow catalogue cannot delay playback or unrelated cards.
         var replace = emptySet<String>()
         val recheckPauses = mutableSetOf<String>()
-        val state = mutate(lease, afterCommit = { restoredSeries.removeAll(replace) }) { current ->
+        val provider = if (loaded && lease.source == "TRAKT")
+            trackingProviders?.get()?.provider(com.nuvio.tv.core.tracking.TrackingProviderId.TRAKT) else null
+        val state = mutate(lease, afterCommit = { restoredSeries.removeAll(replace) }) { previous ->
+            var current = previous
+            if (provider != null) for (member in previous.members.values) {
+                val event = member.progress ?: continue
+                if (provider.confirmsRemovedWatch(lease.profileId, event))
+                    current = CwMembershipReducer.removeWatchEvent(current, event)
+            }
             val restoringTracker = restoredSeries.isNotEmpty() && progress.hasActiveTrackingProgressProvider()
             if (restoringTracker && !loaded) {
                 // Startup may emit yesterday's provider cache before the network result. It cannot

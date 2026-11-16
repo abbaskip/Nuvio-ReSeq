@@ -98,7 +98,9 @@ internal fun EpisodeOptionsOverlay(
     isSeasonFullyWatched: Boolean = false,
     hasPreviousEpisodes: Boolean = false,
     hasProgress: Boolean = false,
+    onRemoveWatch: (() -> Unit)? = null,
     onRemovePartialWatch: (() -> Unit)? = null,
+    lastWatchDate: String? = null,
     onDismiss: () -> Unit,
     onPlay: () -> Unit,
     isPlayEnabled: Boolean = true,
@@ -191,6 +193,10 @@ internal fun EpisodeOptionsOverlay(
         else -> stringResource(R.string.episodes_dialog_subtitle)
     }
     val actions = buildList {
+        if (onRemoveWatch != null && lastWatchDate != null) {
+            add(EpisodeOverlayAction(label = stringResource(R.string.episodes_remove_last_watch, lastWatchDate),
+                enabled = !isPending, onClick = onRemoveWatch))
+        }
         if (showWatchedActions) {
             add(
                 EpisodeOverlayAction(

@@ -87,6 +87,9 @@ data class TraktShowEpisodeProgressDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class TraktHistoryPlayRemoval(@Json(name = "ids") val ids: List<Long>)
+
+@JsonClass(generateAdapter = true)
 data class TraktHistoryRemoveRequestDto(
     @Json(name = "movies") val movies: List<TraktMovieDto>? = null,
     @Json(name = "shows") val shows: List<TraktHistoryShowRemoveDto>? = null,

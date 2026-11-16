@@ -26,6 +26,7 @@ class TraktTrackingProgressProvider @Inject constructor(
     override val remoteProgressLoaded = service.observeRemoteProgressLoaded()
     override val watchedMovieIds = service.observeAllWatchedMovieIds()
     override fun movieCompletionTimes(profileId: Int) = service.movieCompletionTimes(profileId)
+    override fun confirmsRemovedWatch(profileId: Int, event: WatchProgress) = service.confirmsRemovedWatch(profileId, event)
     override val nextUpSeeds = service.observeWatchedShowSeeds()
 
     override fun episodeProgress(contentId: String) = service.observeEpisodeProgress(contentId)

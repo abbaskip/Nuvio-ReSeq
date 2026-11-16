@@ -151,6 +151,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
     private val serverWatched: ServerWatched,
     private val tvdbTracking: com.nuvio.tv.data.tvdb.TvdbTrackingResolver? = null,
     private val cwRepository: com.nuvio.tv.data.cw.ContinueWatchingRepository? = null,
+    private val traktEvents: javax.inject.Provider<TraktProgressService>? = null,
 ) : WatchProgressRepository {
     companion object {
         private const val TAG = "WatchProgressRepo"
@@ -999,6 +1000,27 @@ class WatchProgressRepositoryImpl @Inject constructor(
             }
         }
         recordTvdbNativeWatched(profileId, progressList.filter { it.isCompleted() && it.tvdbContext != null }, syncRemote)
+    }
+
+    override suspend fun removeLastTraktWatch(contentId: String, video: Video, event: WatchProgress) {
+        require(event.contentId == contentId && event.hasRemovableTraktWatch())
+        val profile = profileManager.activeProfileId.value
+        check(profileProgressProviderFlow(profile).first()?.providerId == TrackingProviderId.TRAKT)
+        fun matches(row: WatchProgress): Boolean {
+            if (row.contentId != contentId || row.lastWatched != event.lastWatched) return false
+            val context = video.tvdbPlaybackContext()
+            return if (context == null) row.videoId == video.id && row.season == video.season && row.episode == video.episode
+            else row.tvdbContext == context || context.providerSources.orEmpty().any { native ->
+                row.tvdbContext == null && row.videoId == native.videoId &&
+                    row.season == native.coordinates.season && row.episode == native.coordinates.episode
+            }
+        }
+        val local = watchProgressPreferences.getAllRawEntries(profile).filterValues(::matches)
+        checkNotNull(traktEvents).get().removeLastEpisodeWatch(profile, event)
+        mutationStore.acknowledgeProgressUpserts(local, profile)
+        watchProgressPreferences.removeMatchingProgress(local, profile)
+        cwRepository?.lastWatchRemoved(profile, event)
+        if (authManager.isAuthenticated) watchProgressSyncService.removeWatchMirrors(profile, ::matches)
     }
 
     override suspend fun removeEpisodePartialWatch(contentId: String, video: Video, resume: WatchProgress) {

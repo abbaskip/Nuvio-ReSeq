@@ -208,8 +208,8 @@ class TvdbCrossSeriesTest {
         val original = progress("tt0983514", 457325, true)
         val revival = progress("tt32436778", 10918421, false)
         val native = mockk<TraktProgressService> {
-            every { observeCanonicalEpisodeProgress("tt0983514") } returns flowOf(mapOf((1 to 1) to original))
-            every { observeCanonicalEpisodeProgress("tt32436778") } returns flowOf(mapOf((1 to 1) to revival))
+            every { observeCanonicalWatchRecords("tt0983514") } returns flowOf(listOf(original))
+            every { observeCanonicalWatchRecords("tt32436778") } returns flowOf(listOf(revival))
         }
         val isolated = TvdbTrackingResolver(store, dagger.Lazy { overlay }, source, profiles, api, auth, mockk(), mockk(),
             traktProgress = dagger.Lazy { native })

@@ -132,6 +132,27 @@ class SearchViewModelConcurrencyTest {
         assertTrue(vm.uiState.value.discoverResults.isNotEmpty())
     }
 
+    @Test fun `focus echoes do not refetch and real clear and restored queries still work`() = runTest {
+        val addon = searchableAddon()
+        val catalogs = ImmediateCatalogRepository(addon)
+        val vm = newViewModel(GatedAddonRepository(addon, CompletableDeferred(Unit)), catalogs)
+        vm.onEvent(SearchEvent.QueryChanged("Deep Cover"))
+        advanceUntilIdle()
+        val count = catalogs.queries.size
+        repeat(3) { vm.onEvent(SearchEvent.QueryChanged("Deep Cover")) }
+        advanceUntilIdle()
+        assertEquals(count, catalogs.queries.size)
+        vm.onEvent(SearchEvent.QueryChanged(""))
+        advanceUntilIdle()
+        assertEquals("", vm.uiState.value.query)
+        assertEquals("", vm.uiState.value.submittedQuery)
+        assertTrue(vm.uiState.value.catalogRows.isEmpty())
+        vm.onEvent(SearchEvent.QueryChanged("Deep Cover"))
+        advanceUntilIdle()
+        assertEquals("Deep Cover", vm.uiState.value.query)
+        assertTrue(vm.uiState.value.catalogRows.isNotEmpty())
+    }
+
     private fun newViewModel(
         addonRepository: AddonRepository,
         catalogRepository: CatalogRepository,

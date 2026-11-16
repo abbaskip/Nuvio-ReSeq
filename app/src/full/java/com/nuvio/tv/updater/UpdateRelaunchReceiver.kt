@@ -33,7 +33,7 @@ class UpdateRelaunchReceiver : BroadcastReceiver() {
         }
 
         fun cancelReopen(context: Context) {
-            prefs(context).edit().remove(KEY_REQUESTED_AT).apply()
+            prefs(context).edit().remove(KEY_REQUESTED_AT).commit()
         }
 
         // A request left by a cancelled or failed install expires, so a later update from elsewhere won't reopen the app.

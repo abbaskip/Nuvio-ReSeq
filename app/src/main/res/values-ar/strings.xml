@@ -1388,16 +1388,16 @@
     <string name="playback_show_loading_status">إظهار حالة التحميل</string>
     <string name="playback_show_loading_status_sub">عرض خطوات التقدم أثناء تهيئة المشغل.</string>
     <string name="player_sync_line">مزامنة السطر</string>
-    <string name="subtitle_timing_press_sync">اضغط "مزامنة" عند سماع النص.</string>
+    <string name="subtitle_timing_press_sync">اضغط «مزامنة» عند سماع سطر حوار.</string>
     <string name="subtitle_timing_sync_button">مزامنة</string>
-    <string name="subtitle_timing_select_addon_first">إختر ملف ترجمة من إضافة أولًا.</string>
-    <string name="subtitle_auto_sync_select_addon_track">إختر ملف ترجمة من إضافة للمزامنة التلقائية.</string>
+    <string name="subtitle_timing_select_addon_first">اختر مسار ترجمة من إضافة أولًا.</string>
+    <string name="subtitle_auto_sync_select_addon_track">اختر مسار ترجمة من إضافة لاستخدام المزامنة التلقائية.</string>
     <string name="subtitle_auto_sync_applied">تم تطبيق المزامنة: %1$s</string>
-    <string name="subtitle_timing_loading">جاري تحميل الترجمة…</string>
-    <string name="subtitle_timing_no_lines_found">لم يتم العثور على أسطر ترجمة في هذا الوقت.</string>
-    <string name="subtitle_timing_press_back_cancel">عد للخلف للإلغاء</string>
-    <string name="subtitle_timing_captured_at">تم التحديد عند %1$s</string>
-    <string name="subtitle_timing_capturing">يتم التحديد…</string>
+    <string name="subtitle_timing_loading">جارٍ تحميل أسطر الترجمة…</string>
+    <string name="subtitle_timing_no_lines_found">لم يتم العثور على أسطر ترجمة حول هذه اللحظة.</string>
+    <string name="subtitle_timing_press_back_cancel">اضغط زر الرجوع للإلغاء</string>
+    <string name="subtitle_timing_captured_at">تم الالتقاط عند %1$s</string>
+    <string name="subtitle_timing_capturing">جارٍ الالتقاط…</string>
 
 
     <!-- ParentalGuideOverlay -->
@@ -1489,29 +1489,29 @@
     <string name="audio_maintain_original_audio_on_downmix_subtitle">عند تعطيله، قد يؤدي دمج القنوات إلى خفض مستوى الصوت العام.</string>
 
     <!-- SubtitleDialog / SubtitleStyleSidePanel -->
-    <string name="subtitle_dialog_title">الترجمة</string>
+    <string name="subtitle_dialog_title">الترجمات</string>
     <string name="subtitle_no_builtin">لا توجد ترجمات مدمجة متاحة</string>
-    <string name="subtitle_loading_addon">جاري تحميل الترجمات من الإضافات\u2026</string>
+    <string name="subtitle_loading_addon">جارٍ تحميل الترجمات من الإضافات\u2026</string>
     <string name="subtitle_no_addon">لا توجد ترجمات متاحة من الإضافات</string>
     <string name="subtitle_text_color">لون النص</string>
-    <string name="subtitle_outline_color">لون الاطار</string>
+    <string name="subtitle_outline_color">لون الإطار</string>
     <string name="subtitle_reset_defaults">استعادة الافتراضيات</string>
-    <string name="subtitle_tab_builtin">مدمج</string>
+    <string name="subtitle_tab_builtin">مدمجة</string>
     <string name="subtitle_tab_addons">إضافات</string>
     <string name="subtitle_tab_languages">اللغات</string>
     <string name="subtitle_tab_style">النمط</string>
     <string name="subtitle_tab_delay">التأخير</string>
-    <string name="subtitle_none">بدون</string>
+    <string name="subtitle_none">بدون ترجمة</string>
     <string name="subtitle_built_in">مدمجة</string>
     <string name="subtitle_all">الكل</string>
     <string name="subtitle_section_core">الأساس</string>
     <string name="subtitle_section_advanced">متقدم</string>
     <string name="subtitle_font_size">حجم الخط</string>
     <string name="subtitle_bold">عريض</string>
-    <string name="subtitle_outline">اطار خارجي</string>
-    <string name="subtitle_bottom_offset">إزاحة السفلية</string>
-    <string name="subtitle_on">مفعل</string>
-    <string name="subtitle_off">معطل</string>
+    <string name="subtitle_outline">إطار خارجي</string>
+    <string name="subtitle_bottom_offset">الإزاحة السفلية</string>
+    <string name="subtitle_on">مفعّل</string>
+    <string name="subtitle_off">معطّل</string>
     <string name="subtitle_style_title">نمط الترجمة</string>
     <string name="subtitle_style_customize">تخصيص</string>
     <string name="subtitle_style_color">اللون</string>
@@ -1519,12 +1519,12 @@
     <string name="subtitle_style_font_size">حجم الخط</string>
     <string name="subtitle_style_bold">عريض</string>
     <string name="subtitle_style_text_color">لون النص</string>
-    <string name="subtitle_style_text_opacity">شفافية النص</string>
-    <string name="subtitle_style_outline">اطار خارجي</string>
-    <string name="subtitle_style_bottom_offset">إزاحة السفلية</string>
+    <string name="subtitle_style_text_opacity">عتامة النص</string>
+    <string name="subtitle_style_outline">إطار خارجي</string>
+    <string name="subtitle_style_bottom_offset">الإزاحة السفلية</string>
     <string name="subtitle_style_defaults">الافتراضيات</string>
-    <string name="subtitle_style_on">مفعل</string>
-    <string name="subtitle_style_off">معطل</string>
+    <string name="subtitle_style_on">مفعّل</string>
+    <string name="subtitle_style_off">معطّل</string>
     <string name="subtitle_style_weight">سمك الخط</string>
     <string name="panel_failed_load_streams">فشل تحميل المصادر</string>
     <string name="panel_failed_load_episodes">فشل تحميل الحلقات</string>
@@ -1564,15 +1564,15 @@
 
     <!-- SearchScreen -->
     <string name="search_keyboard_hint">اضغط على "تم" في لوحة المفاتيح للبحث</string>
-    <string name="search_placeholder">أبحث عن أفلام &amp; مسلسلات</string>
+    <string name="search_placeholder">ابحث عن أفلام ومسلسلات</string>
     <string name="search_start_title">ابدأ البحث</string>
     <string name="search_start_subtitle">أدخل حرفين على الأقل</string>
-    <string name="search_start_subtitle_no_discover">ميزة "استكشاف" معطلة. أدخل حرفين على الأقل</string>
+    <string name="search_start_subtitle_no_discover">ميزة "استكشاف" معطّلة. أدخل حرفين على الأقل</string>
     <string name="search_recent_title">سجل البحث</string>
     <string name="search_recent_clear">مسح السجل</string>
-    <string name="search_voice_no_speech">لم يتم رصد صوت. حاول مجدداً.</string>
+    <string name="search_voice_no_speech">لم يتم اكتشاف أي كلام. حاول مجددًا.</string>
     <string name="search_voice_mic_permission">إذن الميكروفون مطلوب للبحث الصوتي.</string>
-    <string name="search_voice_failed">فشل التعرف على الصوت. حاول مجدداً.</string>
+    <string name="search_voice_failed">فشل التعرف على الصوت. حاول مجددًا.</string>
     <string name="search_voice_unavailable">البحث الصوتي غير متاح على هذا الجهاز.</string>
     <string name="search_no_results_title">لا توجد نتائج</string>
     <string name="search_no_results_subtitle">جرّب البحث باستخدام كلمات رئيسية مختلفة</string>
@@ -1645,7 +1645,7 @@
     <string name="library_syncing_library">جاري مزامنة المكتبة\u2026</string>
     <string name="library_type_all">الكل</string>
     <string name="library_empty_trakt_not_auth_title">حساب Trakt غير متصل</string>
-    <string name="library_empty_trakt_not_auth_subtitle">قم بربط حساب Trakt الخاص بك في الإعدادات لعرض مكتبتك الشخصية</string>
+    <string name="library_empty_trakt_not_auth_subtitle">اربط حساب Trakt الخاص بك في الإعدادات لعرض مكتبة Trakt</string>
     <string name="library_list_create_dialog_title">إنشاء قائمة</string>
     <string name="library_list_edit_dialog_title">تعديل القائمة</string>
     <string name="library_sync_btn">مزامنة</string>
@@ -2329,7 +2329,7 @@
     <string name="player_error_stream_expired">\n\nانتهت صلاحية رابط البث. يرجى اختيار مصدر آخر.</string>
     <string name="player_error_stream_rate_limited">\n\nطلبات كثيرة جداً لمصدر البث. انتظر لحظة ثم حاول مجدداً.</string>
     <string name="player_error_stream_unavailable">\n\nخادم البث غير متوفر حالياً. يرجى اختيار مصدر آخر.</string>
-    <string name="player_error_source_invalid_content">خطأ في المصدر: أرجع مصدر البث محتوى غير صالح أو غير قابل للتشغيل. قد يكون الرابط قد انتهت صلاحيته أو أرجع الخادم صفحة خطأ بدلاً من الفيديو.\n\nيرجى اختيار مصدر آخر. [%1$s]</string>
+    <string name="player_error_source_invalid_content">خطأ في المصدر: أرسل مصدر البث محتوى غير صالح أو غير قابل للتشغيل. ربما انتهت صلاحية الرابط أو أرسل الخادم صفحة خطأ بدلًا من الفيديو.\n\nيرجى اختيار مصدر آخر. [%1$s]</string>
     <string name="player_error_decoder">خطأ في فك التكويد (Decoder)</string>
     <string name="player_error_unsupported_format">يستخدم هذا البث تنسيقاً قد لا يدعمه جهازك. يرجى اختيار مصدر آخر. [%1$s]</string>
     <string name="player_error_initialize_failed">فشل تهيئة المشغل</string>
@@ -2341,7 +2341,7 @@
     <string name="subtitle_timing_file_no_lines">لم يتم العثور على أسطر ترجمة في هذا الملف.</string>
     <string name="subtitle_timing_load_lines_failed">فشل تحميل أسطر الترجمة.</string>
     <string name="subtitle_download_failed_http">فشل تنزيل الترجمة (HTTP %1$d)</string>
-    <string name="subtitle_download_empty_content">أرجع تنزيل الترجمة محتوى فارغاً.</string>
+    <string name="subtitle_download_empty_content">الترجمة التي تم تنزيلها فارغة.</string>
 
     <!-- Collection import errors -->
     <string name="collections_import_error_empty_input">الإدخال فارغ</string>
@@ -2412,7 +2412,7 @@
 
     <!-- Search errors -->
     <string name="search_error_load_addons_failed">تعذر تحميل الإضافات</string>
-    <string name="search_error_failed">فشلت عملية البحث</string>
+    <string name="search_error_failed">فشل البحث</string>
 
     <!-- Stream / TMDB / addons fallbacks -->
     <string name="stream_unknown">بث غير معروف</string>
@@ -2577,8 +2577,8 @@
     <string name="appearance_settings_style">نمط الإعدادات</string>
     <string name="appearance_settings_style_subtitle">اختر طريقة عرض شاشات الإعدادات</string>
     <string name="audio_enable_downmix_subtitle">يستخدم مسار الدمج (Downmix) في FFmpeg. يتطلب تفضيل مفككات التطبيق (FFmpeg). عند التعطيل، يتبع الصوت المسار السابق لنظام أندرويد/الجهاز.</string>
-    <string name="audio_force_optical_passthrough">فرض تحويل AC-3 (بصري/SPDIF)</string>
-    <string name="audio_force_optical_passthrough_sub">يحوّل الصيغ متعددة القنوات (TrueHD وDTS وAAC وغيرها) إلى دولبي ديجيتال 5.1 في الوقت الفعلي لاتصالات البصري/SPDIF.</string>
+    <string name="audio_force_optical_passthrough">فرض تحويل AC-3 (الصوت البصري/SPDIF)</string>
+    <string name="audio_force_optical_passthrough_sub">يحوّل الصيغ متعددة القنوات (TrueHD وDTS وAAC وغيرها) إلى دولبي ديجيتال 5.1 في الوقت الفعلي لاتصالات الصوت البصري (Optical/SPDIF).</string>
     <string name="audio_strip_hdr10plus_sub">إزالة البيانات الوصفية الديناميكية HDR10+ من البثوث. عند تفعيل "التحويل إلى DV8.1" أيضًا، تجري الإزالة بعد التحويل.</string>
     <string name="audio_strip_hdr10plus_title">إزالة بيانات HDR10+ الوصفية</string>
     <string name="auth_email_hint">سجّل الدخول مباشرة بحسابك على خادمك المستضاف ذاتيًا.</string>
@@ -3048,4 +3048,50 @@
     <string name="episodes_remove_partial_watch">حذف تقدم المشاهدة الجزئية</string>
     <string name="episodes_partial_watch_removed">تم حذف تقدم المشاهدة الجزئية</string>
     <string name="episodes_partial_watch_failed">تعذر إكمال حذف تقدم المشاهدة الجزئية</string>
+    <string name="playback_auto_switch_internal_player_blocked_by_fallback">عطّل الرجوع إلى المصدر المطابق التالي لتفعيل هذا الخيار.</string>
+    <string name="autoplay_fallback_next_source">الرجوع إلى المصدر المطابق التالي عند الفشل</string>
+    <string name="autoplay_fallback_next_source_sub">إذا فشل المصدر المحدد تلقائيًا أو لم يبدأ في الوقت المناسب، جرّب المصادر المطابقة التالية دون إزعاجك.</string>
+    <string name="autoplay_fallback_max_sources">المصادر التي تُجرَّب عند الفشل</string>
+    <string name="autoplay_fallback_max_sources_sub">عدد المصادر المطابقة الإضافية التي تُجرَّب قبل إظهار الخطأ.</string>
+    <string name="autoplay_fallback_startup_timeout">الوقت اللازم لبدء المصدر</string>
+    <string name="autoplay_fallback_startup_timeout_sub">مدة الانتظار لبدء المصدر قبل تجربة المصدر التالي.</string>
+    <string name="autoplay_fallback_startup_timeout_value">%1$d ث</string>
+    <string name="autoplay_fallback_next_source_blocked_by_engine_switch">أوقف التبديل التلقائي للمحرك عند خطأ البدء لاستخدام هذا الخيار.</string>
+    <string name="player_error_source_startup_timeout">لم يبدأ المصدر خلال %1$d ثانية.</string>
+    <string name="playback_exo_chapters_title">إظهار الفصول</string>
+    <string name="playback_exo_chapters_sub">قراءة فصول ملفات MKV لتمييزها على شريط التقدم والتنقل بينها.</string>
+    <string name="playback_chapter_title_title">إظهار عنوان الفصل</string>
+    <string name="playback_chapter_title_sub">إظهار اسم الفصل الحالي فوق شريط التقدم.</string>
+    <string name="sub_appearance">مظهر الترجمة</string>
+    <string name="sub_appearance_desc">الخط والألوان والخلفية والظل</string>
+    <string name="sub_appearance_hint">ينطبق على الترجمة النصية. الترجمة المنسقة ASS وترجمة الصور تحتفظ بمظهرها الأصلي.</string>
+    <string name="sub_preview">معاينة</string>
+    <string name="sub_preview_text">كل قصة تبدأ بفضول صغير.</string>
+    <string name="sub_font">الخط</string>
+    <string name="sub_font_default">الافتراضي</string>
+    <string name="sub_font_serif">Serif</string>
+    <string name="sub_font_mono">Monospace</string>
+    <string name="sub_font_import">استيراد من الهاتف</string>
+    <string name="sub_font_import_desc">أضف خطًا بصيغة .ttf أو .otf حتى 10 م.ب. الخطوط المستوردة تبقى على هذا التلفاز.</string>
+    <string name="sub_font_import_qr">امسح بهاتفك لإضافة خط بصيغة .ttf أو .otf</string>
+    <string name="sub_font_missing">الخط غير متاح على هذا الجهاز. يُستخدم الخط الافتراضي.</string>
+    <string name="sub_font_remove">إزالة %1$s</string>
+    <string name="sub_background">الخلفية</string>
+    <string name="sub_bg_opacity">عتامة الخلفية</string>
+    <string name="sub_bg_roundness">استدارة الزوايا</string>
+    <string name="sub_shadow">ظل منسدل</string>
+    <string name="sub_shadow_desc">يفصل النص عن المشاهد الساطعة</string>
+    <string name="sub_shadow_opacity">عتامة الظل</string>
+    <string name="sub_shadow_size">حجم الظل</string>
+    <string name="sub_reset_appearance">إعادة تعيين المظهر</string>
+    <string name="web_subtitle_font_title">خطوط الترجمة</string>
+    <string name="web_subtitle_font_subtitle">اختر ملف .ttf أو .otf لاستخدامه للترجمة على التلفاز.</string>
+    <string name="web_subtitle_font_choose">اختيار ملف خط</string>
+    <string name="web_subtitle_font_uploading">جارٍ الرفع…</string>
+    <string name="web_subtitle_font_added">أُضيف إلى التلفاز</string>
+    <string name="web_subtitle_font_error">تعذّر استيراد هذا الخط. اختر ملف .ttf أو .otf صالحًا بحجم أقل من 10 م.ب.</string>
+    <string name="web_subtitle_font_connection_error">خطأ في الاتصال</string>
+    <string name="subtitle_style_text_color_hdr">لون النص (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">عتامة النص (HDR)</string>
+    <string name="subtitle_style_brightness_hdr">السطوع (HDR)</string>
 </resources>

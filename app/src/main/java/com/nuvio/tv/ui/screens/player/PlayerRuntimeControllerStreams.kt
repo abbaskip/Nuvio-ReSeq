@@ -880,6 +880,8 @@ internal fun PlayerRuntimeController.switchToSourceStream(
         current = currentPlaybackPositionMs(), timeline = _playbackTimeline.value.currentPosition,
         queued = _uiState.value.pendingSeekPosition, saved = pendingResumeProgress?.position)
     if (!fromFailureFallback && !continuingSelection) {
+        linkRefreshAttempts = 0
+        linkRefreshAttemptedUrl = null
         sourceFallbackJob?.cancel()
         sourceFallbackJob = null
         sourceFallbackAttempts = 0

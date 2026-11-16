@@ -1749,13 +1749,31 @@
       "run": "20261108T221656Z-e8f1f6",
       "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
       "outcome": "held",
-      "reason": "Read-side same-number preference can select a different episode when selected-order and addon numbering collide. Exercise canonical split/alternate identity fixtures before adopting this policy.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "default_metadata_adaptation": {
         "branch": "feature/fresh-install-defaults",
         "scope": "Only series with no selected TVDB order; current profile/order-scoped caches; canonical Trakt references retain bypass.",
         "validation": "Full JVM regression suite passed, including alternate-order boundaries and upstream same-number/title/index fixtures.",
         "status": "validated development candidate, unreleased"
-      }
+      },
+      "review_history": [
+        {
+          "run": "20261108T221656Z-e8f1f6",
+          "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+          "outcome": "held",
+          "reason": "Read-side same-number preference can select a different episode when selected-order and addon numbering collide. Exercise canonical split/alternate identity fixtures before adopting this policy.",
+          "default_metadata_adaptation": {
+            "branch": "feature/fresh-install-defaults",
+            "scope": "Only series with no selected TVDB order; current profile/order-scoped caches; canonical Trakt references retain bypass.",
+            "validation": "Full JVM regression suite passed, including alternate-order boundaries and upstream same-number/title/index fixtures.",
+            "status": "validated development candidate, unreleased"
+          }
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "4b7da3744d19f57cf70983d226b7dc87e93aa6aa": {
       "run": "20261108T221656Z-e8f1f6",
@@ -2016,13 +2034,31 @@
       "run": "20261108T221656Z-e8f1f6",
       "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
       "outcome": "held",
-      "reason": "Write-side same-number preference changes tracker identity when two valid orders contain the same number. Preserve the approved TVDB canonical mapping and test collision fixtures alongside the read-side change.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "default_metadata_adaptation": {
         "branch": "feature/fresh-install-defaults",
         "scope": "Only series with no selected TVDB order; current profile/order-scoped caches; canonical Trakt references retain bypass.",
         "validation": "Full JVM regression suite passed, including alternate-order boundaries and upstream same-number/title/index fixtures.",
         "status": "validated development candidate, unreleased"
-      }
+      },
+      "review_history": [
+        {
+          "run": "20261108T221656Z-e8f1f6",
+          "base": "d60d2fcc9461416e4a3c7be490d05751c3eec082",
+          "outcome": "held",
+          "reason": "Write-side same-number preference changes tracker identity when two valid orders contain the same number. Preserve the approved TVDB canonical mapping and test collision fixtures alongside the read-side change.",
+          "default_metadata_adaptation": {
+            "branch": "feature/fresh-install-defaults",
+            "scope": "Only series with no selected TVDB order; current profile/order-scoped caches; canonical Trakt references retain bypass.",
+            "validation": "Full JVM regression suite passed, including alternate-order boundaries and upstream same-number/title/index fixtures.",
+            "status": "validated development candidate, unreleased"
+          }
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "60f85970c26f536f8ce0d1d7a2296db2dd2194ec": {
       "run": "20261108T221656Z-e8f1f6",
@@ -2208,94 +2244,274 @@
       "reason": "Upstream version metadata only. ReSeq maintains its separate beta version and update channel."
     },
     "9a8468e0f63be1668ab52b6eb6fd9d3ed7528300": {
-      "outcome": "held",
-      "reason": "ReSeq ships its own CloudStream Activity bridge and runtime verification. Compare lifecycle and plugin ABI compatibility in the next upstream integration.",
+      "outcome": "integrated",
+      "reason": "Take only missing CloudStream ABI fixes: public activity field with existing getter/setter signatures and Activity toast overload. Existing ReSeq bridge, toast behavior, primitive/boxed duration APIs, MainActivity and events retained.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "ReSeq ships its own CloudStream Activity bridge and runtime verification. Compare lifecycle and plugin ABI compatibility in the next upstream integration.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "3f005fe8c4894c39fb7043b456d283ad6a62ec22": {
-      "outcome": "held",
-      "reason": "ReSeq ships its own CloudStream Activity bridge and runtime verification. Compare lifecycle and plugin ABI compatibility in the next upstream integration.",
+      "outcome": "equivalent",
+      "reason": "Merge snapshot equivalent to the reviewed/adapted source 9a8468e0f63be1668ab52b6eb6fd9d3ed7528300. No additional parent functionality imported.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "ReSeq ships its own CloudStream Activity bridge and runtime verification. Compare lifecycle and plugin ABI compatibility in the next upstream integration.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "42b1b64ff48f6780800832fbc99bdb493c55700e": {
-      "outcome": "held",
-      "reason": "Changes pinned optical output capabilities during forced AC-3 transcoding. Requires dedicated passthrough route coverage separate from the validated NNTP changes.",
+      "outcome": "integrated",
+      "reason": "Honor pinned audio capabilities only when the existing optional AC-3 optical passthrough setting is enabled. Existing false default and normal audio path unchanged.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Changes pinned optical output capabilities during forced AC-3 transcoding. Requires dedicated passthrough route coverage separate from the validated NNTP changes.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "b5c1bca2287f8ba6a628e6714d0dae35bbf27c9a": {
-      "outcome": "held",
-      "reason": "Changes pinned optical output capabilities during forced AC-3 transcoding. Requires dedicated passthrough route coverage separate from the validated NNTP changes.",
+      "outcome": "equivalent",
+      "reason": "Merge snapshot equivalent to the reviewed/adapted source 42b1b64ff48f6780800832fbc99bdb493c55700e. No additional parent functionality imported.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Changes pinned optical output capabilities during forced AC-3 transcoding. Requires dedicated passthrough route coverage separate from the validated NNTP changes.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "7e9bb622541e788dbf68dcbd2ba124b6250e4b98": {
-      "outcome": "held",
-      "reason": "Lithuanian updates span three resource files beyond this maintenance release. Reconcile with the two new localized Continue Watching labels during the next translation integration.",
+      "outcome": "integrated",
+      "reason": "Lithuanian update reconciled by resource key, including party/server resources; ReSeq-only and newer feature keys retained.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Lithuanian updates span three resource files beyond this maintenance release. Reconcile with the two new localized Continue Watching labels during the next translation integration.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "7bebafdab9782368efbb0d9c9c6eb9baa838ea4c": {
-      "outcome": "held",
-      "reason": "Lithuanian updates span three resource files beyond this maintenance release. Reconcile with the two new localized Continue Watching labels during the next translation integration.",
+      "outcome": "equivalent",
+      "reason": "Merge snapshot equivalent to the reviewed/adapted source 7e9bb622541e788dbf68dcbd2ba124b6250e4b98. No additional parent functionality imported.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Lithuanian updates span three resource files beyond this maintenance release. Reconcile with the two new localized Continue Watching labels during the next translation integration.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "e12bc8752f87012ee9a196bd1527865a2d21364f": {
       "outcome": "held",
-      "reason": "Adds a navigation-triggered sync and changes startup pull order. Review foreground polling and player-session gating before integrating this overlapping implementation.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Adds a navigation-triggered sync and changes startup pull order. Review foreground polling and player-session gating before integrating this overlapping implementation.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "48bef4f36ef99b66cfdbab7d0ba9733760577f18": {
       "outcome": "held",
-      "reason": "Adds a navigation-triggered sync and changes startup pull order. Review foreground polling and player-session gating before integrating this overlapping implementation.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Adds a navigation-triggered sync and changes startup pull order. Review foreground polling and player-session gating before integrating this overlapping implementation.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "88c27bbdebd55d5360565c5e8de84b91d67ccfd7": {
       "outcome": "held",
-      "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "4eb7dda70739aa48d25985bfe04af77b83f8d8cf": {
       "outcome": "held",
-      "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "24d71a532ab91f5adeaf9e175ab6a4df09c9798e": {
       "outcome": "held",
-      "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "ReSeq now retains tracker-backed cards with missing TVDB metadata and uses show-level shuffle focus identity. Compare upstream retention and cross-layout focus keys with the timed shuffle regressions before merging.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "7c30df17869140a196bb2f2c264017812c8f2ba3": {
-      "outcome": "held",
-      "reason": "Dutch 1.1 resource changes are independent of this beta. Reconcile with the added localized window and episode-selection labels in the next translation integration.",
+      "outcome": "integrated",
+      "reason": "Dutch update reconciled by resource key while retaining ReSeq-only and newer feature keys.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Dutch 1.1 resource changes are independent of this beta. Reconcile with the added localized window and episode-selection labels in the next translation integration.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "65538103f4deee249bf919874cb5170824c517c8": {
-      "outcome": "held",
-      "reason": "Dutch 1.1 resource changes are independent of this beta. Reconcile with the added localized window and episode-selection labels in the next translation integration.",
+      "outcome": "equivalent",
+      "reason": "Merge snapshot equivalent to the reviewed/adapted source 7c30df17869140a196bb2f2c264017812c8f2ba3. No additional parent functionality imported.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Dutch 1.1 resource changes are independent of this beta. Reconcile with the added localized window and episode-selection labels in the next translation integration.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "97015f17bdd4a47556d12b2c98ef6b0feeccfb3d": {
-      "outcome": "held",
-      "reason": "Changes post-play recommendation timing using end credits chapters. Requires separate timing regression coverage for ReSeq player engines.",
+      "outcome": "integrated",
+      "reason": "End Credits/outro chapters in the second half of a movie contribute to post-play recommendation timing; existing post-credits tail handling retained.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Changes post-play recommendation timing using end credits chapters. Requires separate timing regression coverage for ReSeq player engines.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "17ddebe7398d7c95aee8762b5ed2f3de9a7a307e": {
-      "outcome": "held",
-      "reason": "Changes post-play recommendation timing using end credits chapters. Requires separate timing regression coverage for ReSeq player engines.",
+      "outcome": "equivalent",
+      "reason": "Merge snapshot equivalent to the reviewed/adapted source 97015f17bdd4a47556d12b2c98ef6b0feeccfb3d. No additional parent functionality imported.",
       "run": "20261110T030608Z-582262",
-      "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+      "base": "355741488519bb7ddf3d5909b7b0649d70412621",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Changes post-play recommendation timing using end credits chapters. Requires separate timing regression coverage for ReSeq player engines.",
+          "run": "20261110T030608Z-582262",
+          "base": "355741488519bb7ddf3d5909b7b0649d70412621"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "4ad172fac72e5b71bbdd656c02ff77f5ddd77fd9": {
       "outcome": "equivalent",
@@ -2322,10 +2538,22 @@
       "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
     },
     "12c24cdb880d8d39421f77883a3051354f842066": {
-      "outcome": "held",
-      "reason": "Validation queue, not a product decision: adapt process-death route persistence to ReSeq canonical TVDB, NNTP session URLs, TV Mix and source switching before accepting.",
+      "outcome": "integrated",
+      "reason": "Process-death route restoration adapted to current TVDB context and source switching. NNTP sessions are re-prepared from app-private original descriptors; dead loopback URLs are not replayed. TV Mix retains session/route ownership.",
       "run": "20261111T150130Z-4bd1e4",
-      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Validation queue, not a product decision: adapt process-death route persistence to ReSeq canonical TVDB, NNTP session URLs, TV Mix and source switching before accepting.",
+          "run": "20261111T150130Z-4bd1e4",
+          "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "bfe0548674ca83bd2ae0dee09870ff815aabdd65": {
       "outcome": "equivalent",
@@ -2346,16 +2574,40 @@
       "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
     },
     "a239d298d546648b0b530a6b6faf5c54093db666": {
-      "outcome": "held",
-      "reason": "Validation queue: compare new VOD HLS SPS/PPS repair with ReSeq LiveHlsRepair and recording paths; preserve encrypted/live/bounded network behaviour; not a design hold.",
+      "outcome": "integrated",
+      "reason": "VOD-only clear, finished TS HLS SPS/PPS init repair, keeping LiveHlsRepair and recording paths unchanged; encrypted/live/range/discontinuity exclusions retained.",
       "run": "20261111T150130Z-4bd1e4",
-      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Validation queue: compare new VOD HLS SPS/PPS repair with ReSeq LiveHlsRepair and recording paths; preserve encrypted/live/bounded network behaviour; not a design hold.",
+          "run": "20261111T150130Z-4bd1e4",
+          "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "35942ba5c14906e4f7d431d58766cf8eea0fd595": {
-      "outcome": "held",
-      "reason": "Depends on HLS init repair review; retain bounded-read improvement with its parent in validation queue.",
+      "outcome": "integrated",
+      "reason": "Bounded prefix reads and time limits integrated with the VOD HLS init repair.",
       "run": "20261111T150130Z-4bd1e4",
-      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Depends on HLS init repair review; retain bounded-read improvement with its parent in validation queue.",
+          "run": "20261111T150130Z-4bd1e4",
+          "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "94efd91a6dae47741b23ca9e28a50f8e39b28948": {
       "outcome": "equivalent",
@@ -2376,10 +2628,22 @@
       "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
     },
     "d976e3d071926840629d17479460aa74b168a4d6": {
-      "outcome": "held",
-      "reason": "Validation queue: retain useful list checkmarks, adapt shared picker replacement without losing ReSeq Home/Details actions, focus or accessibility; not a design hold.",
+      "outcome": "integrated",
+      "reason": "Shared list-picker checkmarks integrated without removing ReSeq Home/Details actions, focus, accessibility or membership behavior.",
       "run": "20261111T150130Z-4bd1e4",
-      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+      "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Validation queue: retain useful list checkmarks, adapt shared picker replacement without losing ReSeq Home/Details actions, focus or accessibility; not a design hold.",
+          "run": "20261111T150130Z-4bd1e4",
+          "base": "71ad4a3e6a1c0caba7143fc8ff75540b81270336"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "2b7d454df5c55afefcb5c95a443bfd48b4963a75": {
       "outcome": "equivalent",
@@ -2389,15 +2653,39 @@
     },
     "aaf8ed3508ed626d5919c92a3202c9b76efc5979": {
       "outcome": "held",
-      "reason": "Review together: non-series watched actions and pending external-provider marks alter watched-source reconciliation. Adapt to ReSeq TVDB identity, source switching and custom content types; exercise marks, unmarks, profile switching and native trackers before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review together: non-series watched actions and pending external-provider marks alter watched-source reconciliation. Adapt to ReSeq TVDB identity, source switching and custom content types; exercise marks, unmarks, profile switching and native trackers before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "bd09e354f86d9e516f5b690d365727b013a4ed8b": {
       "outcome": "held",
-      "reason": "Review together: non-series watched actions and pending external-provider marks alter watched-source reconciliation. Adapt to ReSeq TVDB identity, source switching and custom content types; exercise marks, unmarks, profile switching and native trackers before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review together: non-series watched actions and pending external-provider marks alter watched-source reconciliation. Adapt to ReSeq TVDB identity, source switching and custom content types; exercise marks, unmarks, profile switching and native trackers before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "3e21b7a2c80935b134541730cb5441ac30d6e1ae": {
       "outcome": "equivalent",
@@ -2406,34 +2694,94 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "9914a5bc7662d49db16be8f9b174fbfcd4fc3a8f": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: feat(subtitles): store font, background and shadow settings. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "c6bbfa0399cbfe6a698528077766ae7a149851e1": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: feat(player): render subtitle fonts, backgrounds and shadows. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "b1336c32cd2462fdf8d8b50126ba536bb61ab3eb": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: feat(player): add font, background and shadow to the subtitle style rail. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "a83e8c83411bed067c4eb256e657e094f8167735": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: feat(settings): import subtitle fonts from a phone. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "c70a9ad1b42a523c6c2c31706abc983299ccccd7": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: feat(settings): add subtitle appearance editor with live preview. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "28fda36352977fd4613ee9a8cae98a52050ac2c7": {
       "outcome": "equivalent",
@@ -2442,10 +2790,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "8a0b393ce8afd28de3ef86f492fc5b5865ce4ed3": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: match font upload page to the other phone pages. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "a1f935fd09385548e6c47752b91f39110ecd1a1e": {
       "outcome": "equivalent",
@@ -2454,10 +2814,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "707ceabd4883da2e10ae2111e06c8e948f244230": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix subtitle color row focus and clipping. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "49486e8e82a15774295fb0641cd896a17dbcae79": {
       "outcome": "equivalent",
@@ -2472,10 +2844,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "d4c51d081bdd2d5d86b0401eaf90a49388b8faf0": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix stale font flash when switching subtitle fonts. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "a4b96179b5530a6e2d97699f496732644ecd589c": {
       "outcome": "equivalent",
@@ -2484,10 +2868,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "e72921b68c3be63216572c1450be2f7afd9a1ddc": {
-      "outcome": "held",
-      "reason": "Raw expired-link refresh overlaps approved shipped ReSeq stream-cache adaptations, NNTP ephemeral URLs, Stalker recovery and source tiers. Preserve the existing raw-upstream holds; adapt and test URL expiry, identity and async retry ownership before integrating. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Refresh saved/tokenized links with ReSeq cache pruning, profile scope and TVDB route data retained. Exclude NNTP ephemeral session URLs, Stalker recovery and TV Mix; reject late completion after playback ownership changes.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Raw expired-link refresh overlaps approved shipped ReSeq stream-cache adaptations, NNTP ephemeral URLs, Stalker recovery and source tiers. Preserve the existing raw-upstream holds; adapt and test URL expiry, identity and async retry ownership before integrating. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "5a048202ac65f230ba2e7e1a267f6b0ecec83b2f": {
       "outcome": "equivalent",
@@ -2496,10 +2892,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "87da95685e3da26863da1f410e92a151d3bf3ae7": {
-      "outcome": "held",
-      "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Both-engine chapter controls and title visibility adapted. Existing Exo preference/default retained; independent MPV chapter preference defaults true so previously available MPV chapters remain visible.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "6f6133370df7fc635a9e2c7c000da477282db09b": {
       "outcome": "equivalent",
@@ -2508,22 +2916,58 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "6faea6ad5cdfb66c528b5d483b88ed0433bca6ec": {
-      "outcome": "held",
-      "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Both-engine chapter controls and title visibility adapted. Existing Exo preference/default retained; independent MPV chapter preference defaults true so previously available MPV chapters remain visible.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "39e7301bf0abe97fc1c08f29a463b5d90ac839af": {
-      "outcome": "held",
-      "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Both-engine chapter controls and title visibility adapted. Existing Exo preference/default retained; independent MPV chapter preference defaults true so previously available MPV chapters remain visible.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "3c8ca8aa8a7dce65ca5254b74f100263440cd40f": {
-      "outcome": "held",
-      "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Both-engine chapter controls and title visibility adapted. Existing Exo preference/default retained; independent MPV chapter preference defaults true so previously available MPV chapters remain visible.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Raw both-engine chapter setting reuses Exo default false and would hide previously available MPV chapters. Preserve existing MPV availability and Exo preference via compatibility adaptation, then validate chapter navigation, titles and translated controls. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "56625112ae6735454934446de8f8b08084a55a14": {
       "outcome": "equivalent",
@@ -2533,9 +2977,21 @@
     },
     "0b7dce79a6f8c5aace43257f4ef83d6cd6ee9324": {
       "outcome": "held",
-      "reason": "ReSeq has profile-generation guards, refresh signals and backoff. Adapt signed-out polling/rejected-token handling without losing sign-in refresh or profile cache isolation; test those lifecycles before promotion. No approval of held TVDB identity replacements. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "ReSeq has profile-generation guards, refresh signals and backoff. Adapt signed-out polling/rejected-token handling without losing sign-in refresh or profile cache isolation; test those lifecycles before promotion. No approval of held TVDB identity replacements. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "f3e1b2569f91f12d7e60c77e47071f1a58938f9f": {
       "outcome": "equivalent",
@@ -2544,10 +3000,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "1d56f7ee33547d807fa537e27f86b65efabbfba2": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "57d4249b2b34f9bc96c6058a110326d2ea23e47c": {
       "outcome": "equivalent",
@@ -2556,10 +3024,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "a51f73a7fcc0759cf1101bc241a5311d01cfcd62": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "d93b3a82c448595835fef886f521bf449a0bbb37": {
       "outcome": "equivalent",
@@ -2568,52 +3048,148 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "45b66a3e16e4a82a38505e45d55dd13ccadab919": {
-      "outcome": "held",
-      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Final-state adaptation: stable TextFieldValue and frame-coalesced IME edits; duplicate queries do not refetch. Real deletion, clear/backspace, restored queries, remote/touch and ReSeq IPTV/VOD search are retained. Intermediate empty-query suppression heuristics were not replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "dd54bafb87c1348ee4e11e408ee6e21ea785c761": {
-      "outcome": "held",
-      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Final-state adaptation: stable TextFieldValue and frame-coalesced IME edits; duplicate queries do not refetch. Real deletion, clear/backspace, restored queries, remote/touch and ReSeq IPTV/VOD search are retained. Intermediate empty-query suppression heuristics were not replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "6e8bd992a45d679cb545df8e556f15657e216ff8": {
-      "outcome": "held",
-      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Final-state adaptation: stable TextFieldValue and frame-coalesced IME edits; duplicate queries do not refetch. Real deletion, clear/backspace, restored queries, remote/touch and ReSeq IPTV/VOD search are retained. Intermediate empty-query suppression heuristics were not replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "cd47093e36f4f1447613cbab65c106edb01f6063": {
-      "outcome": "held",
-      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Final-state adaptation: stable TextFieldValue and frame-coalesced IME edits; duplicate queries do not refetch. Real deletion, clear/backspace, restored queries, remote/touch and ReSeq IPTV/VOD search are retained. Intermediate empty-query suppression heuristics were not replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "16a972ae75daffb8ddcf13879312c1eb35a06cd2": {
-      "outcome": "held",
-      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Final-state adaptation: stable TextFieldValue and frame-coalesced IME edits; duplicate queries do not refetch. Real deletion, clear/backspace, restored queries, remote/touch and ReSeq IPTV/VOD search are retained. Intermediate empty-query suppression heuristics were not replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "1cb2f067f48b55dc99afb38f3719c2cf07f4f3f5": {
-      "outcome": "held",
-      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Final-state adaptation: stable TextFieldValue and frame-coalesced IME edits; duplicate queries do not refetch. Real deletion, clear/backspace, restored queries, remote/touch and ReSeq IPTV/VOD search are retained. Intermediate empty-query suppression heuristics were not replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "61bbd39d827fcefcd54a928abe01ee38dbb045c6": {
-      "outcome": "held",
-      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Final-state adaptation: stable TextFieldValue and frame-coalesced IME edits; duplicate queries do not refetch. Real deletion, clear/backspace, restored queries, remote/touch and ReSeq IPTV/VOD search are retained. Intermediate empty-query suppression heuristics were not replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "5e0c9a0b3b54f54f9ce9d9f38085d89d0493db51": {
-      "outcome": "held",
-      "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Final-state adaptation: stable TextFieldValue and frame-coalesced IME edits; duplicate queries do not refetch. Real deletion, clear/backspace, restored queries, remote/touch and ReSeq IPTV/VOD search are retained. Intermediate empty-query suppression heuristics were not replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Treat iterative search fixes as a final-state adaptation, preserving real deletion/clear/backspace, restored queries and ReSeq IPTV/VOD search with remote/touch input. Earlier intermediate heuristics have follow-up corrections; test final semantics before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "44de79d9ba7d560f621ff1ff811b6d2addee8d47": {
       "outcome": "equivalent",
@@ -2622,10 +3198,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "6c6302a54f46749ab5fa2191041938c111ecd14b": {
-      "outcome": "held",
-      "reason": "Remote search-focus improvement queued for current ReSeq focus, keyboard and touch regression fixtures, alongside search state fixes. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix(search): return focus to last-used voice/text input from results. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Remote search-focus improvement queued for current ReSeq focus, keyboard and touch regression fixtures, alongside search state fixes. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "eb81a6fe799a27640524538ba60969f438edf215": {
       "outcome": "equivalent",
@@ -2634,10 +3222,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "ec0edb0a2b3850657f487af8b8532ac7678b94cb": {
-      "outcome": "held",
-      "reason": "Library bottom-inset correction queued for ReSeq custom filters/layout, focus and touch acceptance; inspect current equivalent layout before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: Fix Library grid reflow when navigating to and from Detail. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Library bottom-inset correction queued for ReSeq custom filters/layout, focus and touch acceptance; inspect current equivalent layout before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "8eb731563f153d6c00bbb85bfbae02b0116e06cb": {
       "outcome": "equivalent",
@@ -2646,10 +3246,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "76a5fb20f452eb2657467b4ec52506e4a58dec7e": {
-      "outcome": "held",
-      "reason": "Do not take permanent shutdown after three NaNs: the official thermal API documents transient/rate-limited NaN results. Prepare rate-aware bounded retry while retaining valid thermal readings and status updates. Engineering adaptation, not a maintainer design decision. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Rate-aware bounded thermal retry/backoff, capped at 60 seconds; no permanent shutdown after transient NaNs. Thermal status continues to be sampled.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Do not take permanent shutdown after three NaNs: the official thermal API documents transient/rate-limited NaN results. Prepare rate-aware bounded retry while retaining valid thermal readings and status updates. Engineering adaptation, not a maintainer design decision. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "f6e73fbb27099134fd3e9db5e9de14674130ecce": {
       "outcome": "equivalent",
@@ -2658,10 +3270,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "1b54716f7c2da09f7e8249818519a21498f441c0": {
-      "outcome": "held",
-      "reason": "AV1 HDR10+ OBU parsing and Matroska handling need malformed/truncated bitstream, Dolby RPU/static metadata preservation and current extractor regression tests before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: Strip HDR10+ metadata OBUs from AV1 streams. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "AV1 HDR10+ OBU parsing and Matroska handling need malformed/truncated bitstream, Dolby RPU/static metadata preservation and current extractor regression tests before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "aa4f5cd42004605d733fd4c302d6e69af8ccb76e": {
       "outcome": "equivalent",
@@ -2671,15 +3295,39 @@
     },
     "5924f3c95f8d6db5866fbe7af74079b7203d1cd7": {
       "outcome": "held",
-      "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "7d4875ea1a0e4fbe47b19674035cbb2699a88965": {
       "outcome": "held",
-      "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "f05eba678c0546569351c75d9930b414d969e8d6": {
       "outcome": "equivalent",
@@ -2700,16 +3348,40 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "5ec204dffc325d17309c15d3435edf47b3af35ec": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "1fb2a9e9d6b5ec1f0a06c110af75e3ade431b9e7": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "34772fa1c91ef025c488e104194cfc941cd3d3e6": {
       "outcome": "equivalent",
@@ -2719,9 +3391,21 @@
     },
     "96358e296533b9748dc405fca8ca1d747706bcfc": {
       "outcome": "integrated",
-      "reason": "Folder follows existing Home hero auto-scroll and landscape-clearlogo preferences; no defaults changed. Source commit 4a70f23f6. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix(collections): scroll the hero description in folders following the home layout. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "integrated",
+          "reason": "Folder follows existing Home hero auto-scroll and landscape-clearlogo preferences; no defaults changed. Source commit 4a70f23f6. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "11689894f02ddc7f81c513abc1de1afe9247db1c": {
       "outcome": "equivalent",
@@ -2731,9 +3415,21 @@
     },
     "fd021995008f4ddb669b6ed0221ba576332dcdb9": {
       "outcome": "held",
-      "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "01759ead32569aa306c02f5821c37eb6c2b10d4b": {
       "outcome": "equivalent",
@@ -2742,16 +3438,40 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "c3a27b5e271a6c34d2a9a79222f6f6aba8328394": {
-      "outcome": "held",
-      "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Adapted to the next playable source in existing order within the current immediate/add-on/IPTV or plugin tier. No tier deadlines, priorities, ordering, autoplay selection, TV Mix or cancellation changes. Existing engine-switch setting retained; pre-player debrid and next-episode handoff included.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "f4e4d64b3e5b956b47323844b48d0c3cafe1ada8": {
-      "outcome": "held",
-      "reason": "Playing-source focus touches protected ReSeq StreamSourcesSidePanel adaptation. Preserve shipped indexing/source ordering and test focus with selected/sorted/filtered sources; no protective hold removed. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix(player): focus the playing stream when the source panel opens. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Playing-source focus touches protected ReSeq StreamSourcesSidePanel adaptation. Preserve shipped indexing/source ordering and test focus with selected/sorted/filtered sources; no protective hold removed. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "35e75a44ffaa941e23041558f86cc0d36710093e": {
       "outcome": "equivalent",
@@ -2760,10 +3480,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "e30649bc008535c4d962f39433fadbaadf6d754b": {
-      "outcome": "held",
-      "reason": "Letterbox masking must preserve user-positioned libass subtitles and overlay/crop behavior; validate both player engines and aspect modes before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Letterbox mask added for libass overlay, disabled when subtitles are user-positioned; existing overlay/crop and libass controls retained.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Letterbox masking must preserve user-positioned libass subtitles and overlay/crop behavior; validate both player engines and aspect modes before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "7fd63cafe31c65c35f28695ce942986143e42e55": {
       "outcome": "equivalent",
@@ -2772,10 +3504,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "a1c9229fd907246c2cd25d89f41e5276df401523": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "5ad41476aaf09fed6cc5c45947fdc328b84ada4d": {
       "outcome": "equivalent",
@@ -2785,9 +3529,21 @@
     },
     "6b6e37edf2ee2d0b6881a2714f6d4372cfb34348": {
       "outcome": "held",
-      "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Adapt metadata snapshot caching, air-time refresh and entry/title/click fixes together; preserve ReSeq canonical TVDB identity, freshness, TV Mix, no-next-up behavior and per-profile state. Require cache expiry, changed episode and background/foreground tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "4b87a8262d49e457c2df757b0976f0f74d6babdd": {
       "outcome": "equivalent",
@@ -2802,10 +3558,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "eea656fd19d16c829f0fc2cb5e23a3c3c73bd269": {
-      "outcome": "held",
-      "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix(player): draw styled subtitles at the ExoPlayer size on mpv. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Cohesive subtitle font/appearance implementation and follow-up fixes. Compare both player engines, existing libass controls, uploaded-font server lifecycle, profile storage and Drive backup; later fixes cannot be applied independently of absent new components. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "020afec44f88d08777b77ecb7c82f5be6dc26175": {
       "outcome": "equivalent",
@@ -2814,10 +3582,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "520fb67ccf6ffd953f37bbf51576aa1e365bba09": {
-      "outcome": "held",
-      "reason": "HTTP source-switch resume needs adaptation for current NNTP, media-server, YouTube, debrid/torrent and asynchronous player-init routes. Verify seek position, saved-progress ownership and cancellation before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Extended source-switch resume through HTTP, NNTP, media-server, debrid/torrent, YouTube and IPTV On Demand preparation. Capture current/queued/saved position before release and pass it through asynchronous resolution.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "HTTP source-switch resume needs adaptation for current NNTP, media-server, YouTube, debrid/torrent and asynchronous player-init routes. Verify seek position, saved-progress ownership and cancellation before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "bad6ca479dd986aefc5743ca12e450e854e12e12": {
       "outcome": "equivalent",
@@ -2826,10 +3606,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "dee2434978b0fde313723877d3f4715456caa32c": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "b17bb0fa7e6b168aa3d45d53a471c3d7d98ab358": {
       "outcome": "equivalent",
@@ -2838,16 +3630,40 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "a393c34a32254e990243d4e4fc6c620a06861bdc": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "b0876102fc0999a0eb03f7646af1c86c2e308993": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "659f759d6e0dce2e33175434f0817d1c42e36d38": {
       "outcome": "equivalent",
@@ -2862,10 +3678,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "25043e714322e2db9223968a6ad168d6473c6700": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "fc916ad0950f2729adda836437848b77af592d52": {
       "outcome": "equivalent",
@@ -2874,16 +3702,40 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "64cfb8138227a0ba6d6d2ea58c5d8b5017927881": {
-      "outcome": "held",
-      "reason": "New auto-reopen and installer policy depend on upstream relaunch receiver absent in ReSeq. Keep current update channel, installer/security and user preferences; only independently compatible cancellation guard prepared separately. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Relaunch receiver only: one-shot request for user-initiated sessions, cleared on cancellation and ignored for unrequested sideloads. Keep cancellation APK retention, update channel, installer security and existing optimization/defaults. Android background-launch policy remains authoritative; device acceptance pending.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "New auto-reopen and installer policy depend on upstream relaunch receiver absent in ReSeq. Keep current update channel, installer/security and user preferences; only independently compatible cancellation guard prepared separately. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "59313c18f60f09154571922ff10d447eea81e648": {
       "outcome": "integrated",
-      "reason": "Adapt cancellation only: STATUS_FAILURE_ABORTED no longer triggers automatic reinstall, retaining APK and genuine failure fallbacks. Upstream relaunch/settings behavior not imported. Two targeted Robolectric tests added but unrun. Source commit 39a157d47. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix(updater): stop asking again after the user cancels the install. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "integrated",
+          "reason": "Adapt cancellation only: STATUS_FAILURE_ABORTED no longer triggers automatic reinstall, retaining APK and genuine failure fallbacks. Upstream relaunch/settings behavior not imported. Two targeted Robolectric tests added but unrun. Source commit 39a157d47. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "a3532b819f29881b2e9438095424799bbeb88282": {
       "outcome": "equivalent",
@@ -2892,22 +3744,58 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "05addea1885ce3c43b4256ddb6fbd7c6a8390413": {
-      "outcome": "held",
-      "reason": "Tracker-aware library empty states move account/settings actions and translated text. Preserve ReSeq custom filters and remote/touch discoverability; apply coherent feature plus merge-resolution wording with tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Tracker-aware empty-state wording/layout adapted while retaining ReSeq custom filters and actions; translated keys merged by name.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Tracker-aware library empty states move account/settings actions and translated text. Preserve ReSeq custom filters and remote/touch discoverability; apply coherent feature plus merge-resolution wording with tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "9981725ab85621ebe5c4b58353df2678a4888f19": {
-      "outcome": "held",
-      "reason": "Tracker-aware library empty states move account/settings actions and translated text. Preserve ReSeq custom filters and remote/touch discoverability; apply coherent feature plus merge-resolution wording with tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Tracker-aware empty-state wording/layout adapted while retaining ReSeq custom filters and actions; translated keys merged by name.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Tracker-aware library empty states move account/settings actions and translated text. Preserve ReSeq custom filters and remote/touch discoverability; apply coherent feature plus merge-resolution wording with tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "ec3863cea226b42fef84966449b35da1b30d947a": {
-      "outcome": "held",
-      "reason": "Autoplay episode loading state must preserve current NNTP and source-tier async transitions, retries and cancellation. Acceptance tests needed before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Episode loading state adapted around existing ReSeq tier selection and asynchronous NNTP preparation/cancellation; no tier/autoplay policy replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Autoplay episode loading state must preserve current NNTP and source-tier async transitions, retries and cancellation. Acceptance tests needed before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "a093c2e1f1032166ff62757d9cf7d60d7424ae66": {
       "outcome": "equivalent",
@@ -2916,10 +3804,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "8850a555d1ed84499b6b703ce4b4adb585629b35": {
-      "outcome": "held",
-      "reason": "Add-on QR local-install focus fix queued for ReSeq pairing, keyboard, Back and touch validation; no live account access permitted. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix(addons): restore focus without jumping after QR. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Add-on QR local-install focus fix queued for ReSeq pairing, keyboard, Back and touch validation; no live account access permitted. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "20f14abb433648f77622992f605d2e9592e9c19c": {
       "outcome": "equivalent",
@@ -2929,15 +3829,39 @@
     },
     "c19a0e87a7f58a02888e7d4ada39f61a8f77fbe2": {
       "outcome": "integrated",
-      "reason": "Persist media-server sidecar subtitles after playback-info mapping so they are not overwritten. Source commit 0f72cc72f. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix(servers): keep media server subtitles when starting from the stream list. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "integrated",
+          "reason": "Persist media-server sidecar subtitles after playback-info mapping so they are not overwritten. Source commit 0f72cc72f. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "05c741dbe10d06d4c9e1c0030cc4d9eca6af2380": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "ae84205a1f1df88bbcc1c096a668c190c1e30b4f": {
       "outcome": "equivalent",
@@ -2946,10 +3870,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "619fa3528349ee4adc6fa1acec2d47cafe641556": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "f6f7d0567cf2939a1d7d2a9b1785cc0138add9d5": {
       "outcome": "equivalent",
@@ -2958,16 +3894,40 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "d020e4af7a638c309a975f5bb6ae0f9a7f4bdb95": {
-      "outcome": "held",
-      "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Adapted to the next playable source in existing order within the current immediate/add-on/IPTV or plugin tier. No tier deadlines, priorities, ordering, autoplay selection, TV Mix or cancellation changes. Existing engine-switch setting retained; pre-player debrid and next-episode handoff included.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "b10a11d7075fc4b96e3d9c5a7d30e5414c721e66": {
-      "outcome": "held",
-      "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Adapted to the next playable source in existing order within the current immediate/add-on/IPTV or plugin tier. No tier deadlines, priorities, ordering, autoplay selection, TV Mix or cancellation changes. Existing engine-switch setting retained; pre-player debrid and next-episode handoff included.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Automatic failure fallback plus follow-up fixes must preserve ReSeq installed add-on/IPTV versus plugin 8/25-second tiers, autoplay ownership, TV Mix and cancellation. Hold raw implementation pending cohesive compatibility adaptation/tests. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "7e14ee4846fa9fae9edeb935825d024bdd944dfc": {
       "outcome": "equivalent",
@@ -2976,16 +3936,40 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "95232910cc6c54c9264a88a73b462d2825338cf3": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "42b8f0753e8de03e4cc18843dc96daaebebaf0b9": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "3858c8299fc49b402500ed0f14acd3d052b599b2": {
       "outcome": "irrelevant",
@@ -3006,16 +3990,40 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "429aefc60e570322bcead0710ed86770b14f7c86": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "72b6f0c0e4744ad5b791215a4dafedeb692f4165": {
-      "outcome": "held",
-      "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "outcome": "integrated",
+      "reason": "Only translations belonging to the approved 9.9 features were adapted by resource key. Unrelated strings and ReSeq-only keys retained; no bulk upstream resource replacement.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Review translated entries against their dependent subtitle/chapter/library/settings features and current ReSeq keys/placeholders. Preserve existing terminology and unrelated translations; do not bulk replace whole upstream resource files. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "79c456f8bc7976e9f784bac3c2cc5807fc32cfdd": {
       "outcome": "irrelevant",
@@ -3031,15 +4039,39 @@
     },
     "9ad4f4f5b63e60ec1c7f5268f73a68e7e7b1cbb9": {
       "outcome": "integrated",
-      "reason": "Correct stream-test labels to actual 1/4/8/16 connections in 27 locales; sparse Indonesian/Lithuanian resources surgically adapted, unrelated locale values preserved. Source commit 04917b4a2. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: fix(settings): label stream tests by connection count. ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "integrated",
+          "reason": "Correct stream-test labels to actual 1/4/8/16 connections in 27 locales; sparse Indonesian/Lithuanian resources surgically adapted, unrelated locale values preserved. Source commit 04917b4a2. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "c890896dce8ce97dda8550b74eee8630f380662b": {
-      "outcome": "held",
-      "reason": "Merge resolution retains Arabic-specific stream-test terminology; compare final adapted Arabic strings and avoid replaying raw resource merge. Resolution patch retained in evidence; not a no-op merge.",
+      "outcome": "integrated",
+      "reason": "Arabic stream-test merge-resolution terminology reconciled with prepared connection-count labels; no raw resource merge replayed.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Merge resolution retains Arabic-specific stream-test terminology; compare final adapted Arabic strings and avoid replaying raw resource merge. Resolution patch retained in evidence; not a no-op merge.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "f2781a118716333a40ba52c9985aa35133df96b1": {
       "outcome": "equivalent",
@@ -3048,10 +4080,22 @@
       "base": "03437926667ba94094233a515570604a465994de"
     },
     "965e8d1a1d25f60dfbde86aedf2c6e59fd59e05e": {
-      "outcome": "held",
-      "reason": "Nonempty Arabic library-empty-state merge resolution belongs with held library feature and its obsolete-key cleanup. Resolution patch retained in evidence; not a no-op merge.",
+      "outcome": "integrated",
+      "reason": "Arabic library empty-state resolution reconciled with the approved library wording and obsolete-key removal; custom filter behavior retained.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Nonempty Arabic library-empty-state merge resolution belongs with held library feature and its obsolete-key cleanup. Resolution patch retained in evidence; not a no-op merge.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     },
     "6ab8a5735f897b11cf94e1c12873cb9cb1906542": {
       "outcome": "equivalent",
@@ -3061,21 +4105,57 @@
     },
     "868e6a4f0b5c9799d24eb1a7f26d616c8b2b6986": {
       "outcome": "held",
-      "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "9c86bb0e07c70992673903b4c3498b172ce5a2e4": {
       "outcome": "held",
-      "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "d1215e03eeb9ea347120b4c5c3c16c44c367e27d": {
       "outcome": "held",
-      "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+      "reason": "Explicit maintainer decision on 16 November 2026: do not integrate for 9.9. Preserve ReSeq CW, tracking, TVDB and existing behavior. Do not automatically replay or re-raise this item; a new explicit maintainer instruction is required.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "New optional tracking-addon consent/events overlap native Trakt/Simkl/MDBList and canonical TVDB episode identity. Compare routing, profile isolation and consent; prevent duplicate events and incorrect numbering before promotion. Source triage only; deeper compatibility review and required Android validation remain queued. Build blocked by <6 GiB free; no new product approval inferred.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "maintainer_decision": "do-not-integrate",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false,
+      "automatic_reconsideration": false
     },
     "9ce49f45122d30af2aed3d954a9641771d7fa2b2": {
       "outcome": "equivalent",
@@ -3109,9 +4189,21 @@
     },
     "e0e830b60147e128df744da987b184f47cf8e646": {
       "outcome": "integrated",
-      "reason": "Hide both Compose and platform keyboard when entering Ambient; selected effective reapplication after temporary upstream revert. Source commit a86dddb6c. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+      "reason": "Prepared upstream integration retained in the combined 9.9 source: Reapply \"Merge pull request #4626 from oathzed/fix/ambient-hide-keyboard-4625\". ReSeq-specific behavior preserved.",
       "run": "20261115T150400Z-d7c158",
-      "base": "03437926667ba94094233a515570604a465994de"
+      "base": "03437926667ba94094233a515570604a465994de",
+      "review_history": [
+        {
+          "outcome": "integrated",
+          "reason": "Hide both Compose and platform keyboard when entering Ambient; selected effective reapplication after temporary upstream revert. Source commit a86dddb6c. Prepared in isolated unpublished branch only; Android build, unit/lint and compatibility acceptance are NOT passed: disk below mandatory 6 GiB reserve.",
+          "run": "20261115T150400Z-d7c158",
+          "base": "03437926667ba94094233a515570604a465994de"
+        }
+      ],
+      "integrated_in_release": "0.1.0-beta.9.9",
+      "integration_status": "source-integrated; combined validation pending",
+      "maintainer_decision_date": "2026-11-16",
+      "review_required": false
     }
   }
 }

@@ -3482,9 +3482,9 @@
     <string name="web_subtitle_font_connection_error">Erreur de connexion</string>
     <string name="playback_auto_switch_internal_player_blocked_by_fallback">Désactivez le repli vers la source correspondante suivante pour l’utiliser.</string>
     <string name="autoplay_fallback_next_source">Repli vers la source correspondante suivante en cas d’échec</string>
-    <string name="autoplay_fallback_next_source_sub">Si la source sélectionnée automatiquement échoue ou ne démarre pas à temps, essayer discrètement les sources correspondantes suivantes.</string>
+    <string name="autoplay_fallback_next_source_sub">Si un flux échoue ou ne démarre pas à temps, essayer le prochain flux lisible dans le groupe de sources actuel.</string>
     <string name="autoplay_fallback_max_sources">Sources à essayer en cas d’échec</string>
-    <string name="autoplay_fallback_max_sources_sub">Nombre de sources correspondantes supplémentaires à essayer avant d’afficher l’erreur.</string>
+    <string name="autoplay_fallback_max_sources_sub">Nombre maximal de sources supplémentaires à essayer dans le groupe actuel avant d’afficher l’erreur.</string>
     <string name="autoplay_fallback_startup_timeout">Délai de démarrage d’une source</string>
     <string name="autoplay_fallback_startup_timeout_sub">Durée d’attente du démarrage d’une source avant d’essayer la suivante.</string>
     <string name="autoplay_fallback_startup_timeout_value">%1$d s</string>

@@ -275,6 +275,7 @@ class PlayerRuntimeController(
 
     /** Last URL refetched after a playback error, so a link is refreshed at most once. */
     internal var linkRefreshAttemptedUrl: String? = null
+    internal var linkRefreshAttempts: Int = 0
 
     /** URL picked by auto source selection; only this source falls back to the next match on failure. */
     internal var autoSelectedSourceUrl: String? = currentStreamUrl.takeIf {

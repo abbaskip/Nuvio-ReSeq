@@ -3472,9 +3472,9 @@
     <string name="episodes_partial_watch_failed">Nepodarilo sa dokončiť odstránenie priebehu čiastočného sledovania</string>
     <string name="playback_auto_switch_internal_player_blocked_by_fallback">Ak to chcete použiť, vypnite záložný zdroj pre ďalšiu zhodu.</string>
     <string name="autoplay_fallback_next_source">V prípade zlyhania použiť ďalší zhodný zdroj</string>
-    <string name="autoplay_fallback_next_source_sub">Ak automaticky vybratý zdroj zlyhá alebo sa nespustí včas, ticho vyskúšať ďalšie zhodné zdroje.</string>
+    <string name="autoplay_fallback_next_source_sub">Ak stream zlyhá alebo sa nespustí včas, skúsiť ďalší prehrateľný stream v aktuálnej skupine zdrojov.</string>
     <string name="autoplay_fallback_max_sources">Zdroje na vyskúšanie pri zlyhaní</string>
-    <string name="autoplay_fallback_max_sources_sub">Koľko ďalších zhodných zdrojov vyskúšať pred zobrazením chyby.</string>
+    <string name="autoplay_fallback_max_sources_sub">Maximálny počet ďalších zdrojov na vyskúšanie v aktuálnej skupine pred zobrazením chyby.</string>
     <string name="autoplay_fallback_startup_timeout">Čas na spustenie zdroja</string>
     <string name="autoplay_fallback_startup_timeout_sub">Ako dlho čakať na spustenie zdroja pred vyskúšaním ďalšieho.</string>
     <string name="autoplay_fallback_startup_timeout_value">%1$ds</string>

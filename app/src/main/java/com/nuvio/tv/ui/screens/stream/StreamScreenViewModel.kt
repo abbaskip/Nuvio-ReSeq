@@ -60,6 +60,7 @@ import com.nuvio.tv.ui.screens.player.SourceFallbackHandoff
 import com.nuvio.tv.ui.screens.player.StreamSidecarSubtitles
 import com.nuvio.tv.ui.screens.player.nextSourceFallbackCandidate
 import com.nuvio.tv.ui.screens.player.resolveWithSourceFallback
+import com.nuvio.tv.ui.screens.player.sourceFallbackKey
 import com.nuvio.tv.ui.util.localizedGenreLabel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

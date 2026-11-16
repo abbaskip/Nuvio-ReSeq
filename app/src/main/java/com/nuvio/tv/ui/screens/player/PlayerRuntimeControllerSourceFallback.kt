@@ -47,6 +47,8 @@ internal fun PlayerRuntimeController.restartSourceFallback(
     autoSelection: SourceFallbackHandoff.TriedSources?
 ) {
     sourceFallbackJob?.cancel()
+    linkRefreshAttempts = 0
+    linkRefreshAttemptedUrl = null
     autoSelectedSourceUrl = playbackUrl.takeIf { url ->
         autoSelection != null && url.isNotBlank() && !url.startsWith("torrent://")
     }
@@ -146,6 +148,8 @@ internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(errorMess
                 "Source failed to start, falling back to ${playable.name ?: playable.addonName} from ${playable.addonName}"
             )
             sourceFallbackPendingStream = next
+            linkRefreshAttempts = 0
+            linkRefreshAttemptedUrl = null
             sourceFallbackJob = null
             switchToSourceStream(playable, resumePosition, fromFailureFallback = true)
             autoSelectedSourceUrl = currentStreamUrl

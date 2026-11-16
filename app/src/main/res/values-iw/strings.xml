@@ -3450,9 +3450,9 @@
     <string name="episodes_partial_watch_failed">לא ניתן היה להשלים את מחיקת התקדמות הצפייה החלקית</string>
     <string name="playback_auto_switch_internal_player_blocked_by_fallback">יש לכבות את המעבר למקור התואם הבא כדי להשתמש באפשרות זו.</string>
     <string name="autoplay_fallback_next_source">מעבר למקור התואם הבא בעת כשל</string>
-    <string name="autoplay_fallback_next_source_sub">אם המקור שנבחר אוטומטית נכשל או אינו מתחיל בזמן, ינוסו בשקט המקורות התואמים הבאים.</string>
+    <string name="autoplay_fallback_next_source_sub">אם זרם נכשל או לא מתחיל בזמן, נסה את הזרם הבא שניתן לנגן בקבוצת המקורות הנוכחית.</string>
     <string name="autoplay_fallback_max_sources">מספר מקורות לניסיון בעת כשל</string>
-    <string name="autoplay_fallback_max_sources_sub">כמה מקורות תואמים נוספים לנסות לפני הצגת השגיאה.</string>
+    <string name="autoplay_fallback_max_sources_sub">המספר המרבי של מקורות נוספים לניסיון בקבוצה הנוכחית לפני הצגת השגיאה.</string>
     <string name="autoplay_fallback_startup_timeout">זמן להתחלת מקור</string>
     <string name="autoplay_fallback_startup_timeout_sub">כמה זמן להמתין להתחלת מקור לפני מעבר לבא.</string>
     <string name="autoplay_fallback_startup_timeout_value">%1$d שנ׳</string>

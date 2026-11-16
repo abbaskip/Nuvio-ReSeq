@@ -36,7 +36,8 @@ internal fun PlayerRuntimeController.tryRefreshExpiredLinkAfterError(errorMessag
         com.nuvio.tv.core.usenet.UsenetHttpSession.isSessionUrl(failedUrl) || isMixPlayback) return false
     val fromLinkCache = failedUrl == linkCacheSourceUrl
     if (!fromLinkCache && !failedUrl.hasLikelyExpiringPlaybackCredentials()) return false
-    if (failedUrl == linkRefreshAttemptedUrl) return false
+    if (failedUrl == linkRefreshAttemptedUrl || linkRefreshAttempts >= 1) return false
+    linkRefreshAttempts++
     linkRefreshAttemptedUrl = failedUrl
     linkCacheSourceUrl = null
 
@@ -50,8 +51,8 @@ internal fun PlayerRuntimeController.tryRefreshExpiredLinkAfterError(errorMessag
     )
     val season = currentSeason
     val episode = currentEpisode
-    val expectedVideoId = videoId
-    fun stillOwnsPlayback() = currentStreamUrl == failedUrl && videoId == expectedVideoId &&
+    val expectedVideoId = currentVideoId
+    fun stillOwnsPlayback() = currentStreamUrl == failedUrl && currentVideoId == expectedVideoId &&
         currentSeason == season && currentEpisode == episode
     Log.i(PlayerRuntimeController.TAG, "Link likely expired, fetching the source again from ${expected.addonName}")
 
@@ -100,7 +101,7 @@ internal fun PlayerRuntimeController.tryRefreshExpiredLinkAfterError(errorMessag
         val wasAutoSelected = failedUrl == autoSelectedSourceUrl
         // Saves the fresh link for reuse and resumes from the saved position.
         errorRetryJob = null
-        switchToSourceStream(refreshed)
+        switchToSourceStream(refreshed, fromFailureFallback = true)
         if (wasAutoSelected) autoSelectedSourceUrl = currentStreamUrl
     }
     return true
@@ -121,6 +122,8 @@ internal fun findCachedSourceRefreshCandidate(
             val canResolve = stream.debridResolved ||
                 (url.isNullOrBlank() && (stream.isDirectDebrid() || stream.needsLocalDebridResolve()))
             if (!hasFreshUrl && !canResolve) return@mapNotNull null
+            if (!expected.infoHash.isNullOrBlank() && !stream.getEffectiveInfoHash().isNullOrBlank() &&
+                !stream.getEffectiveInfoHash().equals(expected.infoHash, ignoreCase = true)) return@mapNotNull null
 
             var score = 100
             if (!expected.infoHash.isNullOrBlank() &&

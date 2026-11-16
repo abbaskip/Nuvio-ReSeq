@@ -812,13 +812,13 @@ internal fun PlayerRuntimeController.saveWatchProgressIfNeeded() {
     }
 }
 
-internal fun PlayerRuntimeController.saveWatchProgress() {
+internal fun PlayerRuntimeController.saveWatchProgress(syncRemote: Boolean = true) {
     if (!hasRenderedFirstFrame) return
     if (_playbackTimeline.value.isLive) return
     val currentPosition = currentPlaybackPositionMs() ?: return
     val duration = getEffectiveDuration(currentPosition)
     if (isShortPlaceholderDuration(duration)) return
-    saveWatchProgressInternal(currentPosition, duration)
+    saveWatchProgressInternal(currentPosition, duration, syncRemote = syncRemote)
 }
 
 internal fun PlayerRuntimeController.getEffectiveDuration(position: Long): Long {
@@ -1430,8 +1430,8 @@ fun PlayerRuntimeController.onEvent(
                     stopProgressUpdates()
                     stopWatchProgressSaving()
                     emitPauseScrobbleForCurrentProgress()
-                    // Same as Exo's pause: a paused player left alone can be killed by the system.
-                    saveWatchProgress()
+                    // The explicit pause scrobble above owns the tracker event; checkpoint locally.
+                    saveWatchProgress(syncRemote = false)
                     schedulePauseOverlay()
                 } else {
                     userPausedManually = false

@@ -112,11 +112,13 @@ internal suspend fun PlayerRuntimeController.playNextEpisodeWithTiers(
             },
         )
         ensureActive()
-        val resolved = selected?.let { resolveNextEpisodeStream(it, nextVideo, snapshots.value.streams) }
+        val resolveRun = selected?.let { resolveNextEpisodeStream(it, nextVideo, snapshots.value.streams) }
+        val resolved = resolveRun?.resolved
         ensureActive()
         if (resolved != null) {
             _uiState.update { it.copy(autoPlayFallback = null) }
-            switchToEpisodeStream(resolved, forcedTargetVideo = nextVideo, isAutoPlay = !userInitiated)
+            switchToEpisodeStream(resolved, forcedTargetVideo = nextVideo, isAutoPlay = !userInitiated,
+                autoSelection = SourceFallbackHandoff.TriedSources(resolveRun.triedKeys, resolveRun.attempts))
         } else {
             pickerVisible = true
             updatePicker()

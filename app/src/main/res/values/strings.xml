@@ -785,9 +785,9 @@
     <string name="playback_auto_switch_internal_player_on_error_sub">If stream startup fails, switch between ExoPlayer and libmpv automatically.</string>
     <string name="playback_auto_switch_internal_player_blocked_by_fallback">Turn off fallback to next matching source to use this.</string>
     <string name="autoplay_fallback_next_source">Fallback to next matching source on failure</string>
-    <string name="autoplay_fallback_next_source_sub">If the auto-selected source fails or does not start in time, quietly try the next matching sources.</string>
+    <string name="autoplay_fallback_next_source_sub">If a stream fails or does not start in time, try the next playable stream in the current source tier.</string>
     <string name="autoplay_fallback_max_sources">Sources to try on failure</string>
-    <string name="autoplay_fallback_max_sources_sub">How many more matching sources to try before showing the error.</string>
+    <string name="autoplay_fallback_max_sources_sub">Maximum number of additional sources to try in the current tier before showing the error.</string>
     <string name="autoplay_fallback_startup_timeout">Time for a source to start</string>
     <string name="autoplay_fallback_startup_timeout_sub">How long to wait for a source to start before trying the next one.</string>
     <string name="autoplay_fallback_startup_timeout_value">%1$ds</string>

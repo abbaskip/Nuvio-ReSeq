@@ -239,6 +239,8 @@ internal fun PlayerRuntimeController.pauseForLifecycle() {
     if (isUsingMpvEngine()) {
         mpvView?.setPaused(true)
         emitPauseScrobbleForCurrentProgress()
+        // The pause scrobble above owns the tracker event; checkpoint locally for process death.
+        saveWatchProgress(syncRemote = false)
         stopWatchProgressSaving()
         stopProgressUpdates()
         _uiState.update { it.copy(isPlaying = false) }

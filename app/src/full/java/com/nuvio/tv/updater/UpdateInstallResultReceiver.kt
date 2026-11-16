@@ -47,7 +47,7 @@ class UpdateInstallResultReceiver : BroadcastReceiver() {
                     }
                 }
             }
-            PackageInstaller.STATUS_FAILURE_ABORTED -> Unit
+            PackageInstaller.STATUS_FAILURE_ABORTED -> UpdateRelaunchReceiver.cancelReopen(context)
             else -> retryAfterFailure(context, apkFile, background, withDexMetadata)
         }
     }

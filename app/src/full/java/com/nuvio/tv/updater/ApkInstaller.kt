@@ -82,6 +82,8 @@ object ApkInstaller {
             packageInstaller.openSession(sessionId).use { session ->
                 session.writeFile("base.apk", apkFile)
                 dexMetadata?.let { session.writeFile("base.dm", it) }
+                if (background) UpdateRelaunchReceiver.cancelReopen(context)
+                else UpdateRelaunchReceiver.requestReopen(context)
                 session.commit(
                     UpdateInstallResultReceiver.statusReceiver(
                         context = context,
@@ -102,6 +104,7 @@ object ApkInstaller {
 
     /** Hands the APK to the system installer screen, used when the session install cannot be completed. */
     fun launchSystemInstaller(context: Context, apkFile: File) {
+        UpdateRelaunchReceiver.cancelReopen(context)
         UpdateFiles(File(context.filesDir, "updates")).pin(apkFile)
         val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
         val uri = FileProvider.getUriForFile(context, authority, apkFile)

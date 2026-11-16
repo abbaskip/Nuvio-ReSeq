@@ -32,7 +32,9 @@ data class Stream(
     val serverTarget: ServerPlaybackTarget? = null,
     val pluginSourceName: String? = null,
     val iptvPlaylistId: String? = null,
-    @Transient val usenet: UsenetSource? = null
+    @Transient val usenet: UsenetSource? = null,
+    /** True when [url] was produced by Nuvio's own debrid resolver, not returned by the add-on. */
+    val debridResolved: Boolean = false
 ) {
     /**
      * Returns the primary stream source URL

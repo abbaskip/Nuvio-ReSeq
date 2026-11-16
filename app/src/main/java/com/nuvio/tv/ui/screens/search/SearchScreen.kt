@@ -63,6 +63,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
+import kotlinx.coroutines.Job
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -200,6 +203,10 @@ fun SearchScreen(
     val topInputFocusRequester = remember(isVoiceSearchAvailable) {
         if (isVoiceSearchAvailable) voiceFocusRequester else searchFocusRequester
     }
+    // Whichever of voice/text field was focused last is where Up or Back from results returns to.
+    var lastInputWasVoice by remember { mutableStateOf(isVoiceSearchAvailable) }
+    val lastInputFocusRequester =
+        if (isVoiceSearchAvailable && lastInputWasVoice) voiceFocusRequester else searchFocusRequester
     val speechRecognizer = remember(context, isVoiceSearchAvailable) {
         if (isVoiceSearchAvailable) {
             runCatching { SpeechRecognizer.createSpeechRecognizer(context) }.getOrNull()
@@ -608,7 +615,7 @@ fun SearchScreen(
                 backToFieldLatched = true
                 coroutineScope.launch {
                     listState.scrollToItem(0)
-                    runCatching { searchFocusRequester.requestFocus() }
+                    runCatching { lastInputFocusRequester.requestFocus() }
                     // The focus request can start an input session and show the keyboard.
                     keyboardController?.hide()
                 }
@@ -666,10 +673,14 @@ fun SearchScreen(
                     canMoveToResults = canMoveToResults,
                     voiceFocusRequester = if (isVoiceSearchAvailable) voiceFocusRequester else null,
                     searchFocusRequester = searchFocusRequester,
-                    onSearchFieldFocusChanged = { focused -> isSearchFieldFocused = focused },
+                    onSearchFieldFocusChanged = { focused ->
+                        isSearchFieldFocused = focused
+                        if (focused) lastInputWasVoice = false
+                    },
+                    onVoiceFocusChanged = { focused -> if (focused) lastInputWasVoice = true },
                     onQueryChanged = handleQueryChanged,
-                    onSubmit = {
-                        submitCurrentQuery(uiState.query.trim())
+                    onSubmit = { editedQuery ->
+                        submitCurrentQuery(editedQuery.trim())
                     },
                     showVoiceSearch = isVoiceSearchAvailable,
                     isVoiceListening = isVoiceListening,
@@ -858,7 +869,7 @@ fun SearchScreen(
                                 rowFocusRequester = rowFocusRequester,
                                 entryFocusRequester = entryFocusRequester,
                                 // Anchor Up to the field; geometric focus varies with the card.
-                                upFocusRequester = if (index == 0) searchFocusRequester else null,
+                                upFocusRequester = if (index == 0) lastInputFocusRequester else null,
                                 listState = listState,
                                 restorerFocusedIndex = if (restoringSearchFocus.value && catalogKey == viewModel.savedFocusRowKey) {
                                     viewModel.savedFocusItemIndex
@@ -1203,8 +1214,9 @@ private fun SearchInputField(
     voiceFocusRequester: FocusRequester?,
     searchFocusRequester: FocusRequester,
     onSearchFieldFocusChanged: (Boolean) -> Unit,
+    onVoiceFocusChanged: (Boolean) -> Unit,
     onQueryChanged: (String) -> Unit,
-    onSubmit: () -> Unit,
+    onSubmit: (String) -> Unit,
     showVoiceSearch: Boolean,
     isVoiceListening: Boolean,
     voiceRmsLevel: Float,
@@ -1220,6 +1232,34 @@ private fun SearchInputField(
     var isDiscoverButtonFocused by remember { mutableStateOf(false) }
     var isVoiceButtonFocused by remember { mutableStateOf(false) }
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    var editValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(query, TextRange(query.length)))
+    }
+    val editScope = rememberCoroutineScope()
+    var pendingEdit by remember { mutableStateOf<Job?>(null) }
+    val latestQuery by rememberUpdatedState(query)
+    val latestOnQueryChanged by rememberUpdatedState(onQueryChanged)
+    LaunchedEffect(query) {
+        if (pendingEdit?.isActive != true && editValue.text != query) {
+            editValue = TextFieldValue(query, TextRange(query.length))
+        }
+    }
+    DisposableEffect(Unit) { onDispose { pendingEdit?.cancel() } }
+    val editQuery: (TextFieldValue) -> Unit = { next ->
+        val changed = editValue.text != next.text
+        editValue = next
+        if (changed) {
+            pendingEdit?.cancel()
+            // Commit the final IME edit for this frame. Focus-regain empty/value
+            // restoration coalesces here; a real clear or backspace still commits.
+            pendingEdit = editScope.launch {
+                withFrameNanos { }
+                if (editValue.text != latestQuery) latestOnQueryChanged(editValue.text)
+                pendingEdit = null
+            }
+        }
+    }
+
 
     Row(
         modifier = modifier
@@ -1328,7 +1368,10 @@ private fun SearchInputField(
                                 Modifier
                             }
                         )
-                        .onFocusChanged { isVoiceButtonFocused = it.isFocused }
+                        .onFocusChanged {
+                            isVoiceButtonFocused = it.isFocused
+                            onVoiceFocusChanged(it.isFocused)
+                        }
                         .size(NuvioTheme.spacing.huge)
                         .border(
                             width = if (isVoiceButtonFocused || isVoiceListening) NuvioTheme.spacing.xxs else NuvioTheme.spacing.hairline,
@@ -1352,8 +1395,8 @@ private fun SearchInputField(
         }
 
         OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChanged,
+            value = editValue,
+            onValueChange = editQuery,
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(searchFocusRequester)
@@ -1368,7 +1411,7 @@ private fun SearchInputField(
                         KeyEvent.KEYCODE_ENTER,
                         KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                             if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
-                                onSubmit()
+                                onSubmit(editValue.text)
                             }
                             return@onPreviewKeyEvent true
                         }
@@ -1404,7 +1447,7 @@ private fun SearchInputField(
              ),
             keyboardActions = KeyboardActions(
                 onDone = {
-                    onSubmit()
+                    onSubmit(editValue.text)
                     keyboardController?.hide()
                 }
             ),
@@ -1432,14 +1475,14 @@ private fun SearchInputField(
 
         // Clear button, requested in review. Placed beside the field rather than as a trailing
         // icon so it is reachable with the D-pad, matching the voice button's treatment.
-        if (query.isNotEmpty()) {
+        if (editValue.text.isNotEmpty()) {
             var isClearButtonFocused by remember { mutableStateOf(false) }
             Spacer(modifier = Modifier.width(NuvioTheme.spacing.md))
             IconButton(
                 onClick = {
                     // Clearing drops this button from the row, so hand focus back first.
                     runCatching { searchFocusRequester.requestFocus() }
-                    onQueryChanged("")
+                    editQuery(TextFieldValue(""))
                 },
                 modifier = Modifier
                     .onFocusChanged { isClearButtonFocused = it.isFocused }

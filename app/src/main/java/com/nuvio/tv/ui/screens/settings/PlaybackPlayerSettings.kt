@@ -178,6 +178,26 @@ internal fun PlaybackPlayerInterfaceSection(
         onToggle = { onUpdate { setParentalGuideEnabled(!settings.parentalGuideEnabled) } },
         enabled = internalPlayer
     )
+    // Chapters work on both engines.
+    val mpvChapters = settings.internalPlayerEngine == InternalPlayerEngine.MVP_PLAYER
+    val chaptersEnabled = if (mpvChapters) settings.mpvChaptersEnabled else settings.exoChaptersEnabled
+    SettingsToggleRow(
+        title = stringResource(R.string.playback_exo_chapters_title),
+        subtitle = stringResource(R.string.playback_exo_chapters_sub),
+        checked = chaptersEnabled,
+        onToggle = { onUpdate {
+            if (mpvChapters) setMpvChaptersEnabled(!chaptersEnabled)
+            else setExoChaptersEnabled(!chaptersEnabled)
+        } },
+        enabled = internalPlayer
+    )
+    SettingsToggleRow(
+        title = stringResource(R.string.playback_chapter_title_title),
+        subtitle = stringResource(R.string.playback_chapter_title_sub),
+        checked = settings.chapterTitleEnabled,
+        onToggle = { onUpdate { setChapterTitleEnabled(!settings.chapterTitleEnabled) } },
+        enabled = internalPlayer && chaptersEnabled
+    )
 }
 
 @Composable

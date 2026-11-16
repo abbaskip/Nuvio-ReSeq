@@ -12,6 +12,10 @@ import java.util.concurrent.TimeUnit
 
 internal object UsenetPlayback {
     private val sessions = LinkedHashMap<String, UsenetHttpSession>()
+    private val originalStreams = LinkedHashMap<String, Stream>()
+
+    fun originalStream(url: String): Stream? = synchronized(sessions) { originalStreams[url] }
+    fun hasSession(url: String): Boolean = synchronized(sessions) { sessions.containsKey(url) }
     private val cleanup by lazy {
         Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "Usenet session cleanup").apply { isDaemon = true } }.apply {
             scheduleWithFixedDelay({
@@ -22,7 +26,10 @@ internal object UsenetPlayback {
     }
 
     fun release(url: String) {
-        val session = synchronized(sessions) { sessions.remove(url) } ?: return
+        val session = synchronized(sessions) {
+            originalStreams.remove(url)
+            sessions.remove(url)
+        } ?: return
         cleanup.execute { session.close() }
     }
 
@@ -106,6 +113,7 @@ internal object UsenetPlayback {
         synchronized(sessions) {
             if (sessions.size >= 2) release(sessions.keys.first())
             sessions[session.url] = session
+            originalStreams[session.url] = stream
         }
         try {
             checkActive()

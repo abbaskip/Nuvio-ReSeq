@@ -337,12 +337,14 @@ private class DebugStatsSampler(context: Context) {
     }
 
     // Headroom is normalised so 1.00 is the throttling point; the status line only matters once it trips.
+    private val thermalHeadroom = ThermalHeadroomPoller()
+
     private fun thermalStats(): List<DebugStat> {
         val pm = powerManager ?: return listOf(DebugStat("thermal", UNAVAILABLE))
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return listOf(DebugStat("thermal", UNAVAILABLE))
         }
-        val headroom = runCatching { pm.getThermalHeadroom(0) }.getOrDefault(Float.NaN)
+        val headroom = thermalHeadroom.sample(android.os.SystemClock.elapsedRealtime()) { pm.getThermalHeadroom(0) }
         val status = runCatching { pm.currentThermalStatus }.getOrDefault(PowerManager.THERMAL_STATUS_NONE)
         val headroomStat = DebugStat(
             label = "thermal",

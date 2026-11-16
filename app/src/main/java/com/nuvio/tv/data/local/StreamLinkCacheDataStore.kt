@@ -115,6 +115,12 @@ class StreamLinkCacheDataStore @Inject constructor(
         return contentKeys.firstNotNullOfOrNull { getValid(it, maxAgeMs) }
     }
 
+    suspend fun remove(contentKey: String, profileId: Int = profileManager.activeProfileId.value) {
+        store(profileId).edit { prefs ->
+            prefs.remove(cachePrefKey(contentKey))
+        }
+    }
+
     suspend fun getValid(contentKey: String, maxAgeMs: Long): CachedStreamLink? {
         if (maxAgeMs <= 0L) return null
 

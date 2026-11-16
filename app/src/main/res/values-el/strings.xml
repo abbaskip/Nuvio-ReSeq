@@ -705,9 +705,8 @@
   <!-- PlaybackAudioSettings -->
   <string name="playback_true_black_letterbox">Πραγματικά μαύρες μπάρες</string>
   <string name="playback_true_black_letterbox_sub">Αφήστε τις μπάρες γύρω από την εικόνα άβαφες ώστε το HDR να παραμένει πραγματικά μαύρο. Κρατήστε το ανενεργό αν εμφανίζεται φωτεινή γραμμή στις μπάρες.</string>
-  <string name="playback_chapters_label">Κεφάλαια</string>
-  <string name="playback_exo_chapters_title">Εμφάνιση κεφαλαίων (ExoPlayer)</string>
-  <string name="playback_exo_chapters_sub">Ανάγνωση των κεφαλαίων των αρχείων MKV για σήμανσή τους στη γραμμή προόδου και μετάβαση μεταξύ τους. Πραγματοποιεί μερικά μικρά επιπλέον αιτήματα μόλις ξεκινήσει η αναπαραγωγή. Το mpv εμφανίζει πάντα κεφάλαια.</string>
+  <string name="playback_exo_chapters_title">Εμφάνιση κεφαλαίων</string>
+  <string name="playback_exo_chapters_sub">Ανάγνωση των κεφαλαίων των αρχείων MKV για σήμανσή τους στη γραμμή προόδου και μετάβαση μεταξύ τους.</string>
   <string name="audio_trailer_section">Τρέιλερ</string>
   <string name="audio_autoplay_trailers">Αυτόματη αναπαραγωγή τρέιλερ</string>
   <string name="audio_autoplay_trailers_sub">Αυτόματη αναπαραγωγή τρέιλερ στην οθόνη λεπτομερειών μετά από περίοδο αδράνειας</string>
@@ -1424,8 +1423,6 @@
   <string name="action_remove_anyway">Αφαίρεση ούτως ή άλλως</string>
   <string name="cd_simkl_qr">QR ενεργοποίησης Simkl</string>
   <string name="cd_simkl_logo">Λογότυπο Simkl</string>
-  <string name="library_empty_simkl_title">Δεν υπάρχουν %1$s σε αυτή την κατάσταση</string>
-  <string name="library_empty_simkl_subtitle">Χρησιμοποιήστε το + στις λεπτομέρειες για προσθήκη στοιχείων σε κατάσταση Simkl</string>
   <string name="library_empty_simkl_not_auth_title">Το Simkl δεν είναι συνδεδεμένο</string>
   <string name="library_empty_simkl_not_auth_subtitle">Συνδέστε τον λογαριασμό Simkl στις Ρυθμίσεις για να δείτε τη βιβλιοθήκη Simkl</string>
   <!-- DebugSettingsScreen -->
@@ -1981,11 +1978,6 @@
   <string name="library_status_dropped">Εγκαταλείφθηκαν</string>
   <string name="library_syncing_library">Συγχρονισμός βιβλιοθήκης…</string>
   <string name="library_type_all">Όλα</string>
-  <string name="library_type_items">στοιχεία</string>
-  <string name="library_empty_local_title">Δεν υπάρχουν ακόμα %1$s</string>
-  <string name="library_empty_trakt_title">Δεν υπάρχουν %1$s σε αυτή τη λίστα</string>
-  <string name="library_empty_local_subtitle">Αποθηκεύστε τα αγαπημένα σας για να τα δείτε εδώ</string>
-  <string name="library_empty_trakt_subtitle">Χρησιμοποιήστε το + στις λεπτομέρειες για προσθήκη στη watchlist ή σε λίστες</string>
   <string name="library_empty_trakt_not_auth_title">Το Trakt δεν είναι συνδεδεμένο</string>
   <string name="library_empty_trakt_not_auth_subtitle">Συνδέστε τον λογαριασμό Trakt στις Ρυθμίσεις για να δείτε τη βιβλιοθήκη Trakt</string>
   <string name="cloud_library_connect_action">Σύνδεση λογαριασμού</string>

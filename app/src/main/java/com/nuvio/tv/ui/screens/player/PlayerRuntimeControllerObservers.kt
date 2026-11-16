@@ -318,6 +318,8 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
             rememberAudioDelayPerDeviceEnabled = settings.rememberAudioDelayPerDevice
             val resolvedInternalPlayerEngine =
                 runtimeInternalPlayerEngineOverride ?: resolvedAutoPlayerEngine ?: settings.internalPlayerEngine
+            val showChapters = if (resolvedInternalPlayerEngine == InternalPlayerEngine.MVP_PLAYER)
+                settings.mpvChaptersEnabled else settings.exoChaptersEnabled
             val resolvedAudioAmplificationDb = when {
                 !hasInitializedAudioAmplificationForSession -> {
                     hasInitializedAudioAmplificationForSession = true
@@ -363,6 +365,11 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
                     },
                     pauseOverlayEnabled = settings.pauseOverlayEnabled,
                     osdClockEnabled = settings.osdClockEnabled,
+                    chaptersEnabled = showChapters,
+                    showChapterTitle = settings.chapterTitleEnabled,
+                    // Turning chapters off hides them at once; skip intro keeps its own copy.
+                    chapters = if (showChapters) state.chapters else emptyList(),
+                    showChaptersPanel = state.showChaptersPanel && showChapters,
                     internalPlayerEngine = resolvedInternalPlayerEngine,
                     frameRateMatchingMode = settings.frameRateMatchingMode,
                     tunnelingEnabled = settings.effectiveTunnelingEnabled &&
@@ -374,6 +381,9 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
                 )
             }
 
+            if (settings.subtitleStyle.usesStyledRenderer != currentState.subtitleStyle.usesStyledRenderer) {
+                refreshStyledSubtitles()
+            }
             if (resolvedAudioAmplificationDb != currentState.audioAmplificationDb) {
                 applyAudioAmplification(resolvedAudioAmplificationDb)
             }
@@ -408,6 +418,9 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
             autoSwitchInternalPlayerOnErrorEnabled = settings.autoSwitchInternalPlayerOnError
             currentInternalPlayerEngine = resolvedInternalPlayerEngine
             streamAutoPlayModeSetting = settings.streamAutoPlayMode
+            streamAutoPlayFallbackActive = settings.streamAutoPlayFallbackActive
+            streamAutoPlayFallbackMaxSources = settings.streamAutoPlayFallbackMaxSources
+            streamAutoPlayFallbackStartupTimeoutSeconds = settings.streamAutoPlayFallbackStartupTimeoutSeconds
             streamAutoPlayNextEpisodeEnabledSetting = settings.streamAutoPlayNextEpisodeEnabled
             streamAutoPlayTimeoutSecondsSetting = settings.streamAutoPlayTimeoutSeconds
             preloadNextEpisodeSourcesSetting = settings.preloadNextEpisodeSources

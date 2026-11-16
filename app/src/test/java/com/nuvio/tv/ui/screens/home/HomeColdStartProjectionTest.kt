@@ -16,6 +16,7 @@ import java.io.File
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class HomeColdStartProjectionTest {
+    @get:org.junit.Rule val androidRename = com.nuvio.tv.data.cw.AndroidAtomicRenameRule()
     @get:Rule val folder = TemporaryFolder()
     private val progress = (1..3).map { id -> WatchProgress("tt990000$id", "series", "Fixture $id",
         null, null, null, "tt990000$id:1:1", 1, 1, "Episode 1", 40_000, 100_000, System.currentTimeMillis()) }

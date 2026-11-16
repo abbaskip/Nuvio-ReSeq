@@ -13,6 +13,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class TvdbContinueWatchingCacheTest {
+    @get:org.junit.Rule val androidRename = com.nuvio.tv.data.cw.AndroidAtomicRenameRule()
     @get:Rule val folder = TemporaryFolder()
 
     @Test fun `changing Office order retains its last snapshot until replacement across restart and profiles`() = runTest {

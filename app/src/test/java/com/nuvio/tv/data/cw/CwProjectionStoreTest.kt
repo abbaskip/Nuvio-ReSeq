@@ -9,6 +9,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class CwProjectionStoreTest {
+    @get:org.junit.Rule val androidRename = com.nuvio.tv.data.cw.AndroidAtomicRenameRule()
     @get:Rule val folder = TemporaryFolder()
     private val p = WatchProgress("show", "series", "Show", null, null, null, "show:1:1", 1, 1, null, 20, 100, 1_000)
 

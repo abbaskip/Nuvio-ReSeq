@@ -22,6 +22,7 @@ import org.junit.rules.TemporaryFolder
 import javax.inject.Provider
 
 class ContinueWatchingRepositoryTest {
+    @get:org.junit.Rule val androidRename = com.nuvio.tv.data.cw.AndroidAtomicRenameRule()
     @get:Rule val folder = TemporaryFolder()
     private val profile = MutableStateFlow(1)
     private val source = MutableStateFlow(WatchProgressSource.TRAKT)

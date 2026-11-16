@@ -232,9 +232,11 @@ object CwMembershipReducer {
             if (old.changedAtRevision > lease.revision) return@forEach
             if (candidate.chooseEpisode && old.nextUp?.chooseEpisode == false) return@forEach
             if (old.inProgress != null) {
-                if (Log.isLoggable("CwDecision", Log.DEBUG)) Log.d("CwDecision",
-                    "decision=keep-resume source=${old.progress?.decisionSource()} episode=${old.inProgress.season}x${old.inProgress.episode} " +
-                        "watchedAt=${old.inProgress.lastWatched} next=${candidate.season}x${candidate.episode}")
+                if (Log.isLoggable("CwDecision", Log.DEBUG)) {
+                    Log.d("CwDecision",
+                        "decision=keep-resume source=${old.progress?.decisionSource()} episode=${old.inProgress.season}x${old.inProgress.episode} " +
+                            "watchedAt=${old.inProgress.lastWatched} next=${candidate.season}x${candidate.episode}")
+                }
                 return@forEach
             }
             val p = old.progress

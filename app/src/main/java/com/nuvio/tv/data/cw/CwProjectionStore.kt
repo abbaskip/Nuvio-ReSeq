@@ -6,8 +6,7 @@ import com.nuvio.tv.data.local.CachedInProgressItem
 import com.nuvio.tv.data.local.CachedNextUpItem
 import java.io.File
 import java.io.FileOutputStream
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
+import android.system.Os
 
 /** One fsynced document, atomically replaced. A crash exposes either complete revision. */
 internal class CwProjectionStore(private val directory: File) {
@@ -50,7 +49,8 @@ internal class CwProjectionStore(private val directory: File) {
             stream.write(gson.toJson(state).toByteArray(Charsets.UTF_8))
             stream.fd.sync()
         }
-        // Never fall back to a non-atomic copy. On failure the previous revision stays valid.
-        Files.move(pending.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        // rename(2) atomically replaces a same-directory file on every supported
+        // Android API. On failure it throws and leaves the previous revision intact.
+        Os.rename(pending.path, target.path)
     }
 }

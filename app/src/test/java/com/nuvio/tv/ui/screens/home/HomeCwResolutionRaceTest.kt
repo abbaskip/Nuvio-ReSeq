@@ -18,6 +18,7 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeCwResolutionRaceTest {
+    @get:org.junit.Rule val androidRename = com.nuvio.tv.data.cw.AndroidAtomicRenameRule()
     private val created = mutableListOf<HomeViewModel>()
     @Before fun setup() = Dispatchers.setMain(Dispatchers.Unconfined)
     @After fun cleanup() {

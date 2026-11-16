@@ -19,6 +19,7 @@ import org.junit.Test
 import retrofit2.Response
 
 class TvdbProportionalScrobbleTest {
+    @get:org.junit.Rule val androidRename = com.nuvio.tv.data.cw.AndroidAtomicRenameRule()
     private val orders = officeOrderFixtures()
     private val original = recordedProvider(orders.getValue("official"))
     private val effective = tvdbEpisodeOverlay(original, 73244, orders.getValue("alttwo"))

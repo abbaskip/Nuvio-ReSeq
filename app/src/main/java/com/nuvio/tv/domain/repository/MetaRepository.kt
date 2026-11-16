@@ -5,6 +5,9 @@ import com.nuvio.tv.domain.model.Meta
 import kotlinx.coroutines.flow.Flow
 
 interface MetaRepository {
+    /** Newly cached catalogue IDs, including loads initiated by Details. */
+    val cachedCatalogueUpdates: Flow<String> get() = kotlinx.coroutines.flow.emptyFlow()
+
     fun getMeta(
         addonBaseUrl: String,
         type: String,

@@ -58,6 +58,7 @@ class TvdbOrderStore @Inject constructor(private val factory: ProfileDataStoreFa
     /** Only durable user choices and their aliases; never credentials or learned playback caches. */
     suspend fun exportSelections(profileId: Int): Map<String, String> {
         val prefs = factory.get(profileId, "tvdb_orders").data.first()
+        snapshots[profileId] = prefs
         val orders = prefs.asMap().filterKeys { (it.name.startsWith("order:") || it.name.startsWith("reset:")) }
         val selected = orders.keys.map { it.name.substringAfter(':') }.toSet()
         return prefs.asMap().filter { (key, value) ->

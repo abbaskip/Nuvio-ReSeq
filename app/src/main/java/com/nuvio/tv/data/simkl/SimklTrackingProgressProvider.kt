@@ -2,6 +2,7 @@ package com.nuvio.tv.data.simkl
 
 import com.nuvio.tv.core.tracking.TrackingProgressProvider
 import com.nuvio.tv.core.tracking.TrackingMediaReference
+import com.nuvio.tv.core.tracking.movieCompletionIndex
 import com.nuvio.tv.core.tracking.TrackingProviderId
 import com.nuvio.tv.core.tracking.TrackingRefreshIntent
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
@@ -39,6 +40,11 @@ class SimklTrackingProgressProvider @Inject constructor(
     ) { projection, preferFurthestEpisode ->
         projection.nextUp(preferFurthestEpisode)
     }.distinctUntilChanged()
+    override fun movieCompletionTimes(profileId: Int) = syncRepository.state
+        .map { state -> state.snapshot.entries.takeIf { state.profileId == profileId }.orEmpty() }
+        .distinctUntilChanged()
+        .map { entries -> simklMovieCompletionTimes(entries) }
+
     override val watchedMovieIds = syncRepository.projection.map { projection ->
         projection.watchedMovieIds
     }.distinctUntilChanged()
@@ -144,6 +150,10 @@ class SimklTrackingProgressProvider @Inject constructor(
 
     override suspend fun prepareNextUpSeed(progress: WatchProgress): WatchProgress = progress
 }
+
+internal fun simklMovieCompletionTimes(entries: List<SimklLibraryEntry>) =
+    movieCompletionIndex(entries.asSequence().filter { it.isMovieEntry() },
+        { it.media?.simklTrackingContentIds().orEmpty() }, { parseSimklUtcEpochMs(it.lastWatchedAt) })
 
 internal fun checkWatchedByVideoId(
     snapshot: SimklSyncSnapshot,

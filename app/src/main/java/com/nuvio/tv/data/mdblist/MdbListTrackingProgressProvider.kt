@@ -3,6 +3,7 @@ package com.nuvio.tv.data.mdblist
 import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.core.tracking.TrackingProgressProvider
 import com.nuvio.tv.core.tracking.TrackingMediaReference
+import com.nuvio.tv.core.tracking.movieCompletionIndex
 import com.nuvio.tv.core.tracking.TrackingProviderId
 import com.nuvio.tv.core.tracking.TrackingRefreshIntent
 import com.nuvio.tv.core.tracking.parseTrackingExternalIds
@@ -24,13 +25,17 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.transformLatest
 
+internal fun mdbListMovieCompletionTimes(records: List<MdbListWatchedRecord>) =
+    movieCompletionIndex(records.asSequence().filter { it.type == MdbListItemType.MOVIE },
+        { it.media.ids.aliases() }, { runCatching { mdbListTimestamp(it.watchedAt) }.getOrNull() })
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class MdbListTrackingProgressProvider @Inject constructor(
     private val sync: MdbListSyncRepository,
     private val scrobbles: MdbListScrobbleService,
     private val episodeMappings: MdbListEpisodeMappingService,
-    auth: MdbListAuthStore,
+    private val auth: MdbListAuthStore,
     profiles: ProfileManager,
     layout: LayoutPreferenceDataStore
 ) : TrackingProgressProvider {
@@ -44,6 +49,10 @@ class MdbListTrackingProgressProvider @Inject constructor(
     }.distinctUntilChanged()
     override val allProgress = projection.map { it.progress }.inAddonNumbering().loadOnStart()
     override val watchedItems = projection.map { it.watchedItems }.loadOnStart()
+    override fun movieCompletionTimes(profileId: Int) = combine(sync.state, auth.state) { state, authorization ->
+        if (authorization.isAuthenticated && authorization.scope.profileId == profileId &&
+            state.scope == authorization.scope) state.snapshot?.watched.orEmpty() else emptyList()
+    }.distinctUntilChanged().map { records -> mdbListMovieCompletionTimes(records) }
     override val watchedMovieIds = projection.map { it.watchedMovieIds }.loadOnStart()
     override val nextUpSeeds = combine(projection, layout.nextUpFromFurthestEpisode) { projection, furthest ->
         projection.nextUp(furthest)

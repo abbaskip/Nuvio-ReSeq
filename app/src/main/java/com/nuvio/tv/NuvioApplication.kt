@@ -44,6 +44,7 @@ import javax.inject.Inject
 @HiltAndroidApp
 class NuvioApplication : Application(), SingletonImageLoader.Factory {
 
+    @Inject lateinit var continueWatching: com.nuvio.tv.data.cw.ContinueWatchingRepository
     @Inject lateinit var startupSyncService: StartupSyncService
     @Inject lateinit var androidTvChannelSyncService: AndroidTvChannelSyncService
     @Inject lateinit var sentrySettingsDataStore: SentrySettingsDataStore
@@ -83,6 +84,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     override fun onCreate() {
+        com.nuvio.tv.core.diagnostics.StabilityFixtureNetwork.install()
         // Before super.onCreate(): Hilt creates injected services there, and the budget is read once.
         MemoryBudget.init(this)
         com.nuvio.tv.core.usenet.UsenetMemoryProfile.init(this)
@@ -90,6 +92,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         super.onCreate()
         SentryInitializer.start(this, sentrySettingsDataStore, sentrySetting)
         PluginRuntimeHooks.onApplicationCreate(this)
+        continueWatching.start()
         androidTvChannelSyncService.start()
         serverUserStateProjection.start()
         // Load locale synchronously so it's available before Activity.attachBaseContext.

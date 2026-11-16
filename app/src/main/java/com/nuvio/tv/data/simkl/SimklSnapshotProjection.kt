@@ -244,7 +244,7 @@ private fun Set<String>.filterInProgressMovies(progress: List<WatchProgress>): S
     return result
 }
 
-private fun SimklMedia.simklTrackingContentIds(): Set<String> = buildSet {
+internal fun SimklMedia.simklTrackingContentIds(): Set<String> = buildSet {
     canonicalContentId()?.let(::add)
     ids.idValue("imdb")?.let(::add)
     ids.idValue("tmdb")?.let { add("tmdb:$it") }

@@ -13,6 +13,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeEpisodeShuffleTest {
+    @Test fun `shuffle fallback cannot resurrect removed members or cross profiles`() {
+        val p = WatchProgress("show", "series", "Show", null, null, null, "show:1:1", 1, 1, null, 100, 100, 1_000)
+        val before = com.nuvio.tv.data.cw.CwMembershipReducer.progress(
+            com.nuvio.tv.data.cw.CwProjection(profileId = 1, source = "TRAKT"), listOf(p))
+        assertEquals(listOf(p), ownedShuffleSeeds(before, 1))
+        assertTrue(ownedShuffleSeeds(before, 2).isEmpty())
+        val removed = com.nuvio.tv.data.cw.CwMembershipReducer.remove(before, before.lease,
+            com.nuvio.tv.data.cw.CwRemovalProof(com.nuvio.tv.data.cw.CwRemovalReason.USER_REMOVAL, setOf("show"), 2_000))
+        assertTrue(ownedShuffleSeeds(removed, 1).isEmpty())
+        val resumed = com.nuvio.tv.data.cw.CwMembershipReducer.progress(before, listOf(p.copy(position = 20, lastWatched = 3_000)))
+        assertTrue(ownedShuffleSeeds(resumed, 1).isEmpty())
+    }
+
     private val videos = (1..5).map { Video("show:1:$it", "Episode $it", "2020-01-01", "image-$it",
         season = 1, episode = it, overview = "Description $it") }
     private val upcoming = ContinueWatchingItem.NextUp(NextUpInfo(

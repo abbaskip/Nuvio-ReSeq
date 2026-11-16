@@ -18,6 +18,7 @@ object TvdbModule {
     // Dedicated client: no HTTP logging or permissive addon TLS interceptors.
     @Provides @Singleton @Named("tvdb")
     fun http(): OkHttpClient = OkHttpClient.Builder()
+        .apply { if (com.nuvio.tv.BuildConfig.STABILITY_FIXTURES) addInterceptor(com.nuvio.tv.core.diagnostics.StabilityFixtureNetwork.tvdb()) }
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
         .callTimeout(45, TimeUnit.SECONDS).followRedirects(false).build()
 

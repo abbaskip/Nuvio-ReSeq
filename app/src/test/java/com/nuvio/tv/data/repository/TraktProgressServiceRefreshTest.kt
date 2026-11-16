@@ -15,6 +15,7 @@ import com.nuvio.tv.data.remote.dto.trakt.TraktIdsDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktLastActivitiesMediaDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktLastActivitiesResponseDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktMovieDto
+import com.nuvio.tv.data.remote.dto.trakt.TraktWatchedMovieItemDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktPlaybackItemDto
 import com.nuvio.tv.domain.repository.MetaRepository
 import io.mockk.coEvery
@@ -136,6 +137,17 @@ class TraktProgressServiceRefreshTest {
         assertEquals(2, playbackCalls.get())
     }
 
+    @Test fun `watched movie read exposes real completion times and aliases only for its profile`() = runBlocking {
+        val movie = TraktMovieDto(ids = TraktIdsDto(imdb = MOVIE_ID, tmdb = 19))
+        val item = TraktWatchedMovieItemDto(
+            lastWatchedAt = "2026-01-02T00:00:00Z", movie = movie)
+        val service = createService(watchedMovies = listOf(item, item.copy(lastWatchedAt = null)))
+        org.junit.Assert.assertTrue(service.isMovieWatched(MOVIE_ID))
+        val at = java.time.Instant.parse(item.lastWatchedAt).toEpochMilli()
+        assertEquals(mapOf(MOVIE_ID to at, "tmdb:19" to at), service.movieCompletionTimes(1).first())
+        assertEquals(emptyMap<String, Long?>(), service.movieCompletionTimes(2).first())
+    }
+
     private suspend fun loadedService(): TraktProgressService {
         val service = createService()
         withTimeout(TIMEOUT_MS) {
@@ -156,7 +168,7 @@ class TraktProgressServiceRefreshTest {
         }
     }
 
-    private fun createService(): TraktProgressService {
+    private fun createService(watchedMovies: List<TraktWatchedMovieItemDto> = emptyList()): TraktProgressService {
         coEvery { traktApi.getLastActivities(any()) } answers {
             lastActivitiesCalls.incrementAndGet()
             if (lastActivitiesFails) {
@@ -193,7 +205,7 @@ class TraktProgressServiceRefreshTest {
         coEvery { traktApi.getHiddenItems(any(), any(), any(), any(), any()) } returns Response.success(emptyList())
         coEvery { traktApi.getWatched(any(), any(), any(), any(), any()) } answers {
             watchedMoviesCalls.incrementAndGet()
-            Response.success(emptyList())
+            Response.success(watchedMovies, okhttp3.Headers.headersOf("X-Pagination-Page-Count", "1"))
         }
         coEvery { traktApi.getWatchedShows(any(), any(), any(), any()) } answers {
             watchedShowsCalls.incrementAndGet()

@@ -16,7 +16,7 @@ class TraktRefreshTickerTest {
     @Test fun `player sessions suppress timed ticks while explicit refreshes still arrive`() = runTest {
         val explicit = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
         var calls = 0
-        backgroundScope.launch { traktRefreshEvents(explicit) { 60_000L }.collect { calls++ } }
+        backgroundScope.launch { traktRefreshEvents(explicit).collect { calls++ } }
         runCurrent()
         assertEquals(1, calls)
         val player = PlayerSessionTracker.open()
@@ -30,6 +30,9 @@ class TraktRefreshTickerTest {
             player.close()
         }
         advanceTimeBy(60_000)
+        assertEquals(2, calls)
+        explicit.emit(Unit)
+        runCurrent()
         assertEquals(3, calls)
     }
 }

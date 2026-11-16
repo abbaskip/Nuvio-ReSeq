@@ -6,6 +6,7 @@ import java.net.URLEncoder
 sealed class Screen(val route: String) {
     data object LiveTv : Screen("livetv")
     data object LiveTvPlayer : Screen("livetv/player")
+    data object Multiview : Screen("livetv/multiview")
     data object LiveTvSettings : Screen("livetv/settings")
     data object Sports : Screen("livetv/sports")
     data object OnDemand : Screen("livetv/ondemand")

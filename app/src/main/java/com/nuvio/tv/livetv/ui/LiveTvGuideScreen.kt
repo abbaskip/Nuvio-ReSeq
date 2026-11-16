@@ -175,6 +175,7 @@ private fun nextMidnight(ms: Long): Long = java.util.Calendar.getInstance().appl
 fun LiveTvGuideScreen(
     onOpenFullscreen: () -> Unit,
     onOpenSettings: () -> Unit,
+    onMultiview: () -> Unit = {},
     onFindInNuvio: () -> Unit = {},
     /** Full screen was opened from the Sports page: Back goes back there. */
     onReturnToSports: () -> Unit = {},
@@ -1030,6 +1031,7 @@ fun LiveTvGuideScreen(
                 onGlassBounds = { headerGlassBounds = it },
                 gearFocus = guideGearFocus,
                 onGear = { guideGearOpen = true },
+                onMultiview = onMultiview,
                 onGearDown = { runCatching { gridFocus.requestFocus() } },
                 playlistName = if (settings.showPlaylistInInfo) headerChannel?.sourceId?.let { playlistNames[it] } else null,
                 settings = settings,
@@ -2137,6 +2139,7 @@ private fun GuideHeader(
     /** The ⚙ that opens the Guide display panel (Up from the first channel reaches it). */
     gearFocus: FocusRequester = FocusRequester(),
     onGear: () -> Unit = {},
+    onMultiview: () -> Unit = {},
     onGearDown: () -> Unit = {}
 ) {
     if (!settings.showProgramDetails && !showPreview) {
@@ -2148,6 +2151,8 @@ private fun GuideHeader(
             LiveText("Live TV", size = 16.sp, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
             status?.let { LiveText(it, color = NuvioTheme.colors.TextSecondary, size = 13.sp) }
             Spacer(Modifier.width(16.dp))
+            com.nuvio.tv.livetv.multiview.MultiviewChip("Multiview", onClick = onMultiview)
+            Spacer(Modifier.width(10.dp))
             GuideGearButton(Modifier.focusRequester(gearFocus), onOpen = onGear, onDown = onGearDown)
             Spacer(Modifier.width(10.dp))
             Row(
@@ -2281,7 +2286,10 @@ private fun GuideHeader(
             }
         }
         // The ⚙ for the guide's display settings, in the corner of the panel.
-        GuideGearButton(Modifier.focusRequester(gearFocus), onOpen = onGear, onDown = onGearDown)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            com.nuvio.tv.livetv.multiview.MultiviewChip("Multiview", onClick = onMultiview)
+            GuideGearButton(Modifier.focusRequester(gearFocus), onOpen = onGear, onDown = onGearDown)
+        }
         // Preview only (info panel off): keep it at the right, as usual.
         if (showPreview) {
             Box(

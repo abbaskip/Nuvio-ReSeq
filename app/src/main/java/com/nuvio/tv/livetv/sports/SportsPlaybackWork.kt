@@ -65,7 +65,7 @@ internal fun sportsBackgroundAllowed(
     foreground: Flow<Boolean>,
     playback: Flow<LivePlaybackState>,
     fullscreen: Flow<Boolean>,
-    nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.isSessionOpen
+    nuvioPlaying: Flow<Boolean> = PlayerSessionTracker.bulkPlaybackActive
 ): Flow<Boolean> = combine(foreground, playback, fullscreen, nuvioPlaying) { front, live, full, vod ->
     front && !vod && !full && live.channelKey == null && !live.isBuffering
 }.distinctUntilChanged()

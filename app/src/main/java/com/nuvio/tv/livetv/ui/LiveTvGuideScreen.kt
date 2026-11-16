@@ -507,6 +507,7 @@ fun LiveTvGuideScreen(
             val c = listState.firstVisibleItemIndex * pitch + listState.firstVisibleItemScrollOffset
             Triple(busy, g, c)
         }.collect { (busy, g, c) ->
+              com.nuvio.tv.livetv.data.BackgroundWork.onGuideNavigation()
             if (busy) return@collect
             // One nudge per position of the channel list: if a nudge didn't quite land (rounding
             // on some screens), it isn't repeated over and over.
@@ -920,6 +921,7 @@ fun LiveTvGuideScreen(
                     Key.PageUp, Key.PageDown, Key.ChannelUp, Key.ChannelDown -> true
                     else -> false
                 }
+                  if (navigationKey) com.nuvio.tv.livetv.data.BackgroundWork.onGuideNavigation()
                 if (navigationKey && e.type == KeyEventType.KeyDown && navigationRepeatGate.shouldConsume(
                         keyCode = e.nativeKeyEvent.keyCode,
                         repeated = e.nativeKeyEvent.repeatCount > 0,

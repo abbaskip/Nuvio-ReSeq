@@ -22,8 +22,38 @@ class OnDemandConcurrentReadTest {
     @Test fun `browsing remains available while import waits for its next network page`() =
         withPausedImport(false)
 
-    @Test fun `browsing remains available while committed import yields to a trailer`() =
+    @Test fun `browsing remains available while a trailer permits the import to continue`() =
         withPausedImport(true)
+
+    @Test fun `full playback retains the committed batch and releases the import worker for browsing`() {
+        val context = RuntimeEnvironment.getApplication()
+        context.deleteDatabase("livetv_on_demand.db")
+        val db = OnDemandDatabase(context)
+        val workers = Executors.newSingleThreadExecutor()
+        val session = PlayerSessionTracker.open()
+        try {
+            val importer = workers.submit<Int> {
+                db.replace("test", VodKind.MOVIE, listOf("a" to "Movies")) { emit ->
+                    repeat(1000) { emit(item(it)) }
+                    true
+                }
+            }
+            try {
+                importer.get(10, TimeUnit.SECONDS)
+                fail("A full player must defer the import at its committed checkpoint")
+            } catch (failure: java.util.concurrent.ExecutionException) {
+                assertTrue(failure.cause is com.nuvio.tv.livetv.data.BackgroundWork.PlaybackDeferred)
+            }
+            assertEquals(500, workers.submit<Int> { db.count(VodKind.MOVIE) }.get(2, TimeUnit.SECONDS))
+            assertEquals(20, db.items(VodKind.MOVIE, null, emptySet(), false, 20, 0).size)
+            session.close()
+            assertEquals(1000, db.replace("test", VodKind.MOVIE, listOf("a" to "Movies")) { emit ->
+                repeat(1000) { emit(item(it)) }
+                true
+            })
+            assertEquals(1000, db.count(VodKind.MOVIE))
+        } finally { session.close(); workers.shutdownNow(); db.close() }
+    }
 
     @Test fun `separate imports still serialize their bookkeeping`() {
         val context = RuntimeEnvironment.getApplication()
@@ -93,7 +123,10 @@ class OnDemandConcurrentReadTest {
                 db.items(VodKind.MOVIE, null, emptySet(), false, 20, 0)
             }
             assertEquals(20, reader.get(2, TimeUnit.SECONDS).size)
-            assertFalse("Import should still be paused", importer.isDone)
+            if (trailer) {
+                assertEquals(500, importer.get(10, TimeUnit.SECONDS))
+                assertTrue(PlayerSessionTracker.hasOpenTrailer)
+            } else assertFalse("The network pause must retain the import", importer.isDone)
             session?.close()
             resume.countDown()
             assertEquals(500, importer.get(10, TimeUnit.SECONDS))

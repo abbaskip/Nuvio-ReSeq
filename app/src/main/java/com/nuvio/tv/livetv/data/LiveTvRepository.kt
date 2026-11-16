@@ -1826,7 +1826,7 @@ class LiveTvRepository @Inject constructor(
     private class DeferGuide(message: String, val waitingMessage: String? = null) : kotlinx.coroutines.CancellationException(message)
 
     private fun checkGuideBudget() {
-        if (BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying)
+        if (com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback)
             throw DeferGuide("Guide update queued until playback finishes", "Guide update paused while playing · stop playback to finish")
         val runtime = Runtime.getRuntime()
         val limit = runtime.maxMemory() * 0.85
@@ -1839,10 +1839,11 @@ class LiveTvRepository @Inject constructor(
 
     private var guideStartedAt = 0L
     private suspend fun guideCheckpoint(settings: LiveTvSettings) {
+        BackgroundWork.awaitGuideNavigationIdle()
         if (!settings.updateGuideDuringPlayback) { checkGuideBudget(); return }
         while (true) {
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
-            val playing = BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying
+            val playing = com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback
             val rt = Runtime.getRuntime()
             val fraction = (rt.totalMemory() - rt.freeMemory()).toDouble() / rt.maxMemory()
             val age = System.currentTimeMillis() - guideStartedAt
@@ -1851,7 +1852,7 @@ class LiveTvRepository @Inject constructor(
             if (GuidePlaybackBudget.paused(message)) { delay(1_000); continue }
             if (playing) delay(if (age >= GuidePlaybackBudget.FINISH_AFTER_MS) 100 else 250)
             else kotlinx.coroutines.yield()
-            if ((BackgroundWork.liveChannelOpen.value || BackgroundWork.isNuvioPlaying) && BackgroundWork.playbackUnstable) continue
+            if (com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback && BackgroundWork.playbackUnstable) continue
             return
         }
     }
@@ -1862,7 +1863,7 @@ class LiveTvRepository @Inject constructor(
             while (deferredGuide.exists()) {
                 delay(30_000)
                 if (!prefs.currentSettings().updateGuideDuringPlayback)
-                    kotlinx.coroutines.flow.combine(BackgroundWork.liveChannelOpen, BackgroundWork.nuvioPlaying) { live, vod -> !live && !vod }.first { it }
+                    com.nuvio.tv.core.player.PlayerSessionTracker.bulkPlaybackActive.first { !it }
                 mutex.withLock {
                     if (deferredGuide.exists()) {
                         try { buildPrograms(prefs.currentSettings(), collectEpgTargets()) }

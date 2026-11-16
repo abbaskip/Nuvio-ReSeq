@@ -30,6 +30,7 @@ class LiveTvPortalReconnectTest {
 
     private class Fixture(val controller: LiveTvPlaybackController, val stalker: StalkerPortalClient, val opened: List<String>) {
         fun close() {
+            controller.releaseNow()
             (field(controller, "scope") as CoroutineScope).cancel()
             unmockkObject(controller)
         }

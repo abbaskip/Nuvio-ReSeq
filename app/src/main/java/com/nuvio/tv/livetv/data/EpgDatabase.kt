@@ -17,7 +17,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
-    SQLiteOpenHelper(context, "livetv_guide.db", null, 4) {
+    SQLiteOpenHelper(context, "livetv_guide.db", null, 5) {
 
     @Volatile var retainDescriptions: Boolean = true
 
@@ -36,6 +36,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         db.execSQL("CREATE TABLE auto (ch TEXT PRIMARY KEY, source TEXT NOT NULL, xmltv TEXT NOT NULL)")
         db.execSQL("CREATE TABLE meta (k TEXT PRIMARY KEY, v TEXT)")
         createStageTables(db)
+        ensureSearchIndex(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -57,6 +58,25 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.execSQL("ALTER TABLE programs ADD COLUMN shared INTEGER NOT NULL DEFAULT 0")
             createChannelMap(db)
         }
+        if (oldVersion < 5) ensureSearchIndex(db)
+    }
+
+    /** The external-content index stores terms once per committed shared schedule row. */
+    private fun ensureSearchIndex(db: SQLiteDatabase, rebuild: Boolean = true) {
+        val attached = db.rawQuery("SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='program_search_insert'", null)
+            .use { it.moveToFirst() }
+        if (attached) return
+        db.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS program_search USING fts4(title,descr,content='programs')")
+        db.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS program_terms USING fts4aux(program_search)")
+        db.execSQL("CREATE TRIGGER program_search_insert AFTER INSERT ON programs BEGIN " +
+            "INSERT INTO program_search(docid,title,descr) VALUES(new.rowid,new.title,new.descr); END")
+        db.execSQL("CREATE TRIGGER program_search_delete BEFORE DELETE ON programs BEGIN " +
+            "DELETE FROM program_search WHERE docid=old.rowid; END")
+        db.execSQL("CREATE TRIGGER program_search_update_before BEFORE UPDATE ON programs BEGIN " +
+            "DELETE FROM program_search WHERE docid=old.rowid; END")
+        db.execSQL("CREATE TRIGGER program_search_update_after AFTER UPDATE ON programs BEGIN " +
+            "INSERT INTO program_search(docid,title,descr) VALUES(new.rowid,new.title,new.descr); END")
+        if (rebuild) db.execSQL("INSERT INTO program_search(program_search) VALUES('rebuild')")
     }
 
     private fun createChannelMap(db: SQLiteDatabase) {
@@ -175,6 +195,16 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             if (c.moveToFirst()) c.getString(0) else null
         }
 
+    /** Boundaries that can change a current/paused fixture's moving guide search window. */
+    fun nextSportsBoundary(now: Long): Long = readableDatabase.rawQuery(
+        "SELECT MIN(t) FROM (SELECT MIN(stop) t FROM programs WHERE stop>? " +
+            "UNION ALL SELECT MIN(start) FROM programs WHERE start>? " +
+            "UNION ALL SELECT MIN(start)-4200000 FROM programs WHERE start>? " +
+            "UNION ALL SELECT MIN(start)-129600000 FROM programs WHERE start>? " +
+            "UNION ALL SELECT MIN(start)+108000000 FROM programs WHERE start>?)",
+        arrayOf(now, now, now + 4_200_000L, now + 129_600_000L, now - 108_000_000L).map(Long::toString).toTypedArray()
+    ).use { if (it.moveToFirst() && !it.isNull(0)) it.getLong(0) else Long.MAX_VALUE }
+
     private fun bumpContentRevision(db: SQLiteDatabase) {
         db.insertWithOnConflict("meta", null, ContentValues().apply {
             put("k", "content_revision"); put("v", java.util.UUID.randomUUID().toString())
@@ -183,6 +213,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
 
     /** Stores the fingerprint, and its parts (or clears stale parts), inside the caller's transaction. */
     private fun putFingerprint(db: SQLiteDatabase, fingerprint: String, parts: String?) {
+        // An atomic table replacement drops its old triggers. Attach the replacement before publication.
+        ensureSearchIndex(db)
         bumpContentRevision(db)
         db.insertWithOnConflict("meta", null, ContentValues().apply { put("k", "fingerprint"); put("v", fingerprint) },
             SQLiteDatabase.CONFLICT_REPLACE)
@@ -378,8 +410,27 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             }.joinToString(" OR ")
             val args = listOf(fromMs.toString(), toMs.toString(), minStopMs.toString()) +
                 part.flatMap { w -> if (inDescription) listOf(like(w), like(w)) else listOf(like(w)) }
-            val sql = "SELECT ch, start, stop, title, descr, cat FROM $GUIDE_LISTINGS WHERE start >= ? AND start < ? AND stop > ? AND ($conds) LIMIT ${limit - out.size}"
-            readableDatabase.rawQuery(sql, args.toTypedArray()).use { c ->
+            // Expand substrings over the term dictionary, then use its postings. The final LIKE
+            // preserves existing phrase, punctuation, Unicode and literal wildcard semantics.
+            val anchors = part.map { word -> Regex("[A-Za-z0-9]+").findAll(word).maxByOrNull { it.value.length }?.value }
+            val terms = LinkedHashSet<String>()
+            if (anchors.all { it != null }) for (anchor in anchors.filterNotNull().distinct()) {
+                readableDatabase.rawQuery("SELECT term FROM program_terms WHERE col='*' AND term LIKE ? ESCAPE '\\'",
+                    arrayOf(like(anchor))).use { c -> while (c.moveToNext()) terms += c.getString(0) }
+            }
+            val indexed = anchors.all { it != null }
+            if (indexed && terms.isEmpty()) return@forEach
+            val query = terms.joinToString(" OR ") { "\"${it.replace("\"", "\"\"")}\"" }
+            // Keep the existing guide traversal and LIMIT ordering. Driving the outer query by
+            // FTS rowid would select a different first 4,000 listings on large shared schedules.
+            val rowFilter = if (indexed) " AND EXISTS (SELECT 1 FROM sports_hits h WHERE h.docid=programs.rowid)" else ""
+            val listings = "(SELECT ch,start,stop,title,descr,cat FROM programs WHERE shared=0$rowFilter " +
+                "UNION ALL SELECT a.ch,p.start,p.stop,p.title,p.descr,p.cat FROM schedule_channels a " +
+                "JOIN programs p ON p.ch=a.ref AND p.shared=1" + rowFilter.replace("programs.rowid", "p.rowid") + ")"
+            val searchArgs = if (indexed) listOf(query) + args else args
+            val prefix = if (indexed) "WITH sports_hits AS (SELECT docid FROM program_search WHERE program_search MATCH ? GROUP BY docid) " else ""
+            val sql = prefix + "SELECT ch, start, stop, title, descr, cat FROM $listings WHERE start >= ? AND start < ? AND stop > ? AND ($conds) LIMIT ${limit - out.size}"
+            readableDatabase.rawQuery(sql, searchArgs.toTypedArray()).use { c ->
                 while (c.moveToNext()) {
                     val ch = c.getString(0)
                     val start = c.getLong(1)
@@ -797,10 +848,13 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             try { block(); db.setTransactionSuccessful() } finally { db.endTransaction() }
         }
         fun cleanup() {
-            db.execSQL("DROP TABLE IF EXISTS guide_next")
-            db.execSQL("DROP TABLE IF EXISTS guide_choice")
-            db.execSQL("DROP TABLE IF EXISTS auto_next")
-            db.execSQL("DROP TABLE IF EXISTS channels_next")
+            transaction {
+                db.execSQL("DROP TABLE IF EXISTS guide_search_next")
+                db.execSQL("DROP TABLE IF EXISTS guide_next")
+                db.execSQL("DROP TABLE IF EXISTS guide_choice")
+                db.execSQL("DROP TABLE IF EXISTS auto_next")
+                db.execSQL("DROP TABLE IF EXISTS channels_next")
+            }
         }
         cleanup()
         db.execSQL("CREATE TABLE guide_next ($PROGRAM_COLUMNS)")
@@ -858,6 +912,20 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                     }) }
                 }
             }
+            // Build postings alongside the private replacement, with the same safe checkpoints.
+            db.execSQL("CREATE VIRTUAL TABLE guide_search_next USING fts4(title,descr,content='programs')")
+            val lastProgram = db.rawQuery("SELECT COALESCE(MAX(rowid),0) FROM guide_next", null)
+                .use { it.moveToFirst(); it.getLong(0) }
+            var indexedRow = 0L
+            while (indexedRow < lastProgram) {
+                checkpoint()
+                transaction {
+                    db.execSQL("INSERT INTO guide_search_next(docid,title,descr) " +
+                        "SELECT rowid,title,descr FROM guide_next WHERE rowid>? AND rowid<=?",
+                        arrayOf<Any>(indexedRow, indexedRow + 1024))
+                }
+                indexedRow += 1024
+            }
             checkpoint()
             transaction {
                 db.execSQL("DROP TABLE schedule_channels")
@@ -865,11 +933,19 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 db.execSQL("CREATE INDEX schedule_ref ON schedule_channels(ref)")
                 db.execSQL("DROP TABLE programs")
                 db.execSQL("ALTER TABLE guide_next RENAME TO programs")
+                db.execSQL("DROP TABLE program_terms")
+                db.execSQL("DROP TABLE program_search")
+                db.execSQL("ALTER TABLE guide_search_next RENAME TO program_search")
+                ensureSearchIndex(db, rebuild = false)
                 db.execSQL("DROP TABLE auto")
                 db.execSQL("ALTER TABLE auto_next RENAME TO auto")
                 putFingerprint(db,fingerprint,parts)
             }
-        } finally { cleanup() }
+        } catch (error: Throwable) {
+            try { cleanup() } catch (cleanupError: Throwable) { error.addSuppressed(cleanupError) }
+            throw error
+        }
+        cleanup()
     }
 
     /** Gives back space left empty by deleted listings (see [SqliteCompact]). */

@@ -2,6 +2,23 @@ package com.nuvio.tv.livetv.sports
 
 /** Fixtures and TV airings have separate timelines; channel matching never sets event order. */
 internal object SportsEventListings {
+    fun guideAiring(event: SportsEvent, now: Long): SportsEvent? {
+        val end = event.endMs ?: event.guideHits.maxOfOrNull { it.second.stopMs }
+        if (end != null && now >= end) return null
+        return event.copy(state = if (now >= event.startMs) GameState.LIVE else GameState.PRE,
+            status = null, awaitingUpdate = false)
+    }
+
+    fun display(events: List<SportsEvent>, now: Long): List<SportsEvent> = events.mapNotNull {
+        if (it.source == EventSource.GUIDE) guideAiring(it, now) else it
+    }
+
+    fun onMyChannels(events: List<SportsEvent>, matches: Map<String, List<ChannelMatch>>,
+        requested: Boolean, ready: Boolean, isMine: (SportsEvent) -> Boolean): List<SportsEvent> {
+        if (!requested || !ready || matches.isEmpty()) return events
+        return events.filter { it.state == GameState.POST || isMine(it) || matches[it.id]?.isNotEmpty() == true }
+    }
+
     /** Enter the timeline at live sport, leaving earlier results available above it. */
     fun entryIndex(events: List<SportsEvent>): Int =
         events.indexOfFirst { it.state == GameState.LIVE }.takeIf { it >= 0 }

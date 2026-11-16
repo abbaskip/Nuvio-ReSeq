@@ -69,6 +69,19 @@ class SportsPageSnapshotTest {
         assertNull(SportsPageSnapshot.read(file, now))
     }
 
+    @Test fun `guide airing cannot retain updating across snapshot round trip`() = runBlocking {
+        val airing = future.copy(source = EventSource.GUIDE, startMs = now - hour,
+            endMs = now + hour, awaitingUpdate = true, status = "Updating…")
+        val file = temporary.newFile()
+        save(file, listOf(airing))
+        assertFalse(file.readText().contains("awaitingUpdate"))
+        val restored = SportsPageSnapshot.read(file, now)!!.events.single()
+        assertFalse(restored.awaitingUpdate)
+        assertEquals(GameState.LIVE, restored.state)
+        assertNull(SportsPageSnapshot.display(restored, now, now + hour))
+        assertEquals(GameState.PRE, SportsPageSnapshot.display(airing.copy(startMs = now + hour), now, now)!!.state)
+    }
+
     @Test fun `large fixture is bounded to 512 events eight matches each and two MiB`() = runBlocking {
         val file = temporary.newFile()
         val events = (1..2001).map { future.copy(id = "event-$it") }

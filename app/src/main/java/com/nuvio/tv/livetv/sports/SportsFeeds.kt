@@ -382,7 +382,7 @@ internal class SportsFeeds {
             return out
         }
 
-        fun parseScoreboard(league: League, raw: String): List<SportsEvent> {
+        fun parseScoreboard(league: League, raw: String, strict: Boolean = false): List<SportsEvent> {
             val root = JSONObject(raw)
             if (!leagueLogos.containsKey(league.id)) runCatching {
                 val logos = root.optJSONArray("leagues")?.optJSONObject(0)?.optJSONArray("logos")
@@ -398,7 +398,7 @@ internal class SportsFeeds {
                     pick?.let { leagueLogos[league.id] = it }
                 }
             }
-            val events = root.optJSONArray("events") ?: return emptyList()
+            val events = root.optJSONArray("events") ?: if (strict) error("Missing sports events") else return emptyList()
             val out = ArrayList<SportsEvent>()
             for (i in 0 until events.length()) {
                 val ev = events.optJSONObject(i) ?: continue

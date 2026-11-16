@@ -5,6 +5,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SportsGuideEventsTest {
+    @Test fun repeatedChannelTextDoesNotHideLateReplayEvidence() {
+        val game = event("large", "Live Cricket", "Coverage")
+        val hits = List(50001) { "$it" to game.guideHits.single().second.copy() }
+        assertFalse(game.copy(guideHits = hits).isReplay)
+        assertTrue(game.copy(guideHits = hits + ("late" to hits.last().second.copy(description = "A replay of yesterday's game"))).isReplay)
+    }
     private fun event(id: String, title: String, description: String = "Women's Rugby League World Cup", start: Long = 1_000_000) =
         SportsEvent(id, "world-cup", start, true, GameState.LIVE, title, description, null, null, null,
             source = EventSource.GUIDE, endMs = start + 7_200_000,

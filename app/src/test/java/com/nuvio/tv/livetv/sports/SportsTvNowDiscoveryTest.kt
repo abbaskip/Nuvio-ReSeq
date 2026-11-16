@@ -17,6 +17,27 @@ class SportsTvNowDiscoveryTest {
     private val channel = LiveChannel("506", "playlist", "Test", "AU: Fox Sports 506 HD",
         null, null, null, "sports", "Sports", 1, "https://example.invalid")
 
+    @Test fun repeatedSchedulesRetainEveryAiringAndChannelWhileSharingProgrammeValues() {
+        val channels = (0..10000).associate { i -> "$i" to channel.copy(key = "$i", name = "Fixture Cricket $i") }
+        val first = EpgProgram(now, now + hour, "Australia vs England - Live Test Cricket", "Test cricket coverage")
+        every { db.visitPrograms(now, now + 2 * hour, any()) } answers {
+            val collect = thirdArg<(String, EpgProgram) -> Unit>()
+            for (key in channels.keys) {
+                collect(key, first.copy())
+                collect(key, first.copy(startMs = now + hour, stopMs = now + 2 * hour))
+            }
+            collect("0", first.copy()) // The existing channel/start duplicate rule remains intact.
+        }
+        val events = SportsMatcher(db).guideEvents(now, now + 2 * hour, SportsCatalog.all,
+            emptyList(), channels, 0, now)
+        assertEquals(2, events.size)
+        events.forEach { event ->
+            // The released loop-channel rule deliberately excludes the channel named "247".
+            assertEquals(channels.keys.filterNot { it == "247" }, event.guideHits.map { it.first })
+            assertSame(event.guideHits.first().second, event.guideHits.last().second)
+        }
+    }
+
     @Test fun longReplaysAndUnconfirmedSessionsRemainCurrentTvEvenWithoutALiveFixture() {
         val programmes = listOf(
             EpgProgram(now - 8 * hour, now + hour, "Replay: Snooker: Ronnie O'Sullivan v Judd Trump"),

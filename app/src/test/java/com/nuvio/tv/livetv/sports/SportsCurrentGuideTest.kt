@@ -6,6 +6,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SportsCurrentGuideTest {
+    @Test fun quickProviderRefreshRetainsTheGuideOwnersResultsWithoutBuildingAnotherCopy() {
+        val guide = airing()
+        val list = listOf(match())
+        val input = SportsMatcher.Input(listOf(fixture()), listOf(channel), emptyMap(), 0, SportsSettings(), now)
+        val quick = SportsCurrentGuide.mergeBulkMatches(mapOf(guide.id to list), emptyMap(),
+            listOf(guide, fixture()), input, null, true)
+        assertSame(list, quick[guide.id])
+        val finished = SportsCurrentGuide.mergeBulkMatches(quick, emptyMap(), listOf(fixture()), input, null, false)
+        assertFalse(finished.containsKey(guide.id))
+    }
+
     private val now = 1_794_312_000_000L
     private val hour = 3_600_000L
     private val channel = LiveChannel("505", "playlist", "Test", "AU: Fox Sports 505 HD",
@@ -111,5 +122,17 @@ class SportsCurrentGuideTest {
         assertFalse(extra.hasScore) // Scores are projected from the freshest fixture at display time.
         assertTrue(SportsCurrentGuide.additionalAirings(listOf(extra), listOf(fixture), matches, now).isEmpty())
         assertTrue(SportsCurrentGuide.additionalAirings(emptyList(), listOf(fixture), matches, programme.stopMs).isEmpty())
+    }
+
+    @Test fun largeOwnershipMergeMatchesThePriorRuleIncludingNullProgrammesAndUserPicks() {
+        val old = List(50001) { i -> match(if (i % 7 == 0) null else programme)
+            .copy(channel = channel.copy(key = "channel-$i")) }
+        val previous = old.mapIndexed { i, m -> if (i % 11 == 0) m.copy(score = 200) else m } +
+            match().copy(channel = channel.copy(key = "unrelated"))
+        // Independently enumerate expected survivors; no capped channel list or approximate identity.
+        val expected = previous.filter { it.score > 100 || it.channel.key == "unrelated" }
+        val actual = SportsCurrentGuide.mergeMatches(mapOf("fixture" to previous), mapOf("fixture" to old),
+            emptyMap(), SportsSettings())
+        assertEquals(expected, actual["fixture"])
     }
 }

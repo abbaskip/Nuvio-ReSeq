@@ -32,6 +32,9 @@ internal object SportsPageSnapshot {
 
     /** Each fixture has its own observation time; a recent file cannot freshen an old score. */
     fun display(event: SportsEvent, observedAt: Long, now: Long): SportsEvent? {
+        if (event.source == EventSource.GUIDE) {
+            return SportsEventListings.guideAiring(event, now)
+        }
         if (event.state == GameState.POST) return event.takeIf { it.startMs >= now - MAX_AGE }
         val crossedKickoff = event.state == GameState.PRE && event.startMs <= now &&
             (observedAt < event.startMs || event.status == "Live score pending")
@@ -169,7 +172,8 @@ internal data class SportsSnapshotLeague(val id: String, val sport: String, val 
 internal data class SportsSnapshotEvent(val id: String, val leagueId: String, val start: Long, val end: Long?,
     val hasTime: Boolean, val state: String, val title: String, val subtitle: String?, val status: String?,
     val away: SportsSnapshotSide?, val home: SportsSnapshotSide?, val source: String, val espnId: String?,
-    val broadcasts: List<String>, val note: String?, val word: String?, val updatedAt: Long?, val awaitingUpdate: Boolean,
+    val broadcasts: List<String>, val note: String?, val word: String?, val updatedAt: Long?,
+    @com.squareup.moshi.Json(ignore = true) val awaitingUpdate: Boolean = false,
     val hits: List<SportsSnapshotHit>, val league: SportsSnapshotLeague? = null) {
     fun event() = SportsEvent(id, leagueId, start, hasTime, GameState.valueOf(state), title, subtitle, status,
         away?.side(), home?.side(), broadcasts, source = EventSource.valueOf(source), endMs = end,
@@ -177,7 +181,8 @@ internal data class SportsSnapshotEvent(val id: String, val leagueId: String, va
         guideHits = hits.map { it.key to it.program.program() })
     companion object {
         fun from(e: SportsEvent) = SportsSnapshotEvent(e.id, e.leagueId, e.startMs, e.endMs, e.hasTime, e.state.name,
-            e.title.take(400), e.subtitle?.take(400), e.status?.take(200), e.away?.let(SportsSnapshotSide::from),
+            e.title.take(400), e.subtitle?.take(400),
+            if (e.awaitingUpdate) "Live score pending" else e.status?.take(200), e.away?.let(SportsSnapshotSide::from),
             e.home?.let(SportsSnapshotSide::from), e.source.name, e.espnId, e.broadcasts.take(16), e.note?.take(200),
             e.word, e.updatedAt, e.awaitingUpdate, e.guideHits.take(SportsPageSnapshot.MAX_MATCHES).map { (key, p) -> SportsSnapshotHit(key, SportsSnapshotProgram.from(p)) },
             SportsCatalog.league(e.leagueId)?.let(SportsSnapshotLeague::from))

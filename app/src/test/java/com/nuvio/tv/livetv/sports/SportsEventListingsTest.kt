@@ -5,6 +5,18 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SportsEventListingsTest {
+    @Test fun `partial matches cannot hide all fixtures while first matching is unfinished`() {
+        val a = event("a", now, GameState.LIVE)
+        val b = event("b", now + hour, GameState.PRE)
+        val fixtures = listOf(a, b)
+        val channel = io.mockk.mockk<ChannelMatch>()
+        val partial = mapOf("another-league" to listOf(channel))
+        assertEquals(fixtures, SportsEventListings.onMyChannels(fixtures, partial, true, false) { false })
+        assertTrue(SportsEventListings.onMyChannels(fixtures, partial, true, true) { false }.isEmpty())
+        assertEquals(listOf(a), SportsEventListings.onMyChannels(fixtures, partial + (a.id to listOf(channel)), true, true) { false })
+        assertEquals(fixtures, SportsEventListings.onMyChannels(fixtures, partial, true, true) { true })
+    }
+
     private val day = 10 * 86_400_000L
     private val hour = 3_600_000L
     private val now = day + 12 * hour

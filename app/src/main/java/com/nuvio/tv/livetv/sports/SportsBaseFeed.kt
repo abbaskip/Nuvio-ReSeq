@@ -60,10 +60,10 @@ internal class SportsBaseFeed(
 
     fun cached(): Snapshot? = snapshot?.takeIf { clock() - it.generatedAt < MAX_AGE && it.storage?.isFile == true }
 
-    suspend fun refresh(): Snapshot? = gate.withLock {
+    suspend fun refresh(force: Boolean = false): Snapshot? = gate.withLock {
         if (!enabled) return@withLock null
         val now = clock()
-        if (now < nextAttempt || (cached() != null && now >= lastCheck && now - lastCheck < REFRESH)) return@withLock cached()
+        if (!force && (now < nextAttempt || (cached() != null && now >= lastCheck && now - lastCheck < REFRESH))) return@withLock cached()
         // Failed/invalid feeds back off instead of triggering a per-device provider fan-out.
         nextAttempt = now + 15 * 60_000L
         val context = currentCoroutineContext()

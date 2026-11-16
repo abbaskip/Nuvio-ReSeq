@@ -131,7 +131,7 @@ internal fun MyTeamsRows(
     autoFocus: Boolean,
     returning: Boolean,
     onReturned: () -> Unit,
-    /** Goes up each time My Sports (or a sport) is picked on the top bar: the highlight goes to the big card. */
+    /** Goes up each time My Sports (or a sport) is picked on the top bar: the page starts at Live & Upcoming. */
     jumpToHero: Int = 0,
     onOpen: (SportsEvent) -> Unit,
     onQuickWatch: (SportsEvent) -> Unit,
@@ -168,10 +168,14 @@ internal fun MyTeamsRows(
     }
 
     LaunchedEffect(jumpToHero) {
-        if (jumpToHero == 0) return@LaunchedEffect
+        if (jumpToHero == 0 || returning) return@LaunchedEffect
+        columnState.scrollToItem(0)
+        entryRow?.let { rowState(it.key, it.startIndex).scrollToItem(it.startIndex) }
         delay(160)
         focusedOnce = true
-        runCatching { heroReq.requestFocus() }
+        val target = entryKey?.let { requesterFor(it) } ?: heroReq
+        runCatching { target.requestFocus() }
+            .onFailure { runCatching { heroReq.requestFocus() } }
     }
 
     // Scrolling like Home's rows: the highlighted row's heading stays near the top (two rows show

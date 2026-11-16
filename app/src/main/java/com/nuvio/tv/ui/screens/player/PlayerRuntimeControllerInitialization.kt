@@ -1707,14 +1707,15 @@ internal fun PlayerRuntimeController.initializePlayer(
                         if (tryRefreshExpiredLinkAfterError(detailedError)) {
                             return
                         }
-                        if (tryFallbackToNextSourceAfterError(detailedError)) {
-                            return
-                        }
 
                         // ── Main Engine Failover ──
                         if (maybeAutoSwitchInternalPlayerOnStartupError(detailedError = detailedError, allowEngineFailover = allowEngineFailover)) {
                             return
                         }
+                        if (tryFallbackToNextSourceAfterError(detailedError)) {
+                            return
+                        }
+
                         if (attemptAutoRetry(error, detailedError)) {
                             return
                         }

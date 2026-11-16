@@ -283,9 +283,9 @@ class PlayerRuntimeController(
 
     /** The sources the stream screen tried before this one, so the fallback goes on from them. */
     private val sourcesTriedBeforePlayback = SourceFallbackHandoff.take(initialStreamUrl, currentStreamUrl)
-        ?.takeIf { autoSelectedSourceUrl != null }
     internal var sourceFallbackAttempts = sourcesTriedBeforePlayback?.attempts ?: 0
     internal val sourceFallbackTriedKeys = sourcesTriedBeforePlayback?.keys.orEmpty().toMutableSet()
+    internal var sourceFallbackPendingStream: com.nuvio.tv.domain.model.Stream? = null
     internal var sourceFallbackJob: Job? = null
     internal var sourceStartupTimeoutJob: Job? = null
 

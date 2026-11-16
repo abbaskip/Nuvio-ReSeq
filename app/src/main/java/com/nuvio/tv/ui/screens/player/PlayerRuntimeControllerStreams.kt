@@ -799,6 +799,7 @@ private fun PlayerRuntimeController.prepareUsenetStream(stream: Stream, fromEpis
             usenetPrepareJob = null
             play(resolved)
         } catch (error: UsenetFailure) {
+            if (!fromEpisodePanel && tryFallbackToNextSourceAfterError(error.message.orEmpty())) return@launch
             _uiState.update {
                 if (fromEpisodePanel) it.finishEpisodeAutoPlaySearch(showStreamPicker = true).copy(isLoadingEpisodeStreams = false, episodeStreamsError = error.message)
                 else it.copy(isLoadingSourceStreams = false, sourceStreamsError = error.message)
@@ -868,8 +869,25 @@ private fun PlayerRuntimeController.openExternalStreamInBrowser(
 
 @androidx.annotation.OptIn(UnstableApi::class)
 internal fun PlayerRuntimeController.switchToSourceStream(
-    stream: Stream
+    stream: Stream,
+    resumePositionMs: Long? = null,
+    fromFailureFallback: Boolean = false,
+    continuingSelection: Boolean = false
 ) {
+    val sourceResumePosition = resumePositionMs ?: sourceSwitchResumePosition(
+        live = _playbackTimeline.value.isLive,
+        rendered = hasRenderedFirstFrame,
+        current = currentPlaybackPositionMs(), timeline = _playbackTimeline.value.currentPosition,
+        queued = _uiState.value.pendingSeekPosition, saved = pendingResumeProgress?.position)
+    if (!fromFailureFallback && !continuingSelection) {
+        sourceFallbackJob?.cancel()
+        sourceFallbackJob = null
+        sourceFallbackAttempts = 0
+        sourceFallbackPendingStream = stream
+        sourceFallbackTriedKeys.clear()
+    }
+    debridResolveJob?.cancel()
+    debridResolveJob = null
     sourceStreamsScope?.cancel()
     sourceStreamsScope = null
     sourceStreamsJob = null
@@ -887,7 +905,7 @@ internal fun PlayerRuntimeController.switchToSourceStream(
             val prepared = prepareServerStream(stream)
             debridResolveJob = null
             if (prepared != null) {
-                switchToSourceStream(prepared)
+                switchToSourceStream(prepared, sourceResumePosition, fromFailureFallback, continuingSelection = true)
             } else {
                 _uiState.update { it.copy(isLoadingSourceStreams = false) }
             }
@@ -896,7 +914,7 @@ internal fun PlayerRuntimeController.switchToSourceStream(
     }
 
     if (stream.usenet != null) {
-        prepareUsenetStream(stream, fromEpisodePanel = false) { switchToSourceStream(it) }
+        prepareUsenetStream(stream, fromEpisodePanel = false) { switchToSourceStream(it, sourceResumePosition, fromFailureFallback, continuingSelection = true) }
         return
     }
 
@@ -907,7 +925,7 @@ internal fun PlayerRuntimeController.switchToSourceStream(
             val resolved = resolveYouTubeStream(stream)
             debridResolveJob = null
             if (resolved != null) {
-                switchToSourceStream(resolved)
+                switchToSourceStream(resolved, sourceResumePosition, fromFailureFallback, continuingSelection = true)
             } else {
                 _uiState.update {
                     it.copy(
@@ -927,9 +945,9 @@ internal fun PlayerRuntimeController.switchToSourceStream(
             val resolved = resolveDirectDebridStreamIfNeeded(stream, currentSeason, currentEpisode)
             debridResolveJob = null
             if (resolved != null && !resolved.getStreamUrl().isNullOrBlank()) {
-                switchToSourceStream(resolved)
+                switchToSourceStream(resolved, sourceResumePosition, fromFailureFallback, continuingSelection = true)
             } else if (resolved != null) {
-                switchToTorrentSourceStream(resolved)
+                switchToTorrentSourceStream(resolved, sourceResumePosition)
             } else {
                 _uiState.update {
                     it.copy(
@@ -951,7 +969,7 @@ internal fun PlayerRuntimeController.switchToSourceStream(
                 val resolved = resolveDirectDebridStreamIfNeeded(stream, currentSeason, currentEpisode)
                 if (resolved != null && !resolved.getStreamUrl().isNullOrBlank()) {
                     debridResolveJob = null
-                    switchToSourceStream(resolved)
+                    switchToSourceStream(resolved, sourceResumePosition, fromFailureFallback, continuingSelection = true)
                 } else {
                     debridResolveJob = null
                     _uiState.update {
@@ -1027,6 +1045,10 @@ internal fun PlayerRuntimeController.switchToSourceStream(
             isTorrentStream = false
         )
     }
+    if (sourceResumePosition != null) {
+        pendingResumeProgress = null
+        _uiState.update { it.copy(pendingSeekPosition = sourceResumePosition) }
+    }
     clearChapterSkipState()
     recomputeMergedSkipIntervals()
     showStreamSourceIndicator(stream)
@@ -1074,7 +1096,7 @@ internal fun PlayerRuntimeController.switchToSourceStream(
         }
     }
 
-    loadSavedProgressFor(currentSeason, currentEpisode)
+    if (sourceResumePosition == null) loadSavedProgressFor(currentSeason, currentEpisode)
 }
 
 internal fun PlayerRuntimeController.dismissEpisodesPanel() {
@@ -1120,7 +1142,8 @@ internal fun PlayerRuntimeController.selectEpisodesSeason(season: Int) {
 
 @androidx.annotation.OptIn(UnstableApi::class)
 private fun PlayerRuntimeController.switchToTorrentSourceStream(
-    stream: Stream
+    stream: Stream,
+    resumePositionMs: Long?
 ) {
     val infoHash = stream.getEffectiveInfoHash() ?: return
     sourceStreamsScope?.cancel()
@@ -1160,13 +1183,17 @@ private fun PlayerRuntimeController.switchToTorrentSourceStream(
             isTorrentStream = true
         )
     }
+    if (resumePositionMs != null) {
+        pendingResumeProgress = null
+        _uiState.update { it.copy(pendingSeekPosition = resumePositionMs) }
+    }
     clearChapterSkipState()
     recomputeMergedSkipIntervals()
     applyStreamMetadata(stream)
     currentFilename = stream.behaviorHints?.filename
     showStreamSourceIndicator(stream)
     resetPostPlayOverlayState(clearEpisode = false)
-    launchTorrentSourceStream(stream, infoHash, loadSavedProgress = true)
+    launchTorrentSourceStream(stream, infoHash, loadSavedProgress = resumePositionMs == null)
     persistTorrentStreamForReuse(stream)
     persistStreamRouteState(stream, isTorrent = true)
 }
@@ -2349,7 +2376,7 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean) {
  * episode's source list open. The run says which sources were tried, so the fallback in the player
  * goes on from them if the stream that resolved fails to start.
  */
-private suspend fun PlayerRuntimeController.resolveNextEpisodeStream(
+internal suspend fun PlayerRuntimeController.resolveNextEpisodeStream(
     selected: Stream,
     nextVideo: Video,
     streams: List<Stream>
@@ -2379,7 +2406,8 @@ private suspend fun PlayerRuntimeController.resolveNextEpisodeStream(
                 installedAddonNames = installedAddonNames,
                 triedKeys = triedKeys,
                 failedAddonName = failed.addonName,
-                failedInfoHash = failed.getEffectiveInfoHash()
+                failedInfoHash = failed.getEffectiveInfoHash(),
+                    failedKey = failed.sourceFallbackKey()
             )?.also { next ->
                 Log.i(
                     PlayerRuntimeController.TAG,

@@ -55,11 +55,11 @@ class SourceFallbackTest {
     }
 
     @Test
-    fun fallbackAppliesOnlyWithAutoSelectionAndTheInternalPlayer() {
+    fun fallbackAlsoSupportsManualSourcesWithTheInternalPlayer() {
         val enabled = PlayerSettings(streamAutoPlayFallbackOnFailure = true, streamAutoPlayMode = StreamAutoPlayMode.FIRST_STREAM)
 
         assertTrue(enabled.streamAutoPlayFallbackActive)
-        assertFalse(enabled.copy(streamAutoPlayMode = StreamAutoPlayMode.MANUAL).streamAutoPlayFallbackActive)
+        assertTrue(enabled.copy(streamAutoPlayMode = StreamAutoPlayMode.MANUAL).streamAutoPlayFallbackActive)
         assertFalse(enabled.copy(playerPreference = PlayerPreference.EXTERNAL).streamAutoPlayFallbackActive)
         assertFalse(enabled.copy(streamAutoPlayFallbackOnFailure = false).streamAutoPlayFallbackActive)
     }
@@ -84,10 +84,26 @@ class SourceFallbackTest {
     }
 
     @Test
-    fun regexModeOnlyFallsBackToMatchingSources() {
+    fun fallbackKeepsStreamOrderWithoutChangingAutoplayRegex() {
         val regexSettings = settings.copy(streamAutoPlayMode = StreamAutoPlayMode.REGEX_MATCH, streamAutoPlayRegex = "Source 3")
 
-        assertEquals(candidates[2], next(candidates, settings = regexSettings))
+        assertEquals(candidates[0], next(candidates, settings = regexSettings))
+    }
+
+    @Test fun manualSourceFallsForwardWithinItsTierWithoutWrappingOrCrossingToPlugins() {
+        val plugin = candidates[1].copy(addonName = "Plugin")
+        val ordered = listOf(candidates[0], candidates[1], plugin, candidates[2])
+        assertEquals(candidates[2], nextSourceFallbackCandidate(ordered, settings, setOf("Test"),
+            emptySet(), "Test", null, failedKey = candidates[1].sourceFallbackKey()))
+        assertNull(nextSourceFallbackCandidate(ordered, settings, setOf("Test"), emptySet(),
+            "Test", null, failedKey = candidates[2].sourceFallbackKey()))
+    }
+
+    @Test fun pluginFallbackNeverPromotesAnInstalledAddon() {
+        val first = candidates[0].copy(addonName = "Plugin")
+        val second = candidates[2].copy(addonName = "Other Plugin")
+        assertEquals(second, nextSourceFallbackCandidate(listOf(first, candidates[1], second), settings,
+            setOf("Test"), emptySet(), "Plugin", null, failedKey = first.sourceFallbackKey()))
     }
 
     private fun next(

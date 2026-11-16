@@ -276,7 +276,6 @@ internal fun PlayerRuntimeController.handleMpvPlaybackError(
 
         // A link that has likely expired is fetched again before anything else is tried on it.
         if (tryRefreshExpiredLinkAfterError(detailedError)) return
-        if (tryFallbackToNextSourceAfterError(detailedError)) return
 
         val startupFailed = !hasRenderedFirstFrame
         if (startupFailed &&
@@ -287,6 +286,8 @@ internal fun PlayerRuntimeController.handleMpvPlaybackError(
         ) {
             return
         }
+
+        if (tryFallbackToNextSourceAfterError(detailedError)) return
 
         val savedPosition = if (startupFailed) {
             0L

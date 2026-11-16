@@ -1466,10 +1466,14 @@ class StreamScreenViewModel @Inject constructor(
         }
     }
 
-    suspend fun resolveStreamForPlayback(stream: Stream, saveLastLink: Boolean = true): StreamPlaybackInfo? =
-        resolveForPlayback(stream, saveLastLink) { failure ->
+    suspend fun resolveStreamForPlayback(stream: Stream, saveLastLink: Boolean = true): StreamPlaybackInfo? {
+        if (saveLastLink && playerSettingsDataStore.playerSettings.first().streamAutoPlayFallbackActive) {
+            return resolveAutoPlayStreamForPlayback(stream)
+        }
+        return resolveForPlayback(stream, saveLastLink) { failure ->
             showDirectDebridPlaybackError(failure.message, failure.refreshStreams)
         }
+    }
 
     /**
      * Resolves [stream] for playback. A debrid result that cannot be played goes to [onDebridFailure]
@@ -1498,7 +1502,7 @@ class StreamScreenViewModel @Inject constructor(
                 updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = it.isDirectAutoPlayFlow, directAutoPlayMessage = null) }
                 getStreamForPlayback(resolved, saveLastLink)
             } catch (error: UsenetFailure) {
-                showDirectDebridPlaybackError(error.message.orEmpty(), refreshStreams = false)
+                onDebridFailure(DebridResolveFailure(error.message.orEmpty(), refreshStreams = false))
                 null
             } finally {
                 if (usenetPrepareJob === preparing) {
@@ -1618,7 +1622,8 @@ class StreamScreenViewModel @Inject constructor(
                 when {
                     playbackInfo != null -> AutoPlayResolveAttempt.Resolved(playbackInfo)
                     // A failure other than a debrid one was already shown where it happened.
-                    else -> failure?.let { AutoPlayResolveAttempt.Failed(it) } ?: AutoPlayResolveAttempt.Ended
+                    else -> (failure ?: _uiState.value.playbackErrorMessage?.let { DebridResolveFailure(it, false) })
+                        ?.let { AutoPlayResolveAttempt.Failed(it) } ?: AutoPlayResolveAttempt.Ended
                 }
             },
             nextCandidate = { failed, triedKeys ->
@@ -1628,7 +1633,8 @@ class StreamScreenViewModel @Inject constructor(
                     installedAddonNames = autoPlayInstalledAddonNames,
                     triedKeys = triedKeys,
                     failedAddonName = failed.addonName,
-                    failedInfoHash = failed.getEffectiveInfoHash()
+                    failedInfoHash = failed.getEffectiveInfoHash(),
+                    failedKey = failed.sourceFallbackKey()
                 )?.also { next ->
                     Log.i(
                         TAG,

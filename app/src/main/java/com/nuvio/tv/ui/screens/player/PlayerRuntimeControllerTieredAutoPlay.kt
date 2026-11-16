@@ -112,7 +112,7 @@ internal suspend fun PlayerRuntimeController.playNextEpisodeWithTiers(
             },
         )
         ensureActive()
-        val resolved = selected?.let { resolveDirectDebridStreamIfNeeded(it, nextVideo.season, nextVideo.episode) }
+        val resolved = selected?.let { resolveNextEpisodeStream(it, nextVideo, snapshots.value.streams) }
         ensureActive()
         if (resolved != null) {
             _uiState.update { it.copy(autoPlayFallback = null) }

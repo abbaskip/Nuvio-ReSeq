@@ -428,7 +428,6 @@ data class PlayerSettings(
      */
     val streamAutoPlayFallbackActive: Boolean
         get() = streamAutoPlayFallbackOnFailure &&
-            streamAutoPlayMode != StreamAutoPlayMode.MANUAL &&
             playerPreference != PlayerPreference.EXTERNAL
 
     /** FFmpeg downmix only runs when the app decoder is preferred. */

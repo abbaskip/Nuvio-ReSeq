@@ -51,6 +51,7 @@ internal fun PlayerRuntimeController.restartSourceFallback(
         autoSelection != null && url.isNotBlank() && !url.startsWith("torrent://")
     }
     sourceFallbackAttempts = autoSelection?.attempts ?: 0
+    sourceFallbackPendingStream = null
     sourceFallbackTriedKeys.clear()
     autoSelection?.let { tried -> sourceFallbackTriedKeys += tried.keys }
 }
@@ -77,23 +78,29 @@ internal fun PlayerRuntimeController.showErrorUnlessSourceFallback(errorMessage:
  */
 internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(errorMessage: String): Boolean {
     if (sourceFallbackJob?.isActive == true) return true
-    if (!streamAutoPlayFallbackActive || autoSwitchInternalPlayerOnErrorEnabled) return false
-    if (hasRenderedFirstFrame) return false
+    if (!streamAutoPlayFallbackActive || isMixPlayback || isInBackground || isPartyControlLocked ||
+        _playbackTimeline.value.isLive || userPausedManually) return false
     val failedUrl = currentStreamUrl
-    if (failedUrl.isBlank() || failedUrl != autoSelectedSourceUrl) return false
+    if (failedUrl.isBlank()) return false
     if (sourceFallbackAttempts >= streamAutoPlayFallbackMaxSources) {
         // The last source tried was saved for reuse when it started playing, but it failed.
-        streamCacheKey?.let { key -> scope.launch { streamLinkCacheDataStore.remove(key) } }
+        streamCacheKey?.let { key -> scope.launch { streamLinkCacheDataStore.remove(key, profileId) } }
         return false
     }
+    val expectedVideoId = currentVideoId
     val videoId = currentVideoId ?: contentId ?: return false
 
     val state = _uiState.value
-    val failedAddonName = currentAddonName
-    val failedInfoHash = state.currentStreamInfoHash ?: navigationArgs.infoHash
+    val failedSource = sourceFallbackPendingStream
+    val failedAddonName = failedSource?.addonName ?: currentAddonName
+    val failedInfoHash = failedSource?.getEffectiveInfoHash() ?: state.currentStreamInfoHash
+    val failedKey = failedSource?.sourceFallbackKey() ?: "url:$failedUrl"
+    val resumePosition = sourceSwitchResumePosition(false, hasRenderedFirstFrame, currentPlaybackPositionMs(),
+        _playbackTimeline.value.currentPosition, state.pendingSeekPosition, pendingResumeProgress?.position)
     sourceFallbackTriedKeys += "url:$failedUrl"
     val season = currentSeason
     val episode = currentEpisode
+    fun stillOwnsPlayback() = currentStreamUrl == failedUrl && currentVideoId == expectedVideoId && currentSeason == season && currentEpisode == episode
 
     sourceFallbackJob = scope.launch {
         showRecoveryOverlay()
@@ -104,6 +111,7 @@ internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(errorMess
 
         var polls = 0
         while (sourceFallbackAttempts < streamAutoPlayFallbackMaxSources) {
+            if (!stillOwnsPlayback()) return@launch
             val sources = _uiState.value
             val next = nextSourceFallbackCandidate(
                 streams = sources.sourceAllStreams,
@@ -111,7 +119,8 @@ internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(errorMess
                 installedAddonNames = installedAddonNames,
                 triedKeys = sourceFallbackTriedKeys,
                 failedAddonName = failedAddonName,
-                failedInfoHash = failedInfoHash
+                failedInfoHash = failedInfoHash,
+                failedKey = failedKey
             )
             if (next == null) {
                 val searchDone = !sources.isLoadingSourceStreams &&
@@ -127,7 +136,8 @@ internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(errorMess
             val playable = (directDebridResolver.resolveToPlayableStream(next, season, episode)
                 as? DirectDebridPlayableResult.Success)?.stream
             val url = playable?.getStreamUrl()
-            if (playable == null || url.isNullOrBlank() || url == failedUrl) {
+            if (!stillOwnsPlayback()) return@launch
+            if (playable == null || !StreamAutoPlaySelector.isPlayable(playable) || url == failedUrl) {
                 Log.d(PlayerRuntimeController.TAG, "Fallback source from ${next.addonName} has no playable link, trying the next one")
                 continue
             }
@@ -135,14 +145,18 @@ internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(errorMess
                 PlayerRuntimeController.TAG,
                 "Source failed to start, falling back to ${playable.name ?: playable.addonName} from ${playable.addonName}"
             )
-            switchToSourceStream(playable)
+            sourceFallbackPendingStream = next
+            sourceFallbackJob = null
+            switchToSourceStream(playable, resumePosition, fromFailureFallback = true)
             autoSelectedSourceUrl = currentStreamUrl
             sourceFallbackTriedKeys += "url:$currentStreamUrl"
             return@launch
         }
 
         // The last source that failed may have been saved for reuse.
-        streamCacheKey?.let { streamLinkCacheDataStore.remove(it) }
+        if (!stillOwnsPlayback()) return@launch
+        streamCacheKey?.let { streamLinkCacheDataStore.remove(it, profileId) }
+        sourceFallbackJob = null
         _uiState.update {
             it.copy(
                 error = errorMessage,
@@ -165,26 +179,37 @@ internal fun nextSourceFallbackCandidate(
     installedAddonNames: Set<String>,
     triedKeys: Set<String>,
     failedAddonName: String?,
-    failedInfoHash: String?
+    failedInfoHash: String?,
+    failedKey: String? = null
 ): Stream? {
-    val untried = streams.filterNot { stream ->
-        stream.sourceFallbackKey() in triedKeys ||
+    val exactAnchor = streams.indexOfFirst { stream ->
+        (failedKey != null && stream.sourceFallbackKey() == failedKey) ||
             (failedInfoHash != null && stream.addonName == failedAddonName &&
                 stream.getEffectiveInfoHash().equals(failedInfoHash, ignoreCase = true))
     }
-    return StreamAutoPlaySelector.selectAutoPlayStream(
-        streams = untried,
-        mode = settings.streamAutoPlayMode,
-        regexPattern = settings.streamAutoPlayRegex,
-        source = settings.streamAutoPlaySource,
-        installedAddonNames = installedAddonNames,
-        selectedAddons = settings.streamAutoPlaySelectedAddons,
-        selectedPlugins = settings.streamAutoPlaySelectedPlugins
-    )
+    val anchor = if (exactAnchor >= 0) exactAnchor else streams.indexOfLast {
+        it.addonName == failedAddonName && it.sourceFallbackKey() in triedKeys
+    }
+    val failed = streams.getOrNull(anchor) ?: streams.firstOrNull { it.addonName == failedAddonName }
+    fun addonTier(stream: Stream) = stream.iptvPlaylistId != null || stream.serverTarget != null ||
+        stream.addonName in installedAddonNames || stream.isDirectDebrid()
+    val isAddonTier = failed?.let(::addonTier) ?: (failedAddonName in installedAddonNames)
+    val immediateTier = settings.streamAutoPlayImmediateEnabled &&
+        failedAddonName in settings.streamAutoPlayImmediateAddons && failedAddonName in installedAddonNames
+    return streams.drop(anchor + 1).firstOrNull { stream ->
+        val sameTier = if (immediateTier) stream.addonName in settings.streamAutoPlayImmediateAddons &&
+            stream.addonName in installedAddonNames else addonTier(stream) == isAddonTier
+        sameTier && StreamAutoPlaySelector.isPlayable(stream) && stream.sourceFallbackKey() !in triedKeys &&
+            !(failedInfoHash != null && stream.addonName == failedAddonName &&
+                stream.getEffectiveInfoHash().equals(failedInfoHash, ignoreCase = true))
+    }
 }
 
 /** Identifies a source across fresh, prepared and resolved copies of the same stream. */
 internal fun Stream.sourceFallbackKey(): String =
-    getEffectiveInfoHash()?.lowercase()?.let { hash -> "torrent:$addonName:$hash:${getEffectiveFileIdx() ?: -1}" }
+    usenet?.identity?.let { "usenet:$addonName:$it" }
+        ?: serverTarget?.let { "server:$it" }
+        ?: ytId?.let { "youtube:$addonName:$it" }
+        ?: getEffectiveInfoHash()?.lowercase()?.let { hash -> "torrent:$addonName:$hash:${getEffectiveFileIdx() ?: -1}" }
         ?: getStreamUrl()?.let { url -> "url:$url" }
         ?: "meta:$addonName:${name.orEmpty()}:${description.orEmpty()}"

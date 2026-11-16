@@ -1025,4 +1025,12 @@ Klaida: Bandomoji simuliuojama klaida — tai nėra tikras gedimas. Šaltinis gr
     <string name="episodes_remove_partial_watch">Pašalinti dalinės peržiūros eigą</string>
     <string name="episodes_partial_watch_removed">Dalinės peržiūros eiga pašalinta</string>
     <string name="episodes_partial_watch_failed">Nepavyko baigti šalinti dalinės peržiūros eigos</string>
+    <string name="stream_test_btn_measuring_parallel1">Matuojamas lygiagretusis ryšys (1 jungtis)...</string>
+    <string name="stream_test_btn_measuring_parallel4">Matuojamas lygiagretusis ryšys (4 jungtys)...</string>
+    <string name="stream_test_btn_measuring_parallel8">Matuojamas lygiagretusis ryšys (8 jungtys)...</string>
+    <string name="stream_test_btn_measuring_parallel16">Matuojamas lygiagretusis ryšys (16 jungčių)...</string>
+    <string name="stream_test_label_parallel1">Lygiagretusis ryšys (1 jungtis)</string>
+    <string name="stream_test_label_parallel4">Lygiagretusis ryšys (4 jungtys)</string>
+    <string name="stream_test_label_parallel8">Lygiagretusis ryšys (8 jungtys)</string>
+    <string name="stream_test_label_parallel16">Lygiagretusis ryšys (16 jungčių)</string>
 </resources>

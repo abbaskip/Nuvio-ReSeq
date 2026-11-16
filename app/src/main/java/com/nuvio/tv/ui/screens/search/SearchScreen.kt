@@ -63,6 +63,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
+import kotlinx.coroutines.Job
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -676,8 +679,8 @@ fun SearchScreen(
                     },
                     onVoiceFocusChanged = { focused -> if (focused) lastInputWasVoice = true },
                     onQueryChanged = handleQueryChanged,
-                    onSubmit = {
-                        submitCurrentQuery(uiState.query.trim())
+                    onSubmit = { editedQuery ->
+                        submitCurrentQuery(editedQuery.trim())
                     },
                     showVoiceSearch = isVoiceSearchAvailable,
                     isVoiceListening = isVoiceListening,
@@ -1213,7 +1216,7 @@ private fun SearchInputField(
     onSearchFieldFocusChanged: (Boolean) -> Unit,
     onVoiceFocusChanged: (Boolean) -> Unit,
     onQueryChanged: (String) -> Unit,
-    onSubmit: () -> Unit,
+    onSubmit: (String) -> Unit,
     showVoiceSearch: Boolean,
     isVoiceListening: Boolean,
     voiceRmsLevel: Float,
@@ -1229,6 +1232,34 @@ private fun SearchInputField(
     var isDiscoverButtonFocused by remember { mutableStateOf(false) }
     var isVoiceButtonFocused by remember { mutableStateOf(false) }
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    var editValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(query, TextRange(query.length)))
+    }
+    val editScope = rememberCoroutineScope()
+    var pendingEdit by remember { mutableStateOf<Job?>(null) }
+    val latestQuery by rememberUpdatedState(query)
+    val latestOnQueryChanged by rememberUpdatedState(onQueryChanged)
+    LaunchedEffect(query) {
+        if (pendingEdit?.isActive != true && editValue.text != query) {
+            editValue = TextFieldValue(query, TextRange(query.length))
+        }
+    }
+    DisposableEffect(Unit) { onDispose { pendingEdit?.cancel() } }
+    val editQuery: (TextFieldValue) -> Unit = { next ->
+        val changed = editValue.text != next.text
+        editValue = next
+        if (changed) {
+            pendingEdit?.cancel()
+            // Commit the final IME edit for this frame. Focus-regain empty/value
+            // restoration coalesces here; a real clear or backspace still commits.
+            pendingEdit = editScope.launch {
+                withFrameNanos { }
+                if (editValue.text != latestQuery) latestOnQueryChanged(editValue.text)
+                pendingEdit = null
+            }
+        }
+    }
+
 
     Row(
         modifier = modifier
@@ -1364,8 +1395,8 @@ private fun SearchInputField(
         }
 
         OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChanged,
+            value = editValue,
+            onValueChange = editQuery,
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(searchFocusRequester)
@@ -1380,7 +1411,7 @@ private fun SearchInputField(
                         KeyEvent.KEYCODE_ENTER,
                         KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                             if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
-                                onSubmit()
+                                onSubmit(editValue.text)
                             }
                             return@onPreviewKeyEvent true
                         }
@@ -1416,7 +1447,7 @@ private fun SearchInputField(
              ),
             keyboardActions = KeyboardActions(
                 onDone = {
-                    onSubmit()
+                    onSubmit(editValue.text)
                     keyboardController?.hide()
                 }
             ),
@@ -1444,14 +1475,14 @@ private fun SearchInputField(
 
         // Clear button, requested in review. Placed beside the field rather than as a trailing
         // icon so it is reachable with the D-pad, matching the voice button's treatment.
-        if (query.isNotEmpty()) {
+        if (editValue.text.isNotEmpty()) {
             var isClearButtonFocused by remember { mutableStateOf(false) }
             Spacer(modifier = Modifier.width(NuvioTheme.spacing.md))
             IconButton(
                 onClick = {
                     // Clearing drops this button from the row, so hand focus back first.
                     runCatching { searchFocusRequester.requestFocus() }
-                    onQueryChanged("")
+                    editQuery(TextFieldValue(""))
                 },
                 modifier = Modifier
                     .onFocusChanged { isClearButtonFocused = it.isFocused }

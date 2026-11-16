@@ -50,6 +50,8 @@ import com.nuvio.tv.ui.theme.NuvioTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import java.net.URL
 import javax.inject.Inject
 
@@ -90,6 +92,8 @@ class StabilityJourneyActivity : ComponentActivity() {
     private var route by mutableStateOf("waiting")
     private var trailerView: PlayerView? = null
     private var fakeSession: PlayerSessionTracker.Session? = null
+    private val frames = ArrayList<Long>()
+    private var recordFrames = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,6 +113,7 @@ class StabilityJourneyActivity : ComponentActivity() {
                     when (route) {
                         "home", "trailer" -> HomeScreen(home, { _, _, _ -> })
                         "sports", "cricket" -> SportsScreen({})
+                        "guide" -> com.nuvio.tv.livetv.ui.LiveTvGuideScreen({}, {})
                         "preview" -> AndroidView(factory = { PlayerView(it).apply {
                             useController = false; player = playback.attach().apply { volume = 0f }
                         } })
@@ -126,10 +131,29 @@ class StabilityJourneyActivity : ComponentActivity() {
                     } })
                     com.nuvio.tv.livetv.ui.LiveTvRootPlaybackEffects(playback, route)
                     SportsHost(nav)
+                    com.nuvio.tv.livetv.ui.LiveTvLoadingHost(nav)
                 }
             }
         }
         lifecycleScope.launch { while (isActive) { sample(); delay(30_000) } }
+        window.addOnFrameMetricsAvailableListener({ _, metric, _ ->
+            if (recordFrames && frames.size < 10_000) frames.add(metric.getMetric(android.view.FrameMetrics.TOTAL_DURATION))
+        }, android.os.Handler(mainLooper))
+        lifecycleScope.launch {
+            var previous = emptySet<String>()
+            com.nuvio.tv.livetv.model.LiveTvLoadReport.lines.collect { lines ->
+                lines.filterNot { it in previous }.forEach { Diag.event("load-report", mapOf("line" to it)) }
+                previous = lines.toSet()
+            }
+        }
+        lifecycleScope.launch {
+            combine(sports.events, sports.matches, sports.loading, sports.matching) { events, matches, loading, matching ->
+                val current = events.filter { it.state == GameState.LIVE }.mapTo(HashSet()) { it.id }
+                mapOf("events" to events.size, "matches" to matches.size,
+                    "liveMatches" to matches.keys.count { it in current }, "loading" to loading,
+                    "matching" to matching)
+            }.collect { Diag.event("sports-progress", it) }
+        }
         command(intent)
     }
 
@@ -140,6 +164,20 @@ class StabilityJourneyActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 when (action) {
+                    "stage2-setup" -> stage2Setup()
+                    "stage2-load" -> stage2Load(false, intent.getBooleanExtra("withTrailer", false))
+                    "stage2-second" -> stage2Load(true, false)
+                    "frames-reset" -> { frames.clear(); recordFrames = true }
+                    "frames-report" -> {
+                        recordFrames = false
+                        val sorted = frames.sorted()
+                        check(sorted.isNotEmpty())
+                        Diag.event("guide-frames", mapOf("frames" to sorted.size,
+                            "p95Ms" to sorted[sorted.lastIndex * 95 / 100] / 1_000_000.0,
+                            "over16ms" to sorted.count { it > 16_666_667 },
+                            "guideBuilding" to BackgroundWork.guideBuilding.value))
+                    }
+                    "guide-update" -> { live.refreshEpgOnly(); route = "guide" }
                     "office-split" -> officeSplit()
                     "tracker-unwatch-seed" -> seedTrackerUnwatch()
                     "tracker-unwatch-latest" -> removeTrackerEpisode()
@@ -275,6 +313,35 @@ class StabilityJourneyActivity : ComponentActivity() {
                 Diag.event("journey-failed", mapOf("journey" to action, "error" to error.stackTraceToString().take(3000)))
             }
         }
+    }
+
+    private suspend fun stage2Setup() {
+        profiles.activeProfileReady.first { it }
+        addonPrefs.removeAddon("https://v3-cinemeta.strem.io")
+        addonPrefs.removeAddon("https://opensubtitles-v3.strem.io")
+        prefs.editSportsMine { SportsFollows(leagues = setOf("cricket/19430"), setUp = true).toJson() }
+        sports.updateSettings { it.copy(onlyOnMyChannels = true) }
+    }
+
+    private suspend fun stage2Load(second: Boolean, withTrailer: Boolean) {
+        stage2Setup()
+        if (!withTrailer) trailerView?.player?.stop()
+        home.setHomeContentActive(withTrailer)
+        route = if (withTrailer) "trailer" else "waiting"
+        val id = if (second) "stage2-two" else "stage2-one"
+        val source = PlaylistSource(id, "Stage 2 fixture", "$HTTP/get.php",
+            xtreamServer = HTTP, xtreamUsername = if (second) "fixture2" else "fixture",
+            xtreamPassword = "fixture", importVod = true)
+        Diag.event("stage2-start", mapOf("second" to second, "trailer" to withTrailer))
+        prefs.updatePlaylists { prior -> if (second) prior.filterNot { it.id == id } + source else listOf(source) }
+        live.refreshAll()
+        val expected = if (second) 100_002 else 50_001
+        withTimeout(10 * 60_000) { live.channels.first { it.size >= expected } }
+        Diag.event("stage2-channels", mapOf("channels" to live.channels.value.size,
+            "trailerActive" to PlayerSessionTracker.hasOpenTrailer, "second" to second))
+        withContext(Dispatchers.IO) { vod.refresh(force = true, onlyId = id) }
+        Diag.event("stage2-imported", mapOf("second" to second,
+            "trailerActive" to PlayerSessionTracker.hasOpenTrailer))
     }
 
     private suspend fun seed() {
@@ -487,6 +554,7 @@ class StabilityJourneyActivity : ComponentActivity() {
             "maxMemory" to rt.maxMemory(),
             "memoryClass" to getSystemService(android.app.ActivityManager::class.java).memoryClass,
             "largeMemoryClass" to getSystemService(android.app.ActivityManager::class.java).largeMemoryClass,
+            "trailerPlaying" to (trailerView?.player?.isPlaying == true),
             "liveTvAttached" to (playback.player != null), "liveTvPlaying" to (playback.player?.isPlaying == true), "threadCount" to stacks.size,
             "dispatcherBlocked" to stacks.count { (thread, stack) -> thread.name.startsWith("DefaultDispatcher-worker") &&
                 stack.any { it.className.contains("usenet", true) || it.className.contains("CompletableFuture") || it.methodName.contains("socketRead", true) } },

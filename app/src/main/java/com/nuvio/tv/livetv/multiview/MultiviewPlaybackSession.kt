@@ -110,6 +110,7 @@ class MultiviewPlaybackSession(
         },
         onChanged = ::publishState,
         mayPlayChannel = mayPlayChannel,
+        playbackClaim = com.nuvio.tv.livetv.data.BackgroundWork.liveChannelSignal::multiview,
         onSetupFailed = ::reportSetupFailure,
         maxPanes = maxPanes,
         startFailure = startFailure,
@@ -387,14 +388,7 @@ private class AndroidMultiviewPanePlayer(
         .setEnableDecoderFallback(true)
 
     val player: ExoPlayer = ExoPlayer.Builder(context, renderers)
-        .setLoadControl(
-            DefaultLoadControl.Builder()
-                .setBufferDurationsMs(1_500, 10_000, 500, 1_000)
-                .setBackBuffer(0, false)
-                .setTargetBufferBytes(bufferBytes)
-                .setPrioritizeTimeOverSizeThresholds(false)
-                .build(),
-        )
+        .setLoadControl(multiviewLoadControl(bufferBytes))
         .setAudioAttributes(
             AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
                 .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
@@ -489,6 +483,9 @@ private class AndroidMultiviewPanePlayer(
     override fun setAudible(audible: Boolean) {
         if (released) return
         val enableAudio = audible && error == null
+        val volume = if (enableAudio) 1f else 0f
+        if ((C.TRACK_TYPE_AUDIO !in player.trackSelectionParameters.disabledTrackTypes) == enableAudio &&
+            player.volume == volume) return
         // Volume first silences an old PCM sink before track reselection releases its decoder.
         player.volume = 0f
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
@@ -574,6 +571,15 @@ private class AndroidMultiviewAudioFocus(context: Context) : MultiviewAudioFocus
         focusRequest = null
     }
 }
+
+/** A full byte budget can contain video for which the matching audio hasn't arrived yet. */
+@OptIn(UnstableApi::class)
+internal fun multiviewLoadControl(bufferBytes: Int): DefaultLoadControl = DefaultLoadControl.Builder()
+    .setBufferDurationsMs(1_500, 10_000, 500, 1_000)
+    .setBackBuffer(0, false)
+    .setTargetBufferBytes(bufferBytes)
+    .setPrioritizeTimeOverSizeThresholds(true)
+    .build()
 
 private const val MAX_RECONNECTS = 6
 private const val RECOVERED_AFTER_MS = 60_000L

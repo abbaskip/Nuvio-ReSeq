@@ -21,6 +21,9 @@ import com.nuvio.tv.livetv.model.PlaylistSource
 import com.nuvio.tv.livetv.multiview.*
 import com.nuvio.tv.livetv.player.LiveTvPlaybackController
 import com.nuvio.tv.ui.screens.detail.*
+import com.nuvio.tv.ui.screens.home.homeCard
+import com.nuvio.tv.ui.screens.home.verifyTvdbPlayback
+import com.nuvio.tv.ui.screens.home.ContinueWatchingItem
 import com.nuvio.tv.ui.screens.home.HomeViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -73,12 +76,17 @@ class MultiviewAcceptance @Inject constructor(
     @Composable fun Content() {
         session?.let { current ->
             val state by current.state.collectAsState()
-            Row(Modifier.fillMaxSize()) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val width = maxWidth
+                val height = maxHeight
+                val bounds = multiviewPaneBounds(state.layout)
                 state.panes.forEach { pane ->
+                    val rect = bounds.single { it.id == pane.id }
                     AndroidView(factory = { context ->
                         (android.view.LayoutInflater.from(context).inflate(com.nuvio.tv.R.layout.live_tv_texture_player_view, null) as PlayerView)
                             .apply { useController = false }
-                    }, modifier = Modifier.weight(1f).fillMaxHeight(), update = { it.player = pane.player },
+                    }, modifier = Modifier.offset(width * rect.left, height * rect.top)
+                        .size(width * (rect.right - rect.left), height * (rect.bottom - rect.top)), update = { it.player = pane.player },
                         onRelease = { it.player = null })
                 }
             }
@@ -100,21 +108,24 @@ class MultiviewAcceptance @Inject constructor(
                     "heapMb" to com.nuvio.tv.ui.screens.settings.MemoryBudget.heapMb,
                     "physicalRamMb" to memory.totalMem / (1024 * 1024), "lowRam" to am.isLowRamDevice))
             }
-            "m1-multiview" -> {
+            "m1-multiview", "m1-three" -> {
+                val three = action == "m1-three"
+                val playlist = if (three) "three.m3u" else "list.m3u"
+                val count = if (three) 3 else 2
                 profiles.activeProfileReady.first { it }
                 prefs.updateSettings { it.copy(autoReconnect = false, autoBackupChannel = false) }
-                prefs.updatePlaylists { listOf(PlaylistSource("m1-fixture", "M1 fixtures", "$http/m1/list.m3u")) }
+                prefs.updatePlaylists { listOf(PlaylistSource("m1-fixture", "M1 fixtures", "$http/m1/$playlist")) }
                 live.refreshAll()
-                val channels = withTimeout(30_000) { live.channels.first { it.size == 2 } }
+                val channels = withTimeout(30_000) { live.channels.first { it.size == count } }
                 playback.play(channels.first())
                 val limit = MultiviewDevicePolicy.read(activity)
-                check(limit >= 2) { "Emulator capability limit is $limit" }
+                check(limit >= count) { "Emulator capability limit is $limit" }
                 owner = MultiviewLifecycle(playback::releaseNow, {
                     check(playback.player == null) { "Single player must release first" }
-                    MultiviewPlaybackSession(activity, maxPanes = limit, autoReconnect = { false },
+                    MultiviewPlaybackSession(activity, initialLayout = if (three) MultiviewLayout.THREE else MultiviewLayout.TWO, maxPanes = limit, autoReconnect = { false },
                         startFailure = { c, active -> MultiviewConnectionPolicy.denial(c, active,
                             listOf(PlaylistSource("m1-fixture", "Fixture", "$http/m1/list.m3u")), emptyMap()) })
-                }, BackgroundWork.liveChannelSignal::multiview, MultiviewPlaybackSession::onForeground,
+                }, MultiviewPlaybackSession::onForeground,
                     MultiviewPlaybackSession::onBackground, MultiviewPlaybackSession::release)
                 session = owner!!.session
                 activity.lifecycle.addObserver(LifecycleEventObserver { _, event ->
@@ -134,10 +145,33 @@ class MultiviewAcceptance @Inject constructor(
                 channels.forEachIndexed { i, c -> session!!.assignChannel(i, c) }
                 withTimeout(30_000) { while (session!!.state.value.panes.any { !it.isPlaying || it.player?.videoSize?.width == 0 }) delay(200) }
                 check(BackgroundWork.liveChannelOpen.value)
-                Diag.event("m1-two-panes", mapOf("limit" to limit, "heapMb" to com.nuvio.tv.ui.screens.settings.MemoryBudget.heapMb,
+                Diag.event(if (three) "m1-three-panes" else "m1-two-panes", mapOf("limit" to limit, "heapMb" to com.nuvio.tv.ui.screens.settings.MemoryBudget.heapMb,
                     "playing" to session!!.state.value.panes.count { it.isPlaying },
                     "videoWidths" to session!!.state.value.panes.map { it.player!!.videoSize.width }))
             }
+            "m1-layout-cycle" -> {
+                val current = checkNotNull(session)
+                val players = current.state.value.panes.map { checkNotNull(it.player) }
+                check(players.size == 3)
+                var audioChanges = 0
+                val listener = object : androidx.media3.common.Player.Listener {
+                    override fun onTrackSelectionParametersChanged(parameters: androidx.media3.common.TrackSelectionParameters) {
+                        audioChanges++
+                    }
+                }
+                players.first().addListener(listener)
+                try {
+                    repeat(18) { index ->
+                        current.setLayout(listOf(MultiviewLayout.THREE_WIDE_TOP, MultiviewLayout.THREE_BIG_LEFT, MultiviewLayout.THREE)[index % 3])
+                        delay(350)
+                        check(current.state.value.panes.map { it.player } == players)
+                    }
+                    assertThreeAdvancing()
+                    Diag.event("m1-layout-cycle", mapOf("changes" to 18, "audioReselections" to audioChanges))
+                    check(audioChanges == 0) { "Layout toggled retained audio track selection $audioChanges times" }
+                } finally { players.first().removeListener(listener) }
+            }
+            "m1-three-progress" -> assertThreeAdvancing()
             "m1-background-assert" -> {
                 check(backgroundReleased)
                 check(BackgroundWork.liveChannelOpen.value)
@@ -146,6 +180,7 @@ class MultiviewAcceptance @Inject constructor(
             "m1-stop" -> {
                 session!!.stopAll()
                 check(session!!.state.value.panes.all { it.player == null && it.channelKey == null })
+                check(!BackgroundWork.liveChannelOpen.value) { "Stop must release bulk work before leaving Multiview" }
                 owner!!.close(); session = null
                 check(!BackgroundWork.liveChannelOpen.value)
             }
@@ -201,6 +236,22 @@ class MultiviewAcceptance @Inject constructor(
                 check(repository.snapshot().nextUp.single { it.contentId == show } == partTwo)
                 Diag.event("m1-stale-pause-passed", mapOf("episode" to partTwo.episodeTitle))
             }
+            "m1-cw-launch" -> {
+                val meta = setup("pause")
+                val part = meta.videos.first { it.title.startsWith("The Delivery Part 1") }
+                val context = checkNotNull(part.tvdbPlaybackContext())
+                val expected = checkNotNull(meta.videos.resolvedEpisodeForPlayback(context, part.id))
+                val cached = CachedNextUpItem(show, "series", "The Office", null, null, null, part.id,
+                    part.season!!, part.episode!!, part.title, thumbnail = null, lastWatched = 100,
+                    sortTimestamp = 100, tvdbContext = context, chooseEpisode = false)
+                val launch = CompletableDeferred<ContinueWatchingItem>()
+                home.verifyTvdbPlayback(cached.homeCard(), { launch.complete(it) }, { _, _, _ ->
+                    launch.completeExceptionally(IllegalStateException("CW routed a resolved split part to Details"))
+                })
+                val actual = withTimeout(30_000) { launch.await() } as ContinueWatchingItem.NextUp
+                check(actual.info.videoId == expected.id && actual.info.tvdbContext == expected.tvdbPlaybackContext())
+                Diag.event("m1-cw-launch", mapOf("video" to expected.id, "episode" to part.title))
+            }
             "m1-contract" -> {
                 val meta = setup("contract")
                 val writer = writers.writer(TrackingProviderId.TRAKT)!!
@@ -223,6 +274,19 @@ class MultiviewAcceptance @Inject constructor(
             }
             else -> error("Unknown M1 journey")
         }
+    }
+
+    private suspend fun assertThreeAdvancing() {
+        val panes = checkNotNull(session).state.value.panes
+        check(panes.size == 3)
+        val players = panes.map { checkNotNull(it.player) }
+        val positions = players.map { it.currentPosition }
+        withTimeout(12_000) {
+            while (!players.indices.all { i ->
+                players[i].isPlaying && players[i].videoSize.width > 0 && players[i].currentPosition > positions[i] + 500
+            }) delay(200)
+        }
+        Diag.event("m1-three-progress", mapOf("positions" to players.map { it.currentPosition }))
     }
 
     private suspend fun setup(mode: String): Meta {

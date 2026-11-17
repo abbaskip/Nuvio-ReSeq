@@ -255,8 +255,8 @@ class StabilityJourneyActivity : ComponentActivity() {
                         check(row.continueWatchingItems.count { it.shufflePlayback } == 1)
                         Diag.event("m1-shuffle-passed")
                     }
-                    "m1-device-info", "m1-multiview", "m1-background-assert", "m1-stop", "m1-rewatch-seed", "m1-rewatch-assert",
-                    "m1-stale-pause", "m1-contract" -> {
+                    "m1-three", "m1-three-progress", "m1-layout-cycle", "m1-device-info", "m1-multiview", "m1-background-assert", "m1-stop", "m1-rewatch-seed", "m1-rewatch-assert",
+                    "m1-stale-pause", "m1-cw-launch", "m1-contract" -> {
                         home.setHomeContentActive(false)
                         route = "m1"
                         m1.command(action, this@StabilityJourneyActivity, home)

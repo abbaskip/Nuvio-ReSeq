@@ -81,7 +81,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-import com.nuvio.tv.livetv.data.BackgroundWork
 
 /** Channels-only M1. Pane selections never enter a saved state or navigation argument. */
 @Composable
@@ -111,7 +110,6 @@ fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltView
                 autoReconnect = { viewModel.autoReconnect.value },
                 findBackup = { _, failed, tried -> viewModel.backupFor(failed, tried) },
                 startFailure = viewModel::startFailure) },
-            signal = BackgroundWork.liveChannelSignal::multiview,
             foreground = MultiviewPlaybackSession::onForeground,
             background = MultiviewPlaybackSession::onBackground,
             release = MultiviewPlaybackSession::release,

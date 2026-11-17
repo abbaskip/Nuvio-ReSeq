@@ -109,21 +109,15 @@ class MultiviewReSeqTest {
         assertNull(core.channelAt(1))
     }
 
-    @Test fun `single player releases first and bulk work resumes after background release and pauses before player recreation`() {
+    @Test fun `single player releases before creating the session and close is idempotent`() {
         val events = mutableListOf<String>()
-        val owner = MultiviewLifecycle(releaseSingle = { events += "single-release" }, create = { events += "create"; Unit },
-            signal = { events += "liveChannelOpen:$it" }, foreground = { events += "foreground" },
-            background = { events += "release-all-panes" }, release = { events += "release-session" })
-        assertEquals(listOf("single-release", "create", "liveChannelOpen:true"), events)
+        val owner = MultiviewLifecycle(releaseSingle = { events += "single-release" }, create = { events += "create" },
+            foreground = { events += "foreground" }, background = { events += "background" }, release = { events += "release" })
         owner.onForeground()
         owner.onBackground()
-        assertEquals(listOf("release-all-panes", "liveChannelOpen:false"), events.takeLast(2))
-        owner.onForeground()
-        assertEquals(listOf("liveChannelOpen:true", "foreground"), events.takeLast(2))
         owner.close()
         owner.close()
-        assertEquals(listOf("release-session", "liveChannelOpen:false"), events.takeLast(2))
-        assertEquals(1, events.count { it == "release-session" })
+        assertEquals(listOf("single-release", "create", "foreground", "background", "release"), events)
     }
 
     @Test fun `restored Multiview route has no playback permission`() {

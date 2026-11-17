@@ -30,6 +30,36 @@ class MultiviewSessionCoreTest {
     }
 
     @Test
+    fun `bulk claim covers all players and ends after background release or Stop`() {
+        val h = Harness()
+        h.core.onForeground()
+        assertFalse(h.events.contains("claim:true"))
+        h.openFour()
+        h.events.clear()
+        h.core.onBackground()
+        assertTrue(h.events.indexOf("claim:false") > h.events.indexOf("release:3"))
+        h.events.clear()
+        h.core.onForeground()
+        assertTrue(h.events.indexOf("claim:true") in 0 until h.events.indexOf("create:0"))
+        h.events.clear()
+        h.core.stopAll()
+        assertTrue(h.events.indexOf("claim:false") > h.events.indexOf("release:3"))
+    }
+
+    @Test
+    fun `changing a three-pane layout preserves the selected audio track`() {
+        val h = Harness()
+        h.openFour()
+        h.core.focusPane(1)
+        h.events.clear()
+        for (layout in listOf(MultiviewLayout.THREE, MultiviewLayout.THREE_BIG_LEFT, MultiviewLayout.THREE_WIDE_TOP)) {
+            h.core.setLayout(layout)
+            assertEquals(listOf(1), h.active.filter { it.audibleValue }.map { it.id })
+        }
+        assertFalse(h.events.contains("audible:1:false"))
+    }
+
+    @Test
     fun `replacing or clearing a pane cannot move the selected audio pane`() {
         val h = Harness()
         h.openFour()
@@ -473,6 +503,7 @@ class MultiviewSessionCoreTest {
         totalBufferBytes: Int = 48 * MIB,
     ) {
         val events = mutableListOf<String>()
+        private var bulkPlayback = false
         val focus = FakeFocus(grantFocus)
         val players = mutableListOf<FakePlayer>()
         val failOnPrepare = mutableSetOf<Int>()
@@ -490,6 +521,10 @@ class MultiviewSessionCoreTest {
                 }
             },
             onChanged = {},
+            playbackClaim = { claimed ->
+                if (bulkPlayback != claimed) events += "claim:$claimed"
+                bulkPlayback = claimed
+            },
             mayPlayChannel = { mayPlayChannel(it) },
         )
 

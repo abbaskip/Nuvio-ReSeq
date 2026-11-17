@@ -56,6 +56,7 @@ internal class MultiviewSessionCore(
     /** A pane that couldn't even be set up: the reason goes to the report instead of being lost. */
     private val maxPanes: Int = 4,
     private val startFailure: (LiveChannel, List<LiveChannel>) -> String? = { _, _ -> null },
+    private val playbackClaim: (Boolean) -> Unit = {},
     private val onSetupFailed: (Int, LiveChannel, Exception) -> Unit = { _, _, _ -> },
 ) {
     init { require(initialLayout.paneCount <= maxPanes) }
@@ -84,7 +85,6 @@ internal class MultiviewSessionCore(
 
     fun setLayout(value: MultiviewLayout) {
         if (released || layout == value || value.paneCount > maxPanes) return
-        muteAll()
         if (value.paneCount < layout.paneCount) {
             for (id in value.paneCount until layout.paneCount) {
                 releasePane(id)
@@ -221,6 +221,7 @@ internal class MultiviewSessionCore(
         muteAll()
         for (id in players.indices) releasePane(id)
         abandonFocus()
+        playbackClaim(false)
         onChanged()
     }
 
@@ -239,6 +240,7 @@ internal class MultiviewSessionCore(
             setupErrors[id] = null
         }
         abandonFocus()
+        playbackClaim(false)
         onChanged()
     }
 
@@ -288,6 +290,7 @@ internal class MultiviewSessionCore(
 
     private fun reconcileAudioFocus() {
         val needsFocus = isForeground && (0 until layout.paneCount).any { channels[it] != null }
+        playbackClaim(needsFocus)
         if (!needsFocus) abandonFocus()
         else if (!focusRequested) {
             focusRequested = true
@@ -323,8 +326,6 @@ internal class MultiviewSessionCore(
         runCatching { mayPlayChannel(channel) }.getOrDefault(false)
 
     private fun applyPlaybackAndSound() {
-        // Two passes are deliberate: every old pane is silent before the new one is audible.
-        muteAll()
         // Focus gain can arrive before Compose observes a profile or permission change, while
         // paused players still exist. Recheck those owners as well as newly prepared players.
         var removed = false
@@ -339,8 +340,14 @@ internal class MultiviewSessionCore(
         }
         // Do not request focus from inside its callback. Invalidating the existing request
         // before abandon also makes any synchronous/queued old callback harmless.
-        if (removed && channels.none { it != null }) abandonFocus()
+        if (removed && channels.none { it != null }) {
+            abandonFocus()
+            playbackClaim(false)
+        }
         val playing = isForeground && hasAudioFocus && !released
+        // Resizing a retained pane must not deselect and reselect its audio track.
+        // Silence other owners before enabling a newly focused one.
+        players.forEachIndexed { id, player -> if (!playing || id != focusedPane) player?.setAudible(false) }
         players.forEach { it?.setPlaying(playing) }
         if (playing) players[focusedPane]?.setAudible(true)
     }

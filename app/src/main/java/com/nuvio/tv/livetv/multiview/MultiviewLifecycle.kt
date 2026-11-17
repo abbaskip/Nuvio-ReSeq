@@ -4,7 +4,6 @@ package com.nuvio.tv.livetv.multiview
 internal class MultiviewLifecycle<T>(
     releaseSingle: () -> Unit,
     create: () -> T,
-    private val signal: (Boolean) -> Unit,
     private val foreground: (T) -> Unit,
     private val background: (T) -> Unit,
     private val release: (T) -> Unit,
@@ -14,18 +13,16 @@ internal class MultiviewLifecycle<T>(
     init {
         releaseSingle()
         session = create()
-        signal(true)
     }
-    fun onForeground() { if (!closed) { signal(true); foreground(session) } }
+    fun onForeground() { if (!closed) foreground(session) }
     fun onBackground() {
         if (closed) return
         background(session)
-        signal(false)
     }
     fun close() {
         if (closed) return
         closed = true
-        try { release(session) } finally { signal(false) }
+        release(session)
     }
 }
 

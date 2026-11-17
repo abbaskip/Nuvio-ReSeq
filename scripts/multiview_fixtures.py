@@ -1,6 +1,7 @@
 """M1 emulator fixtures. Extends the existing local tracker; no real service requests."""
 import json
 import os
+from pathlib import Path
 import struct
 import sys
 from urllib.parse import urlsplit, parse_qs
@@ -87,13 +88,45 @@ class Web(OriginalWeb):
             return self.send_json({'mode': mode})
         if path == '/m1/calls':
             return self.send_json({'writes': CALLS, 'plays': list(PLAYS.values()), 'pause': PAUSE})
-        if path == '/m1/list.m3u':
+        if path in ('/m1/list.m3u', '/m1/three.m3u'):
+            long = path == '/m1/three.m3u'
+            prefix = 'long' if long else 'm1'
             body = ('#EXTM3U\n' + ''.join(f'#EXTINF:-1 group-title="Fixtures",Fixture {i}\n'
-                    f'http://127.0.0.1:38791/live/m1/{i}\n' for i in (1, 2))).encode()
+                    f'http://127.0.0.1:38791/live/{prefix}/{i}\n' for i in range(1, 4 if long else 3))).encode()
             self.send_response(200)
             self.send_header('Content-Length', str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+            return
+        if path.startswith('/live/long/'):
+            media = Path(os.environ['M1_SOAK_MEDIA'])
+            size = media.stat().st_size
+            start, end = 0, size - 1
+            requested = self.headers.get('Range', '')
+            if requested.startswith('bytes='):
+                left, right = requested[6:].split('-', 1)
+                start, end = int(left), min(int(right), end) if right else end
+                if not 0 <= start <= end:
+                    return self.send_error(416)
+                self.send_response(206)
+                self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
+            else:
+                self.send_response(200)
+            self.send_header('Content-Type', 'video/mp4')
+            self.send_header('Content-Length', str(end-start+1))
+            self.end_headers()
+            with media.open('rb') as stream:
+                stream.seek(start)
+                remaining = end-start+1
+                try:
+                    while remaining:
+                        chunk = stream.read(min(65536, remaining))
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        remaining -= len(chunk)
+                except (ConnectionResetError, BrokenPipeError):
+                    pass
             return
         if path.startswith('/live/'):
             start, end = 0, len(MULTIVIEW_CLIP)-1

@@ -38,6 +38,7 @@ import dagger.hilt.components.SingletonComponent
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface LoadingEntryPoint {
+    fun sportsRepository(): com.nuvio.tv.livetv.sports.SportsRepository
     fun liveTvRepository(): LiveTvRepository
     fun onDemandRepository(): OnDemandRepository
 }
@@ -57,17 +58,22 @@ fun LiveTvLoadingHost(navController: NavController) {
     val vod by entry.onDemandRepository().status.collectAsState()
     val guideNotice by entry.liveTvRepository().guideUpdateNotice.collectAsState()
     val guideBuilding by com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding.collectAsState()
+    val sportsWork by entry.sportsRepository().visibleWork.collectAsState()
+    val sportsProblem by entry.sportsRepository().problem.collectAsState()
+    val nuvioPlaying by com.nuvio.tv.core.player.PlayerSessionTracker.playbackActive.collectAsState(false)
+    val livePlayback by com.nuvio.tv.core.player.PlayerSessionTracker.livePlayback.collectAsState()
     val route = navController.currentBackStackEntryAsState().value?.destination?.route.orEmpty()
     val liveFullscreen by LiveTvFullscreen.active.collectAsState()
-    val playing = route == Screen.LiveTvPlayer.route || route.startsWith("player/") || liveFullscreen
+    val playing = route == Screen.LiveTvPlayer.route || route.startsWith("player/") || liveFullscreen || nuvioPlaying || livePlayback
     val progress = when {
         live.loading && !live.quiet -> live.message ?: "Updating Live TV…"
         vod.loading -> vod.message ?: "Importing movies and series…"
+        sportsWork != null -> sportsWork
         else -> null
     }
     val waiting = guideNotice?.takeIf { it.waiting }?.message
     val error = guideNotice?.takeUnless { it.waiting }?.message ?: live.error ?:
-        vod.message?.takeIf { !vod.loading }
+        vod.message?.takeIf { !vod.loading } ?: sportsProblem
     val updating = progress != null || guideBuilding
     var wasUpdating by remember { mutableStateOf(false) }
     var sawVisibleUpdate by remember { mutableStateOf(false) }
@@ -97,7 +103,7 @@ fun LiveTvLoadingHost(navController: NavController) {
         }
     }
     val message = waiting ?: progress ?: retainedError ?:
-        if (completed) "Channels and guide up to date" else null
+        if (completed) "Up to date" else null
     // How long it's been working, so a long first load reads as busy rather than stuck.
     val busy = progress != null
     val visible = message != null && !playing

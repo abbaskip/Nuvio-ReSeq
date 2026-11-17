@@ -71,6 +71,46 @@ class OnDemandBatchImportTest {
         assertEquals(250 to 0, db.lastChanges)
     }
 
+    @Test fun `storage full preserves the first playlist and a restart can finish the second without duplicate growth`() {
+        db.replace("test", VodKind.MOVIE, cats) { emit -> repeat(500) { emit(item(it)) }; true }
+        val sql = db.writableDatabase
+        val pages = sql.rawQuery("PRAGMA page_count", null).use { it.moveToFirst(); it.getLong(0) }
+        fun limit(max: Long) {
+            sql.beginTransaction()
+            try {
+                sql.rawQuery("PRAGMA max_page_count=$max", null).use {
+                    it.moveToFirst(); assertEquals(max, it.getLong(0))
+                }
+                sql.setTransactionSuccessful()
+            } finally { sql.endTransaction() }
+        }
+        limit(pages + 40)
+        try {
+            db.replace("second", VodKind.MOVIE, cats) { emit ->
+                repeat(4000) { emit(item(it, "Film $it " + "synopsis ".repeat(30), pl = "second")) }
+                true
+            }
+            fail("The constrained database must report storage full")
+        } catch (_: android.database.sqlite.SQLiteFullException) { }
+        assertTrue(db.count(VodKind.MOVIE) >= 500)
+        limit(1000000)
+        db.close()
+        db = OnDemandDatabase(RuntimeEnvironment.getApplication())
+        fun finish() = db.replace("second", VodKind.MOVIE, cats) { emit ->
+            repeat(4000) { emit(item(it, "Film $it " + "synopsis ".repeat(30), pl = "second")) }
+            true
+        }
+        finish()
+        assertEquals(4500, db.count(VodKind.MOVIE))
+        val size = db.writableDatabase.rawQuery("PRAGMA page_count", null).use { it.moveToFirst(); it.getLong(0) }
+        db.close()
+        db = OnDemandDatabase(RuntimeEnvironment.getApplication())
+        finish()
+        assertEquals(4500, db.count(VodKind.MOVIE))
+        val after = db.writableDatabase.rawQuery("PRAGMA page_count", null).use { it.moveToFirst(); it.getLong(0) }
+        assertTrue("An unchanged retry must not accumulate database pages: $size -> $after", after <= size * 1.1)
+    }
+
     @Test fun `version 9 catalog upgrades without losing titles`() {
         db.close()
         val context = RuntimeEnvironment.getApplication()

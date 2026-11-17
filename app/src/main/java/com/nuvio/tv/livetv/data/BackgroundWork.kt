@@ -19,31 +19,40 @@ object BackgroundWork {
     val playbackUnstable: Boolean get() = livePlaybackUnstable() ||
         System.nanoTime() < seekQuietUntilNanos || com.nuvio.tv.core.player.PlayerSessionTracker.playbackUnstable
 
-    val liveChannelOpen = MutableStateFlow(false)
+    val liveChannelOpen = com.nuvio.tv.core.player.PlayerSessionTracker.livePlayback
 
     @Volatile private var lastNavigationNanos = 0L
+    private val guideNavigation = NavigationPause()
 
     fun onNavigation() { lastNavigationNanos = System.nanoTime() }
+    fun onGuideNavigation() { guideNavigation.onNavigation(); onNavigation() }
+
+    /** Wait outside the guide's write transaction until navigation has been idle for two seconds. */
+    suspend fun awaitGuideNavigationIdle() {
+        guideNavigation.awaitIdle()
+    }
 
     /** Called between small batches on a worker, never from the UI thread. */
     fun yieldToNavigation() {
-        if (System.nanoTime() - lastNavigationNanos in 0..250_000_000L) Thread.sleep(16)
+        if (System.nanoTime() - lastNavigationNanos in 0..250_000_000L) Thread.yield()
     }
 
-    /** Includes trailer buffering and playback as well as full player sessions. */
-    val nuvioPlaying = com.nuvio.tv.core.player.PlayerSessionTracker.playbackActive
+    /** Full player sessions hold bulk work while Home trailers share first loads. */
+    val nuvioPlaying = com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen
 
     val isNuvioPlaying: Boolean
-        get() = com.nuvio.tv.core.player.PlayerSessionTracker.hasPlayback
+        get() = com.nuvio.tv.core.player.PlayerSessionTracker.hasOpenSession
 
-    /** Only for synchronous background workers, outside database transactions. */
-    fun awaitPlaybackIdleBlocking() {
-        if (isNuvioPlaying) kotlinx.coroutines.runBlocking { awaitIdle() }
+    class PlaybackDeferred : RuntimeException("Import paused for playback")
+
+    /** Unwind the synchronous producer at a safe checkpoint; the coroutine waits after releasing it. */
+    fun importCheckpoint() {
+        if (com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback) throw PlaybackDeferred()
     }
 
     /**
      * Two low-priority threads for work nobody is waiting on: automatic playlist and guide
-     * updates, and finding channels for Sports games when the Sports page isn't open. Android
+     * updates. Sports matching owns a separate worker. Android
      * gives the screen and the video first claim on the processor over these, so on a slower box
      * scrolling and playback stay smooth while they run (they just take a little longer).
      */
@@ -78,7 +87,8 @@ object BackgroundWork {
 
     /** Waits while Nuvio's player is open. */
     suspend fun awaitIdle() {
-        if (isNuvioPlaying) nuvioPlaying.first { !it }
+        if (com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback)
+            com.nuvio.tv.core.player.PlayerSessionTracker.bulkPlaybackActive.first { !it }
     }
 
     /**
@@ -100,5 +110,17 @@ object BackgroundWork {
     suspend fun awaitNoHeavy() {
         if (heavyJobs.value == 0) return
         kotlinx.coroutines.withTimeoutOrNull(10 * 60_000L) { heavyJobs.first { it == 0 } }
+    }
+}
+
+internal class NavigationPause(private val nanoTime: () -> Long = System::nanoTime) {
+    @Volatile private var lastNavigation = Long.MIN_VALUE / 2
+    fun onNavigation() { lastNavigation = nanoTime() }
+    suspend fun awaitIdle() {
+        while (true) {
+            val remaining = 2_000_000_000L - (nanoTime() - lastNavigation)
+            if (remaining <= 0) return
+            kotlinx.coroutines.delay((remaining / 1_000_000L).coerceAtLeast(1))
+        }
     }
 }

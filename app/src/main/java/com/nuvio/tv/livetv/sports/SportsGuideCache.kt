@@ -34,6 +34,7 @@ internal object SportsGuideCache {
                 val reader = JsonReader.of(source)
                 var savedKey: String? = null
                 val result = ArrayList<SportsEvent>()
+                var totalHits=0
                 reader.beginObject()
                 while (reader.hasNext()) {
                     checkCancelled()
@@ -46,6 +47,7 @@ internal object SportsGuideCache {
                             reader.beginArray()
                             while (reader.hasNext()) {
                                 checkCancelled()
+                                if(result.size >= SportsMatchLimits.DEFAULT.guideEvents) return null
                                 val fields = JSONObject()
                                 val hits = ArrayList<Pair<String, EpgProgram>>()
                                 val programmes = HashMap<EpgProgram, EpgProgram>()
@@ -57,6 +59,8 @@ internal object SportsGuideCache {
                                         reader.beginArray()
                                         while (reader.hasNext()) {
                                             checkCancelled()
+                                            if(hits.size >= SportsMatchLimits.DEFAULT.perFixture ||
+                                                ++totalHits > SportsMatchLimits.DEFAULT.guideCandidates) return null
                                             val hit = JSONObject(reader.readJsonValue() as Map<*, *>)
                                             val people = hit.getJSONArray("people")
                                             val programme = EpgProgram(

@@ -162,9 +162,10 @@ data class SportsEvent(
 ) {
     // A guide's transmission time does not establish the original match's live status.
     val isReplay: Boolean by lazy {
-        source == EventSource.GUIDE && guideHits.any { (_, p) ->
-            val title = SportsCatalog.norm(p.title)
-            val description = SportsCatalog.norm(p.description.orEmpty()).trim()
+        source == EventSource.GUIDE && guideHits.asSequence().map { (_, p) -> p.title to p.description }
+            .distinct().any { (rawTitle, rawDescription) ->
+            val title = SportsCatalog.norm(rawTitle)
+            val description = SportsCatalog.norm(rawDescription.orEmpty()).trim()
             listOf("replay", "repeat", "rerun", "re run", "re air", "reair", "encore", "classics", "recorded coverage", "highlights", "condensed").any { SportsCatalog.hasWord(title, it) } ||
                 listOf("replay", "repeat", "a repeat of", "a replay of", "recorded coverage").any { description == it || description.startsWith("$it ") }
         }

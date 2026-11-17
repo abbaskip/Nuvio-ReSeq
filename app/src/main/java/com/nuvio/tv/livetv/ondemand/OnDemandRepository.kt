@@ -385,6 +385,8 @@ class OnDemandRepository @Inject constructor(
                 throw cancelled
             } catch (databaseError: android.database.sqlite.SQLiteException) {
                 throw databaseError
+            } catch (deferred: com.nuvio.tv.livetv.data.BackgroundWork.PlaybackDeferred) {
+                throw deferred
             } catch (error: Exception) {
                 problem = error
                 false
@@ -395,7 +397,19 @@ class OnDemandRepository @Inject constructor(
 
     private suspend fun importKind(pl: PlaylistSource, kind: VodKind) {
         val t0 = System.currentTimeMillis()
-        try { if (pl.isStalker) importPortal(pl, kind) else importKindInner(pl, kind) } finally {
+        try {
+            var finished = false
+            while (!finished) {
+                com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()
+                try {
+                    if (pl.isStalker) importPortal(pl, kind) else importKindInner(pl, kind)
+                    finished = true
+                } catch (_: com.nuvio.tv.livetv.data.BackgroundWork.PlaybackDeferred) {
+                    // replace() has closed statements, released its writer lock and retained committed batches.
+                    // Re-reading after playback is safe: unchanged rows are recognised by their fingerprint.
+                }
+            }
+        } finally {
             com.nuvio.tv.livetv.model.LiveTvLoadReport.add(
                 "On Demand \"${pl.name}\": ${if (kind == VodKind.MOVIE) "movies" else "series"} import finished in ${(System.currentTimeMillis() - t0) / 1000} s"
             )
@@ -503,7 +517,7 @@ class OnDemandRepository @Inject constructor(
         onStop: (Throwable) -> Unit,
         onItem: (VodItem) -> Unit
     ) {
-        com.nuvio.tv.livetv.data.BackgroundWork.awaitPlaybackIdleBlocking()
+        com.nuvio.tv.livetv.data.BackgroundWork.importCheckpoint()
         var playbackCheckpoint = 0
         val request = Request.Builder().url(url)
             .header("User-Agent", pl.userAgent.ifBlank { LiveTvRepository.DEFAULT_UA }).build()
@@ -521,7 +535,7 @@ class OnDemandRepository @Inject constructor(
                     onInvalidEntry = { onStop(XtreamCatalogException()) }
                 ) { f ->
                     if (playbackCheckpoint++ % 64 == 0) {
-                        com.nuvio.tv.livetv.data.BackgroundWork.awaitPlaybackIdleBlocking()
+                        com.nuvio.tv.livetv.data.BackgroundWork.importCheckpoint()
                     }
                     val id = f.getValue(if (kind == VodKind.MOVIE) "stream_id" else "series_id")
                     val name = f["name"]?.trim().orEmpty().ifBlank { f["title"].orEmpty() }
@@ -551,6 +565,7 @@ class OnDemandRepository @Inject constructor(
 
     /** Never include provider response text, request URLs or credentials in diagnostics. */
     private fun catalogProblem(e: Throwable): String = when {
+        e is android.database.sqlite.SQLiteFullException -> "Storage is full. Free some storage and try again"
         e is XtreamCatalogException -> "The provider catalog was incomplete or invalid"
         e is java.net.SocketTimeoutException -> "The provider timed out"
         e.message?.matches(Regex("HTTP [0-9]{3}")) == true -> e.message!!

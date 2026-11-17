@@ -42,10 +42,14 @@ class SportsCricketMatchingTest {
                 now - 2 * 3_600_000, true, GameState.LIVE, "$home vs $away", null, null,
                 domesticSide(away, false), domesticSide(home, true)) }
             val db = mockk<EpgDatabase>()
-            every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+            every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+                val rows: List<Pair<String, com.nuvio.tv.livetv.model.EpgProgram>> = run {
                 // Respect the database's candidate search, rather than returning every row.
                 val words = arg<Collection<String>>(3).filter { it.length >= 3 }
                 programmes.filter { (_, p) -> words.any { p.title.contains(it, ignoreCase = true) } }
+
+                }
+                rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
             }
             val result = SportsMatcher(db).match(SportsMatcher.Input(events, channels, emptyMap(), 0,
                 SportsSettings(), now, includeGuide = !currentOnly,
@@ -62,7 +66,10 @@ class SportsCricketMatchingTest {
     private fun match(rows: List<Pair<LiveChannel, EpgProgram>>, currentOnly: Boolean): List<ChannelMatch> {
         val db = mockk<EpgDatabase>()
         val programmes = rows.map { (ch, p) -> ch.key to p }
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } returns programmes
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+            val rows: List<Pair<String,com.nuvio.tv.livetv.model.EpgProgram>> = programmes
+            rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+        }
         return SportsMatcher(db).match(SportsMatcher.Input(listOf(fixture), rows.map { it.first },
             emptyMap(), 0, SportsSettings(), now, includeGuide = !currentOnly,
             currentGuidePrograms = if (currentOnly) programmes else emptyList())).matches[fixture.id].orEmpty()
@@ -104,7 +111,10 @@ class SportsCricketMatchingTest {
         val event = fixture.copy(broadcasts = listOf("Fox Sports 501"))
         val ch = channel("fox", "AU: Fox Sports 501 HD")
         val db = mockk<EpgDatabase>()
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } returns emptyList()
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+            val rows: List<Pair<String,com.nuvio.tv.livetv.model.EpgProgram>> = emptyList()
+            rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+        }
         for (title in listOf("Live Sports News", "Live ODI Cricket")) {
             every { db.range(any(), any(), any(), any(), any()) } returns
                 mapOf(ch.key to listOf(EpgProgram(now, now + 3_600_000, title)))

@@ -33,7 +33,10 @@ class SportsReplayMatcherTest {
     private fun match(channels: List<LiveChannel>, programmes: List<Pair<String, EpgProgram>> = emptyList(),
                       settings: SportsSettings = SportsSettings(), replay: Boolean = true, fixture: SportsEvent = event, assignments: Map<String, EpgAssignment> = emptyMap()): List<ChannelMatch> {
         val db = mockk<EpgDatabase>()
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } returns programmes
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+            val rows: List<Pair<String,com.nuvio.tv.livetv.model.EpgProgram>> = programmes
+            rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+        }
         every { db.range(any(), any(), any(), any(), any()) } returns emptyMap()
         return SportsMatcher(db).match(SportsMatcher.Input(listOf(fixture), channels, emptyMap(), 0, settings, now, replay, guideAssignments = assignments))
             .matches[fixture.id].orEmpty()

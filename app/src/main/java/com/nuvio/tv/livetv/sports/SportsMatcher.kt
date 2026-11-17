@@ -16,7 +16,8 @@ import com.nuvio.tv.livetv.sports.SportsCatalog.norm
  *  4. channels you picked yourself with Fix Match (and never the ones you said were wrong).
  * Works for any country: UK users get Sky Sports / TNT Sports from their own guide.
  */
-internal class SportsMatcher(private val db: EpgDatabase, private val guideCacheDir: java.io.File? = null) {
+internal class SportsMatcher(private val db: EpgDatabase, private val guideCacheDir: java.io.File? = null,
+    private val incremental: Boolean = false, private val limits: SportsMatchLimits = SportsMatchLimits.DEFAULT) {
 
     class Input(
         val events: List<SportsEvent>,
@@ -37,7 +38,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
 
     class Result(val matches: Map<String, List<ChannelMatch>>, val summary: String)
 
-    private class Found(val key: String, var score: Int, var how: String, var program: EpgProgram?)
+    private class Found(val eventId: String, val key: String, val score: Int, val how: String, val program: EpgProgram?)
+    private data class NameHit(val key: String, val score: Int, val how: String)
 
     /** Disc golf is its own sport: its events keep their matches, and no other event takes its shows. */
     private fun isDiscGolf(ev: SportsEvent): Boolean =
@@ -72,7 +74,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
     )
     @Volatile private var nameData: NameData? = null
 
-    @Synchronized private fun nameData(channels: List<LiveChannel>, checkpoint: () -> Unit): NameData {
+    private fun nameData(channels: List<LiveChannel>, checkpoint: () -> Unit): NameData {
         // The channel list is rebuilt for every search, so it's recognised by its contents.
         var fp = channels.size.toLong()
         for (ch in channels) { checkpoint(); fp = fp * 31 + ch.key.hashCode() * 17L + ch.name.hashCode() }
@@ -104,19 +106,132 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
     fun match(input: Input, checkpoint: () -> Unit = {}): Result =
         matchInternal(input, checkpoint)
 
+    fun matchCurrent(input: Input, checkpoint: () -> Unit = {}): Result = matchCached(input, checkpoint)
+
     /** Publish opened/live games before the rest, keeping the full fixture context for ambiguity checks. */
     fun matchProgressively(input: Input, focusedEventId: String?,
         onPriorityMatches: (Result) -> Unit, checkpoint: () -> Unit = {},
         beforeRemainingGuide: () -> Unit = {}): Result =
-        matchInternal(input, checkpoint, focusedEventId, onPriorityMatches, beforeRemainingGuide)
+        matchCached(input, checkpoint, focusedEventId, onPriorityMatches, beforeRemainingGuide)
+
+    private data class SavedMatch(val key: List<Any?>, val matches: List<ChannelMatch>, val nextAt: Long)
+    private class MatchMemo(val common: List<Any?>, val observedAt: Long) {
+        val fixtures = HashMap<String, SavedMatch>()
+        var slots: Map<String, List<List<Any?>>> = emptyMap()
+    }
+    private val matchMemos = java.util.concurrent.ConcurrentHashMap<Pair<Boolean, Boolean>, MatchMemo>()
+
+    private fun matchingInputs(e: SportsEvent): List<Any?> = listOf(e.id, e.leagueId, e.title,
+        e.startMs, e.endMs, e.hasTime, e.state, e.home?.team, e.away?.team,
+        e.broadcasts, e.broadcastCoverage, e.source, e.guideHits)
+
+    private fun matchingStart(e: SportsEvent, now: Long, replay: Boolean = false): Long? {
+        if (e.isPausedOngoingCricket(now)) return now
+        if (!replay && e.state == GameState.LIVE && e.startMs < now && (e.endMs == null || e.endMs > now) &&
+            longSessionSport(SportsCatalog.league(e.leagueId)?.sport)) return now
+        if (e.hasTime) return e.startMs
+        val end = e.endMs ?: return null
+        if (end + 24 * HOUR < now) return null
+        return maxOf(e.startMs, now)
+    }
+
+    private fun matchCached(input: Input, checkpoint: () -> Unit, focused: String? = null,
+        priority: ((Result) -> Unit)? = null, beforeRemaining: (() -> Unit)? = null): Result {
+        val mode = input.includeGuide to input.events.all { it.source == EventSource.GUIDE }
+        if (input.events.isEmpty()) matchMemos.keys.removeAll { it.first == input.includeGuide }
+        // Targeted current-airing and replay requests use their supplied programme observations.
+        if (!incremental || input.replay)
+            return matchInternal(input, checkpoint, focused, priority, beforeRemaining)
+        val s = input.settings
+        val common = listOf(input.channels, input.quality, input.shiftMs, s.bestChannelFirst,
+            s.preferredGroups, SportsCatalog.regionOf(s), java.util.Locale.getDefault().toLanguageTag(),
+            if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) db.contentRevision() else null,
+            input.currentGuidePrograms)
+        val previous = matchMemos[mode]
+        val saved = previous?.takeIf { it.common == common && input.now >= it.observedAt }
+        val memo = MatchMemo(common, input.now)
+        saved?.let { memo.fixtures.putAll(it.fixtures) }
+        fun eligible(e: SportsEvent): Boolean {
+            val start = matchingStart(e, input.now) ?: return false
+            return (e.state != GameState.OFF || e.isPausedOngoingCricket(input.now)) &&
+                ((e.source == EventSource.GUIDE && e.guideHits.any { (_, p) -> input.now >= p.startMs && input.now < p.stopMs }) ||
+                    start in (input.now - 8 * HOUR)..(input.now + AHEAD_MS))
+        }
+        fun slot(e: SportsEvent): String = if (input.includeGuide && (e.id == focused || e.isPausedOngoingCricket(input.now)))
+            "fixture:${e.id}" else "time:${(matchingStart(e, input.now) ?: e.startMs) / (30 * MINUTE)}"
+        val slots = input.events.groupBy(::slot)
+            .mapValues { (slot, events) ->
+                val inputs = events.map { matchingInputs(it) + eligible(it) }
+                saved?.slots?.get(slot)?.takeIf { it == inputs } ?: inputs
+            }
+        memo.slots = slots
+        val active = input.events.filter(::eligible)
+        val broadcastTeams = active.flatMap { e -> e.broadcasts.map { networkKey(it) to e.sides.map { side -> side.team } } }
+            .groupBy({ it.first }, { it.second }).mapValues { (_, teams) -> teams.distinct() }
+        val untimed = active.filter { !it.hasTime }.map(::matchingInputs)
+        val keys = input.events.associate { e -> e.id to listOf(matchingInputs(e), slot(e), slots[slot(e)],
+            e.broadcasts.map { broadcastTeams[networkKey(it)] }, untimed,
+            s.eventChannels[e.id], s.leagueChannels[e.leagueId],
+            e.sides.map { s.teamChannels[teamChannelKey(e.leagueId, it.team.id)] },
+            e.broadcasts.map { s.networkChannels[networkKey(it)] }, s.blocked.filter { it.startsWith("${e.id}|") }.toSet(),
+            input.now >= e.startMs - AHEAD_MS, input.now > e.startMs + 8 * HOUR,
+            input.now > e.startMs, input.now > e.startMs + 5 * HOUR,
+            e.endMs?.let { input.now >= it }, e.isPausedOngoingCricket(input.now)) }
+        val due = keys.filter { (id, key) ->
+            val entry = memo.fixtures[id]
+            entry == null || entry.key != key || input.now >= entry.nextAt
+        }.keys
+        val result = if (due.isEmpty()) {
+            beforeRemaining?.invoke()
+            Result(emptyMap(), "Sports: reused ${keys.size} unchanged fixtures")
+        } else matchInternal(input, checkpoint, focused, priority, beforeRemaining, due)
+        checkpoint()
+        // Cancellation never commits a partial pass. Keep empty results too.
+        val byId = input.events.associateBy { it.id }
+        val nextMovingBoundary by lazy {
+            val boundary = db.nextSportsBoundary(input.now - input.shiftMs)
+            if (boundary == Long.MAX_VALUE) boundary else boundary + input.shiftMs
+        }
+        for (id in due) {
+            val event = byId.getValue(id)
+            val matches = result.matches[id].orEmpty()
+            val programmeBoundary = matches.flatMap { match -> match.program?.let { listOf(it.startMs, it.stopMs) }.orEmpty() }
+                .filter { it >= input.now }.minOrNull()?.let { if (it == input.now) it + 1 else it } ?: Long.MAX_VALUE
+            val moving = event.isPausedOngoingCricket(input.now) || (!event.hasTime && event.startMs <= input.now) ||
+                (event.state == GameState.LIVE && event.startMs <= input.now &&
+                    longSessionSport(SportsCatalog.league(event.leagueId)?.sport))
+            val nextAt = if (input.includeGuide && moving) minOf(programmeBoundary, nextMovingBoundary) else programmeBoundary
+            memo.fixtures[id] = SavedMatch(keys.getValue(id), matches, nextAt)
+        }
+        memo.fixtures.keys.retainAll(keys.keys)
+        var remaining=limits.totalMatches
+        for(event in input.events.sortedWith(compareBy<SportsEvent> {
+            when { it.id==focused->0; it.state==GameState.LIVE->1; it.startMs<=input.now+24*HOUR->2;
+                it.startMs<=input.now+48*HOUR->3; else->4 }
+        }.thenBy { it.startMs })) {
+            val entry=memo.fixtures[event.id] ?: continue
+            val kept=entry.matches.take(remaining)
+            if(kept.size!=entry.matches.size) memo.fixtures[event.id]=entry.copy(matches=kept,nextAt=input.now)
+            remaining-=kept.size
+        }
+        matchMemos[mode] = memo
+        val matches = memo.fixtures.mapValues { it.value.matches }.filterValues { it.isNotEmpty() }
+        return Result(matches, result.summary)
+    }
 
     private fun matchInternal(input: Input, checkpoint: () -> Unit, focusedEventId: String? = null,
-        onPriorityMatches: ((Result) -> Unit)? = null, beforeRemainingGuide: (() -> Unit)? = null): Result {
+        onPriorityMatches: ((Result) -> Unit)? = null, beforeRemainingGuide: (() -> Unit)? = null,
+        selected: Set<String>? = null): Result {
         checkpoint()
         var operations = 0
         fun boundedCheckpoint() { if (operations++ % 64 == 0) checkpoint() }
         val byKey = input.channels.associateBy { it.key }
         val rank = preferenceRank(input.settings)
+        val qualities=HashMap<String,String?>()
+        fun qualityFor(key:String):String? {
+            if(!qualities.containsKey(key)) qualities[key]=input.quality[key] ?: nameQuality(byKey.getValue(key).name)
+            return qualities[key]
+        }
         val tStart = System.currentTimeMillis()
         val nd0 = nameData(input.channels, ::boundedCheckpoint)
         val names = nd0.names
@@ -124,39 +239,66 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val groups = input.channels.map { it.group }.distinct().associateWith(::norm)
         val discNames = nd0.discNames
         val discIds = input.events.filter { isDiscGolf(it) }.mapTo(HashSet()) { it.id }
-        val found = HashMap<String, HashMap<String, Found>>()
+        val eventById = input.events.associateBy { it.id }
+        fun eventPriority(id: String): Int = when {
+            id == focusedEventId -> 0
+            eventById[id]?.state == GameState.LIVE -> 1
+            eventById[id]?.isPausedOngoingCricket(input.now) == true -> 2
+            (eventById[id]?.startMs ?: Long.MAX_VALUE) <= input.now + 24 * HOUR -> 3
+            (eventById[id]?.startMs ?: Long.MAX_VALUE) <= input.now + 48 * HOUR -> 4
+            else -> 5
+        }
+        val picks=HashMap<String,Map<String,Int>>()
+        if(input.settings.eventChannels.isNotEmpty() || input.settings.teamChannels.isNotEmpty() || input.settings.leagueChannels.isNotEmpty()) {
+            for(e in input.events) {
+                val channels=HashMap<String,Int>()
+                input.settings.leagueChannels[e.leagueId]?.let { channels[it]=140 }
+                if(input.settings.teamChannels.isNotEmpty()) for(side in e.sides)
+                    input.settings.teamChannels[teamChannelKey(e.leagueId,side.team.id)]?.let { channels[it]=150 }
+                input.settings.eventChannels[e.id]?.substringBeforeLast('|')?.let { channels[it]=200 }
+                if(channels.isNotEmpty()) picks[e.id]=channels
+            }
+        }
+        fun finalScore(f:Found)=maxOf(f.score,picks[f.eventId]?.get(f.key) ?: 0)
+        val best = Comparator<Found> { a,b -> compareMatchFields(byKey.getValue(a.key),finalScore(a),
+            qualityFor(a.key),byKey.getValue(b.key),finalScore(b),
+            qualityFor(b.key),input.settings.bestChannelFirst,rank) }
+        val found = HashMap<String,RankedCandidates<String,Found>>()
+        val global = RankedCandidates<Pair<String,String>,Found>(limits.totalMatches,
+            Comparator { a,b -> eventPriority(a.eventId).compareTo(eventPriority(b.eventId)).takeIf { it != 0 }
+                ?: best.compare(a,b) }) { (event,key),_ -> found[event]?.remove(key,notify=false) }
+        val guideLabels = com.nuvio.tv.livetv.data.boundedCache<String, String>(8192)
+        fun guideLabel(p: EpgProgram) = guideLabels.getOrPut(p.title) { "Guide: ${p.title}" }
         fun add(eventId: String, key: String, score: Int, how: String, program: EpgProgram?) {
-            if (key !in byKey || score <= 0) return
-            val m = found.getOrPut(eventId) { HashMap() }
+            if (key !in byKey || score <= 0 || "$eventId|$key" in input.settings.blocked) return
+            val m = found.getOrPut(eventId) { RankedCandidates(limits.perFixture,best) { k,_ ->
+                global.remove(eventId to k,notify=false)
+            } }
             val cur = m[key]
-            if (cur == null || score > cur.score) m[key] = Found(key, score, how, program ?: cur?.program)
-            else if (cur.program == null && program != null) cur.program = program
+            val next = if (cur == null || score > cur.score)
+                Found(eventId,byKey.getValue(key).key,score,how,program ?: cur?.program)
+            else if (cur.program == null && program != null) Found(eventId,cur.key,cur.score,cur.how,program)
+            else if(score==cur.score && program!=null && cur.program!=null && program.startMs<cur.program.startMs &&
+                eventById[eventId]?.isPausedOngoingCricket(input.now)==true) Found(eventId,cur.key,score,how,program)
+            else return
+            val id=eventId to key
+            if (!m.wouldAccept(key,next) || !global.wouldAccept(id,next)) return
+            m.offer(key,next); global.offer(id,next)
         }
 
         // Events that run for days (a golf tournament, an F1 weekend from practice to the race) have
         // no single start time: while they're on, treat them as starting now.
-        fun multiDay(ev: SportsEvent) = !ev.hasTime && ev.endMs != null
         // Their ids: with no start time of their own, only a show that names the competition ("Formula 1",
         // "Grand Prix"…) counts, not one that merely shares a word or two with the title ("United States").
         val noStart = HashSet<String>()
         val pausedCricket = input.events.filter { it.isPausedOngoingCricket(input.now) }.associateBy { it.id }
         fun nextSessionEnd(ev: SportsEvent) = minOf(pausedCricket.getValue(ev.id).cricketEndMs(), input.now + 36 * HOUR)
         val events = input.events.mapNotNull { ev ->
-            when {
-                ev.id in pausedCricket -> ev.copy(startMs = input.now)
-                // Long live fixtures keep their original kickoff for sorting, but match
-                // the current session (including Test days 2–5 and long snooker matches).
-                !input.replay && ev.state == GameState.LIVE && ev.startMs < input.now &&
-                    (ev.endMs == null || ev.endMs > input.now) &&
-                    longSessionSport(SportsCatalog.league(ev.leagueId)?.sport) ->
-                    ev.copy(startMs = input.now)
-                ev.hasTime -> ev
-                !multiDay(ev) -> null
-                // The feed's end date is the start of the last day (Sunday 00:00): the event runs through that day.
-                ev.endMs!! + 24 * HOUR < input.now -> null
-                ev.startMs >= input.now -> ev
-                else -> ev.copy(startMs = input.now)
-            }?.also { if (!ev.hasTime) noStart.add(ev.id) }
+            val start = matchingStart(ev, input.now, input.replay)
+            start?.let {
+                if (!ev.hasTime) noStart.add(ev.id)
+                if (it == ev.startMs) ev else ev.copy(startMs = it)
+            }
         }
         val wanted = events.filter { ev ->
             (ev.state != GameState.OFF || ev.id in pausedCricket) &&
@@ -174,8 +316,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         var byGuide = 0; var byName = 0; var byNetwork = 0
 
         // Shows found in the guide already know their channels.
-        wanted.filter { it.source == EventSource.GUIDE }.forEach { ev ->
-            ev.guideHits.forEach { (key, p) -> add(ev.id, key, 100, "Guide: ${p.title}", p) }
+        wanted.filter { it.source == EventSource.GUIDE && (selected == null || it.id in selected) }.forEach { ev ->
+            ev.guideHits.forEach { (key, p) -> add(ev.id, key, 100, guideLabel(p), p) }
         }
 
         val teamEvents = wanted.filter { it.source != EventSource.GUIDE }
@@ -220,7 +362,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                             score = f.score,
                             how = f.how,
                             program = f.program,
-                            quality = input.quality[ch.key] ?: nameQuality(ch.name),
+                            quality = qualityFor(ch.key),
                             catchup = ch.catchup != null && CatchupUrlBuilder.isAvailable(ch.catchup, f.program?.startMs ?: ev.startMs, input.now)
                         )
                     }
@@ -238,7 +380,9 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             ev.id == focusedEventId -> 0
             ev.state == GameState.LIVE -> 1
             ev.id in pausedCricket -> 2
-            else -> 3
+            ev.startMs <= input.now + 24 * HOUR -> 3
+            ev.startMs <= input.now + 48 * HOUR -> 4
+            else -> 5
         }
         var remainingStarted = false
         fun beginRemainingGuide() {
@@ -250,28 +394,16 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         if (input.includeGuide || input.currentGuidePrograms.isNotEmpty()) teamEvents.groupBy { ev ->
             if (ev.id in pausedCricket || priority(ev) == 0) ev.id else ev.startMs / (30 * MINUTE)
         }.values.sortedBy { slot -> slot.minOf(::priority) }.forEach { slot ->
+            if (selected != null && slot.none { it.id in selected }) return@forEach
             checkpoint()
-            if (slot.minOf(::priority) == 3) beginRemainingGuide()
+            if (slot.minOf(::priority) >= 3) beginRemainingGuide()
             val slotStart = slot.minOf { it.startMs }
             val slotEnd = slot.maxOf { it.startMs }
             val words = slot.flatMap { ev -> terms[ev.id]?.sqlWords.orEmpty() }.distinct()
             if (words.isEmpty()) return@forEach
             val longLive = slot.any { it.id in pausedCricket || (it.state == GameState.LIVE && longSessionSport(SportsCatalog.league(it.leagueId)?.sport)) }
             val until = slot.filter { it.id in pausedCricket }.maxOfOrNull(::nextSessionEnd)
-            val queried = if (!input.includeGuide) emptyList() else runCatching {
-                db.findByWords(
-                    fromMs = slotStart - (if (longLive) 30 * HOUR else 100 * MINUTE) - input.shiftMs,
-                    toMs = maxOf(slotEnd + 70 * MINUTE, until ?: 0L) - input.shiftMs,
-                    minStopMs = (if (longLive) input.now else slotStart + 10 * MINUTE) - input.shiftMs,
-                    words = words
-                )
-            }.getOrDefault(emptyList())
-            val hits = (queried.map { (key, p) -> key to if (input.shiftMs == 0L) p else
-                p.copy(startMs = p.startMs + input.shiftMs, stopMs = p.stopMs + input.shiftMs) } +
-                input.currentGuidePrograms.filter { (_, p) -> p.startMs <= input.now && p.stopMs > input.now })
-                .distinctBy { (key, p) -> key to p.startMs }
-                .let { if (until != null) it.sortedBy { (_, p) -> p.startMs } else it }
-            if (hits.isEmpty()) return@forEach
+            fun scoreBatch(hits: List<Pair<String,EpgProgram>>) {
             val prepared = hits.mapNotNull { (key, p0) ->
                 boundedCheckpoint()
                 val ch = byKey[key] ?: return@mapNotNull null
@@ -334,9 +466,22 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     if (score <= 0) continue
                     // Pre-game shows often start an hour early on the same channel; much earlier or later is less likely the game.
                     if (!ongoing && (p.startMs < ev.startMs - 80 * MINUTE || p.startMs > ev.startMs + 25 * MINUTE)) score -= 10
-                    add(ev.id, key, score, "Guide: ${p.title}", p)
+                    add(ev.id, key, score, guideLabel(p), p)
                 }
             }
+            }
+            val batch=ArrayList<Pair<String,EpgProgram>>(limits.queryBatch)
+            fun flush() { if(batch.isNotEmpty()) { scoreBatch(batch); batch.clear() } }
+            if(input.includeGuide) db.visitMatchPrograms(
+                slotStart-(if(longLive) 30*HOUR else 100*MINUTE)-input.shiftMs,
+                maxOf(slotEnd+70*MINUTE,until ?: 0L)-input.shiftMs,
+                (if(longLive) input.now else slotStart+10*MINUTE)-input.shiftMs,words,until!=null) { key,p ->
+                batch += key to if(input.shiftMs==0L) p else p.copy(startMs=p.startMs+input.shiftMs,stopMs=p.stopMs+input.shiftMs)
+                if(batch.size>=limits.queryBatch) flush()
+            }
+            flush()
+            for(chunk in input.currentGuidePrograms.filter { (_,p) -> p.startMs<=input.now && p.stopMs>input.now }
+                    .chunked(limits.queryBatch)) scoreBatch(chunk)
             val urgent = slot.filter { priority(it) < 3 }.mapTo(HashSet()) { it.id }
             if (urgent.isNotEmpty()) onPriorityMatches?.invoke(Result(matchesFor(urgent), ""))
         }
@@ -346,11 +491,31 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
 
         // ---- 2. The channel's own name.
         val channelSports = HashMap<String, Sport?>()
-        for (ev in teamEvents) {
+        val participantNames = com.nuvio.tv.livetv.data.boundedCache<List<Any?>, List<NameHit>>(64)
+        for (ev in teamEvents.filter { selected == null || it.id in selected }.sortedBy(::priority)) {
             checkpoint()
             if (!input.replay && ev.state == GameState.POST && ev.startMs < input.now - 5 * HOUR) continue
             val t = terms[ev.id] ?: continue
             val discEvent = ev.id in discIds
+            val overridden = input.settings.blocked.any { it.startsWith("${ev.id}|") } ||
+                ev.id in input.settings.eventChannels || ev.leagueId in input.settings.leagueChannels ||
+                ev.sides.any { teamChannelKey(ev.leagueId,it.team.id) in input.settings.teamChannels }
+            val nameKey = if (ev.id in noStart || overridden) null else t.participantNameKey()?.plus(
+                listOf(SportsCatalog.league(ev.leagueId)?.sport, discEvent))
+            val priorNames = nameKey?.let { participantNames[it] }
+            if (priorNames != null) {
+                priorNames.forEach { hit -> add(ev.id, hit.key, hit.score, hit.how, null); byName++ }
+                continue
+            }
+            val nameHits = RankedCandidates<String,NameHit>(limits.perFixture,Comparator { a,b ->
+                compareMatchFields(byKey.getValue(a.key),a.score,qualityFor(a.key),
+                    byKey.getValue(b.key),b.score,qualityFor(b.key),input.settings.bestChannelFirst,rank)
+            })
+            fun addName(key: String, score: Int, how: String) {
+                add(ev.id, key, score, how, null)
+                if (nameKey != null && (nameHits[key]?.score ?: -1) < score) nameHits.offer(key,NameHit(key,score,how))
+                byName++
+            }
             // Only channels whose name has one of the game's words can match: look at those, not
             // all of them (with tens of thousands of channels, every game against every channel took minutes).
             forNamed(tokenIndex, t.anchorTokens(ev.id in noStart), names) { ch, nn ->
@@ -361,8 +526,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 val channelSport = channelSports[ch.name]
                 if (conflictingSports(SportsCatalog.league(ev.leagueId)?.sport, channelSport) && !t.leagueInName(nn)) return@forNamed
                 if (!discEvent && ch.key in discNames) return@forNamed
-                if (t.inName(nn)) { add(ev.id, ch.key, 95, "Channel name", null); byName++ }
-                else if (t.teamChannel(nn, groups[ch.group].orEmpty())) { add(ev.id, ch.key, 65, "Team channel; specific game unconfirmed", null); byName++ }
+                if (t.inName(nn)) addName(ch.key, 95, "Channel name")
+                else if (t.teamChannel(nn, groups[ch.group].orEmpty())) addName(ch.key, 65, "Team channel; specific game unconfirmed")
                 // A channel named for the event ("Tennis: Swiss Indoors Basel") or for the competition
                 // ("Sky Sports F1") when nothing else of its kind is on.
                 else if (ev.id in noStart) {
@@ -373,6 +538,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     }
                 }
             }
+            if (nameKey != null) participantNames[nameKey] = nameHits.encounterValues
         }
 
         val tNames = System.currentTimeMillis()
@@ -401,7 +567,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 .mapNotNull(byKey::get)
             candidates[n] = (list + aliases).distinctBy { it.key }
         }
-        networkEvents.groupBy { it.startMs / (30 * MINUTE) }.forEach { (_, slot) ->
+        val quickNetworks = HashMap<Pair<String, List<SportsBroadcast>>, List<LiveChannel>>()
+        networkEvents.groupBy { it.startMs / (30 * MINUTE) }.values.sortedBy { it.minOf(::priority) }.forEach { slot ->
             checkpoint()
             val at = slot.minOf { it.startMs } + 20 * MINUTE
             // Your own channel for a network counts even when no channel is named like it (Sky
@@ -409,13 +576,14 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             for (ev in slot) for (b in ev.broadcasts) {
                 input.settings.networkChannels[networkKey(b)]?.let { key -> add(ev.id, key, 75, "Your channel for $b", null) }
             }
-            val keys = slot.flatMap { ev -> ev.broadcasts.flatMap { candidates[networkKey(it)].orEmpty() } }.map { it.key }.distinct()
+            val keys = slot.asSequence().flatMap { it.broadcasts.asSequence() }.map(::networkKey).distinct()
+                .flatMap { candidates[it].orEmpty().asSequence() }.map { it.key }.distinct().toList()
             if (keys.isEmpty()) return@forEach
             val onNow: Map<String, EpgProgram?> = if (!input.includeGuide) emptyMap() else runCatching {
                 db.range(at - input.shiftMs, at - input.shiftMs + 1, light = true, channels = keys)
                     .mapValues { (_, l) -> l.firstOrNull()?.let { p -> p.copy(startMs = p.startMs + input.shiftMs, stopMs = p.stopMs + input.shiftMs) } }
             }.getOrDefault(emptyMap())
-            for (ev in slot) {
+            for (ev in slot.filter { selected == null || it.id in selected }) {
                 val league = SportsCatalog.league(ev.leagueId) ?: continue
                 val sporty = (league.guideWords + SPORT_WORDS).map { norm(it).trim() }
                 for (b in ev.broadcasts) {
@@ -424,6 +592,19 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     // No start time (a race weekend, a tournament): the network's listing says nothing about what's on now.
                     if (ev.id in noStart) continue
                     val national = n in NATIONAL
+                    if (!input.includeGuide) {
+                        val selected = quickNetworks.getOrPut(n to ev.broadcastCoverage) {
+                            val reported = ev.broadcastCoverage.filter { networkKey(it.name) == n }
+                            candidates[n].orEmpty().filter { ch ->
+                                boundedCheckpoint()
+                                reported.isEmpty() || reported.any { BroadcastNames.compatible(it, ch.name) }
+                            }.sortedWith(compareByDescending<LiveChannel> { rank(it) }
+                                .thenByDescending { qualityRank(input.quality[it.key] ?: nameQuality(it.name)) })
+                                .take(if (national) 4 else 6)
+                        }
+                        selected.forEach { ch -> add(ev.id, ch.key, 55, "$b listed broadcaster", null); byNetwork++ }
+                        continue
+                    }
                     candidates[n].orEmpty()
                         .map { ch ->
                             boundedCheckpoint()
@@ -453,10 +634,12 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                         .forEach { (ch, score, p) -> add(ev.id, ch.key, score, "$b listed broadcaster", p); byNetwork++ }
                 }
             }
+            val urgent = slot.filter { priority(it) < 3 }.mapTo(HashSet()) { it.id }
+            if (urgent.isNotEmpty()) onPriorityMatches?.invoke(Result(matchesFor(urgent), ""))
         }
 
         // ---- 4. Your own fixes: this game, then every game of a team.
-        for (ev in byId.values) {
+        for (ev in byId.values.filter { selected == null || it.id in selected }) {
             input.settings.eventChannels[ev.id]?.substringBeforeLast('|')?.let { add(ev.id, it, 200, "Your pick", null) }
             // Your channel for the whole competition (every Formula 1 round, every PGA Tour event).
             input.settings.leagueChannels[ev.leagueId]?.let { add(ev.id, it, 140, "Your channel for ${SportsCatalog.league(ev.leagueId)?.name ?: "this competition"}", null) }
@@ -501,7 +684,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
     }
 
     private data class GuideScanKey(val start: Long, val end: Long, val fingerprint: String?, val revision: String?,
-        val channels: String, val leagues: String, val words: List<String>, val shift: Long)
+        val channels: String, val leagues: String, val words: List<String>, val shift: Long, val selection: String)
     private data class GuideScan(val key: GuideScanKey, val events: List<SportsEvent>)
     private val guideScans = LinkedHashMap<Long, GuideScan>()
     private fun guideState(event: SportsEvent, now: Long): SportsEvent {
@@ -542,32 +725,56 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         return hits
     }
 
+    private data class CurrentMemo(val key: List<Any?>, val at: Long, val nextAt: Long, val snapshot: CurrentSnapshot)
+    @Volatile private var currentMemo: CurrentMemo? = null
+
     fun tvNowSnapshot(leagues: List<League>, followedWords: List<String>, channels: Map<String, LiveChannel>,
         shiftMs: Long, now: Long, fixtures: List<SportsEvent>,
         onFixturePrograms: ((List<Pair<String, EpgProgram>>) -> Unit)? = null,
+        settings: SportsSettings = SportsSettings(), quality: Map<String,String> = emptyMap(),
         checkCancelled: () -> Unit = {}): CurrentSnapshot {
-        val words = fixtures.flatMap { termsFor(it).sqlWords }.filter { it.length >= 3 }.distinct()
-        val candidates = ArrayList<Pair<String, EpgProgram>>()
-        var delivered = 0
-        var lastDelivery = 0L
-        fun publishCandidates() {
-            if (onFixturePrograms == null || delivered == candidates.size) return
-            onFixturePrograms(candidates.subList(delivered, candidates.size).toList())
-            delivered = candidates.size
-            lastDelivery = System.nanoTime()
+        val key = if(incremental) listOf(db.contentRevision(),leagues,followedWords,channels,
+            shiftMs,fixtures.map(::matchingInputs),settings,quality,java.util.Locale.getDefault().toLanguageTag()) else emptyList()
+        if(incremental) currentMemo?.takeIf { it.key==key && now>=it.at && now<it.nextAt }?.let {
+            onFixturePrograms?.invoke(it.snapshot.fixturePrograms)
+            return it.snapshot
         }
-        val airings = guideEvents(now, now + 1, leagues, followedWords, channels, shiftMs, now,
-            currentOnly = true, currentProgramme = { key, p ->
-                val title = if (words.isEmpty()) "" else p.title.lowercase(java.util.Locale.ROOT)
-                val description = if (words.isEmpty()) null else p.description?.lowercase(java.util.Locale.ROOT)
-                if (words.any { title.contains(it) || description?.contains(it) == true }) {
-                    candidates += key to if (shiftMs == 0L) p else
-                        p.copy(startMs = p.startMs + shiftMs, stopMs = p.stopMs + shiftMs)
-                    if (delivered == 0 || System.nanoTime() - lastDelivery >= 1_000_000_000L) publishCandidates()
+        val words = fixtures.flatMap { termsFor(it).sqlWords }.filter { it.length >= 3 }.distinct()
+        val rank = preferenceRank(settings)
+        val retained = RankedCandidates<Pair<String,Long>,ChannelMatch>(limits.queryBatch,Comparator { a,b ->
+            compareMatchFields(a.channel,a.score,a.quality,b.channel,b.score,b.quality,settings.bestChannelFirst,rank)
+        })
+        val batch = ArrayList<Pair<String,EpgProgram>>()
+        var first = true
+        fun flush() {
+            if(batch.isEmpty()) return
+            val hitKeys=batch.mapTo(HashSet()) { it.first }
+            val result=match(Input(fixtures,hitKeys.mapNotNull { channels[it] },quality,shiftMs,settings,now,
+                includeGuide=false,currentGuidePrograms=batch.toList()),checkCancelled)
+            val added=ArrayList<Pair<String,EpgProgram>>()
+            for(match in result.matches.values.flatten()) {
+                val p=match.program ?: continue
+                val candidateKey=match.channel.key to p.startMs
+                val previous=retained[candidateKey]
+                if(previous == null || compareMatchFields(match.channel,match.score,match.quality,
+                        previous.channel,previous.score,previous.quality,settings.bestChannelFirst,rank)<0) {
+                    if(retained.offer(candidateKey,match)) added += match.channel.key to p
                 }
-            }, checkCancelled = checkCancelled)
-        publishCandidates()
-        return CurrentSnapshot(airings, candidates)
+            }
+            batch.clear()
+            if(added.isNotEmpty()) onFixturePrograms?.invoke(added)
+        }
+        val airings = guideEvents(now, now+1,leagues,followedWords,channels,shiftMs,now,
+            currentOnly=true,currentProgramme={ channel,p ->
+                if(words.any { p.title.contains(it,ignoreCase=true) || p.description?.contains(it,ignoreCase=true)==true }) {
+                    batch += channel to if(shiftMs==0L) p else p.copy(startMs=p.startMs+shiftMs,stopMs=p.stopMs+shiftMs)
+                    if(first || batch.size>=limits.queryBatch) { first=false; flush() }
+                }
+            },extraSearchWords=words,selection=settings,quality=quality,checkCancelled=checkCancelled)
+        flush()
+        val snapshot=CurrentSnapshot(airings,retained.encounterValues.map { it.channel.key to it.program!! })
+        if(incremental) currentMemo=CurrentMemo(key,now,db.nextSportsBoundary(now-shiftMs).let { if(it==Long.MAX_VALUE) it else it+shiftMs },snapshot)
+        return snapshot
     }
 
     fun guideEvents(
@@ -581,15 +788,18 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         cachedOnly: Boolean = false,
         currentOnly: Boolean = false,
         currentProgramme: ((String, EpgProgram) -> Unit)? = null,
+        extraSearchWords: List<String> = emptyList(),
+        selection: SportsSettings = SportsSettings(),
+        quality: Map<String, String> = emptyMap(),
         checkCancelled: () -> Unit = {}
     ): List<SportsEvent> {
         val scanKey = if (currentOnly) null else GuideScanKey(dayStart, dayEnd, db.fingerprint(), db.contentRevision(),
             channelDigest(channels),
             SportsGuideCache.digest(leagues.map { listOf(it.id, it.sport.name, it.liveByDefault.toString()) + it.guideWords }.flatten()),
-            followedWords.toList(), shiftMs)
+            followedWords.toList(), shiftMs, selection.toString() + quality.hashCode() + java.util.Locale.getDefault().toLanguageTag())
         if (!currentOnly) guideScans[dayStart]?.takeIf { it.key == scanKey }
             ?.let { return it.events.map { event -> guideState(event, now) } }
-        val diskKey = if (scanKey == null) "" else SportsGuideCache.digest(listOf("3", scanKey.start.toString(), scanKey.end.toString(),
+        val diskKey = if (scanKey == null) "" else SportsGuideCache.digest(listOf("4", scanKey.selection, scanKey.start.toString(), scanKey.end.toString(),
             scanKey.fingerprint.orEmpty(), scanKey.revision.orEmpty(), scanKey.channels, scanKey.leagues,
             scanKey.shift.toString()) + scanKey.words)
         if (scanKey != null) guideCacheDir?.let { dir -> SportsGuideCache.read(dir, dayStart, diskKey, checkCancelled) }?.let { saved ->
@@ -606,7 +816,6 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val fallbackWords = (SportsCatalog.leagues + leagues).distinctBy { it.id }
             .filter { l -> !l.id.startsWith("taxonomy/") }
             .flatMap { l -> l.guideWords.map { norm(it).trim() to l } }
-        val hits = ArrayList<Pair<String, EpgProgram>>()
         val classifiedLeagues = leagues.associateBy { SportsCompetitions.canonicalId(it.id) }
         fun classifiedLeague(node: SportsTaxonomy.Node): League? =
             classifiedLeagues[SportsCompetitions.canonicalId("taxonomy/" + node.id)]
@@ -620,42 +829,61 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             followedLabels.map { it.second }).distinct()
         val otherIndex = otherWords.groupBy { it.substringBefore(' ') }
         val includedText = com.nuvio.tv.livetv.data.boundedCache<Pair<String, String?>, Boolean>(8192)
-        var visited = 0
-        val collectProgramme: (String, EpgProgram) -> Unit = { key, p ->
-            if (++visited % 256 == 0) checkCancelled()
-            if (key in channels) {
-                currentProgramme?.invoke(key, p)
-                // Regional/quality feeds repeat the same programme text; classify it once per scan.
-                val included = includedText.getOrPut(p.title to p.description) {
-                    classify(p)?.let { classifiedLeague(it) != null } == true ||
-                        (otherIndex.isNotEmpty() && norm(p.title + " " + p.description.orEmpty()).let { text ->
-                            text.trim().split(' ').distinct().asSequence()
-                                .flatMap { otherIndex[it].orEmpty().asSequence() }.any { hasWord(text, it) }
-                        })
-                }
-                if (included) hits += key to p
-            }
+        val sharedPrograms = com.nuvio.tv.livetv.data.boundedCache<EpgProgram, EpgProgram>(8192)
+        data class GuideHit(val group: String, val channel: LiveChannel, val programme: EpgProgram)
+        class GuideGroup(val key: String, val first: EpgProgram, val league: League?, val word: String?,
+            val hits: RankedCandidates<String, GuideHit>)
+        val rank = preferenceRank(selection)
+        val qualities=HashMap<String,String?>()
+        fun qualityFor(ch:LiveChannel):String? {
+            if(!qualities.containsKey(ch.key)) qualities[ch.key]=quality[ch.key] ?: nameQuality(ch.name)
+            return qualities[ch.key]
         }
-        if (currentOnly) {
-            val keys = if (currentProgramme == null) channels.keys else {
-                val (sport, other) = channels.values.partition { it.group.contains("sport", ignoreCase = true) ||
-                    it.name.contains("sport", ignoreCase = true) || it.group.contains("cricket", ignoreCase = true) }
-                (sport.asSequence() + other.asSequence()).map { it.key }.toList()
+        fun compareHits(a: GuideHit, b: GuideHit): Int {
+            fun score(h: GuideHit): Int {
+                if(selection.eventChannels.isEmpty() && selection.leagueChannels.isEmpty()) return 100
+                val id = "guide:" + h.group.hashCode().toUInt().toString(16) + ":" + (h.programme.startMs / 60_000)
+                return when { h.channel.key == selection.eventChannels[id]?.substringBeforeLast('|') -> 200
+                    h.channel.key == selection.leagueChannels[h.group.substringBefore('|')] -> 140
+                    else -> 100 }
             }
-            db.visitCurrentPrograms(now - shiftMs, keys, collectProgramme)
-        } else db.visitPrograms(dayStart - shiftMs, dayEnd - shiftMs, collectProgramme)
-        val groups = LinkedHashMap<String, MutableList<Pair<String, EpgProgram>>>()
-        val meta = HashMap<String, Pair<League?, String?>>()
-        val seen = HashSet<String>()
-        val fallbackLeagues = HashMap<Pair<String, String?>, League?>()
-        for ((index, hit) in hits.withIndex()) {
-            if (index % 256 == 0) checkCancelled()
-            val (key, p0) = hit
-            val ch = channels[key] ?: continue
-            if (!seen.add("$key|${p0.startMs}")) continue
-            val p = if (shiftMs == 0L) p0 else p0.copy(startMs = p0.startMs + shiftMs, stopMs = p0.stopMs + shiftMs)
-            val nt = norm(p.title)
-            val nd = norm(p.description.orEmpty())
+            return compareMatchFields(a.channel, score(a), qualityFor(a.channel), b.channel, score(b),
+                qualityFor(b.channel), selection.bestChannelFirst, rank)
+        }
+        val groups = LinkedHashMap<String, GuideGroup>()
+        fun guidePriority(p: EpgProgram)=when { now>=p.startMs && now<p.stopMs->0; p.startMs>now->1; else->2 }
+        val groupOrder=java.util.TreeSet(compareBy<GuideGroup> { guidePriority(it.first) }
+            .thenBy { it.first.startMs }.thenBy { it.key })
+        lateinit var retained: RankedCandidates<Pair<String,String>, GuideHit>
+        retained = RankedCandidates(limits.guideCandidates, Comparator { a,b ->
+            fun priority(p: EpgProgram) = when { now >= p.startMs && now < p.stopMs -> 0; p.startMs > now -> 1; else -> 2 }
+            priority(a.programme).compareTo(priority(b.programme)).takeIf { it != 0 }
+                ?: a.programme.startMs.compareTo(b.programme.startMs).takeIf { it != 0 }
+                ?: compareHits(a,b)
+        }) { key,_ -> groups[key.first]?.hits?.remove(key.second, notify=false) }
+        val seen = com.nuvio.tv.livetv.data.boundedCache<Pair<String,Long>,Boolean>(limits.guideCandidates)
+        val fallbackLeagues = com.nuvio.tv.livetv.data.boundedCache<Pair<String,String?>,League?>(8192)
+        val text = com.nuvio.tv.livetv.data.boundedCache<Pair<String, String?>, Triple<String, String, String>>(8192)
+        // Each channel occurs throughout the day. A small global LRU thrashes on large
+        // playlists; retain its comparison text for this scan, rather than normalising per airing.
+        val scanChannels = HashMap<String, Pair<Boolean, String>>()
+        var visited = 0
+        val collectProgramme: (String,EpgProgram)->Unit = collect@ { key,row ->
+            if (++visited % 256 == 0) checkCancelled()
+            val ch = channels[key] ?: return@collect
+            val p0 = sharedPrograms.getOrPut(row) { row }
+            currentProgramme?.invoke(ch.key,p0)
+            val included = includedText.getOrPut(p0.title to p0.description) {
+                classify(p0)?.let { classifiedLeague(it) != null } == true ||
+                    (otherIndex.isNotEmpty() && norm(p0.title + " " + p0.description.orEmpty()).let { t ->
+                        t.trim().split(' ').distinct().asSequence().flatMap { otherIndex[it].orEmpty().asSequence() }
+                            .any { hasWord(t,it) } })
+            }
+            if (!included || seen.put(ch.key to p0.startMs,true) != null) return@collect
+            val p = if(shiftMs == 0L) p0 else p0.copy(startMs=p0.startMs+shiftMs,stopMs=p0.stopMs+shiftMs)
+            val (nt, nd, clean) = text.getOrPut(p.title to p.description) {
+                Triple(norm(p.title), norm(p.description.orEmpty()), cleanTitle(p.title))
+            }
             val classified = classify(p)
             val league = if (classified != null) classifiedLeague(classified)
                 else if (fallbackLeagues.containsKey(p.title to p.description)) fallbackLeagues[p.title to p.description]
@@ -684,24 +912,48 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 }.also { fallbackLeagues[p.title to p.description] = it }
             // Current TV airings include long replays and unconfirmed sessions. Fixture
             // matching keeps its separate loop/live checks; these are not provider events.
-            if (!currentOnly && fillerOrLoop(ch, p)) continue
+            if (!currentOnly && fillerOrLoop(ch, p,
+                    channelInfo = scanChannels.getOrPut(key) { fillerChannel(ch) })) return@collect
             // Wrestling words turn up in other shows' titles ("RuPaul's Drag Race - Lip Sync
             // Smackdown", "The Goldbergs - WrestleMania"): the title must start with the show's
             // name, or name the promotion (WWE, AEW, TNA).
-            if (league?.sport == Sport.WRESTLING && !wrestlingTitle(cleanTitle(p.title), league)) continue
+            if (league?.sport == Sport.WRESTLING && !wrestlingTitle(cleanTitle(p.title), league)) return@collect
             // These are TV airings, including replays, highlights and unconfirmed coverage.
             // All Events and live-fixture matching apply their separate source/live rules.
             val word = followedLabels.firstOrNull { (_, w) -> hasWord(nt, w) || hasWord(nd, w) }?.first
-            if (league == null && word == null) continue
-            val clean = cleanTitle(p.title)
+            if (league == null && word == null) return@collect
             val g = (league?.id ?: OTHER_ID) + "|" + norm(clean).trim() + "|" + (p.startMs / (15 * MINUTE))
-            groups.getOrPut(g) { ArrayList() } += key to p
-            val prev = meta[g]
-            meta[g] = (prev?.first ?: league) to (prev?.second ?: word)
+            val id = "guide:" + g.hashCode().toUInt().toString(16) + ":" + (p.startMs / 60_000)
+            if (selection.blocked.contains("$id|${ch.key}")) return@collect
+            val group = groups[g] ?: run {
+                val proposed=GuideGroup(g,p,league,word,RankedCandidates(limits.perFixture,Comparator(::compareHits)) { channel,_ ->
+                    retained.remove(g to channel,notify=false)
+                })
+                if(groups.size >= limits.guideEvents) {
+                    val worst=groupOrder.last()
+                    if(groupOrder.comparator().compare(proposed,worst)>=0) return@collect
+                    worst.hits.values.forEach { retained.remove(worst.key to it.channel.key,notify=false) }
+                    groups.remove(worst.key); groupOrder.remove(worst)
+                }
+                groups[g]=proposed; groupOrder.add(proposed); proposed
+            }
+            val hit=GuideHit(g,ch,p)
+            if(group.hits.wouldAccept(ch.key,hit) && retained.wouldAccept(g to ch.key,hit)) {
+                retained.remove(g to ch.key,notify=false)
+                group.hits.offer(ch.key,hit)
+                retained.offer(g to ch.key,hit)
+            }
         }
-        val result = groups.map { (g, list) ->
-            val p = list.first().second
-            val (league, word) = meta[g] ?: (null to null)
+        val searchWords = (SportsTaxonomy.nodes.flatMap { it.aliases.map { a -> a.term } } +
+            leagueWords.map { it.first } + followedWords + extraSearchWords).distinct()
+        db.visitSportsPrograms(
+            if(currentOnly) now-shiftMs-30*HOUR else dayStart-shiftMs,
+            if(currentOnly) now-shiftMs+1 else dayEnd-shiftMs,
+            if(currentOnly) now-shiftMs else Long.MIN_VALUE,searchWords,collectProgramme)
+        val result = groups.filterValues { it.hits.size > 0 }.map { (g, group) ->
+            val p = group.first
+            val league = group.league
+            val word = group.word
             SportsEvent(
                 id = "guide:" + g.hashCode().toUInt().toString(16) + ":" + (p.startMs / 60_000),
                 leagueId = league?.id ?: OTHER_ID,
@@ -717,7 +969,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 status = null,
                 away = null, home = null,
                 source = EventSource.GUIDE,
-                guideHits = list,
+                guideHits = group.hits.encounterValues.map { it.channel.key to it.programme },
                 endMs = p.stopMs,
                 word = word
             )
@@ -742,6 +994,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         val eventWords: List<String>,
         val sqlWords: List<String>
     ) {
+        fun participantNameKey(): List<Any?>? = if (a.isNotEmpty() && b.isNotEmpty())
+            listOf(a, b, abbrA, abbrB, leagueWords) else null
         private fun any(text: String, list: List<String>) = list.any { hasWord(text, it) }
 
         // A location's words scattered across two opponents are not an event identity.
@@ -847,10 +1101,14 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
     private val fillerChannels = com.nuvio.tv.livetv.data.boundedCache<List<String?>, Pair<Boolean, String>>(8192)
     private val fillerTitles = com.nuvio.tv.livetv.data.boundedCache<String, Pair<String, Boolean>>(8192)
 
-    private fun fillerOrLoop(ch: LiveChannel, p: EpgProgram, allowLongSession: Boolean = false): Boolean {
-        val channel = fillerChannels.getOrPut(listOf(ch.key, ch.name, ch.group, ch.groupId, ch.tvgName)) {
+    private fun fillerChannel(ch: LiveChannel): Pair<Boolean, String> =
+        fillerChannels.getOrPut(listOf(ch.key, ch.name, ch.group, ch.groupId, ch.tvgName)) {
             com.nuvio.tv.livetv.data.LiveTvPosterResolver.is247(ch) to nameNorm(ch.name).trim()
         }
+
+    private fun fillerOrLoop(ch: LiveChannel, p: EpgProgram, allowLongSession: Boolean = false,
+        channelInfo: Pair<Boolean, String>? = null): Boolean {
+        val channel = channelInfo ?: fillerChannel(ch)
         if (channel.first) return true
         if (p.stopMs - p.startMs >= 6 * HOUR) {
             // Test cricket, bowls sessions and endurance races can be full-day broadcasts.
@@ -958,7 +1216,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     keep(match.copy(channel = channel, catchup = CatchupUrlBuilder.isAvailable(channel.catchup, programme.startMs, input.now)))
                 }
                 if (best.isNotEmpty()) result[eventId] =
-                    sortMatches(best.values.toList(), input.settings.bestChannelFirst, rank).limitSuggestions()
+                    sortMatches(best.values.toList(), input.settings.bestChannelFirst, rank).limitSuggestions().take(SportsMatchLimits.DEFAULT.perFixture)
             }
             return result
         }
@@ -1162,7 +1420,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             // game isn't what most English speakers want first). Your own groups still come first.
             val myLanguage = java.util.Locale.getDefault().language.lowercase()
             // Sorting compares a channel repeatedly, often across many fixtures in one pass.
-            val ranks = com.nuvio.tv.livetv.data.boundedCache<Pair<String, String>, Int>(4096)
+            val ranks = HashMap<Pair<String, String>, Int>()
             return { ch -> ranks.getOrPut(ch.name to ch.group) {
                 when {
                     groups.isNotEmpty() && ch.group.lowercase().trim() in groups -> 2
@@ -1204,6 +1462,20 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                     .thenByDescending { it.score }
                     .thenBy { it.channel.number }
             )
+        }
+
+        internal fun compareMatchFields(a: LiveChannel, aScore: Int, aQuality: String?, b: LiveChannel,
+            bScore: Int, bQuality: String?, bestFirst: Boolean, rank: (LiveChannel)->Int): Int {
+            fun band(score: Int) = when { score>=150->3; score>=80->2; score>=55->1; else->0 }
+            val picks=(if(band(bScore)==3)1 else 0).compareTo(if(band(aScore)==3)1 else 0)
+            if(picks!=0) return picks
+            val region=rank(b).compareTo(rank(a)); if(region!=0) return region
+            if(bestFirst) {
+                val certainty=band(bScore).compareTo(band(aScore)); if(certainty!=0) return certainty
+                val quality=qualityRank(bQuality).compareTo(qualityRank(aQuality)); if(quality!=0) return quality
+            }
+            val score=bScore.compareTo(aScore); if(score!=0) return score
+            return if(bestFirst) a.name.length.compareTo(b.name.length) else a.number.compareTo(b.number)
         }
     }
 }

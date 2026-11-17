@@ -9,6 +9,26 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class SportsBaseFeedTest {
+    @Test fun `failed scoreboard payload is distinct from a valid empty schedule`() {
+        val league = requireNotNull(SportsCatalog.league("basketball/nba"))
+        assertTrue(runCatching { SportsFeeds.parseScoreboard(league, "{}", strict = true) }.isFailure)
+        assertTrue(SportsFeeds.parseScoreboard(league, "{\"events\":[]}", strict = true).isEmpty())
+    }
+
+    @Test fun `manual retry bypasses backoff after a failed feed`() = runBlocking {
+        MockWebServer().use { server ->
+            val client = SportsBaseFeed(temporary.newFolder(), server.url("/base.json").toString(),
+                clock = { now }, allowLocalhost = true)
+            server.enqueue(MockResponse().setResponseCode(503))
+            assertNull(client.refresh())
+            assertNull(client.refresh())
+            assertEquals(1, server.requestCount)
+            server.enqueue(MockResponse().setBody(body()))
+            assertNotNull(client.refresh(force = true))
+            assertEquals(2, server.requestCount)
+        }
+    }
+
     @get:Rule val temporary = TemporaryFolder()
     private val now = 1_793_318_400_000L
     private fun body(at: Long = now, version: Int = 1, fetched: Long = at) =

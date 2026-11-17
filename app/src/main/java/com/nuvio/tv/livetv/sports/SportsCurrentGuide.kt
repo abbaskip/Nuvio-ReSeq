@@ -2,6 +2,17 @@ package com.nuvio.tv.livetv.sports
 
 /** Reuse TV Now's small current-airing snapshot for live fixtures, including during guide imports. */
 internal object SportsCurrentGuide {
+    /** Quick provider suggestions retain guide results by reference; only guide discovery owns them. */
+    fun mergeBulkMatches(previous: Map<String, List<ChannelMatch>>, fresh: Map<String, List<ChannelMatch>>,
+        events: List<SportsEvent>, input: SportsMatcher.Input, focused: String?, quick: Boolean): Map<String, List<ChannelMatch>> {
+        val guideIds = events.filter { it.source == EventSource.GUIDE }.mapTo(HashSet()) { it.id }
+        val retained = if (quick) events.filter { it.source != EventSource.GUIDE }.mapTo(HashSet()) { it.id } else HashSet()
+        focused?.let(retained::add)
+        val before = if (quick) previous.filterKeys { it !in guideIds } else previous
+        val merged = SportsMatcher.keepGuideMatches(before, fresh, retained, input)
+        return if (quick) previous.filterKeys { it in guideIds } + merged else merged
+    }
+
     data class FixtureKey(val id: String, val leagueId: String, val startMs: Long, val endMs: Long?,
         val title: String, val teams: List<TeamInfo>)
 
@@ -45,8 +56,9 @@ internal object SportsCurrentGuide {
         fresh: Map<String, List<ChannelMatch>>, settings: SportsSettings): Map<String, List<ChannelMatch>> {
         val result = previous.toMutableMap()
         for ((id, old) in owned) {
+            val ownedPrograms = old.mapTo(HashSet()) { it.channel.key to it.program }
             val remaining = result[id].orEmpty().filterNot { match ->
-                match.score <= 100 && old.any { it.channel.key == match.channel.key && it.program == match.program }
+                match.score <= 100 && (match.channel.key to match.program) in ownedPrograms
             }
             if (remaining.isEmpty()) result.remove(id) else result[id] = remaining
         }
@@ -58,7 +70,7 @@ internal object SportsCurrentGuide {
                 byChannel[match.channel.key] = if (old != null && old.score > match.score)
                     old.copy(program = match.program ?: old.program) else match
             }
-            result[id] = SportsMatcher.sortMatches(byChannel.values.toList(), settings.bestChannelFirst, rank)
+            result[id] = SportsMatcher.sortMatches(byChannel.values.toList(), settings.bestChannelFirst, rank).take(SportsMatchLimits.DEFAULT.perFixture)
         }
         return result
     }

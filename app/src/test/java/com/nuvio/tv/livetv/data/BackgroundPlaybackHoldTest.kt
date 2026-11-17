@@ -9,17 +9,17 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 class BackgroundPlaybackHoldTest {
-    @Test fun `trailer holds background work across handoff to full playback`() = runTest {
+    @Test fun `trailer permits first loads while handoff to full playback holds background work`() = runTest {
         val preview = PlayerSessionTracker.openTrailer()
         try {
             assertFalse(PlayerSessionTracker.isSessionOpen.first())
-            assertTrue(BackgroundWork.isNuvioPlaying)
-            assertTrue(BackgroundWork.nuvioPlaying.first())
-            val worker = async(start = CoroutineStart.UNDISPATCHED) { BackgroundWork.awaitIdle() }
+            assertFalse(BackgroundWork.isNuvioPlaying)
+            assertFalse(BackgroundWork.nuvioPlaying.first())
+            BackgroundWork.awaitIdle()
             val movie = PlayerSessionTracker.open()
+            val worker = async(start = CoroutineStart.UNDISPATCHED) { BackgroundWork.awaitIdle() }
             try {
                 preview.close()
                 assertTrue(BackgroundWork.isNuvioPlaying)
@@ -47,20 +47,18 @@ class BackgroundPlaybackHoldTest {
         } finally { previous.close(); next.close() }
     }
 
-    @Test fun `synchronous import checkpoint resumes after playback exits`() {
+    @Test fun `synchronous import checkpoint releases its worker during playback and permits retry after exit`() {
         val executor = Executors.newSingleThreadExecutor()
         val session = PlayerSessionTracker.open()
         try {
             val worker = executor.submit<Boolean> {
-                BackgroundWork.awaitPlaybackIdleBlocking()
-                true
+                try { BackgroundWork.importCheckpoint(); true }
+                catch (_: BackgroundWork.PlaybackDeferred) { false }
             }
-            try {
-                worker.get(100, TimeUnit.MILLISECONDS)
-                fail("Import checkpoint returned during playback")
-            } catch (_: TimeoutException) { /* Still held. */ }
+            assertFalse(worker.get(5, TimeUnit.SECONDS))
+            assertTrue(executor.submit<Boolean> { true }.get(5, TimeUnit.SECONDS))
             session.close()
-            assertTrue(worker.get(5, TimeUnit.SECONDS))
+            assertTrue(executor.submit<Boolean> { BackgroundWork.importCheckpoint(); true }.get(5, TimeUnit.SECONDS))
         } finally { session.close(); executor.shutdownNow() }
     }
 }

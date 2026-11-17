@@ -166,12 +166,14 @@ fun SportsScreen(
     onFindInNuvio: () -> Unit = {},
     viewModel: SportsViewModel = hiltViewModel()
 ) {
-    val events by viewModel.events.collectAsStateWithLifecycle()
-    val known by viewModel.known.collectAsStateWithLifecycle()
+    val rawEvents by viewModel.events.collectAsStateWithLifecycle()
+    val rawKnown by viewModel.known.collectAsStateWithLifecycle()
     val matches by viewModel.matches.collectAsStateWithLifecycle()
     val follows by viewModel.follows.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
+    val events = remember(rawEvents, now) { SportsEventListings.display(rawEvents, now) }
+    val known = remember(rawKnown, now) { SportsEventListings.display(rawKnown, now) }
     val use24h by viewModel.use24h.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
     val matching by viewModel.matching.collectAsStateWithLifecycle()
@@ -603,7 +605,8 @@ private fun SportsHub(
     val active = remember(settings, follows, known) { viewModel.repo.activeLeagues(settings, follows).map { it.id }.toSet() + SportsMatcher.OTHER_ID }
     // "Only games on my channels": once channels have been looked for, games on now or coming up
     // that none of them show are left out (results, your teams' games and names you follow stay).
-    val filterToChannels = settings.onlyOnMyChannels && hasChannels && matches.isNotEmpty()
+    val channelsMatched by viewModel.repo.channelsMatched.collectAsStateWithLifecycle()
+    val filterToChannels = settings.onlyOnMyChannels && hasChannels
     // A league from the top bar: that league's whole week (yesterday to a week ahead), by date.
     val pinnedChip = chip?.takeIf { it.startsWith(CHIP_LEAGUE) }
     val followedSports = remember(follows, settings) { SportsRows.followedSports(follows, SportsCatalog.sportsOrder(settings)) }
@@ -648,11 +651,10 @@ private fun SportsHub(
             }
         }
     }
-    val dayEvents = remember(known, dayStart, dayEnd, active, filterToChannels, matches, follows, now) {
-        SportsEventListings.allEvents(known, dayStart, dayEnd, now).filter { ev ->
-            (ev.leagueId in active || isMine(ev, follows)) &&
-                (!filterToChannels || ev.state == GameState.POST || isMine(ev, follows) || matches[ev.id]?.isNotEmpty() == true)
-        }
+    val dayEvents = remember(known, dayStart, dayEnd, active, filterToChannels, channelsMatched, matches, follows, now) {
+        val fixtures = SportsEventListings.allEvents(known, dayStart, dayEnd, now)
+            .filter { it.leagueId in active || isMine(it, follows) }
+        SportsEventListings.onMyChannels(fixtures, matches, filterToChannels, channelsMatched) { isMine(it, follows) }
     }
     val shown = remember(events, dayEvents, effectiveChip, active, matches, now) {
         if (effectiveChip == CHIP_TV_NOW) SportsCurrentGuide.withFixtures(SportsEventListings.tvNow(events, now),
@@ -705,18 +707,23 @@ private fun SportsHub(
     val status: String? = dayProblem ?: problem
     val statusLine: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {
         // Top corner: a spinner while your channels are being searched for games; gone when done.
-        if (matching || dayLoading || loading) {
+        if (dayLoading) {
             Row(
                 Modifier.align(Alignment.TopEnd).padding(end = 32.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 com.nuvio.tv.livetv.ui.LoadingSpinner()
                 Spacer(Modifier.width(8.dp))
-                LiveText(if (loading) "Loading sports schedule…" else if (dayLoading) "Getting events for this date…" else "Finding channels for today's games…", color = SportsLook.Dim, size = 11.sp, weight = FontWeight.Bold)
+                LiveText("Getting events for this date…", color = SportsLook.Dim, size = 11.sp, weight = FontWeight.Bold)
             }
         }
         status?.let {
-            LiveText(it, color = NuvioTheme.colors.Error, size = 10.sp, modifier = Modifier.align(Alignment.BottomEnd).padding(end = 32.dp, bottom = 8.dp))
+            Row(Modifier.align(Alignment.BottomEnd).padding(end = 32.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                LiveText(it, color = NuvioTheme.colors.Error, size = 10.sp)
+                Spacer(Modifier.width(12.dp))
+                SportsAction("Retry", onClick = { viewModel.repo.refreshNow() })
+            }
         }
     }
     val header: @Composable (Modifier) -> Unit = { hm ->
@@ -875,7 +882,6 @@ private fun SportsHub(
                         LiveText("Sports", size = 26.sp, weight = FontWeight.Black)
                         Spacer(Modifier.width(14.dp))
                         filters(Modifier.weight(1f))
-                        FilterIcon("✎", "Choose Sports", selected = false, withLabel = true) { onPick() }
                     }
                 },
                 columnState = rowsState,

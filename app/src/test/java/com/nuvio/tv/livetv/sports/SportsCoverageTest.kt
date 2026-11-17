@@ -42,7 +42,10 @@ class SportsCoverageTest {
         val program = EpgProgram(now - 30 * 60_000, now + 6 * 3_600_000, "Live: Cricket: Pakistan v Sri Lanka", "1st Test, day 2")
         val channel = channel("505")
         val db = mockk<EpgDatabase>()
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } returns listOf(channel.key to program)
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+            val rows: List<Pair<String,com.nuvio.tv.livetv.model.EpgProgram>> = listOf(channel.key to program)
+            rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+        }
         val matches = SportsMatcher(db).match(SportsMatcher.Input(listOf(event), listOf(channel), emptyMap(), 0,
             SportsSettings(region = "AU"), now)).matches[event.id].orEmpty()
         assertTrue(matches.any { it.channel.key == channel.key && it.sure && it.program == program })
@@ -81,8 +84,8 @@ class SportsCoverageTest {
         val db = mockk<EpgDatabase>()
         every { db.fingerprint() } returns "coverage"
         every { db.contentRevision() } returns "1"
-        every { db.visitPrograms(any(), any(), any()) } answers {
-            titles.forEachIndexed { i, title -> thirdArg<(String, EpgProgram) -> Unit>().invoke("506",
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
+            titles.forEachIndexed { i, title -> lastArg<(String, EpgProgram) -> Unit>().invoke("506",
                 EpgProgram(now - (i + 1) * 60_000, now + 3_600_000, title)) }
         }
         val events = SportsMatcher(db).guideEvents(now - 3_600_000, now + 3_600_000, SportsCatalog.all,
@@ -107,9 +110,9 @@ class SportsCoverageTest {
         every { db.contentRevision() } returns "1"
         val discovered = League("tsdb/99999", Sport.RACING, "New Racing Championship", "NRC",
             kind = LeagueKind.EVENT, guideWords = listOf("New Racing Championship"))
-        every { db.visitPrograms(any(), any(), any()) } answers {
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
             listOf("Live: NASCAR", "Live: New Racing Championship").forEachIndexed { i, title ->
-                thirdArg<(String, EpgProgram) -> Unit>().invoke("506",
+                lastArg<(String, EpgProgram) -> Unit>().invoke("506",
                     EpgProgram(now - (i + 1) * 60_000, now + 3_600_000, title))
             }
         }

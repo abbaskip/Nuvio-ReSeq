@@ -108,6 +108,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 private const val SLOT_MS = 30L * 60L * 1000L
 private const val WINDOW_MS = 2L * 60L * 60L * 1000L
@@ -367,10 +368,11 @@ fun LiveTvGuideScreen(
 
     // "Unassigned channels" (from the Assign EPG panel): only channels with no guide data.
     var epgUnassignedOnly by remember { mutableStateOf(false) }
+    var listedForUnassigned by remember { mutableStateOf<Set<String>?>(null) }
     val channels = when {
         visibilityMode -> visibilityChannels
         savedOrder != null -> savedOrder!!
-        epgUnassignedOnly -> ui.channels.filter { programs[it.key].isNullOrEmpty() }
+        epgUnassignedOnly && listedForUnassigned != null -> ui.channels.filter { it.key !in listedForUnassigned!! }
         else -> ui.channels
     }
     val selectedGroupTitle = ui.groups.firstOrNull { it.id == ui.selectedGroupId }?.title ?: "All channels"
@@ -378,6 +380,16 @@ fun LiveTvGuideScreen(
     // background, so scrolling ahead in it doesn't run out after half a day.
     // Also after a guide update, which keeps only the hours around now in memory.
     val guideGeneration by viewModel.guideGeneration.collectAsStateWithLifecycle()
+    LaunchedEffect(epgUnassignedOnly, guideGeneration, windowStart, epgAutoMatches) {
+        listedForUnassigned = if(epgUnassignedOnly) viewModel.guideChannelsWithListings() else null
+    }
+    LaunchedEffect(channels, guideGeneration, playback.channelKey) {
+        androidx.compose.runtime.snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo.mapNotNull { channels.getOrNull(it.index)?.key }
+        }.distinctUntilChanged().collect { keys ->
+            if(keys.isNotEmpty()) viewModel.loadVisibleGuideChannels(keys)
+        }
+    }
     LaunchedEffect(ui.selectedGroupId, ui.channels.size, guideGeneration) {
         delay(400) // flicking through groups: only the one you stop on
         viewModel.ensureGroupFullRange(ui.channels.map { it.key })
@@ -507,6 +519,7 @@ fun LiveTvGuideScreen(
             val c = listState.firstVisibleItemIndex * pitch + listState.firstVisibleItemScrollOffset
             Triple(busy, g, c)
         }.collect { (busy, g, c) ->
+              com.nuvio.tv.livetv.data.BackgroundWork.onGuideNavigation()
             if (busy) return@collect
             // One nudge per position of the channel list: if a nudge didn't quite land (rounding
             // on some screens), it isn't repeated over and over.
@@ -920,6 +933,7 @@ fun LiveTvGuideScreen(
                     Key.PageUp, Key.PageDown, Key.ChannelUp, Key.ChannelDown -> true
                     else -> false
                 }
+                  if (navigationKey) com.nuvio.tv.livetv.data.BackgroundWork.onGuideNavigation()
                 if (navigationKey && e.type == KeyEventType.KeyDown && navigationRepeatGate.shouldConsume(
                         keyCode = e.nativeKeyEvent.keyCode,
                         repeated = e.nativeKeyEvent.repeatCount > 0,

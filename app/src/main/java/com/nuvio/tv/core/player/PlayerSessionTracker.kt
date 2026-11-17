@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -19,6 +20,12 @@ object PlayerSessionTracker {
     }
 
     private val openSessions = MutableStateFlow(Counts())
+    val livePlayback = MutableStateFlow(false)
+    /** Full players and Live TV hold bulk imports. Home trailers may share first loads. */
+    val bulkPlaybackActive: Flow<Boolean> = combine(openSessions, livePlayback) { sessions, live ->
+        sessions.players > 0 || live
+    }.distinctUntilChanged()
+    val hasBulkPlayback: Boolean get() = hasOpenSession || livePlayback.value
 
     /** Synchronous worker checkpoints must not wait for a UI collector to observe the session. */
     val hasOpenSession: Boolean get() = openSessions.value.players > 0

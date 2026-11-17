@@ -76,8 +76,8 @@ class SportsRepository @Inject constructor(
     private val freeLeagues = LinkedHashMap<String, League>()
     private val broadcastEnrichment = MutableStateFlow<Map<String, List<SportsBroadcast>>>(emptyMap())
     private val freeAttemptAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
-    private val matcher = SportsMatcher(guideDb, File(context.cacheDir, "sports-guide"))
-    private val tvNowMatcher = SportsMatcher(guideDb)
+    private val matcher = SportsMatcher(guideDb, File(context.cacheDir, "sports-guide"), incremental = true)
+    private val tvNowMatcher = SportsMatcher(guideDb, incremental = true)
     private var tvNowMatchIds = emptySet<String>()
     @Volatile private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
     private val sportsCache = SportsDiskCache.directory(context.filesDir, context.cacheDir)
@@ -226,17 +226,31 @@ class SportsRepository @Inject constructor(
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
     private val _matching = MutableStateFlow(false)
+    private val firstMatchingComplete = MutableStateFlow(false)
+    val channelsMatched: StateFlow<Boolean> = firstMatchingComplete.asStateFlow()
     /** Looking through your channels and guide (the first time takes a few seconds). */
     private val readingFirstGuide = MutableStateFlow(false)
-    val matching: StateFlow<Boolean> = combine(_matching, readingFirstGuide) { bulk, current -> bulk || current }
+    val matching: StateFlow<Boolean> = combine(_matching, readingFirstGuide,
+        com.nuvio.tv.livetv.data.BackgroundWork.guideBuilding, firstMatchingComplete) { bulk, current, building, complete ->
+        bulk || current || (building && !complete)
+    }
         .stateIn(scope, SharingStarted.Eagerly, false)
-    private val _problem = MutableStateFlow<String?>(null)
+    private val problems = SportsProblems()
     /** Something went wrong getting scores (shown quietly on the page). */
-    val problem: StateFlow<String?> = _problem.asStateFlow()
+    val problem: StateFlow<String?> = problems.message.stateIn(scope, SharingStarted.Eagerly, null)
     private val _updatedAt = MutableStateFlow(0L)
     val updatedAt: StateFlow<Long> = _updatedAt.asStateFlow()
 
     private val viewers = MutableStateFlow(0)
+    val visibleWork: StateFlow<String?> = combine(viewers, loading, matching, readingFirstGuide) { count, load, match, guide ->
+        when {
+            count == 0 -> null
+            load -> "Loading sports…"
+            guide -> "Finding sports shows in your guide…"
+            match -> "Matching sports channels…"
+            else -> null
+        }
+    }.stateIn(scope, SharingStarted.Eagerly, null)
     private val foreground = MutableStateFlow(true)
     private val kick = MutableStateFlow(0)
     internal val browsingAllowed = sportsBrowsingAllowed(
@@ -278,10 +292,9 @@ class SportsRepository @Inject constructor(
                 withContext(SportsPageSnapshot.dispatcher) {
                     val file = File(dir, "matches.json")
                     if ((page == null || page.items.all { it.matches.isEmpty() }) && file.isFile && file.length() <= SportsPageSnapshot.MAX_BYTES) {
-                        val text = file.readText()
                         scope.launch {
                             val channels = channelStore.displayChannels.first { it.isNotEmpty() }.associateBy { it.key }
-                            restoreMatches(text, channels)
+                            withContext(SportsPageSnapshot.dispatcher) { restoreMatches(file, channels) }
                         }
                     }
                 }
@@ -319,13 +332,13 @@ class SportsRepository @Inject constructor(
                     withContext(SportsPageSnapshot.dispatcher) {
                         if (baseFeed.enabled && appliedBaseAt == 0L) {
                             baseFeed.refresh()?.let { applyBaseFeed(it) }
-                            if (appliedBaseAt == 0L) _problem.value = "Sports schedule unavailable. Try refreshing."
+                            if (appliedBaseAt == 0L) problems.catalogue.value = "Sports schedule unavailable. Try refreshing."
                         }
                     }
                     cacheLoaded.value = true
                 } catch (e: Exception) {
                     currentCoroutineContext().ensureActive()
-                    _problem.value = "Sports schedule unavailable. Try refreshing."
+                    problems.catalogue.value = "Sports schedule unavailable. Try refreshing."
                     Log.w(TAG, "Sports catalogue load failed", e)
                     cacheLoaded.value = true
                 } finally {
@@ -449,6 +462,18 @@ class SportsRepository @Inject constructor(
 
     /** Update now (the page's refresh, a day picked). */
     fun refreshNow() {
+        matchKick.value++
+        if (baseFeed.enabled && channelLookupAllowed.value) scope.launch(SportsPageSnapshot.dispatcher) {
+            _loading.value = true
+            try {
+                val fresh = baseFeed.refresh(force = true)
+                if (fresh == null) problems.catalogue.value = "Sports schedule unavailable. Try refreshing."
+                else applyBaseFeed(fresh)
+            } catch (error: Exception) {
+                currentCoroutineContext().ensureActive()
+                problems.catalogue.value = "Sports schedule unavailable. Try refreshing."
+            } finally { _loading.value = false }
+        }
         forceAll = true
         forceExtras = true
         kick.value++
@@ -556,26 +581,30 @@ class SportsRepository @Inject constructor(
     }
 
     private suspend fun applyBaseFeed(snapshot: SportsBaseFeed.Snapshot) = baseApplyGate.withLock {
-        if (snapshot.generatedAt <= appliedBaseAt) return@withLock
+        if (snapshot.generatedAt <= appliedBaseAt && problems.catalogue.value == null) return@withLock
         applyFreeLeagues(snapshot.metadata.toString())
         val parsed = ArrayList<SportsEvent>()
         val prior = baseData.value
         val today = dayStart(0) until dayStart(1)
         val firstPage = ArrayList<SportsEvent>()
+        var providers = 0
+        var failedProviders = 0
         var nextPreviewAt = 0L
         var complete = false
         try {
             val loaded = baseFeed.readEntries(snapshot) { entry ->
                 val league = SportsCatalog.league(entry.leagueId) ?: return@readEntries
+                providers++
                 val events = try {
                     when {
-                        entry.provider == "espn" && league.espnPath != null -> SportsFeeds.parseScoreboard(league, entry.payload)
+                        entry.provider == "espn" && league.espnPath != null -> SportsFeeds.parseScoreboard(league, entry.payload, strict = true)
                         entry.provider == "tsdb" && league.id.startsWith("tsdb/") -> FreeSportsDb.events(league, entry.payload, entry.fetchedAt)
                         entry.provider == "calendar" && league.fixtureSlug != null -> SportsFeeds.parseFixtures(league, entry.payload)
                         else -> emptyList()
                     }
                 } catch (e: Exception) {
                     if (e is kotlinx.coroutines.CancellationException) throw e
+                    failedProviders++
                     emptyList()
                 }
                 val now = System.currentTimeMillis()
@@ -591,8 +620,9 @@ class SportsRepository @Inject constructor(
             }
             currentCoroutineContext().ensureActive()
             if (!loaded) return@withLock
+            check(providers == 0 || failedProviders < providers) { "No sports schedule could be parsed" }
             if (parsed.none { it.leagueId == "tsdb/5806" }) appendLocalWorldCupSchedule(parsed)
-            _problem.value = null
+            problems.catalogue.value = if (failedProviders > 0) "Some sports schedules are unavailable. Try refreshing." else null
             baseData.value = parsed
             if (snapshot.generatedAt > pageSnapshotAt) pageData.value = emptyList()
             appliedBaseAt = snapshot.generatedAt
@@ -646,11 +676,11 @@ class SportsRepository @Inject constructor(
                 leagueData.update { it + (league.id to LeagueData((parsed + prior).distinctBy { e -> e.id }, now, null)) }
                 // An initial or restored scoreboard establishes the baseline for live alerts.
                 if (previous != null && previous.fetchedAt == previousAttempt) noticeScoring(league, prior, parsed)
-                _problem.value = null
+                problems.scores.value = null
                 Log.d(TAG, "Live scores: ${league.id}, ${parsed.size} games, ${parsed.count { it.state == GameState.LIVE }} live")
             }.onFailure {
                 currentCoroutineContext().ensureActive()
-                _problem.value = "Live scores unavailable; showing saved schedules and results."
+                problems.scores.value = "Live scores unavailable; showing saved schedules and results."
                 Log.w(TAG, "Live scoreboard failed for ${league.id}: ${describe(it)}")
             }
         }
@@ -714,7 +744,7 @@ class SportsRepository @Inject constructor(
                 }
             }
             val why = reasons.take(2).joinToString(", ")
-            _problem.value = if (failed.size >= due.size && due.isNotEmpty()) "Couldn't reach the scores service ($why). Showing what was saved." else null
+            problems.scores.value = if (failed.size >= due.size && due.isNotEmpty()) "Couldn't reach the scores service ($why). Showing what was saved." else null
             if (failed.isNotEmpty()) {
                 val line = "Sports: couldn't get scores for ${failed.take(6).joinToString(", ")}${if (failed.size > 6) " and ${failed.size - 6} more" else ""} ($why)"
                 if (line != lastFailLine) { lastFailLine = line; LiveTvLoadReport.add(line) }
@@ -1219,13 +1249,13 @@ class SportsRepository @Inject constructor(
         // Last time's matches straight away (the games, the channels), so the page isn't empty
         // while the new round runs.
         launch {
-            val saved = withContext(Dispatchers.IO) { sportsCatching { File(dir, "matches.json").takeIf { it.exists() }?.readText() }.getOrNull() }
-            if (saved != null) {
-                val chans = channelStore.displayChannels.first { it.isNotEmpty() }.associateBy { it.key }
-                if (_matches.value.isEmpty()) sportsCatching { restoreMatches(saved, chans) }
+            val chans = channelStore.displayChannels.first { it.isNotEmpty() }.associateBy { it.key }
+            if (_matches.value.isEmpty()) withContext(Dispatchers.IO) {
+                sportsCatching { restoreMatches(File(dir, "matches.json"), chans) }
             }
         }
         trigger.collectLatest {
+            firstMatchingComplete.value = false
             // A busy scoreboard must not repeatedly cancel the guide discovery at the end of a pass.
             combine(fixtures, matchKick.onEach { trace.observe("matchKick", it) }) { f, k -> f to k }
                 .debounce { if (_matches.value.isEmpty()) 0L else 1_500L }.conflate().collect {
@@ -1252,39 +1282,18 @@ class SportsRepository @Inject constructor(
 
     private val matchKick = MutableStateFlow(0)
     @Volatile private var lastMatchAt = 0L
-    private var initialChannelsMatched = false
 
     private val matchSaveGate = kotlinx.coroutines.sync.Mutex()
 
     /** Saves which channels were matched to which games, to show right away next time. */
     private suspend fun saveMatches() = withContext(Dispatchers.IO) { matchSaveGate.withLock {
-        val arr = org.json.JSONArray()
-        for ((id, list) in _matches.value) {
-            val o = org.json.JSONObject().put("id", id)
-            val items = org.json.JSONArray()
-            list.forEach { m ->
-                items.put(org.json.JSONObject().put("k", m.channel.key).put("s", m.score).put("h", m.how)
-                    .put("q", m.quality ?: org.json.JSONObject.NULL).put("c", m.catchup))
-            }
-            arr.put(o.put("m", items))
-        }
-        File(dir, "matches.json").writeText(arr.toString())
+        val work = currentCoroutineContext()
+        SportsMatchCache.write(File(dir, "matches.json"), _matches.value) { work.ensureActive() }
     } }
 
-    private fun restoreMatches(text: String, chans: Map<String, LiveChannel>) {
-        val arr = org.json.JSONArray(text)
-        val out = HashMap<String, List<ChannelMatch>>()
-        for (i in 0 until arr.length()) {
-            val o = arr.getJSONObject(i)
-            val items = o.getJSONArray("m")
-            val list = ArrayList<ChannelMatch>()
-            for (j in 0 until items.length()) {
-                val it = items.getJSONObject(j)
-                val ch = chans[it.getString("k")] ?: continue
-                list += ChannelMatch(ch, it.getInt("s"), it.getString("h"), null, if (it.isNull("q")) null else it.getString("q"), it.optBoolean("c"))
-            }
-            if (list.isNotEmpty()) out[o.getString("id")] = list
-        }
+    private suspend fun restoreMatches(file: File, chans: Map<String, LiveChannel>) {
+        val work = currentCoroutineContext()
+        val out = SportsMatchCache.read(file, chans, limits=SportsMatchLimits.DEFAULT, settings=settings.value) { work.ensureActive() }
         if (out.isNotEmpty() && _matches.value.isEmpty()) {
             _matches.value = out
             LiveTvLoadReport.add("Sports: showing last time's channels for ${out.size} games while matching again")
@@ -1378,13 +1387,12 @@ class SportsRepository @Inject constructor(
                 publishedFirst = true
             }
         }
-        publishCandidates(tvNowMatcher.visibleFixturePrograms(fixtures, liveRepo.programs.value, shift, now, checkpoint))
         val snapshot = tvNowMatcher.tvNowSnapshot(activeLeagues(s, f), f.words, channels, shift, now, fixtures,
-            onFixturePrograms = ::publishCandidates, checkCancelled = checkpoint)
+            onFixturePrograms = ::publishCandidates, settings = s, quality = user.channelQuality, checkCancelled = checkpoint)
         val discovered = SportsGuideEvents.merge(snapshot.airings, protectedIds)
         // The airings already identify their channels: do not index every playlist channel.
         val hitKeys = (discovered.flatMap { it.guideHits.map { hit -> hit.first } } + snapshot.fixturePrograms.map { it.first }).toSet()
-        val found = tvNowMatcher.match(SportsMatcher.Input(discovered + fixtures,
+        val found = tvNowMatcher.matchCurrent(SportsMatcher.Input(discovered + fixtures,
             channels.filterKeys { it in hitKeys }.values.toList(), user.channelQuality, shift, s, now,
             includeGuide = false, currentGuidePrograms = snapshot.fixturePrograms), checkpoint).matches
         val fixtureIds = fixtures.mapTo(HashSet()) { it.id }
@@ -1452,12 +1460,12 @@ class SportsRepository @Inject constructor(
         queueGeminiMatching()
     }
 
-    private suspend fun runMatch() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
+    private suspend fun runMatch() = withContext(SportsWork.bulk) {
         val workContext = currentCoroutineContext()
         val pacing = SportsMatchPacing()
         val checkpoint = {
             workContext.ensureActive()
-            if (PlayerSessionTracker.hasOpenSession) {
+            if (PlayerSessionTracker.hasBulkPlayback) {
                 throw kotlinx.coroutines.CancellationException("Player session opened")
             }
             pacing.checkpoint(PlayerSessionTracker.hasOpenTrailer && viewers.value == 0)
@@ -1484,82 +1492,86 @@ class SportsRepository @Inject constructor(
             return SportsCurrentGuide.mergeMatches(matches, emptyMap(), currentMatches, s)
         }
         fun publish(result: SportsMatcher.Result, quick: Boolean = false) {
-            val retained = if (quick) events.value.mapTo(HashSet()) { it.id } else HashSet<String>()
-            focusedEvent.value?.let(retained::add)
             _matches.update { previous ->
-                val merged = SportsMatcher.keepGuideMatches(previous, result.matches,
-                    retained, input(emptyList(), false))
+                val merged = SportsCurrentGuide.mergeBulkMatches(previous, result.matches, events.value,
+                    input(emptyList(), false), focusedEvent.value, quick)
                 keepCurrent(merged)
             }
             rebuildLiveScores()
         }
-        val current = events.value
-        _matching.value = !initialChannelsMatched
-        val quickStarted = System.currentTimeMillis()
-        val quick = try { matcher.match(input(current, false), checkpoint) } finally { _matching.value = false }
-        initialChannelsMatched = true
-        Log.d(TAG, "Quick matching ${current.size} events finished in ${System.currentTimeMillis() - quickStarted} ms")
-        publish(quick, quick = true)
-        saveMatches()
-        val guideLeagues = activeLeagues(s, f)
-        // Restore completed discoveries before the all-fixture pass, including after process death.
-        for (offset in listOf(0, 1, -1)) {
-            val saved = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues,
-                f.words, keys, shift, now, cachedOnly = true, checkCancelled = checkpoint)
-            if (saved.isNotEmpty()) guideData.update { previous ->
-                val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
-                    f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
-                (previous + (dayStart(offset) to SportsGuideEvents.merge(saved, protectedIds.toSet())))
-                    .filterKeys { it >= dayStart(-1) && it < dayStart(2) }
-            }
-        }
-        // Importing a new guide cannot prevent already loaded channel names and user picks appearing.
-        if (!guideReady()) return@withContext
-        withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
-            // EPG-only fixtures should not wait behind all of the API fixtures' channel searches.
-            var guideMatches = emptyMap<String, List<ChannelMatch>>()
-            val scanContext = currentCoroutineContext()
-            fun discoverGuideMatches() {
-                for (offset in listOf(0, 1, -1)) {
-                    val scanStarted = System.currentTimeMillis()
-                    val discovered = try {
-                        checkpoint()
-                        val found = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues, f.words, keys, shift, now) { scanContext.ensureActive(); checkpoint() }
-                        val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
-                            f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
-                        SportsGuideEvents.merge(found, protectedIds.toSet())
-                    } catch (e: Exception) {
-                        checkpoint()
-                        if (e is kotlinx.coroutines.CancellationException) throw e
-                        Log.w(TAG, "Guide fixture discovery failed", e)
-                        emptyList()
-                    }
-                    Log.d(TAG, "Guide day $offset: ${discovered.size} fixtures in ${System.currentTimeMillis() - scanStarted} ms")
-                    // Today's guide-only fixtures need not wait for tomorrow and yesterday's scans.
-                    guideData.update { previous -> (previous + (dayStart(offset) to discovered))
-                        .filterKeys { it >= dayStart(-1) && it < dayStart(2) } }
-                    guideMatches = matcher.match(input(guideData.value.values.flatten(), false), checkpoint).matches
-                    publish(SportsMatcher.Result(quick.matches + guideMatches, quick.summary), quick = true)
-                }
-            }
-            val matchStarted = System.currentTimeMillis()
-            Log.d(TAG, "Matching ${current.size} events against ${channels.size} channels")
-            val result = matcher.matchProgressively(input(current, true), focusedEvent.value, { priority ->
-                _matches.update { previous ->
-                    keepCurrent(SportsCurrentGuide.mergeMatches(previous, emptyMap(), priority.matches, s))
-                }
-                rebuildLiveScores()
-                Log.d(TAG, "Priority guide matching: ${priority.matches.size} events published in ${System.currentTimeMillis() - matchStarted} ms")
-            }, checkpoint, beforeRemainingGuide = ::discoverGuideMatches)
-            Log.d(TAG, "Fixture matching finished in ${System.currentTimeMillis() - matchStarted} ms")
-            publish(SportsMatcher.Result(result.matches + guideMatches, result.summary))
+        // Guide-sourced events already have a dedicated direct-airing pass below. Matching
+        // them here as well retained multiple full copies of every confirmed channel list.
+        val current = events.value.filter { it.source != EventSource.GUIDE }
+        _matching.value = !firstMatchingComplete.value
+        try {
+            val quickStarted = System.currentTimeMillis()
+            val quick = matcher.matchProgressively(input(current, false), focusedEvent.value,
+                { publish(it, quick = true) }, checkpoint)
+            Log.d(TAG, "Quick matching ${current.size} events finished in ${System.currentTimeMillis() - quickStarted} ms")
+            publish(quick, quick = true)
             saveMatches()
-            queueGeminiMatching()
-            if (result.summary != lastSummary) {
-                lastSummary = result.summary
-                LiveTvLoadReport.add(result.summary)
+            val guideLeagues = activeLeagues(s, f)
+            // Restore completed discoveries before the all-fixture pass, including after process death.
+            for (offset in listOf(0, 1, -1)) {
+                val saved = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues,
+                    f.words, keys, shift, now, cachedOnly = true, selection = s, quality = user.channelQuality, checkCancelled = checkpoint)
+                if (saved.isNotEmpty()) guideData.update { previous ->
+                    val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
+                        f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
+                    (previous + (dayStart(offset) to SportsGuideEvents.merge(saved, protectedIds.toSet())))
+                        .filterKeys { it >= dayStart(-1) && it < dayStart(2) }
+                }
             }
-        }
+            // Importing a new guide cannot prevent already loaded channel names and user picks appearing.
+            if (!guideReady()) return@withContext
+            withContext(SportsWork.bulk) {
+                // EPG-only fixtures should not wait behind all of the API fixtures' channel searches.
+                var guideMatches = emptyMap<String, List<ChannelMatch>>()
+                val scanContext = currentCoroutineContext()
+                fun discoverGuideMatches() {
+                    for (offset in listOf(0, 1, -1)) {
+                        val scanStarted = System.currentTimeMillis()
+                        val discovered = try {
+                            checkpoint()
+                            val found = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues, f.words, keys, shift, now, selection=s, quality=user.channelQuality) { scanContext.ensureActive(); checkpoint() }
+                            val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
+                                f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
+                            SportsGuideEvents.merge(found, protectedIds.toSet())
+                        } catch (e: Exception) {
+                            checkpoint()
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            Log.w(TAG, "Guide fixture discovery failed", e)
+                            emptyList()
+                        }
+                        Log.d(TAG, "Guide day $offset: ${discovered.size} fixtures in ${System.currentTimeMillis() - scanStarted} ms")
+                        // Today's guide-only fixtures need not wait for tomorrow and yesterday's scans.
+                        guideData.update { previous -> (previous + (dayStart(offset) to discovered))
+                            .filterKeys { it >= dayStart(-1) && it < dayStart(2) } }
+                        guideMatches = matcher.matchProgressively(input(guideData.value.values.flatten(), false),
+                            null, {}, checkpoint).matches
+                        publish(SportsMatcher.Result(quick.matches + guideMatches, quick.summary), quick = true)
+                    }
+                }
+                val matchStarted = System.currentTimeMillis()
+                Log.d(TAG, "Matching ${current.size} events against ${channels.size} channels")
+                val result = matcher.matchProgressively(input(current, true), focusedEvent.value, { priority ->
+                    _matches.update { previous ->
+                        keepCurrent(SportsCurrentGuide.mergeMatches(previous, emptyMap(), priority.matches, s))
+                    }
+                    rebuildLiveScores()
+                    Log.d(TAG, "Priority guide matching: ${priority.matches.size} events published in ${System.currentTimeMillis() - matchStarted} ms")
+                }, checkpoint, beforeRemainingGuide = ::discoverGuideMatches)
+                Log.d(TAG, "Fixture matching finished in ${System.currentTimeMillis() - matchStarted} ms")
+                publish(SportsMatcher.Result(result.matches + guideMatches, result.summary))
+                saveMatches()
+                queueGeminiMatching()
+                if (result.summary != lastSummary) {
+                    lastSummary = result.summary
+                    LiveTvLoadReport.add(result.summary)
+                }
+            }
+            firstMatchingComplete.value = true
+        } finally { _matching.value = false }
     }
 
     // ------------------------------------------------------------------ scores elsewhere in the app

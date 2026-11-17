@@ -63,7 +63,7 @@ internal class StalkerVod(private val portal: StalkerPortalClient) {
     suspend fun catalog(source: PlaylistSource, kind: VodKind, category: String?,
         visit: (VodItem) -> Boolean) {
         pages(source, kind, mapOf("category" to (category ?: "0"), "sortby" to "name"),
-            beforePage = { BackgroundWork.awaitPlaybackIdleBlocking() }) { row ->
+            beforePage = { BackgroundWork.importCheckpoint() }) { row ->
             val id = requireNotNull(row.field("id"))
             val name = requireNotNull(row.field("name") ?: row.field("title"))
             val group = row.field("category_id") ?: category.orEmpty()

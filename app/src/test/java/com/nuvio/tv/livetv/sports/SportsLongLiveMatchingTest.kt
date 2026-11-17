@@ -35,13 +35,17 @@ class SportsLongLiveMatchingTest {
         val programme = EpgProgram(now - 6 * hour, now + hour,
             "Sheffield Shield : VIC v WA Day 2 P2 ᴸᶦᵛᵉ", "Red ball cricket.")
         val db = mockk<EpgDatabase>()
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+                val rows: List<Pair<String, com.nuvio.tv.livetv.model.EpgProgram>> = run {
             // The earlier test returned a row regardless of SQL bounds, hiding this miss.
             val from = firstArg<Long>(); val to = secondArg<Long>(); val stop = thirdArg<Long>()
             if (programme.startMs in from until to && programme.stopMs > stop) listOf(channel.key to programme) else emptyList()
-        }
+
+                }
+                rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+            }
         assertTrue(input(event, db).any { it.sure && it.program == programme })
-        verify { db.findByWords(match { it >= now - 30 * hour }, any(), now, any(), any(), any()) }
+        verify { db.visitMatchPrograms(match { it >= now - 30 * hour }, any(), now, any(), any(), any()) }
 
         // A future fixture first in the catalogue must not hold the live result until the full pass ends.
         val future = event.copy(id = "tomorrow", state = GameState.PRE, startMs = now + 24 * hour)
@@ -50,7 +54,8 @@ class SportsLongLiveMatchingTest {
         var published = false
         var discoveryStarted = false
         val order = mutableListOf<String>()
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+                val rows: List<Pair<String, com.nuvio.tv.livetv.model.EpgProgram>> = run {
             if (firstArg<Long>() > now) {
                 order += "future"
                 emptyList()
@@ -58,7 +63,10 @@ class SportsLongLiveMatchingTest {
                 order += "live"
                 listOf(channel.key to programme)
             }
-        }
+
+                }
+                rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+            }
         for (focused in listOf(null, event.id)) {
             published = false
             discoveryStarted = false
@@ -85,7 +93,10 @@ class SportsLongLiveMatchingTest {
             val label = if (sport == Sport.SNOOKER) "Snooker" else sport.label
             val p = EpgProgram(now - 7 * hour, now + 60_000, "Live: $label: Ronnie O'Sullivan vs Judd Trump")
             val db = mockk<EpgDatabase>()
-            every { db.findByWords(any(), any(), any(), any(), any(), any()) } returns listOf(channel.key to p)
+            every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+            val rows: List<Pair<String,com.nuvio.tv.livetv.model.EpgProgram>> = listOf(channel.key to p)
+            rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+        }
             assertTrue(sport.name, input(event, db).any { it.sure && it.program == p })
         }
     }
@@ -139,10 +150,10 @@ class SportsLongLiveMatchingTest {
         val db = mockk<EpgDatabase> {
             every { fingerprint() } returns "guide"
             every { contentRevision() } returns "1"
-            every { visitCurrentPrograms(now, any(), any()) } answers {
-                thirdArg<(String, EpgProgram) -> Unit>().invoke(channel.key, p)
+            every { visitSportsPrograms(now - 30 * hour, now + 1, now, any(), any()) } answers {
+                lastArg<(String, EpgProgram) -> Unit>().invoke(channel.key, p)
                 assertEquals(listOf(channel.key to p), early)
-                thirdArg<(String, EpgProgram) -> Unit>().invoke("food", p.copy(title = "MasterChef", description = null))
+                lastArg<(String, EpgProgram) -> Unit>().invoke("food", p.copy(title = "MasterChef", description = null))
             }
         }
         val channels = listOf(channel, channel.copy(key = "food")).associateBy { it.key }
@@ -155,9 +166,9 @@ class SportsLongLiveMatchingTest {
         val extra = SportsCurrentGuide.additionalAirings(emptyList(), listOf(event), matched, now)
         assertEquals(listOf(channel.key to p), extra.single().guideHits)
         assertTrue(SportsCurrentGuide.withFixtures(extra, listOf(event), matched, now).single().hasScore)
-        verify(exactly = 1) { db.visitCurrentPrograms(now, any(), any()) }
+        verify(exactly = 1) { db.visitSportsPrograms(now - 30 * hour, now + 1, now, any(), any()) }
         verify(exactly = 0) { db.visitPrograms(any(), any(), any()) }
-        verify(exactly = 0) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test fun largeCurrentGuideRetainsOnlyFixtureCandidatesAndUsesTheSameSingleRead() {
@@ -167,8 +178,8 @@ class SportsLongLiveMatchingTest {
         val db = mockk<EpgDatabase> {
             every { fingerprint() } returns "large-guide"
             every { contentRevision() } returns "1"
-            every { visitCurrentPrograms(now, any(), any()) } answers {
-                val visit = thirdArg<(String, EpgProgram) -> Unit>()
+            every { visitSportsPrograms(now - 30 * hour, now + 1, now, any(), any()) } answers {
+                val visit = lastArg<(String, EpgProgram) -> Unit>()
                 repeat(20_000) { visit("noise-$it", p.copy(title = "Daily programme $it", description = null)) }
                 visit(channel.key, p)
             }
@@ -186,8 +197,8 @@ class SportsLongLiveMatchingTest {
         val before = List(3) { measure(false) }.sorted()[1]
         val after = List(3) { measure(true) }.sorted()[1]
         println("Current-guide host benchmark: 20001 rows; previous median=${before}ms; fixture snapshot median=${after}ms")
-        verify(exactly = 8) { db.visitCurrentPrograms(now, any(), any()) }
+        verify(exactly = 8) { db.visitSportsPrograms(now - 30 * hour, now + 1, now, any(), any()) }
         verify(exactly = 0) { db.visitPrograms(any(), any(), any()) }
-        verify(exactly = 0) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
     }
 }

@@ -43,6 +43,8 @@ import com.nuvio.tv.domain.model.AddonStreams
 import com.nuvio.tv.domain.model.Meta
 import com.nuvio.tv.domain.model.Stream
 import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.hasResolvedSource
+import com.nuvio.tv.domain.model.resolvedEpisodeForPlayback
 import com.nuvio.tv.domain.model.singleEpisodeSource
 import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.domain.model.tvdbPlaybackContext
@@ -337,12 +339,13 @@ class StreamScreenViewModel @Inject constructor(
                 val meta = kotlinx.coroutines.withTimeoutOrNull(22_000L) {
                     metaRepository.getPlaybackMeta(playbackProfileId, contentType, id, capturedTvdbContext!!)
                 }
-                val candidates = meta?.videos.orEmpty().filter { it.id == videoId &&
+                val candidates = meta?.videos.orEmpty().filter { it.hasResolvedSource && it.id == videoId &&
                     it.episodeIdentity?.orderType == selected.orderType && (episodeName == null || it.title == episodeName) }
-                val identity = (candidates.singleOrNull { it.title == episodeName }
-                    ?: candidates.singleEpisodeSource())?.episodeIdentity
-                _uiState.update { it.copy(tvdbEpisodeIdentity = identity) }
-                candidates.singleOrNull()?.let { capturedTvdbContext = it.tvdbPlaybackContext() }
+                val verified = if (incoming?.episodeId != null) {
+                    candidates.resolvedEpisodeForPlayback(incoming, videoId)
+                } else candidates.singleOrNull { it.title == episodeName } ?: candidates.singleEpisodeSource()
+                _uiState.update { it.copy(tvdbEpisodeIdentity = verified?.episodeIdentity) }
+                verified?.let { capturedTvdbContext = it.tvdbPlaybackContext() }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { /* Sources continue to use the original verified request. */ }
             finally { tvdbContextReady.complete(capturedTvdbContext) }

@@ -24,6 +24,20 @@ val Video.hasResolvedSource: Boolean get() = episodeIdentity == null ||
     else ((episodeIdentity.streamVideoId ?: episodeIdentity.providerVideoId) != null &&
         (episodeIdentity.streamCoordinates ?: episodeIdentity.providerCoordinates) != null)
     )
+/** Select a playback source from the current catalogue. A display part is scoped to its
+ * series and order; tracker coverage and old stream request IDs can change across updates. */
+fun List<Video>.resolvedEpisodeForPlayback(selected: TvdbPlaybackContext?, providerVideoId: String): Video? {
+    val video = if (selected == null) {
+        singleOrNull { it.episodeIdentity == null && it.id == providerVideoId }
+    } else {
+        val part = selected.episodeId ?: return null
+        singleOrNull { video -> video.episodeIdentity?.let {
+            it.tvdbSeriesId == selected.seriesId && it.orderType == selected.orderType && it.tvdbEpisodeId == part
+        } == true }
+    }
+    return video?.takeIf { it.hasResolvedSource }?.forEpisodeSource()
+}
+
 val Video.episodeListKey: String get() = episodeIdentity?.canonicalKey ?: id
 
 val episodeSequenceComparator: Comparator<Video> = compareBy<Video> { it.displaySeason ?: Int.MAX_VALUE }

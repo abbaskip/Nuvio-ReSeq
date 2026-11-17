@@ -376,57 +376,6 @@ private fun PlaybackNavHost(
             )
         }
         rootComposable(Screen.Home.route) {
-            fun createContinueWatchingRoute(
-                item: ContinueWatchingItem,
-                manualSelection: Boolean = false,
-                startFromBeginning: Boolean = false
-            ): String {
-                return when (item) {
-                    is ContinueWatchingItem.InProgress -> Screen.Stream.createRoute(
-                        videoId = item.progress.videoId,
-                        contentType = item.progress.contentType,
-                        title = item.progress.name,
-                        poster = item.progress.poster,
-                        backdrop = item.progress.backdrop,
-                        logo = item.progress.logo,
-                        season = item.progress.season,
-                        episode = item.progress.episode,
-                        episodeName = item.progress.episodeTitle,
-                        genres = null,
-                        year = null,
-                        contentId = item.progress.contentId,
-                        contentName = item.progress.name,
-                        runtime = null,
-                        manualSelection = manualSelection,
-                        returnToDetailOnBack = item.progress.contentType.equals("series", ignoreCase = true),
-                        returnToHomeOnBack = true,
-                        startFromBeginning = startFromBeginning,
-                        contentLanguage = item.contentLanguage
-                    )
-                    is ContinueWatchingItem.NextUp -> Screen.Stream.createRoute(
-                        videoId = item.info.videoId,
-                        contentType = item.info.contentType,
-                        title = item.info.name,
-                        poster = item.info.poster,
-                        backdrop = item.info.backdrop,
-                        logo = item.info.logo,
-                        season = item.info.season,
-                        episode = item.info.episode,
-                        episodeName = item.info.episodeTitle,
-                        genres = null,
-                        year = null,
-                        contentId = item.info.contentId,
-                        contentName = item.info.name,
-                        runtime = null,
-                        manualSelection = manualSelection,
-                        returnToDetailOnBack = item.info.contentType.equals("series", ignoreCase = true),
-                        returnToHomeOnBack = true,
-                        startFromBeginning = startFromBeginning,
-                        contentLanguage = item.info.contentLanguage
-                    )
-                }
-            }
-
             CompositionLocalProvider(
                 com.nuvio.tv.livetv.home.LocalLiveTvHomeActions provides
                     com.nuvio.tv.livetv.home.LiveTvHomeActions(
@@ -452,6 +401,10 @@ private fun PlaybackNavHost(
                                 heroBackdropUrl = heroBackdrop
                             )
                         )
+                    },
+                    onEpisodeDetails = { id, type, focus ->
+                        navController.navigate(Screen.Detail.createRoute(id, type, returnFocusSeason = focus?.season,
+                            returnFocusEpisode = focus?.episode, returnToHomeOnBack = true))
                     },
                     onContinueWatchingClick = onContinueWatchingClick@{ item ->
                         if (!playbackAvailability.canStream(item)) {

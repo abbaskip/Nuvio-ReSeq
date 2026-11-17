@@ -390,13 +390,11 @@ class ShuffleHomeRefreshTest {
         every { vm.uiState } returns home
         assertFalse(home.onlyCard().chooseEpisode)
         every { vm.metaRepository.getMetaFromAllAddons(any(), any(), any()) } returns flowOf(NetworkResult.Error("unavailable"))
-        mockkStatic(Toast::class)
-        val toast = mockk<Toast>(relaxed = true)
-        every { Toast.makeText(any(), any<CharSequence>(), any()) } returns toast
+        var opened: String? = null
         vm.verifyTvdbPlayback(home.onlyCard(), { fail("Played without fresh identity verification") },
-            { _, _, _ -> fail("Playback failure redirected to Details") })
+            { series, _, focus -> opened = series; assertEquals(video.episodeIdentity!!.displayed.episode, focus?.episode) })
         runCurrent()
-        verify(exactly = 1) { toast.show() }
+        assertEquals(id, opened)
     }
 
     @Test fun manualPlayFromStalePlaceholderUsesTheResolvedCardInsteadOfDetails() = runTest {
@@ -429,20 +427,18 @@ class ShuffleHomeRefreshTest {
         assertTrue(played!!.shufflePlayback)
     }
 
-    @Test fun manualPlayWithUnresolvedIdentityNeverRedirectsToDetailsOrPlaysTheSeed() = runTest {
+    @Test fun manualPlayWithUnresolvedIdentityOpensDetailsWithoutPlayingTheSeed() = runTest {
         setup()
         cache[key] = summary(video).copy(tvdbOrder = false, tvdbPending = true)
         negative[key] = currentTime
         val home = home()
         every { vm.uiState } returns home
-        mockkStatic(Toast::class)
-        val toast = mockk<Toast>(relaxed = true)
-        every { Toast.makeText(any(), any<CharSequence>(), any()) } returns toast
+        var opened: String? = null
         vm.verifyTvdbPlayback(home.onlyCard(), { fail("Played an unresolved seed") },
-            { _, _, _ -> fail("Manual play opened Details") }, manualSelection = true)
+            { series, _, _ -> opened = series }, manualSelection = true)
         advanceTimeBy(22_001)
         runCurrent()
-        verify(exactly = 1) { toast.show() }
+        assertEquals(id, opened)
     }
 
     @Test fun changingOrderDuringACacheMissDoesNotRetainTheOldShuffleIdentity() = runTest {

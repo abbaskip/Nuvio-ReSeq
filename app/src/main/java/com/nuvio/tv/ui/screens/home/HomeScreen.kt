@@ -1,5 +1,6 @@
 package com.nuvio.tv.ui.screens.home
 
+import com.nuvio.tv.domain.model.EpisodeCoordinates
 import com.nuvio.tv.ui.theme.NuvioTheme
 
 import androidx.activity.compose.ReportDrawnWhen
@@ -78,6 +79,9 @@ private const val HOME_STABLE_GATE_TIMEOUT_MS = 5_000L
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToDetail: (String, String, String) -> Unit,
+    onEpisodeDetails: (String, String, EpisodeCoordinates?) -> Unit = { id, type, _ ->
+        onNavigateToDetail(id, type, "")
+    },
     onContinueWatchingClick: (ContinueWatchingItem) -> Unit = { item ->
         onNavigateToDetail(
             when (item) {
@@ -172,14 +176,14 @@ fun HomeScreen(
         { id, type, addon -> if (type == "tvmix") onNavigateToMix(id.removePrefix("tvmix:"), false)
             else onNavigateToDetail(id, type, addon) }
     }
-    val onContinueWatchingClickStable = remember(viewModel, onContinueWatchingClick, onNavigateToDetailStable) {
-        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingClick, onNavigateToDetailStable) }
+    val onContinueWatchingClickStable = remember(viewModel, onContinueWatchingClick, onEpisodeDetails) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingClick, onEpisodeDetails) }
     }
-    val onContinueWatchingStartFromBeginningStable = remember(viewModel, onContinueWatchingStartFromBeginning, onNavigateToDetailStable) {
-        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingStartFromBeginning, onNavigateToDetailStable) }
+    val onContinueWatchingStartFromBeginningStable = remember(viewModel, onContinueWatchingStartFromBeginning, onEpisodeDetails) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingStartFromBeginning, onEpisodeDetails) }
     }
-    val onContinueWatchingPlayManuallyStable = remember(viewModel, onContinueWatchingPlayManually, onNavigateToDetailStable) {
-        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingPlayManually, onNavigateToDetailStable, manualSelection = true) }
+    val onContinueWatchingPlayManuallyStable = remember(viewModel, onContinueWatchingPlayManually, onEpisodeDetails) {
+        { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingPlayManually, onEpisodeDetails, manualSelection = true) }
     }
     val onNavigateToCatalogSeeAllStable = remember(onNavigateToCatalogSeeAll) { onNavigateToCatalogSeeAll }
     val onNavigateToFolderDetailStable = remember(onNavigateToFolderDetail) { onNavigateToFolderDetail }

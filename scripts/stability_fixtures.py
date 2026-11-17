@@ -295,6 +295,8 @@ class Web(base.Web):
         super().do_GET()
 
     def trakt(self, path):
+        if path.endswith('/watched/shows') and parse_qs(urlsplit(self.path).query).get('page', ['1']) != ['1']:
+            return self.send_json([])
         if STATE.get('office'):
             if path.endswith('/search/imdb/'+OFFICE):
                 return self.send_json([{'type': 'show', 'show': OFFICE_SHOW}])
@@ -321,8 +323,6 @@ class Web(base.Web):
             with LOCK:
                 history = dict(TRACKER_HISTORY)
             if path.endswith('/watched/shows'):
-                if parse_qs(urlsplit(self.path).query).get('page', ['1']) != ['1']:
-                    return self.send_json([])
                 return self.send_json([{'plays': len(history), 'show': show, 'last_watched_at': max(history.values()),
                     'seasons': [{'number': 1, 'episodes': [{'number': i, 'plays': 1, 'last_watched_at': t}
                                                            for i, t in history.items()]}]}])

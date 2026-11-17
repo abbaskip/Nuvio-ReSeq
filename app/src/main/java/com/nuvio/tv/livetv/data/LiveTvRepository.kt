@@ -122,6 +122,7 @@ class LiveTvRepository @Inject constructor(
 
     private fun prepareSourceStorage() {
         if (sourceStorageReady) return
+        ImportWorkFiles.recover(playlistDir,epgDir,File(baseDir,"playlists"),File(baseDir,"epg"))
         for ((name, destination) in listOf("playlists" to playlistDir, "epg" to epgDir)) {
             if (!destination.mkdirs() && !destination.isDirectory) return
             File(baseDir, name).listFiles()?.filter { it.isFile }?.forEach { old ->
@@ -897,6 +898,7 @@ class LiveTvRepository @Inject constructor(
                 c.catchup?.let { id(it.type) }
                 c.drm?.let { id(it.scheme) }
             }
+            baseDir.mkdirs()
             val tmp = File(baseDir, "channels_cache3.tmp")
             java.io.DataOutputStream(java.io.BufferedOutputStream(tmp.outputStream(), 256 * 1024)).use { out ->
                 fun opt(v: String?) { out.writeBoolean(v != null); if (v != null) out.writeUTF(v) }
@@ -1040,6 +1042,20 @@ class LiveTvRepository @Inject constructor(
     @Volatile private var guideHoles = false
     @Volatile private var holeRefreshTried = false
     private val rangeMutex = Mutex()
+    private val windowResidency = GuideWindowResidency()
+    private fun residentWindow(values: Map<String,List<EpgProgram>>): Map<String,List<EpgProgram>> {
+        val kept=windowResidency.retain(values)
+        fullRangeChannels.retainAll(kept.keys)
+        return kept
+    }
+    suspend fun guideChannelsWithListings(): Set<String> = withContext(Dispatchers.IO) {
+        guideDb.channelsWithListings(loadedFrom,loadedTo)
+    }
+    private fun initialWindowKeys(): List<String> {
+        windowResidency.restrict(_channels.value.mapTo(HashSet()) { it.key })
+        windowResidency.warm(priorityKeys()+_channels.value.take(600).map { it.key })
+        return windowResidency.keys()
+    }
 
     private fun defaultWindow(now: Long = System.currentTimeMillis()) = (now - 3 * HOUR) to (now + 12 * HOUR + RANGE_SLACK_MS)
 
@@ -1055,7 +1071,7 @@ class LiveTvRepository @Inject constructor(
         loadedTo = previous.to
         lightPrograms = true
         guideInDb = true
-        _programs.value = previous.window
+        _programs.value = residentWindow(previous.window)
         fullRangeChannels.clear()
         _guideGeneration.value++
     }
@@ -1069,13 +1085,14 @@ class LiveTvRepository @Inject constructor(
     /** Loads these channels' listings straight away if they aren't loaded yet (the group you open). */
     fun loadChannelsNow(keys: List<String>) {
         if (!guideInDb || keys.isEmpty()) return
+        windowResidency.request(keys)
         scope.launch(Dispatchers.IO) {
-            val missing = keys.distinct().filter { it !in _programs.value }
+            val missing = keys.distinct().take(600).filter { it !in _programs.value }
             if (missing.isEmpty()) return@launch
             val got = runCatching { guideDb.range(loadedFrom, loadedTo, light = true, channels = missing) }.getOrNull() ?: return@launch
             rangeMutex.withLock {
                 val cur = _programs.value
-                _programs.value = cur + got.filterKeys { it !in cur }
+                _programs.value = residentWindow(cur + got.filterKeys { it !in cur })
             }
         }
     }
@@ -1087,10 +1104,11 @@ class LiveTvRepository @Inject constructor(
         scope.launch(Dispatchers.IO) {
             runCatching { priorityFile.writeText(list.joinToString("\n")) }
             if (!guideInDb) return@launch
-            val missing = list.filter { it !in _programs.value }
+            windowResidency.warm(list)
+            val missing = windowResidency.keys().filter { it !in _programs.value }
             if (missing.isEmpty()) return@launch
             val got = runCatching { guideDb.range(loadedFrom, loadedTo, light = true, channels = missing) }.getOrNull() ?: return@launch
-            rangeMutex.withLock { _programs.value = _programs.value + got }
+            rangeMutex.withLock { _programs.value = residentWindow(_programs.value + got) }
         }
     }
 
@@ -1099,7 +1117,7 @@ class LiveTvRepository @Inject constructor(
         val from = now - 60 * 60 * 1000L
         val to = now + 4 * HOUR
         val fp = guideDb.fingerprint() ?: return@runCatching null
-        val keys = priorityKeys()
+        val keys = priorityKeys().take(600)
         val window = if (keys.isEmpty()) emptyMap() else guideDb.range(from, to, light = true, channels = keys)
         GuidePreRead(fp, from, to, window)
     }.getOrNull()
@@ -1107,7 +1125,7 @@ class LiveTvRepository @Inject constructor(
     /**
      * Opening Live TV: if the guide database matches the current guide and channels, show the
      * channels you were last looking at straight away (read ahead, short form), then fill in all
-     * the others in the background. Instant, however big the guide is.
+     * the requested group and visible rows in the background.
      */
     private suspend fun loadGuideFromDb(settings: LiveTvSettings, targets: List<EpgTarget>, pre: GuidePreRead?): Boolean = withContext(Dispatchers.IO) {
         if (_channels.value.isEmpty()) return@withContext false
@@ -1124,7 +1142,7 @@ class LiveTvRepository @Inject constructor(
         val now = System.currentTimeMillis()
         val from = pre?.from ?: (now - 60 * 60 * 1000L)
         val to = pre?.to ?: (now + 4 * HOUR)
-        _programs.value = pre?.window.orEmpty()
+        _programs.value = residentWindow(pre?.window.orEmpty())
         fullRangeChannels.clear(); _guideGeneration.value++
         _autoMatches.value = runCatching { guideDb.autoMatches() }.getOrDefault(emptyMap())
         loadedFrom = from
@@ -1136,28 +1154,30 @@ class LiveTvRepository @Inject constructor(
         // they're ready without a Full Scan.
         if (_epgSources.value.isEmpty()) scope.launch(Dispatchers.IO) { loadSourceLists(targets) }
         LIVE_REPORT.add("First channels' listings ready: ${_programs.value.size} channels")
-        // Everything else (short form, the usual hours), in the background, in one read.
+        // Only a bounded warm window. Sports reads the indexed database directly; opening it
+        // must not materialize 22 hours for every playlist channel behind the matcher.
+        val requested = initialWindowKeys()
         rangeBusy.set(true)
         scope.launch(BackgroundWork.reads) {
           try {
             val t0 = System.currentTimeMillis()
             val (fullFrom, fullTo) = defaultWindow()
-            val rest = runCatching { guideDb.range(fullFrom, fullTo, light = true) }.getOrNull()
+            val rest = runCatching { guideDb.range(fullFrom, fullTo, light = true, channels = requested) }.getOrNull()
             if (rest != null) rangeMutex.withLock {
                 val merged = HashMap<String, List<EpgProgram>>(rest)
                 _programs.value.forEach { (k, v) -> if ((merged[k]?.size ?: 0) < v.size) merged[k] = v }
-                _programs.value = merged
+                _programs.value = residentWindow(merged)
                 loadedFrom = minOf(loadedFrom, fullFrom)
                 loadedTo = maxOf(loadedTo, fullTo)
             }
-            LIVE_REPORT.add("All channels' listings ready: ${_programs.value.size} channels in ${System.currentTimeMillis() - t0} ms")
+            LIVE_REPORT.add("Requested channels' listings ready: ${_programs.value.size} channels in ${System.currentTimeMillis() - t0} ms")
             // The stored guide has nothing for now or the next hours (it was stored empty, or
             // all of it has run out): it was still taken as up to date, so the guide stayed
             // empty until a playlist or guide changed. Match the guide files again now (and
             // download them again if they're old too).
             // Same when it only ran out for many of the channels (not all of them): the guide
             // was used as up to date and those channels stayed empty until Update was pressed.
-            val matched = _autoMatches.value.keys
+            val matched = _autoMatches.value.keys.filter { it in requested }
             val missing = matched.count { _programs.value[it].isNullOrEmpty() }
             // At most once every 3 hours (a download, even an unchanged one, resets the file's
             // date), so a guide that simply has no listings for many channels isn't fetched at every start.
@@ -1211,7 +1231,7 @@ class LiveTvRepository @Inject constructor(
         dropOldHours(fromMs)
         if (!guideInDb || (fromMs >= loadedFrom && toMs <= loadedTo)) return
         if (!rangeBusy.compareAndSet(false, true)) {
-            // One read at a time (each covers every channel): remember the widest request.
+            // One resident-window read at a time: remember the widest request.
             val p = pendingRange
             pendingRange = if (p == null) fromMs to toMs else minOf(p.first, fromMs) to maxOf(p.second, toMs)
             return
@@ -1235,7 +1255,7 @@ class LiveTvRepository @Inject constructor(
                 if (to > loadedTo) add(loadedTo to to)
             }
             val reads = parts.map { (f, t) ->
-                runCatching { guideDb.range(f, t, light = lightPrograms) }.getOrNull() ?: return@launch
+                runCatching { guideDb.range(f, t, light = lightPrograms, channels = windowResidency.keys()) }.getOrNull() ?: return@launch
             }
             rangeMutex.withLock {
                 if (fromMs >= loadedFrom && toMs <= loadedTo) return@withLock
@@ -1251,7 +1271,7 @@ class LiveTvRepository @Inject constructor(
                         }
                     }
                 }
-                _programs.value = merged
+                _programs.value = residentWindow(merged)
                 loadedFrom = minOf(from, loadedFrom)
                 loadedTo = maxOf(to, loadedTo)
             }
@@ -1323,7 +1343,8 @@ class LiveTvRepository @Inject constructor(
      */
     fun ensureFullRange(channelKeys: List<String>) {
         if (!guideInDb || channelKeys.isEmpty()) return
-        val todo = channelKeys.take(MAX_FULL_RANGE_CHANNELS).filter { it !in fullRangeChannels }
+        windowResidency.request(channelKeys.take(MAX_FULL_RANGE_CHANNELS))
+        val todo = channelKeys.take(MAX_FULL_RANGE_CHANNELS).filter { it !in fullRangeChannels || it !in _programs.value }
         if (todo.isEmpty()) return
         fullRangeJob?.cancel()
         fullRangeJob = scope.launch(BackgroundWork.reads) {
@@ -1351,7 +1372,7 @@ class LiveTvRepository @Inject constructor(
                             }
                         }
                     }
-                    _programs.value = merged
+                    _programs.value = residentWindow(merged)
                 }
                 fullRangeChannels += batch
             }
@@ -1445,7 +1466,7 @@ class LiveTvRepository @Inject constructor(
                             if (past.isNotEmpty()) guideDb.putChannelRange(ch.key, from, pastEnd, past)
                             if (later.isNotEmpty()) guideDb.putChannelRange(ch.key, later.first().startMs, later.last().stopMs, later)
                         }
-                        _programs.value = _programs.value + (ch.key to merged)
+                        _programs.value = residentWindow(_programs.value + (ch.key to merged))
                         loadedFrom = minOf(loadedFrom, from)
                         if (missingOnly && !apiFillReported) {
                             apiFillReported = true
@@ -1475,6 +1496,7 @@ class LiveTvRepository @Inject constructor(
 
     fun ensureChannelSchedule(channelKey: String) {
         if (!guideInDb) return
+        windowResidency.request(listOf(channelKey))
         scope.launch {
             val now = System.currentTimeMillis()
             val settings = prefs.currentSettings()
@@ -1484,7 +1506,7 @@ class LiveTvRepository @Inject constructor(
             }.getOrNull() ?: return@launch
             val cur = _programs.value
             if ((cur[channelKey]?.size ?: 0) >= list.size) return@launch
-            _programs.value = cur + (channelKey to list)
+            _programs.value = residentWindow(cur + (channelKey to list))
         }
     }
 
@@ -1658,7 +1680,7 @@ class LiveTvRepository @Inject constructor(
                 }
                 // Drop shows that have ended since the cache was saved (outside the window).
                 val windowStart = System.currentTimeMillis() - settings.epgPastHours.coerceAtLeast(1) * HOUR
-                _programs.value = programs.mapValues { (_, l) -> l.filter { it.stopMs > windowStart } }
+                _programs.value = residentWindow(programs.mapValues { (_, l) -> l.filter { it.stopMs > windowStart } })
                 _autoMatches.value = auto
                 epgDetailsPending = true
                 true
@@ -2198,11 +2220,12 @@ class LiveTvRepository @Inject constructor(
         // Playlist variants often share one XMLTV channel. Read and retain one window
         // per assignment even if dozens of playlist channels display that schedule.
         val representatives = HashMap<EpgAssignment, String>()
-        choice.forEach { (key, assignment) -> representatives.putIfAbsent(assignment, key) }
+        val requested=initialWindowKeys().toSet()
+        choice.forEach { (key, assignment) -> if(key in requested) representatives.putIfAbsent(assignment, key) }
         val windows = guideDb.range(winFrom, winTo, light = true, channels = representatives.values)
         _programs.value = buildMap {
             choice.forEach { (key, assignment) ->
-                windows[representatives[assignment]]?.let { put(key, it) }
+                if(key in requested) windows[representatives[assignment]]?.let { put(key, it) }
             }
         }
         lightPrograms = true
@@ -2401,13 +2424,13 @@ class LiveTvRepository @Inject constructor(
             val fp = guideFingerprint(settings, targets)
             guideDb.replaceChannels(fp, changed, newPrograms, newAuto, guideParts(settings, targets, fp))
         }
-        _programs.value = HashMap(_programs.value).apply {
+        _programs.value = residentWindow(HashMap(_programs.value).apply {
             changed.forEach { remove(it) }
             newPrograms.forEach { (k, l) ->
                 val shown = if (guideInDb) l.filter { it.stopMs > loadedFrom && it.startMs < loadedTo } else l
                 if (shown.isNotEmpty()) put(k, shown)
             }
-        }
+        })
         _autoMatches.value = (_autoMatches.value - changed) + newAuto
         fullRangeChannels.removeAll(changed)
         val logos = HashMap(_epgLogos.value).apply { changed.forEach { remove(it) }; putAll(newIcons) }
@@ -2481,6 +2504,7 @@ class LiveTvRepository @Inject constructor(
             if (!response.isSuccessful) error(httpError(response.code))
             val body = response.body ?: error("Empty response")
             val tmp = File(target.parentFile, target.name + ".tmp")
+            try {
             // With a label: how much has come in so far, so a big download doesn't look frozen.
             val total = body.contentLength().takeIf { it > 0 }
             body.byteStream().use { raw ->
@@ -2530,12 +2554,10 @@ class LiveTvRepository @Inject constructor(
                 return@withContext false
             }
             reportAs?.let { LIVE_REPORT.add("Guide \"$it\": downloaded, new copy ${sizeLabel(tmp.length())} zipped$serverDate") }
-            if (!tmp.renameTo(target)) {
-                tmp.copyTo(target, overwrite = true)
-                tmp.delete()
-            }
+            ImportWorkFiles.publishDownloaded(tmp,target)
             markChanged(target)
             true
+            } finally { tmp.delete() }
         }
     }
 

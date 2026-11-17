@@ -69,6 +69,8 @@ class SportsPageRestoreTest {
         blocked.await()
         mockkObject(BackgroundWork)
         every { BackgroundWork.quiet } returns bulk
+        mockkObject(SportsWork)
+        every { SportsWork.bulk } returns bulk
         var repo: SportsRepository? = null
         try {
             val created = SportsRepository(context, prefs, live, store, mockk<EpgDatabase>(relaxed = true), playback,
@@ -96,6 +98,7 @@ class SportsPageRestoreTest {
             workers.joinAll()
             bulk.close()
             unmockkObject(BackgroundWork)
+            unmockkObject(SportsWork)
         }
     }
 }

@@ -19,8 +19,8 @@ class SportsGuideCacheTest {
         val start = 1_793_318_400_000L
         val titles = listOf("Live: MotoGP : Malaysian Grand Prix: MotoGP Free Practice 2 and Qualifying",
             "Live: Malaysian Grand Prix", "Live: Formula 1: Singapore Grand Prix", "Live: Grand Prix")
-        every { db.visitPrograms(any(), any(), any()) } answers {
-            titles.forEachIndexed { i, title -> thirdArg<(String, EpgProgram) -> Unit>().invoke("channel",
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
+            titles.forEachIndexed { i, title -> lastArg<(String, EpgProgram) -> Unit>().invoke("channel",
                 EpgProgram(start + i * 3_600_000L, start + (i + 1) * 3_600_000L, title,
                     when (i) { 0 -> "Formula 1 news follows MotoGP coverage"; 1 -> "MotoGP qualifying coverage"; else -> null })) }
         }
@@ -48,9 +48,9 @@ class SportsGuideCacheTest {
             "Live: F1: British Grand Prix" to null,
             "Live: Formula One: British Grand Prix" to null,
             "Live: British Grand Prix" to "Formula 1 race coverage from Silverstone")
-        every { db.visitPrograms(any(), any(), any()) } answers {
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
             programmes.forEachIndexed { i, (title, description) ->
-                thirdArg<(String, EpgProgram) -> Unit>().invoke("channel",
+                lastArg<(String, EpgProgram) -> Unit>().invoke("channel",
                     EpgProgram(start + i * 3_600_000L, start + (i + 1) * 3_600_000L, title, description))
             }
         }
@@ -68,7 +68,7 @@ class SportsGuideCacheTest {
             assertEquals(programmes.takeLast(3).map { SportsMatcher.cleanTitle(it.first) },
                 f1.sortedBy { it.startMs }.map { it.title })
         }
-        verify(exactly = 3) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 3) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
     }
 
     @Test fun followedLabelsAndProgrammeTextRefreshIndependently() {
@@ -78,8 +78,8 @@ class SportsGuideCacheTest {
         every { db.fingerprint() } returns "same-guide"
         every { db.contentRevision() } answers { revision }
         val start = 1_793_318_400_000L
-        every { db.visitPrograms(any(), any(), any()) } answers {
-            thirdArg<(String, EpgProgram) -> Unit>().invoke("c", EpgProgram(start, start + 3_600_000, title))
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
+            lastArg<(String, EpgProgram) -> Unit>().invoke("c", EpgProgram(start, start + 3_600_000, title))
         }
         val channel = LiveChannel("c", "playlist", "Test", "Local", null, null, null, "sports", "Sports", 1, "https://example.invalid")
         val matcher = SportsMatcher(db)
@@ -101,8 +101,8 @@ class SportsGuideCacheTest {
         val start = 1_793_318_400_000L
         val programme = EpgProgram(start + 60_000, start + 3_600_000, "Live: NRL: Broncos vs Dolphins",
             "Rugby league coverage", "Sport", "round 1", "https://example.invalid/logo", 2026, listOf("Presenter"))
-        every { db.visitPrograms(any(), any(), any()) } answers {
-            thirdArg<(String, EpgProgram) -> Unit>().invoke("channel", programme)
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
+            lastArg<(String, EpgProgram) -> Unit>().invoke("channel", programme)
         }
         val dir = temp.newFolder()
         val channel = LiveChannel("channel", "playlist", "Test", "AU: 7Mate", null, null, null, "local", "AU Local", 1, "https://example.invalid")
@@ -113,16 +113,16 @@ class SportsGuideCacheTest {
         assertEquals(programme, original.single().guideHits.single().second)
         assertEquals(original, scan())
         assertEquals(GameState.POST, scan(now = start + 7_200_000).single().state)
-        verify(exactly = 1) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 1) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
         scan(ch = channel.copy(name = "AU: Seven HD"))
         scan(shift = 60_000)
         scan(words = listOf("Broncos"))
         revision = "new-guide"
         scan()
-        verify(exactly = 5) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 5) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
         dir.listFiles()!!.single { it.name.endsWith(".gz") }.writeText("incomplete")
         scan()
-        verify(exactly = 6) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 6) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
     }
 
     @Test fun `guide mutation during discovery and cancelled scans never persist partial results`() {
@@ -130,15 +130,15 @@ class SportsGuideCacheTest {
         every { db.fingerprint() } returns "guide"
         var revision = "before"
         every { db.contentRevision() } answers { revision }
-        every { db.visitPrograms(any(), any(), any()) } answers { revision = "after" }
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers { revision = "after" }
         val dir = temp.newFolder()
         SportsMatcher(db, dir).guideEvents(0, 86_400_000, emptyList(), emptyList(), emptyMap(), 0, 0)
         assertTrue(dir.listFiles()!!.isEmpty())
-        every { db.visitPrograms(any(), any(), any()) } answers { }
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers { }
         SportsMatcher(db, dir).guideEvents(0, 86_400_000, emptyList(), emptyList(), emptyMap(), 0, 0)
         assertEquals(1, dir.listFiles()!!.size)
         SportsMatcher(db, dir).guideEvents(0, 86_400_000, emptyList(), emptyList(), emptyMap(), 0, 0)
-        verify(exactly = 2) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 2) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
     }
 
     @Test fun `cache digest is stable and distinguishes field boundaries`() {
@@ -153,8 +153,8 @@ class SportsGuideCacheTest {
         every { db.fingerprint() } answers { fingerprint }
         val start = 1_793_318_400_000L
         val programme = EpgProgram(start + 60_000, start + 3_600_000, "Live: NRL: Broncos vs Dolphins")
-        every { db.visitPrograms(any(), any(), any()) } answers {
-            thirdArg<(String, EpgProgram) -> Unit>().invoke("channel", programme)
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
+            lastArg<(String, EpgProgram) -> Unit>().invoke("channel", programme)
         }
         val channel = LiveChannel("channel", "playlist", "Test", "Fox Sports 501", null, null, null, "sports", "Sports", 1, "https://example.invalid")
         val matcher = SportsMatcher(db)
@@ -164,23 +164,23 @@ class SportsGuideCacheTest {
         assertTrue(first.isNotEmpty())
         assertEquals(GameState.PRE, first.single().state)
         assertEquals(GameState.LIVE, scan(start + 120_000).single().state)
-        verify(exactly = 1) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 1) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
         fingerprint = "two"
         scan(start + 130_000)
-        verify(exactly = 2) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 2) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
         scan(start + 140_000, listOf("Broncos"))
-        verify(exactly = 3) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 3) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
         scan(start + 9 * 60_000, listOf("Broncos"))
-        verify(exactly = 3) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 3) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
         assertEquals(GameState.POST, scan(start + 2 * 3_600_000, listOf("Broncos")).single().state)
-        verify(exactly = 3) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 3) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
         every { db.contentRevision() } returns "catch-up-update"
         scan(start + 2 * 3_600_000, listOf("Broncos"))
-        verify(exactly = 4) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 4) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
         every { db.contentRevision() } returns null
         fingerprint = ""
         scan(start + 2 * 3_600_000, listOf("Broncos"))
-        verify(exactly = 5) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 5) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
     }
 
     @Test fun `superseded guide scan cancels before finishing and never caches a partial day`() {
@@ -190,10 +190,10 @@ class SportsGuideCacheTest {
         val start = 1_793_318_400_000L
         val programme = EpgProgram(start, start + 3_600_000, "Live: NRL: Broncos vs Dolphins")
         var visited = 0
-        every { db.visitPrograms(any(), any(), any()) } answers {
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
             repeat(300) {
                 visited++
-                thirdArg<(String, EpgProgram) -> Unit>().invoke("channel", programme)
+                lastArg<(String, EpgProgram) -> Unit>().invoke("channel", programme)
             }
         }
         val channel = LiveChannel("channel", "playlist", "Test", "Sports", null, null, null,
@@ -207,7 +207,7 @@ class SportsGuideCacheTest {
         assertEquals(256, visited)
         assertTrue(matcher.guideEvents(start, start + 24 * 3_600_000, SportsTaxonomy.leagues, emptyList(),
             mapOf("channel" to channel), 0, start).isNotEmpty())
-        verify(exactly = 2) { db.visitPrograms(any(), any(), any()) }
+        verify(exactly = 2) { db.visitSportsPrograms(any(), any(), any(), any(), any()) }
     }
     @Test fun `World Cup guide fixtures include women with participants in descriptions`() {
         val db = mockk<EpgDatabase>()
@@ -217,8 +217,8 @@ class SportsGuideCacheTest {
         val programmes = listOf(
             EpgProgram(start, start + 7_500_000, "Rugby League World Cup 2026 : Women: England v Samoa", "Coverage of the Women's Rugby League World Cup."),
             EpgProgram(start + 8_100_000, start + 18_000_000, "Men's Rugby League World Cup", "Pool B: England v Papua New Guinea. Coverage of the Rugby League World Cup."))
-        every { db.visitPrograms(any(), any(), any()) } answers {
-            programmes.forEach { thirdArg<(String, EpgProgram) -> Unit>().invoke("channel", it) }
+        every { db.visitSportsPrograms(any(), any(), any(), any(), any()) } answers {
+            programmes.forEach { lastArg<(String, EpgProgram) -> Unit>().invoke("channel", it) }
         }
         val channel = LiveChannel("channel", "playlist", "Test", "Premier Sports 1", null, null, null, "sports", "Sports", 1, "https://example.invalid")
         val events = SportsMatcher(db).guideEvents(start, start + 86_400_000, SportsTaxonomy.leagues,
@@ -233,7 +233,7 @@ class SportsGuideCacheTest {
         val programme = EpgProgram(day, day + 3600000, "Pakistan v Sri Lanka", "Cricket")
         val event = SportsEvent("fixture", "ca/test", day, true, GameState.PRE,
             "Pakistan v Sri Lanka", null, null, null, null, endMs = day + 3600000,
-            source = EventSource.GUIDE, guideHits = List(1000) { "channel-$it" to programme })
+            source = EventSource.GUIDE, guideHits = List(SportsMatchLimits.DEFAULT.perFixture) { "channel-$it" to programme })
         SportsGuideCache.write(dir, day, "original", listOf(event))
         val restored = SportsGuideCache.read(dir, day, "original")!!
         assertEquals(listOf(event), restored)

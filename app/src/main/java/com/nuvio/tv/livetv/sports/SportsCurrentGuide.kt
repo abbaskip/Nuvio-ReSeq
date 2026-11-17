@@ -70,7 +70,7 @@ internal object SportsCurrentGuide {
                 byChannel[match.channel.key] = if (old != null && old.score > match.score)
                     old.copy(program = match.program ?: old.program) else match
             }
-            result[id] = SportsMatcher.sortMatches(byChannel.values.toList(), settings.bestChannelFirst, rank)
+            result[id] = SportsMatcher.sortMatches(byChannel.values.toList(), settings.bestChannelFirst, rank).take(SportsMatchLimits.DEFAULT.perFixture)
         }
         return result
     }

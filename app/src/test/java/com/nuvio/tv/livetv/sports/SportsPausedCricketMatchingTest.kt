@@ -21,10 +21,14 @@ class SportsPausedCricketMatchingTest {
     }
     private fun matches(ev: SportsEvent, programme: EpgProgram, replay: Boolean = false, picked: Boolean = false): List<ChannelMatch> {
         val db = mockk<EpgDatabase>()
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+                val rows: List<Pair<String, com.nuvio.tv.livetv.model.EpgProgram>> = run {
             if (programme.startMs in firstArg<Long>() until secondArg<Long>() && programme.stopMs > thirdArg<Long>())
                 listOf(channel.key to programme) else emptyList()
-        }
+
+                }
+                rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+            }
         return SportsMatcher(db).match(SportsMatcher.Input(listOf(ev), listOf(channel), emptyMap(), 0,
             SportsSettings(region = "AU", eventChannels = if (picked) mapOf(ev.id to "${channel.key}|${ev.startMs}") else emptyMap()),
             now, replay = replay)).matches[ev.id].orEmpty()
@@ -65,13 +69,17 @@ class SportsPausedCricketMatchingTest {
         val current = EpgProgram(now - hour, now + hour, "Test Cricket: Australia v England live")
         val tomorrow = EpgProgram(now + 18 * hour, now + 21 * hour, "Sheffield Shield: VIC v WA Day 2 P1")
         val db = mockk<EpgDatabase>()
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+                val rows: List<Pair<String, com.nuvio.tv.livetv.model.EpgProgram>> = run {
             val words = arg<Collection<String>>(3)
             // The real database caps an OR query at 4,000 rows. Broad Test terms fill it first.
             if ("england" in words) List(4_000) { channel.key to current }
             else if (tomorrow.startMs in firstArg<Long>() until secondArg<Long>()) listOf(channel.key to tomorrow)
             else emptyList()
-        }
+
+                }
+                rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+            }
         val matched = SportsMatcher(db).match(SportsMatcher.Input(listOf(test, shield), listOf(channel),
             emptyMap(), 0, SportsSettings(region = "AU"), now)).matches
         assertTrue(matched[shield.id].orEmpty().any { it.sure && it.program == tomorrow })

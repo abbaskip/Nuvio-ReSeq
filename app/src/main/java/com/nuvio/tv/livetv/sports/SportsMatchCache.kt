@@ -41,17 +41,24 @@ internal object SportsMatchCache {
         } finally { temp.delete() }
     }
 
-    fun read(file: File, channels: Map<String, LiveChannel>, checkpoint: () -> Unit = {}): Map<String, List<ChannelMatch>> {
+    fun read(file: File, channels: Map<String, LiveChannel>, limits: SportsMatchLimits = SportsMatchLimits.UNCAPPED,
+        settings: SportsSettings = SportsSettings(), checkpoint: () -> Unit = {}): Map<String, List<ChannelMatch>> {
         val backup = File(file.path + ".bak")
         if (!file.isFile && backup.isFile) check(backup.renameTo(file))
         if (!file.isFile) return emptyMap()
         return JsonReader.of(file.source().buffer()).use { reader ->
-            val out = HashMap<String, List<ChannelMatch>>()
+            val out = HashMap<String,RankedCandidates<String,ChannelMatch>>()
+            val rank=SportsMatcher.preferenceRank(settings)
+            val comparator=Comparator<ChannelMatch> { a,b -> SportsMatcher.compareMatchFields(a.channel,a.score,a.quality,
+                b.channel,b.score,b.quality,settings.bestChannelFirst,rank) }
+            val global=RankedCandidates<Pair<String,String>,ChannelMatch>(limits.totalMatches,comparator) { key,_ ->
+                out[key.first]?.let { bucket -> bucket.remove(key.second,notify=false); if(bucket.size==0) out.remove(key.first) }
+            }
             reader.beginArray()
             while (reader.hasNext()) {
                 checkpoint()
                 var id: String? = null
-                val items = ArrayList<ChannelMatch>()
+                val items = RankedCandidates<String,ChannelMatch>(limits.perFixture,comparator)
                 reader.beginObject()
                 while (reader.hasNext()) when (reader.nextName()) {
                     "id" -> id = reader.nextString()
@@ -77,7 +84,7 @@ internal object SportsMatchCache {
                             val channel = channels[requireNotNull(key)]
                             val value = requireNotNull(score)
                             val reason = requireNotNull(how)
-                            if (channel != null) items += ChannelMatch(channel, value, reason, null, quality, catchup)
+                            if (channel != null) items.offer(channel.key,ChannelMatch(channel, value, reason, null, quality, catchup))
                         }
                         reader.endArray()
                     }
@@ -85,11 +92,15 @@ internal object SportsMatchCache {
                 }
                 reader.endObject()
                 val eventId = requireNotNull(id)
-                if (items.isNotEmpty()) out[eventId] = items
+                for(item in items.encounterValues) {
+                    val key=eventId to item.channel.key
+                    if(global.offer(key,item)) out.getOrPut(eventId) { RankedCandidates(limits.perFixture,comparator) }
+                        .offer(item.channel.key,item)
+                }
             }
             reader.endArray()
             require(reader.peek() == JsonReader.Token.END_DOCUMENT)
-            out
+            out.mapValues { it.value.encounterValues }
         }
     }
 }

@@ -30,6 +30,17 @@ internal object SqliteCompact {
         val pages = pragma("PRAGMA page_count")
         val free = pragma("PRAGMA freelist_count")
         val freeBytes = free * pageSize
+        if(freeBytes>=MIN_FREE_BYTES && pragma("PRAGMA auto_vacuum")==2L) {
+            var remaining=free
+            while(remaining>0) {
+                db.rawQuery("PRAGMA incremental_vacuum(4096)",null).use { cursor -> while(cursor.moveToNext()) { /* Drain every reclamation step. */ } }
+                if(!checkpoint()) break
+                val next=pragma("PRAGMA freelist_count")
+                if(next>=remaining) break
+                remaining=next
+            }
+            return@runCatching (before-allocated()).coerceAtLeast(0)
+        }
         if (freeBytes < MIN_FREE_BYTES || free * 4 < pages) return@runCatching (before - allocated()).coerceAtLeast(0)
         // VACUUM needs temporary storage. Never spend the final space needed by playback or an update.
         if (file.usableSpace < file.length() * 2 + 64L * 1024 * 1024) return@runCatching (before - allocated()).coerceAtLeast(0)

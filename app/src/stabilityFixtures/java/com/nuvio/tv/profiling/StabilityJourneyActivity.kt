@@ -53,6 +53,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import java.net.URL
+import okio.source
+import okio.buffer
 import javax.inject.Inject
 
 private const val HTTP = "http://127.0.0.1:38791"
@@ -67,6 +69,7 @@ class StabilityJourneyActivity : ComponentActivity() {
     @Inject lateinit var live: LiveTvRepository
     @Inject lateinit var vod: OnDemandRepository
     @Inject lateinit var playback: LiveTvPlaybackController
+    @Inject lateinit var guideDb: com.nuvio.tv.livetv.data.EpgDatabase
     @Inject lateinit var sports: SportsRepository
     @Inject lateinit var trailers: TrailerPlayerPool
     @Inject lateinit var progress: WatchProgressRepository
@@ -164,9 +167,67 @@ class StabilityJourneyActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 when (action) {
+                    "stage2-contract" -> stage2Contract()
                     "stage2-setup" -> stage2Setup()
                     "stage2-load" -> stage2Load(false, intent.getBooleanExtra("withTrailer", false))
                     "stage2-second" -> stage2Load(true, false)
+                    "stage2-hold" -> { fakeSession?.close(); fakeSession=PlayerSessionTracker.open() }
+                    "stage2-idle" -> { fakeSession?.close(); fakeSession=null }
+                    "stage2-storage" -> {
+                        profiles.activeProfileReady.first { it }
+                        // Open the real helper (including restart recovery), then restore the
+                        // saved channel model. This action never fetches or changes tracker data.
+                        val counts=withContext(Dispatchers.IO) {
+                            val db=guideDb.readableDatabase
+                            listOf("programs","stage","stage_meta","stage_channels","stage_info").associateWith { table ->
+                                db.rawQuery("SELECT COUNT(*) FROM $table",null).use { it.moveToFirst();it.getLong(0) }
+                            }
+                        }
+                        val restored=live.loadSavedChannels()
+                        route="home"
+                        Diag.event("stage2-storage",counts+mapOf("channels" to live.channels.value.size,"restored" to restored,
+                            "guideBytes" to getDatabasePath("livetv_guide.db").length(),
+                            "guideWalBytes" to java.io.File(getDatabasePath("livetv_guide.db").path+"-wal").length()))
+                    }
+                    "stage2-game" -> {
+                        val requested = intent.getStringExtra("eventId")
+                        val target = withTimeout(60_000) { sports.known.first { list ->
+                            list.any { if (requested != null) it.id == requested else it.state == GameState.LIVE }
+                        } }.first { if (requested != null) it.id == requested else it.state == GameState.LIVE }
+                        Diag.event("stage2-game-target",mapOf("id" to target.id,"title" to target.title))
+                        SportsLaunch.openEvent(target.id); route = "cricket"
+                    }
+                    "guide-preview" -> {
+                        prefs.updateSettings { it.copy(updateGuideDuringPlayback=true) }
+                        Diag.event("guide-fixture-policy",mapOf("updateDuringPlayback" to prefs.currentSettings().updateGuideDuringPlayback))
+                        live.ensureLoaded()
+                        val channels = withTimeout(60_000) { live.channels.first { it.isNotEmpty() } }
+                        playback.attach().apply { volume=0f; repeatMode=Player.REPEAT_MODE_ALL }
+                        playback.play(channels.first()); route="guide"
+                    }
+                    "stage2-dump" -> withContext(Dispatchers.IO) {
+                        val saved = sports.matches.value
+                        val file = java.io.File(filesDir,"stage2-matches.json")
+                        file.bufferedWriter().use { writer ->
+                            writer.write("[")
+                            saved.toSortedMap().entries.forEachIndexed { index,(id,list) ->
+                                if(index>0) writer.write(",")
+                                writer.write("{\"id\":"+org.json.JSONObject.quote(id)+",\"matches\":[")
+                                list.forEachIndexed { n,m ->
+                                    if(n>0) writer.write(",")
+                                    writer.write(org.json.JSONObject().put("channel",m.channel.key).put("score",m.score)
+                                        .put("how",m.how).put("quality",m.quality ?: org.json.JSONObject.NULL)
+                                        .put("catchup",m.catchup).put("start",m.program?.startMs ?: org.json.JSONObject.NULL)
+                                        .put("stop",m.program?.stopMs ?: org.json.JSONObject.NULL)
+                                        .put("title",m.program?.title ?: org.json.JSONObject.NULL).toString())
+                                }
+                                writer.write("]}")
+                            }
+                            writer.write("]")
+                        }
+                        Diag.event("stage2-dump",mapOf("fixtures" to saved.size,"matches" to saved.values.sumOf { it.size },
+                            "maxPerFixture" to (saved.values.maxOfOrNull { it.size } ?: 0),"file" to file.name))
+                    }
                     "frames-reset" -> { frames.clear(); recordFrames = true }
                     "frames-report" -> {
                         recordFrames = false
@@ -315,6 +376,66 @@ class StabilityJourneyActivity : ComponentActivity() {
         }
     }
 
+    private suspend fun stage2Contract() = withContext(Dispatchers.Default) {
+        val at=1_794_866_820_000L
+        val started=android.os.SystemClock.elapsedRealtime()
+        val parsed=ArrayList<SportsEvent>()
+        URL("$HTTP/sports").openStream().source().buffer().use { input ->
+            SportsBaseFeed.parse(input,at) { entry ->
+                val league=SportsCatalog.league(entry.leagueId)
+                if(league!=null) {
+                    val events=when {
+                        entry.provider=="espn" && league.espnPath!=null -> SportsFeeds.parseScoreboard(league,entry.payload)
+                        entry.provider=="tsdb" && league.id.startsWith("tsdb/") -> FreeSportsDb.events(league,entry.payload,entry.fetchedAt)
+                        entry.provider=="calendar" && league.fixtureSlug!=null -> SportsFeeds.parseFixtures(league,entry.payload)
+                        else -> emptyList()
+                    }
+                    parsed.addAll(events.mapNotNull { SportsPageSnapshot.display(SportsBaseFeed.scheduled(it,entry.fetchedAt),entry.fetchedAt,at) })
+                }
+            }
+        }
+        Diag.event("stage2-contract-feed",mapOf("events" to parsed.size,"ms" to android.os.SystemClock.elapsedRealtime()-started))
+        val channels=live.channels.first { it.isNotEmpty() }
+        val settings=sports.settings.value
+        // Match the recorded reference input, independent of preview quality observations.
+        val quality=mapOf("stage2-one|channel1|Sports Network 001 HD" to "SD")
+        val shift=prefs.settings.first().epgOffsetMinutes*60_000L
+        val matcher=SportsMatcher(guideDb)
+        val guide=ArrayList<SportsEvent>()
+        val calendar=java.util.Calendar.getInstance().apply { timeInMillis=at; set(java.util.Calendar.HOUR_OF_DAY,0);set(java.util.Calendar.MINUTE,0);set(java.util.Calendar.SECOND,0);set(java.util.Calendar.MILLISECOND,0) }
+        val day=calendar.timeInMillis
+        for(offset in listOf(0,1,-1)) {
+            val begin=android.os.SystemClock.elapsedRealtime()
+            val found=matcher.guideEvents(day+offset*86_400_000L,day+(offset+1)*86_400_000L,SportsCatalog.all,
+                emptyList(),channels.associateBy { it.key },shift,at)
+            guide.addAll(found)
+            Diag.event("stage2-contract-discovery",mapOf("day" to offset,"events" to found.size,"ms" to android.os.SystemClock.elapsedRealtime()-begin))
+        }
+        val begin=android.os.SystemClock.elapsedRealtime()
+        val result=matcher.match(SportsMatcher.Input((parsed+guide).distinctBy { it.id },channels,quality,shift,settings,at))
+        val elapsed=android.os.SystemClock.elapsedRealtime()-begin
+        val file=java.io.File(filesDir,"stage2-contract.json")
+        file.bufferedWriter().use { writer ->
+            writer.write("[")
+            result.matches.toSortedMap().entries.forEachIndexed { index,(id,list) ->
+                if(index>0) writer.write(",")
+                writer.write("{\"id\":"+org.json.JSONObject.quote(id)+",\"matches\":[")
+                list.forEachIndexed { n,m ->
+                    if(n>0) writer.write(",")
+                    writer.write(org.json.JSONObject().put("channel",m.channel.key).put("score",m.score)
+                        .put("how",m.how).put("quality",m.quality ?: org.json.JSONObject.NULL)
+                        .put("catchup",m.catchup).put("start",m.program?.startMs ?: org.json.JSONObject.NULL)
+                        .put("stop",m.program?.stopMs ?: org.json.JSONObject.NULL)
+                        .put("title",m.program?.title ?: org.json.JSONObject.NULL).toString())
+                }
+                writer.write("]}")
+            }
+            writer.write("]")
+        }
+        Diag.event("stage2-contract-complete",mapOf("fixtures" to result.matches.size,"matches" to result.matches.values.sumOf { it.size },
+            "qualityInput" to quality,"fixedAt" to at,"matchingMs" to elapsed,"totalMs" to android.os.SystemClock.elapsedRealtime()-started,"file" to file.name,"summary" to result.summary))
+    }
+
     private suspend fun stage2Setup() {
         profiles.activeProfileReady.first { it }
         addonPrefs.removeAddon("https://v3-cinemeta.strem.io")
@@ -324,10 +445,12 @@ class StabilityJourneyActivity : ComponentActivity() {
     }
 
     private suspend fun stage2Load(second: Boolean, withTrailer: Boolean) {
-        stage2Setup()
+        if (!second) stage2Setup() else profiles.activeProfileReady.first { it }
+        java.io.File(filesDir,"livetv").mkdirs()
         if (!withTrailer) trailerView?.player?.stop()
         home.setHomeContentActive(withTrailer)
         route = if (withTrailer) "trailer" else "waiting"
+        if(withTrailer) withTimeout(30_000) { while(trailerView?.player?.isPlaying!=true) delay(100) }
         val id = if (second) "stage2-two" else "stage2-one"
         val source = PlaylistSource(id, "Stage 2 fixture", "$HTTP/get.php",
             xtreamServer = HTTP, xtreamUsername = if (second) "fixture2" else "fixture",
@@ -561,6 +684,8 @@ class StabilityJourneyActivity : ComponentActivity() {
             "gc" to Debug.getRuntimeStats(), "cwIds" to ids, "snapshot" to snapshots,
             "snapshotVersion" to projection.revision, "launcher" to launcher, "watchNext" to watchNext,
             "guideBuilding" to BackgroundWork.guideBuilding.value, "heavyJobs" to BackgroundWork.heavyJobs.value,
+            "guideWindowChannels" to live.programs.value.size,
+            "guideWindowPrograms" to live.programs.value.values.sumOf { it.size },
             "rawProgress" to progress.allProgress.first().map { "${it.contentId}:${it.episode}:${it.isCompleted()}" },
             "sportsEvents" to sports.events.value.size))
         stacks.filter { (thread, _) -> thread.name.startsWith("DefaultDispatcher-worker") || thread.name.startsWith("nuvio-quiet") }

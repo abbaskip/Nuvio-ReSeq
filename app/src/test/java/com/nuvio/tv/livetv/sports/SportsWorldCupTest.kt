@@ -26,7 +26,10 @@ class SportsWorldCupTest {
             LiveChannel("$i", "playlist", "Test", name, null, null, null, "sports", "Sports", i, "https://example.invalid")
         }
         val db = mockk<EpgDatabase>(relaxed = true)
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } returns channels.map { it.key to programme }
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+            val rows: List<Pair<String,com.nuvio.tv.livetv.model.EpgProgram>> = channels.map { it.key to programme }
+            rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+        }
         val matches = SportsMatcher(db).match(SportsMatcher.Input(listOf(event), channels, emptyMap(), 0, SportsSettings(), start - 3_600_000)).matches[event.id].orEmpty()
         assertEquals(2, matches.size)
         assertTrue(matches.all { it.sure && it.program == programme })
@@ -83,9 +86,11 @@ class SportsWorldCupTest {
         val variants = (1..12).map { channel("variant-$it", "Premier Sports 1 FHD $it", "Sports") }
         val channels = variants + local + unrelated
         val db = mockk<EpgDatabase>(relaxed = true)
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } returns
-            (variants + local).map { it.key to programme } +
-            (unrelated.key to programme.copy(title = "France v Samoa", description = null))
+        every { db.visitMatchPrograms(any(),any(),any(),any(),any(),any()) } answers {
+            val rows=(variants+local).map { it.key to programme } +
+                (unrelated.key to programme.copy(title="France v Samoa",description=null))
+            rows.forEach { (ch,p) -> lastArg<(String,EpgProgram)->Unit>()(ch,p) }
+        }
         for (bestFirst in listOf(true, false)) {
             val matches = SportsMatcher(db).match(SportsMatcher.Input(listOf(event), channels, emptyMap(), 0,
                 SportsSettings(bestChannelFirst = bestFirst), start - 3_600_000)).matches[event.id].orEmpty()

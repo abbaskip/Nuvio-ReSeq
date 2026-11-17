@@ -24,7 +24,7 @@ class SportsQuickMatchingTest {
         val input = SportsMatcher.Input(fixture, channels, emptyMap(), 0, settings, now, includeGuide = false)
         assertEquals(expected, matcher.matchIncrementally(input).matches)
         assertEquals(expected, matcher.matchIncrementally(input).matches)
-        verify(exactly = 0) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test fun `incremental pass equals full matching and revisits programmes at their boundary`() {
@@ -32,8 +32,10 @@ class SportsQuickMatchingTest {
         var revision = "one"
         every { db.contentRevision() } answers { revision }
         every { db.nextSportsBoundary(any()) } answers { if (firstArg<Long>() < now + 60_000) now + 60_000 else now + 120_000 }
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } returns listOf(
-            "network" to com.nuvio.tv.livetv.model.EpgProgram(now - 30 * 60_000, now + 3_600_000, event.title))
+        every { db.visitMatchPrograms(any(),any(),any(),any(),any(),any()) } answers {
+            lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()("network",
+                com.nuvio.tv.livetv.model.EpgProgram(now-30*60_000,now+3_600_000,event.title))
+        }
         val channels = listOf(channel("network", "NBA TV HD"))
         val memo = SportsMatcher(db, incremental = true)
         val reference = SportsMatcher(db)
@@ -43,22 +45,26 @@ class SportsQuickMatchingTest {
         memo.match(SportsMatcher.Input(listOf(event.copy(id = "opened-game")), channels, emptyMap(), 0, SportsSettings(), now))
         io.mockk.clearMocks(db, answers = false)
         assertEquals(memo.matchIncrementally(input(now)).matches, memo.matchIncrementally(input(now + 1)).matches)
-        verify(exactly = 0) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
         memo.matchIncrementally(input(now + 3_600_000))
-        verify(exactly = 1) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 1) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
         revision = "two"
         memo.matchIncrementally(input(now + 3_600_001))
-        verify(exactly = 2) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 2) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test fun `guide result preparation checks cancellation inside the slot`() {
         val db = mockk<EpgDatabase>()
         var queried = false
-        every { db.findByWords(any(), any(), any(), any(), any(), any()) } answers {
+        every { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) } answers {
+                val rows: List<Pair<String, com.nuvio.tv.livetv.model.EpgProgram>> = run {
             queried = true
             List(500) { "network" to com.nuvio.tv.livetv.model.EpgProgram(now, now + 3_600_000,
                 "NBA Basketball", description = event.title) }
-        }
+
+                }
+                rows.forEach { (ch,p) -> lastArg<(String,com.nuvio.tv.livetv.model.EpgProgram)->Unit>()(ch,p) }
+            }
         try {
             SportsMatcher(db).match(SportsMatcher.Input(listOf(event), listOf(channel("network", "NBA TV HD")),
                 emptyMap(), 0, SportsSettings(), now)) {
@@ -101,7 +107,7 @@ class SportsQuickMatchingTest {
         assertEquals(setOf("event", "network", "manual"), results.map { it.channel.key }.toSet())
         assertEquals("manual", results.first().channel.key)
         assertFalse(results.first { it.channel.key == "network" }.sure)
-        verify(exactly = 0) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
         verify(exactly = 0) { db.range(any(), any(), any(), any(), any()) }
         verify(exactly = 0) { db.visitPrograms(any(), any(), any()) }
     }
@@ -117,7 +123,7 @@ class SportsQuickMatchingTest {
         assertTrue(results.first { it.channel.key == "archive" }.catchup)
         assertFalse(results.first { it.channel.key == "expired" }.catchup)
         assertTrue(results.none { it.sure || it.program != null })
-        verify(exactly = 0) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
         verify(exactly = 0) { db.range(any(), any(), any(), any(), any()) }
         verify(exactly = 0) { db.visitPrograms(any(), any(), any()) }
     }
@@ -140,7 +146,7 @@ class SportsQuickMatchingTest {
             val results = SportsMatcher(db).match(SportsMatcher.Input(listOf(fixture), listOf(channel("test", name)),
                 emptyMap(), 0, SportsSettings(), now, includeGuide = false)).matches[fixture.id].orEmpty()
             assertEquals("$network / $name", expected, results.isNotEmpty())
-            verify(exactly = 0) { db.findByWords(any(), any(), any(), any(), any(), any()) }
+            verify(exactly = 0) { db.visitMatchPrograms(any(), any(), any(), any(), any(), any()) }
             verify(exactly = 0) { db.range(any(), any(), any(), any(), any()) }
         }
     }

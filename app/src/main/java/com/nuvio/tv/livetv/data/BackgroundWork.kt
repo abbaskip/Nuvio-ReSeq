@@ -34,7 +34,7 @@ object BackgroundWork {
 
     /** Called between small batches on a worker, never from the UI thread. */
     fun yieldToNavigation() {
-        if (System.nanoTime() - lastNavigationNanos in 0..250_000_000L) Thread.sleep(16)
+        if (System.nanoTime() - lastNavigationNanos in 0..250_000_000L) Thread.yield()
     }
 
     /** Full player sessions hold bulk work while Home trailers share first loads. */
@@ -52,7 +52,7 @@ object BackgroundWork {
 
     /**
      * Two low-priority threads for work nobody is waiting on: automatic playlist and guide
-     * updates, and finding channels for Sports games when the Sports page isn't open. Android
+     * updates. Sports matching owns a separate worker. Android
      * gives the screen and the video first claim on the processor over these, so on a slower box
      * scrolling and playback stay smooth while they run (they just take a little longer).
      */

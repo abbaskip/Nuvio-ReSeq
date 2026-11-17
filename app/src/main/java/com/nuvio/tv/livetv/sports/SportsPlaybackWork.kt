@@ -2,6 +2,7 @@ package com.nuvio.tv.livetv.sports
 
 import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.livetv.player.LivePlaybackState
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -113,3 +114,13 @@ internal suspend inline fun <T> sportsCatching(block: () -> T): Result<T> {
 /** Keep cancellation connected to the socket until the response body has been consumed. */
 internal suspend fun <T> Call.consumeSportsResponse(consume: (Response) -> T): T =
     consumeCancellableResponse(consume)
+
+/** Pacing owns a worker: it cannot park a guide/import worker or the current-airing read lane. */
+internal object SportsWork {
+    val bulk: kotlinx.coroutines.CoroutineDispatcher by lazy {
+        java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+            Thread({ android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND - 1); task.run() },
+                "nuvio-sports-bulk").apply { isDaemon=true }
+        }.asCoroutineDispatcher()
+    }
+}

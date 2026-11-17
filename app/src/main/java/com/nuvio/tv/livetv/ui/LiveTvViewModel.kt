@@ -897,6 +897,12 @@ class LiveTvViewModel @Inject constructor(
 
     /** Guide scrolled ahead or back: load those hours from the guide database if needed. */
     fun ensureGuideRange(fromMs: Long, toMs: Long) = repository.ensureRange(fromMs, toMs)
+    fun loadVisibleGuideChannels(keys: List<String>) {
+        val visible=(listOfNotNull(playback.state.value.channelKey)+keys).distinct()
+        repository.loadChannelsNow(visible)
+        repository.ensureFullRange(visible)
+    }
+    suspend fun guideChannelsWithListings(): Set<String> = repository.guideChannelsWithListings()
     /** The group on screen: its listings for every day the guide keeps (see the repository). */
     fun ensureGroupFullRange(channelKeys: List<String>) = repository.ensureFullRange(channelKeys)
     /** Changes when the guide's days ahead need asking for again (see the repository). */

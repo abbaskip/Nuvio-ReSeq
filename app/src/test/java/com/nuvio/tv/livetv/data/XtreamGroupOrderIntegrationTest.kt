@@ -24,6 +24,17 @@ import java.io.File
 @Config(manifest = Config.NONE, sdk = [28], application = Application::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class XtreamGroupOrderIntegrationTest {
+    @Test fun atomicDownloadReplacementKeepsLastGoodCopyWhenPublicationFails() {
+        val directory=File(RuntimeEnvironment.getApplication().cacheDir,"atomic-download").apply { mkdirs() }
+        val saved=File(directory,"guide").apply { writeText("old") }
+        val temporary=File(directory,"guide.tmp").apply { writeText("new") }
+        ImportWorkFiles.publishDownloaded(temporary,saved)
+        assertEquals("new",saved.readText())
+        assertFalse(temporary.exists())
+        assertTrue(runCatching { ImportWorkFiles.publishDownloaded(temporary,saved) }.isFailure)
+        assertEquals("new",saved.readText())
+    }
+
     @Test fun importRefreshRestoreAndFallback() = runBlocking {
         MockWebServer().use { server ->
             server.start()

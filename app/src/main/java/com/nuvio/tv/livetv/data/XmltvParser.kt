@@ -148,6 +148,8 @@ object XmltvParser {
         }
         } catch (cancel: kotlinx.coroutines.CancellationException) {
             throw cancel
+        } catch (storage: android.database.sqlite.SQLiteException) {
+            throw storage
         } catch (e: Exception) {
             // A guide broken partway (bad characters, cut off): keep everything read up to there
             // instead of throwing the whole guide away.

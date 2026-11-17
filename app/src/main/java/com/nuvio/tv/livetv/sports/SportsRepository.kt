@@ -77,7 +77,7 @@ class SportsRepository @Inject constructor(
     private val broadcastEnrichment = MutableStateFlow<Map<String, List<SportsBroadcast>>>(emptyMap())
     private val freeAttemptAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val matcher = SportsMatcher(guideDb, File(context.cacheDir, "sports-guide"), incremental = true)
-    private val tvNowMatcher = SportsMatcher(guideDb)
+    private val tvNowMatcher = SportsMatcher(guideDb, incremental = true)
     private var tvNowMatchIds = emptySet<String>()
     @Volatile private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
     private val sportsCache = SportsDiskCache.directory(context.filesDir, context.cacheDir)
@@ -1293,7 +1293,7 @@ class SportsRepository @Inject constructor(
 
     private suspend fun restoreMatches(file: File, chans: Map<String, LiveChannel>) {
         val work = currentCoroutineContext()
-        val out = SportsMatchCache.read(file, chans) { work.ensureActive() }
+        val out = SportsMatchCache.read(file, chans, limits=SportsMatchLimits.DEFAULT, settings=settings.value) { work.ensureActive() }
         if (out.isNotEmpty() && _matches.value.isEmpty()) {
             _matches.value = out
             LiveTvLoadReport.add("Sports: showing last time's channels for ${out.size} games while matching again")
@@ -1387,13 +1387,12 @@ class SportsRepository @Inject constructor(
                 publishedFirst = true
             }
         }
-        publishCandidates(tvNowMatcher.visibleFixturePrograms(fixtures, liveRepo.programs.value, shift, now, checkpoint))
         val snapshot = tvNowMatcher.tvNowSnapshot(activeLeagues(s, f), f.words, channels, shift, now, fixtures,
-            onFixturePrograms = ::publishCandidates, checkCancelled = checkpoint)
+            onFixturePrograms = ::publishCandidates, settings = s, quality = user.channelQuality, checkCancelled = checkpoint)
         val discovered = SportsGuideEvents.merge(snapshot.airings, protectedIds)
         // The airings already identify their channels: do not index every playlist channel.
         val hitKeys = (discovered.flatMap { it.guideHits.map { hit -> hit.first } } + snapshot.fixturePrograms.map { it.first }).toSet()
-        val found = tvNowMatcher.match(SportsMatcher.Input(discovered + fixtures,
+        val found = tvNowMatcher.matchCurrent(SportsMatcher.Input(discovered + fixtures,
             channels.filterKeys { it in hitKeys }.values.toList(), user.channelQuality, shift, s, now,
             includeGuide = false, currentGuidePrograms = snapshot.fixturePrograms), checkpoint).matches
         val fixtureIds = fixtures.mapTo(HashSet()) { it.id }
@@ -1461,7 +1460,7 @@ class SportsRepository @Inject constructor(
         queueGeminiMatching()
     }
 
-    private suspend fun runMatch() = withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
+    private suspend fun runMatch() = withContext(SportsWork.bulk) {
         val workContext = currentCoroutineContext()
         val pacing = SportsMatchPacing()
         val checkpoint = {
@@ -1515,7 +1514,7 @@ class SportsRepository @Inject constructor(
             // Restore completed discoveries before the all-fixture pass, including after process death.
             for (offset in listOf(0, 1, -1)) {
                 val saved = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues,
-                    f.words, keys, shift, now, cachedOnly = true, checkCancelled = checkpoint)
+                    f.words, keys, shift, now, cachedOnly = true, selection = s, quality = user.channelQuality, checkCancelled = checkpoint)
                 if (saved.isNotEmpty()) guideData.update { previous ->
                     val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
                         f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
@@ -1525,7 +1524,7 @@ class SportsRepository @Inject constructor(
             }
             // Importing a new guide cannot prevent already loaded channel names and user picks appearing.
             if (!guideReady()) return@withContext
-            withContext(com.nuvio.tv.livetv.data.BackgroundWork.quiet) {
+            withContext(SportsWork.bulk) {
                 // EPG-only fixtures should not wait behind all of the API fixtures' channel searches.
                 var guideMatches = emptyMap<String, List<ChannelMatch>>()
                 val scanContext = currentCoroutineContext()
@@ -1534,7 +1533,7 @@ class SportsRepository @Inject constructor(
                         val scanStarted = System.currentTimeMillis()
                         val discovered = try {
                             checkpoint()
-                            val found = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues, f.words, keys, shift, now) { scanContext.ensureActive(); checkpoint() }
+                            val found = matcher.guideEvents(dayStart(offset), dayStart(offset + 1), guideLeagues, f.words, keys, shift, now, selection=s, quality=user.channelQuality) { scanContext.ensureActive(); checkpoint() }
                             val protectedIds = s.eventChannels.keys + s.blocked.map { it.substringBefore('|') } +
                                 f.reminders.map { it.eventId } + listOfNotNull(focusedEvent.value)
                             SportsGuideEvents.merge(found, protectedIds.toSet())

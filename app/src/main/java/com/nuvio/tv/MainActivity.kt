@@ -395,12 +395,7 @@ open class MainActivity : ComponentActivity() {
             com.nuvio.tv.ui.components.DatabaseCompatibilityNotice.show(this, issue)
             return
         }
-        // The compatibility notice keeps the platform's normal key dispatch.
-        val activityCallback = window.callback
-        window.callback = object : android.view.Window.Callback by activityCallback {
-            override fun dispatchKeyEvent(event: KeyEvent): Boolean =
-                handleAppKey(event) || activityCallback.dispatchKeyEvent(event)
-        }
+        installAppKeyHandler()
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) { memberAccessRepository.pollWhileVisible() }
         }
@@ -1413,25 +1408,31 @@ open class MainActivity : ComponentActivity() {
         ambientIdleController.onInteraction()
     }
 
-    private fun handleAppKey(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN) com.nuvio.tv.livetv.data.BackgroundWork.onNavigation()
-        if (ambientIdleController.consumeKeyEvent(event)) return true
-        if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-            if (longPressBackHeld.value) {
-                if (event.action == KeyEvent.ACTION_UP) longPressBackHeld.value = false
-                return true
+    private fun installAppKeyHandler() {
+        // Install only on the normal app window. The database notice keeps platform key handling.
+        val activityCallback = window.callback
+        window.callback = object : android.view.Window.Callback by activityCallback {
+            override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+                if (event.action == KeyEvent.ACTION_DOWN) com.nuvio.tv.livetv.data.BackgroundWork.onNavigation()
+                if (ambientIdleController.consumeKeyEvent(event)) return true
+                if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                    if (longPressBackHeld.value) {
+                        if (event.action == KeyEvent.ACTION_UP) longPressBackHeld.value = false
+                        return true
+                    }
+                }
+                if (event.keyCode == KeyEvent.KEYCODE_BACK &&
+                    externalPlaybackTracker.autoNextOverlay.value != null
+                ) {
+                    if (event.action == KeyEvent.ACTION_UP) {
+                        Log.d("ExtAutoNext", "dispatchKeyEvent BACK -> dismissAutoNextOverlay (loader showing)")
+                        externalPlaybackTracker.dismissAutoNextOverlay()
+                    }
+                    return true
+                }
+                return activityCallback.dispatchKeyEvent(event)
             }
         }
-        if (event.keyCode == KeyEvent.KEYCODE_BACK &&
-            externalPlaybackTracker.autoNextOverlay.value != null
-        ) {
-            if (event.action == KeyEvent.ACTION_UP) {
-                Log.d("ExtAutoNext", "dispatchKeyEvent BACK -> dismissAutoNextOverlay (loader showing)")
-                externalPlaybackTracker.dismissAutoNextOverlay()
-            }
-            return true
-        }
-        return false
     }
 
     override fun onStart() {

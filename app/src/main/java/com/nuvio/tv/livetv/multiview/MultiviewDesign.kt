@@ -1,5 +1,7 @@
 package com.nuvio.tv.livetv.multiview
 
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.delay
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -143,6 +145,7 @@ internal fun MultiviewProgress(fraction: Float, modifier: Modifier = Modifier) {
  * [fullScreen] is the pane filling the screen: square corners, no edge or highlight. [hint] is a
  * line under the name on the highlighted pane; [hideVideo] puts a covered protected picture away.
  */
+@OptIn(UnstableApi::class)
 @Composable
 internal fun MultiviewPane(
     pane: MultiviewPaneState,

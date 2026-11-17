@@ -1,5 +1,7 @@
 package com.nuvio.tv.livetv.player
 
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 
@@ -8,6 +10,7 @@ import androidx.media3.common.PlaybackException
  * full-screen player and Multiview so a channel fixed in one plays the same way in the other.
  * ReSeq M1: used by the panes only; the existing single player's equivalent fallbacks stay intact.
  */
+@OptIn(UnstableApi::class)
 internal object LiveStreamFormats {
     /** Live channels whose HLS playlist couldn't be read: played as TS instead (until the app restarts). */
     val tsInstead: MutableSet<String> = java.util.Collections.synchronizedSet(HashSet())

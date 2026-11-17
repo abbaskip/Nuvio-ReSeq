@@ -383,7 +383,9 @@ private class AndroidMultiviewPanePlayer(
             .setEnableFloatOutput(enableFloatOutput)
             .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
             .build()
-            .apply { setOffloadMode(AudioSink.OFFLOAD_MODE_DISABLED) }
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) setOffloadMode(AudioSink.OFFLOAD_MODE_DISABLED)
+            }
     }.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
         .setEnableDecoderFallback(true)
 

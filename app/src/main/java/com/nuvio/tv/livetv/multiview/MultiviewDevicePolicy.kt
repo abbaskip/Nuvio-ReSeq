@@ -1,5 +1,7 @@
 package com.nuvio.tv.livetv.multiview
 
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import android.app.ActivityManager
 import android.content.Context
 import android.media.MediaCodecList
@@ -20,6 +22,7 @@ internal object MultiviewDevicePolicy {
         return minOf(4, (decoders - 1).coerceAtLeast(0), memory)
     }
 
+    @OptIn(UnstableApi::class)
     fun read(context: Context): Int {
         val am = context.getSystemService(ActivityManager::class.java)
         val ram = ActivityManager.MemoryInfo().also(am::getMemoryInfo).totalMem / (1024 * 1024)

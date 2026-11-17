@@ -113,7 +113,7 @@ class LiveTvPlaybackController @Inject constructor(
     private var currentChannel: LiveChannel? = null
         set(value) {
             field = value
-            com.nuvio.tv.livetv.data.BackgroundWork.liveChannelOpen.value = value != null
+            com.nuvio.tv.livetv.data.BackgroundWork.liveChannelSignal.single(value != null)
         }
 
     // ---------------------------------------------------------------- pause and rewind

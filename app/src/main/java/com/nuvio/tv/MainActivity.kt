@@ -1267,8 +1267,9 @@ open class MainActivity : ComponentActivity() {
                             }
 
                             val liveTvPlaying by com.nuvio.tv.livetv.player.LiveWatching.active.collectAsState()
+                            val liveChannelOpen by com.nuvio.tv.livetv.data.BackgroundWork.liveChannelOpen.collectAsState()
                             // Watching is activity; begin a fresh idle interval when the stream stops.
-                            LaunchedEffect(liveTvPlaying) { ambientIdleController.onInteraction() }
+                            LaunchedEffect(liveTvPlaying, liveChannelOpen) { ambientIdleController.onInteraction() }
                             val isTrailerPlaying by trailerPlayerPool.isTrailerPlaying.collectAsState()
                             LaunchedEffect(isTrailerPlaying) {
                                 if (!isTrailerPlaying) ambientIdleController.onInteraction()
@@ -1279,7 +1280,8 @@ open class MainActivity : ComponentActivity() {
                                     route = currentRoute,
                                     hasAutoNextOverlay = autoNextOverlay != null,
                                     trailerPlaying = isTrailerPlaying,
-                                    liveTvPlaying = liveTvPlaying != null
+                                    liveTvPlaying = liveTvPlaying != null,
+                                    liveChannelOpen = liveChannelOpen
                                 ),
                                 onShown = { trailerPlayerPool.stop() }
                             )

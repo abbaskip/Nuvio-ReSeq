@@ -4,6 +4,7 @@ internal fun ambientModeAllowed(
     route: String?,
     hasAutoNextOverlay: Boolean,
     trailerPlaying: Boolean,
-    liveTvPlaying: Boolean
+    liveTvPlaying: Boolean,
+    liveChannelOpen: Boolean = false
 ): Boolean = route?.startsWith("player/") != true &&
-    !hasAutoNextOverlay && !trailerPlaying && !liveTvPlaying
+    !hasAutoNextOverlay && !trailerPlaying && !liveTvPlaying && !liveChannelOpen

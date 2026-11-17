@@ -64,6 +64,7 @@ private val SHOWS = listOf("tt9900001", "tt9900002", "tt9900003")
 @AndroidEntryPoint
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class StabilityJourneyActivity : ComponentActivity() {
+    @Inject lateinit var m1: MultiviewAcceptance
     @Inject lateinit var profiles: ProfileManager
     @Inject lateinit var prefs: LiveTvPreferences
     @Inject lateinit var live: LiveTvRepository
@@ -114,6 +115,8 @@ class StabilityJourneyActivity : ComponentActivity() {
                 Box {
                     key(route) {
                     when (route) {
+                        "m1-screen" -> com.nuvio.tv.livetv.multiview.MultiviewScreen(onBack = { route = "home" })
+                        "m1" -> m1.Content()
                         "home", "trailer" -> HomeScreen(home, { _, _, _ -> })
                         "sports", "cricket" -> SportsScreen({})
                         "guide" -> com.nuvio.tv.livetv.ui.LiveTvGuideScreen({}, {})
@@ -239,6 +242,25 @@ class StabilityJourneyActivity : ComponentActivity() {
                             "guideBuilding" to BackgroundWork.guideBuilding.value))
                     }
                     "guide-update" -> { live.refreshEpgOnly(); route = "guide" }
+                    "m1-screen-assert" -> m1.assertScreen(this@StabilityJourneyActivity)
+                    "m1-shuffle" -> {
+                        route = "home"
+                        home.setHomeContentActive(true)
+                        val row = withTimeout(60_000) { home.uiState.first { state ->
+                            state.continueWatchingItems.any { item -> item.shufflePlayback && when (item) {
+                                is ContinueWatchingItem.InProgress -> item.progress.contentId == SHOWS[0]
+                                is ContinueWatchingItem.NextUp -> item.info.contentId == SHOWS[0]
+                            } }
+                        } }
+                        check(row.continueWatchingItems.count { it.shufflePlayback } == 1)
+                        Diag.event("m1-shuffle-passed")
+                    }
+                    "m1-three", "m1-three-progress", "m1-layout-cycle", "m1-device-info", "m1-multiview", "m1-background-assert", "m1-stop", "m1-rewatch-seed", "m1-rewatch-assert",
+                    "m1-stale-pause", "m1-cw-launch", "m1-contract" -> {
+                        home.setHomeContentActive(false)
+                        route = "m1"
+                        m1.command(action, this@StabilityJourneyActivity, home)
+                    }
                     "office-split" -> officeSplit()
                     "tracker-unwatch-seed" -> seedTrackerUnwatch()
                     "tracker-unwatch-latest" -> removeTrackerEpisode()

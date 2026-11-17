@@ -20,6 +20,7 @@ def main():
                         choices=['io.github.abbaskip.nuvioreseq.iptvdebug', 'io.github.abbaskip.nuvioreseq.debug'])
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--scenario', choices=['local', 'tracker'], default='local')
+    parser.add_argument('--fixture-port', type=int, default=38791)
     args = parser.parse_args()
     if not args.serial.startswith('emulator-'):
         parser.error('Synthetic emulator only; physical TVs are forbidden')
@@ -30,13 +31,13 @@ def main():
     assert adb('shell', 'getprop', 'ro.kernel.qemu').strip() == b'1', 'Not an emulator'
     args.output.mkdir(parents=True, exist_ok=True)
     for port in (38791, 38792, 38793):
-        adb('reverse', f'tcp:{port}', f'tcp:{port}')
+        adb('reverse', f'tcp:{port}', f'tcp:{args.fixture_port + port - 38791}')
     # Only the separate fixture app is restarted, never the release package.
     adb('shell', 'am', 'force-stop', args.package)
     result = []
     scenarios = ('tracker',) if args.scenario == 'tracker' else ('resume', 'history')
     if args.scenario == 'tracker':
-        with urlopen('http://127.0.0.1:38791/control?trackerUnwatch=true', timeout=5) as response:
+        with urlopen(f'http://127.0.0.1:{args.fixture_port}/control?trackerUnwatch=true', timeout=5) as response:
             assert json.load(response)['trackerUnwatch']
     for scenario in scenarios:
         directory = args.output / scenario
@@ -70,7 +71,7 @@ def main():
                     break
                 time.sleep(2)
         if scenario == 'tracker':
-            with urlopen('http://127.0.0.1:38791/stats', timeout=5) as response:
+            with urlopen(f'http://127.0.0.1:{args.fixture_port}/stats', timeout=5) as response:
                 assert json.load(response)['requests']['tracker-removed-episodes'] == 1
         result.append({'scenario': scenario, 'passed': True})
         print(f'{scenario}: PASS', flush=True)

@@ -126,6 +126,19 @@ private fun PlaybackNavHost(
     mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel,
     discoverIsRoot: Boolean
 ) {
+    val recoveryContext = LocalContext.current
+    val returnToGuide = androidx.compose.runtime.remember {
+        com.nuvio.tv.livetv.multiview.MultiviewRecovery.takeGuideReturn(recoveryContext)
+    }
+    androidx.compose.runtime.LaunchedEffect(returnToGuide) {
+        if (returnToGuide) {
+            android.util.Log.i("Multiview", "Recovering interrupted Multiview to the Live TV guide")
+            navController.navigate(Screen.LiveTv.route) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
+        }
+    }
     val mixPlaying by mixViewModel.session.playing.collectAsStateWithLifecycle()
     val liveFullscreen by com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.collectAsStateWithLifecycle()
     fun returnToMix() {
@@ -285,6 +298,10 @@ private fun PlaybackNavHost(
                 viewModel = vm,
                 onOpenFullscreen = { com.nuvio.tv.livetv.ui.LiveTvFullscreen.request() },
                 onOpenSettings = { navController.navigate(Screen.LiveTvSettings.route) },
+                onMultiview = {
+                    com.nuvio.tv.livetv.multiview.MultiviewRouteAccess.request()
+                    navController.navigate(Screen.Multiview.route) { launchSingleTop = true }
+                },
                 onReturnToSports = {
                     if (!navController.popBackStack(Screen.Sports.route, inclusive = false)) {
                         navController.navigate(Screen.Sports.route) {
@@ -295,6 +312,21 @@ private fun PlaybackNavHost(
                 },
                 onFindInNuvio = { navController.navigate(Screen.Search.route) }
             )
+        }
+        composable(Screen.Multiview.route) { entry ->
+            val permitted = androidx.compose.runtime.remember(entry) {
+                com.nuvio.tv.livetv.multiview.MultiviewRouteAccess.take()
+            }
+            if (permitted) {
+                com.nuvio.tv.livetv.multiview.MultiviewScreen(onBack = { navController.popBackStack() })
+            } else {
+                androidx.compose.runtime.LaunchedEffect(entry) {
+                    navController.navigate(Screen.LiveTv.route) {
+                        popUpTo(Screen.Multiview.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
         }
         rootComposable(Screen.Sports.route, withInset = !liveFullscreen) {
             com.nuvio.tv.livetv.sports.SportsScreen(

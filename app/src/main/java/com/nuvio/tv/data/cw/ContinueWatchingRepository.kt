@@ -183,6 +183,28 @@ class ContinueWatchingRepository @Inject constructor(
         refreshProjection()
     }
 
+    suspend fun partialWatchRemoved(profileId: Int, event: WatchProgress) {
+        val state = snapshot()
+        if (state.profileId != profileId) return
+        mutate(state.lease, afterCommit = { restoredSeries.remove(event.contentId) }) {
+            CwMembershipReducer.removePause(it, event)
+        }
+        refreshProjection()
+        val refreshed = snapshot()
+        val member = refreshed.members[event.contentId] ?: return
+        if (member.progress?.isCompleted() != true || member.inProgress != null) return
+        val resolver = tvdbTracking?.get() ?: return
+        val complete = withTimeoutOrNull(8_000) {
+            val history = progressProvider.get().getAllEpisodeProgress(event.contentId, profileId).first { it.isNotEmpty() }
+            resolver.isFullyWatched(profileId, event.contentId, history.values)
+        } ?: false
+        if (complete) mutate(refreshed.lease) { current ->
+            if (current.members[event.contentId] != member) current else current.copy(
+                revision = current.revision + 1, members = current.members + (event.contentId to
+                    member.copy(inProgress = null, nextUp = null, changedAtRevision = current.revision + 1)))
+        }
+    }
+
     suspend fun invalidate(profileId: Int, contentIds: Set<String>) {
         val state = snapshot()
         if (state.profileId != profileId) return

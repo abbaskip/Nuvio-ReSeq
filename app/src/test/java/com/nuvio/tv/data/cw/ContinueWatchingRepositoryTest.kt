@@ -278,6 +278,25 @@ class ContinueWatchingRepositoryTest {
         assertEquals(listOf("other", "show"), sorted.map { (it as ContinueWatchingItem.NextUp).info.contentId })
     }
 
+    @Test fun `removing a restored pause cannot rebuild away older completed history`() = runTest {
+        val first = p(1, 1_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        val last = p(3, 2_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        val pause = p(1, 3_000).copy(position = 1, source = WatchProgress.SOURCE_TRAKT_PLAYBACK,
+            traktPlaybackId = 77, traktEpisodeId = 12)
+        val original = repository()
+        original.committedProgress(1, listOf(first, last, pause))
+        val history = original.snapshot().completed
+        remote.value = listOf(pause) // Only recent playback is present in the startup feed.
+        seeds.value = listOf(last)
+        loaded.value = true
+        val restarted = repository()
+        restarted.partialWatchRemoved(1, pause)
+        assertEquals(history, restarted.snapshot().completed)
+        assertTrue(restarted.snapshot().inProgress.isEmpty())
+        repeat(3) { restarted.refreshProjection() }
+        assertEquals(history, repository().snapshot().completed)
+    }
+
     @Test fun `selected TVDB order without verified identity retains series choice until compatible progress arrives`() = runTest {
         val orders = mockk<com.nuvio.tv.data.tvdb.TvdbOrderStore> {
             coEvery { exportSelections(1) } returns mapOf("alias:show" to "123", "order:123" to "dvd")

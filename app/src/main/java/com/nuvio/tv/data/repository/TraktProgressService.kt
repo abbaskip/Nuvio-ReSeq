@@ -1635,7 +1635,9 @@ class TraktProgressService @Inject constructor(
         watchedEpisodes: Map<String, Set<Pair<Int, Int>>>,
         fullyWatchedSeries: Set<String>
     ): Boolean {
-        if (progress.isInProgress()) return false
+        // A new rewatch can be only seconds long. The 2% presentation threshold
+        // cannot turn positive paused playback into evidence of an old completion.
+        if (progress.hasPlaybackToResume()) return false
         val keys = progressLookupKeys(progress)
         if (progress.contentType.equals("movie", ignoreCase = true)) {
             return keys.any { it in watchedMovies }
@@ -1806,7 +1808,7 @@ class TraktProgressService @Inject constructor(
                 val key = progressKey(progress)
                 val existing = mergedByKey[key]
                 val shouldUsePlayback = existing == null ||
-                    (progress.isInProgress() && progress.lastWatched >= existing.lastWatched - 1_000L)
+                    (progress.hasPlaybackToResume() && progress.lastWatched >= existing.lastWatched - 1_000L)
                 if (shouldUsePlayback) {
                     mergedByKey[key] = progress
                 }
@@ -1820,7 +1822,7 @@ class TraktProgressService @Inject constructor(
         // already covered by a history entry — avoids duplicates.
         mergedByKey.entries.removeAll { (key, progress) ->
             progress.source == WatchProgress.SOURCE_TRAKT_PLAYBACK &&
-                !progress.isInProgress() &&
+                !progress.hasPlaybackToResume() &&
                 progress.season != null && progress.episode != null &&
                 "${progress.contentId}_s${progress.season}e${progress.episode}" in completedEpisodeKeys
         }
@@ -2738,3 +2740,6 @@ class TraktProgressService @Inject constructor(
         return minutes * 60_000L
     }
 }
+
+private fun WatchProgress.hasPlaybackToResume(): Boolean =
+    !isCompleted() && (position > 0 || progressPercentage > 0f)

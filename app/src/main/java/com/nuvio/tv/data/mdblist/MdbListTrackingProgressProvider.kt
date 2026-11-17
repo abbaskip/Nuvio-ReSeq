@@ -68,7 +68,7 @@ class MdbListTrackingProgressProvider @Inject constructor(
                 emit(projection.episodeProgressInAddonNumbering(contentId, known))
                 return@transformLatest
             }
-            emit(projection.episodeProgress(contentId))
+            emit(projection.episodeHistoryAndProgress(contentId))
             if (!projection.hasEpisodes(contentId)) return@transformLatest
             episodeMapping(contentId, projection)?.let { mapping ->
                 emit(projection.episodeProgressInAddonNumbering(contentId, mapping))
@@ -167,7 +167,7 @@ class MdbListTrackingProgressProvider @Inject constructor(
         contentId: String,
         mapping: MdbListEpisodeMapping
     ): Map<Pair<Int, Int>, WatchProgress> {
-        if (!mapping.remaps) return episodeProgress(contentId)
+        if (!mapping.remaps) return episodeHistoryAndProgress(contentId)
         return (watchedEpisodeProgress(contentId) + episodeProgress(contentId).values)
             .mapNotNull { progress ->
                 val addon = mapping.toAddon(progress.season!!, progress.episode!!, progress.episodeTitle)
@@ -176,6 +176,12 @@ class MdbListTrackingProgressProvider @Inject constructor(
             }
             .toMap()
     }
+
+    // Other trackers expose completed episode rows here too. Keep them available
+    // after a pause clears, and let a live pause win its own coordinate in this view.
+    private fun MdbListProgressProjection.episodeHistoryAndProgress(contentId: String) =
+        (watchedEpisodeProgress(contentId) + episodeProgress(contentId).values)
+            .associateBy { requireNotNull(it.season) to requireNotNull(it.episode) }
 
     /**
      * Moves in-progress episodes to the addon's numbering. Shows with a known mapping are remapped

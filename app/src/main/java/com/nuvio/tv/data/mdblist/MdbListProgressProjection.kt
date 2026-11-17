@@ -100,7 +100,7 @@ internal class MdbListProgressProjection private constructor(
             if (record.season == null || record.episode == null) return@mapNotNull null
             progress(
                 record.type, record.media, record.season, record.episode, record.episodeTitle,
-                100f, record.watchedAt, null, WatchProgress.SOURCE_REMOTE_HISTORY
+                100f, record.watchedAt, null, WatchProgress.SOURCE_REMOTE_HISTORY, record.episodeTvdbId
             )
         }
 

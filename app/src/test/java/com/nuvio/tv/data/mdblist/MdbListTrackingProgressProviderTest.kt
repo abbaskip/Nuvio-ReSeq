@@ -100,6 +100,30 @@ class MdbListTrackingProgressProviderTest {
         assertEquals("tt1:2:11", seed.videoId)
     }
 
+    @Test fun `completed episode identities remain available after a short rewatch clears without an addon remap`() = runTest {
+        val harness = MdbListSyncTestHarness(backgroundScope)
+        val watched = listOf(mdbListTestEpisode(6, 16).copy(episodeTvdbId = 1832421),
+            mdbListTestEpisode(6, 15).copy(episodeTvdbId = 1575891))
+        val pause = mdbListTestPlayback(.5f, "2026-11-17T00:00:00Z").copy(type = MdbListItemType.EPISODE,
+            season = 6, episode = 16, episodeTvdbId = 1832421)
+        harness.seed(harness.snapshot().copy(watched = watched, playback = listOf(pause)))
+        harness.repository.ensureLoaded()
+        val provider = provider(harness)
+        val active = provider.episodeProgress("tt1").first()
+        assertEquals(.5f, active.getValue(6 to 16).progressPercent)
+        assertTrue(active.getValue(6 to 15).isCompleted())
+        harness.http.reply(body = """[{"id":7,"type":"episode","progress":0.5,"paused_at":"2026-11-17T00:00:00Z",
+            "show":{"ids":{"imdb":"tt1","tmdb":1}},"episode":{"season":6,"number":16,"ids":{"tvdb":1832421}}}]""")
+        harness.http.reply(body = """{"action":"clear","deleted":true}""")
+        provider.removeEpisodePause(com.nuvio.tv.core.tracking.buildTrackingMediaReference("series", "tt1", "tt1:6:16",
+            seasonNumber = 6, episodeNumber = 16), active.getValue(6 to 16))
+        val remaining = provider.episodeProgress("tt1").first()
+        assertTrue(remaining.getValue(6 to 16).isCompleted())
+        assertEquals(1832421L, remaining.getValue(6 to 16).tvdbEpisodeId)
+        assertEquals(1575891L, remaining.getValue(6 to 15).tvdbEpisodeId)
+        assertEquals(watched, harness.repository.currentSnapshot()?.watched)
+    }
+
     private fun seedProgress(season: Int, episode: Int) = WatchProgress(
         contentId = "tt1", contentType = "series", name = "Show", poster = null, backdrop = null, logo = null,
         videoId = "tt1:$season:$episode", season = season, episode = episode, episodeTitle = null,

@@ -13,6 +13,11 @@ import com.nuvio.tv.domain.model.*
 import com.nuvio.tv.ui.screens.home.homeCard
 import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.*
 import org.junit.Assert.*
@@ -76,6 +81,141 @@ class TvdbProportionalScrobbleTest {
             episodeNumber = video.episode, episodeTitle = video.title).let {
             it.copy(catalog = it.catalog!!.copy(tvdbContext = video.tvdbPlaybackContext(), tvdbCoverageVerified = true))
         }, percent)
+
+    @Test fun completedOfficeShortRewatchResolvesTheSameEpisodeForDetailsAndCw() = runTest {
+        val history = rows.map { row -> WatchProgress(original.id, "series", "The Office", null, null, null,
+            "${original.id}:${row.season}:${row.number}", row.season, row.number, row.title, 1, 1, 1_000,
+            progressPercent = 100f, source = WatchProgress.SOURCE_TRAKT_HISTORY, traktEpisodeId = row.ids?.trakt) }
+        for (video in rewatchVideos) {
+            for (provider in listOf("trakt", "simkl", "mdblist")) for (percent in listOf(.02f, 1f, 3f)) {
+                val pause = shortRewatch(video, provider, percent)
+                val projected = resolver.projectProgress(1, original.id, emptyMap(), history + pause)
+                val details = projected.values
+                    .single { it.tvdbContext?.episodeId == video.episodeIdentity?.tvdbEpisodeId }
+                val cw = requireNotNull(resolver.continueWatchingResume(1, pause) {
+                    projected.values }) {
+                    "$provider ${video.title} $percent native=${pause.season}x${pause.episode} tvdb=${pause.tvdbEpisodeId} details=$details"
+                }
+                assertEquals("$provider ${video.title} $percent", video.tvdbPlaybackContext(), details.tvdbContext)
+                assertEquals(details.tvdbContext, cw.tvdbContext)
+                assertEquals(details.progressPercent!!, cw.progressPercent!!, .001f)
+                assertTrue("$provider ${video.title} $percent", details.hasRemovableEpisodePause())
+            }
+        }
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test fun completedOfficeDetailsHomeReplayNeverReplacesTheKnownResumeWithAChoiceCard() = runTest {
+        val history = rows.map { row -> WatchProgress(original.id, "series", "The Office", null, null, null,
+            "${original.id}:${row.season}:${row.number}", row.season, row.number, row.title, 1, 1, 1_000,
+            progressPercent = 100f, source = WatchProgress.SOURCE_TRAKT_HISTORY, traktEpisodeId = row.ids?.trakt) }
+        for (video in rewatchVideos) for (provider in listOf("trakt", "simkl", "mdblist")) {
+            val raw = shortRewatch(video, provider, .5f)
+            val directory = java.nio.file.Files.createTempDirectory("completed-rewatch-clock").toFile()
+            val items = MutableStateFlow(history + raw)
+            val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
+                every { allProgress } returns items
+                every { observeNextUpSeeds() } returns MutableStateFlow(listOf(history.last()))
+                every { observeRemoteProgressLoaded() } returns MutableStateFlow(true)
+                every { hasActiveTrackingProgressProvider() } returns true
+                every { isDroppedShow(any()) } returns false
+            }
+            val selectedRows = MutableStateFlow(resolver.projectProgress(1, original.id, emptyMap(), items.value))
+            every { remote.getAllEpisodeProgress(original.id, 1) } returns selectedRows
+            coEvery { store.exportSelections(1) } returns mapOf("alias:${original.id}" to "73244", "order:73244" to "alttwo")
+            every { profiles.resolvedActiveProfileId } returns MutableStateFlow(1)
+            val cw = ContinueWatchingRepository(mockk { every { filesDir } returns directory }, profiles,
+                mockk { coEvery { getWatchProgressSource(1) } returns com.nuvio.tv.data.local.WatchProgressSource.valueOf(provider.uppercase()) },
+                javax.inject.Provider { remote }, tvdbOrders = store, tvdbTracking = javax.inject.Provider { resolver })
+            try {
+                cw.refreshProjection()
+                val beforeDetails = cw.snapshot()
+                val first = beforeDetails.inProgress.single()
+                assertFalse("$provider ${video.title} raw=$raw", first.chooseEpisode)
+                val frames = java.util.concurrent.CopyOnWriteArrayList<CwProjection>()
+                val capture = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    cw.projection.filterNotNull().collect { frames += it }
+                }
+                val details = resolver.projectProgress(1, original.id, emptyMap(), history + raw)
+                val choice = com.nuvio.tv.ui.screens.detail.SeriesNextToWatch(mockk(relaxed = true)).resolve(
+                    original.id, "series", "The Office", effective.videos, true, null, details, emptySet(), false) { emptyMap() }
+                assertTrue(choice.isResume)
+                assertEquals(first.videoId, choice.nextVideoId)
+                // Delayed Details metadata and Home/provider refreshes finish in different orders.
+                repeat(5) { pass ->
+                    val lease = cw.snapshot().lease
+                    val delayedDetails = launch {
+                        delay(250)
+                        cw.enrich(beforeDetails.lease, nextUp = listOf(raw.seriesChoice()))
+                        cw.enrich(lease, inProgress = listOf(first.copy(episodeDescription = "Details result")))
+                    }
+                    items.value = history + raw.copy(name = "Alias $pass", poster = "fixture:$pass")
+                    selectedRows.value = resolver.projectProgress(1, original.id, emptyMap(), items.value)
+                    cw.refreshProjection()
+                    testScheduler.advanceTimeBy(300)
+                    delayedDetails.join()
+                    val card = cw.snapshot().inProgress.single()
+                    assertFalse("$provider ${video.title} at ${testScheduler.currentTime}", card.chooseEpisode)
+                    assertEquals(first.tvdbContext, card.tvdbContext)
+                    assertEquals(first.progressPercent, card.progressPercent)
+                    assertTrue(cw.snapshot().nextUp.isEmpty())
+                }
+                capture.cancel()
+                assertTrue(frames.isNotEmpty())
+                frames.forEach { frame ->
+                    assertFalse(frame.inProgress.single().chooseEpisode)
+                    assertTrue(frame.nextUp.isEmpty())
+                    assertEquals(first.tvdbContext, frame.inProgress.single().tvdbContext)
+                }
+                val completed = cw.snapshot().completed
+                val remaining = resolver.projectProgress(1, original.id, emptyMap(), history)
+                every { remote.getAllEpisodeProgress(original.id, 1) } returns MutableStateFlow(remaining)
+                cw.partialWatchRemoved(1, details.values.single { it.lastWatched == raw.lastWatched && it.hasRemovableEpisodePause() })
+                repeat(3) {
+                    testScheduler.advanceTimeBy(1_000)
+                    cw.refreshProjection() // An old playback cache still contains the removed session.
+                    assertTrue(cw.snapshot().inProgress.isEmpty())
+                    assertTrue(cw.snapshot().nextUp.isEmpty())
+                    assertEquals(completed, cw.snapshot().completed)
+                }
+                items.value = history + raw.copy(lastWatched = 4_000)
+                selectedRows.value = resolver.projectProgress(1, original.id, emptyMap(), items.value)
+                every { remote.getAllEpisodeProgress(original.id, 1) } returns selectedRows
+                cw.refreshProjection()
+                assertFalse(cw.snapshot().inProgress.single().chooseEpisode)
+                assertEquals(first.tvdbContext, cw.snapshot().inProgress.single().tvdbContext)
+            } finally { directory.deleteRecursively() }
+        }
+    }
+
+    private val rewatchVideos get() = listOf(10719652L, 10719653L, 10719611L, 10718533L).map { id ->
+        effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == id }
+    }
+
+    private fun shortRewatch(video: Video, provider: String, percent: Float): WatchProgress {
+        val native = when (video.episodeIdentity?.tvdbEpisodeId) {
+            10718533L -> rows.single { it.season == 5 && it.number == 14 }
+            10719652L, 10719653L -> rows.single { it.title == "The Delivery" }
+            10719611L -> rows.single { it.title == "Shareholder Meeting" }
+            else -> error("Unknown fixture episode")
+        }
+        val context = requireNotNull(video.tvdbPlaybackContext())
+        val ids = effective.episodeOrder!!.content.single { it.tvdbId == native.ids?.tvdb?.toLong() }.episodeIds
+        // Incoming provider fixtures use the native combined timeline, including the
+        // prefix before Part 2. The selected-order resume is still only seconds long.
+        val nativePercent = requireNotNull(projectTvdbFraction(context.episodeIds, ids,
+            context.progressWeights(additionalIds = ids), percent / 100.0)) {
+            "Fixture ${video.title}: selected ${context.episodeIds} vs native $ids"
+        } * 100
+        return WatchProgress(original.id, "series", "The Office", null, null, null,
+            "${original.id}:${native.season}:${native.number}", native.season, native.number, native.title,
+            0, 0, 3_000, progressPercent = nativePercent.toFloat(),
+            source = when (provider) { "trakt" -> WatchProgress.SOURCE_TRAKT_PLAYBACK
+                "simkl" -> WatchProgress.SOURCE_SIMKL_PLAYBACK; else -> WatchProgress.SOURCE_REMOTE_PLAYBACK },
+            trackingProviderId = provider, traktEpisodeId = native.ids?.trakt,
+            traktPlaybackId = if (provider == "trakt") 77 else null,
+            simklPlaybackId = if (provider == "simkl") 88 else null, tvdbEpisodeId = native.ids?.tvdb?.toLong())
+    }
 
     @Test fun `combined partial events use the active verified part for every tracker and cannot complete early`() = runTest {
         for (provider in TrackingProviderId.entries) {

@@ -87,7 +87,7 @@ data class WatchProgress(
         progressPercentage >= startThreshold && (progressPercentage < endThreshold || tvdbCoverageVerified == false)
 
     fun hasRemovableEpisodePause(): Boolean = season != null && episode != null &&
-        progressPercentage > 0f && progressPercentage < 1f && !isCompleted() && tvdbWatchedIds.isEmpty()
+        progressPercentage > 0f && progressPercentage < 1f && !isCompleted()
 
     fun hasRemovableTraktWatch(): Boolean = season != null && episode != null && lastWatched > 0 && when (source) {
         SOURCE_TRAKT_PLAYBACK -> traktPlaybackId != null && traktEpisodeId != null

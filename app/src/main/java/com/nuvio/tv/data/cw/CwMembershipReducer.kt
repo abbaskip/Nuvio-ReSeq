@@ -301,6 +301,21 @@ object CwMembershipReducer {
             completed = state.completed + (id to records), ignoredProgress = state.ignoredProgress + keys.associateWith { event.lastWatched })
     }
 
+    /** Removing a pause acknowledges that playback event, never its older completed history. */
+    fun removePause(state: CwProjection, event: WatchProgress): CwProjection {
+        val member = state.members[event.contentId]
+        val raw = member?.progress
+        val matches = raw?.hasRemovableEpisodePause() == true && raw.source == event.source &&
+            raw.lastWatched == event.lastWatched && ((event.tvdbContext != null &&
+                member.inProgress?.tvdbContext == event.tvdbContext) ||
+                (member.inProgress?.videoId == event.videoId && member.inProgress.season == event.season &&
+                    member.inProgress.episode == event.episode))
+        val keys = (if (matches) raw else event)?.pauseEventKey()?.let(::setOf).orEmpty()
+        return state.copy(epoch = state.epoch + 1, revision = state.revision + 1,
+            members = if (matches) state.members - event.contentId else state.members,
+            ignoredProgress = state.ignoredProgress + keys.associateWith { event.lastWatched })
+    }
+
     fun invalidate(state: CwProjection, ids: Set<String>): CwProjection = state.copy(
         epoch = state.epoch + 1, revision = state.revision + 1,
         members = state.members.mapValues { (id, member) ->
@@ -394,6 +409,7 @@ private fun WatchProgress.isDetailedHistoryFor(seed: WatchProgress): Boolean =
 private fun episodeHistoryKey(contentId: String, season: Int, episode: Int) = "$contentId|episode:$season:$episode|"
 internal fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"
 private fun WatchProgress.watchEventKeys(): Set<String> {
+    pauseEventKey()?.let { return setOf(it) }
     if (source == WatchProgress.SOURCE_TRAKT_PLAYBACK && traktPlaybackId != null)
         return setOf("$contentId|playback:$traktPlaybackId|$lastWatched")
     if (source != WatchProgress.SOURCE_TRAKT_HISTORY && source != WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS) return emptySet()
@@ -402,6 +418,25 @@ private fun WatchProgress.watchEventKeys(): Set<String> {
         traktHistoryEpisode?.let { add("$contentId|watch:${it.season}:${it.episode}|$lastWatched") }
     }
 }
+
+private fun WatchProgress.pauseEventKey(): String? {
+    if (!hasRemovableEpisodePause()) return null
+    val identity = when (source) {
+        WatchProgress.SOURCE_TRAKT_PLAYBACK -> traktPlaybackId?.let { "playback:$it" }
+            ?: traktEpisodeId?.let { "episode:$it" } ?: "$season:$episode"
+        WatchProgress.SOURCE_SIMKL_PLAYBACK -> "simkl:${simklPlaybackId ?: "$season:$episode"}"
+        WatchProgress.SOURCE_REMOTE_PLAYBACK -> "$trackingProviderId:${tvdbEpisodeId ?: "$season:$episode"}"
+        WatchProgress.SOURCE_LOCAL -> "$videoId:${tvdbContext?.episodeId}"
+        else -> return null
+    }
+    // Retain the existing Trakt pause key, including acknowledgements written by 9.10.
+    return if (source == WatchProgress.SOURCE_TRAKT_PLAYBACK && traktPlaybackId != null)
+        "$contentId|playback:$traktPlaybackId|$lastWatched"
+    else "$contentId|pause:$source:$identity|$lastWatched"
+}
+
+internal fun WatchProgress.isRemovedCwPause(ignored: Map<String, Long>): Boolean =
+    pauseEventKey()?.let(ignored::containsKey) == true
 
 private fun WatchProgress.historyKey() = if (tvdbContentIds.isEmpty() && season != null && episode != null)
     episodeHistoryKey(contentId, season, episode)

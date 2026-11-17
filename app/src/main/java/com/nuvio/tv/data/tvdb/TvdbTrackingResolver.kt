@@ -102,6 +102,18 @@ class TvdbTrackingResolver @Inject constructor(
 
     internal suspend fun partThreshold() = (playerSettings?.playerSettings?.first()?.nextEpisodeThresholdPercent ?: 99f) / 100f
 
+    /** Positive catalogue/history evidence, using the same projection as Details. */
+    internal suspend fun isFullyWatched(profileId: Int, contentId: String, progress: Collection<WatchProgress>): Boolean {
+        val meta = effectiveMetadata(profileId, contentId, "series") ?: return false
+        if (meta.episodeOrder?.effectiveType == null) return false
+        val episodes = meta.watchableEpisodes().filter { (it.displaySeason ?: it.season ?: 0) > 0 }
+        val projected = reconcileTvdbProgress(meta, emptyMap(), progress.toList()).values
+            .associateBy { it.tvdbContext?.episodeId }
+        return episodes.isNotEmpty() && episodes.all { video ->
+            projected[video.episodeIdentity?.tvdbEpisodeId]?.isCompleted() == true
+        }
+    }
+
     fun observeSelection(profileId: Int, contentId: String) = store.observeSelection(profileId, contentId)
     fun observeSelectedSeries(profileId: Int) = store.observeSelectedSeries(profileId)
 

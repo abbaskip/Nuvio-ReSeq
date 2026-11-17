@@ -30,7 +30,7 @@ class EpisodePartialWatchTest {
             EpisodeCoordinates(6, 11), EpisodeCoordinates(6, 11), canonicalTvdbEpisodeId = 1271801))
         assertTrue(pause.copy(tvdbEpisodeId = 1271801).matchesPartialEpisode(parent, selected))
         assertFalse(pause.copy(tvdbEpisodeId = 1832421).matchesPartialEpisode(parent, selected))
-        assertFalse(pause.copy(tvdbEpisodeId = 1271801, tvdbCompletedEpisodeIds = listOf(1271801))
+        assertTrue(pause.copy(tvdbEpisodeId = 1271801, tvdbCompletedEpisodeIds = listOf(1271801))
             .matchesPartialEpisode(parent, selected))
     }
 }

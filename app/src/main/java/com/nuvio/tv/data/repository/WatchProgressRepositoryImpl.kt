@@ -7,6 +7,7 @@ import com.nuvio.tv.core.sync.WatchStateMutationStore
 import com.nuvio.tv.core.sync.WatchedItemsSyncService
 import android.os.SystemClock
 import android.util.Log
+import com.nuvio.tv.data.cw.isRemovedCwPause
 import com.nuvio.tv.data.local.TraktSettingsDataStore
 import com.nuvio.tv.data.local.WatchProgressSource
 import com.nuvio.tv.data.local.WatchProgressPreferences
@@ -587,14 +588,17 @@ class WatchProgressRepositoryImpl @Inject constructor(
             val remote = if (provider?.providerId == TrackingProviderId.TRAKT)
                 tvdb.canonicalTraktRecords(profileId, contentId, context) ?: provider.episodeProgress(contentId).map { it.values.toList() }
                 else if (provider != null) combine(provider.episodeProgress(contentId), provider.allProgress) { episodes, all ->
-                    (episodes.values + all).distinctBy { Triple(it.contentId, it.season, it.episode) }
+                    // A completed row and a new pause can share coordinates. Keep both
+                    // events until the selected-order projection resolves their precedence.
+                    (episodes.values + all).distinct()
                 } else flowOf(emptyList())
             val revoked = cwRepository?.projection?.map { state ->
                 state?.takeIf { it.profileId == profileId && it.source == provider?.providerId?.name }?.ignoredProgress.orEmpty()
             }?.distinctUntilChanged() ?: flowOf(emptyMap())
             combine(remote, watchProgressPreferences.observeEpisodeRecords(contentId, profileId), revoked) { entries, records, ignored ->
                 tvdb.projectProgress(profileId, contentId, emptyMap(),
-                    records.mapNotNull { retainedSelectedProgress(provider, profileId, it) } + entries, context).filterValues { part ->
+                    (records.mapNotNull { retainedSelectedProgress(provider, profileId, it) } + entries)
+                        .filterNot { it.isRemovedCwPause(ignored) }, context).filterValues { part ->
                     part.tvdbContentIds.none { id ->
                         (ignored[com.nuvio.tv.data.cw.tvdbRemovalKey(contentId, id)] ?: Long.MIN_VALUE) >= part.lastWatched
                     }
@@ -1031,8 +1035,13 @@ class WatchProgressRepositoryImpl @Inject constructor(
         val source = buildTrackingMediaReference("series", contentId, video.id, seasonNumber = requireNotNull(video.season),
             episodeNumber = requireNotNull(video.episode), episodeTitle = video.title)
         val reference = source.copy(catalog = requireNotNull(source.catalog).copy(tvdbContext = context))
-        val local = watchProgressPreferences.getAllRawEntries(profile)
-            .filterValues { it.matchesPartialEpisode(contentId, video) }
+        suspend fun matchesPause(row: WatchProgress): Boolean =
+            row.matchesPartialEpisode(contentId, video) || (row.contentId == contentId &&
+                row.hasRemovableEpisodePause() && context != null && tvdbTracking?.projectProgress(
+                    profile, contentId, emptyMap(), listOf(row))?.values?.any {
+                    it.matchesPartialEpisode(contentId, video)
+                } == true)
+        val local = watchProgressPreferences.getAllRawEntries(profile).filterValues { matchesPause(it) }
         var complete = true
         for (provider in connectedProgressProviders()) {
             check(profileManager.activeProfileId.value == profile)
@@ -1051,16 +1060,17 @@ class WatchProgressRepositoryImpl @Inject constructor(
         check(profileManager.activeProfileId.value == profile)
         if (authManager.isAuthenticated && !ServerItemRef.isServerId(contentId)) {
             val remote = watchProgressSyncService.pullFromRemote(profile, forTvdbResume = true, rawKeys = true)
-            val keys = remote.getOrNull().orEmpty().filter { (_, row) -> row.matchesPartialEpisode(contentId, video) }
+            val keys = remote.getOrNull().orEmpty().filter { (_, row) -> matchesPause(row) }
                 .map { it.first }
             if (remote.isFailure || (keys.isNotEmpty() && watchProgressSyncService.deleteFromRemote(keys, profile).isFailure)) {
                 complete = false
             }
         }
+        check(complete)
         mutationStore.acknowledgeProgressUpserts(local, profile)
         watchProgressPreferences.removeMatchingProgress(local, profile)
+        cwRepository?.partialWatchRemoved(profile, resume)
         triggerRemoteSync(profile)
-        check(complete)
     }
 
     override suspend fun removeProgress(contentId: String, season: Int?, episode: Int?) {

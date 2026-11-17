@@ -29,6 +29,7 @@ object LiveTvPreload {
     @Volatile private var started = false
 
     suspend fun start(context: android.content.Context) {
+        if (com.nuvio.tv.core.storage.DatabaseVersions.blockingIssue(context) != null) return
         if (started) return
         started = true
         clearOldBuffers(context.applicationContext, System.currentTimeMillis())

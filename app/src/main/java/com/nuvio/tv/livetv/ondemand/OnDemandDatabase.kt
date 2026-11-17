@@ -100,7 +100,8 @@ data class VodCategory(
  */
 @Singleton
 class OnDemandDatabase @Inject constructor(@ApplicationContext private val appContext: Context) :
-    SQLiteOpenHelper(appContext, "livetv_on_demand.db", null, 11) {
+    SQLiteOpenHelper(appContext, com.nuvio.tv.core.storage.DatabaseVersions.onDemand.fileName, null,
+        com.nuvio.tv.core.storage.DatabaseVersions.onDemand.version) {
 
     init {
         // Browsing On Demand doesn't wait while an import or genre lookup is writing.
@@ -169,6 +170,11 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         if (oldVersion < 11) {
             if (CatalogSchema.migrateOrDefer(db)) reindexTitles(db)
         }
+    }
+
+    override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        throw com.nuvio.tv.core.storage.NewerUserDatabaseException(
+            com.nuvio.tv.core.storage.DatabaseVersionIssue(com.nuvio.tv.core.storage.DatabaseVersions.onDemand, oldVersion))
     }
 
     private fun reindexTitles(db: SQLiteDatabase) {

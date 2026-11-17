@@ -14,11 +14,14 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.rules.RuleChain
+import com.nuvio.tv.data.local.WindowsFileSharingRule
 import org.json.JSONObject
 import java.io.File
 
 class LiveTvGroupPreferencesTest {
-    @get:Rule val temp = TemporaryFolder()
+    val temp = TemporaryFolder()
+    @get:Rule val files = RuleChain.outerRule(WindowsFileSharingRule()).around(temp)
     private fun context(): Context {
         val files = temp.newFolder()
         // Initialise empty fixture files before asynchronous startup collectors read them.

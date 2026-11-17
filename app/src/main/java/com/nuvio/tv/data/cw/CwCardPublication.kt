@@ -4,7 +4,23 @@ package com.nuvio.tv.data.cw
 internal class CwCardPublication {
     private val settledHistory = mutableMapOf<String, String>()
 
-    fun reset() = settledHistory.clear()
+    private var preferFurthest: Boolean? = null
+    private var nextUpGeneration = 0L
+
+    fun reset() {
+        settledHistory.clear()
+        preferFurthest = null
+    }
+
+    fun beginNextUp(lease: CwLease, furthest: Boolean): CwLease {
+        if (preferFurthest != furthest) {
+            preferFurthest = furthest
+            nextUpGeneration++
+        }
+        return lease.copy(nextUpGeneration = nextUpGeneration)
+    }
+
+    fun isCurrent(lease: CwLease) = lease.nextUpGeneration == null || lease.nextUpGeneration == nextUpGeneration
 
     fun settle(state: CwProjection, lease: CwLease, ids: Set<String>): CwProjection {
         if (!CwMembershipReducer.accepts(state, lease)) return state
@@ -37,7 +53,7 @@ internal class CwCardPublication {
         val raw = member?.progress?.let { p -> listOf(p.videoId, p.season, p.episode, p.position,
             p.progressPercentage, p.lastWatched, p.source, p.traktPlaybackId, p.simklPlaybackId,
             p.tvdbContentIds.sorted(), p.tvdbWatchedIds.sorted(), p.trackingProviderId) }
-        return listOf(raw, member?.latestCompletionAt, state.completed[id], state.removals[id],
+        return listOf(preferFurthest.takeIf { member?.nextUp != null }, raw, member?.latestCompletionAt, state.completed[id], state.removals[id],
             id in state.hiddenByProvider).toString()
     }
 }

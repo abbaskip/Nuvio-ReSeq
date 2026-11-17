@@ -77,6 +77,12 @@ class ContinueWatchingRepository @Inject constructor(
         mutex.withLock { load(profile, source) }
     }
 
+    internal suspend fun nextUpLease(snapshot: CwProjection, furthest: Boolean): CwLease? = mutex.withLock {
+        val state = current ?: return@withLock null
+        if (!CwMembershipReducer.accepts(state, snapshot.lease)) return@withLock null
+        publication.beginNextUp(snapshot.lease, furthest)
+    }
+
     private suspend fun load(profile: Int, source: String): CwProjection {
         val old = current
         if (old?.profileId == profile && old.source == source) return old
@@ -111,7 +117,7 @@ class ContinueWatchingRepository @Inject constructor(
                 val state = current ?: load(lease.profileId, lease.source)
                 if (profiles.activeProfileId.value != lease.profileId ||
                     settings.getWatchProgressSource(lease.profileId).name != lease.source ||
-                    !CwMembershipReducer.accepts(state, lease)) return@withLock state
+                    !CwMembershipReducer.accepts(state, lease) || !publication.isCurrent(lease)) return@withLock state
                 val approved = approveIdentity(transform(state))
                 val readyIds = settledIds?.filterTo(mutableSetOf()) { id ->
                     unresolvedPauses[id]?.let { it != approved.members[id]?.progress } ?: true

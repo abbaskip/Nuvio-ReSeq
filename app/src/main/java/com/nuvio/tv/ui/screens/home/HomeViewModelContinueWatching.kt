@@ -330,7 +330,8 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
             val debug = CwDebugSession()
             val pipelineProfileId = profileManager.activeProfileId.value
             val projection = continueWatchingRepository.snapshot()
-            val pipelineLease = projection.lease
+            val pipelineLease = continueWatchingRepository.nextUpLease(projection, snapshot.nextUpFromFurthestEpisode)
+                ?: return@coroutineScope
             val pendingEpisodes = projection.members.filterValues { it.nextUp?.chooseEpisode == true }.keys
             if (pipelineLease.profileId != pipelineProfileId) return@coroutineScope
             try {

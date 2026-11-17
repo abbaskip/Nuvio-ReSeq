@@ -9,7 +9,8 @@ import com.nuvio.tv.domain.model.WatchProgress
 private const val CW_DECISION_TAG = "CwDecision"
 
 /** Namespace + publication lease. A metadata task cannot publish across a source/order switch. */
-data class CwLease(val profileId: Int, val source: String, val epoch: Long, val revision: Long)
+data class CwLease(val profileId: Int, val source: String, val epoch: Long, val revision: Long,
+    val nextUpGeneration: Long? = null)
 
 data class CwMember(
     val progress: WatchProgress? = null,

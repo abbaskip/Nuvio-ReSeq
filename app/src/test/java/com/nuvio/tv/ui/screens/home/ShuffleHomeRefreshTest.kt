@@ -604,23 +604,19 @@ class ShuffleHomeRefreshTest {
         assertEquals("one upstream request despite replacement", listOf(id), requests)
     }
 
-    @Test fun disabledShuffleWithMissingTvdbOrderOffersSeriesOnlyUntilTrackerRemoval() = runTest {
+    @Test fun disabledShuffleWithMissingTvdbOrderCannotInjectAPlaceholderIntoTheCachedEmptyRow() = runTest {
         setup()
         profile.value = EpisodeShuffleProfile(1, false)
         native.value = HomeUiState()
         cache[key] = summary(video).copy(tvdbOrder = false, tvdbPending = true)
         negative[key] = currentTime
         val home = home()
-        val pending = home.onlyCard()
-        assertTrue(pending.chooseEpisode)
-        assertFalse(pending.canMarkWatched())
-        var details: String? = null
-        vm.verifyTvdbPlayback(pending, { fail("Played an unverified episode") }, { series, _, _ -> details = series })
-        runCurrent()
-        assertEquals(id, details)
+        assertTrue(home.value.continueWatchingItems.isEmpty())
+        minute()
+        assertTrue("only the settled owner can add a sequential card", home.value.continueWatchingItems.isEmpty())
         seeds.value = emptyList()
         runCurrent()
-        assertEquals("a partial refresh is not tracker removal evidence", id, home.onlyCard().contentId())
+        assertTrue(home.value.continueWatchingItems.isEmpty())
         cwProjection.value = CwMembershipReducer.remove(cwProjection.value, cwProjection.value.lease,
             CwRemovalProof(CwRemovalReason.AUTHORITATIVE_ABSENCE, setOf(id), currentTime))
         runCurrent()

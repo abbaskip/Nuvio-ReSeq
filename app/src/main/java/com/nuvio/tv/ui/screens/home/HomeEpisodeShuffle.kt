@@ -127,7 +127,9 @@ private fun HomeViewModel.projectShuffleHomeState(state: HomeUiState, inputs: Ho
     val cards = seeds.mapNotNull { seed ->
         val meta = cachedCwMeta(seed.contentType, seed.contentId)
         val shuffleEnabled = profile.settings(seed.contentId, seed.contentType).enabled
-        if (!shuffleEnabled && meta?.tvdbOrder == true) return@mapNotNull null
+        // Sequential membership and placeholders belong to the settled repository.
+        // A cold catalogue cannot synthesize a card outside that publication boundary.
+        if (!shuffleEnabled) return@mapNotNull null
         if (meta == null) traceCwCard(seed.contentId) { "tracker seed without cached metadata" }
         seed.toShuffleCard(meta)
     }

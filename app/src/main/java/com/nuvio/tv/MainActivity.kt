@@ -366,6 +366,7 @@ open class MainActivity : ComponentActivity() {
 
     /** True until the first onResume after onCreate completes. */
     private var isFirstResumeAfterCreate = false
+    private var databaseCompatibilityBlocked = false
 
     @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
     override fun attachBaseContext(newBase: Context) {
@@ -389,6 +390,11 @@ open class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        com.nuvio.tv.core.storage.DatabaseVersions.blockingIssue(this)?.let { issue ->
+            databaseCompatibilityBlocked = true
+            com.nuvio.tv.ui.components.DatabaseCompatibilityNotice.show(this, issue)
+            return
+        }
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) { memberAccessRepository.pollWhileVisible() }
         }
@@ -1338,6 +1344,7 @@ open class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (databaseCompatibilityBlocked) return
         ambientIdleController.dismiss()
         if (::jankStats.isInitialized) jankStats.isTrackingEnabled = true
         memberAccessRepository.refreshIfStale()
@@ -1358,6 +1365,7 @@ open class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (databaseCompatibilityBlocked) return
         setIntent(intent)
         captureDeepLinkIntent(intent)
         captureLaunchIntent(intent)
@@ -1393,10 +1401,12 @@ open class MainActivity : ComponentActivity() {
 
     override fun onUserInteraction() {
         super.onUserInteraction()
+        if (databaseCompatibilityBlocked) return
         ambientIdleController.onInteraction()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (databaseCompatibilityBlocked) return super.dispatchKeyEvent(event)
         if (event.action == KeyEvent.ACTION_DOWN) com.nuvio.tv.livetv.data.BackgroundWork.onNavigation()
         if (ambientIdleController.consumeKeyEvent(event)) return true
         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
@@ -1418,6 +1428,7 @@ open class MainActivity : ComponentActivity() {
     }
 
     override fun onStart() {
+        if (databaseCompatibilityBlocked) { super.onStart(); return }
         // Returning from an external player: raise the auto-next loader before the player's
         // result is dispatched and before the window repaints, so the transition shows the
         // loader instantly with no episode-list flash. No-op unless a series episode is being
@@ -1439,6 +1450,7 @@ open class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        if (databaseCompatibilityBlocked) { super.onStop(); return }
         externalPlaybackTracker.onExternalPlayerCoveredApp()
         super.onStop()
         startupSyncService.stopPeriodicSurfacePulls()
@@ -1449,7 +1461,7 @@ open class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        PluginRuntimeHooks.onActivityDestroy()
+        if (!databaseCompatibilityBlocked) PluginRuntimeHooks.onActivityDestroy()
     }
 }
 

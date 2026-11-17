@@ -132,9 +132,10 @@ import com.nuvio.tv.domain.model.MDBListRatings
 import com.nuvio.tv.domain.model.NextToWatch
 import com.nuvio.tv.domain.model.TraktCommentReview
 import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.resolvedEpisodeForPlayback
+import com.nuvio.tv.domain.model.tvdbPlaybackContext
 import com.nuvio.tv.domain.model.sourceSeason
 import com.nuvio.tv.domain.model.sourceEpisode
-import com.nuvio.tv.domain.model.hasResolvedSource
 import com.nuvio.tv.domain.model.episodeListKey
 import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.ui.components.ErrorState
@@ -702,11 +703,16 @@ fun MetaDetailsScreen(
                 val yearString = remember(meta.releaseInfo) {
                     formatDetailYearRange(meta.releaseInfo)
                 }
-                val playEpisode: (Video) -> Unit = playEpisode@{ video ->
-                    if (!video.hasResolvedSource || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
-                        Toast.makeText(context, if (!video.hasResolvedSource) R.string.tvdb_episode_unmatched_message
+                fun playbackSource(selected: Video): Video? =
+                    meta.videos.resolvedEpisodeForPlayback(selected.tvdbPlaybackContext(), selected.id)
+                        ?: selected.takeIf { it.episodeIdentity == null && meta.episodeOrder == null }
+
+                val playEpisode: (Video) -> Unit = playEpisode@{ selected ->
+                    val video = playbackSource(selected)
+                    if (video == null || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
+                        Toast.makeText(context, if (video == null) R.string.tvdb_episode_unmatched_message
                             else R.string.playback_unavailable_message,
-                            if (!video.hasResolvedSource) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+                            if (video == null) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
                         return@playEpisode
                     }
                     onPlayClick(
@@ -726,11 +732,12 @@ fun MetaDetailsScreen(
                         meta.resolveContentLanguage()
                     )
                 }
-                val playEpisodeManually: (Video) -> Unit = playEpisodeManually@{ video ->
-                    if (!video.hasResolvedSource || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
-                        Toast.makeText(context, if (!video.hasResolvedSource) R.string.tvdb_episode_unmatched_message
+                val playEpisodeManually: (Video) -> Unit = playEpisodeManually@{ selected ->
+                    val video = playbackSource(selected)
+                    if (video == null || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
+                        Toast.makeText(context, if (video == null) R.string.tvdb_episode_unmatched_message
                             else R.string.playback_unavailable_message,
-                            if (!video.hasResolvedSource) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+                            if (video == null) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
                         return@playEpisodeManually
                     }
                     onPlayManuallyClick(
@@ -911,11 +918,12 @@ fun MetaDetailsScreen(
                     onEpisodeManualPlayClick = playEpisodeManually,
                     onPlayClick = playTitle,
                     onPlayManuallyClick = playTitleManually,
-                    onEpisodeStartFromBeginningClick = onEpisodeStartFromBeginningClick@{ video ->
-                        if (!video.hasResolvedSource || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
-                            Toast.makeText(context, if (!video.hasResolvedSource) R.string.tvdb_episode_unmatched_message
+                    onEpisodeStartFromBeginningClick = onEpisodeStartFromBeginningClick@{ selected ->
+                        val video = playbackSource(selected)
+                        if (video == null || !playbackAvailability.canStream(meta.apiType, video.id, meta.id, video)) {
+                            Toast.makeText(context, if (video == null) R.string.tvdb_episode_unmatched_message
                                 else R.string.playback_unavailable_message,
-                                if (!video.hasResolvedSource) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+                                if (video == null) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
                             return@onEpisodeStartFromBeginningClick
                         }
                         onPlayStartFromBeginningClick(

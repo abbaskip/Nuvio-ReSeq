@@ -1937,7 +1937,7 @@ private suspend fun HomeViewModel.enrichNextUpItem(
         season = video?.season ?: item.info.season,
         episode = video?.episode ?: item.info.episode,
         videoId = video?.id?.takeIf { it.isNotBlank() } ?: item.info.videoId,
-        tvdbEpisodeId = video?.episodeIdentity?.tvdbEpisodeId ?: item.info.tvdbEpisodeId,
+        tvdbEpisodeId = video?.episodeIdentity?.trackingEpisodeId ?: item.info.tvdbEpisodeId,
         tvdbContext = video?.asTvdbVideo()?.tvdbPlaybackContext() ?: item.info.tvdbContext,
         episodeTitle = if (settings.useEpisodes) tmdbData?.episodeTitle
             ?: video?.title?.takeIf { it.isNotBlank() }

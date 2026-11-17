@@ -17,7 +17,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
-    SQLiteOpenHelper(context, "livetv_guide.db", null, 7) {
+    SQLiteOpenHelper(context, com.nuvio.tv.core.storage.DatabaseVersions.guide.fileName, null,
+        com.nuvio.tv.core.storage.DatabaseVersions.guide.version) {
 
     private val interruptedStage = java.io.File(context.filesDir,"guide-stage-in-progress")
 
@@ -102,6 +103,9 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             refreshSearchWords(db)
         }
     }
+
+    override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) =
+        com.nuvio.tv.core.storage.rebuildCacheDatabase(db, com.nuvio.tv.core.storage.DatabaseVersions.guide, ::onCreate)
 
     /** The external-content index stores terms once per committed shared schedule row. */
     private fun ensureSearchIndex(db: SQLiteDatabase, rebuild: Boolean = true) {

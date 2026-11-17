@@ -15,7 +15,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class LiveTvPosterStore @Inject constructor(@ApplicationContext context: Context) :
-    SQLiteOpenHelper(context, "livetv_posters.db", null, 3) {
+    SQLiteOpenHelper(context, com.nuvio.tv.core.storage.DatabaseVersions.posters.fileName, null,
+        com.nuvio.tv.core.storage.DatabaseVersions.posters.version) {
 
     init { setWriteAheadLoggingEnabled(true) }
 
@@ -27,6 +28,9 @@ class LiveTvPosterStore @Inject constructor(@ApplicationContext context: Context
         db.execSQL("DROP TABLE IF EXISTS posters")
         onCreate(db)
     }
+
+    override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) =
+        com.nuvio.tv.core.storage.rebuildCacheDatabase(db, com.nuvio.tv.core.storage.DatabaseVersions.posters, ::onCreate)
 
     /** null = not known (look it up); "" = looked up, nothing found; else the poster. */
     fun get(key: String): String? = runCatching {

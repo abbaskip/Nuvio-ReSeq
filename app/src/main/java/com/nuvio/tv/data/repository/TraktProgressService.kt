@@ -246,6 +246,7 @@ class TraktProgressService @Inject constructor(
     private var showIdSiblingsMap: Map<String, Set<String>> = emptyMap()
     private val hasLoadedRemoteProgress = MutableStateFlow(false)
     private val cacheMutex = Mutex()
+    private val snapshotRefreshMutex = Mutex()
     private val metadataMutex = Mutex()
     private val watchedMoviesMutex = Mutex()
     private val watchedShowSeedsMutex = Mutex()
@@ -597,6 +598,8 @@ class TraktProgressService @Inject constructor(
         return hasLoadedRemoteProgress
     }
 
+    internal fun confirmedContinueWatchingProgress(): List<WatchProgress> = remoteProgress.value
+
     fun observeWatchedShowSeeds(): Flow<List<WatchProgress>> {
         return combine(
             histories, layoutPreferenceDataStore.nextUpFromFurthestEpisode,
@@ -647,9 +650,7 @@ class TraktProgressService @Inject constructor(
             merged as Map<Pair<Int, Int>, WatchProgress>
         }
             .onStart {
-                scope.launch {
-                    ensureEpisodeProgressSnapshot(contentId = cacheKey, forceRefresh = false)
-                }
+                ensureEpisodeProgressSnapshot(contentId = cacheKey, forceRefresh = false)
             }
             .distinctUntilChanged()
     }
@@ -661,7 +662,7 @@ class TraktProgressService @Inject constructor(
         // Absence means not loaded, not "no watched episodes". In particular,
         // a CW first() consumer must not conclude the show ended before this fetch.
         return histories.map { state -> state.history(key)?.takeIf { it.details != null }?.progress(native = true) }.filterNotNull()
-            .onStart { scope.launch { ensureEpisodeProgressSnapshot(key, forceRefresh = false) } }
+            .onStart { ensureEpisodeProgressSnapshot(key, forceRefresh = false) }
             .distinctUntilChanged()
     }
 
@@ -673,7 +674,7 @@ class TraktProgressService @Inject constructor(
             val show = state.history(key) ?: return@map null
             val details = show.details ?: return@map null
             show.watched.map { (episode, at) -> show.completion(episode, at) } + details.playback.map { it.first }
-        }.filterNotNull().onStart { scope.launch { ensureEpisodeProgressSnapshot(key, forceRefresh = false) } }
+        }.filterNotNull().onStart { ensureEpisodeProgressSnapshot(key, forceRefresh = false) }
             .distinctUntilChanged()
     }
 
@@ -873,6 +874,76 @@ class TraktProgressService @Inject constructor(
         return watchedMovies.contains(rawKey)
             || watchedMovies.contains(canonicalKey)
             || (videoCanonicalKey != null && watchedMovies.contains(videoCanonicalKey))
+    }
+
+    internal suspend fun removeDatedWatchEvent(target: TrackingMediaReference,
+        event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        val profile = event.profileId ?: profileManager.activeProfileId.value
+        check(profileManager.activeProfileId.value == profile)
+        val parent = requireNotNull(target.catalog)
+        val episode = requireNotNull(target.episode)
+        fun parentMatches(ids: TraktIdsDto?) = normalizeContentId(ids) == parent.contentId ||
+            target.ids.trakt != null && ids?.trakt?.toLong() == target.ids.trakt
+        fun episodeMatches(row: TraktEpisodeDto?) = row != null && when {
+            episode.traktId != null -> row.ids?.trakt == episode.traktId
+            else -> row.season == episode.season && row.number == episode.number
+        }
+        val sessions = mutableListOf<TraktPlaybackItemDto>()
+        var page = 1
+        do {
+            val response = requireNotNull(traktAuthService.executeAuthorizedRequest {
+                traktApi.getPlayback(it, "episodes", page = page, limit = 100)
+            })
+            check(response.isSuccessful)
+            sessions += requireNotNull(response.body())
+            page++
+        } while (page <= (response.headers()["X-Pagination-Page-Count"]?.toIntOrNull() ?: 1))
+        val pauses = sessions.filter { parentMatches(it.show?.ids) && episodeMatches(it.episode) &&
+            exactWatchTime(it.pausedAt)?.let(event::contains) == true &&
+            (event.progress.traktPlaybackId == null || it.id == event.progress.traktPlaybackId) }
+        check(pauses.size <= 1) { "Ambiguous playback event" }
+        val plays = mutableListOf<com.nuvio.tv.data.remote.dto.trakt.TraktUserEpisodeHistoryItemDto>()
+        page = 1
+        do {
+            val response = requireNotNull(traktAuthService.executeAuthorizedRequest {
+                traktApi.getEpisodeHistory(it, page = page, limit = 1000,
+                    startAt = java.time.Instant.ofEpochMilli(event.from).toString(),
+                    endAt = java.time.Instant.ofEpochMilli(event.through).toString())
+            })
+            check(response.isSuccessful)
+            plays += requireNotNull(response.body())
+            page++
+        } while (page <= (response.headers()["X-Pagination-Page-Count"]?.toIntOrNull() ?: 1))
+        val completed = event.completionExpected || event.progress.source in setOf(WatchProgress.SOURCE_TRAKT_HISTORY, WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS)
+        val matching = plays.filter { completed && parentMatches(it.show?.ids) && episodeMatches(it.episode) &&
+            exactWatchTime(it.watchedAt)?.let(event::contains) == true &&
+            (event.progress.source !in setOf(WatchProgress.SOURCE_TRAKT_HISTORY, WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS) ||
+                exactWatchTime(it.watchedAt) == event.progress.lastWatched) }
+        check(matching.size <= 1) { "Ambiguous history event" }
+        check(profileManager.activeProfileId.value == profile)
+        for (pause in pauses) {
+            val result = traktAuthService.executeAuthorizedWriteRequest { traktApi.deletePlayback(it, requireNotNull(pause.id)) }
+            check(result?.isSuccessful == true || result?.code() == 404)
+        }
+        for (play in matching) {
+            val result = traktAuthService.executeAuthorizedWriteRequest { traktApi.removeHistoryPlay(it,
+                com.nuvio.tv.data.remote.dto.trakt.TraktHistoryPlayRemoval(listOf(requireNotNull(play.id)))) }
+            check(result?.isSuccessful == true && result.body()?.deleted?.episodes == 1)
+        }
+        val removed = pauses.isNotEmpty() || matching.isNotEmpty()
+        if (removed) {
+            remoteProgress.update { rows -> rows.filterNot { row -> event.contains(row.lastWatched) &&
+                row.contentId == parent.contentId && (row.traktPlaybackId in pauses.map { it.id } ||
+                    row.season == episode.season && row.episode == episode.number) } }
+            optimisticProgress.update { rows -> rows.filterValues { value -> !(value.progress.contentId == parent.contentId &&
+                value.progress.season == episode.season && value.progress.episode == episode.number && event.contains(value.progress.lastWatched)) } }
+            cacheMutex.withLock { cachedEpisodesPlayback = null }
+            episodeProgressActivityVersion.incrementAndGet()
+            watchedShowSeedsStale = true
+            ensureEpisodeProgressSnapshot(parent.contentId, forceRefresh = true)
+        }
+        return if (completed) matching.isNotEmpty() || event.progress.source == WatchProgress.SOURCE_TRAKT_HISTORY
+            else pauses.isNotEmpty() || event.progress.traktPlaybackId != null
     }
 
     suspend fun removeLastEpisodeWatch(profileId: Int, event: WatchProgress) {
@@ -1092,8 +1163,15 @@ class TraktProgressService @Inject constructor(
         refreshNow()
     }
 
+    internal suspend fun refreshForContinueWatching() {
+        forceRefreshUntilMs = System.currentTimeMillis() + 30_000L
+        refreshRemoteSnapshot()
+    }
+
     @VisibleForTesting
-    internal suspend fun refreshRemoteSnapshot() {
+    internal suspend fun refreshRemoteSnapshot() = snapshotRefreshMutex.withLock { refreshRemoteSnapshotLocked() }
+
+    private suspend fun refreshRemoteSnapshotLocked() {
         if (!traktAuthService.isCircuitClosed()) {
             trace("refreshRemoteSnapshot: circuit breaker open, skipping")
             throw IOException("Trakt circuit breaker is open")
@@ -1635,7 +1713,9 @@ class TraktProgressService @Inject constructor(
         watchedEpisodes: Map<String, Set<Pair<Int, Int>>>,
         fullyWatchedSeries: Set<String>
     ): Boolean {
-        if (progress.isInProgress()) return false
+        // A new rewatch can be only seconds long. The 2% presentation threshold
+        // cannot turn positive paused playback into evidence of an old completion.
+        if (progress.hasPlaybackToResume()) return false
         val keys = progressLookupKeys(progress)
         if (progress.contentType.equals("movie", ignoreCase = true)) {
             return keys.any { it in watchedMovies }
@@ -1806,7 +1886,7 @@ class TraktProgressService @Inject constructor(
                 val key = progressKey(progress)
                 val existing = mergedByKey[key]
                 val shouldUsePlayback = existing == null ||
-                    (progress.isInProgress() && progress.lastWatched >= existing.lastWatched - 1_000L)
+                    (progress.hasPlaybackToResume() && progress.lastWatched >= existing.lastWatched - 1_000L)
                 if (shouldUsePlayback) {
                     mergedByKey[key] = progress
                 }
@@ -1820,7 +1900,7 @@ class TraktProgressService @Inject constructor(
         // already covered by a history entry — avoids duplicates.
         mergedByKey.entries.removeAll { (key, progress) ->
             progress.source == WatchProgress.SOURCE_TRAKT_PLAYBACK &&
-                !progress.isInProgress() &&
+                !progress.hasPlaybackToResume() &&
                 progress.season != null && progress.episode != null &&
                 "${progress.contentId}_s${progress.season}e${progress.episode}" in completedEpisodeKeys
         }
@@ -2738,3 +2818,6 @@ class TraktProgressService @Inject constructor(
         return minutes * 60_000L
     }
 }
+
+private fun WatchProgress.hasPlaybackToResume(): Boolean =
+    !isCompleted() && (position > 0 || progressPercentage > 0f)

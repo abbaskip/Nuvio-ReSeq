@@ -14,6 +14,11 @@ import com.nuvio.tv.data.local.WatchProgressPreferences
 import com.nuvio.tv.data.local.WatchProgressSource
 import com.nuvio.tv.data.local.WatchedItemsPreferences
 import com.nuvio.tv.domain.model.WatchProgress
+import com.nuvio.tv.domain.model.Video
+import com.nuvio.tv.domain.model.EpisodeIdentity
+import com.nuvio.tv.domain.model.EpisodeCoordinates
+import com.nuvio.tv.domain.model.tvdbPlaybackContext
+import com.nuvio.tv.core.tracking.*
 import com.nuvio.tv.domain.repository.MetaRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -253,6 +258,7 @@ class WatchProgressRepositoryProfileIsolationTest {
             }
             val harness = harness(1, tvdb, provider, WatchProgressSource.valueOf(id.name))
             val local = listOf(completed, partial)
+            every { harness.progressPreferences.observeDeviceProgress(1, id.name) } returns flowOf(listOf(partial))
             every { harness.progressPreferences.observeAllProgress(1) } returns flowOf(local)
             every { harness.progressPreferences.observeAllRawProgress(1) } returns flowOf(local)
             every { harness.progressPreferences.observeEpisodeRecords("tt123", 1) } returns flowOf(local)
@@ -284,7 +290,7 @@ class WatchProgressRepositoryProfileIsolationTest {
         org.junit.Assert.assertTrue(provider.retainsTvdbLocalProgress(completed))
     }
 
-    @Test fun `TVDB native watched copies cannot restore deleted provider history or change ordinary fallback`() = kotlinx.coroutines.runBlocking {
+    @Test fun `native and ordinary local watched copies cannot restore history absent from selected tracker`() = kotlinx.coroutines.runBlocking {
         val provider = mockk<com.nuvio.tv.core.tracking.TrackingProgressProvider>(relaxed = true)
         every { provider.providerId } returns com.nuvio.tv.core.tracking.TrackingProviderId.TRAKT
         every { provider.isAuthenticated } returns flowOf(true)
@@ -300,7 +306,7 @@ class WatchProgressRepositoryProfileIsolationTest {
             com.nuvio.tv.domain.model.WatchedItem("tt123", "series", "Example", 5, 20, 1000))
         kotlinx.coroutines.withTimeout(5000) {
             harness.repository.getProviderEpisodeProgress("tt123", 5, 13, 1).first { it == native }
-            assertEquals(mapOf("tt123" to setOf(5 to 13, 5 to 20)), harness.repository.getWatchedShowEpisodes())
+            assertEquals(mapOf("tt123" to setOf(5 to 13)), harness.repository.getWatchedShowEpisodes())
         }
         coVerify(exactly = 0) { harness.watchedPreferences.unmarkAsWatched(any(), any(), any(), any()) }
     }
@@ -344,11 +350,151 @@ class WatchProgressRepositoryProfileIsolationTest {
         assertEquals(false, kotlinx.coroutines.withTimeout(5_000) { first.await() })
     }
 
+    @Test fun `selected order retains a new Simkl or MDBList pause beside completed history at the same coordinates`() = runTest {
+        for (id in listOf(TrackingProviderId.SIMKL, TrackingProviderId.MDBLIST)) {
+            val completed = progress("show", 100, 100).copy(contentType = "series", videoId = "show:6:16",
+                season = 6, episode = 16, source = WatchProgress.SOURCE_REMOTE_HISTORY, trackingProviderId = id.storageId)
+            val pause = completed.copy(position = 0, duration = 0, progressPercent = .5f, lastWatched = 3_000,
+                source = if (id == TrackingProviderId.SIMKL) WatchProgress.SOURCE_SIMKL_PLAYBACK else WatchProgress.SOURCE_REMOTE_PLAYBACK)
+            val provider = mockk<TrackingProgressProvider>(relaxed = true) {
+                every { providerId } returns id
+                every { isAuthenticated } returns flowOf(true)
+                every { episodeProgress("show") } returns flowOf(mapOf((6 to 16) to completed))
+                every { allProgress } returns flowOf(listOf(pause))
+            }
+            val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>(relaxed = true)
+            every { tvdb.observeSelection(1, "show") } returns flowOf(com.nuvio.tv.data.tvdb.TvdbOrderPreference(73244, "alttwo"))
+            coEvery { tvdb.projectProgress(1, "show", any(), any(), any()) } coAnswers {
+                val records = arg<List<WatchProgress>>(3)
+                org.junit.Assert.assertTrue(records.contains(completed))
+                org.junit.Assert.assertTrue(records.contains(pause))
+                mapOf((6 to 17) to pause.copy(episode = 17))
+            }
+            val h = harness(1, tvdb, provider, WatchProgressSource.valueOf(id.name))
+            every { h.progressPreferences.observeEpisodeRecords("show", 1) } returns flowOf(emptyList())
+            assertEquals(.5f, h.repository.getAllEpisodeProgress("show").first().getValue(6 to 17).progressPercent)
+        }
+    }
+
+    @Test fun `partial rewatch removal fans out to every tracker and deletes only the mapped local pause`() = runTest {
+        val parent = "tt0386676"
+        val video = Video("$parent:6:17", "The Delivery Part 1 (Extended Cut)", null, null, season = 6, episode = 17, overview = null,
+            episodeIdentity = EpisodeIdentity(10719652, 73244, "alttwo", EpisodeCoordinates(6, 17), EpisodeCoordinates(6, 16),
+                providerVideoId = "$parent:6:17", providerCoordinates = EpisodeCoordinates(6, 17), canonicalTvdbEpisodeId = 7931991))
+        val context = requireNotNull(video.tvdbPlaybackContext())
+        val resume = progress(parent, 0, 0).copy(contentType = "series", videoId = video.id, season = 6, episode = 17,
+            episodeTitle = video.title, lastWatched = 3_000, progressPercent = 1f, tvdbContext = context,
+            tvdbEpisodeIds = context.episodeIds, tvdbCompletedEpisodeIds = context.episodeIds)
+        val native = resume.copy(videoId = "$parent:6:16", season = 6, episode = 16, tvdbContext = null,
+            tvdbEpisodeId = 1832421, tvdbEpisodeIds = null, tvdbCompletedEpisodeIds = null)
+        val sibling = native.copy(lastWatched = 2_000)
+        val completed = native.copy(lastWatched = 1_000, progressPercent = 100f)
+        val target = buildTrackingMediaReference("series", parent, native.videoId, seasonNumber = 6, episodeNumber = 16)
+        val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>(relaxed = true)
+        coEvery { tvdb.resolveAll(1, any(), any(), any()) } returns listOf(target)
+        coEvery { tvdb.projectProgress(1, parent, any(), listOf(native), any()) } returns mapOf((6 to 17) to resume)
+        coEvery { tvdb.projectProgress(1, parent, any(), listOf(sibling), any()) } returns mapOf((6 to 18) to
+            resume.copy(videoId = "$parent:6:18", episode = 18, tvdbEpisodeIds = listOf(7932001),
+                tvdbContext = context.copy(episodeId = 10719653, episode = 18, episodeIds = listOf(7932001))))
+        val providers = listOf(TrackingProviderId.TRAKT, TrackingProviderId.SIMKL, TrackingProviderId.MDBLIST).map { id ->
+            mockk<TrackingProgressProvider>(relaxed = true) {
+                every { providerId } returns id
+                every { isAuthenticated } returns flowOf(true)
+            }
+        }
+        val cw = mockk<com.nuvio.tv.data.cw.ContinueWatchingRepository>(relaxed = true)
+        val h = harness(1, tvdb, providerSet = providers.toSet(), cw = cw)
+        coEvery { h.progressPreferences.getAllRawEntries(1) } returns
+            mapOf("pause" to native, "other-part" to sibling, "completed" to completed)
+        h.repository.removeEpisodePartialWatch(parent, video, resume)
+        providers.forEach { provider ->
+            coVerify(exactly = 1) { provider.removeEpisodePause(target, resume) }
+            coVerify(exactly = 0) { provider.removeProgress(any(), any(), any()) }
+        }
+        coVerify(exactly = 1) { h.progressPreferences.removeMatchingProgress(mapOf("pause" to native), 1) }
+        coVerify(exactly = 0) { h.watchedPreferences.unmarkAsWatched(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { cw.partialWatchRemoved(1, resume) }
+    }
+
+    @Test fun `a failed tracker pause removal retains the local pause for retry`() = runTest {
+        val provider = mockk<TrackingProgressProvider>(relaxed = true) {
+            every { providerId } returns TrackingProviderId.SIMKL
+            every { isAuthenticated } returns flowOf(true)
+            coEvery { removeEpisodePause(any(), any()) } throws java.io.IOException("fixture failure")
+        }
+        val h = harness(1, providerSet = setOf(provider))
+        val video = Video("show:1:2", "Episode", null, null, season = 1, episode = 2, overview = null)
+        val resume = progress("show", 1, 100).copy(contentType = "series", videoId = video.id, season = 1, episode = 2)
+        coEvery { h.progressPreferences.getAllRawEntries(1) } returns mapOf("pause" to resume)
+        org.junit.Assert.assertTrue(runCatching { h.repository.removeEpisodePartialWatch("show", video, resume) }.isFailure)
+        coVerify(exactly = 0) { h.progressPreferences.removeMatchingProgress(any(), any()) }
+    }
+
+    @Test fun `CW and Details read only each selected tracker even with foreign mirrored pauses locally`() = kotlinx.coroutines.runBlocking {
+        for (selected in TrackingProviderId.entries) {
+            val providers = TrackingProviderId.entries.map { id ->
+                val row = progress("show", 30, 100).copy(contentType = "series", season = 1, episode = id.ordinal + 1,
+                    videoId = "show:1:${id.ordinal + 1}", lastWatched = 100 + id.ordinal.toLong(),
+                    poster = "poster", backdrop = "backdrop", episodeTitle = "Episode", trackingProviderId = id.storageId)
+                mockk<TrackingProgressProvider> {
+                    every { providerId } returns id
+                    if (id == selected) {
+                        every { isAuthenticated } returns flowOf(true)
+                        every { remoteProgressLoaded } returns flowOf(true)
+                        every { allProgress } returns flowOf(listOf(row))
+                        every { nextUpSeeds } returns flowOf(listOf(row.copy(position = 100)))
+                        every { episodeProgress("show") } returns flowOf(mapOf((1 to row.episode!!) to row))
+                        every { episodeProgress("foreign") } returns flowOf(emptyMap())
+                        every { watchedItems } returns flowOf(emptyList())
+                        coEvery { watchedShowEpisodes() } returns mapOf("show" to setOf(1 to row.episode!!))
+                    }
+                    // Every other progress/auth getter is deliberately unstubbed: any read fails.
+                }
+            }
+            val h = harness(1, progressSource = WatchProgressSource.valueOf(selected.name), providerSet = providers.toSet())
+            val foreign = progress("foreign", 99, 100).copy(source = WatchProgress.SOURCE_SIMKL_PLAYBACK,
+                trackingProviderId = "simkl", tvdbEpisodeIds = listOf(42))
+            every { h.progressPreferences.observeAllProgress(1) } returns flowOf(listOf(foreign))
+            every { h.progressPreferences.observeAllRawProgress(1) } returns flowOf(listOf(foreign))
+            every { h.watchedPreferences.allItems } returns flowOf(listOf(com.nuvio.tv.domain.model.WatchedItem("foreign", "series", "Foreign", 9, 9, 999)))
+            kotlinx.coroutines.withTimeout(5000) {
+                assertEquals(listOf(selected.storageId), h.repository.allProgress.first().map { it.trackingProviderId })
+                assertEquals(listOf(selected.ordinal + 1), h.repository.observeNextUpSeeds().first().map { it.episode })
+                assertEquals(setOf(1 to selected.ordinal + 1), h.repository.getAllEpisodeProgress("show").first().keys)
+                assertEquals(mapOf("show" to setOf(1 to selected.ordinal + 1)), h.repository.getWatchedShowEpisodes())
+                assertEquals(emptyMap<Pair<Int, Int>, Long>(), h.repository.watchedEpisodeTimes("foreign").first())
+            }
+            providers.filter { it.providerId != selected }.forEach { other ->
+                io.mockk.verify(exactly = 0) { other.allProgress }
+                io.mockk.verify(exactly = 0) { other.episodeProgress(any()) }
+                io.mockk.verify(exactly = 0) { other.nextUpSeeds }
+                io.mockk.verify(exactly = 0) { other.isAuthenticated }
+            }
+        }
+    }
+
+    @Test fun `disconnected selected tracker does not fall back to cloud local progress`() = kotlinx.coroutines.runBlocking {
+        val provider = mockk<TrackingProgressProvider> {
+            every { providerId } returns TrackingProviderId.TRAKT
+            every { isAuthenticated } returns flowOf(false)
+            every { remoteProgressLoaded } returns flowOf(true)
+            every { allProgress } returns flowOf(emptyList())
+        }
+        val h = harness(1, provider = provider, progressSource = WatchProgressSource.TRAKT)
+        every { h.progressPreferences.observeAllProgress(1) } returns flowOf(listOf(progress("foreign", 50, 100)))
+        kotlinx.coroutines.withTimeout(5000) {
+            assertEquals(false, h.repository.observeRemoteProgressLoaded().first())
+            assertEquals(emptyList<WatchProgress>(), h.repository.allProgress.first())
+        }
+    }
+
     private fun harness(activeProfileId: Int,
         tvdb: com.nuvio.tv.data.tvdb.TvdbTrackingResolver? = null,
         provider: com.nuvio.tv.core.tracking.TrackingProgressProvider? = null,
         progressSource: WatchProgressSource = WatchProgressSource.NUVIO_SYNC,
-        selectedSource: kotlinx.coroutines.flow.Flow<WatchProgressSource> = flowOf(progressSource)): Harness {
+        selectedSource: kotlinx.coroutines.flow.Flow<WatchProgressSource> = flowOf(progressSource),
+        providerSet: Set<TrackingProgressProvider> = setOfNotNull(provider),
+        cw: com.nuvio.tv.data.cw.ContinueWatchingRepository? = null): Harness {
         val activeProfile = MutableStateFlow(activeProfileId)
         val profileManager = mockk<ProfileManager>()
         every { profileManager.resolvedActiveProfileId } returns activeProfile
@@ -356,12 +502,14 @@ class WatchProgressRepositoryProfileIsolationTest {
 
         val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true)
         coEvery { progressPreferences.getAllRawEntries(any()) } returns emptyMap()
+        every { progressPreferences.observeDeviceProgress(any(), any()) } returns flowOf(emptyList())
         val watchedPreferences = mockk<WatchedItemsPreferences>(relaxed = true)
         val mutationStore = mockk<WatchStateMutationStore>(relaxed = true)
         val authManager = mockk<AuthManager>(relaxed = true)
         every { authManager.isAuthenticated } returns false
         val traktSettings = mockk<TraktSettingsDataStore>(relaxed = true)
         every { traktSettings.watchProgressSource } returns MutableStateFlow(progressSource)
+        coEvery { traktSettings.getWatchProgressSource(any()) } returns progressSource
         every { traktSettings.resolvedWatchProgressSource(any()) } returns selectedSource
 
         val repository = WatchProgressRepositoryImpl(
@@ -377,11 +525,12 @@ class WatchProgressRepositoryProfileIsolationTest {
             metaRepository = mockk<MetaRepository>(relaxed = true),
             tmdbService = mockk<TmdbService>(relaxed = true),
             profileManager = profileManager,
-            trackingProgressProviders = TrackingProgressProviderRegistry(setOfNotNull(provider)),
+            trackingProgressProviders = TrackingProgressProviderRegistry(providerSet),
             trackingHistoryWriters = TrackingHistoryWriterRegistry(emptySet()),
             mutationStore = mutationStore,
             serverWatched = mockk(relaxed = true),
-            tvdbTracking = tvdb
+            tvdbTracking = tvdb,
+            cwRepository = cw
         )
         return Harness(
             repository = repository,

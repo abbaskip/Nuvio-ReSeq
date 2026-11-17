@@ -168,7 +168,28 @@ class TraktProgressServiceRefreshTest {
         }
     }
 
-    private fun createService(watchedMovies: List<TraktWatchedMovieItemDto> = emptyList()): TraktProgressService {
+    @Test fun `a short rewatch survives watched snapshot refresh before the two percent threshold`() = runBlocking {
+        val pause = TraktPlaybackItemDto(id = 77, type = "episode", progress = .5f,
+            pausedAt = "2026-11-17T00:00:00Z",
+            show = TraktShowDto(title = "Fixture", ids = TraktIdsDto(imdb = "tt1000001")),
+            episode = com.nuvio.tv.data.remote.dto.trakt.TraktEpisodeDto(title = "Rewatched", season = 1, number = 2,
+                ids = TraktIdsDto(trakt = 12)))
+        val service = createService(episodePlayback = listOf(pause), fullyWatched = setOf("tt1000001"))
+        val first = service.observeAllProgress().first()
+        org.junit.Assert.assertTrue(first.any { it.traktPlaybackId == 77L && it.progressPercent == .5f })
+        withTimeout(TIMEOUT_MS) { service.observeWatchedShowSeeds().first { it.isNotEmpty() } }
+        delay(SETTLE_MS)
+        val calls = playbackCalls.get()
+        episodesWatchedAt = "2026-11-17T00:00:00Z"
+        service.refreshNow()
+        waitUntil { playbackCalls.get() >= calls + 2 }
+        delay(SETTLE_MS)
+        org.junit.Assert.assertTrue(service.observeAllProgress().first().any { it.traktPlaybackId == 77L })
+        assertEquals(setOf(1 to 2, 1 to 8), service.getWatchedShowEpisodes()["tt1000001"])
+    }
+
+    private fun createService(watchedMovies: List<TraktWatchedMovieItemDto> = emptyList(),
+        episodePlayback: List<TraktPlaybackItemDto> = emptyList(), fullyWatched: Set<String> = emptySet()): TraktProgressService {
         coEvery { traktApi.getLastActivities(any()) } answers {
             lastActivitiesCalls.incrementAndGet()
             if (lastActivitiesFails) {
@@ -198,7 +219,7 @@ class TraktProgressServiceRefreshTest {
                     )
                 )
             } else {
-                Response.success(emptyList())
+                Response.success(episodePlayback)
             }
         }
         coEvery { traktApi.getEpisodeHistory(any(), any(), any(), any(), any()) } returns Response.success(emptyList())
@@ -230,7 +251,7 @@ class TraktProgressServiceRefreshTest {
         val profileManager = mockk<ProfileManager>()
         every { profileManager.activeProfileId } returns MutableStateFlow(1)
         val watchedSeries = mockk<WatchedSeriesStateHolder>()
-        every { watchedSeries.fullyWatchedSeriesIds } returns MutableStateFlow(emptySet())
+        every { watchedSeries.fullyWatchedSeriesIds } returns MutableStateFlow(fullyWatched)
 
         return TraktProgressService(
             appContext = mockk<Context>(relaxed = true),

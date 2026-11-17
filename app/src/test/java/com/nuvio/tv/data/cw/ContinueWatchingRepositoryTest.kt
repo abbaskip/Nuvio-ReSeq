@@ -14,6 +14,10 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Rule
@@ -35,6 +39,8 @@ class ContinueWatchingRepositoryTest {
         every { watchProgressSource } returns source
     }
     private val progress = mockk<WatchProgressRepository> {
+        coEvery { confirmSelectedDeviceProgress() } returns Unit
+        every { watchedItems } returns kotlinx.coroutines.flow.flowOf(emptyList())
         every { allProgress } returns remote
         every { observeNextUpSeeds() } returns seeds
         every { observeRemoteProgressLoaded() } returns loaded
@@ -45,6 +51,49 @@ class ContinueWatchingRepositoryTest {
         mockk<Context> { every { filesDir } returns folder.root }, profiles, settings, Provider { progress })
     private fun p(episode: Int = 1, time: Long = 1_000) = WatchProgress("show", "series", "Show", null, null,
         null, "show:1:$episode", 1, episode, null, 20, 100, time)
+
+    @Test fun `undo a normal or split rewatch returns a finished show to its prior absence without a placeholder or late Details flicker`() = runTest {
+        for (split in listOf(false, true)) {
+            val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(73244, "alttwo", 10719652, 6, 17, listOf(10719652), "show:6:17")
+            val original = p(17, 1_000).copy(season = 6, videoId = context.requestVideoId, position = 100,
+                tvdbContext = context, tvdbEpisodeIds = context.episodeIds)
+            val played = original.copy(lastWatched = 9_000, deviceWatchEventId = "play-$split")
+            val native = played.copy(deviceWatchEventId = null, tvdbContext = null, episode = if (split) 16 else 17,
+                progressPercent = if (split) 50f else 100f, source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktPlaybackId = 77)
+            val offer = played.seriesChoice().copy(videoId = "show:6:18", season = 6, episode = 18, chooseEpisode = false)
+            val resolver = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver> {
+                io.mockk.coEvery { isFullyWatched(1, "show", any()) } coAnswers { delay(517); true }
+            }
+            every { progress.getAllEpisodeProgress("show", 1) } returns flowOf(mapOf((6 to 17) to original))
+            fun owner() = ContinueWatchingRepository(mockk { every { filesDir } returns folder.root }, profiles, settings,
+                Provider { progress }, tvdbTracking = Provider { resolver })
+            val cw = owner()
+            cw.committedProgress(1, listOf(played))
+            cw.enrich(cw.snapshot().lease, nextUp = listOf(offer))
+            val staleLease = cw.snapshot().lease
+            val frames = mutableListOf<Pair<Boolean, Boolean>>()
+            val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                cw.projection.filterNotNull().map { state ->
+                    (state.inProgress.any { it.chooseEpisode } || state.nextUp.any { it.chooseEpisode }) to
+                        (state.inProgress.isNotEmpty() || state.nextUp.isNotEmpty())
+                }.distinctUntilChanged().collect { frames += it }
+            }
+            loaded.value = true
+            seeds.value = listOf(original.copy(source = WatchProgress.SOURCE_TRAKT_HISTORY))
+            remote.value = emptyList()
+            cw.deviceWatchRemoved(1, com.nuvio.tv.data.local.DeviceWatchEvent("play-$split", played, 8_000, 9_000,
+                removed = true, nativeEvent = native))
+            delay(60_000)
+            cw.enrich(staleLease, nextUp = listOf(offer.copy(chooseEpisode = true)))
+            cw.enrich(staleLease, nextUp = listOf(offer))
+            assertEquals(listOf(false to true, false to false), frames)
+            val restarted = owner().snapshot().forPresentation()
+            assertTrue(restarted.inProgress.isEmpty())
+            assertTrue(restarted.nextUp.isEmpty())
+            assertTrue(cw.snapshot().completed["show"].orEmpty().values.none { it.at == 9_000L })
+            collector.cancel()
+        }
+    }
 
     @Test fun `restored placeholder and stale completions yield to current tracker history after restart`() = runTest {
         val stale = p(5, 4_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
@@ -139,6 +188,7 @@ class ContinueWatchingRepositoryTest {
             every { providerId } returns com.nuvio.tv.core.tracking.TrackingProviderId.TRAKT
             every { isAuthenticated } returns kotlinx.coroutines.flow.flowOf(true)
             every { movieCompletionTimes(1) } returns kotlinx.coroutines.flow.flowOf(emptyMap())
+            coEvery { refreshForContinueWatching(any()) } returns Unit
             every { confirmsRemovedWatch(1, any()) } answers { deleted && secondArg<WatchProgress>().traktPlaybackId == 77L }
         }
         val registry = com.nuvio.tv.core.tracking.TrackingProgressProviderRegistry(setOf(tracker))
@@ -164,8 +214,11 @@ class ContinueWatchingRepositoryTest {
         val restarted = repository()
         restarted.snapshot()
         val completed = prior.copy(source = WatchProgress.SOURCE_LOCAL, position = 100, lastWatched = 3_000)
-        restarted.committedProgress(1, listOf(completed))
-        remote.value = listOf(prior)
+        // Playback commits while an older tracker snapshot is already in flight.
+        every { progress.allProgress } returns kotlinx.coroutines.flow.flow {
+            restarted.committedProgress(1, listOf(completed))
+            emit(listOf(prior))
+        }
         loaded.value = true
         restarted.refreshProjection()
         assertEquals(completed, restarted.snapshot().members.getValue("show").progress)
@@ -246,6 +299,7 @@ class ContinueWatchingRepositoryTest {
         owner.historyRemoved(1, "show", setOf(1 to 5))
         seeds.value = listOf(earlier)
         remote.value = listOf(latest) // delayed provider replay of the revoked episode
+        loaded.value = true
         owner.refreshProjection()
         assertEquals(earlier, owner.snapshot().members.getValue("show").progress)
         val offer = earlier.seriesChoice().copy(videoId = "show:1:5", season = 1, episode = 5, chooseEpisode = false)
@@ -276,6 +330,25 @@ class ContinueWatchingRepositoryTest {
         assertEquals(remaining, after.members.getValue("show").progress)
         val sorted = sortContinueWatchingItems(after.nextUp.map { it.homeCard() }, ContinueWatchingSortMode.DEFAULT)
         assertEquals(listOf("other", "show"), sorted.map { (it as ContinueWatchingItem.NextUp).info.contentId })
+    }
+
+    @Test fun `removing a restored pause cannot rebuild away older completed history`() = runTest {
+        val first = p(1, 1_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        val last = p(3, 2_000).copy(position = 100, source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        val pause = p(1, 3_000).copy(position = 1, source = WatchProgress.SOURCE_TRAKT_PLAYBACK,
+            traktPlaybackId = 77, traktEpisodeId = 12)
+        val original = repository()
+        original.committedProgress(1, listOf(first, last, pause))
+        val history = original.snapshot().completed
+        remote.value = listOf(pause) // Only recent playback is present in the startup feed.
+        seeds.value = listOf(last)
+        loaded.value = true
+        val restarted = repository()
+        restarted.partialWatchRemoved(1, pause)
+        assertEquals(history, restarted.snapshot().completed)
+        assertTrue(restarted.snapshot().inProgress.isEmpty())
+        repeat(3) { restarted.refreshProjection() }
+        assertEquals(history, repository().snapshot().completed)
     }
 
     @Test fun `selected TVDB order without verified identity retains series choice until compatible progress arrives`() = runTest {

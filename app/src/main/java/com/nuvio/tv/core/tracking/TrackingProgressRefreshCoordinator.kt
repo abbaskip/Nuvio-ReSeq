@@ -23,8 +23,9 @@ class TrackingProgressRefreshCoordinator @Inject constructor(
         catch (error: Exception) { android.util.Log.e("ContinueWatching", "Projection refresh failed", error) }
     }
 
-    suspend fun refreshConnected(intent: TrackingRefreshIntent): List<TrackingProgressRefreshFailure> =
-        supervisorScope {
+    suspend fun refreshConnected(intent: TrackingRefreshIntent): List<TrackingProgressRefreshFailure> {
+        continueWatching?.let { return it.refreshSelected(intent) }
+        return supervisorScope {
             val failures = providers.providers()
                 .filter { provider -> provider.isAuthenticated.first() }
                 .map { provider ->
@@ -43,4 +44,5 @@ class TrackingProgressRefreshCoordinator @Inject constructor(
             refreshProjection()
             failures
         }
+    }
 }

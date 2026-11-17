@@ -37,7 +37,8 @@ class MdbListTrackingProgressProvider @Inject constructor(
     private val episodeMappings: MdbListEpisodeMappingService,
     private val auth: MdbListAuthStore,
     profiles: ProfileManager,
-    layout: LayoutPreferenceDataStore
+    layout: LayoutPreferenceDataStore,
+    private val history: MdbListHistoryService? = null
 ) : TrackingProgressProvider {
     override val providerId = TrackingProviderId.MDBLIST
     override val isAuthenticated = combine(auth.state, profiles.activeProfileId) { authorization, profileId ->
@@ -58,7 +59,8 @@ class MdbListTrackingProgressProvider @Inject constructor(
         projection.nextUp(furthest)
     }.loadOnStart()
     override val remoteProgressLoaded = combine(sync.state, auth.state, profiles.activeProfileId) { state, authorization, profileId ->
-        state.hasLoaded && state.scope == authorization.scope && authorization.scope.profileId == profileId && authorization.isAuthenticated
+        state.hasLoaded && !state.isLoading && state.error == null && state.scope == authorization.scope &&
+            authorization.scope.profileId == profileId && authorization.isAuthenticated
     }.distinctUntilChanged()
 
     override fun episodeProgress(contentId: String): Flow<Map<Pair<Int, Int>, WatchProgress>> =
@@ -68,11 +70,9 @@ class MdbListTrackingProgressProvider @Inject constructor(
                 emit(projection.episodeProgressInAddonNumbering(contentId, known))
                 return@transformLatest
             }
-            emit(projection.episodeProgress(contentId))
-            if (!projection.hasEpisodes(contentId)) return@transformLatest
-            episodeMapping(contentId, projection)?.let { mapping ->
-                emit(projection.episodeProgressInAddonNumbering(contentId, mapping))
-            }
+            val mapping = if (projection.hasEpisodes(contentId)) episodeMapping(contentId, projection) else null
+            emit(if (mapping == null) projection.episodeHistoryAndProgress(contentId)
+                else projection.episodeProgressInAddonNumbering(contentId, mapping))
         }.loadOnStart()
 
     override fun airedEpisodeOrder(contentId: String): Flow<List<Pair<Int, Int>>> = flowOf(emptyList())
@@ -108,6 +108,29 @@ class MdbListTrackingProgressProvider @Inject constructor(
     }
 
     override suspend fun refresh(intent: TrackingRefreshIntent) = sync.refresh(intent)
+    override suspend fun watchBaseline(target: TrackingMediaReference): com.nuvio.tv.core.tracking.TrackingWatchBaseline {
+        sync.refresh(TrackingRefreshIntent.INVALIDATED)
+        check(sync.state.value.hasLoaded && sync.state.value.error == null)
+        val episode = requireNotNull(target.episode)
+        val mapping = if (target.catalog?.providerDefault == true) null else episodeMapping(requireNotNull(target.catalog).contentId, currentProjection())
+        val coordinates = mapping?.takeIf { it.remaps }?.toTmdb(requireNotNull(episode.season), episode.number)
+        val native = if (coordinates == null) target else target.copy(episode = episode.copy(season = coordinates.season, number = coordinates.episode))
+        val snapshot = requireNotNull(sync.currentSnapshot())
+        val match = snapshot.mutationTarget(native)
+        val prior = match?.let { snapshot.watched.singleOrNull(it::matches) }
+        return com.nuvio.tv.core.tracking.TrackingWatchBaseline(target, true, prior?.let { mdbListTimestamp(it.watchedAt) })
+    }
+    override suspend fun removeWatchEvent(target: TrackingMediaReference, event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        val scope = sync.currentScope()
+        check(event.profileId == null || scope.profileId == event.profileId)
+        val mapping = if (target.catalog?.providerDefault == true) null else episodeMapping(requireNotNull(target.catalog).contentId, currentProjection())
+        val episode = requireNotNull(target.episode)
+        val mapped = mapping?.takeIf { it.remaps }?.toTmdb(requireNotNull(episode.season), episode.number)
+        val native = if (mapped == null) target else target.copy(episode = episode.copy(season = mapped.season, number = mapped.episode))
+        val pause = scrobbles.clearDatedEpisodePause(scope, native, event)
+        val watch = event.completionExpected && requireNotNull(history).undo(scope, native, event)
+        return if (event.completionExpected) watch else pause
+    }
 
     override suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
         val episode = requireNotNull(target.episode)
@@ -167,7 +190,7 @@ class MdbListTrackingProgressProvider @Inject constructor(
         contentId: String,
         mapping: MdbListEpisodeMapping
     ): Map<Pair<Int, Int>, WatchProgress> {
-        if (!mapping.remaps) return episodeProgress(contentId)
+        if (!mapping.remaps) return episodeHistoryAndProgress(contentId)
         return (watchedEpisodeProgress(contentId) + episodeProgress(contentId).values)
             .mapNotNull { progress ->
                 val addon = mapping.toAddon(progress.season!!, progress.episode!!, progress.episodeTitle)
@@ -177,24 +200,30 @@ class MdbListTrackingProgressProvider @Inject constructor(
             .toMap()
     }
 
+    // Other trackers expose completed episode rows here too. Keep them available
+    // after a pause clears, and let a live pause win its own coordinate in this view.
+    private fun MdbListProgressProjection.episodeHistoryAndProgress(contentId: String) =
+        (watchedEpisodeProgress(contentId) + episodeProgress(contentId).values)
+            .associateBy { requireNotNull(it.season) to requireNotNull(it.episode) }
+
     /**
      * Moves in-progress episodes to the addon's numbering. Shows with a known mapping are remapped
-     * at once; the others are emitted as MDBList numbers them and again once their mapping loads.
+     * at once; the others wait for their mapping before a single emission.
      */
     private fun Flow<List<WatchProgress>>.inAddonNumbering(): Flow<List<WatchProgress>> =
         transformLatest { items ->
-            emit(items.map(::withCachedAddonEpisode))
             val pending = items.asSequence()
                 .filter { it.season != null && it.episode != null && episodeMappings.cached(it.contentId) == null }
                 .map(WatchProgress::contentId)
                 .distinct()
                 .toList()
-            if (pending.isEmpty()) return@transformLatest
-            val projection = currentProjection()
-            val resolved = coroutineScope {
-                pending.map { contentId -> async { episodeMapping(contentId, projection) } }.awaitAll()
+            if (pending.isNotEmpty()) {
+                val projection = currentProjection()
+                coroutineScope {
+                    pending.map { contentId -> async { episodeMapping(contentId, projection) } }.awaitAll()
+                }
             }
-            if (resolved.any { it?.remaps == true }) emit(items.map(::withCachedAddonEpisode))
+            emit(items.map(::withCachedAddonEpisode))
         }
 
     private fun withCachedAddonEpisode(progress: WatchProgress): WatchProgress {

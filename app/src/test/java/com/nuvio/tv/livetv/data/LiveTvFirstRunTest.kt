@@ -14,11 +14,14 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.rules.RuleChain
+import com.nuvio.tv.data.local.WindowsFileSharingRule
 import okio.buffer
 import okio.sink
 
 class LiveTvFirstRunTest {
-    @get:Rule val temp = TemporaryFolder()
+    val temp = TemporaryFolder()
+    @get:Rule val files = RuleChain.outerRule(WindowsFileSharingRule()).around(temp)
 
     private fun preferences(dir: java.io.File): LiveTvPreferences {
         val context = mockk<Context>()

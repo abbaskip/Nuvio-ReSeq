@@ -16,13 +16,23 @@ data class TrackingScrobbleFailure(
 @Singleton
 class TrackingScrobbleCoordinator @Inject constructor(
     private val providerRegistry: TrackingProviderRegistry,
-    private val tvdb: com.nuvio.tv.data.tvdb.TvdbTrackingResolver? = null
+    private val tvdb: com.nuvio.tv.data.tvdb.TvdbTrackingResolver? = null,
+    private val watchEvents: javax.inject.Provider<com.nuvio.tv.data.local.DeviceWatchEventStore>? = null
 ) {
     suspend fun scrobble(
         action: TrackingScrobbleAction,
         event: TrackingScrobbleEvent
     ): List<TrackingScrobbleFailure> {
         val scrobblers = providerRegistry.connectedScrobblers()
+        if (action == TrackingScrobbleAction.START) {
+            try { watchEvents?.get()?.beforeStart(event) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { /* An unavailable undo snapshot cannot suppress playback output. */ }
+        }
+        val stoppedEvent = if (action != TrackingScrobbleAction.STOP) null else try {
+            watchEvents?.get()?.currentEvent(event)
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { null }
         Log.d(
             TRACKING_SCROBBLE_DIAGNOSTIC_TAG,
             "coordinator dispatch action=${action.wireValue} providers=" +
@@ -34,6 +44,11 @@ class TrackingScrobbleCoordinator @Inject constructor(
             action = action,
             event = event
         ).also { failures ->
+            if (action == TrackingScrobbleAction.STOP) {
+                try { watchEvents?.get()?.afterStop(stoppedEvent) }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { }
+            }
             Log.d(
                 TRACKING_SCROBBLE_DIAGNOSTIC_TAG,
                 "coordinator complete action=${action.wireValue} failures=" +

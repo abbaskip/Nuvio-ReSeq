@@ -35,7 +35,9 @@ class HomeCwResolutionRaceTest {
             every { projection } returns MutableStateFlow(stored)
             every { observeProjection() } returns flow { firstEmission.await(); emit(stored); awaitCancellation() }
             coEvery { snapshot() } returns stored
-            coEvery { enrich(any(), any(), any()) } returns stored
+            every { settledProgress } returns flowOf(ContinueWatchingRepository.SettledProgress(stored.lease,
+                stored.members.values.mapNotNull { it.progress }, emptyList(), emptyList()))
+            coEvery { enrich(any(), any(), any(), any()) } returns stored
         }
         val cache = ContinueWatchingEnrichmentCache(owner)
         val progress = progressSource ?: mockk<WatchProgressRepository>(relaxed = true) {
@@ -115,7 +117,7 @@ class HomeCwResolutionRaceTest {
         try {
             vm.loadContinueWatchingPipeline()
             withTimeout(10_000) { lightweightCompleted.await() }
-            coVerify(exactly = 1) { vm.continueWatchingRepository.enrich(any(), any(), any()) }
+            coVerify(exactly = 1) { vm.continueWatchingRepository.enrich(any(), any(), any(), false) }
             assertEquals(3, vm.continueWatchingRepository.projection.value!!.members.size)
             assertTrue(vm._uiState.value.continueWatchingItems.isEmpty())
             assertFalse("lightweight completion is not UI publication", vm.initialCwResolved.value)
@@ -167,6 +169,7 @@ class HomeCwResolutionRaceTest {
         val vm = home(owner.snapshot(), CompletableDeferred(Unit), CompletableDeferred(), owner, source, order)
         try {
             vm.setHomeContentActive(true)
+            vm.loadContinueWatchingPipeline()
             owner.committedProgress(1, listOf(completed))
             withTimeout(5_000) { vm.uiState.first { it.continueWatchingItems.singleOrNull() is ContinueWatchingItem.NextUp } }
             // This is the real durable removal -> remaining provider progress -> Home flow.
@@ -175,14 +178,14 @@ class HomeCwResolutionRaceTest {
             rows.value = listOf(raw)
             owner.refreshProjection()
             assertTrue(owner.snapshot().inProgress.single().chooseEpisode)
-            withTimeout(5_000) { vm.uiState.first { it.continueWatchingItems.singleOrNull() is ContinueWatchingItem.InProgress } }
-            // Missing metadata keeps support visible; arrival must release the identity fallback.
-            assertTrue(vm.uiState.value.continueWatchingItems.single().chooseEpisode)
+            // A background unknown cannot publish a partial resume/placeholder. The
+            // settled card is installed once its selected catalogue is available.
+            assertTrue(vm.uiState.value.continueWatchingItems.none { it is ContinueWatchingItem.InProgress })
             vm.cwMetaCache["series:${effective.id}"] = CwMetaSummary(effective.id, effective.name,
                 null, null, null, null, emptyList(), null, null, null, null,
                 effective.videos.map { CwVideoSummary(it.id, it.title, it.released, it.thumbnail,
                     it.season, it.episode, it.overview, episodeIdentity = it.episodeIdentity) }, tvdbOrder = true)
-            vm.shuffleHomeRefresh.value = HomeShuffleRefresh(metadata = 1)
+            vm.cwPipelineRefreshTrigger.value++
             val result = withTimeout(5_000) { vm.uiState.first {
                 it.continueWatchingItems.singleOrNull()?.let { card -> !card.chooseEpisode &&
                     (card as? ContinueWatchingItem.InProgress)?.progress?.tvdbContext != null } == true

@@ -70,6 +70,57 @@ class WatchProgressPreferences @Inject constructor(
     private val lastSuccessfulPushMsKey = longPreferencesKey("last_successful_push_ms")
     private val deltaCursorKey = longPreferencesKey("watch_progress_delta_cursor")
     private val deltaInitializedKey = booleanPreferencesKey("watch_progress_delta_initialized")
+    private val deviceProgressKey = androidx.datastore.preferences.core.stringPreferencesKey("recent_device_progress")
+
+    private fun deviceReceipts(raw: String?): Map<String, RecentDeviceProgress> =
+        raw?.let { gson.fromJson<Map<String, RecentDeviceProgress>>(it,
+            object : TypeToken<Map<String, RecentDeviceProgress>>() {}.type) }.orEmpty()
+
+    /** Only repository writes made by this device call this; sync imports do not. */
+    suspend fun recordDeviceProgress(profileId: Int, rows: List<WatchProgress>, now: Long = System.currentTimeMillis()) {
+        val own = rows.filter { it.source == WatchProgress.SOURCE_LOCAL && it.trackingProviderId == null }
+        if (own.isEmpty()) return
+        metadataStore(profileId).edit { prefs ->
+            val receipts = deviceReceipts(prefs[deviceProgressKey]).filterValues {
+                now - it.recordedAt in 0 until DEVICE_PROGRESS_GRACE_MS
+            }.toMutableMap()
+            own.forEach { receipts[it.storageKey] = RecentDeviceProgress(it, now) }
+            prefs[deviceProgressKey] = gson.toJson(receipts)
+        }
+    }
+
+    fun observeDeviceProgress(profileId: Int, source: String): Flow<List<WatchProgress>> =
+        combine(metadataStore(profileId).data, observeAllRawProgress(profileId)) { prefs, existing ->
+            val now = System.currentTimeMillis()
+            deviceReceipts(prefs[deviceProgressKey]).values.filter {
+                it.pendingFor(source, now) && it.progress in existing
+            }.map { it.progress }
+        }.distinctUntilChanged()
+
+    suspend fun confirmDeviceProgress(profileId: Int, source: String, remote: List<WatchProgress>) {
+        metadataStore(profileId).edit { prefs ->
+            val receipts = deviceReceipts(prefs[deviceProgressKey])
+            val confirmed = receipts.mapValues { (_, receipt) ->
+                if (source !in receipt.confirmedSources && remote.any { it.confirmsDeviceProgress(receipt.progress) })
+                    receipt.copy(confirmedSources = receipt.confirmedSources + source) else receipt
+            }
+            if (confirmed != receipts) prefs[deviceProgressKey] = gson.toJson(confirmed)
+        }
+    }
+
+    suspend fun revokeDeviceProgress(profileId: Int, eventId: String, removed: List<WatchProgress>) {
+        metadataStore(profileId).edit { prefs ->
+            val receipts = deviceReceipts(prefs[deviceProgressKey])
+            prefs[deviceProgressKey] = gson.toJson(receipts.filterValues { receipt ->
+                receipt.progress.deviceWatchEventId != eventId && receipt.progress !in removed
+            })
+        }
+    }
+
+    /** Proven device plays, including receipts already confirmed by the selected tracker.
+     * Used only to correlate an explicit undo from pre-journal installations. */
+    internal suspend fun devicePlayReceipts(profileId: Int): List<RecentDeviceProgress> =
+        deviceReceipts(metadataStore(profileId).data.first()[deviceProgressKey]).values.toList()
     private val storageMutex = Mutex()
     private val initializedProfiles = mutableSetOf<Int>()
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)

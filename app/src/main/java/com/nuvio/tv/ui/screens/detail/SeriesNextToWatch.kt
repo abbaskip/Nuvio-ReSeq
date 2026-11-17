@@ -32,7 +32,7 @@ internal class SeriesNextToWatch(private val localizedContext: Context) {
         val episodePool = if (nonSpecialEpisodes.isNotEmpty()) nonSpecialEpisodes else allEpisodes
         if (ordered) {
             val byKey = episodePool.withIndex().associate { (index, video) -> (video.season to video.episode) to index }
-            val progress = progressMap.values.filter { (it.season to it.episode) in byKey }
+            val progress = progressMap.values.filter { (it.season to it.episode) in byKey && !it.isBelowCwMinimum() }
             val anchor = if (useFurthestEpisode) progress.maxByOrNull { byKey[it.season to it.episode] ?: -1 }
                 else progress.maxWithOrNull(compareBy<WatchProgress> { it.lastWatched }.thenBy { byKey[it.season to it.episode] ?: -1 })
             val watched = watchedEpisodes.mapNotNull { key ->
@@ -85,6 +85,7 @@ internal class SeriesNextToWatch(private val localizedContext: Context) {
             furthestFromWatched ?: furthestFromProgress
         } else {
             progressMap.values
+                .filterNot { it.isBelowCwMinimum() }
                 .sortedWith(
                     compareByDescending<WatchProgress> { it.lastWatched }
                         .thenByDescending { it.season ?: 0 }
@@ -298,8 +299,8 @@ internal class SeriesNextToWatch(private val localizedContext: Context) {
 }
 
 internal fun shouldResumeProgress(progress: WatchProgress): Boolean {
-    if (progress.isCompleted()) return false
-    if (progress.progressPercentage >= 0.02f) return true
+    if (progress.isCompleted() || progress.isBelowCwMinimum()) return false
+    if (progress.progressPercentage >= 0.01f) return true
 
     val hasStartedPlayback = progress.position > 0L ||
         progress.progressPercent?.let { it > 0f } == true

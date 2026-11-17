@@ -62,6 +62,7 @@ class TvdbTrackingResolver @Inject constructor(
     /** A tracker pause is measured on the native episode's timeline. Only CW consumes this view. */
     internal suspend fun continueWatchingResume(profileId: Int, pause: WatchProgress, revoked: Map<String, Long> = emptyMap(),
         projectedHistory: (suspend () -> Collection<WatchProgress>)? = null): WatchProgress? {
+        if (pause.isBelowCwMinimum()) return null
         val meta = effectiveMetadata(profileId, pause.contentId, pause.contentType) ?: return null
         val ids = when (pause.source) {
             WatchProgress.SOURCE_TRAKT_PLAYBACK -> traktTargets(profileId, meta).singleOrNull {
@@ -101,6 +102,18 @@ class TvdbTrackingResolver @Inject constructor(
     }
 
     internal suspend fun partThreshold() = (playerSettings?.playerSettings?.first()?.nextEpisodeThresholdPercent ?: 99f) / 100f
+
+    /** Positive catalogue/history evidence, using the same projection as Details. */
+    internal suspend fun isFullyWatched(profileId: Int, contentId: String, progress: Collection<WatchProgress>): Boolean {
+        val meta = effectiveMetadata(profileId, contentId, "series") ?: return false
+        if (meta.episodeOrder?.effectiveType == null) return false
+        val episodes = meta.watchableEpisodes().filter { (it.displaySeason ?: it.season ?: 0) > 0 }
+        val projected = reconcileTvdbProgress(meta, emptyMap(), progress.toList()).values
+            .associateBy { it.tvdbContext?.episodeId }
+        return episodes.isNotEmpty() && episodes.all { video ->
+            projected[video.episodeIdentity?.tvdbEpisodeId]?.isCompleted() == true
+        }
+    }
 
     fun observeSelection(profileId: Int, contentId: String) = store.observeSelection(profileId, contentId)
     fun observeSelectedSeries(profileId: Int) = store.observeSelectedSeries(profileId)
@@ -341,6 +354,24 @@ class TvdbTrackingResolver @Inject constructor(
         // including large Simkl/MDBList snapshots, must stay off that dispatcher.
         return withContext(Dispatchers.Default) {
             resolveSelected(profileId, provider, reference, completed, coverageChangesOnly)
+        }
+    }
+
+    /** An individual dated play may cover only half of a native episode. The
+     * unwatch/mark-watched coverage gate must not discard its paused session. */
+    suspend fun resolveWatchEventTargets(profileId: Int, provider: TrackingProviderId,
+        reference: TrackingMediaReference): List<TrackingMediaReference>? {
+        val catalog = reference.catalog ?: return listOf(reference)
+        if (!catalog.tvdbCoverageVerified) return null
+        if (catalog.providerDefault || reference.episode == null ||
+            catalog.tvdbContext == null && !isSelected(profileId, catalog.contentId)) return listOf(reference)
+        return withContext(Dispatchers.Default) {
+            try {
+                val resolved = selectedTargets(profileId, provider, reference) ?: return@withContext null
+                resolved.targets.filter { target -> target.contentIds.any(resolved.context.episodeIds::contains) }
+                    .map { reference.forTarget(it, resolved.context.seriesId) }.takeIf { it.isNotEmpty() }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { null }
         }
     }
 

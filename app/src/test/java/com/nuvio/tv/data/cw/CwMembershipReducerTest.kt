@@ -14,6 +14,15 @@ class CwMembershipReducerTest {
     private fun offer(p: WatchProgress, episode: Int) = p.seriesChoice().copy(
         videoId = "${p.contentId}:1:$episode", season = 1, episode = episode, chooseEpisode = false)
 
+    @Test fun aDeviceWatchIdentityCannotBypassAnExistingPartialRemovalAcknowledgement() {
+        val pause = progress().copy(source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktPlaybackId = 77,
+            traktEpisodeId = 123, deviceWatchEventId = "own")
+        val initial = state(pause)
+        val removed = CwMembershipReducer.removePause(initial, pause)
+        assertTrue(removed.members.isEmpty())
+        assertEquals(removed, CwMembershipReducer.progress(removed, listOf(pause)))
+    }
+
     @Test fun aVerifiedRewatchCanAdvanceToAnOlderWatchedEpisodeButAFreshCompletionStillWins() {
         val happyHour = progress(id = "The Office", episode = 21, time = 1_000, complete = true)
         val newLeads = progress(id = "The Office", episode = 20, time = 2_000, complete = true)

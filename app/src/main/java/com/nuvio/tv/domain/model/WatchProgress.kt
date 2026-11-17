@@ -42,7 +42,11 @@ data class WatchProgress(
     /** Show activity for Home's history window when the chosen next-up seed is an older episode. */
     @Transient val latestSeriesActivity: Long? = null,
     /** Original Trakt history coordinates before matching the addon's episode catalogue. */
-    val traktHistoryEpisode: EpisodeCoordinates? = null
+    val traktHistoryEpisode: EpisodeCoordinates? = null,
+    /** Local undo identity, never included in tracker scrobble/history payloads. */
+    val deviceWatchEventId: String? = null,
+    /** Read-only native timeline percentage for CW's pre-translation minimum. */
+    val nativeProgressPercent: Float? = null
 ) : TrackingAttributedItem {
     override val trackingContentId: String
         get() = contentId
@@ -87,13 +91,23 @@ data class WatchProgress(
         progressPercentage >= startThreshold && (progressPercentage < endThreshold || tvdbCoverageVerified == false)
 
     fun hasRemovableEpisodePause(): Boolean = season != null && episode != null &&
-        progressPercentage > 0f && progressPercentage < 1f && !isCompleted() && tvdbWatchedIds.isEmpty()
+        progressPercentage > 0f && progressPercentage < 1f && !isCompleted()
 
     fun hasRemovableTraktWatch(): Boolean = season != null && episode != null && lastWatched > 0 && when (source) {
         SOURCE_TRAKT_PLAYBACK -> traktPlaybackId != null && traktEpisodeId != null
         SOURCE_TRAKT_HISTORY, SOURCE_TRAKT_SHOW_PROGRESS ->
             traktEpisodeId != null || (traktShowId != null && traktHistoryEpisode != null)
         else -> false
+    }
+
+    fun hasRemovableWatchEvent(): Boolean = hasRemovableTraktWatch() ||
+        (deviceWatchEventId != null && season != null && episode != null && lastWatched > 0 && progressPercentage >= .01f)
+
+    /** CW_RULES 2.1, before selected-order translation. Unknown duration is not proof of <1%. */
+    fun isBelowCwMinimum(): Boolean {
+        val percent = nativeProgressPercent ?: progressPercent
+        return if (percent != null) percent > 0f && percent < 1f
+            else duration > 0 && progressPercentage > 0f && progressPercentage < .01f
     }
 
     private fun completionThreshold(): Float =

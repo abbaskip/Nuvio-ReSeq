@@ -74,6 +74,16 @@ interface WatchProgressRepository {
      */
     fun observeRemoteProgressLoaded(): Flow<Boolean>
 
+    suspend fun confirmSelectedDeviceProgress() {}
+
+    fun watchedEpisodeTimes(contentId: String): Flow<Map<Pair<Int, Int>, Long>> =
+        kotlinx.coroutines.flow.combine(watchedItems, getAllEpisodeProgress(contentId)) { watched, progress ->
+            val times = watched.filter { it.contentId == contentId && it.season != null && it.episode != null }
+                .associate { (it.season!! to it.episode!!) to it.watchedAt }.toMutableMap()
+            progress.filterValues { it.isCompleted() }.forEach { (key, row) -> times[key] = maxOf(times[key] ?: 0, row.lastWatched) }
+            times
+        }
+
     /**
      * Emits immediate optimistic updates that should patch Continue Watching
      * without waiting for the regular progress flows to settle.

@@ -316,9 +316,11 @@ class Web(base.Web):
                  for i, s in enumerate(SHOWS)]
         if STATE.get('trackerUnwatch'):
             show = shows[1]
+            # The saved DVD order and the synthetic TVDB catalogue both use series 9901.
+            show['ids']['tvdb'] = 9901
             if path.endswith('/search/imdb/'+SHOWS[1]):
                 return self.send_json([{'type': 'show', 'show': show}])
-            if path.endswith('/shows/2/seasons'):
+            if path in ('/trakt/shows/2/seasons', f'/trakt/shows/{SHOWS[1]}/seasons'):
                 return self.send_json([{'number': 1, 'episodes': [tracker_episode(i) for i in range(1, 9)]}])
             with LOCK:
                 history = dict(TRACKER_HISTORY)

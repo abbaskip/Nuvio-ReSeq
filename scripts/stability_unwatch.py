@@ -37,7 +37,7 @@ def main():
     result = []
     scenarios = ('resume', 'history') if args.scenario == 'local' else (args.scenario,)
     if args.scenario == 'tracker':
-        with urlopen(f'http://127.0.0.1:{args.fixture_port}/control?trackerUnwatch=true', timeout=5) as response:
+        with urlopen(f'http://127.0.0.1:{args.fixture_port}/control?office=false&completed=false&trackerUnwatch=true', timeout=5) as response:
             assert json.load(response)['trackerUnwatch']
     for index, scenario in enumerate(scenarios):
         if index:

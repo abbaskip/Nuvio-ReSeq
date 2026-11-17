@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--package', default='io.github.abbaskip.nuvioreseq.iptvdebug',
                         choices=['io.github.abbaskip.nuvioreseq.iptvdebug', 'io.github.abbaskip.nuvioreseq.debug'])
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('--scenario', choices=['local', 'tracker'], default='local')
+    parser.add_argument('--scenario', choices=['local', 'resume', 'history', 'tracker'], default='local')
     parser.add_argument('--fixture-port', type=int, default=38791)
     args = parser.parse_args()
     if not args.serial.startswith('emulator-'):
@@ -35,11 +35,14 @@ def main():
     # Only the separate fixture app is restarted, never the release package.
     adb('shell', 'am', 'force-stop', args.package)
     result = []
-    scenarios = ('tracker',) if args.scenario == 'tracker' else ('resume', 'history')
+    scenarios = ('resume', 'history') if args.scenario == 'local' else (args.scenario,)
     if args.scenario == 'tracker':
         with urlopen(f'http://127.0.0.1:{args.fixture_port}/control?trackerUnwatch=true', timeout=5) as response:
             assert json.load(response)['trackerUnwatch']
-    for scenario in scenarios:
+    for index, scenario in enumerate(scenarios):
+        if index:
+            # Independent watch histories for the same synthetic show must not share CW undo state.
+            assert adb('shell', 'pm', 'clear', args.package).strip() == b'Success'
         directory = args.output / scenario
         directory.mkdir(exist_ok=True)
         actions = {'tracker': ('tracker-unwatch-seed', 'tracker-unwatch-latest'),

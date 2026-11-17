@@ -111,6 +111,27 @@ class TraktProgressServiceFailureTest {
     }
 
     @Test
+    fun `cancelled initial history fetch can be retried immediately`() = runBlocking {
+        val service = createService()
+        val requested = CompletableDeferred<Unit>()
+        coEvery { traktApi.getShowProgressWatched(any(), any()) } coAnswers {
+            requested.complete(Unit)
+            CompletableDeferred<Unit>().await()
+            error("cancelled request must not finish")
+        }
+        val first = async { service.observeCanonicalEpisodeProgress("tt0000003").first() }
+        withTimeout(TIMEOUT_MS) { requested.await() }
+        first.cancel()
+        first.join()
+        coEvery { traktApi.getShowProgressWatched(any(), any()) } returns Response.success(
+            TraktShowProgressResponseDto(seasons = listOf(TraktShowSeasonProgressDto(6,
+                listOf(TraktShowEpisodeProgressDto(1, true, "2026-11-18T01:00:00Z"))))))
+        val retried = withTimeout(TIMEOUT_MS) { service.observeCanonicalEpisodeProgress("tt0000003").first() }
+        assertEquals(setOf(6 to 1), retried.keys)
+        coVerify(exactly = 2) { traktApi.getShowProgressWatched(any(), any()) }
+    }
+
+    @Test
     fun `removing a rewatch deletes only the latest matching pause and never removes history`() = runBlocking {
         val service = createService()
         val showId = "tt0386676"

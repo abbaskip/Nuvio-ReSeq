@@ -1048,8 +1048,13 @@ class WatchProgressRepositoryImpl @Inject constructor(
             mutationStore.acknowledgeWatchedUpserts(marked, profile)
             for (row in marked) watchedItemsPreferences.unmarkAsWatched(row.contentId, row.season, row.episode, profile)
             if (removed.priorWatched.isNotEmpty()) watchedItemsPreferences.markAsWatchedBatch(removed.priorWatched, profile)
-            journal.reconcile(profile)
+            // The durable undo journal filters the removed event from every view.
+            // Publish remaining history before waiting for all connected trackers.
             cwRepository?.deviceWatchRemoved(profile, removed)
+            journal.reconcile(profile)
+            // Reconciliation may restore an earlier watch of the same episode.
+            // Consume that committed history without another full tracker refresh.
+            cwRepository?.historyCommitted(profile, contentId, before = removed.startedAt)
             if (authManager.isAuthenticated) watchProgressSyncService.removeWatchMirrors(profile) { removed.removes(it) }
             return
         }

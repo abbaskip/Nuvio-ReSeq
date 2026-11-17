@@ -1375,12 +1375,18 @@ class TraktProgressService @Inject constructor(
                     details = details))
             }
             histories.value.history(cacheKey)?.progress(native = false).orEmpty()
+        } catch (e: CancellationException) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                episodeProgressMutex.withLock { episodeProgressLastAttemptAtMs.remove(cacheKey) }
+            }
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch episode progress for show=$cacheKey", e)
             histories.value.history(cacheKey)?.progress(native = false).orEmpty()
         } finally {
-            episodeProgressMutex.withLock {
-                inFlightEpisodeProgressKeys.remove(cacheKey)
+            // Cancellation must not leave a show permanently marked as in flight.
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                episodeProgressMutex.withLock { inFlightEpisodeProgressKeys.remove(cacheKey) }
             }
         }
     }

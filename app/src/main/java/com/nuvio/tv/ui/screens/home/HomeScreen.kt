@@ -199,21 +199,19 @@ fun HomeScreen(
         hasCollectionContent,
         hasHeroContent,
         initialCwResolved,
+        uiState.continueWatchingItems.isNotEmpty(),
         modernPresentationReady
     ) {
         // Track that addons are known (even if isLoading flipped too fast to catch).
         if (uiState.installedAddonsCount > 0) {
             catalogLoadingStarted = true
         }
-        // Wait until catalog loading has completed with content AND the CW
-        // pipeline has completed its first emission.
+        // The durable CW row can render before unrelated catalogue downloads finish.
         if (!homeStableGateReleased &&
-            catalogLoadingStarted &&
-            !uiState.isLoading &&
-            initialCwResolved &&
-            modernPresentationReady &&
-            // When addons are installed, require at least one catalog row.
-            (hasCatalogContent || uiState.installedAddonsCount == 0)
+            homeContentReady(
+                initialCwResolved, uiState.continueWatchingItems.isNotEmpty(), modernPresentationReady,
+                catalogLoadingStarted, uiState.isLoading, hasCatalogContent, uiState.installedAddonsCount
+            )
         ) {
             Log.d("HomeGate", "RELEASE: catalogs=$hasCatalogContent cwResolved=$initialCwResolved cwItems=${uiState.continueWatchingItems.size} addons=${uiState.installedAddonsCount}")
             homeStableGateReleased = true

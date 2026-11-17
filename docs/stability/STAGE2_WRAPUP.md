@@ -1,7 +1,24 @@
 # Stage 2 review checkpoint — 17 November 2026
 
 Base: `a4d01d7de5c5bdd49899907b6af949919382e029` (dev after 9.10). Draft PR: https://github.com/abbaskip/Nuvio-ReSeq/pull/28.
-Work stopped at the user's request. No further timing runs, pathological optimisations or TV work are authorised by this checkpoint.
+## Delivery checks on the reviewed code
+
+The 17 November follow-up tested app commit `c6a643cf2`. Both signed local.2 APKs matched the published 9.10 certificate. The bedroom Smart TV Pro (armeabi-v7a) upgraded from published 9.10 to 9.10.local.2, versionCode 10057, with its first-install timestamp preserved. The cold launch offered a single profile. The pass used Sports and Live TV and ended with ADB disconnected.
+
+| Bedroom TV, one cold Sports Hub open with existing data | Observation |
+| --- | --- |
+| First fixtures, My Sports, first live-game channel | All visible by 6.51 s. The first populated screen showed Afghanistan v Zimbabwe with a Fox Sports channel. |
+| TV Now discovery | 222 airings and 3/3 live fixtures matched. The first discovery took 34.52 s, roughly 35 s from opening Sports. |
+| Opening the cricket game page | Two Fox Sports channel choices visible by 2.25 s. |
+| Guide channel grid with a playing Fox Sports preview | 12 down presses, 55 frames, 36 missed deadlines (65.45%), p95 150 ms. A natural guide update was visible on the way into Live TV. Its state during the scroll itself was unverified. |
+
+The screen times are upper bounds from timestamped captures. The TV Now duration and frame counts came from device diagnostics.
+
+On the emulator, each playlist supplied 2,500 channels and 2,500 On Demand movies. The second import had 3,257 staged rows at process death. One restart cleared all four staging tables and the interruption marker and retained 120,000 guide listings. A separate download with 536 KiB free in the fixture guide cache produced a real ENOSPC error. Both previous guide files retained their SHA-256 hashes. After settling, both SQLite WAL files were zero bytes, the private work tables and partial files were gone, and both movie catalogues were intact. Files, cache and databases totalled 39,416 KiB against 39,384 KiB for an independent fresh load with both playlists (+0.08%).
+
+Storage passed without a product change. The existing full JVM and minified checks apply to this code. The outstanding real-device concerns are guide scrolling and cold TV Now discovery. The earlier checkpoint below records what was known before these two checks.
+
+## Earlier checkpoint
 
 | Item | Status at wrap-up |
 | --- | --- |

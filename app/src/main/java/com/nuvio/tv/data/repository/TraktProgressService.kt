@@ -597,6 +597,8 @@ class TraktProgressService @Inject constructor(
         return hasLoadedRemoteProgress
     }
 
+    internal fun confirmedContinueWatchingProgress(): List<WatchProgress> = remoteProgress.value
+
     fun observeWatchedShowSeeds(): Flow<List<WatchProgress>> {
         return combine(
             histories, layoutPreferenceDataStore.nextUpFromFurthestEpisode,
@@ -647,9 +649,7 @@ class TraktProgressService @Inject constructor(
             merged as Map<Pair<Int, Int>, WatchProgress>
         }
             .onStart {
-                scope.launch {
-                    ensureEpisodeProgressSnapshot(contentId = cacheKey, forceRefresh = false)
-                }
+                ensureEpisodeProgressSnapshot(contentId = cacheKey, forceRefresh = false)
             }
             .distinctUntilChanged()
     }
@@ -661,7 +661,7 @@ class TraktProgressService @Inject constructor(
         // Absence means not loaded, not "no watched episodes". In particular,
         // a CW first() consumer must not conclude the show ended before this fetch.
         return histories.map { state -> state.history(key)?.takeIf { it.details != null }?.progress(native = true) }.filterNotNull()
-            .onStart { scope.launch { ensureEpisodeProgressSnapshot(key, forceRefresh = false) } }
+            .onStart { ensureEpisodeProgressSnapshot(key, forceRefresh = false) }
             .distinctUntilChanged()
     }
 
@@ -673,7 +673,7 @@ class TraktProgressService @Inject constructor(
             val show = state.history(key) ?: return@map null
             val details = show.details ?: return@map null
             show.watched.map { (episode, at) -> show.completion(episode, at) } + details.playback.map { it.first }
-        }.filterNotNull().onStart { scope.launch { ensureEpisodeProgressSnapshot(key, forceRefresh = false) } }
+        }.filterNotNull().onStart { ensureEpisodeProgressSnapshot(key, forceRefresh = false) }
             .distinctUntilChanged()
     }
 
@@ -1092,8 +1092,17 @@ class TraktProgressService @Inject constructor(
         refreshNow()
     }
 
+    private val snapshotRefreshMutex = Mutex()
+
+    internal suspend fun refreshForContinueWatching() {
+        forceRefreshUntilMs = System.currentTimeMillis() + 30_000L
+        refreshRemoteSnapshot()
+    }
+
     @VisibleForTesting
-    internal suspend fun refreshRemoteSnapshot() {
+    internal suspend fun refreshRemoteSnapshot() = snapshotRefreshMutex.withLock { refreshRemoteSnapshotLocked() }
+
+    private suspend fun refreshRemoteSnapshotLocked() {
         if (!traktAuthService.isCircuitClosed()) {
             trace("refreshRemoteSnapshot: circuit breaker open, skipping")
             throw IOException("Trakt circuit breaker is open")

@@ -216,7 +216,9 @@ class TrackingPlaybackScenariosTest {
             every { resolvedActiveProfileId } returns activeProfile
             every { activeProfileId } returns activeProfile
         }
-        val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true)
+        val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true) {
+            every { observeDeviceProgress(any(), any()) } returns flowOf(emptyList())
+        }
 
         val profile1Progress = WatchProgress(
             contentId = "tt_shared_movie",

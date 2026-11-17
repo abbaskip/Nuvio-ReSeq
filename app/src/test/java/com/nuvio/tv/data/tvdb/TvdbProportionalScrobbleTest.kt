@@ -114,6 +114,9 @@ class TvdbProportionalScrobbleTest {
             val directory = java.nio.file.Files.createTempDirectory("completed-rewatch-clock").toFile()
             val items = MutableStateFlow(history + raw)
             val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
+                coEvery { confirmSelectedDeviceProgress() } returns Unit
+                every { watchedItems } returns kotlinx.coroutines.flow.flowOf(emptyList())
+                every { hasActiveTrackingProgressProvider() } returns true
                 every { allProgress } returns items
                 every { observeNextUpSeeds() } returns MutableStateFlow(listOf(history.last()))
                 every { observeRemoteProgressLoaded() } returns MutableStateFlow(true)
@@ -131,6 +134,7 @@ class TvdbProportionalScrobbleTest {
                 cw.refreshProjection()
                 val beforeDetails = cw.snapshot()
                 val first = beforeDetails.inProgress.single()
+                cw.enrich(beforeDetails.lease, inProgress = listOf(first)) // Home's settled per-show publication.
                 assertFalse("$provider ${video.title} raw=$raw", first.chooseEpisode)
                 val frames = java.util.concurrent.CopyOnWriteArrayList<CwProjection>()
                 val capture = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
@@ -411,6 +415,9 @@ class TvdbProportionalScrobbleTest {
                 every { playerSettings } returns MutableStateFlow(mockk { every { nextEpisodeThresholdPercent } returns 98f })
             })
         val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
+                coEvery { confirmSelectedDeviceProgress() } returns Unit
+                every { watchedItems } returns kotlinx.coroutines.flow.flowOf(emptyList())
+                every { hasActiveTrackingProgressProvider() } returns true
             every { allProgress } returns MutableStateFlow(listOf(raw))
             every { observeNextUpSeeds() } returns MutableStateFlow(emptyList())
             every { observeRemoteProgressLoaded() } returns MutableStateFlow(true)
@@ -449,6 +456,9 @@ class TvdbProportionalScrobbleTest {
             source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 182129, tvdbEpisodeId = 1832421L)
         val directory = java.nio.file.Files.createTempDirectory("office-cw").toFile()
         val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
+                coEvery { confirmSelectedDeviceProgress() } returns Unit
+                every { watchedItems } returns kotlinx.coroutines.flow.flowOf(emptyList())
+                every { hasActiveTrackingProgressProvider() } returns true
             every { allProgress } returns MutableStateFlow(listOf(raw))
             every { observeNextUpSeeds() } returns MutableStateFlow(emptyList())
             every { observeRemoteProgressLoaded() } returns MutableStateFlow(true)

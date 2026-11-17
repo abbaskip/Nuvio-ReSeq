@@ -35,6 +35,8 @@ class ContinueWatchingRepositoryTest {
         every { watchProgressSource } returns source
     }
     private val progress = mockk<WatchProgressRepository> {
+        coEvery { confirmSelectedDeviceProgress() } returns Unit
+        every { watchedItems } returns kotlinx.coroutines.flow.flowOf(emptyList())
         every { allProgress } returns remote
         every { observeNextUpSeeds() } returns seeds
         every { observeRemoteProgressLoaded() } returns loaded
@@ -139,6 +141,7 @@ class ContinueWatchingRepositoryTest {
             every { providerId } returns com.nuvio.tv.core.tracking.TrackingProviderId.TRAKT
             every { isAuthenticated } returns kotlinx.coroutines.flow.flowOf(true)
             every { movieCompletionTimes(1) } returns kotlinx.coroutines.flow.flowOf(emptyMap())
+            coEvery { refreshForContinueWatching(any()) } returns Unit
             every { confirmsRemovedWatch(1, any()) } answers { deleted && secondArg<WatchProgress>().traktPlaybackId == 77L }
         }
         val registry = com.nuvio.tv.core.tracking.TrackingProgressProviderRegistry(setOf(tracker))
@@ -164,8 +167,11 @@ class ContinueWatchingRepositoryTest {
         val restarted = repository()
         restarted.snapshot()
         val completed = prior.copy(source = WatchProgress.SOURCE_LOCAL, position = 100, lastWatched = 3_000)
-        restarted.committedProgress(1, listOf(completed))
-        remote.value = listOf(prior)
+        // Playback commits while an older tracker snapshot is already in flight.
+        every { progress.allProgress } returns kotlinx.coroutines.flow.flow {
+            restarted.committedProgress(1, listOf(completed))
+            emit(listOf(prior))
+        }
         loaded.value = true
         restarted.refreshProjection()
         assertEquals(completed, restarted.snapshot().members.getValue("show").progress)
@@ -246,6 +252,7 @@ class ContinueWatchingRepositoryTest {
         owner.historyRemoved(1, "show", setOf(1 to 5))
         seeds.value = listOf(earlier)
         remote.value = listOf(latest) // delayed provider replay of the revoked episode
+        loaded.value = true
         owner.refreshProjection()
         assertEquals(earlier, owner.snapshot().members.getValue("show").progress)
         val offer = earlier.seriesChoice().copy(videoId = "show:1:5", season = 1, episode = 5, chooseEpisode = false)

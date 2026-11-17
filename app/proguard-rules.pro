@@ -19,6 +19,7 @@
 # Persisted Continue Watching JSON must remain readable across Debug/Release and updates.
 -keep class com.nuvio.tv.data.local.CachedNextUpItem { *; }
 -keep class com.nuvio.tv.data.local.CachedInProgressItem { *; }
+-keep class com.nuvio.tv.data.local.RecentDeviceProgress { *; }
 -keep class com.nuvio.tv.data.cw.CwProjection { *; }
 -keep class com.nuvio.tv.data.cw.CwMember { *; }
 -keep class com.nuvio.tv.data.cw.CwCompletion { *; }

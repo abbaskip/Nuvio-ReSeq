@@ -1,5 +1,7 @@
 # Completed-show partial rewatches
 
+Local.22 follow-up: [selected-source progress and settled startup cards](CW_LOCAL22.md).
+
 Base: `dev` at `a4d01d7de`, including `8bd4f83b2`. Comparison reference: published `v0.1.0-beta.9.10` at `75472cff2`.
 
 ## Causes
@@ -23,7 +25,7 @@ MDBList's default episode read omitted completed rows unless addon numbering was
 
 The existing enrichment leases, history revisions, completed-vs-stale-pause rules and the stale-card rebuild from `8bd4f83b2` remain enforced.
 
-## Verification
+## Initial PR29 verification (before local.22)
 
 All account data is synthetic. No app is installed, no emulator or TV is contacted, and no real tracking account is accessed. The minified release APK is a local CI/debug-signed validation artifact, not a distributed beta.
 

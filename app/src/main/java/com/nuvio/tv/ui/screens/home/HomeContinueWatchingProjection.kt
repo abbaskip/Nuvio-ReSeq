@@ -21,9 +21,9 @@ internal fun HomeViewModel.observeContinueWatchingProjection() {
         ) { state, days, dismissed, unaired, sort ->
             CwMembershipReducer.visible(state, days, dismissed, unaired, System.currentTimeMillis()) to sort
         }.collect { (state, sort) ->
-            val cards = applyContinueWatchingEnrichmentOverlay(state.members.values.mapNotNull { member ->
+            val cards = state.members.values.mapNotNull { member ->
                 member.inProgress?.homeCard(member.progress) ?: member.nextUp?.homeCard()
-            })
+            }
             val (main, upcoming) = splitUpcomingItems(sortContinueWatchingItems(cards, sort), sort)
             _uiState.update { it.copy(continueWatchingItems = main, upcomingItems = upcoming) }
             _initialCwResolved.value = true
@@ -31,7 +31,7 @@ internal fun HomeViewModel.observeContinueWatchingProjection() {
     }
 }
 
-internal suspend fun HomeViewModel.publishCwEnrichment(lease: CwLease, cards: List<ContinueWatchingItem>) {
+internal suspend fun HomeViewModel.publishCwEnrichment(lease: CwLease, cards: List<ContinueWatchingItem>, settled: Boolean = false) {
     val ratings = layoutPreferenceDataStore.detailImdbRatingsVisibility.first()
     continueWatchingRepository.enrich(lease,
         inProgress = cards.mapNotNull { item -> (item as? ContinueWatchingItem.InProgress)?.let {
@@ -39,7 +39,7 @@ internal suspend fun HomeViewModel.publishCwEnrichment(lease: CwLease, cards: Li
                 ratings.showEpisodeRating(it.progress.isCompleted()))
         } },
         nextUp = cards.toCachedNextUpSnapshot(com.nuvio.tv.ui.components.brokenImageUrls)
-            .map { it.copy(ratingVisible = ratings.showEpisodeRating(isWatched = false)) })
+            .map { it.copy(ratingVisible = ratings.showEpisodeRating(isWatched = false)) }, settled = settled)
 }
 
 internal fun CachedInProgressItem.homeCard(committed: WatchProgress? = null) = ContinueWatchingItem.InProgress(
@@ -72,5 +72,5 @@ internal fun ContinueWatchingItem.InProgress.cachedCard(): CachedInProgressItem 
     return CachedInProgressItem(p.contentId, p.contentType, p.name, p.poster, p.backdrop, p.logo,
         p.videoId, p.season, p.episode, p.episodeTitle, p.position, p.duration, p.lastWatched, p.progressPercent,
         episodeThumbnail, episodeDescription, episodeImdbRating, genres, releaseInfo, contentLanguage,
-        tvdbContext = p.tvdbContext)
+        tvdbContext = p.tvdbContext, chooseEpisode = chooseEpisode)
 }

@@ -42,7 +42,9 @@ data class CwProjection(
     val removals: Map<String, Long> = emptyMap(),
     val ignoredProgress: Map<String, Long> = emptyMap(),
     val hiddenByProvider: Set<String> = emptySet(),
-    val completed: Map<String, Map<String, CwCompletion>> = emptyMap()
+    val completed: Map<String, Map<String, CwCompletion>> = emptyMap(),
+    /** Last settled cards. Working membership is never the startup presentation. */
+    val presentedMembers: Map<String, CwMember>? = null
 ) {
     val lease get() = CwLease(profileId, source, epoch, revision)
     val inProgress get() = members.values.mapNotNull { it.inProgress }
@@ -227,7 +229,8 @@ object CwMembershipReducer {
             val old = members[candidate.contentId] ?: return@forEach
             if (old.changedAtRevision > lease.revision || old.progress?.isCompleted() == true) return@forEach
             val current = old.inProgress ?: return@forEach
-            if (current.videoId != candidate.videoId || current.tvdbContext != candidate.tvdbContext) return@forEach
+            val resolvedIdentity = current.chooseEpisode && current.tvdbContext == null && candidate.tvdbContext != null && !candidate.chooseEpisode
+            if (!resolvedIdentity && (current.videoId != candidate.videoId || current.tvdbContext != candidate.tvdbContext)) return@forEach
             // Enrichment cannot rewind playback position or change the progress identity.
             members[candidate.contentId] = old.copy(inProgress = candidate.copy(position = current.position,
                 duration = current.duration, progressPercent = current.progressPercent, lastWatched = current.lastWatched))

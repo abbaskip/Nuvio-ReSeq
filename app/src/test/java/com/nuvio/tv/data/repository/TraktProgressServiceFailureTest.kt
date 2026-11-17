@@ -81,7 +81,9 @@ class TraktProgressServiceFailureTest {
             failed.complete(Unit)
             Response.error(503, "".toResponseBody())
         }
-        service.refreshNow()
+        // Exercise the awaited CW refresh. A queued signal during the initial
+        // onStart emission can be coalesced before the signal collector subscribes.
+        service.refreshForContinueWatching()
         withTimeout(TIMEOUT_MS) { failed.await() }
         delay(SETTLE_MS)
 

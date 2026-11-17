@@ -80,7 +80,8 @@ internal suspend fun HomeViewModel.applyConclusiveOlderNextUpResults(
 
     // A resolver's empty result is not evidence that tracker support disappeared.
     // The owner accepts compatible offers and retains all unresolved members.
-    publishCwEnrichment(pipelineLease, acceptedResolvedItems)
+    if (persistSnapshot) settleCwItems(pipelineLease, acceptedResolvedItems, pipelineProfileId)
+    else publishCwEnrichment(pipelineLease, acceptedResolvedItems)
 
 }
 

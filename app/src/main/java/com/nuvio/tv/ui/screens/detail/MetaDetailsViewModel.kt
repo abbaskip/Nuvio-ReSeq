@@ -578,13 +578,15 @@ class MetaDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             _effectiveContentId.flatMapLatest { cid ->
                 combine(
-                    watchedItemsPreferences.getWatchedEpisodesForContent(cid),
+                    watchProgressRepository.watchedEpisodeTimes(cid).map { it.keys },
                     watchProgressRepository.getAllEpisodeProgress(cid),
                     _uiState.map { it.meta?.videos }.distinctUntilChanged(),
                 ) { localWatched, progressMap, videos ->
                     val meta = _uiState.value.meta
                     val native = meta?.episodeOrder?.effectiveType != null
-                    val fromProgress = reconcileTvdbProgress(meta, progressMap).filterValues { it.isCompleted() }.keys
+                    val fromProgress = reconcileTvdbProgress(meta, progressMap).filterValues {
+                        it.isCompleted() || (it.tvdbContentIds.isNotEmpty() && it.tvdbWatchedIds.containsAll(it.tvdbContentIds))
+                    }.keys
                     val merged = ((if (native) emptySet() else localWatched) + fromProgress).toMutableSet()
                     // Remove optimistic unmarks — episodes the user just batch-unmarked
                     // that may still linger in localWatched/fromProgress briefly.
@@ -1965,7 +1967,7 @@ class MetaDetailsViewModel @Inject constructor(
         return SeriesNextToWatch(localizedContext).resolve(_effectiveContentId.value, meta.apiType, meta.name,
             meta.videos, meta.episodeOrder?.effectiveType != null, meta.behaviorHints?.defaultVideoId,
             progressMap, watchedEpisodes, layoutPreferenceDataStore.nextUpFromFurthestEpisode.first()) {
-            watchedItemsPreferences.getWatchedEpisodesWithTimestamps(_effectiveContentId.value).first()
+            watchProgressRepository.watchedEpisodeTimes(_effectiveContentId.value).first()
         }
     }
 

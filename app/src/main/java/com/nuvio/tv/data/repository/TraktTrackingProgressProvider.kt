@@ -12,6 +12,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 
 @Singleton
 class TraktTrackingProgressProvider @Inject constructor(
@@ -51,6 +52,8 @@ class TraktTrackingProgressProvider @Inject constructor(
     override suspend fun showIdSiblings() = service.getShowIdSiblings()
 
     override suspend fun refresh(intent: TrackingRefreshIntent) = service.refreshNow()
+    override suspend fun refreshForContinueWatching(intent: TrackingRefreshIntent) = service.refreshForContinueWatching()
+    override suspend fun confirmedContinueWatchingProgress() = service.confirmedContinueWatchingProgress() + nextUpSeeds.first()
 
     override suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) =
         service.removeEpisodePause(target, resume)

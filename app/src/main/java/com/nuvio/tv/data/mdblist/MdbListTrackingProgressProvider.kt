@@ -58,7 +58,8 @@ class MdbListTrackingProgressProvider @Inject constructor(
         projection.nextUp(furthest)
     }.loadOnStart()
     override val remoteProgressLoaded = combine(sync.state, auth.state, profiles.activeProfileId) { state, authorization, profileId ->
-        state.hasLoaded && state.scope == authorization.scope && authorization.scope.profileId == profileId && authorization.isAuthenticated
+        state.hasLoaded && !state.isLoading && state.error == null && state.scope == authorization.scope &&
+            authorization.scope.profileId == profileId && authorization.isAuthenticated
     }.distinctUntilChanged()
 
     override fun episodeProgress(contentId: String): Flow<Map<Pair<Int, Int>, WatchProgress>> =
@@ -68,11 +69,9 @@ class MdbListTrackingProgressProvider @Inject constructor(
                 emit(projection.episodeProgressInAddonNumbering(contentId, known))
                 return@transformLatest
             }
-            emit(projection.episodeHistoryAndProgress(contentId))
-            if (!projection.hasEpisodes(contentId)) return@transformLatest
-            episodeMapping(contentId, projection)?.let { mapping ->
-                emit(projection.episodeProgressInAddonNumbering(contentId, mapping))
-            }
+            val mapping = if (projection.hasEpisodes(contentId)) episodeMapping(contentId, projection) else null
+            emit(if (mapping == null) projection.episodeHistoryAndProgress(contentId)
+                else projection.episodeProgressInAddonNumbering(contentId, mapping))
         }.loadOnStart()
 
     override fun airedEpisodeOrder(contentId: String): Flow<List<Pair<Int, Int>>> = flowOf(emptyList())
@@ -185,22 +184,22 @@ class MdbListTrackingProgressProvider @Inject constructor(
 
     /**
      * Moves in-progress episodes to the addon's numbering. Shows with a known mapping are remapped
-     * at once; the others are emitted as MDBList numbers them and again once their mapping loads.
+     * at once; the others wait for their mapping before a single emission.
      */
     private fun Flow<List<WatchProgress>>.inAddonNumbering(): Flow<List<WatchProgress>> =
         transformLatest { items ->
-            emit(items.map(::withCachedAddonEpisode))
             val pending = items.asSequence()
                 .filter { it.season != null && it.episode != null && episodeMappings.cached(it.contentId) == null }
                 .map(WatchProgress::contentId)
                 .distinct()
                 .toList()
-            if (pending.isEmpty()) return@transformLatest
-            val projection = currentProjection()
-            val resolved = coroutineScope {
-                pending.map { contentId -> async { episodeMapping(contentId, projection) } }.awaitAll()
+            if (pending.isNotEmpty()) {
+                val projection = currentProjection()
+                coroutineScope {
+                    pending.map { contentId -> async { episodeMapping(contentId, projection) } }.awaitAll()
+                }
             }
-            if (resolved.any { it?.remaps == true }) emit(items.map(::withCachedAddonEpisode))
+            emit(items.map(::withCachedAddonEpisode))
         }
 
     private fun withCachedAddonEpisode(progress: WatchProgress): WatchProgress {

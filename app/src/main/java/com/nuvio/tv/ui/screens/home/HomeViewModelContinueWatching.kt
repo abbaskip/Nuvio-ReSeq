@@ -291,13 +291,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
     cwPipelineJob = viewModelScope.launch(Dispatchers.Default) {
         runVisibleHomeWork(homeContentActive, PlayerSessionTracker.isSessionOpen) {
         combine(
-            combine(
-                watchProgressRepository.allProgress,
-                watchProgressRepository.observeNextUpSeeds(),
-                watchProgressRepository.observeRemoteProgressLoaded()
-            ) { items, nextUpSeeds, hasLoaded ->
-                ProgressSnapshot(items, nextUpSeeds, hasLoaded)
-            },
+            continueWatchingRepository.settledProgress,
             combine(
                 traktSettingsDataStore.continueWatchingDaysCap,
                 traktSettingsDataStore.dismissedNextUpKeys,
@@ -307,13 +301,13 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
             ) { daysCap, dismissedNextUp, showUnairedNextUp, nextUpFromFurthest, sortMode ->
                 arrayOf(daysCap, dismissedNextUp, showUnairedNextUp, nextUpFromFurthest, sortMode)
             },
-            watchProgressRepository.watchedItems,
             cwPipelineRefreshTrigger,
             // A history edit can finish after its seed was emitted. Resolve the new
             // projection even if the remaining history and settings no longer change.
             continueWatchingRepository.projection.filterNotNull().map { it.epoch }.distinctUntilChanged()
-        ) { progressSnapshot, settingsSnapshot, watchedItemsVersion, _, _ ->
-            val (items, nextUpSeeds, hasLoadedRemoteProgress) = progressSnapshot
+        ) { progressSnapshot, settingsSnapshot, _, _ ->
+            val items = progressSnapshot.items
+            val nextUpSeeds = progressSnapshot.seeds
             @Suppress("UNCHECKED_CAST")
             val daysCap = settingsSnapshot[0] as Int
             val dismissedNextUp = settingsSnapshot[1] as Set<String>
@@ -328,8 +322,8 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 showUnairedNextUp = showUnairedNextUp,
                 nextUpFromFurthestEpisode = nextUpFromFurthestEpisode,
                 continueWatchingSortMode = continueWatchingSortMode,
-                watchedItemsVersion = watchedItemsVersion,
-                hasLoadedRemoteProgress = hasLoadedRemoteProgress
+                watchedItemsVersion = progressSnapshot.watched,
+                hasLoadedRemoteProgress = true
             )
         }.debounce(CW_PROGRESS_DEBOUNCE_MS).collectLatest { snapshot ->
             coroutineScope {
@@ -1385,6 +1379,10 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
     nextUpByContent.values.toList()
 }
 
+internal suspend fun HomeViewModel.settleCwItems(lease: com.nuvio.tv.data.cw.CwLease,
+    items: List<ContinueWatchingItem>, profileId: Int) =
+    enrichVisibleContinueWatchingItems(lease, items, pipelineProfileId = profileId)
+
 private suspend fun HomeViewModel.enrichVisibleContinueWatchingItems(
     pipelineLease: com.nuvio.tv.data.cw.CwLease,
     finalItems: List<ContinueWatchingItem>,
@@ -1399,13 +1397,15 @@ private suspend fun HomeViewModel.enrichVisibleContinueWatchingItems(
         .mapIndexed { index, item ->
             async(Dispatchers.IO) {
                 enrichmentSemaphore.withPermit {
-                    index to when (item) {
+                    val enriched = when (item) {
                         is ContinueWatchingItem.InProgress -> {
                             val overlay = cwEnrichedInProgressOverlay[item.progress.contentId]
                             if (overlay != null &&
                                 overlay.progress.videoId == item.progress.videoId &&
                                 overlay.progress.season == item.progress.season &&
-                                overlay.progress.episode == item.progress.episode
+                                overlay.progress.episode == item.progress.episode && !overlay.chooseEpisode &&
+                                (tvdbOrderStore?.cachedSelection(pipelineProfileId, item.progress.contentId) == null ||
+                                    overlay.progress.tvdbContext != null)
                             ) {
                                 overlay.copy(
                                     progress = overlay.progress.copy(
@@ -1423,7 +1423,8 @@ private suspend fun HomeViewModel.enrichVisibleContinueWatchingItems(
                             val overlay = cwEnrichedNextUpOverlay[item.info.contentId]
                             if (overlay != null &&
                                 overlay.season == item.info.season &&
-                                overlay.episode == item.info.episode
+                                overlay.episode == item.info.episode &&
+                                (tvdbOrderStore?.cachedSelection(pipelineProfileId, item.info.contentId) == null || overlay.tvdbContext != null)
                             ) {
                                 // Recalculate hasAired/isReleaseAlert from current time
                                 val freshHasAired = hasEpisodeAired(overlay.released, fallback = overlay.hasAired)
@@ -1456,6 +1457,8 @@ private suspend fun HomeViewModel.enrichVisibleContinueWatchingItems(
                             }
                         }
                     }
+                    publishCwEnrichment(pipelineLease, listOf(enriched), settled = true)
+                    index to enriched
                 }
             }
         }
@@ -1482,8 +1485,6 @@ private suspend fun HomeViewModel.enrichVisibleContinueWatchingItems(
         enrichedItems
     }
 
-    if (sortedEnrichedItems == finalItems) return@coroutineScope false
-
     // Save enriched next-up info to in-memory overlay so the next CW cycle's
     // cached/partial/normal emissions use enriched data from the start,
     // preventing title/thumbnail flickering between addon and TMDB values.
@@ -1498,8 +1499,7 @@ private suspend fun HomeViewModel.enrichVisibleContinueWatchingItems(
         }
     }
 
-    publishCwEnrichment(pipelineLease, sortedEnrichedItems)
-    true
+    sortedEnrichedItems != finalItems
 }
 
 internal fun sortContinueWatchingItems(
@@ -1778,7 +1778,9 @@ private suspend fun HomeViewModel.enrichInProgressItem(
     if (meta == null) {
         return@coroutineScope item
     }
-    val video = resolveVideoForProgress(item.progress, meta)
+    val selectedItem = if (meta.tvdbOrder) (projectTvdbContinueWatching(item, meta.videos.map { it.asTvdbVideo() })
+        as? ContinueWatchingItem.InProgress) ?: item.copy(chooseEpisode = true) else item
+    val video = resolveVideoForProgress(selectedItem.progress, meta)
     val genres = meta.genres.take(3)
     val releaseInfo = meta.releaseInfo?.takeIf { it.isNotBlank() }
     val rawTmdbData = if (shouldEnrichTmdb) {
@@ -1819,12 +1821,12 @@ private suspend fun HomeViewModel.enrichInProgressItem(
     } else null
 
     val settings = currentTmdbSettings
-    item.copy(
-        progress = item.progress.copy(
+    selectedItem.copy(
+        progress = selectedItem.progress.copy(
             videoId = if (item.progress.source != WatchProgress.SOURCE_LOCAL && video != null) {
                 video.id.takeIf { it.isNotBlank() } ?: item.progress.videoId
             } else {
-                item.progress.videoId
+                selectedItem.progress.videoId
             },
             name = if (settings.useBasicInfo) tmdbData?.name ?: meta.name else meta.name,
             poster = item.progress.poster ?: meta.poster.normalizeImageUrl() ?: if (settings.useArtwork) tmdbData?.poster.normalizeImageUrl() else null,
@@ -2061,7 +2063,7 @@ private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
     }
     val progressFlow = watchProgressRepository.getAllEpisodeProgress(contentId)
     val committed = withTimeoutOrNull(150L) { progressFlow.first { it.isNotEmpty() } } ?: progressFlow.first()
-    val watchedTimes = watchedHistory?.getWatchedEpisodesWithTimestamps(contentId)?.first().orEmpty()
+    val watchedTimes = watchProgressRepository.watchedEpisodeTimes(contentId).first()
     val key = season to episode
     val history = if (key in committed) committed else committed + (key to progress)
     val choice = com.nuvio.tv.ui.screens.detail.SeriesNextToWatch(appContext).resolve(

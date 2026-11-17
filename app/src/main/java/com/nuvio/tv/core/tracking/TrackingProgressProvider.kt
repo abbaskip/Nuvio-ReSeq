@@ -6,6 +6,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 
 /** Keep the latest actual completion across aliases and duplicate history rows.
  * An unknown date still supports a watched badge, but gives CW no removal evidence. */
@@ -49,6 +50,10 @@ interface TrackingProgressProvider {
     suspend fun showIdSiblings(): Map<String, Set<String>>
     fun isWatchedByVideoId(videoId: String, episode: Int): Boolean? = null
     suspend fun refresh(intent: TrackingRefreshIntent)
+    /** Returns after the selected source's playback AND history refresh have completed. */
+    suspend fun refreshForContinueWatching(intent: TrackingRefreshIntent) = refresh(intent)
+    /** Confirmation excludes locally optimistic echoes of the same device write. */
+    suspend fun confirmedContinueWatchingProgress(): List<WatchProgress> = allProgress.first() + nextUpSeeds.first()
     suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
         val episode = requireNotNull(target.episode)
         removeProgress(requireNotNull(target.catalog).contentId, requireNotNull(episode.season), episode.number)

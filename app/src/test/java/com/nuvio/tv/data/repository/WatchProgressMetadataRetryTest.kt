@@ -57,6 +57,7 @@ class WatchProgressMetadataRetryTest {
             every { activeProfileId } returns activeProfile
         }
         val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true) {
+            every { observeDeviceProgress(any(), any()) } returns flowOf(emptyList())
             every { observeAllProgress(1) } returns profileProgress
         }
         val traktSettings = mockk<TraktSettingsDataStore>(relaxed = true) {
@@ -140,6 +141,7 @@ class WatchProgressMetadataRetryTest {
             every { activeProfileId } returns activeProfile
         }
         val progressPreferences = mockk<WatchProgressPreferences>(relaxed = true) {
+            every { observeDeviceProgress(any(), any()) } returns flowOf(emptyList())
             every { observeAllProgress(1) } returns profileProgress
         }
         val traktSettings = mockk<TraktSettingsDataStore>(relaxed = true) {

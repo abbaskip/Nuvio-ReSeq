@@ -343,7 +343,7 @@ class ShuffleHomeRefreshTest {
         assertFalse(target.shufflePlayback)
     }
 
-    @Test fun sequentialNextUpDoesNotRetainIdentityAfterTheSelectedOrderChanges() = runTest {
+    @Test fun sequentialNextUpKeepsTheCachedCardUntilTheNewOrderHasSettled() = runTest {
         setup()
         profile.value = EpisodeShuffleProfile(1, true)
         native.value = snapshot.copy(continueWatchingItems = listOf(card.copy(info = card.info.copy(
@@ -354,8 +354,8 @@ class ShuffleHomeRefreshTest {
         every { store.cachedSelection(1, any()) } returns TvdbOrderPreference(111, "alternate")
         refresh.update { it.copy(metadata = it.metadata + 1) }
         runCurrent()
-        assertTrue(home.onlyCard().chooseEpisode)
-        assertFalse(home.onlyCard().canMarkWatched())
+        assertFalse(home.onlyCard().chooseEpisode)
+        assertEquals(video.tvdbPlaybackContext(), (home.onlyCard() as ContinueWatchingItem.NextUp).info.tvdbContext)
     }
 
     @Test fun normalPlayBypassesAPendingHomeCacheButStillResolvesFreshTvdbIdentity() = runTest {
@@ -366,7 +366,7 @@ class ShuffleHomeRefreshTest {
         val home = home()
         every { vm.uiState } returns home
         val fallback = home.onlyCard()
-        assertTrue(fallback.chooseEpisode)
+        assertFalse("cached episode survives an intermediate metadata fallback", fallback.chooseEpisode)
         var played: ContinueWatchingItem? = null
         vm.verifyTvdbPlayback(fallback, { played = it }, { _, _, _ -> fail("Known sequential episode opened Details") })
         advanceTimeBy(10_001)

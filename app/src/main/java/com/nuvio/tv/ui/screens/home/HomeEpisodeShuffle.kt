@@ -141,7 +141,7 @@ private fun HomeViewModel.projectShuffleHomeState(state: HomeUiState, inputs: Ho
                 season = video.season, episode = video.episode, overview = video.overview, available = video.available,
                 episodeIdentity = video.episodeIdentity)
         }
-    }.let { withTvdbLabels(it) }
+    }.let { withTvdbLabels(it, profile) }
 }
 
 private const val CW_TRACE_TAG = "NuvioCwTrace"
@@ -151,7 +151,17 @@ internal inline fun traceCwCard(id: String, reason: () -> String) {
         Log.d(CW_TRACE_TAG, "at=${System.currentTimeMillis()} show=$id ${reason()}")
 }
 
-private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem): ContinueWatchingItem {
+private fun HomeViewModel.projectTvdbItem(item: ContinueWatchingItem, shuffleEnabled: Boolean): ContinueWatchingItem {
+    // Sequential cards are already settled by the repository's background resolver.
+    // A cold/partial catalogue must never reinterpret the saved card on screen.
+    if (!item.shufflePlayback && !shuffleEnabled) return when (item) {
+        is ContinueWatchingItem.InProgress -> item.progress.tvdbContext?.let {
+            item.copy(displaySeason = it.season, displayEpisode = it.episode)
+        } ?: item
+        is ContinueWatchingItem.NextUp -> item.info.tvdbContext?.let {
+            item.copy(info = item.info.copy(displaySeason = it.season, displayEpisode = it.episode))
+        } ?: item
+    }
     // A retained resume may be awaiting identity verification in the durable projection.
     // Let the selected catalogue resolve it; treating that flag as terminal strands it
     // after unwatch exposes an older provider/default-order resume.
@@ -207,9 +217,14 @@ private fun ContinueWatchingItem.forSeriesChoice() = when (this) {
     is ContinueWatchingItem.NextUp -> copy(chooseEpisode = true, shufflePlayback = false)
 }
 
-private fun HomeViewModel.withTvdbLabels(state: HomeUiState): HomeUiState = state.copy(
-    continueWatchingItems = state.continueWatchingItems.map(::projectTvdbItem),
-    upcomingItems = state.upcomingItems.map(::projectTvdbItem))
+private fun HomeViewModel.withTvdbLabels(state: HomeUiState, profile: EpisodeShuffleProfile): HomeUiState {
+    fun project(item: ContinueWatchingItem): ContinueWatchingItem {
+        val type = when (item) { is ContinueWatchingItem.InProgress -> item.progress.contentType; is ContinueWatchingItem.NextUp -> item.info.contentType }
+        return projectTvdbItem(item, profile.settings(item.contentId(), type).enabled)
+    }
+    return state.copy(continueWatchingItems = state.continueWatchingItems.map(::project),
+        upcomingItems = state.upcomingItems.map(::project))
+}
 
 private fun HomeViewModel.finishedShuffleSeeds() = combine(
     combine(continueWatchingRepository.projection, traktSettingsDataStore.watchProgressSource) { state, source ->

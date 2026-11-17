@@ -5,7 +5,7 @@ import com.nuvio.tv.domain.model.*
 /** A verified native tracker record measured on the playable episode's timeline. */
 internal fun projectTrackerParts(record: WatchProgress, nativeIds: List<Long>, videos: List<Video>,
     threshold: Float): List<WatchProgress> {
-    if (nativeIds.isEmpty() || record.tvdbCoverageVerified == false || record.isBelowCwMinimum()) return emptyList()
+    if (nativeIds.isEmpty() || record.tvdbCoverageVerified == false) return emptyList()
     val playable = videos.filter { it.hasResolvedSource }.distinctEpisodeSources()
     return playable.mapNotNull { video ->
         val context = video.tvdbPlaybackContext() ?: return@mapNotNull null
@@ -26,6 +26,7 @@ internal fun projectTrackerParts(record: WatchProgress, nativeIds: List<Long>, v
         record.copy(videoId = video.id, season = video.season, episode = video.episode, episodeTitle = video.title,
             position = 0, duration = 0, progressPercent = if (complete) 100f else (value * 100).toFloat().coerceAtMost(Math.nextDown(100f)),
             tvdbContext = context, tvdbEpisodeId = covered.first(), tvdbEpisodeIds = covered,
+            nativeProgressPercent = record.nativeProgressPercent ?: record.progressPercentage * 100,
             tvdbCompletedEpisodeIds = completedIds, completionThresholdOverride = threshold,
             tvdbCoverageVerified = true)
     }

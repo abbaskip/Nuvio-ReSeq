@@ -429,12 +429,12 @@ private fun WatchProgress.isDetailedHistoryFor(seed: WatchProgress): Boolean =
 private fun episodeHistoryKey(contentId: String, season: Int, episode: Int) = "$contentId|episode:$season:$episode|"
 internal fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"
 private fun WatchProgress.watchEventKeys(): Set<String> {
-    deviceWatchEventId?.let { return setOf("$contentId|device:$it") }
-    pauseEventKey()?.let { return setOf(it) }
+    val deviceKeys = deviceWatchEventId?.let { setOf("$contentId|device:$it") }.orEmpty()
+    pauseEventKey()?.let { return deviceKeys + it }
     if (source == WatchProgress.SOURCE_TRAKT_PLAYBACK && traktPlaybackId != null)
-        return setOf("$contentId|playback:$traktPlaybackId|$lastWatched")
-    if (source != WatchProgress.SOURCE_TRAKT_HISTORY && source != WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS) return emptySet()
-    return buildSet {
+        return deviceKeys + "$contentId|playback:$traktPlaybackId|$lastWatched"
+    if (source != WatchProgress.SOURCE_TRAKT_HISTORY && source != WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS) return deviceKeys
+    return deviceKeys + buildSet {
         traktEpisodeId?.let { add("$contentId|watch:$it|$lastWatched") }
         traktHistoryEpisode?.let { add("$contentId|watch:${it.season}:${it.episode}|$lastWatched") }
     }

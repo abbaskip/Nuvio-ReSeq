@@ -91,6 +91,9 @@ class SimklTrackingProgressProvider @Inject constructor(
     }
 
     override suspend fun removeWatchEvent(target: TrackingMediaReference, event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        val scope = authStorage.currentScope()
+        fun checkScope() = check(authStorage.isCurrent(scope) && (event.profileId == null || scope.profileId == event.profileId))
+        checkScope()
         val episode = requireNotNull(target.episode)
         val parent = requireNotNull(target.catalog)
         syncRepository.ensureLoaded()
@@ -104,16 +107,20 @@ class SimklTrackingProgressProvider @Inject constructor(
         }
         check(sessions.size <= 1) { "Ambiguous Simkl playback event" }
         for (row in sessions) {
+            checkScope()
             val id = requireNotNull(row.id)
             apiClient.execute(SimklApiRequest(SimklHttpMethod.DELETE, "/sync/playback/$id"))
+            checkScope()
             syncRepository.removePlaybackSessions(setOf(id))
         }
         // The unchanged 9.8 output does not opt into Simkl rewatch sessions.
         // Preserve an older canonical completion instead of unwatching the episode.
+        checkScope()
         syncRepository.refresh(TrackingRefreshIntent.INVALIDATED)
         val current = watchedItems.first().filter { it.contentId == parent.contentId && it.season == episode.season && it.episode == episode.number }
             .maxByOrNull { it.watchedAt }
         if (event.completionExpected && current != null && event.contains(current.watchedAt)) {
+            checkScope()
             check(event.priorKnown && event.priorWatchedAt == null) { "Cannot erase earlier Simkl history" }
             val body = buildSimklHistoryRemovalBody(listOf(target), kotlinx.serialization.json.Json { explicitNulls = false })
             val response = apiClient.execute(SimklApiRequest(SimklHttpMethod.POST, "/sync/history/remove", body = body,

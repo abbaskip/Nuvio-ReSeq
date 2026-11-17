@@ -74,7 +74,7 @@ class DeviceWatchEventStore @Inject constructor(
 
     suspend fun record(profile: Int, row: WatchProgress): WatchProgress = lock.withLock {
         if (row.source != WatchProgress.SOURCE_LOCAL || row.trackingProviderId != null || row.season == null || row.episode == null) return@withLock row
-        val old = events(profile).lastOrNull { !it.removed && it.matches(row) }
+        val old = events(profile).filter { !it.removed && it.matches(row) }.maxByOrNull { it.startedAt }
         val fresh = old == null || (old.progress.isCompleted() && row.progressPercentage < .01f)
         val event = if (!fresh) old!! else {
             val candidate = DeviceWatchEvent(UUID.randomUUID().toString(), row, row.lastWatched, row.lastWatched)
@@ -95,7 +95,7 @@ class DeviceWatchEventStore @Inject constructor(
             episode.title, 0, 0, now(), progressPercent = event.progressPercent.toFloat(),
             tvdbContext = catalog.tvdbContext, tvdbEpisodeIds = catalog.tvdbContext?.episodeIds)
         record(profile, row)
-        val current = events(profile).lastOrNull { !it.removed && it.matches(row) } ?: return
+        val current = events(profile).filter { !it.removed && it.matches(row) }.maxByOrNull { it.startedAt } ?: return
         if (current.baselines.isNotEmpty()) return
         val baselines = mutableMapOf<String, List<TrackingWatchBaseline>>()
         for (provider in providers.get().providers()) {
@@ -115,6 +115,7 @@ class DeviceWatchEventStore @Inject constructor(
             catch (_: Exception) { /* Unknown baseline must never become permission to unwatch. */ }
         }
         lock.withLock {
+            if (profiles.activeProfileId.value != profile) return@withLock
             val latest = events(profile).firstOrNull { it.id == current.id } ?: return@withLock
             put(profile, latest.copy(baselines = baselines))
         }
@@ -123,9 +124,9 @@ class DeviceWatchEventStore @Inject constructor(
     suspend fun currentEvent(event: TrackingScrobbleEvent): Pair<Int, String>? {
         val catalog = event.media.catalog ?: return null
         val profile = profiles.activeProfileId.value
-        val latest = events(profile).lastOrNull { !it.removed && it.progress.contentId == catalog.contentId &&
+        val latest = events(profile).filter { !it.removed && it.progress.contentId == catalog.contentId &&
             (catalog.tvdbContext?.episodeId?.let { id -> it.progress.tvdbContext?.episodeId == id }
-                ?: (it.progress.season == event.media.episode?.season && it.progress.episode == event.media.episode?.number)) }
+                ?: (it.progress.season == event.media.episode?.season && it.progress.episode == event.media.episode?.number)) }.maxByOrNull { it.startedAt }
         return latest?.let { profile to it.id }
     }
 
@@ -139,7 +140,8 @@ class DeviceWatchEventStore @Inject constructor(
 
     suspend fun requestRemoval(profile: Int, row: WatchProgress): DeviceWatchEvent = lock.withLock {
         val all = events(profile)
-        val own = all.firstOrNull { it.id == row.deviceWatchEventId } ?: all.lastOrNull { !it.removed && it.matches(row) && it.contains(row.lastWatched) }
+        val own = all.firstOrNull { it.id == row.deviceWatchEventId } ?: all.filter { !it.removed && it.matches(row) &&
+            row.lastWatched in (it.startedAt - 2_000)..through(it, all) }.maxByOrNull { it.startedAt }
         val identity = DeviceWatchEvent(UUID.randomUUID().toString(), row, row.lastWatched, row.lastWatched)
         val legacy = if (own != null) null else local.devicePlayReceipts(profile).filter { receipt ->
             identity.matches(receipt.progress) && receipt.progress.source == WatchProgress.SOURCE_LOCAL &&
@@ -158,7 +160,9 @@ class DeviceWatchEventStore @Inject constructor(
             .minOfOrNull { it.startedAt - 1 } ?: Long.MAX_VALUE)
 
     fun decorate(rows: List<WatchProgress>, events: List<DeviceWatchEvent>): List<WatchProgress> = rows.filterNot { row -> events.any { it.removes(row, through(it, events)) } }.map { row ->
-        val own = events.lastOrNull { !it.removed && it.matches(row) && it.contains(row.lastWatched) }
+        val own = events.firstOrNull { !it.removed && it.id == row.deviceWatchEventId && it.matches(row) } ?:
+            events.filter { !it.removed && it.matches(row) && row.lastWatched in (it.startedAt - 2_000)..through(it, events) }
+                .maxByOrNull { it.startedAt }
         row.copy(deviceWatchEventId = own?.id)
     }
 
@@ -184,7 +188,7 @@ class DeviceWatchEventStore @Inject constructor(
                 for (baseline in targets) done = provider.removeWatchEvent(baseline.target, TrackingWatchEvent(event.id,
                     event.nativeEvent ?: event.progress, event.startedAt - 2_000, through(event, events(profile)), baseline.known, baseline.watchedAt,
                     event.progress.isCompleted() && baseline.completionExpected &&
-                        !(provider.providerId == TrackingProviderId.TRAKT && event.nativeEvent?.source == WatchProgress.SOURCE_TRAKT_PLAYBACK))) && done
+                        !(provider.providerId == TrackingProviderId.TRAKT && event.nativeEvent?.source == WatchProgress.SOURCE_TRAKT_PLAYBACK), profileId = profile)) && done
                 if (done) lock.withLock {
                     val latest = events(profile).firstOrNull { it.id == event.id } ?: return@withLock
                     put(profile, latest.copy(handled = latest.handled + provider.providerId.name))

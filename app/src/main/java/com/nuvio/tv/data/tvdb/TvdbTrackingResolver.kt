@@ -62,6 +62,7 @@ class TvdbTrackingResolver @Inject constructor(
     /** A tracker pause is measured on the native episode's timeline. Only CW consumes this view. */
     internal suspend fun continueWatchingResume(profileId: Int, pause: WatchProgress, revoked: Map<String, Long> = emptyMap(),
         projectedHistory: (suspend () -> Collection<WatchProgress>)? = null): WatchProgress? {
+        if (pause.isBelowCwMinimum()) return null
         val meta = effectiveMetadata(profileId, pause.contentId, pause.contentType) ?: return null
         val ids = when (pause.source) {
             WatchProgress.SOURCE_TRAKT_PLAYBACK -> traktTargets(profileId, meta).singleOrNull {
@@ -139,7 +140,7 @@ class TvdbTrackingResolver @Inject constructor(
         if (context == null && !isSelected(profileId, contentId)) return progress
         return try {
             val meta = effectiveMetadata(profileId, contentId, "series", context) ?: return emptyMap()
-            val entries = (progress.values + localRecords).filterNot { it.isBelowCwMinimum() }
+            val entries = progress.values + localRecords
             val traktEntries = entries.filter { it.trackingProviderId == "trakt" || it.source.startsWith("trakt_") }.toHashSet()
             val targets = if (traktEntries.isNotEmpty()) traktTargets(profileId, meta) else emptyList()
             fun needsCatalogue(entry: WatchProgress) = entry.contentId != contentId ||

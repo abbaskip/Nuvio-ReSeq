@@ -10,7 +10,8 @@ data class TrackingWatchEvent(
     val through: Long,
     val priorKnown: Boolean = false,
     val priorWatchedAt: Long? = null,
-    val completionExpected: Boolean = progress.isCompleted()
+    val completionExpected: Boolean = progress.isCompleted(),
+    val profileId: Int? = null
 ) {
     fun contains(at: Long) = at in from..through
 }

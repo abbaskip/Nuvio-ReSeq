@@ -61,6 +61,9 @@ Earlier completed history remains eligible. This affects short accidental
 rewatches that local.22 would resume. A native combined-episode pause above 1%
 can still translate to a near-zero resume position in its second selected part.
 Precise local positions with no known duration are not assumed to be below 1%.
+The threshold applies to offers, not deletion: the underlying pause remains in
+the episode progress map so "Remove partial watch" is still available. Projection
+retains its native percentage to apply the minimum before translation.
 
 ## Fixtures and validation
 
@@ -68,6 +71,8 @@ Precise local positions with no known duration are not assumed to be below 1%.
   with the other two connected; removal before and after confirmation; restart,
   late echoes, prior history, profile isolation, sibling part protection and a
   local.22 receipt with a 20-second server timestamp difference.
+- Same-episode successive rewatches retain their own identities when the older
+  STOP finishes late; device IDs cannot bypass existing partial-removal evidence.
 - `TvdbProportionalScrobbleTest`: recorded fully watched Office `alttwo` catalogue,
   Delivery Part 1 -> native combined pause -> Part 2 -> undo; exact prior history
   and Details offer restored; positive fully-watched proof; unchanged 9.8 output
@@ -80,7 +85,7 @@ Precise local positions with no known duration are not assumed to be below 1%.
 
 Commands (JDK 21; no full lint):
 
-Full JVM result: 3,910 tests across 570 suites, zero failures/errors, two skips.
+Full JVM result: 3,913 tests across 570 suites, zero failures/errors, two skips.
 
 ```powershell
 ./gradlew.bat :app:testFullDebugUnitTest --init-script build/local22-jvm.init.gradle --console=plain

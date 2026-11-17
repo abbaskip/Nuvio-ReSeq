@@ -878,7 +878,8 @@ class TraktProgressService @Inject constructor(
 
     internal suspend fun removeDatedWatchEvent(target: TrackingMediaReference,
         event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
-        val profile = profileManager.activeProfileId.value
+        val profile = event.profileId ?: profileManager.activeProfileId.value
+        check(profileManager.activeProfileId.value == profile)
         val parent = requireNotNull(target.catalog)
         val episode = requireNotNull(target.episode)
         fun parentMatches(ids: TraktIdsDto?) = normalizeContentId(ids) == parent.contentId ||

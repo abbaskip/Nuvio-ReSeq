@@ -111,8 +111,15 @@ class TvdbProportionalScrobbleTest {
         for (video in rewatchVideos) for (provider in listOf("trakt", "simkl", "mdblist")) {
             val raw = shortRewatch(video, provider, .02f).copy(progressPercent = .02f)
             val previous = resolver.projectProgress(1, original.id, emptyMap(), history)
-            assertEquals(previous, resolver.projectProgress(1, original.id, emptyMap(), history + raw))
+            val after = resolver.projectProgress(1, original.id, emptyMap(), history + raw)
+            val partial = after.values.single { it.lastWatched == raw.lastWatched }
+            assertTrue(partial.isBelowCwMinimum())
+            assertTrue("The episode's Remove partial watch action must remain available", partial.hasRemovableEpisodePause())
+            assertNull(resolver.continueWatchingResume(1, raw))
             assertFalse(com.nuvio.tv.ui.screens.detail.shouldResumeProgress(raw))
+            val details = com.nuvio.tv.ui.screens.detail.SeriesNextToWatch(mockk(relaxed = true))
+            assertEquals(details.resolve(original.id, "series", "The Office", effective.videos, true, null, previous, previous.keys, false) { emptyMap() },
+                details.resolve(original.id, "series", "The Office", effective.videos, true, null, after, previous.keys, false) { emptyMap() })
             val state = CwMembershipReducer.progress(CwProjection(profileId = 1, source = provider.uppercase()), history)
             assertEquals(state, CwMembershipReducer.progress(state, listOf(raw)))
         }

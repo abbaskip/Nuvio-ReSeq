@@ -122,6 +122,7 @@ class MdbListTrackingProgressProvider @Inject constructor(
     }
     override suspend fun removeWatchEvent(target: TrackingMediaReference, event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
         val scope = sync.currentScope()
+        check(event.profileId == null || scope.profileId == event.profileId)
         val mapping = if (target.catalog?.providerDefault == true) null else episodeMapping(requireNotNull(target.catalog).contentId, currentProjection())
         val episode = requireNotNull(target.episode)
         val mapped = mapping?.takeIf { it.remaps }?.toTmdb(requireNotNull(episode.season), episode.number)

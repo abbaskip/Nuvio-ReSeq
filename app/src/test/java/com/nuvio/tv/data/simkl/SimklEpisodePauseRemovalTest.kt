@@ -35,12 +35,19 @@ class SimklEpisodePauseRemovalTest {
                 playback = state.value.snapshot.playback.filterNot { it.id in ids }))
         }
         val requests = mutableListOf<Pair<String, String>>()
+        var scope = SimklAuthScope(1, 1)
+        var switchOnFetch = false
         val client = SimklApiClient(SimklHttpEngine { method, url, _, _ ->
             val path = java.net.URI(url).path
             requests += method to path
+            if (switchOnFetch && method == "GET") scope = SimklAuthScope(2, 2)
             SimklRawHttpResponse(200, if (method == "GET") Json.encodeToString(listOf(old, current, sibling)) else "{}")
         }, SimklApiConfiguration("fixture", "nuvio", "test"), { testSimklAuthorization() }, {})
-        val provider = SimklTrackingProgressProvider(sync, client, mockk(relaxed = true), mockk(relaxed = true))
+        val auth = mockk<SimklAuthStorage>(relaxed = true) {
+            every { currentScope() } answers { scope }
+            every { isCurrent(any()) } answers { firstArg<SimklAuthScope>() == scope }
+        }
+        val provider = SimklTrackingProgressProvider(sync, client, auth, mockk(relaxed = true))
         val resume = WatchProgress(parent, "series", "The Office", null, null, null, "$parent:6:17", 6, 17,
             "The Delivery Part 1 (Extended Cut)", 0, 0, 3_000, progressPercent = .5f,
             source = WatchProgress.SOURCE_SIMKL_PLAYBACK, simklPlaybackId = 32,
@@ -63,5 +70,11 @@ class SimklEpisodePauseRemovalTest {
         assertEquals(listOf("GET" to "/sync/playback", "DELETE" to "/sync/playback/32"), requests)
         assertEquals(history, state.value.snapshot.entries)
         assertEquals(listOf(old, sibling), state.value.snapshot.playback)
+        requests.clear()
+        switchOnFetch = true
+        assertTrue(runCatching { provider.removeWatchEvent(buildTrackingMediaReference("series", parent, "$parent:6:16",
+            seasonNumber = 6, episodeNumber = 16), event.copy(profileId = 1)) }.isFailure)
+        assertEquals(listOf("GET" to "/sync/playback"), requests)
+        assertEquals(history, state.value.snapshot.entries)
     }
 }

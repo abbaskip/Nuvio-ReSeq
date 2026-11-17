@@ -164,4 +164,35 @@ class DeviceWatchEventStoreTest {
         assertTrue(restarted.decorate(listOf(oldDevicePlay, native), restarted.events(1)).isEmpty())
         assertFalse(restarted.events(1).single().removes(f.prior))
     }
+
+    @Test fun `a delayed old STOP cannot take the identity of a newer rewatch of the same episode`() = runTest {
+        val f = Fixture(TrackingProviderId.TRAKT, false)
+        val old = f.rewatch()
+        f.clock = 40_000
+        f.journal.beforeStart(TrackingScrobbleEvent(f.media, 0.0))
+        val recent = f.journal.record(1, old.copy(deviceWatchEventId = null, lastWatched = 60_000))
+        assertNotEquals(old.deviceWatchEventId, recent.deviceWatchEventId)
+        f.clock = 90_000
+        f.journal.afterStop(1 to old.deviceWatchEventId!!)
+        assertEquals(recent.deviceWatchEventId, f.journal.currentEvent(TrackingScrobbleEvent(f.media, 100.0))!!.second)
+        val rows = f.journal.decorate(listOf(old, recent, recent.copy(deviceWatchEventId = null)), f.journal.events(1))
+        assertEquals(listOf(old.deviceWatchEventId, recent.deviceWatchEventId, recent.deviceWatchEventId), rows.map { it.deviceWatchEventId })
+        assertEquals(recent.deviceWatchEventId, f.journal.record(1, recent.copy(deviceWatchEventId = null, lastWatched = 61_000)).deviceWatchEventId)
+    }
+
+    @Test fun `the real undo observer leaves normal scrobble events unchanged for every connected tracker`() = runTest {
+        val f = Fixture(TrackingProviderId.TRAKT, false)
+        val written = mutableListOf<Triple<TrackingProviderId, TrackingScrobbleAction, TrackingScrobbleEvent>>()
+        val scrobblers = TrackingProviderId.entries.map { id -> mockk<TrackingScrobbler> {
+            every { providerId } returns id
+            coEvery { scrobble(any(), any()) } answers { written += Triple(id, firstArg(), secondArg()); Unit }
+        } }
+        val registry = mockk<TrackingProviderRegistry> { every { connectedScrobblers() } returns scrobblers }
+        val coordinator = TrackingScrobbleCoordinator(registry, watchEvents = Provider { f.journal })
+        val sequence = listOf(TrackingScrobbleAction.START to 0.0, TrackingScrobbleAction.PAUSE to 47.0,
+            TrackingScrobbleAction.START to 47.0, TrackingScrobbleAction.STOP to 100.0)
+        for ((action, percent) in sequence) assertTrue(coordinator.scrobble(action, TrackingScrobbleEvent(f.media, percent)).isEmpty())
+        for (id in TrackingProviderId.entries) assertEquals(sequence.map { (action, percent) -> action to TrackingScrobbleEvent(f.media, percent) },
+            written.filter { it.first == id }.map { it.second to it.third })
+    }
 }

@@ -44,7 +44,9 @@ data class WatchProgress(
     /** Original Trakt history coordinates before matching the addon's episode catalogue. */
     val traktHistoryEpisode: EpisodeCoordinates? = null,
     /** Local undo identity, never included in tracker scrobble/history payloads. */
-    val deviceWatchEventId: String? = null
+    val deviceWatchEventId: String? = null,
+    /** Read-only native timeline percentage for CW's pre-translation minimum. */
+    val nativeProgressPercent: Float? = null
 ) : TrackingAttributedItem {
     override val trackingContentId: String
         get() = contentId
@@ -102,8 +104,11 @@ data class WatchProgress(
         (deviceWatchEventId != null && season != null && episode != null && lastWatched > 0 && progressPercentage >= .01f)
 
     /** CW_RULES 2.1, before selected-order translation. Unknown duration is not proof of <1%. */
-    fun isBelowCwMinimum(): Boolean = progressPercentage > 0f && progressPercentage < .01f &&
-        (progressPercent != null || duration > 0)
+    fun isBelowCwMinimum(): Boolean {
+        val percent = nativeProgressPercent ?: progressPercent
+        return if (percent != null) percent > 0f && percent < 1f
+            else duration > 0 && progressPercentage > 0f && progressPercentage < .01f
+    }
 
     private fun completionThreshold(): Float =
         completionThresholdOverride?.takeIf { it.isFinite() && it > 0f && it <= 1f }

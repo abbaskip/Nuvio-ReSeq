@@ -13,7 +13,12 @@ class MultiviewReSeqTest {
     @Test fun `device limits reserve a decoder and respect heap and physical RAM tiers`() {
         assertEquals(2, MultiviewDevicePolicy.limit(16, 16, 512, false, 2048))
         assertEquals(3, MultiviewDevicePolicy.limit(16, 16, 512, false, 3072))
-        assertEquals(2, MultiviewDevicePolicy.limit(16, 16, 384, false, 3072))
+        assertEquals(3, MultiviewDevicePolicy.limit(9, 9, 384, false, 2928)) // Onn 4K Pro
+        assertEquals(2, MultiviewDevicePolicy.limit(9, 9, 384, false, 2048))
+        assertEquals(2, MultiviewDevicePolicy.limit(9, 9, 384, false)) // unknown RAM stays conservative
+        assertEquals(2, MultiviewDevicePolicy.limit(9, 9, 256, false, 3072))
+        assertEquals(2, MultiviewDevicePolicy.limit(9, 9, 384, true, 3072))
+        assertEquals(2, MultiviewDevicePolicy.limit(3, 9, 384, false, 3072))
         assertEquals(2, MultiviewDevicePolicy.limit(16, 16, 2048, true, 4096))
         assertEquals(4, MultiviewDevicePolicy.limit(5, 16, 1024, false, 4096))
         assertEquals(3, MultiviewDevicePolicy.limit(16, 4, 1024, false, 4096))
@@ -21,16 +26,27 @@ class MultiviewReSeqTest {
         assertEquals(0, MultiviewDevicePolicy.limit(1, 16, 1024, false))
     }
 
-    @Test fun `Xtream known activity and local reservations block before start across duplicate playlists`() {
+    @Test fun `Xtream reservations block before start across duplicate playlists`() {
         val source = PlaylistSource("a", "A", "", xtreamServer = "https://fixture.invalid", xtreamUsername = "u", xtreamPassword = "p")
         val copy = source.copy(id = "b")
         val account = mapOf("a" to PlaylistAccount(maxConnections = 2, activeConnections = 1))
         assertNull(MultiviewConnectionPolicy.denial(channel("a"), emptyList(), listOf(source), account))
+        assertNull(MultiviewConnectionPolicy.denial(channel("b"), listOf(channel("a")), listOf(source, copy), account))
         assertEquals("Your provider allows 2 streams at once", MultiviewConnectionPolicy.denial(
-            channel("b"), listOf(channel("a")), listOf(source, copy), account))
-        assertNotNull(MultiviewConnectionPolicy.denial(channel("a"), emptyList(), listOf(source),
+            channel("b"), listOf(channel("a"), channel("b")), listOf(source, copy), account))
+        assertNotNull(MultiviewConnectionPolicy.denial(channel("a"), listOf(channel("a")), listOf(source),
             mapOf("a" to PlaylistAccount(maxConnections = 1, activeConnections = 1))))
         assertNull(MultiviewConnectionPolicy.denial(channel("a"), emptyList(), listOf(source), emptyMap()))
+    }
+
+    @Test fun `saved provider activity does not double count a released preview or current panes`() {
+        val source = PlaylistSource("a", "A", "", xtreamServer = "https://fixture.invalid", xtreamUsername = "u", xtreamPassword = "p")
+        val stale = mapOf("a" to PlaylistAccount(maxConnections = 1, activeConnections = 1))
+        assertNull(MultiviewConnectionPolicy.denial(channel("a"), emptyList(), listOf(source), stale))
+        assertNotNull(MultiviewConnectionPolicy.denial(channel("a"), listOf(channel("a")), listOf(source), stale))
+        val two = stale.mapValues { it.value.copy(maxConnections = 2) }
+        assertNull(MultiviewConnectionPolicy.denial(channel("a"), listOf(channel("a")), listOf(source), two))
+        assertNotNull(MultiviewConnectionPolicy.denial(channel("a"), List(2) { channel("a") }, listOf(source), two))
     }
 
     @Test fun `Stalker is one per portal and M3U activity is unknown`() {
@@ -39,6 +55,19 @@ class MultiviewReSeqTest {
         assertNotNull(MultiviewConnectionPolicy.denial(channel("b"), listOf(channel("a")), listOf(portal, same), emptyMap()))
         val m3u = PlaylistSource("m", "M3U", "http://fixture.invalid/list.m3u")
         assertNull(MultiviewConnectionPolicy.denial(channel("m"), List(4) { channel("m", "$it") }, listOf(m3u), emptyMap()))
+    }
+
+    @Test fun `known M3U account limits apply and Xtream pasted links share reservations`() {
+        val pasted = PlaylistSource("m", "Pasted", "https://fixture.invalid/get.php?username=u&password=p%2B&output=ts")
+        val login = PlaylistSource("x", "Login", "", xtreamServer = "https://fixture.invalid",
+            xtreamUsername = "u", xtreamPassword = "p+")
+        val accounts = mapOf("m" to PlaylistAccount(maxConnections = 1))
+        assertNull(MultiviewConnectionPolicy.denial(channel("m"), emptyList(), listOf(pasted, login), accounts))
+        assertEquals("Your provider allows 1 streams at once", MultiviewConnectionPolicy.denial(
+            channel("x"), listOf(channel("m")), listOf(pasted, login), accounts))
+        val plain = PlaylistSource("p", "Plain", "https://fixture.invalid/list.m3u")
+        assertNotNull(MultiviewConnectionPolicy.denial(channel("p"), listOf(channel("p")), listOf(plain),
+            mapOf("p" to PlaylistAccount(maxConnections = 1))))
     }
 
     @Test fun `session enforces device limit and checks account before player creation including resume and retry`() {
@@ -80,7 +109,7 @@ class MultiviewReSeqTest {
         assertNull(core.channelAt(1))
     }
 
-    @Test fun `single player releases first and the open session owns the same signal through background`() {
+    @Test fun `single player releases first and bulk work resumes after background release and pauses before player recreation`() {
         val events = mutableListOf<String>()
         val owner = MultiviewLifecycle(releaseSingle = { events += "single-release" }, create = { events += "create"; Unit },
             signal = { events += "liveChannelOpen:$it" }, foreground = { events += "foreground" },
@@ -88,8 +117,9 @@ class MultiviewReSeqTest {
         assertEquals(listOf("single-release", "create", "liveChannelOpen:true"), events)
         owner.onForeground()
         owner.onBackground()
-        assertEquals("release-all-panes", events.last())
-        assertFalse(events.contains("liveChannelOpen:false"))
+        assertEquals(listOf("release-all-panes", "liveChannelOpen:false"), events.takeLast(2))
+        owner.onForeground()
+        assertEquals(listOf("liveChannelOpen:true", "foreground"), events.takeLast(2))
         owner.close()
         owner.close()
         assertEquals(listOf("release-session", "liveChannelOpen:false"), events.takeLast(2))

@@ -16,6 +16,32 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SportsPlaybackWorkTest {
+    @Test fun `Multiview holds bulk work with an empty single player and resumes on exit`() = runTest {
+        val liveOpen = MutableStateFlow(false)
+        val allowed = sportsBackgroundAllowed(MutableStateFlow(true), MutableStateFlow(LivePlaybackState()),
+            MutableStateFlow(false), liveOpen)
+        var starts = 0
+        var stops = 0
+        val job = launch {
+            allowed.collectLatest { ready ->
+                if (ready) {
+                    starts++
+                    try { awaitCancellation() } finally { stops++ }
+                }
+            }
+        }
+        runCurrent()
+        assertEquals(1, starts)
+        liveOpen.value = true // single player was released before the panes started
+        runCurrent()
+        assertEquals(1, stops)
+        assertFalse(allowed.first())
+        liveOpen.value = false
+        runCurrent()
+        assertEquals(2, starts)
+        job.cancelAndJoin()
+    }
+
     @Test fun `a trailer allows scores lookups and bulk work while full playback still holds them`() = runTest {
         val foreground = MutableStateFlow(true)
         val viewers = MutableStateFlow(1)

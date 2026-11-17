@@ -20,6 +20,7 @@ object BackgroundWork {
         System.nanoTime() < seekQuietUntilNanos || com.nuvio.tv.core.player.PlayerSessionTracker.playbackUnstable
 
     val liveChannelOpen = com.nuvio.tv.core.player.PlayerSessionTracker.livePlayback
+    internal val liveChannelSignal = LiveChannelSignal { liveChannelOpen.value = it }
 
     @Volatile private var lastNavigationNanos = 0L
     private val guideNavigation = NavigationPause()

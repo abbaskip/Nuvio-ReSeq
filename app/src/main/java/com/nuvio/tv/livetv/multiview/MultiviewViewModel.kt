@@ -63,6 +63,10 @@ class MultiviewViewModel @Inject constructor(
     fun startFailure(channel: LiveChannel, active: List<LiveChannel>): String? {
         val sources = playlists.value ?: return "Playlist information is still loading. Retry shortly."
         val limits = accounts.value ?: return "Provider information is still loading. Retry shortly."
+        // Safe support evidence: account counters only, never a login, channel key or stream URL.
+        val account = limits[channel.sourceId]
+        android.util.Log.i("Multiview", "Provider preflight: ${channel.sourceName}, maximum=${account?.maxConnections ?: 0}, " +
+            "reportedActive=${account?.activeConnections ?: 0}, ownedPanes=${active.count { it.sourceId == channel.sourceId }}")
         return MultiviewConnectionPolicy.denial(channel, active, sources, limits)
     }
 

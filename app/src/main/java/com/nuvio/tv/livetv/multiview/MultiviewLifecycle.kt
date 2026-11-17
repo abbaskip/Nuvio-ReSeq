@@ -17,7 +17,11 @@ internal class MultiviewLifecycle<T>(
         signal(true)
     }
     fun onForeground() { if (!closed) { signal(true); foreground(session) } }
-    fun onBackground() { if (!closed) background(session) }
+    fun onBackground() {
+        if (closed) return
+        background(session)
+        signal(false)
+    }
     fun close() {
         if (closed) return
         closed = true

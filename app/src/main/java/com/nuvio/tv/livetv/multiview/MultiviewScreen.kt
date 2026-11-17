@@ -99,6 +99,7 @@ fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltView
     val openingProfile = remember { profileId }
     val latestOnBack by rememberUpdatedState(onBack)
     val owner = remember {
+        MultiviewRecovery.opened(context)
         val limit = deviceLimit
         val layout = (MultiviewLayoutMemory.load(context) ?: MultiviewLayout.TWO)
             .takeIf { it.paneCount <= limit } ?: MultiviewLayout.entries.first { it.paneCount == limit }
@@ -110,14 +111,14 @@ fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltView
                 autoReconnect = { viewModel.autoReconnect.value },
                 findBackup = { _, failed, tried -> viewModel.backupFor(failed, tried) },
                 startFailure = viewModel::startFailure) },
-            signal = { BackgroundWork.liveChannelOpen.value = it },
+            signal = BackgroundWork.liveChannelSignal::multiview,
             foreground = MultiviewPlaybackSession::onForeground,
             background = MultiviewPlaybackSession::onBackground,
             release = MultiviewPlaybackSession::release,
         )
     }
     val session = owner.session
-    fun leave() { owner.close(); latestOnBack() }
+    fun leave() { owner.close(); MultiviewRecovery.left(context); latestOnBack() }
     val state by session.state.collectAsStateWithLifecycle()
     val soundPaused = state.isForeground && state.panes.any { it.channelKey != null } && !state.hasAudioFocus
     val allowedChannels by viewModel.allowedChannels.collectAsStateWithLifecycle()
@@ -142,7 +143,7 @@ fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltView
         value = viewModel.nowOn(paneKeys)
     }
     LaunchedEffect(profileId) {
-        if (profileId != openingProfile) { owner.close(); latestOnBack() }
+        if (profileId != openingProfile) { owner.close(); MultiviewRecovery.left(context); latestOnBack() }
     }
     LaunchedEffect(allowedChannels) { session.validateAllowedChannels(allowedChannels) }
     val lifecycleOwner = LocalLifecycleOwner.current

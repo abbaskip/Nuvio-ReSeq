@@ -4,6 +4,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AmbientModeEligibilityTest {
+    @Test fun `Multiview cannot be covered after the single Live TV player releases`() {
+        assertFalse(ambientModeAllowed("livetv/multiview", false, false, false, liveChannelOpen = true))
+        assertTrue(ambientModeAllowed("livetv", false, false, false, liveChannelOpen = false))
+    }
+
     @Test fun `IPTV preview and full screen cannot be covered by ambient mode`() {
         listOf("livetv", "livetv/player", "home").forEach { route ->
             assertFalse(ambientModeAllowed(route, false, false, true))

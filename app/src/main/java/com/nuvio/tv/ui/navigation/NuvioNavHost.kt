@@ -126,6 +126,19 @@ private fun PlaybackNavHost(
     mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel,
     discoverIsRoot: Boolean
 ) {
+    val recoveryContext = LocalContext.current
+    val returnToGuide = androidx.compose.runtime.remember {
+        com.nuvio.tv.livetv.multiview.MultiviewRecovery.takeGuideReturn(recoveryContext)
+    }
+    androidx.compose.runtime.LaunchedEffect(returnToGuide) {
+        if (returnToGuide) {
+            android.util.Log.i("Multiview", "Recovering interrupted Multiview to the Live TV guide")
+            navController.navigate(Screen.LiveTv.route) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
+        }
+    }
     val mixPlaying by mixViewModel.session.playing.collectAsStateWithLifecycle()
     val liveFullscreen by com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.collectAsStateWithLifecycle()
     fun returnToMix() {

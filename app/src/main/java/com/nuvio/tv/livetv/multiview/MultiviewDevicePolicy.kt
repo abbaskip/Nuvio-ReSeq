@@ -10,7 +10,10 @@ internal object MultiviewDevicePolicy {
     fun limit(avc: Int?, hevc: Int?, heapMb: Long, lowRam: Boolean, physicalRamMb: Long = 0): Int {
         val decoders = minOf(avc?.takeIf { it > 0 } ?: 2, hevc?.takeIf { it > 0 } ?: 2)
         val memory = when {
-            lowRam || heapMb < 512 || physicalRamMb in 1..2304 -> 2
+            lowRam || heapMb < 384 || physicalRamMb in 1..2304 -> 2
+            // The 3 GB Onn has a 384 MB app heap. Keep the shared buffer budget
+            // heap-based, but do not classify this mid-range TV as a 2 GB stick.
+            heapMb < 512 && physicalRamMb !in 2305..Long.MAX_VALUE -> 2
             heapMb < 1024 || physicalRamMb in 2305..3584 -> 3
             else -> 4
         }
@@ -33,6 +36,6 @@ internal object MultiviewDevicePolicy {
             preferred?.getCapabilitiesForType(mime)?.maxSupportedInstances
         }.getOrNull()
         return limit(instances("video/avc"), instances("video/hevc"), MemoryBudget.heapMb,
-            am.isLowRamDevice || MemoryBudget.isLowRamTier, ram)
+            am.isLowRamDevice, ram)
     }
 }

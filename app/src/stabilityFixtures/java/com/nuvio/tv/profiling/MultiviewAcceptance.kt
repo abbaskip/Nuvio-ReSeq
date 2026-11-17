@@ -114,7 +114,7 @@ class MultiviewAcceptance @Inject constructor(
                     MultiviewPlaybackSession(activity, maxPanes = limit, autoReconnect = { false },
                         startFailure = { c, active -> MultiviewConnectionPolicy.denial(c, active,
                             listOf(PlaylistSource("m1-fixture", "Fixture", "$http/m1/list.m3u")), emptyMap()) })
-                }, { BackgroundWork.liveChannelOpen.value = it }, MultiviewPlaybackSession::onForeground,
+                }, BackgroundWork.liveChannelSignal::multiview, MultiviewPlaybackSession::onForeground,
                     MultiviewPlaybackSession::onBackground, MultiviewPlaybackSession::release)
                 session = owner!!.session
                 activity.lifecycle.addObserver(LifecycleEventObserver { _, event ->
@@ -123,7 +123,7 @@ class MultiviewAcceptance @Inject constructor(
                         Lifecycle.Event.ON_STOP -> {
                             owner?.onBackground()
                             backgroundReleased = session?.state?.value?.panes?.all { it.player == null } ?: true
-                            check(backgroundReleased)
+                            check(backgroundReleased && !BackgroundWork.liveChannelOpen.value)
                             Diag.event("m1-background-release-observed")
                         }
                         Lifecycle.Event.ON_DESTROY -> owner?.close()

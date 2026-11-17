@@ -3487,4 +3487,8 @@
     <string name="web_subtitle_font_added">נוסף לטלוויזיה שלך</string>
     <string name="web_subtitle_font_error">.לא ניתן היה לייבא את הגופן הזה. יש לבחור קובץ TTF או OTF תקין בגודל של עד 10 MB</string>
     <string name="web_subtitle_font_connection_error">שגיאת חיבור</string>
+    <string name="database_compatibility_title">נדרשת גרסה חדשה יותר</string>
+    <string name="episodes_remove_last_watch">הסרת הצפייה האחרונה · %1$s</string>
+    <string name="episodes_last_watch_removed">הצפייה האחרונה הוסרה מ־Trakt</string>
+    <string name="episodes_last_watch_failed">לא ניתן להסיר את הצפייה. יש לרענן את הפרק ולנסות שוב.</string>
 </resources>

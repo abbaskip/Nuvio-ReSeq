@@ -3509,4 +3509,8 @@
     <string name="web_subtitle_font_added">Pridané do vášho televízora</string>
     <string name="web_subtitle_font_error">Nepodarilo sa importovať toto písmo. Vyberte platný súbor .ttf alebo .otf menší ako 10 MB.</string>
     <string name="web_subtitle_font_connection_error">Chyba pripojenia</string>
+    <string name="database_compatibility_title">Vyžaduje sa novšia verzia</string>
+    <string name="episodes_remove_last_watch">Odstrániť posledné pozretie · %1$s</string>
+    <string name="episodes_last_watch_removed">Posledné pozretie bolo odstránené z Traktu</string>
+    <string name="episodes_last_watch_failed">Pozretie sa nepodarilo odstrániť. Obnovte epizódu a skúste to znova.</string>
 </resources>

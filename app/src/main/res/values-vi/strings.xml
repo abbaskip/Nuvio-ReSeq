@@ -3488,4 +3488,8 @@
     <string name="autoplay_fallback_startup_timeout_sub">Thời gian chờ một nguồn phát khởi chạy trước khi chuyển sang thử nguồn phát tiếp theo.</string>
     <string name="autoplay_fallback_startup_timeout_value">%1$ds</string>
     <string name="player_error_source_startup_timeout">Nguồn phát đã không khởi chạy trong vòng %1$d giây.</string>
+    <string name="database_compatibility_title">Cần phiên bản mới hơn</string>
+    <string name="episodes_remove_last_watch">Xóa lượt xem gần nhất · %1$s</string>
+    <string name="episodes_last_watch_removed">Đã xóa lượt xem gần nhất khỏi Trakt</string>
+    <string name="episodes_last_watch_failed">Không thể xóa lượt xem này. Hãy làm mới tập phim rồi thử lại.</string>
 </resources>

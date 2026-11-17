@@ -3448,4 +3448,8 @@ Utilizas esta función bajo tu entera responsabilidad. P2P se puede desactivar e
     <string name="episodes_remove_partial_watch">Eliminar el progreso parcial</string>
     <string name="episodes_partial_watch_removed">Progreso parcial eliminado</string>
     <string name="episodes_partial_watch_failed">No se pudo terminar de eliminar el progreso parcial</string>
+    <string name="database_compatibility_title">Se necesita una versión más reciente</string>
+    <string name="episodes_remove_last_watch">Eliminar la última visualización · %1$s</string>
+    <string name="episodes_last_watch_removed">Se ha eliminado la última visualización de Trakt</string>
+    <string name="episodes_last_watch_failed">No se pudo eliminar esa visualización. Actualiza el episodio y vuelve a intentarlo.</string>
 </resources>

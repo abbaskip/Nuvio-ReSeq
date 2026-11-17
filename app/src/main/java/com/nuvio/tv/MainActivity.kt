@@ -395,6 +395,12 @@ open class MainActivity : ComponentActivity() {
             com.nuvio.tv.ui.components.DatabaseCompatibilityNotice.show(this, issue)
             return
         }
+        // The compatibility notice keeps the platform's normal key dispatch.
+        val activityCallback = window.callback
+        window.callback = object : android.view.Window.Callback by activityCallback {
+            override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+                handleAppKey(event) || activityCallback.dispatchKeyEvent(event)
+        }
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) { memberAccessRepository.pollWhileVisible() }
         }
@@ -1407,8 +1413,7 @@ open class MainActivity : ComponentActivity() {
         ambientIdleController.onInteraction()
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (databaseCompatibilityBlocked) return super.dispatchKeyEvent(event)
+    private fun handleAppKey(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) com.nuvio.tv.livetv.data.BackgroundWork.onNavigation()
         if (ambientIdleController.consumeKeyEvent(event)) return true
         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
@@ -1426,7 +1431,7 @@ open class MainActivity : ComponentActivity() {
             }
             return true
         }
-        return super.dispatchKeyEvent(event)
+        return false
     }
 
     override fun onStart() {

@@ -3572,4 +3572,8 @@
     <string name="web_subtitle_font_added">Dodano do TV</string>
     <string name="web_subtitle_font_error">Nie udało się zaimportować tej czcionki. Wybierz prawidłowy plik .ttf lub .otf mniejszy niż 10 MB.</string>
     <string name="web_subtitle_font_connection_error">Błąd połączenia</string>
+    <string name="database_compatibility_title">Potrzebna jest nowsza wersja</string>
+    <string name="episodes_remove_last_watch">Usuń ostatnie obejrzenie · %1$s</string>
+    <string name="episodes_last_watch_removed">Ostatnie obejrzenie usunięto z Trakt</string>
+    <string name="episodes_last_watch_failed">Nie udało się usunąć tego obejrzenia. Odśwież odcinek i spróbuj ponownie.</string>
 </resources>

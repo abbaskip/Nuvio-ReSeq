@@ -2853,4 +2853,8 @@
     <string name="episodes_remove_partial_watch">Smazat průběh částečného sledování</string>
     <string name="episodes_partial_watch_removed">Průběh částečného sledování byl smazán</string>
     <string name="episodes_partial_watch_failed">Nepodařilo se dokončit smazání průběhu částečného sledování</string>
+    <string name="database_compatibility_title">Je potřeba novější verze</string>
+    <string name="episodes_remove_last_watch">Odebrat poslední zhlédnutí · %1$s</string>
+    <string name="episodes_last_watch_removed">Poslední zhlédnutí bylo odebráno z Traktu</string>
+    <string name="episodes_last_watch_failed">Zhlédnutí se nepodařilo odebrat. Obnovte epizodu a zkuste to znovu.</string>
 </resources>

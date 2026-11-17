@@ -3449,4 +3449,8 @@
     <string name="episodes_remove_partial_watch">途中までの視聴状況を削除</string>
     <string name="episodes_partial_watch_removed">途中までの視聴状況を削除しました</string>
     <string name="episodes_partial_watch_failed">途中までの視聴状況を削除できませんでした</string>
+    <string name="database_compatibility_title">新しいバージョンが必要です</string>
+    <string name="episodes_remove_last_watch">最後の視聴履歴を削除 · %1$s</string>
+    <string name="episodes_last_watch_removed">Trakt から最後の視聴履歴を削除しました</string>
+    <string name="episodes_last_watch_failed">視聴履歴を削除できませんでした。エピソードを再読み込みして、もう一度お試しください。</string>
 </resources>

@@ -2277,4 +2277,8 @@
     <string name="episodes_remove_partial_watch">பகுதியளவு பார்த்த முன்னேற்றத்தை நீக்கு</string>
     <string name="episodes_partial_watch_removed">பகுதியளவு பார்த்த முன்னேற்றம் நீக்கப்பட்டது</string>
     <string name="episodes_partial_watch_failed">பகுதியளவு பார்த்த முன்னேற்றத்தை முழுவதுமாக நீக்க முடியவில்லை</string>
+    <string name="database_compatibility_title">புதிய பதிப்பு தேவை</string>
+    <string name="episodes_remove_last_watch">கடைசியாகப் பார்த்த பதிவை அகற்று · %1$s</string>
+    <string name="episodes_last_watch_removed">கடைசியாகப் பார்த்த பதிவு Trakt இலிருந்து அகற்றப்பட்டது</string>
+    <string name="episodes_last_watch_failed">இந்தப் பதிவை அகற்ற முடியவில்லை. அத்தியாயத்தைப் புதுப்பித்து மீண்டும் முயலவும்.</string>
 </resources>

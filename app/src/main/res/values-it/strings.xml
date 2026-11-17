@@ -3382,4 +3382,8 @@
     <string name="episodes_remove_partial_watch">Rimuovi avanzamento parziale</string>
     <string name="episodes_partial_watch_removed">Avanzamento parziale rimosso</string>
     <string name="episodes_partial_watch_failed">Impossibile completare la rimozione dell’avanzamento parziale</string>
+    <string name="database_compatibility_title">È necessaria una versione più recente</string>
+    <string name="episodes_remove_last_watch">Rimuovi l’ultima visione · %1$s</string>
+    <string name="episodes_last_watch_removed">Ultima visione rimossa da Trakt</string>
+    <string name="episodes_last_watch_failed">Impossibile rimuovere questa visione. Aggiorna l’episodio e riprova.</string>
 </resources>

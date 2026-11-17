@@ -3247,4 +3247,8 @@
     <string name="episodes_remove_partial_watch">清除部分观看进度</string>
     <string name="episodes_partial_watch_removed">部分观看进度已清除</string>
     <string name="episodes_partial_watch_failed">无法完成清除部分观看进度</string>
+    <string name="database_compatibility_title">需要更新版本</string>
+    <string name="episodes_remove_last_watch">移除最近一次观看记录 · %1$s</string>
+    <string name="episodes_last_watch_removed">已从 Trakt 移除最近一次观看记录</string>
+    <string name="episodes_last_watch_failed">无法移除这次观看记录。请刷新剧集并重试。</string>
 </resources>

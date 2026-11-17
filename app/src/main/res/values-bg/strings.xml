@@ -3422,4 +3422,8 @@
     <string name="episodes_remove_partial_watch">Изтриване на напредъка на частичното гледане</string>
     <string name="episodes_partial_watch_removed">Напредъкът на частичното гледане е изтрит</string>
     <string name="episodes_partial_watch_failed">Неуспешно завършване на изтриването на напредъка на частичното гледане</string>
+    <string name="database_compatibility_title">Необходима е по-нова версия</string>
+    <string name="episodes_remove_last_watch">Премахване на последното гледане · %1$s</string>
+    <string name="episodes_last_watch_removed">Последното гледане е премахнато от Trakt</string>
+    <string name="episodes_last_watch_failed">Гледането не бе премахнато. Обновете епизода и опитайте отново.</string>
 </resources>

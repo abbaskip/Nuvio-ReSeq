@@ -848,4 +848,8 @@
     <string name="episodes_remove_partial_watch">Șterge progresul vizionării parțiale</string>
     <string name="episodes_partial_watch_removed">Progresul vizionării parțiale a fost șters</string>
     <string name="episodes_partial_watch_failed">Nu s-a putut finaliza ștergerea progresului vizionării parțiale</string>
+    <string name="database_compatibility_title">Este necesară o versiune mai nouă</string>
+    <string name="episodes_remove_last_watch">Elimină ultima vizionare · %1$s</string>
+    <string name="episodes_last_watch_removed">Ultima vizionare a fost eliminată din Trakt</string>
+    <string name="episodes_last_watch_failed">Nu s-a putut elimina vizionarea. Reîmprospătează episodul și încearcă din nou.</string>
 </resources>

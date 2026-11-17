@@ -3092,4 +3092,8 @@
     <string name="subtitle_style_text_color_hdr">لون النص (HDR)</string>
     <string name="subtitle_style_text_opacity_hdr">عتامة النص (HDR)</string>
     <string name="subtitle_style_brightness_hdr">السطوع (HDR)</string>
+    <string name="database_compatibility_title">يلزم إصدار أحدث</string>
+    <string name="episodes_remove_last_watch">إزالة آخر مشاهدة · %1$s</string>
+    <string name="episodes_last_watch_removed">تمت إزالة آخر مشاهدة من Trakt</string>
+    <string name="episodes_last_watch_failed">تعذّرت إزالة هذه المشاهدة. حدّث الحلقة وحاول مجددًا.</string>
 </resources>

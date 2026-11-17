@@ -3433,4 +3433,8 @@ Próbálj meg egy másik forrást. [%1$s]</string>
     <string name="episodes_remove_partial_watch">Részleges lejátszási előrehaladás törlése</string>
     <string name="episodes_partial_watch_removed">Részleges lejátszási előrehaladás törölve</string>
     <string name="episodes_partial_watch_failed">Nem sikerült teljesen törölni a részleges lejátszási előrehaladást</string>
+    <string name="database_compatibility_title">Újabb verzió szükséges</string>
+    <string name="episodes_remove_last_watch">Legutóbbi megtekintés eltávolítása · %1$s</string>
+    <string name="episodes_last_watch_removed">A legutóbbi megtekintés törölve a Traktból</string>
+    <string name="episodes_last_watch_failed">A megtekintést nem sikerült eltávolítani. Frissítsd az epizódot, és próbáld újra.</string>
 </resources>

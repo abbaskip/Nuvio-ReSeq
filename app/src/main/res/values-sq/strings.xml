@@ -2909,4 +2909,8 @@
     <string name="episodes_remove_partial_watch">Hiq përparimin e shikimit të pjesshëm</string>
     <string name="episodes_partial_watch_removed">Përparimi i shikimit të pjesshëm u hoq</string>
     <string name="episodes_partial_watch_failed">Nuk u përfundua heqja e përparimit të shikimit të pjesshëm</string>
+    <string name="database_compatibility_title">Nevojitet një version më i ri</string>
+    <string name="episodes_remove_last_watch">Hiq shikimin e fundit · %1$s</string>
+    <string name="episodes_last_watch_removed">Shikimi i fundit u hoq nga Trakt</string>
+    <string name="episodes_last_watch_failed">Shikimi nuk u hoq dot. Rifresko episodin dhe provo përsëri.</string>
 </resources>

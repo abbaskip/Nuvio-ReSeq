@@ -2520,4 +2520,8 @@
     <string name="library_empty_simkl_not_auth_title">Simkl tidak terhubung</string>
     <string name="library_empty_simkl_not_auth_subtitle">Hubungkan akun Simkl Anda di Pengaturan untuk melihat pustaka Simkl</string>
     <string name="subtitle_language_unknown">Tidak diketahui</string>
+    <string name="database_compatibility_title">Diperlukan versi yang lebih baru</string>
+    <string name="episodes_remove_last_watch">Hapus riwayat tonton terakhir · %1$s</string>
+    <string name="episodes_last_watch_removed">Riwayat tonton terakhir dihapus dari Trakt</string>
+    <string name="episodes_last_watch_failed">Riwayat tonton ini tidak dapat dihapus. Muat ulang episode dan coba lagi.</string>
 </resources>

@@ -2718,4 +2718,8 @@
     <string name="episodes_remove_partial_watch">Fjern delvis afspilningsstatus</string>
     <string name="episodes_partial_watch_removed">Delvis afspilningsstatus fjernet</string>
     <string name="episodes_partial_watch_failed">Kunne ikke fuldføre fjernelse af delvis afspilningsstatus</string>
+    <string name="database_compatibility_title">En nyere version er nødvendig</string>
+    <string name="episodes_remove_last_watch">Fjern seneste visning · %1$s</string>
+    <string name="episodes_last_watch_removed">Seneste visning er fjernet fra Trakt</string>
+    <string name="episodes_last_watch_failed">Visningen kunne ikke fjernes. Opdater afsnittet, og prøv igen.</string>
 </resources>

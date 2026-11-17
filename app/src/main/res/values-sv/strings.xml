@@ -1783,4 +1783,8 @@
     <string name="episodes_remove_partial_watch">Rensa delvis uppspelningsförlopp</string>
     <string name="episodes_partial_watch_removed">Delvis uppspelningsförlopp har rensats</string>
     <string name="episodes_partial_watch_failed">Det gick inte att slutföra rensningen av delvis uppspelningsförlopp</string>
+    <string name="database_compatibility_title">En nyare version krävs</string>
+    <string name="episodes_remove_last_watch">Ta bort senaste visningen · %1$s</string>
+    <string name="episodes_last_watch_removed">Den senaste visningen har tagits bort från Trakt</string>
+    <string name="episodes_last_watch_failed">Det gick inte att ta bort visningen. Uppdatera avsnittet och försök igen.</string>
 </resources>

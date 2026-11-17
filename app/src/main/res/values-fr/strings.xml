@@ -3488,4 +3488,8 @@
     <string name="autoplay_fallback_startup_timeout_sub">Durée d’attente du démarrage d’une source avant d’essayer la suivante.</string>
     <string name="autoplay_fallback_startup_timeout_value">%1$d s</string>
     <string name="player_error_source_startup_timeout">La source n’a pas démarré dans un délai de %1$d secondes.</string>
+    <string name="database_compatibility_title">Une version plus récente est nécessaire</string>
+    <string name="episodes_remove_last_watch">Supprimer le dernier visionnage · %1$s</string>
+    <string name="episodes_last_watch_removed">Dernier visionnage supprimé de Trakt</string>
+    <string name="episodes_last_watch_failed">Impossible de supprimer ce visionnage. Actualisez l’épisode et réessayez.</string>
 </resources>

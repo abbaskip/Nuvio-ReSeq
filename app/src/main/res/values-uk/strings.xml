@@ -2750,4 +2750,8 @@
     <string name="episodes_remove_partial_watch">Видалити прогрес часткового перегляду</string>
     <string name="episodes_partial_watch_removed">Прогрес часткового перегляду видалено</string>
     <string name="episodes_partial_watch_failed">Не вдалося завершити видалення прогресу часткового перегляду</string>
+    <string name="database_compatibility_title">Потрібна новіша версія</string>
+    <string name="episodes_remove_last_watch">Видалити останній перегляд · %1$s</string>
+    <string name="episodes_last_watch_removed">Останній перегляд видалено з Trakt</string>
+    <string name="episodes_last_watch_failed">Не вдалося видалити перегляд. Оновіть епізод і спробуйте ще раз.</string>
 </resources>

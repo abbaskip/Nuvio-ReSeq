@@ -1016,4 +1016,8 @@
     <string name="episodes_remove_partial_watch">आंशिक देखने की प्रगति हटाएँ</string>
     <string name="episodes_partial_watch_removed">आंशिक देखने की प्रगति हटा दी गई</string>
     <string name="episodes_partial_watch_failed">आंशिक देखने की प्रगति पूरी तरह नहीं हटाई जा सकी</string>
+    <string name="database_compatibility_title">नया संस्करण चाहिए</string>
+    <string name="episodes_remove_last_watch">आखिरी बार देखने का रिकॉर्ड हटाएँ · %1$s</string>
+    <string name="episodes_last_watch_removed">Trakt से आखिरी बार देखने का रिकॉर्ड हटा दिया गया</string>
+    <string name="episodes_last_watch_failed">देखने का रिकॉर्ड नहीं हटाया जा सका। एपिसोड रीफ़्रेश करें और फिर कोशिश करें।</string>
 </resources>

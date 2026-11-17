@@ -3349,4 +3349,8 @@
     <string name="autosync_label_synced">Sinchronizuota automatiškai</string>
     <string name="stream_resume_from_time">Tęsti nuo %1$s</string>
     <string name="stream_resume_from_percent">Tęsti nuo %1$d%%</string>
+    <string name="database_compatibility_title">Reikalinga naujesnė versija</string>
+    <string name="episodes_remove_last_watch">Pašalinti paskutinę peržiūrą · %1$s</string>
+    <string name="episodes_last_watch_removed">Paskutinė peržiūra pašalinta iš „Trakt“</string>
+    <string name="episodes_last_watch_failed">Nepavyko pašalinti peržiūros. Atnaujinkite seriją ir bandykite dar kartą.</string>
 </resources>

@@ -2596,4 +2596,8 @@
     <string name="episodes_remove_partial_watch">Remover o progresso parcial</string>
     <string name="episodes_partial_watch_removed">Progresso parcial removido</string>
     <string name="episodes_partial_watch_failed">Não foi possível concluir a remoção do progresso parcial</string>
+    <string name="database_compatibility_title">É necessária uma versão mais recente</string>
+    <string name="episodes_remove_last_watch">Remover a última visualização · %1$s</string>
+    <string name="episodes_last_watch_removed">Última visualização removida do Trakt</string>
+    <string name="episodes_last_watch_failed">Não foi possível remover esta visualização. Atualize o episódio e tente novamente.</string>
 </resources>

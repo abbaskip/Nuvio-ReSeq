@@ -1141,4 +1141,8 @@
     <string name="episodes_remove_partial_watch">Fjern delvis avspillingsfremdrift</string>
     <string name="episodes_partial_watch_removed">Delvis avspillingsfremdrift fjernet</string>
     <string name="episodes_partial_watch_failed">Kunne ikke fullføre fjerning av delvis avspillingsfremdrift</string>
+    <string name="database_compatibility_title">En nyere versjon kreves</string>
+    <string name="episodes_remove_last_watch">Fjern siste visning · %1$s</string>
+    <string name="episodes_last_watch_removed">Siste visning er fjernet fra Trakt</string>
+    <string name="episodes_last_watch_failed">Kunne ikke fjerne visningen. Oppdater episoden og prøv igjen.</string>
 </resources>

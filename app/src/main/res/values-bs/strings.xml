@@ -1510,4 +1510,8 @@
     <string name="episodes_remove_partial_watch">Ukloni napredak djelimičnog gledanja</string>
     <string name="episodes_partial_watch_removed">Napredak djelimičnog gledanja je uklonjen</string>
     <string name="episodes_partial_watch_failed">Nije moguće dovršiti uklanjanje napretka djelimičnog gledanja</string>
+    <string name="database_compatibility_title">Potrebna je novija verzija</string>
+    <string name="episodes_remove_last_watch">Ukloni posljednje gledanje · %1$s</string>
+    <string name="episodes_last_watch_removed">Posljednje gledanje je uklonjeno s Trakta</string>
+    <string name="episodes_last_watch_failed">Gledanje nije uklonjeno. Osvježite epizodu i pokušajte ponovo.</string>
 </resources>

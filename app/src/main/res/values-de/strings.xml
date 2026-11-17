@@ -2290,4 +2290,8 @@
     <string name="episodes_remove_partial_watch">Teilweisen Wiedergabefortschritt löschen</string>
     <string name="episodes_partial_watch_removed">Teilweiser Wiedergabefortschritt gelöscht</string>
     <string name="episodes_partial_watch_failed">Teilweiser Wiedergabefortschritt konnte nicht vollständig gelöscht werden</string>
+    <string name="database_compatibility_title">Eine neuere Version ist erforderlich</string>
+    <string name="episodes_remove_last_watch">Letzte Wiedergabe entfernen · %1$s</string>
+    <string name="episodes_last_watch_removed">Letzte Wiedergabe aus Trakt entfernt</string>
+    <string name="episodes_last_watch_failed">Diese Wiedergabe konnte nicht entfernt werden. Aktualisiere die Folge und versuche es erneut.</string>
 </resources>

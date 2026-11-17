@@ -33,7 +33,7 @@ object DatabaseCompatibilityNotice {
             setPadding(0, 0, 0, inset / 2)
         })
         val close = Button(activity).apply {
-            text = activity.getString(R.string.database_compatibility_close)
+            text = activity.getString(R.string.action_close)
             setOnClickListener { activity.finish() }
         }
         layout.addView(close, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))

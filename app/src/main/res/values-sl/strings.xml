@@ -2192,4 +2192,8 @@
     <string name="episodes_remove_partial_watch">Odstrani napredek delnega ogleda</string>
     <string name="episodes_partial_watch_removed">Napredek delnega ogleda je odstranjen</string>
     <string name="episodes_partial_watch_failed">Odstranjevanja napredka delnega ogleda ni bilo mogoče dokončati</string>
+    <string name="database_compatibility_title">Potrebna je novejša različica</string>
+    <string name="episodes_remove_last_watch">Odstrani zadnji ogled · %1$s</string>
+    <string name="episodes_last_watch_removed">Zadnji ogled je bil odstranjen iz Trakta</string>
+    <string name="episodes_last_watch_failed">Ogleda ni bilo mogoče odstraniti. Osvežite epizodo in poskusite znova.</string>
 </resources>

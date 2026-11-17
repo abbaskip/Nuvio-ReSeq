@@ -3235,4 +3235,8 @@
     <string name="episodes_remove_partial_watch">আংশিক দেখার অগ্রগতি মুছুন</string>
     <string name="episodes_partial_watch_removed">আংশিক দেখার অগ্রগতি মোছা হয়েছে</string>
     <string name="episodes_partial_watch_failed">আংশিক দেখার অগ্রগতি সম্পূর্ণভাবে মোছা যায়নি</string>
+    <string name="database_compatibility_title">আরও নতুন সংস্করণ প্রয়োজন</string>
+    <string name="episodes_remove_last_watch">সর্বশেষ দেখার রেকর্ড সরান · %1$s</string>
+    <string name="episodes_last_watch_removed">Trakt থেকে সর্বশেষ দেখার রেকর্ড সরানো হয়েছে</string>
+    <string name="episodes_last_watch_failed">দেখার রেকর্ড সরানো যায়নি। পর্বটি রিফ্রেশ করে আবার চেষ্টা করুন।</string>
 </resources>

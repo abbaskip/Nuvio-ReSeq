@@ -3465,4 +3465,8 @@
     <string name="episodes_remove_partial_watch">Kısmi izleme ilerlemesini kaldır</string>
     <string name="episodes_partial_watch_removed">Kısmi izleme ilerlemesi kaldırıldı</string>
     <string name="episodes_partial_watch_failed">Kısmi izleme ilerlemesini kaldırma işlemi tamamlanamadı</string>
+    <string name="database_compatibility_title">Daha yeni bir sürüm gerekiyor</string>
+    <string name="episodes_remove_last_watch">Son izlemeyi kaldır · %1$s</string>
+    <string name="episodes_last_watch_removed">Son izleme Trakt’tan kaldırıldı</string>
+    <string name="episodes_last_watch_failed">Bu izleme kaldırılamadı. Bölümü yenileyip tekrar deneyin.</string>
 </resources>

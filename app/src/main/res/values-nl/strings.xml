@@ -3425,4 +3425,8 @@
     <string name="autosync_label_synced">Automatisch gesynchroniseerd</string>
     <string name="stream_resume_from_time">Hervatten vanaf %1$s</string>
     <string name="stream_resume_from_percent">Hervatten vanaf %1$d%%</string>
+    <string name="database_compatibility_title">Een nieuwere versie is vereist</string>
+    <string name="episodes_remove_last_watch">Laatste kijkbeurt verwijderen · %1$s</string>
+    <string name="episodes_last_watch_removed">Laatste kijkbeurt verwijderd uit Trakt</string>
+    <string name="episodes_last_watch_failed">Deze kijkbeurt kon niet worden verwijderd. Vernieuw de aflevering en probeer het opnieuw.</string>
 </resources>

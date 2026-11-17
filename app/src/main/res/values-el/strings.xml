@@ -3356,4 +3356,8 @@
     <string name="episodes_remove_partial_watch">Διαγραφή μερικής προόδου προβολής</string>
     <string name="episodes_partial_watch_removed">Η μερική πρόοδος προβολής διαγράφηκε</string>
     <string name="episodes_partial_watch_failed">Δεν ήταν δυνατή η ολοκλήρωση της διαγραφής της μερικής προόδου προβολής</string>
+    <string name="database_compatibility_title">Απαιτείται νεότερη έκδοση</string>
+    <string name="episodes_remove_last_watch">Κατάργηση τελευταίας προβολής · %1$s</string>
+    <string name="episodes_last_watch_removed">Η τελευταία προβολή καταργήθηκε από το Trakt</string>
+    <string name="episodes_last_watch_failed">Δεν ήταν δυνατή η κατάργηση της προβολής. Ανανεώστε το επεισόδιο και δοκιμάστε ξανά.</string>
 </resources>

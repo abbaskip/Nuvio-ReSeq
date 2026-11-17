@@ -246,6 +246,7 @@ class TraktProgressService @Inject constructor(
     private var showIdSiblingsMap: Map<String, Set<String>> = emptyMap()
     private val hasLoadedRemoteProgress = MutableStateFlow(false)
     private val cacheMutex = Mutex()
+    private val snapshotRefreshMutex = Mutex()
     private val metadataMutex = Mutex()
     private val watchedMoviesMutex = Mutex()
     private val watchedShowSeedsMutex = Mutex()
@@ -1091,8 +1092,6 @@ class TraktProgressService @Inject constructor(
         }
         refreshNow()
     }
-
-    private val snapshotRefreshMutex = Mutex()
 
     internal suspend fun refreshForContinueWatching() {
         forceRefreshUntilMs = System.currentTimeMillis() + 30_000L

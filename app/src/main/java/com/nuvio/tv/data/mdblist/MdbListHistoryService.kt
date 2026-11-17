@@ -19,6 +19,26 @@ class MdbListHistoryService @Inject constructor(
     suspend fun remove(scope: MdbListAuthScope, items: Collection<TrackingMediaReference>): TrackingMutationResult =
         change(scope, items.map { TrackingHistoryItem(it) }, remove = true)
 
+    /** Restore the pre-play timestamp only when the current row is this play. */
+    suspend fun undo(scope: MdbListAuthScope, media: TrackingMediaReference,
+        event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        sync.refresh(TrackingRefreshIntent.INVALIDATED)
+        return sync.write(scope, setOf(MdbListSyncBucket.WATCHED)) { snapshot ->
+            val target = snapshot.mutationTarget(media) ?: return@write snapshot to false
+            val current = snapshot.watched.singleOrNull(target::matches) ?: return@write snapshot to false
+            if (!event.contains(mdbListTimestamp(current.watchedAt))) return@write snapshot to false
+            check(event.priorKnown) { "The previous MDBList watch is unknown" }
+            val prior = event.priorWatchedAt?.let { Instant.ofEpochMilli(it).toString() }
+            val change = MdbListHistoryChange(target, prior)
+            val response = api.post(if (prior == null) "/sync/watched/remove" else "/sync/watched",
+                mdbListHistoryPayload(listOf(change)), scope)
+            val receipt = decodeMdbListHistoryReceipt(response.body, listOf(change), remove = prior == null)
+            check(receipt.complete)
+            snapshot.copy(watched = snapshot.watched.filterNot(target::matches) +
+                if (prior == null) emptyList() else listOf(current.copy(watchedAt = prior))) to true
+        }
+    }
+
     private suspend fun change(
         scope: MdbListAuthScope,
         items: List<TrackingHistoryItem>,

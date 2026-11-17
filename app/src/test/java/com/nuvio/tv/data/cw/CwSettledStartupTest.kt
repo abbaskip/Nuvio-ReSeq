@@ -48,7 +48,7 @@ class CwSettledStartupTest(private val selected: TrackingProviderId, private val
         }
         val profiles = mockk<ProfileManager> { every { resolvedActiveProfileId } returns profile; every { activeProfileId } returns profile }
         val raw = WatchProgress("office", "series", "The Office", "poster", "backdrop", null,
-            "office:6:16", 6, 16, "The Delivery", 0, 0, 9_000, progressPercent = .02f,
+            "office:6:16", 6, 16, "The Delivery", 0, 0, 9_000, progressPercent = 1f,
             source = when (selected) {
                 TrackingProviderId.TRAKT -> WatchProgress.SOURCE_TRAKT_PLAYBACK
                 TrackingProviderId.SIMKL -> WatchProgress.SOURCE_SIMKL_PLAYBACK

@@ -54,6 +54,15 @@ interface TrackingProgressProvider {
     suspend fun refreshForContinueWatching(intent: TrackingRefreshIntent) = refresh(intent)
     /** Confirmation excludes locally optimistic echoes of the same device write. */
     suspend fun confirmedContinueWatchingProgress(): List<WatchProgress> = allProgress.first() + nextUpSeeds.first()
+    suspend fun watchBaseline(target: TrackingMediaReference): TrackingWatchBaseline {
+        val episode = requireNotNull(target.episode)
+        val prior = watchedItems.first().filter { it.contentId == target.catalog?.contentId &&
+            it.season == episode.season && it.episode == episode.number }.maxByOrNull { it.watchedAt }
+        return TrackingWatchBaseline(target, true, prior?.watchedAt)
+    }
+    /** True only after this dated play was removed. Never fall back to unwatch-all. */
+    suspend fun removeWatchEvent(target: TrackingMediaReference, event: TrackingWatchEvent): Boolean =
+        throw UnsupportedOperationException("Individual watch removal unavailable")
     suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
         val episode = requireNotNull(target.episode)
         removeProgress(requireNotNull(target.catalog).contentId, requireNotNull(episode.season), episode.number)

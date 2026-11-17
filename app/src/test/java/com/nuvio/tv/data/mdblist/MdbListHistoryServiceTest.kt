@@ -124,6 +124,41 @@ class MdbListHistoryServiceTest {
     }
 
     private fun service(harness: MdbListSyncTestHarness) = MdbListHistoryService(harness.http.api, harness.repository)
+    @Test fun `undoing a dated MDBList rewatch restores the captured older completion and preserves sibling episodes`() = runTest {
+        val harness = MdbListSyncTestHarness(backgroundScope)
+        val time = mdbListTimestamp("2026-11-17T01:00:00Z")
+        val prior = "2015-01-01T00:00:00Z"
+        val latest = mdbListTestEpisode(3, 2, "2026-11-17T01:00:00Z")
+        val sibling = mdbListTestEpisode(3, 3, prior)
+        harness.seed(harness.snapshot().copy(watched = listOf(latest, sibling)))
+        harness.remote.watched = listOf(latest, sibling)
+        harness.http.reply(body = """{"updated":{"episodes":1}}""")
+        val target = com.nuvio.tv.core.tracking.buildTrackingMediaReference("series", "tt1", "tt1:3:2", seasonNumber = 3, episodeNumber = 2)
+        val progress = com.nuvio.tv.domain.model.WatchProgress("tt1", "series", "Friends", null, null, null,
+            "tt1:3:2", 3, 2, null, 1, 1, time)
+        assertTrue(service(harness).undo(harness.repository.currentScope(), target,
+            com.nuvio.tv.core.tracking.TrackingWatchEvent("own", progress, time - 10_000, time + 2_000,
+                priorKnown = true, priorWatchedAt = mdbListTimestamp(prior))))
+        assertEquals(listOf(sibling, latest.copy(watchedAt = "2015-01-01T00:00:00Z")), harness.repository.currentSnapshot()!!.watched)
+        assertEquals(listOf("/sync/watched"), harness.http.engine.requests.map { it.path })
+        assertTrue(harness.http.engine.requests.single().body.contains(prior))
+    }
+
+    @Test fun `unknown pre-play MDBList history never becomes permission to erase all previous watches`() = runTest {
+        val harness = MdbListSyncTestHarness(backgroundScope)
+        val time = mdbListTimestamp(MDBLIST_TEST_TIME)
+        val latest = mdbListTestEpisode(3, 2)
+        harness.seed(harness.snapshot().copy(watched = listOf(latest)))
+        harness.remote.watched = listOf(latest)
+        val target = com.nuvio.tv.core.tracking.buildTrackingMediaReference("series", "tt1", "tt1:3:2", seasonNumber = 3, episodeNumber = 2)
+        val progress = com.nuvio.tv.domain.model.WatchProgress("tt1", "series", "Friends", null, null, null,
+            "tt1:3:2", 3, 2, null, 1, 1, time)
+        expectMdbListFailure<IllegalStateException> { service(harness).undo(harness.repository.currentScope(), target,
+            com.nuvio.tv.core.tracking.TrackingWatchEvent("legacy", progress, time - 1_000, time + 1_000)) }
+        assertEquals(listOf(latest), harness.repository.currentSnapshot()!!.watched)
+        assertTrue(harness.http.engine.requests.isEmpty())
+    }
+
     private fun item(id: Long) = TrackingHistoryItem(
         TrackingMediaReference(TrackingMediaKind.MOVIE, "Movie $id", ids = TrackingExternalIds(imdb = "tt$id")),
         mdbListTimestamp(MDBLIST_TEST_TIME)

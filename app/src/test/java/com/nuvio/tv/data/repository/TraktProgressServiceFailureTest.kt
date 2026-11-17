@@ -235,6 +235,56 @@ class TraktProgressServiceFailureTest {
         coVerify(exactly = 0) { traktApi.removeHistory(any(), any()) }
     }
 
+    @Test fun `device undo waits for confirmation then deletes only its dated rewatch history id`() = runBlocking {
+        val service = createService()
+        withTimeout(TIMEOUT_MS) { service.observeRemoteProgressLoaded().first { it } }
+        coEvery { traktApi.getPlayback(any(), "episodes", page = 1, limit = 100) } returns Response.success(emptyList())
+        val show = TraktShowDto(ids = TraktIdsDto(imdb = "tt0312173"))
+        val ep = TraktEpisodeDto(season = 3, number = 2, ids = TraktIdsDto(trakt = 555))
+        val stamp = "2026-11-17T01:00:00Z"
+        val time = java.time.Instant.parse(stamp).toEpochMilli()
+        val old = com.nuvio.tv.data.remote.dto.trakt.TraktUserEpisodeHistoryItemDto(id = 9001, watchedAt = "2015-01-01T00:00:00Z", show = show, episode = ep)
+        val latest = old.copy(id = 9002, watchedAt = stamp)
+        val progress = WatchProgress("tt0312173", "series", "Friends", null, null, null, "tt0312173:3:2", 3, 2,
+            null, 100, 100, time, deviceWatchEventId = "own")
+        val target = buildTrackingMediaReference("series", progress.contentId, progress.videoId, seasonNumber = 3, episodeNumber = 2)
+        val event = com.nuvio.tv.core.tracking.TrackingWatchEvent("own", progress, time - 30_000, time + 2_000)
+        assertTrue(!service.removeDatedWatchEvent(target, event))
+        var records = listOf(latest, old)
+        coEvery { traktApi.getEpisodeHistory(any(), any(), any(), any(), any()) } answers { Response.success(records) }
+        coEvery { traktApi.removeHistoryPlay(any(), match { it.ids == listOf(9002L) }) } answers {
+            records = listOf(old)
+            Response.success(TraktHistoryRemoveResponseDto(deleted = TraktHistoryRemoveCountDto(episodes = 1)))
+        }
+        coEvery { traktApi.getShowProgressWatched(any(), any()) } returns Response.success(TraktShowProgressResponseDto())
+        assertTrue(service.removeDatedWatchEvent(target, event))
+        assertEquals(listOf(old), records)
+        coVerify(exactly = 1) { traktApi.removeHistoryPlay(any(), match { it.ids == listOf(9002L) }) }
+        coVerify(exactly = 0) { traktApi.removeHistory(any(), any()) }
+    }
+
+    @Test fun `device first-part undo removes its combined 50 percent pause and leaves old history untouched`() = runBlocking {
+        val service = createService()
+        withTimeout(TIMEOUT_MS) { service.observeRemoteProgressLoaded().first { it } }
+        val show = TraktShowDto(ids = TraktIdsDto(imdb = "tt0386676"))
+        val episode = TraktEpisodeDto(season = 6, number = 16, ids = TraktIdsDto(trakt = 182129))
+        val stamp = "2026-11-17T01:00:00Z"
+        val time = java.time.Instant.parse(stamp).toEpochMilli()
+        val pause = TraktPlaybackItemDto(77, "episode", 50f, stamp, show = show, episode = episode)
+        coEvery { traktApi.getPlayback(any(), "episodes", page = 1, limit = 100) } returns Response.success(listOf(pause, pause.copy(id = 66, pausedAt = "2015-01-01T00:00:00Z")))
+        coEvery { traktApi.deletePlayback(any(), 77) } returns Response.success(Unit)
+        coEvery { traktApi.getShowProgressWatched(any(), any()) } returns Response.success(TraktShowProgressResponseDto())
+        val progress = WatchProgress("tt0386676", "series", "Office", null, null, null, "tt0386676:6:17", 6, 17,
+            "The Delivery Part 1", 1, 1, time, deviceWatchEventId = "own")
+        assertTrue(service.removeDatedWatchEvent(buildTrackingMediaReference("series", progress.contentId, "tt0386676:6:16",
+            seasonNumber = 6, episodeNumber = 16), com.nuvio.tv.core.tracking.TrackingWatchEvent("own", progress,
+            time - 60_000, time + 2_000, completionExpected = false)))
+        coVerify(exactly = 1) { traktApi.deletePlayback(any(), 77) }
+        coVerify(exactly = 0) { traktApi.deletePlayback(any(), 66) }
+        coVerify(exactly = 0) { traktApi.removeHistoryPlay(any(), any()) }
+        coVerify(exactly = 0) { traktApi.removeHistory(any(), any()) }
+    }
+
     private fun createService(episodePlayback: List<TraktPlaybackItemDto> = emptyList()): TraktProgressService {
         coEvery { traktApi.getLastActivities(any()) } returns Response.success(
             TraktLastActivitiesResponseDto(

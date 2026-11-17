@@ -598,11 +598,11 @@ fun EpisodesRow(
                     }
                 }
             } ?: false,
-            lastWatchDate = watch?.takeIf { it.hasRemovableTraktWatch() }?.let {
+            lastWatchDate = watch?.takeIf { it.hasRemovableWatchEvent() }?.let {
                 java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
                     .format(java.util.Date(it.lastWatched))
             },
-            onRemoveWatch = if (selectedEpisode.hasResolvedSource && watch?.hasRemovableTraktWatch() == true) {
+            onRemoveWatch = if (selectedEpisode.hasResolvedSource && watch?.hasRemovableWatchEvent() == true) {
                 {
                     onRemoveWatch(selectedEpisode, watch, true)
                     optionsEpisode = null

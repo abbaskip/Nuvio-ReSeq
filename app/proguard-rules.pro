@@ -20,6 +20,12 @@
 -keep class com.nuvio.tv.data.local.CachedNextUpItem { *; }
 -keep class com.nuvio.tv.data.local.CachedInProgressItem { *; }
 -keep class com.nuvio.tv.data.local.RecentDeviceProgress { *; }
+-keep class com.nuvio.tv.data.local.DeviceWatchEvent { *; }
+-keep class com.nuvio.tv.core.tracking.TrackingWatchBaseline { *; }
+-keep class com.nuvio.tv.core.tracking.TrackingMediaReference { *; }
+-keep class com.nuvio.tv.core.tracking.TrackingCatalogReference { *; }
+-keep class com.nuvio.tv.core.tracking.TrackingEpisode { *; }
+-keep class com.nuvio.tv.core.tracking.TrackingExternalIds { *; }
 -keep class com.nuvio.tv.data.cw.CwProjection { *; }
 -keep class com.nuvio.tv.data.cw.CwMember { *; }
 -keep class com.nuvio.tv.data.cw.CwCompletion { *; }

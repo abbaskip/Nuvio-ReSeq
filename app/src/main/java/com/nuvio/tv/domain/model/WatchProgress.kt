@@ -42,7 +42,9 @@ data class WatchProgress(
     /** Show activity for Home's history window when the chosen next-up seed is an older episode. */
     @Transient val latestSeriesActivity: Long? = null,
     /** Original Trakt history coordinates before matching the addon's episode catalogue. */
-    val traktHistoryEpisode: EpisodeCoordinates? = null
+    val traktHistoryEpisode: EpisodeCoordinates? = null,
+    /** Local undo identity, never included in tracker scrobble/history payloads. */
+    val deviceWatchEventId: String? = null
 ) : TrackingAttributedItem {
     override val trackingContentId: String
         get() = contentId
@@ -95,6 +97,13 @@ data class WatchProgress(
             traktEpisodeId != null || (traktShowId != null && traktHistoryEpisode != null)
         else -> false
     }
+
+    fun hasRemovableWatchEvent(): Boolean = hasRemovableTraktWatch() ||
+        (deviceWatchEventId != null && season != null && episode != null && lastWatched > 0 && progressPercentage >= .01f)
+
+    /** CW_RULES 2.1, before selected-order translation. Unknown duration is not proof of <1%. */
+    fun isBelowCwMinimum(): Boolean = progressPercentage > 0f && progressPercentage < .01f &&
+        (progressPercent != null || duration > 0)
 
     private fun completionThreshold(): Float =
         completionThresholdOverride?.takeIf { it.isFinite() && it > 0f && it <= 1f }

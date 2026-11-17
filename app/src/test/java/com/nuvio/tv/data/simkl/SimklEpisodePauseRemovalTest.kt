@@ -50,5 +50,18 @@ class SimklEpisodePauseRemovalTest {
         assertEquals(listOf("GET" to "/sync/playback", "DELETE" to "/sync/playback/32"), requests)
         assertEquals(history, state.value.snapshot.entries)
         assertEquals(listOf(old, sibling), state.value.snapshot.playback)
+        // The event-specific last-watch path uses the same native part mapping,
+        // but addresses the dated play instead of the selected episode's old completion.
+        state.value = state.value.copy(snapshot = state.value.snapshot.copy(playback = listOf(old, current, sibling)))
+        requests.clear()
+        val time = java.time.Instant.parse("2026-11-17T00:00:00Z").toEpochMilli()
+        val event = com.nuvio.tv.core.tracking.TrackingWatchEvent("own-part1", resume.copy(lastWatched = time),
+            time - 60_000, time + 2_000, priorKnown = true,
+            priorWatchedAt = java.time.Instant.parse("2026-01-01T00:00:00Z").toEpochMilli(), completionExpected = false)
+        assertTrue(provider.removeWatchEvent(buildTrackingMediaReference("series", parent, "$parent:6:16",
+            seasonNumber = 6, episodeNumber = 16), event))
+        assertEquals(listOf("GET" to "/sync/playback", "DELETE" to "/sync/playback/32"), requests)
+        assertEquals(history, state.value.snapshot.entries)
+        assertEquals(listOf(old, sibling), state.value.snapshot.playback)
     }
 }

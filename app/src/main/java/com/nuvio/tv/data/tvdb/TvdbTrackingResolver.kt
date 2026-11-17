@@ -139,7 +139,7 @@ class TvdbTrackingResolver @Inject constructor(
         if (context == null && !isSelected(profileId, contentId)) return progress
         return try {
             val meta = effectiveMetadata(profileId, contentId, "series", context) ?: return emptyMap()
-            val entries = progress.values + localRecords
+            val entries = (progress.values + localRecords).filterNot { it.isBelowCwMinimum() }
             val traktEntries = entries.filter { it.trackingProviderId == "trakt" || it.source.startsWith("trakt_") }.toHashSet()
             val targets = if (traktEntries.isNotEmpty()) traktTargets(profileId, meta) else emptyList()
             fun needsCatalogue(entry: WatchProgress) = entry.contentId != contentId ||
@@ -353,6 +353,24 @@ class TvdbTrackingResolver @Inject constructor(
         // including large Simkl/MDBList snapshots, must stay off that dispatcher.
         return withContext(Dispatchers.Default) {
             resolveSelected(profileId, provider, reference, completed, coverageChangesOnly)
+        }
+    }
+
+    /** An individual dated play may cover only half of a native episode. The
+     * unwatch/mark-watched coverage gate must not discard its paused session. */
+    suspend fun resolveWatchEventTargets(profileId: Int, provider: TrackingProviderId,
+        reference: TrackingMediaReference): List<TrackingMediaReference>? {
+        val catalog = reference.catalog ?: return listOf(reference)
+        if (!catalog.tvdbCoverageVerified) return null
+        if (catalog.providerDefault || reference.episode == null ||
+            catalog.tvdbContext == null && !isSelected(profileId, catalog.contentId)) return listOf(reference)
+        return withContext(Dispatchers.Default) {
+            try {
+                val resolved = selectedTargets(profileId, provider, reference) ?: return@withContext null
+                resolved.targets.filter { target -> target.contentIds.any(resolved.context.episodeIds::contains) }
+                    .map { reference.forTarget(it, resolved.context.seriesId) }.takeIf { it.isNotEmpty() }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { null }
         }
     }
 

@@ -107,6 +107,20 @@ class WatchProgressPreferences @Inject constructor(
             if (confirmed != receipts) prefs[deviceProgressKey] = gson.toJson(confirmed)
         }
     }
+
+    suspend fun revokeDeviceProgress(profileId: Int, eventId: String, removed: List<WatchProgress>) {
+        metadataStore(profileId).edit { prefs ->
+            val receipts = deviceReceipts(prefs[deviceProgressKey])
+            prefs[deviceProgressKey] = gson.toJson(receipts.filterValues { receipt ->
+                receipt.progress.deviceWatchEventId != eventId && receipt.progress !in removed
+            })
+        }
+    }
+
+    /** Proven device plays, including receipts already confirmed by the selected tracker.
+     * Used only to correlate an explicit undo from pre-journal installations. */
+    internal suspend fun devicePlayReceipts(profileId: Int): List<RecentDeviceProgress> =
+        deviceReceipts(metadataStore(profileId).data.first()[deviceProgressKey]).values.toList()
     private val storageMutex = Mutex()
     private val initializedProfiles = mutableSetOf<Int>()
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)

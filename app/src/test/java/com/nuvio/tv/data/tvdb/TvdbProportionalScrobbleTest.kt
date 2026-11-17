@@ -87,7 +87,7 @@ class TvdbProportionalScrobbleTest {
             "${original.id}:${row.season}:${row.number}", row.season, row.number, row.title, 1, 1, 1_000,
             progressPercent = 100f, source = WatchProgress.SOURCE_TRAKT_HISTORY, traktEpisodeId = row.ids?.trakt) }
         for (video in rewatchVideos) {
-            for (provider in listOf("trakt", "simkl", "mdblist")) for (percent in listOf(.02f, 1f, 3f)) {
+            for (provider in listOf("trakt", "simkl", "mdblist")) for (percent in listOf(3f, 5f)) {
                 val pause = shortRewatch(video, provider, percent)
                 val projected = resolver.projectProgress(1, original.id, emptyMap(), history + pause)
                 val details = projected.values
@@ -104,13 +104,57 @@ class TvdbProportionalScrobbleTest {
         }
     }
 
+    @Test fun subOnePercentPartialsAreIgnoredBeforeOrderTranslationAndDoNotDisplaceCompletedHistory() = runTest {
+        val history = rows.map { row -> WatchProgress(original.id, "series", "The Office", null, null, null,
+            "${original.id}:${row.season}:${row.number}", row.season, row.number, row.title, 1, 1, 1_000,
+            progressPercent = 100f, source = WatchProgress.SOURCE_TRAKT_HISTORY, traktEpisodeId = row.ids?.trakt) }
+        for (video in rewatchVideos) for (provider in listOf("trakt", "simkl", "mdblist")) {
+            val raw = shortRewatch(video, provider, .02f).copy(progressPercent = .02f)
+            val previous = resolver.projectProgress(1, original.id, emptyMap(), history)
+            assertEquals(previous, resolver.projectProgress(1, original.id, emptyMap(), history + raw))
+            assertFalse(com.nuvio.tv.ui.screens.detail.shouldResumeProgress(raw))
+            val state = CwMembershipReducer.progress(CwProjection(profileId = 1, source = provider.uppercase()), history)
+            assertEquals(state, CwMembershipReducer.progress(state, listOf(raw)))
+        }
+    }
+
+    @Test fun deliveryPartOneUndoReturnsTheCompletedAlttwoOfficeToItsExactPreviousHistoryAndNoCwOffer() = runTest {
+        val history = rows.map { row -> WatchProgress(original.id, "series", "The Office", null, null, null,
+            "${original.id}:${row.season}:${row.number}", row.season, row.number, row.title, 1, 1, 1_000,
+            progressPercent = 100f, source = WatchProgress.SOURCE_TRAKT_HISTORY, traktEpisodeId = row.ids?.trakt) }
+        val video = effective.videos.single { it.displaySeason == 6 && it.displayEpisode == 17 }
+        val native = shortRewatch(video, "trakt", 100f).copy(traktPlaybackId = 77, lastWatched = 100_000)
+        val prior = resolver.projectProgress(1, original.id, emptyMap(), history)
+        val selected = resolver.projectProgress(1, original.id, emptyMap(), history + native).getValue(6 to 17)
+        assertTrue(selected.isCompleted())
+        assertEquals(18, resolver.continueWatchingResume(1, native) {
+            resolver.projectProgress(1, original.id, emptyMap(), history + native).values
+        }!!.episode)
+        val own = selected.copy(source = WatchProgress.SOURCE_LOCAL, trackingProviderId = null,
+            deviceWatchEventId = "delivery-today")
+        val target = resolver.resolveWatchEventTargets(1, TrackingProviderId.TRAKT, event(100.0, video).media)!!.single()
+        val undo = com.nuvio.tv.data.local.DeviceWatchEvent("delivery-today", own,
+            native.lastWatched - 60_000, native.lastWatched, removed = true,
+            nativeEvent = selected, baselines = mapOf("TRAKT" to listOf(TrackingWatchBaseline(target, true, 1_000))))
+        val surviving = (history + native + own).filterNot(undo::removes)
+        assertEquals(history, surviving)
+        val after = resolver.projectProgress(1, original.id, emptyMap(), surviving)
+        assertEquals(prior, after)
+        assertTrue(resolver.isFullyWatched(1, original.id, after.values))
+        val details = com.nuvio.tv.ui.screens.detail.SeriesNextToWatch(mockk(relaxed = true)).resolve(
+            original.id, "series", "The Office", effective.videos, true, null, after, emptySet(), false) { emptyMap() }
+        val previousDetails = com.nuvio.tv.ui.screens.detail.SeriesNextToWatch(mockk(relaxed = true)).resolve(
+            original.id, "series", "The Office", effective.videos, true, null, prior, emptySet(), false) { emptyMap() }
+        assertEquals(previousDetails, details)
+    }
+
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     @Test fun completedOfficeDetailsHomeReplayNeverReplacesTheKnownResumeWithAChoiceCard() = runTest {
         val history = rows.map { row -> WatchProgress(original.id, "series", "The Office", null, null, null,
             "${original.id}:${row.season}:${row.number}", row.season, row.number, row.title, 1, 1, 1_000,
             progressPercent = 100f, source = WatchProgress.SOURCE_TRAKT_HISTORY, traktEpisodeId = row.ids?.trakt) }
         for (video in rewatchVideos) for (provider in listOf("trakt", "simkl", "mdblist")) {
-            val raw = shortRewatch(video, provider, .5f)
+            val raw = shortRewatch(video, provider, 3f)
             val directory = java.nio.file.Files.createTempDirectory("completed-rewatch-clock").toFile()
             val items = MutableStateFlow(history + raw)
             val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {

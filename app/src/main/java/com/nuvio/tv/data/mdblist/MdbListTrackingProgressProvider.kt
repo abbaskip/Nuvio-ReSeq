@@ -37,7 +37,8 @@ class MdbListTrackingProgressProvider @Inject constructor(
     private val episodeMappings: MdbListEpisodeMappingService,
     private val auth: MdbListAuthStore,
     profiles: ProfileManager,
-    layout: LayoutPreferenceDataStore
+    layout: LayoutPreferenceDataStore,
+    private val history: MdbListHistoryService? = null
 ) : TrackingProgressProvider {
     override val providerId = TrackingProviderId.MDBLIST
     override val isAuthenticated = combine(auth.state, profiles.activeProfileId) { authorization, profileId ->
@@ -107,6 +108,28 @@ class MdbListTrackingProgressProvider @Inject constructor(
     }
 
     override suspend fun refresh(intent: TrackingRefreshIntent) = sync.refresh(intent)
+    override suspend fun watchBaseline(target: TrackingMediaReference): com.nuvio.tv.core.tracking.TrackingWatchBaseline {
+        sync.refresh(TrackingRefreshIntent.INVALIDATED)
+        check(sync.state.value.hasLoaded && sync.state.value.error == null)
+        val episode = requireNotNull(target.episode)
+        val mapping = if (target.catalog?.providerDefault == true) null else episodeMapping(requireNotNull(target.catalog).contentId, currentProjection())
+        val coordinates = mapping?.takeIf { it.remaps }?.toTmdb(requireNotNull(episode.season), episode.number)
+        val native = if (coordinates == null) target else target.copy(episode = episode.copy(season = coordinates.season, number = coordinates.episode))
+        val snapshot = requireNotNull(sync.currentSnapshot())
+        val match = snapshot.mutationTarget(native)
+        val prior = match?.let { snapshot.watched.singleOrNull(it::matches) }
+        return com.nuvio.tv.core.tracking.TrackingWatchBaseline(target, true, prior?.let { mdbListTimestamp(it.watchedAt) })
+    }
+    override suspend fun removeWatchEvent(target: TrackingMediaReference, event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        val scope = sync.currentScope()
+        val mapping = if (target.catalog?.providerDefault == true) null else episodeMapping(requireNotNull(target.catalog).contentId, currentProjection())
+        val episode = requireNotNull(target.episode)
+        val mapped = mapping?.takeIf { it.remaps }?.toTmdb(requireNotNull(episode.season), episode.number)
+        val native = if (mapped == null) target else target.copy(episode = episode.copy(season = mapped.season, number = mapped.episode))
+        val pause = scrobbles.clearDatedEpisodePause(scope, native, event)
+        val watch = event.completionExpected && requireNotNull(history).undo(scope, native, event)
+        return if (event.completionExpected) watch else pause
+    }
 
     override suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
         val episode = requireNotNull(target.episode)

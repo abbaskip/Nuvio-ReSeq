@@ -208,6 +208,17 @@ class MdbListScrobbleServiceTest {
         assertEquals(listOf(pauses.last()), harness.repository.currentSnapshot()?.playback)
         assertEquals(listOf("/sync/playback", "/scrobble/clear"), harness.http.engine.requests.map { it.path })
         assertTrue(harness.http.engine.requests.last().body.contains("\"episode\":16"))
+        harness.http.reply(body = body)
+        harness.http.reply(body = """{"action":"clear","deleted":true}""")
+        val time = mdbListTimestamp("2026-11-17T00:00:00Z")
+        val target = com.nuvio.tv.core.tracking.buildTrackingMediaReference("series", "tt0386676", "tt0386676:6:16",
+            seasonNumber = 6, episodeNumber = 16)
+        val row = com.nuvio.tv.domain.model.WatchProgress("tt0386676", "series", "Office", null, null, null,
+            "tt0386676:6:17", 6, 17, "The Delivery Part 1", 1, 1, time)
+        assertTrue(service(harness).clearDatedEpisodePause(harness.repository.currentScope(), target,
+            com.nuvio.tv.core.tracking.TrackingWatchEvent("own", row, time - 60_000, time + 2_000, completionExpected = false)))
+        assertEquals("{\"id\":7}", harness.http.engine.requests.last().body)
+        assertEquals(history, harness.repository.currentSnapshot()?.watched)
     }
 
     private fun service(harness: MdbListSyncTestHarness) = MdbListScrobbleService(harness.http.api, harness.repository)

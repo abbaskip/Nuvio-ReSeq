@@ -10,6 +10,28 @@ class MdbListScrobbleService @Inject constructor(
     private val api: MdbListApiClient,
     private val sync: MdbListSyncRepository
 ) {
+    suspend fun clearDatedEpisodePause(scope: MdbListAuthScope, media: com.nuvio.tv.core.tracking.TrackingMediaReference,
+        event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        val episode = requireNotNull(media.episode)
+        val contentId = requireNotNull(media.catalog).contentId
+        val rows = decodeMdbListPlayback(api.get("/sync/playback", scope = scope).body)
+        val matching = rows.filter { it.type == MdbListItemType.EPISODE && contentId in it.media.ids.aliases() &&
+            (if (episode.tmdbId != null && it.episodeTmdbId != null) it.episodeTmdbId == episode.tmdbId
+             else if (episode.tvdbId != null && it.episodeTvdbId != null) it.episodeTvdbId == episode.tvdbId
+             else !episode.usesTvdbSeasonMapping && it.season == episode.season && it.episode == episode.number) &&
+            event.contains(mdbListTimestamp(it.updatedAt)) }
+        if (matching.isEmpty()) return false
+        val row = matching.single()
+        val target = MdbListMutationTarget(row.type, row.media, row.season, row.episode)
+        check(rows.count(target::matches) == 1)
+        sync.write(scope, setOf(MdbListSyncBucket.PLAYBACK)) { snapshot ->
+            val body = mdbListResponseElement(api.post("/scrobble/clear", "{\"id\":${requireNotNull(row.id)}}", scope).body).objectValue()
+            check(body.text("action") == "clear" && body.flag("deleted") != null)
+            snapshot.copy(playback = snapshot.playback.filterNot(target::matches)) to Unit
+        }
+        return true
+    }
+
     suspend fun scrobble(scope: MdbListAuthScope, action: TrackingScrobbleAction, event: TrackingScrobbleEvent) {
         if (!event.progressPercent.isFinite() || event.media.ids.toMdbListIds() == null) return
         sync.write(scope, setOf(MdbListSyncBucket.WATCHED, MdbListSyncBucket.PLAYBACK)) { snapshot ->

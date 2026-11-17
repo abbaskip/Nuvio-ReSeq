@@ -29,7 +29,8 @@ class ContinueWatchingRepository @Inject constructor(
     private val progressProvider: Provider<WatchProgressRepository>,
     private val trackingProviders: Provider<com.nuvio.tv.core.tracking.TrackingProgressProviderRegistry>? = null,
     private val tvdbOrders: com.nuvio.tv.data.tvdb.TvdbOrderStore? = null,
-    private val tvdbTracking: Provider<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>? = null
+    private val tvdbTracking: Provider<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>? = null,
+    private val deviceEvents: Provider<com.nuvio.tv.data.local.DeviceWatchEventStore>? = null
 ) {
     private val store = CwProjectionStore(File(context.filesDir, "cw_enrichment"))
     private val mutex = Mutex()
@@ -197,6 +198,16 @@ class ContinueWatchingRepository @Inject constructor(
         refreshProjection()
     }
 
+    suspend fun deviceWatchRemoved(profileId: Int, event: com.nuvio.tv.data.local.DeviceWatchEvent) {
+        val state = snapshot()
+        if (state.profileId != profileId) return
+        mutate(state.lease, afterCommit = { restoredSeries.remove(event.progress.contentId) }, background = true) {
+            CwMembershipReducer.removeDeviceWatchEvent(it, event)
+        }
+        refreshProjection()
+        hideFinishedSeries(profileId, event.progress.contentId, before = event.startedAt)
+    }
+
     suspend fun partialWatchRemoved(profileId: Int, event: WatchProgress) {
         val state = snapshot()
         if (state.profileId != profileId) return
@@ -204,19 +215,27 @@ class ContinueWatchingRepository @Inject constructor(
             CwMembershipReducer.removePause(it, event)
         }
         refreshProjection()
+        hideFinishedSeries(profileId, event.contentId)
+    }
+
+    private suspend fun hideFinishedSeries(profileId: Int, contentId: String, before: Long = Long.MAX_VALUE) {
         val refreshed = snapshot()
-        val member = refreshed.members[event.contentId] ?: return
+        if (refreshed.profileId != profileId) return
+        val member = refreshed.members[contentId] ?: return
         if (member.progress?.isCompleted() != true || member.inProgress != null) return
+        if ((member.progress.lastWatched) >= before) return
         val resolver = tvdbTracking?.get() ?: return
         val complete = withTimeoutOrNull(8_000) {
-            val history = progressProvider.get().getAllEpisodeProgress(event.contentId, profileId).first { it.isNotEmpty() }
-            resolver.isFullyWatched(profileId, event.contentId, history.values)
+            val history = progressProvider.get().getAllEpisodeProgress(contentId, profileId).first { it.isNotEmpty() }
+            resolver.isFullyWatched(profileId, contentId, history.values)
         } ?: false
-        if (complete) mutate(refreshed.lease) { current ->
-            if (current.members[event.contentId] != member) current else current.copy(
-                revision = current.revision + 1, members = current.members + (event.contentId to
+        if (!complete) return
+        val finished = mutate(refreshed.lease, background = true) { current ->
+            if (current.members[contentId] != member) current else current.copy(
+                revision = current.revision + 1, members = current.members + (contentId to
                     member.copy(inProgress = null, nextUp = null, changedAtRevision = current.revision + 1)))
         }
+        mutate(finished.lease, background = true, settledIds = setOf(contentId)) { it }
     }
 
     suspend fun invalidate(profileId: Int, contentIds: Set<String>) {
@@ -236,6 +255,7 @@ class ContinueWatchingRepository @Inject constructor(
     /** All return/refresh triggers converge here; a missing player result changes no progress. */
     suspend fun refreshSelected(intent: com.nuvio.tv.core.tracking.TrackingRefreshIntent): List<com.nuvio.tv.core.tracking.TrackingProgressRefreshFailure> = refreshMutex.withLock {
         val state = snapshot()
+        deviceEvents?.get()?.reconcile(state.profileId)
         val provider = trackingProviders?.get()?.providers()?.firstOrNull { it.providerId.name == state.source }
         if (provider != null) {
             if (!provider.isAuthenticated.first()) return@withLock emptyList()
@@ -269,6 +289,8 @@ class ContinueWatchingRepository @Inject constructor(
         val items = progress.allProgress.first()
         val movies = movieCompletionTimes(state.lease).first()
         publishTrackerProgress(state.lease, items, seeds, progress, movies, loaded)
+        for (event in deviceEvents?.get()?.events(state.profileId).orEmpty().filter { it.removed })
+            hideFinishedSeries(state.profileId, event.progress.contentId, before = event.startedAt)
         val ready = snapshot()
         if (ready.profileId != state.profileId || ready.source != state.source) return
         val absent = ready.presentedMembers.orEmpty().keys - ready.members.keys

@@ -876,6 +876,75 @@ class TraktProgressService @Inject constructor(
             || (videoCanonicalKey != null && watchedMovies.contains(videoCanonicalKey))
     }
 
+    internal suspend fun removeDatedWatchEvent(target: TrackingMediaReference,
+        event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        val profile = profileManager.activeProfileId.value
+        val parent = requireNotNull(target.catalog)
+        val episode = requireNotNull(target.episode)
+        fun parentMatches(ids: TraktIdsDto?) = normalizeContentId(ids) == parent.contentId ||
+            target.ids.trakt != null && ids?.trakt?.toLong() == target.ids.trakt
+        fun episodeMatches(row: TraktEpisodeDto?) = row != null && when {
+            episode.traktId != null -> row.ids?.trakt == episode.traktId
+            else -> row.season == episode.season && row.number == episode.number
+        }
+        val sessions = mutableListOf<TraktPlaybackItemDto>()
+        var page = 1
+        do {
+            val response = requireNotNull(traktAuthService.executeAuthorizedRequest {
+                traktApi.getPlayback(it, "episodes", page = page, limit = 100)
+            })
+            check(response.isSuccessful)
+            sessions += requireNotNull(response.body())
+            page++
+        } while (page <= (response.headers()["X-Pagination-Page-Count"]?.toIntOrNull() ?: 1))
+        val pauses = sessions.filter { parentMatches(it.show?.ids) && episodeMatches(it.episode) &&
+            exactWatchTime(it.pausedAt)?.let(event::contains) == true &&
+            (event.progress.traktPlaybackId == null || it.id == event.progress.traktPlaybackId) }
+        check(pauses.size <= 1) { "Ambiguous playback event" }
+        val plays = mutableListOf<com.nuvio.tv.data.remote.dto.trakt.TraktUserEpisodeHistoryItemDto>()
+        page = 1
+        do {
+            val response = requireNotNull(traktAuthService.executeAuthorizedRequest {
+                traktApi.getEpisodeHistory(it, page = page, limit = 1000,
+                    startAt = java.time.Instant.ofEpochMilli(event.from).toString(),
+                    endAt = java.time.Instant.ofEpochMilli(event.through).toString())
+            })
+            check(response.isSuccessful)
+            plays += requireNotNull(response.body())
+            page++
+        } while (page <= (response.headers()["X-Pagination-Page-Count"]?.toIntOrNull() ?: 1))
+        val completed = event.completionExpected || event.progress.source in setOf(WatchProgress.SOURCE_TRAKT_HISTORY, WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS)
+        val matching = plays.filter { completed && parentMatches(it.show?.ids) && episodeMatches(it.episode) &&
+            exactWatchTime(it.watchedAt)?.let(event::contains) == true &&
+            (event.progress.source !in setOf(WatchProgress.SOURCE_TRAKT_HISTORY, WatchProgress.SOURCE_TRAKT_SHOW_PROGRESS) ||
+                exactWatchTime(it.watchedAt) == event.progress.lastWatched) }
+        check(matching.size <= 1) { "Ambiguous history event" }
+        check(profileManager.activeProfileId.value == profile)
+        for (pause in pauses) {
+            val result = traktAuthService.executeAuthorizedWriteRequest { traktApi.deletePlayback(it, requireNotNull(pause.id)) }
+            check(result?.isSuccessful == true || result?.code() == 404)
+        }
+        for (play in matching) {
+            val result = traktAuthService.executeAuthorizedWriteRequest { traktApi.removeHistoryPlay(it,
+                com.nuvio.tv.data.remote.dto.trakt.TraktHistoryPlayRemoval(listOf(requireNotNull(play.id)))) }
+            check(result?.isSuccessful == true && result.body()?.deleted?.episodes == 1)
+        }
+        val removed = pauses.isNotEmpty() || matching.isNotEmpty()
+        if (removed) {
+            remoteProgress.update { rows -> rows.filterNot { row -> event.contains(row.lastWatched) &&
+                row.contentId == parent.contentId && (row.traktPlaybackId in pauses.map { it.id } ||
+                    row.season == episode.season && row.episode == episode.number) } }
+            optimisticProgress.update { rows -> rows.filterValues { value -> !(value.progress.contentId == parent.contentId &&
+                value.progress.season == episode.season && value.progress.episode == episode.number && event.contains(value.progress.lastWatched)) } }
+            cacheMutex.withLock { cachedEpisodesPlayback = null }
+            episodeProgressActivityVersion.incrementAndGet()
+            watchedShowSeedsStale = true
+            ensureEpisodeProgressSnapshot(parent.contentId, forceRefresh = true)
+        }
+        return if (completed) matching.isNotEmpty() || event.progress.source == WatchProgress.SOURCE_TRAKT_HISTORY
+            else pauses.isNotEmpty() || event.progress.traktPlaybackId != null
+    }
+
     suspend fun removeLastEpisodeWatch(profileId: Int, event: WatchProgress) {
         require(event.hasRemovableTraktWatch())
         check(profileManager.activeProfileId.value == profileId)

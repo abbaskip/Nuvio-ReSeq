@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 
@@ -82,6 +83,48 @@ class SimklTrackingProgressProvider @Inject constructor(
     }
 
     override suspend fun refresh(intent: TrackingRefreshIntent) = syncRepository.refresh(intent)
+
+    override suspend fun watchBaseline(target: TrackingMediaReference): com.nuvio.tv.core.tracking.TrackingWatchBaseline {
+        syncRepository.refresh(TrackingRefreshIntent.INVALIDATED)
+        check(syncRepository.state.value.hasLoaded && syncRepository.state.value.errorMessage == null)
+        return super.watchBaseline(target)
+    }
+
+    override suspend fun removeWatchEvent(target: TrackingMediaReference, event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        val episode = requireNotNull(target.episode)
+        val parent = requireNotNull(target.catalog)
+        syncRepository.ensureLoaded()
+        val entries = syncRepository.state.value.snapshot.entries.filter { it.matchesSimklContentId(parent.contentId) }
+        val sessions = SimklApiSyncRemote(apiClient).fetchPlayback().filter { row ->
+            val media = row.media ?: return@filter false
+            val ep = row.episode ?: return@filter false
+            (media.canonicalContentId() == parent.contentId || entries.any { it.media == media }) &&
+                (ep.tvdbSeason ?: ep.season) == episode.season && (ep.tvdbNumber ?: ep.number) == episode.number &&
+                row.pausedAt?.let { runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull() }?.let(event::contains) == true
+        }
+        check(sessions.size <= 1) { "Ambiguous Simkl playback event" }
+        for (row in sessions) {
+            val id = requireNotNull(row.id)
+            apiClient.execute(SimklApiRequest(SimklHttpMethod.DELETE, "/sync/playback/$id"))
+            syncRepository.removePlaybackSessions(setOf(id))
+        }
+        // The unchanged 9.8 output does not opt into Simkl rewatch sessions.
+        // Preserve an older canonical completion instead of unwatching the episode.
+        syncRepository.refresh(TrackingRefreshIntent.INVALIDATED)
+        val current = watchedItems.first().filter { it.contentId == parent.contentId && it.season == episode.season && it.episode == episode.number }
+            .maxByOrNull { it.watchedAt }
+        if (event.completionExpected && current != null && event.contains(current.watchedAt)) {
+            check(event.priorKnown && event.priorWatchedAt == null) { "Cannot erase earlier Simkl history" }
+            val body = buildSimklHistoryRemovalBody(listOf(target), kotlinx.serialization.json.Json { explicitNulls = false })
+            val response = apiClient.execute(SimklApiRequest(SimklHttpMethod.POST, "/sync/history/remove", body = body,
+                retryPolicy = SimklRetryPolicy.SYNC_WRITE))
+            check(response.status in 200..299)
+            syncRepository.refresh(TrackingRefreshIntent.INVALIDATED)
+            return true
+        }
+        return if (event.completionExpected) event.priorKnown && current?.watchedAt == event.priorWatchedAt && current != null
+            else sessions.isNotEmpty()
+    }
 
     override suspend fun removeEpisodePause(target: TrackingMediaReference, resume: WatchProgress) {
         val episode = requireNotNull(target.episode)

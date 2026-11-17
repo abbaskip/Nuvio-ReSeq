@@ -116,6 +116,7 @@ object CwMembershipReducer {
         val removals = state.removals.toMutableMap()
         val completed = state.completed.toMutableMap()
         updates.sortedBy { it.lastWatched }.forEach { p ->
+            if (p.isBelowCwMinimum()) return@forEach
             if (p.watchEventKeys().any(state.ignoredProgress::containsKey)) return@forEach
             // Read old episode-specific replay markers too. A legacy series-only videoId
             // is ambiguous and must never suppress every episode in that show's history.
@@ -304,6 +305,22 @@ object CwMembershipReducer {
             completed = state.completed + (id to records), ignoredProgress = state.ignoredProgress + keys.associateWith { event.lastWatched })
     }
 
+    fun removeDeviceWatchEvent(state: CwProjection, event: com.nuvio.tv.data.local.DeviceWatchEvent): CwProjection {
+        val id = event.progress.contentId
+        val old = state.members[id]
+        val keys = event.progress.watchEventKeys() + event.nativeEvent?.copy(deviceWatchEventId = null)?.watchEventKeys().orEmpty()
+        val records = state.completed[id].orEmpty().filterValues { record ->
+            val overlaps = if (record.contentIds.isNotEmpty() && event.progress.tvdbContentIds.isNotEmpty())
+                record.contentIds.any(event.progress.tvdbContentIds::contains)
+                else record.season == event.progress.season && record.episode == event.progress.episode
+            !(event.contains(record.at) && overlaps)
+        }
+        return state.copy(epoch = state.epoch + 1, revision = state.revision + 1,
+            members = if (old?.progress?.let(event::removes) == true || old?.progress?.deviceWatchEventId == event.id) state.members - id else state.members,
+            completed = state.completed + (id to records),
+            ignoredProgress = state.ignoredProgress + keys.associateWith { event.lastAt })
+    }
+
     /** Removing a pause acknowledges that playback event, never its older completed history. */
     fun removePause(state: CwProjection, event: WatchProgress): CwProjection {
         val member = state.members[event.contentId]
@@ -412,6 +429,7 @@ private fun WatchProgress.isDetailedHistoryFor(seed: WatchProgress): Boolean =
 private fun episodeHistoryKey(contentId: String, season: Int, episode: Int) = "$contentId|episode:$season:$episode|"
 internal fun tvdbRemovalKey(contentId: String, id: Long) = "$contentId|tvdb:$id|"
 private fun WatchProgress.watchEventKeys(): Set<String> {
+    deviceWatchEventId?.let { return setOf("$contentId|device:$it") }
     pauseEventKey()?.let { return setOf(it) }
     if (source == WatchProgress.SOURCE_TRAKT_PLAYBACK && traktPlaybackId != null)
         return setOf("$contentId|playback:$traktPlaybackId|$lastWatched")

@@ -35,6 +35,7 @@ class HomeCwResolutionRaceTest {
             every { projection } returns MutableStateFlow(stored)
             every { observeProjection() } returns flow { firstEmission.await(); emit(stored); awaitCancellation() }
             coEvery { snapshot() } returns stored
+            coEvery { nextUpLease(stored, true) } returns stored.lease.copy(nextUpGeneration = 1)
             every { settledProgress } returns flowOf(ContinueWatchingRepository.SettledProgress(stored.lease,
                 stored.members.values.mapNotNull { it.progress }, emptyList(), emptyList()))
             coEvery { enrich(any(), any(), any(), any()) } returns stored

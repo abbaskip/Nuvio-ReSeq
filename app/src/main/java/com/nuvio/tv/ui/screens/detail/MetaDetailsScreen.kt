@@ -540,6 +540,22 @@ fun MetaDetailsScreen(
         }
     }
 
+    val ratingViewModel: RatingViewModel = hiltViewModel()
+    val ratingContext = LocalContext.current
+    LaunchedEffect(ratingViewModel) {
+        ratingViewModel.results.collect { result ->
+            val message = when {
+                !result.saved -> ratingContext.getString(
+                    R.string.rating_failed,
+                    result.provider?.let { ratingContext.getString(trackingProviderNameRes(it)) }.orEmpty()
+                )
+                result.removed -> ratingContext.getString(R.string.rating_removed)
+                else -> ratingContext.getString(R.string.rating_saved)
+            }
+            viewModel.onEvent(MetaDetailsEvent.OnShowMessage(message, isError = !result.saved))
+        }
+    }
+
     LaunchedEffect(uiState.userMessage) {
         if (uiState.userMessage != null) {
             delay(2500)
@@ -1463,6 +1479,9 @@ private fun MetaDetailsContent(
     var consumeReturnEpisodeFocusOnClear by rememberSaveable(meta.id) { mutableStateOf(false) }
     var initialHeroFocusRequested by rememberSaveable(meta.id) { mutableStateOf(false) }
     var showHeroPlayOptionsDialog by rememberSaveable(meta.id) { mutableStateOf(false) }
+    var showRatingDialog by rememberSaveable(meta.id) { mutableStateOf(false) }
+    val titleRatingMedia = remember(meta) { meta.ratingReference() }
+    val titleRatingState by rememberRatingState(titleRatingMedia)
     var showSynopsisOverlay by rememberSaveable(meta.id) { mutableStateOf(false) }
     var showRandomEpisodeOverlay by rememberSaveable(meta.id) { mutableStateOf(false) }
     var randomEpisodePlaybackPending by rememberSaveable(meta.id) { mutableStateOf(false) }
@@ -2580,6 +2599,8 @@ private fun MetaDetailsContent(
                         isMovieWatched = isMovieWatched,
                         isMovieWatchedPending = isMovieWatchedPending,
                         onToggleMovieWatched = onToggleMovieWatched,
+                        ratingState = titleRatingState,
+                        onRateClick = { showRatingDialog = true },
                         mdbListRatings = visibleMdbListRatings,
                         mdbListRatingOrder = mdbListRatingOrder,
                         hideMetaInfoImdb = !showStandardOverallRatings,
@@ -2742,7 +2763,8 @@ private fun MetaDetailsContent(
                                 initialEpisodeScrollDone = true
                             },
                             anchorEpisodeId = lastFocusedEpisodeIdBySeason[selectedSeason],
-                            windowResetKey = meta.id
+                            windowResetKey = meta.id,
+                            ratingMedia = { video -> meta.episodeRatingReference(video) }
                         )
                     }
             }
@@ -3160,6 +3182,15 @@ private fun MetaDetailsContent(
                     onMarkPreviousSeasonsWatched(season)
                     seasonOptionsDialogSeason = null
                 }
+            )
+        }
+
+        if (showRatingDialog && titleRatingState.isAvailable) {
+            RatingDialog(
+                media = titleRatingMedia,
+                title = meta.name,
+                state = titleRatingState,
+                onDismiss = { showRatingDialog = false }
             )
         }
 

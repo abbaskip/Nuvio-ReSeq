@@ -37,9 +37,12 @@ internal data class PersonalRatingsState(val open: Boolean = false, val busy: Bo
 internal class PersonalRatingsViewModel @Inject constructor(
     private val service: PersonalRatingsService,
     profiles: ProfileManager,
+    private val ratingSettings: com.nuvio.tv.data.local.TraktSettingsDataStore,
     preferences: com.nuvio.tv.data.local.PlayerSettingsDataStore
 ) : ViewModel() {
-    val connected: StateFlow<Set<PersonalRatingProvider>?> = service.connected.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val connected: StateFlow<Set<PersonalRatingProvider>?> = kotlinx.coroutines.flow.combine(service.connected, ratingSettings.ratingSource) { providers, source ->
+        providers.filterTo(mutableSetOf()) { source == null || it.name == source.name }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val promptEnabled: StateFlow<Boolean?> = preferences.playerSettings.map { it.promptToRateAfterWatching }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val activeProfileId = profiles.activeProfileId
@@ -57,7 +60,11 @@ internal class PersonalRatingsViewModel @Inject constructor(
         state.value = PersonalRatingsState(open = true, busy = true)
         job = viewModelScope.launch {
             try {
-                val account = service.session(value)
+                val current = service.session(value)
+                val source = ratingSettings.ratingSourceFor(current.profileId)
+                val account = current.copy(providers = current.providers.filterTo(mutableSetOf()) {
+                    source == null || it.name == source.name
+                })
                 session = account
                 val result = service.read(value, account)
                 state.value = PersonalRatingsState(open = true, results = result)
@@ -165,6 +172,6 @@ internal fun PersonalRatingPromptSetting(enabled: Boolean, onToggle: () -> Unit)
     if (connected.isNullOrEmpty()) return
     com.nuvio.tv.ui.screens.settings.SettingsToggleRow(
         title = "Prompt to rate after watching",
-        subtitle = "Ask when returning from a completed movie. Uses all compatible signed-in trackers.",
+        subtitle = "Ask when returning from a completed movie. Uses your selected rating destination.",
         checked = enabled, onToggle = onToggle)
 }

@@ -99,6 +99,7 @@ import coil3.request.crossfade
 import coil3.request.transformations
 import com.nuvio.tv.R
 import com.nuvio.tv.domain.model.Meta
+import com.nuvio.tv.core.tracking.TrackingMediaReference
 import com.nuvio.tv.domain.model.Video
 import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.domain.model.hasResolvedSource
@@ -522,7 +523,8 @@ fun EpisodesRow(
     scrollToEpisodeId: String? = null,
     onScrollToEpisodeHandled: () -> Unit = {},
     anchorEpisodeId: String? = null,
-    windowResetKey: String? = null
+    windowResetKey: String? = null,
+    ratingMedia: (Video) -> TrackingMediaReference? = { null }
 ) {
     val dedupedEpisodes = remember(episodes) { episodes.distinctBy { it.episodeListKey } }
     var optionsEpisode by remember { mutableStateOf<Video?>(null) }
@@ -761,7 +763,8 @@ fun EpisodesRow(
             onMarkPreviousEpisodesWatched = {
                 onMarkPreviousEpisodesWatched(selectedEpisode)
                 optionsEpisode = null
-            }
+            },
+            ratingMedia = ratingMedia(selectedEpisode)
         )
     }
 }

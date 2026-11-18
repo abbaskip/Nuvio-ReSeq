@@ -259,6 +259,7 @@ internal object PlayerSubtitleUtils {
      * Merges simultaneously active unpositioned text cues into a single multi-line cue
      * to prevent Media3 SubtitlePainter from drawing colliding lines on top of each other.
      */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     fun mergeOverlappingCues(cues: List<Cue>): List<Cue> {
         if (cues.size <= 1) return cues
         val unpositioned = cues.filter { it.bitmap == null && it.line == Cue.DIMEN_UNSET }

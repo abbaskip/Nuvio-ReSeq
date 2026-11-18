@@ -316,7 +316,20 @@
           "app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt": "9ebe3e8848b0c920dc03394bd53c02dce30c8b0c",
           "app/src/test/java/com/nuvio/tv/ui/screens/player/CurrentStreamIndexTest.kt": "ced6d70c966041b7a1f20d55453032194596259e"
         }
-      }
+      },
+      "accepted_adaptation_successors": [
+        {
+          "release_tag": "v0.1.0-beta.9.9",
+          "release_commit": "c520a4036e23da94d1e670fac4ed71b73cff6529",
+          "protected_blobs": {
+            "app/src/main/java/com/nuvio/tv/data/local/StreamLinkCacheDataStore.kt": "ee945fbbd83fb5cccd8a0c5dce076514de4d9e65",
+            "app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt": "ef0098c337e753736e19d79fd5853223e9f264ac",
+            "app/src/test/java/com/nuvio/tv/ui/screens/player/CurrentStreamIndexTest.kt": "ced6d70c966041b7a1f20d55453032194596259e"
+          },
+          "evidence": "Approved expanded 9.9 adaptations and public shipped source; durable reports/2026-11-16.md; raw upstream hold and original beta 7.7 approval unchanged.",
+          "reconciled_utc": "2026-11-18"
+        }
+      ]
     },
     "2b4b640a85de7d6fd554f9ec0e5187529d88c8dc": {
       "outcome": "integrated",
@@ -391,7 +404,20 @@
           "app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt": "9ebe3e8848b0c920dc03394bd53c02dce30c8b0c",
           "app/src/test/java/com/nuvio/tv/ui/screens/player/CurrentStreamIndexTest.kt": "ced6d70c966041b7a1f20d55453032194596259e"
         }
-      }
+      },
+      "accepted_adaptation_successors": [
+        {
+          "release_tag": "v0.1.0-beta.9.9",
+          "release_commit": "c520a4036e23da94d1e670fac4ed71b73cff6529",
+          "protected_blobs": {
+            "app/src/main/java/com/nuvio/tv/data/local/StreamLinkCacheDataStore.kt": "ee945fbbd83fb5cccd8a0c5dce076514de4d9e65",
+            "app/src/main/java/com/nuvio/tv/ui/screens/player/StreamSourcesSidePanel.kt": "ef0098c337e753736e19d79fd5853223e9f264ac",
+            "app/src/test/java/com/nuvio/tv/ui/screens/player/CurrentStreamIndexTest.kt": "ced6d70c966041b7a1f20d55453032194596259e"
+          },
+          "evidence": "Approved expanded 9.9 adaptations and public shipped source; durable reports/2026-11-16.md; raw upstream hold and original beta 7.7 approval unchanged.",
+          "reconciled_utc": "2026-11-18"
+        }
+      ]
     },
     "424a61c7ac307d77c75cb26ea71d443d785bbb6f": {
       "outcome": "integrated",

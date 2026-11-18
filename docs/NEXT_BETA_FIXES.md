@@ -311,3 +311,20 @@ missing activation marker is never evidence of permission to bypass a rehearsal.
 The old manual 9.9 publication hold records a completed release, not permission
 to replay or republish that version. Use the current report for actual test and
 publication outcomes; these queue instructions themselves assert no pass.
+
+
+## 19 November: beta 10.1 delivered
+
+Beta 10.1 is published and verified from 84968db446ff06c665644b17d3dfd12eb1fd21eb
+(run 20261118T154101Z-b5f25a, workflow 44341105581). The three new subtitle-menu,
+subtitle-cue and TorBox alias-cache integrations are delivered; do not replay them.
+All five downloaded signed APKs, tag, latest channel and packaged services passed.
+The fresh activation rehearsal is 20261118T153720Z-0cc764. Conditional publication
+is enabled through its coordinator marker, with all normal gates still required.
+The shared ledger contains 398 records; 17 explicit declines stay closed. Forty-two
+new source entries remain queued for compatibility review/adaptation and tests.
+Original raw holds and beta 7.7 approval evidence are preserved; the two cache
+records additionally pin the exact approved, already-shipped beta 9.9 successors.
+Lint task cache inputs include the checkout root to prevent stale absolute report
+locations. The immutable seed is unchanged; six allowance records were retired.
+The 19 November morning report and recovery ZIP are authoritative current evidence.

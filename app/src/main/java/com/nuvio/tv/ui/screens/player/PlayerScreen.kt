@@ -3212,7 +3212,7 @@ private fun PlayerControlsOverlay(
                                     owner?.let { com.nuvio.tv.core.report.PlaybackReports.update(it, mapOf(
                                         "aspect/zoom" to uiState.aspectMode.name,
                                         "display switching" to uiState.frameRateMatchingMode.name,
-                                        "view size" to controller.exoPlayerView?.let { view -> "${view.width}x${view.height}" }.orEmpty())) }
+                                        "view size" to (controller.mpvView ?: controller.exoPlayerView)?.let { view -> "${view.width}x${view.height}" }.orEmpty())) }
                                     com.nuvio.tv.core.report.ProblemReportActivity.open(reportContext, owner)
                                 },
                                 upFocusRequester = progressUpTarget, onDownKey = onHideControls, onFocused = onResetHideTimer

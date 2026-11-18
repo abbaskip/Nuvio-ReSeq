@@ -86,6 +86,17 @@ class ProblemReportTest {
         assertEquals(5, PlaybackReports.recent().size)
     }
 
+    @Test fun `active pane still reports current format after other panes cycle past recent history`() {
+        val active = Any()
+        PlaybackReports.begin(active, "ExoPlayer", "Multiview pane")
+        PlaybackReports.update(active, mapOf("coded size" to "1920x1080"))
+        repeat(10) { PlaybackReports.begin(Any(), "ExoPlayer", "Multiview pane") }
+        assertEquals(5, PlaybackReports.recent().size)
+        assertEquals("1920x1080", PlaybackReports.current(active)!!.fields["coded size"])
+        PlaybackReports.update(active, mapOf("coded size" to "720x576"))
+        assertEquals("720x576", PlaybackReports.current(active)!!.fields["coded size"])
+    }
+
     @Test fun `ring stays bounded and survives restart`() {
         val dir = temp.newFolder()
         val ring = ReportRing(dir, 1024)

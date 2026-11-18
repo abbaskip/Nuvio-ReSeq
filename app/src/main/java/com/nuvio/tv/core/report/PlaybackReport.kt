@@ -8,7 +8,9 @@ object PlaybackReports {
     private data class Session(val engine: String, val sourceId: String?, val fields: MutableMap<String, String> = linkedMapOf(),
         val events: ArrayDeque<String> = ArrayDeque())
     private val sessions = linkedMapOf<Long, Session>()
-    private val owners = java.util.WeakHashMap<Any, Long>()
+    // An active pane may outlive five changes in other panes. Keep its current diagnostics
+    // independently of recent history; weak keys never keep released players alive.
+    private val owners = java.util.WeakHashMap<Any, Session>()
     private var serial = 0L
     val allowedFields = setOf("context", "provider type", "provider host", "stream type", "container", "video codec",
         "codec profile/level", "coded size", "display size", "crop window", "pixel aspect ratio", "rotation",
@@ -18,27 +20,28 @@ object PlaybackReports {
 
     @Synchronized fun begin(owner: Any, engine: String, context: String, sourceId: String? = null): Long {
         val id = ++serial
-        owners[owner] = id
-        sessions[id] = Session(engine, sourceId, linkedMapOf("context" to context))
+        val session = Session(engine, sourceId, linkedMapOf("context" to context))
+        owners[owner] = session
+        sessions[id] = session
         while (sessions.size > 5) sessions.remove(sessions.keys.first())
         event(owner, "session started ($engine / $context)")
         return id
     }
     @Synchronized fun update(owner: Any, values: Map<String, String>) {
-        val session = sessions[owners[owner]] ?: return
+        val session = owners[owner] ?: return
         val safe = values.filterKeys { it in allowedFields }.mapValues { ReportRedactor.clean(it.value).take(256) }
         val changed = safe.filter { session.fields[it.key] != it.value }
         session.fields.putAll(changed)
         if (changed.isNotEmpty()) event(owner, changed.entries.joinToString { "${it.key}=${it.value}" })
     }
     @Synchronized fun event(owner: Any, technical: String) {
-        val session = sessions[owners[owner]] ?: return
+        val session = owners[owner] ?: return
         val cleaned = ReportRedactor.clean(technical).take(1024)
         session.events.addLast(cleaned)
         while (session.events.size > 24) session.events.removeFirst()
         ReportLog.event("${session.engine}: $cleaned")
     }
-    @Synchronized fun current(owner: Any?): PlaybackReport? = sessions[owners[owner]]?.let {
+    @Synchronized fun current(owner: Any?): PlaybackReport? = owners[owner]?.let {
         PlaybackReport(it.engine, it.fields.toMap(), it.events.toList(), it.sourceId)
     }
     @Synchronized fun recent(): List<PlaybackReport> = sessions.values.map {

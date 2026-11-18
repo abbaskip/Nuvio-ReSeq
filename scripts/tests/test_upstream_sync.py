@@ -9,6 +9,31 @@ import upstream_sync as sync
 
 
 class UpstreamSyncSafetyTest(unittest.TestCase):
+    def test_durable_acceptance_metadata_is_not_downgraded(self):
+        tracked = {"outcome": "integrated", "reason": "adapted", "integration_status": "source only"}
+        durable = dict(tracked, integration_status="historical acceptance", integrated_dev_commit="release")
+        current = {"commits": {"sha": tracked}}
+        sync.reconcile_review_ledgers({"commits": {"sha": durable}}, current)
+        self.assertEqual(current["commits"]["sha"], durable)
+
+    def test_conflicting_review_or_hold_fails_closed(self):
+        for key, value in (("outcome", "integrated"), ("reason", "replace"),
+                           ("requires_decision", False), ("maintainer_decision", "integrate")):
+            original = {"outcome": "held", "reason": "retain", "requires_decision": True,
+                        "maintainer_decision": "do-not-integrate"}
+            with self.subTest(key=key), self.assertRaisesRegex(RuntimeError, "conflict"):
+                sync.reconcile_review_ledgers({"commits": {"sha": original}},
+                                             {"commits": {"sha": dict(original, **{key: value})}})
+
+    def test_missing_reviews_keep_held_but_never_invent_integrated_ancestry(self):
+        held = {"outcome": "held", "reason": "retain"}
+        current = {"commits": {}}
+        sync.reconcile_review_ledgers({"commits": {"sha": held}}, current)
+        self.assertEqual(current["commits"]["sha"], held)
+        with self.assertRaisesRegex(RuntimeError, "integrated historical"):
+            sync.reconcile_review_ledgers({"commits": {"sha": {"outcome": "integrated"}}},
+                                         {"commits": {}})
+
     def test_low_disk_blocks_builds_and_clears_stale_validation(self):
         from types import SimpleNamespace
         with tempfile.TemporaryDirectory() as directory:

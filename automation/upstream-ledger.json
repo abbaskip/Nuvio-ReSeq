@@ -2257,9 +2257,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "3f005fe8c4894c39fb7043b456d283ad6a62ec22": {
       "outcome": "equivalent",
@@ -2275,9 +2276,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "42b1b64ff48f6780800832fbc99bdb493c55700e": {
       "outcome": "integrated",
@@ -2293,9 +2295,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "b5c1bca2287f8ba6a628e6714d0dae35bbf27c9a": {
       "outcome": "equivalent",
@@ -2311,9 +2314,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "7e9bb622541e788dbf68dcbd2ba124b6250e4b98": {
       "outcome": "integrated",
@@ -2329,9 +2333,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "7bebafdab9782368efbb0d9c9c6eb9baa838ea4c": {
       "outcome": "equivalent",
@@ -2347,9 +2352,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "e12bc8752f87012ee9a196bd1527865a2d21364f": {
       "outcome": "held",
@@ -2455,9 +2461,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "65538103f4deee249bf919874cb5170824c517c8": {
       "outcome": "equivalent",
@@ -2473,9 +2480,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "97015f17bdd4a47556d12b2c98ef6b0feeccfb3d": {
       "outcome": "integrated",
@@ -2491,9 +2499,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "17ddebe7398d7c95aee8762b5ed2f3de9a7a307e": {
       "outcome": "equivalent",
@@ -2509,9 +2518,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "4ad172fac72e5b71bbdd656c02ff77f5ddd77fd9": {
       "outcome": "equivalent",
@@ -2551,9 +2561,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "bfe0548674ca83bd2ae0dee09870ff815aabdd65": {
       "outcome": "equivalent",
@@ -2587,9 +2598,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "35942ba5c14906e4f7d431d58766cf8eea0fd595": {
       "outcome": "integrated",
@@ -2605,9 +2617,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "94efd91a6dae47741b23ca9e28a50f8e39b28948": {
       "outcome": "equivalent",
@@ -2641,9 +2654,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "2b7d454df5c55afefcb5c95a443bfd48b4963a75": {
       "outcome": "equivalent",
@@ -2707,9 +2721,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "c6bbfa0399cbfe6a698528077766ae7a149851e1": {
       "outcome": "integrated",
@@ -2725,9 +2740,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "b1336c32cd2462fdf8d8b50126ba536bb61ab3eb": {
       "outcome": "integrated",
@@ -2743,9 +2759,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "a83e8c83411bed067c4eb256e657e094f8167735": {
       "outcome": "integrated",
@@ -2761,9 +2778,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "c70a9ad1b42a523c6c2c31706abc983299ccccd7": {
       "outcome": "integrated",
@@ -2779,9 +2797,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "28fda36352977fd4613ee9a8cae98a52050ac2c7": {
       "outcome": "equivalent",
@@ -2803,9 +2822,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "a1f935fd09385548e6c47752b91f39110ecd1a1e": {
       "outcome": "equivalent",
@@ -2827,9 +2847,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "49486e8e82a15774295fb0641cd896a17dbcae79": {
       "outcome": "equivalent",
@@ -2857,9 +2878,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "a4b96179b5530a6e2d97699f496732644ecd589c": {
       "outcome": "equivalent",
@@ -2881,9 +2903,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "5a048202ac65f230ba2e7e1a267f6b0ecec83b2f": {
       "outcome": "equivalent",
@@ -2905,9 +2928,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "6f6133370df7fc635a9e2c7c000da477282db09b": {
       "outcome": "equivalent",
@@ -2929,9 +2953,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "39e7301bf0abe97fc1c08f29a463b5d90ac839af": {
       "outcome": "integrated",
@@ -2947,9 +2972,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "3c8ca8aa8a7dce65ca5254b74f100263440cd40f": {
       "outcome": "integrated",
@@ -2965,9 +2991,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "56625112ae6735454934446de8f8b08084a55a14": {
       "outcome": "equivalent",
@@ -3013,9 +3040,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "57d4249b2b34f9bc96c6058a110326d2ea23e47c": {
       "outcome": "equivalent",
@@ -3037,9 +3065,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "d93b3a82c448595835fef886f521bf449a0bbb37": {
       "outcome": "equivalent",
@@ -3061,9 +3090,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "dd54bafb87c1348ee4e11e408ee6e21ea785c761": {
       "outcome": "integrated",
@@ -3079,9 +3109,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "6e8bd992a45d679cb545df8e556f15657e216ff8": {
       "outcome": "integrated",
@@ -3097,9 +3128,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "cd47093e36f4f1447613cbab65c106edb01f6063": {
       "outcome": "integrated",
@@ -3115,9 +3147,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "16a972ae75daffb8ddcf13879312c1eb35a06cd2": {
       "outcome": "integrated",
@@ -3133,9 +3166,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "1cb2f067f48b55dc99afb38f3719c2cf07f4f3f5": {
       "outcome": "integrated",
@@ -3151,9 +3185,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "61bbd39d827fcefcd54a928abe01ee38dbb045c6": {
       "outcome": "integrated",
@@ -3169,9 +3204,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "5e0c9a0b3b54f54f9ce9d9f38085d89d0493db51": {
       "outcome": "integrated",
@@ -3187,9 +3223,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "44de79d9ba7d560f621ff1ff811b6d2addee8d47": {
       "outcome": "equivalent",
@@ -3211,9 +3248,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "eb81a6fe799a27640524538ba60969f438edf215": {
       "outcome": "equivalent",
@@ -3235,9 +3273,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "8eb731563f153d6c00bbb85bfbae02b0116e06cb": {
       "outcome": "equivalent",
@@ -3259,9 +3298,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "f6e73fbb27099134fd3e9db5e9de14674130ecce": {
       "outcome": "equivalent",
@@ -3283,9 +3323,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "aa4f5cd42004605d733fd4c302d6e69af8ccb76e": {
       "outcome": "equivalent",
@@ -3361,9 +3402,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "1fb2a9e9d6b5ec1f0a06c110af75e3ade431b9e7": {
       "outcome": "integrated",
@@ -3379,9 +3421,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "34772fa1c91ef025c488e104194cfc941cd3d3e6": {
       "outcome": "equivalent",
@@ -3403,9 +3446,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "11689894f02ddc7f81c513abc1de1afe9247db1c": {
       "outcome": "equivalent",
@@ -3451,9 +3495,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "f4e4d64b3e5b956b47323844b48d0c3cafe1ada8": {
       "outcome": "integrated",
@@ -3469,9 +3514,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "35e75a44ffaa941e23041558f86cc0d36710093e": {
       "outcome": "equivalent",
@@ -3493,9 +3539,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "7fd63cafe31c65c35f28695ce942986143e42e55": {
       "outcome": "equivalent",
@@ -3517,9 +3564,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "5ad41476aaf09fed6cc5c45947fdc328b84ada4d": {
       "outcome": "equivalent",
@@ -3571,9 +3619,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "020afec44f88d08777b77ecb7c82f5be6dc26175": {
       "outcome": "equivalent",
@@ -3595,9 +3644,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "bad6ca479dd986aefc5743ca12e450e854e12e12": {
       "outcome": "equivalent",
@@ -3619,9 +3669,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "b17bb0fa7e6b168aa3d45d53a471c3d7d98ab358": {
       "outcome": "equivalent",
@@ -3643,9 +3694,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "b0876102fc0999a0eb03f7646af1c86c2e308993": {
       "outcome": "integrated",
@@ -3661,9 +3713,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "659f759d6e0dce2e33175434f0817d1c42e36d38": {
       "outcome": "equivalent",
@@ -3691,9 +3744,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "fc916ad0950f2729adda836437848b77af592d52": {
       "outcome": "equivalent",
@@ -3715,9 +3769,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "59313c18f60f09154571922ff10d447eea81e648": {
       "outcome": "integrated",
@@ -3733,9 +3788,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "a3532b819f29881b2e9438095424799bbeb88282": {
       "outcome": "equivalent",
@@ -3757,9 +3813,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "9981725ab85621ebe5c4b58353df2678a4888f19": {
       "outcome": "integrated",
@@ -3775,9 +3832,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "ec3863cea226b42fef84966449b35da1b30d947a": {
       "outcome": "integrated",
@@ -3793,9 +3851,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "a093c2e1f1032166ff62757d9cf7d60d7424ae66": {
       "outcome": "equivalent",
@@ -3817,9 +3876,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "20f14abb433648f77622992f605d2e9592e9c19c": {
       "outcome": "equivalent",
@@ -3841,9 +3901,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "05c741dbe10d06d4c9e1c0030cc4d9eca6af2380": {
       "outcome": "integrated",
@@ -3859,9 +3920,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "ae84205a1f1df88bbcc1c096a668c190c1e30b4f": {
       "outcome": "equivalent",
@@ -3883,9 +3945,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "f6f7d0567cf2939a1d7d2a9b1785cc0138add9d5": {
       "outcome": "equivalent",
@@ -3907,9 +3970,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "b10a11d7075fc4b96e3d9c5a7d30e5414c721e66": {
       "outcome": "integrated",
@@ -3925,9 +3989,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "7e14ee4846fa9fae9edeb935825d024bdd944dfc": {
       "outcome": "equivalent",
@@ -3949,9 +4014,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "42b8f0753e8de03e4cc18843dc96daaebebaf0b9": {
       "outcome": "integrated",
@@ -3967,9 +4033,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "3858c8299fc49b402500ed0f14acd3d052b599b2": {
       "outcome": "irrelevant",
@@ -4003,9 +4070,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "72b6f0c0e4744ad5b791215a4dafedeb692f4165": {
       "outcome": "integrated",
@@ -4021,9 +4089,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "79c456f8bc7976e9f784bac3c2cc5807fc32cfdd": {
       "outcome": "irrelevant",
@@ -4051,9 +4120,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "c890896dce8ce97dda8550b74eee8630f380662b": {
       "outcome": "integrated",
@@ -4069,9 +4139,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "f2781a118716333a40ba52c9985aa35133df96b1": {
       "outcome": "equivalent",
@@ -4093,9 +4164,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "6ab8a5735f897b11cf94e1c12873cb9cb1906542": {
       "outcome": "equivalent",
@@ -4201,9 +4273,10 @@
         }
       ],
       "integrated_in_release": "0.1.0-beta.9.9",
-      "integration_status": "source-integrated; combined validation pending",
+      "integration_status": "Integrated in dev 9.9; full JVM/lint/minified/signing checks passed; both TVs upgraded for maintainer-authorized trial; publication awaiting approval",
       "maintainer_decision_date": "2026-11-16",
-      "review_required": false
+      "review_required": false,
+      "integrated_dev_commit": "8d346b464fbf77abf336ddaa835d857f9979a1a4"
     },
     "2491dccef148efa83b8d758e183ad68487487f83": {
       "outcome": "held",

@@ -11,6 +11,12 @@ allprojects {
         outputs.cacheIf('Only deterministic fixture checks are cached') { !optInChecks }
         outputs.upToDateWhen { !optInChecks }
     }
+    // Lint serializes absolute project paths (including local-AAR identities).
+    // Reusing another checkout's analysis produces stale locations/messages.
+    // Keep caching within a checkout, without suppressing or rebasing findings.
+    tasks.matching { it.name.startsWith('lint') }.configureEach {
+        inputs.property('lintProjectRoot', rootProject.projectDir.absolutePath)
+    }
     // Lint and timing-sensitive IO fixtures compete for CPU on four-core
     // runners. Keep them in one invocation but give the tests their own turn.
     // A failed test also stops before starting an expensive full lint analysis.

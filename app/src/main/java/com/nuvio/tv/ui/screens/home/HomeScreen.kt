@@ -172,9 +172,13 @@ fun HomeScreen(
         }
     }
 
-    val onNavigateToDetailStable: (String, String, String) -> Unit = remember(onNavigateToDetail, onNavigateToMix) {
+    val onNavigateToDetailStable: (String, String, String) -> Unit = remember(onNavigateToDetail, onNavigateToMix, viewModel) {
         { id, type, addon -> if (type == "tvmix") onNavigateToMix(id.removePrefix("tvmix:"), false)
-            else onNavigateToDetail(id, type, addon) }
+            else {
+                viewModel.beginTrailerHandoff(id)
+                onNavigateToDetail(id, type, addon)
+            }
+        }
     }
     val onContinueWatchingClickStable = remember(viewModel, onContinueWatchingClick, onEpisodeDetails) {
         { item: ContinueWatchingItem -> viewModel.verifyTvdbPlayback(item, onContinueWatchingClick, onEpisodeDetails) }
@@ -492,7 +496,7 @@ fun HomeScreen(
             isWatchedPending = statusKey in uiState.movieWatchedPending,
             onDismiss = { posterOptionsTarget = null },
             onDetails = {
-                onNavigateToDetail(item.id, item.apiType, selectedPoster.addonBaseUrl)
+                onNavigateToDetailStable(item.id, item.apiType, selectedPoster.addonBaseUrl)
                 posterOptionsTarget = null
             },
             onToggleLibrary = {

@@ -344,6 +344,9 @@ open class MainActivity : ComponentActivity() {
     lateinit var trailerPlayerPool: com.nuvio.tv.core.player.TrailerPlayerPool
 
     @Inject
+    lateinit var backgroundTrailerController: com.nuvio.tv.core.player.BackgroundTrailerController
+
+    @Inject
     lateinit var externalPlaybackTracker: com.nuvio.tv.core.player.ExternalPlaybackTracker
 
     @Inject
@@ -771,6 +774,7 @@ open class MainActivity : ComponentActivity() {
                     LocalMemberAccess provides mainUiPrefs.memberAccess,
                     LocalAmbientIdleController provides ambientIdleController,
                     com.nuvio.tv.core.player.LocalTrailerPlayerPool provides trailerPlayerPool,
+                    com.nuvio.tv.core.player.LocalBackgroundTrailerController provides backgroundTrailerController,
                     LocalSplashBackground provides splashBackground,
                     LocalStartupLoadingState provides startupLoadingState,
                     LocalStartupSplashEnabled provides startupSplashEnabled

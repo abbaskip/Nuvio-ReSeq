@@ -98,6 +98,7 @@ class HomeCwResolutionRaceTest {
             cwEnrichmentCache = cache,
             profileManager = activeProfiles,
             tvRecommendationManager = mockk(relaxed = true), serverCatalog = mockk(relaxed = true),
+            trailerPlayerPool = mockk(relaxed = true), backgroundTrailerController = mockk(relaxed = true),
             tvdbOrderStore = orders
         ).also { created += it; it.currentTmdbSettings = TmdbSettings(enabled = false) }
     }

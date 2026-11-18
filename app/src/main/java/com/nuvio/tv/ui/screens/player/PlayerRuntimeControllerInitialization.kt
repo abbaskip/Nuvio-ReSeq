@@ -1116,6 +1116,8 @@ internal fun PlayerRuntimeController.initializePlayer(
             }
 
             _exoPlayer?.apply {
+                com.nuvio.tv.core.report.ExoReportObserver.attach(this, "Nuvio player")
+                setVideoFrameMetadataListener { _, _, _, format -> com.nuvio.tv.core.report.ExoReportObserver.frame(this, format) }
                 val audioAttributes = AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
                     .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)

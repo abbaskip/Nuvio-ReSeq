@@ -12,23 +12,36 @@ import java.net.Socket
  * random code, so only someone given the address can read it.
  */
 object ReportServer {
+    data class Contact(val email: String, val subject: String)
 
-    class Handle(val url: String, private val socket: ServerSocket) {
-        fun stop() { runCatching { socket.close() } }
+    class Handle(val url: String, private val socket: ServerSocket,
+        private val clients: MutableSet<Socket>, private val workers: java.util.concurrent.ExecutorService) {
+        fun stop() {
+            runCatching { socket.close() }
+            clients.toList().forEach { runCatching { it.close() } }
+            workers.shutdownNow()
+        }
     }
 
     /** Starts serving [text] (read again on every page load); null when there's no home network. */
-    fun start(title: String, text: () -> String): Handle? {
+    fun start(title: String, contact: Contact? = null, text: () -> String): Handle? {
         val ip = localAddress() ?: return null
         val server = bind() ?: return null
         val token = randomToken()
+        val clients = java.util.concurrent.ConcurrentHashMap.newKeySet<Socket>()
+        val workers = java.util.concurrent.ThreadPoolExecutor(2, 2, 0, java.util.concurrent.TimeUnit.SECONDS,
+            java.util.concurrent.ArrayBlockingQueue(8), java.util.concurrent.ThreadFactory { task ->
+                Thread(task, "report-page").apply { isDaemon = true }
+            })
         Thread {
             while (!server.isClosed) {
                 val client = try { server.accept() } catch (e: Exception) { break }
-                Thread { serve(client, token, title, text) }.apply { isDaemon = true; start() }
+                clients.add(client)
+                try { workers.execute { try { serve(client, token, title, contact, text) } finally { clients.remove(client) } } }
+                catch (_: java.util.concurrent.RejectedExecutionException) { clients.remove(client); runCatching { client.close() } }
             }
         }.apply { isDaemon = true; name = "report-server"; start() }
-        return Handle("http://$ip:${server.localPort}/$token", server)
+        return Handle("http://$ip:${server.localPort}/$token", server, clients, workers)
     }
 
     private fun bind(): ServerSocket? {
@@ -42,7 +55,7 @@ object ReportServer {
     private fun randomToken(): String {
         val chars = "abcdefghjkmnpqrstuvwxyz23456789"
         val r = java.security.SecureRandom()
-        return (1..6).map { chars[r.nextInt(chars.length)] }.joinToString("")
+        return (1..12).map { chars[r.nextInt(chars.length)] }.joinToString("")
     }
 
     /** This device's address on the home network (Wi-Fi or cable), or null. */
@@ -53,21 +66,27 @@ object ReportServer {
         (found.firstOrNull { it.first.startsWith("wlan") || it.first.startsWith("eth") } ?: found.firstOrNull())?.second
     }.getOrNull()
 
-    private fun serve(client: Socket, token: String, title: String, text: () -> String) {
+    private fun serve(client: Socket, token: String, title: String, contact: Contact?, text: () -> String) {
         runCatching {
             client.use { c ->
                 c.soTimeout = 5_000
-                val reader = c.getInputStream().bufferedReader()
-                val request = reader.readLine().orEmpty()
-                while (true) { val l = reader.readLine() ?: break; if (l.isEmpty()) break }
+                val input = c.getInputStream()
+                val header = StringBuilder()
+                while (header.length < 8192 && !header.endsWith("\r\n\r\n")) {
+                    val byte = input.read()
+                    if (byte < 0) return@use
+                    header.append(byte.toChar())
+                }
+                if (!header.endsWith("\r\n\r\n")) return@use
+                val request = header.toString().substringBefore("\r\n")
                 val path = request.split(' ').getOrNull(1).orEmpty().substringBefore('?')
                 val out = c.getOutputStream()
-                if (path.trim('/') != token) {
+                if (!request.startsWith("GET ") || path.trim('/') != token) {
                     val body = "Not found".toByteArray()
                     out.write("HTTP/1.1 404 Not Found\r\nContent-Length: ${body.size}\r\nConnection: close\r\n\r\n".toByteArray())
                     out.write(body)
                 } else {
-                    val body = page(title, text()).toByteArray(Charsets.UTF_8)
+                    val body = page(title, text(), contact).toByteArray(Charsets.UTF_8)
                     out.write(
                         ("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ${body.size}\r\n" +
                             "Cache-Control: no-store\r\nConnection: close\r\n\r\n").toByteArray()
@@ -79,9 +98,9 @@ object ReportServer {
         }
     }
 
-    private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;")
 
-    private fun page(title: String, text: String): String = """<!doctype html>
+    internal fun page(title: String, text: String, contact: Contact? = null): String = """<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <style>
@@ -94,7 +113,10 @@ textarea{width:100%;box-sizing:border-box;margin-top:14px;height:60vh;background
 #msg{color:#7f7;font-size:15px;margin-top:10px;min-height:20px}
 </style></head><body>
 <h1>${esc(title)}</h1>
-<p>Tap <b>Copy report</b>, then paste it into your message to the developer.</p>
+<p>Review the report below. Nothing is sent automatically.</p>
+${if (contact != null) """<p>Send to ${esc(contact.email)}. Choose your email app in the share sheet. If file sharing is unavailable, download the report and attach it to the email.</p>
+<button id="email" data-to="${esc(contact.email)}" data-subject="${esc(contact.subject)}" onclick="emailReport()">Email to developer</button>
+<button onclick="downloadReport()">Download</button>""" else ""}
 <button onclick="copyAll()">Copy report</button> <a href="">Reload</a>
 <div id="msg"></div>
 <textarea id="r" readonly>${esc(text)}</textarea>
@@ -103,6 +125,19 @@ function copyAll(){
   var t=document.getElementById('r');t.focus();t.select();t.setSelectionRange(0,t.value.length);
   var ok=false;try{ok=document.execCommand('copy')}catch(e){}
   document.getElementById('msg').textContent=ok?'Copied. Now paste it into your message.':'Press and hold the text, choose Select all, then Copy.';
+}
+function reportFile(){return new File([document.getElementById('r').value], 'Nuvio-ReSeq-report.txt', {type:'text/plain;charset=utf-8'});}
+function downloadReport(){
+  var u=URL.createObjectURL(reportFile()),a=document.createElement('a');a.href=u;a.download='Nuvio-ReSeq-report.txt';a.click();setTimeout(function(){URL.revokeObjectURL(u)},30000);
+}
+async function emailReport(){
+  var b=document.getElementById('email'),f=reportFile();
+  if(navigator.canShare && navigator.canShare({files:[f]})){
+    try{await navigator.share({files:[f],title:b.dataset.subject,text:'Please send to '+b.dataset.to});return;}
+    catch(e){if(e.name==='AbortError')return;}
+  }
+  document.getElementById('msg').textContent='Download the report, then attach Nuvio-ReSeq-report.txt to this email. Your browser cannot attach files from a local HTTP page.';
+  window.location.href='mailto:'+encodeURIComponent(b.dataset.to)+'?subject='+encodeURIComponent(b.dataset.subject)+'&body='+encodeURIComponent('Please attach the downloaded Nuvio-ReSeq-report.txt and describe the problem.');
 }
 var r=document.getElementById('r');r.scrollTop=r.scrollHeight;
 </script></body></html>"""

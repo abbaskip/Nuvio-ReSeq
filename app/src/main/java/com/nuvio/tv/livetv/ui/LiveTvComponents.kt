@@ -604,6 +604,9 @@ internal fun LivePlayerSurface(
     val currentShape = androidx.compose.runtime.rememberUpdatedState(pictureShape)
     fun reshape(view: PlayerView) = view.post {
         com.nuvio.tv.livetv.player.LivePictureShape.apply(view, currentShape.value, currentMode.value)
+        view.player?.let { owner -> com.nuvio.tv.core.report.PlaybackReports.update(owner, mapOf(
+            "view size" to "${view.width}x${view.height}", "aspect/zoom" to (currentMode.value?.name ?: "resize=$resizeMode"),
+            "picture shape" to currentShape.value.name, "letterbox mask" to "none (Live TV)")) }
     }
     AndroidView(
         modifier = modifier,

@@ -107,7 +107,18 @@ internal class MpvEventRelay(
     }
 
     override fun eventProperty(property: String, value: Long) = Unit
-    override fun eventProperty(property: String, value: Boolean) = Unit
+    override fun eventProperty(property: String, value: Boolean) {
+        if (property != "paused-for-cache" || !active.get() || epoch != controller.mpvEventRelayEpoch) return
+        controller.scope.launch {
+            if (!active.get() || epoch != controller.mpvEventRelayEpoch) return@launch
+            controller.mpvView?.let { view ->
+                val reports = com.nuvio.tv.core.report.PlaybackReports
+                val count = reports.current(view)?.fields?.get("rebuffers")?.toIntOrNull() ?: 0
+                reports.update(view, mapOf("state" to if (value) "buffering" else "ready",
+                    "rebuffers" to (count + if (value) 1 else 0).toString()))
+            }
+        }
+    }
     override fun eventProperty(property: String, value: String) {
         if (property != MPV_SID_PROPERTY && property != MPV_SUB_TEXT_PROPERTY) return
         if (!active.get() || epoch != controller.mpvEventRelayEpoch) return
@@ -156,6 +167,8 @@ internal fun PlayerRuntimeController.onMpvEvent(eventId: Int, data: MPVNode) {
         MPV.mpvEvent.MPV_EVENT_START_FILE -> onMpvStartFile(data)
         MPV.mpvEvent.MPV_EVENT_END_FILE -> onMpvEndFile(data)
         MPV.mpvEvent.MPV_EVENT_SHUTDOWN -> onMpvCoreShutdown()
+        MPV.mpvEvent.MPV_EVENT_VIDEO_RECONFIG, MPV.mpvEvent.MPV_EVENT_AUDIO_RECONFIG,
+        MPV.mpvEvent.MPV_EVENT_FILE_LOADED, MPV.mpvEvent.MPV_EVENT_PLAYBACK_RESTART -> mpvView?.captureReport()
         else -> Unit
     }
 }
@@ -173,6 +186,7 @@ private fun PlayerRuntimeController.onMpvEndFile(data: MPVNode) {
     )
     if (!event.isPlaybackError) return
     if (isStaleMpvEndFile(mpvActivePlaylistEntryId, event.playlistEntryId)) return
+    mpvView?.let { com.nuvio.tv.core.report.PlaybackReports.update(it, mapOf("last error" to "MPV code ${mpvErrorCodeForFileError(event.fileError)}")) }
 
     mpvLastFileError = event.fileError
     handleMpvPlaybackError(

@@ -951,6 +951,14 @@ fun LiveTvPlayerScreen(
                 else -> null
             }
             GearPanel(
+                onReport = {
+                    viewModel.playback.player?.let { player ->
+                        com.nuvio.tv.core.report.PlaybackReports.update(player, mapOf(
+                            "aspect/zoom" to settings.aspectMode, "picture shape" to viewModel.pictureShapeOf(ch.key).name,
+                            "display switching" to settings.frameRateMode, "letterbox mask" to "none (Live TV)"))
+                        com.nuvio.tv.core.report.ProblemReportActivity.open(context, player)
+                    }
+                },
                 onStop = { dialog = PlayerDialog.NONE; viewModel.playback.stop(); onBack() },
                 startPage = gearStart,
                 audioOptions = viewModel.playback.audioTracks(),

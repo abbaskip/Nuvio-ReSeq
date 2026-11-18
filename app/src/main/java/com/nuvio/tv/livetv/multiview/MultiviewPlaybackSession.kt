@@ -399,6 +399,8 @@ private class AndroidMultiviewPanePlayer(
         .build()
         .apply {
             volume = 0f
+            com.nuvio.tv.core.report.ExoReportObserver.attach(this, "Multiview pane") { channel?.sourceId }
+            setVideoFrameMetadataListener { _, _, _, format -> com.nuvio.tv.core.report.ExoReportObserver.frame(this, format) }
             playWhenReady = false
             trackSelectionParameters = trackSelectionParameters.buildUpon()
                 // Prefer modest adaptive variants when four hardware decoders share a TV box.

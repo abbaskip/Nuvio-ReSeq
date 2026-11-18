@@ -21,6 +21,7 @@
 -keep class com.nuvio.tv.data.local.CachedInProgressItem { *; }
 -keep class com.nuvio.tv.data.local.RecentDeviceProgress { *; }
 -keep class com.nuvio.tv.data.local.DeviceWatchEvent { *; }
+-keep class com.nuvio.tv.core.report.PlaybackReport { *; }
 -keep class com.nuvio.tv.core.tracking.TrackingWatchBaseline { *; }
 -keep class com.nuvio.tv.core.tracking.TrackingMediaReference { *; }
 -keep class com.nuvio.tv.core.tracking.TrackingCatalogReference { *; }

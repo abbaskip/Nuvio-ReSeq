@@ -101,7 +101,8 @@ internal fun GearPanel(
     onReload: () -> Unit,
     onHide: () -> Unit,
     onSettings: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onReport: () -> Unit = {}
 ) {
     var customizing by remember { mutableStateOf(false) }
     var sizing by remember { mutableStateOf(startPage == "size") }
@@ -241,6 +242,7 @@ internal fun GearPanel(
                     add(Triple("Sleep timer", sleepLabel, { page = "sleep" }))
                     add(Triple("Previous channel", null, onPrevious))
                     add(Triple("Stream info", null, { page = "info" }))
+                    add(Triple("Report a problem with this video", null, onReport))
                     onSearch?.let { add(Triple("Search", null, it)) }
                     add(Triple("Stop playback", null, onStop))
                     add(Triple("Reload stream", null, onReload))

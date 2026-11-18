@@ -173,6 +173,11 @@ fun AboutSettingsContent(
                             )
 
                             val activity = LocalActivity.current as? ComponentActivity
+                            SettingsActionRow(
+                                title = "Send a report to the developer",
+                                subtitle = "Review a private diagnostic report and share it from your phone",
+                                onClick = { com.nuvio.tv.core.report.ProblemReportActivity.open(context) }
+                            )
                             if (AppFeaturePolicy.inAppUpdatesEnabled && activity != null) {
                                 // Share the Activity's updater so its existing banner handles the result.
                                 val updater: UpdateViewModel = hiltViewModel(activity)

@@ -85,6 +85,7 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <activity android:name=".core.report.ProblemReportActivity" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

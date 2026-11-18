@@ -211,6 +211,7 @@ internal fun MultiviewChannelPicker(
     val fieldFocus = remember { FocusRequester() }
     /** The first of Search / Clear (the top row's buttons), where Up from the list goes. */
     val actionFocus = remember { FocusRequester() }
+    val reportFocus = remember { FocusRequester() }
     val tabFocus = remember { FocusRequester() }
     val hasChannel = selectedPane?.channelKey != null
     val failed = selectedPane?.error != null
@@ -266,7 +267,7 @@ internal fun MultiviewChannelPicker(
     }
 
     fun upFromList() {
-        runCatching { (if (searching) fieldFocus else if (showActions) actionFocus else tabFocus).requestFocus() }
+        runCatching { (if (searching) fieldFocus else if (showActions && selectedPane?.player != null) reportFocus else if (showActions) actionFocus else tabFocus).requestFocus() }
     }
     fun openSearch() {
         searching = true
@@ -359,7 +360,7 @@ internal fun MultiviewChannelPicker(
                             Modifier.fillMaxWidth()
                                 .onPreviewKeyEvent { event ->
                                     if (event.key == Key.DirectionDown) {
-                                        if (event.type == KeyEventType.KeyDown) runCatching { listFocus.requestFocus() }
+                                        if (event.type == KeyEventType.KeyDown) runCatching { (if (selectedPane?.player != null) reportFocus else listFocus).requestFocus() }
                                         true
                                     } else false
                                 },
@@ -382,6 +383,16 @@ internal fun MultiviewChannelPicker(
                             if (failed) MultiviewChip("Retry", icon = Icons.Default.Refresh, onClick = onRetry)
                             if (failed && onBackup != null) MultiviewChip("Backup", onClick = onBackup)
                         }
+                        if (selectedPane?.player != null) MultiviewChip("Report a problem with this video",
+                            Modifier.focusRequester(reportFocus).onPreviewKeyEvent { event ->
+                                val target = when (event.key) { Key.DirectionUp -> actionFocus; Key.DirectionDown -> listFocus; else -> null }
+                                if (target == null) false else {
+                                    if (event.type == KeyEventType.KeyDown) runCatching { target.requestFocus() }
+                                    true
+                                }
+                            }, onClick = {
+                            com.nuvio.tv.core.report.ProblemReportActivity.open(context, selectedPane.player)
+                        })
                     }
                 }
                 Box(

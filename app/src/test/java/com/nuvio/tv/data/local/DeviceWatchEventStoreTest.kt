@@ -10,6 +10,9 @@ import com.nuvio.tv.data.tvdb.TvdbTrackingResolver
 import com.nuvio.tv.domain.model.*
 import io.mockk.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
@@ -58,7 +61,9 @@ class DeviceWatchEventStoreTest {
                     TrackingScrobbleEvent(native, if (split) 50.0 else 100.0, allowCompletion = !split))
         }
         var clock = 10_000L
-        fun journal() = DeviceWatchEventStore(factory, profiles, local, watched, Provider { registry }, Provider { resolver }).also { it.now = { clock } }
+        val cw = mockk<com.nuvio.tv.data.cw.ContinueWatchingRepository>(relaxed = true)
+        fun journal() = DeviceWatchEventStore(factory, profiles, local, watched, Provider { registry }, Provider { resolver },
+            Provider { cw }).also { it.now = { clock } }
         val journal = journal()
         val mutations = mockk<WatchStateMutationStore>(relaxed = true)
         fun repository(events: DeviceWatchEventStore) = WatchProgressRepositoryImpl(local,
@@ -129,6 +134,7 @@ class DeviceWatchEventStoreTest {
         f.clock = 90_000
         f.journal.afterStop(1 to removed.id)
         assertEquals(listOf(next, nativeNext), f.journal.decorate(listOf(played, next, nativeNext), f.journal.events(1)))
+        coVerify { f.cw.deviceWatchRemoved(1, match { it.id == removed.id && it.lastAt + 2_000 == next.lastWatched - 1 }) }
     }
 
     @Test fun `own event journal is profile scoped and imports do not acquire removable watch identity`() = runTest {
@@ -194,5 +200,100 @@ class DeviceWatchEventStoreTest {
         for ((action, percent) in sequence) assertTrue(coordinator.scrobble(action, TrackingScrobbleEvent(f.media, percent)).isEmpty())
         for (id in TrackingProviderId.entries) assertEquals(sequence.map { (action, percent) -> action to TrackingScrobbleEvent(f.media, percent) },
             written.filter { it.first == id }.map { it.second to it.third })
+    }
+
+    @Test fun `immediate Details undo wins over a final tracker write without visiting Home`() = runTest {
+        for (selected in TrackingProviderId.entries) for (split in listOf(false, true))
+            for (dispatchBeforeUndo in listOf(true, false)) {
+            val f = Fixture(selected, split)
+            val played = f.rewatch()
+            val remote = TrackingProviderId.entries.associateWith { MutableStateFlow(listOf(f.prior)) }
+            for (provider in f.providers) {
+                val rows = remote.getValue(provider.providerId)
+                every { provider.allProgress } returns rows
+                every { provider.episodeProgress(any()) } returns rows.map { items ->
+                    items.associateBy { it.season!! to it.episode!! }
+                }
+                coEvery { provider.removeWatchEvent(any(), any()) } coAnswers {
+                    val removal = secondArg<TrackingWatchEvent>()
+                    val matching = rows.value.filter { removal.contains(it.lastWatched) }
+                    rows.value = rows.value - matching.toSet()
+                    // Trakt keeps an absent completion pending; the other trackers may
+                    // acknowledge absence before the final write reaches their server.
+                    matching.isNotEmpty() || provider.providerId != TrackingProviderId.TRAKT
+                }
+            }
+            val inFlight = CompletableDeferred<Unit>()
+            val finish = CompletableDeferred<Unit>()
+            val scrobblers = TrackingProviderId.entries.map { id -> mockk<TrackingScrobbler> {
+                every { providerId } returns id
+                coEvery { scrobble(any(), any()) } coAnswers {
+                    inFlight.complete(Unit)
+                    finish.await()
+                    remote.getValue(id).value += played.copy(deviceWatchEventId = null,
+                        source = WatchProgress.SOURCE_REMOTE_HISTORY, trackingProviderId = id.storageId,
+                        lastWatched = f.clock)
+                }
+            } }
+            val registry = mockk<TrackingProviderRegistry> { every { connectedScrobblers() } returns scrobblers }
+            val coordinator = TrackingScrobbleCoordinator(registry, tvdb = f.resolver.takeIf { split },
+                watchEvents = Provider { f.journal })
+            val dispatch = CompletableDeferred<Unit>()
+            val stop = async(start = CoroutineStart.UNDISPATCHED) {
+                dispatch.await()
+                coordinator.scrobble(TrackingScrobbleAction.STOP, TrackingScrobbleEvent(f.media, 100.0))
+            }
+            if (dispatchBeforeUndo) { dispatch.complete(Unit); inFlight.await() }
+            val repository = f.repository(f.journal)
+            repository.removeLastTraktWatch(played.contentId,
+                Video(played.videoId, played.episodeTitle!!, season = played.season, episode = played.episode,
+                    released = null, thumbnail = null, overview = null), played)
+            f.clock = 90_000 // slow final STOP/part PAUSE, after the original undo window
+            dispatch.complete(Unit)
+            inFlight.await()
+            finish.complete(Unit)
+            assertTrue(stop.await().isEmpty())
+            val label = "$selected split=$split dispatchBeforeUndo=$dispatchBeforeUndo"
+            coVerify(exactly = 1) { f.cw.deviceWatchRemoved(1, match { it.id == played.deviceWatchEventId && it.removed }) }
+            for (scrobbler in scrobblers) coVerify(exactly = 1) { scrobbler.scrobble(
+                if (split) TrackingScrobbleAction.PAUSE else TrackingScrobbleAction.STOP,
+                if (split) TrackingScrobbleEvent(f.native, 50.0, allowCompletion = false)
+                else TrackingScrobbleEvent(f.media, 100.0)) }
+            for ((provider, rows) in remote) assertEquals("$label remote=$provider", listOf(f.prior), rows.value)
+            assertEquals(label, mapOf((f.prior.season!! to f.prior.episode!!) to f.prior),
+                repository.getAllEpisodeProgress(played.contentId, 1).first())
+            assertEquals(label, listOf(f.prior), f.local.getAllRawEntries(1).values.toList())
+            // Restart does not resurrect the removed watch or require a Home refresh.
+            assertEquals(label, listOf(f.prior), f.journal().decorate(
+                remote.getValue(selected).value, f.journal().events(1)))
+        }
+    }
+    @Test fun `undo acknowledgement from before a final STOP cannot settle the newer write`() = runTest {
+        val f = Fixture(TrackingProviderId.TRAKT, false)
+        val played = f.rewatch()
+        val reading = CompletableDeferred<Unit>()
+        val acknowledge = CompletableDeferred<Unit>()
+        var calls = 0
+        for (provider in f.providers) {
+            every { provider.isAuthenticated } returns flowOf(provider.providerId == TrackingProviderId.TRAKT)
+            coEvery { provider.removeWatchEvent(any(), any()) } coAnswers {
+                if (++calls == 1) { reading.complete(Unit); acknowledge.await() }
+                true
+            }
+        }
+        val undo = async(start = CoroutineStart.UNDISPATCHED) {
+            f.repository(f.journal).removeLastTraktWatch(played.contentId,
+                Video(played.videoId, played.episodeTitle!!, season = played.season, episode = played.episode,
+                    released = null, thumbnail = null, overview = null), played)
+        }
+        reading.await()
+        // Same millisecond: a timestamp comparison alone cannot detect this write.
+        val finalWrite = async(start = CoroutineStart.UNDISPATCHED) { f.journal.afterStop(1 to played.deviceWatchEventId!!) }
+        f.journal.observe(1).first { events -> events.any { it.id == played.deviceWatchEventId && it.stopRevision > 0 } }
+        acknowledge.complete(Unit)
+        undo.await()
+        finalWrite.await()
+        assertEquals("Must reconcile again after the final tracker write", 2, calls)
+        assertEquals(setOf("TRAKT"), f.journal.events(1).single { it.id == played.deviceWatchEventId }.handled)
     }
 }

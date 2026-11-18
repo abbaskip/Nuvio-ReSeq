@@ -199,6 +199,7 @@ class MetaDetailsViewModel @Inject constructor(
         observeMovieWatched()
         observeRelatedWatchedStatus()
         observeBlurUnwatchedEpisodes()
+        observeSeasonPostersEnabled()
         observeEpisodeOptionsOverlayStyle()
         observeOverallRatingsVisibility()
         observeDetailImdbRatingsVisibility()
@@ -666,6 +667,18 @@ class MetaDetailsViewModel @Inject constructor(
                 _uiState.update { state ->
                     if (state.blurUnwatchedEpisodes == enabled) state else state.copy(blurUnwatchedEpisodes = enabled)
                 }
+                }
+        }
+    }
+
+    private fun observeSeasonPostersEnabled() {
+        viewModelScope.launch {
+            layoutPreferenceDataStore.detailSeasonPostersEnabled
+                .distinctUntilChanged()
+                .collectLatest { enabled ->
+                    _uiState.update { state ->
+                        if (state.seasonPostersEnabled == enabled) state else state.copy(seasonPostersEnabled = enabled)
+                    }
                 }
         }
     }
@@ -1615,7 +1628,7 @@ class MetaDetailsViewModel @Inject constructor(
             ?: return meta
 
         val isSeries = meta.apiType in listOf("series", "tv")
-        val needsEpisodes = settings.useEpisodes && isSeries && meta.episodeOrder?.effectiveType == null
+        val needsEpisodes = (settings.useEpisodes || settings.useSeasonPosters) && isSeries && meta.episodeOrder?.effectiveType == null
 
         // Fetch main enrichment and episode enrichment in parallel.
         val (enrichment, episodeMap) = coroutineScope {
@@ -1729,7 +1742,8 @@ class MetaDetailsViewModel @Inject constructor(
                             useTmdbReleaseDates = false
                         ),
                         thumbnail = if (settings.useEpisodes) ep?.thumbnail ?: video.thumbnail else video.thumbnail,
-                        runtime = if (settings.useEpisodes) ep?.runtimeMinutes ?: video.runtime else video.runtime
+                        runtime = if (settings.useEpisodes) ep?.runtimeMinutes ?: video.runtime else video.runtime,
+                        seasonPoster = if (settings.useSeasonPosters) ep?.seasonPoster ?: video.seasonPoster else video.seasonPoster
                     )
                 }
             )

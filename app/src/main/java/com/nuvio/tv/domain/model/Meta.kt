@@ -46,7 +46,8 @@ data class Meta(
     val hasLogo: Boolean? = null,
     val hasLinks: Boolean? = null,
     val hasVideos: Boolean? = null,
-    val episodeOrder: EpisodeOrderStatus? = null
+    val episodeOrder: EpisodeOrderStatus? = null,
+    val seasonPosters: Map<Int, String> = emptyMap()
 ) {
     val apiType: String
         get() = type.toApiString(rawType)
@@ -203,7 +204,8 @@ data class Video(
     /** Per-episode rating supplied by the addon, when it provides one. */
     val rating: Double? = null,
     val available: Boolean? = null,
-    val episodeIdentity: EpisodeIdentity? = null
+    val episodeIdentity: EpisodeIdentity? = null,
+    val seasonPoster: String? = null
 )
 
 @Immutable

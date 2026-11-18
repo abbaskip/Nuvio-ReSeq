@@ -205,6 +205,8 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
     }
 
     fun markMediaRequested(url: String) {
+        com.nuvio.tv.core.report.PlaybackReports.begin(this, "MPV", "Nuvio player")
+        com.nuvio.tv.core.report.PlaybackReports.update(this, mapOf("provider host" to com.nuvio.tv.core.report.ReportRedactor.host(url)))
         val path = if (initialized) mpv.getPropertyString("path") else null
         pathAtMediaRequest = mpvPathBaselineForRequest(url, requestedMediaUrl, pathAtMediaRequest, path)
         requestedMediaUrl = url
@@ -416,6 +418,7 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w == oldw && h == oldh) return
+        captureReport()
         pendingAspectRetryCount = 0
         removeCallbacks(aspectReapplyRunnable)
         post {
@@ -819,6 +822,7 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         mpv.observeProperty(MPV_TRACK_LIST_PROPERTY, MPV.mpvFormat.MPV_FORMAT_NONE)
         mpv.observeProperty(MPV_SID_PROPERTY, MPV.mpvFormat.MPV_FORMAT_STRING)
         mpv.observeProperty(MPV_SUB_TEXT_PROPERTY, MPV.mpvFormat.MPV_FORMAT_STRING)
+        mpv.observeProperty("paused-for-cache", MPV.mpvFormat.MPV_FORMAT_FLAG)
     }
 
     private fun applyHeaders(headers: Map<String, String>) {
@@ -906,6 +910,24 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         if (width <= 0 || height <= 0) return null
 
         return width.toFloat() / height.toFloat()
+    }
+
+    /** Called by format/size events and the Report action, never by a new polling loop. */
+    fun captureReport() {
+        if (!initialized) return
+        fun value(key: String) = runCatching { mpv.getPropertyString(key) }.getOrNull() ?: "not reported"
+        com.nuvio.tv.core.report.PlaybackReports.update(this, mapOf(
+            "stream type" to value("file-format"), "container" to value("file-format"),
+            "video codec" to value("video-codec"), "codec profile/level" to "not exposed by MPV",
+            "coded size" to "${value("video-params/w")}x${value("video-params/h")}",
+            "display size" to "${value("video-out-params/dw")}x${value("video-out-params/dh")}",
+            "crop window" to "x=${value("video-params/crop-x")},y=${value("video-params/crop-y")},w=${value("video-params/crop-w")},h=${value("video-params/crop-h")}",
+            "pixel aspect ratio" to value("video-params/par"), "rotation" to value("video-params/rotate"),
+            "frame rate" to value("container-fps"), "decoder" to value("video-codec"), "decoder mode" to value("hwdec-current"),
+            "surface size" to "${holder.surfaceFrame.width()}x${holder.surfaceFrame.height()}", "view size" to "${width}x$height",
+            "aspect/zoom" to currentAspectMode.name, "letterbox mask" to "MPV video output",
+            "audio codec" to value("audio-codec-name"), "audio channels" to value("audio-params/channel-count"),
+            "audio passthrough" to value("audio-out-params/format")))
     }
 
     companion object {

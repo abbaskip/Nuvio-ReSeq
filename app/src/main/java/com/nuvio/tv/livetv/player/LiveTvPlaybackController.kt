@@ -554,7 +554,8 @@ class LiveTvPlaybackController @Inject constructor(
     private val frameDeltas = LongArray(48)
     private var frameDeltaCount = 0
     private var lastFrameUs = Long.MIN_VALUE
-    private val frameListener = androidx.media3.exoplayer.video.VideoFrameMetadataListener { presentationTimeUs, _, _, _ ->
+    private val frameListener = androidx.media3.exoplayer.video.VideoFrameMetadataListener { presentationTimeUs, _, _, outputFormat ->
+        _player?.let { com.nuvio.tv.core.report.ExoReportObserver.frame(it, outputFormat) }
         val last = lastFrameUs
         lastFrameUs = presentationTimeUs
         if (last == Long.MIN_VALUE) return@VideoFrameMetadataListener
@@ -1428,6 +1429,7 @@ class LiveTvPlaybackController @Inject constructor(
             .apply {
                 playWhenReady = true
                 addListener(listener)
+                com.nuvio.tv.core.report.ExoReportObserver.attach(this, "Live TV") { currentChannel?.sourceId }
                 // Choppy video ("slide show"): how many frames the box couldn't show in time,
                 // in the start-up report, so we can see when it starts and what was going on.
                 setVideoFrameMetadataListener(frameListener)

@@ -90,6 +90,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         com.nuvio.tv.core.usenet.UsenetMemoryProfile.init(this)
         val sentrySetting = SentryInitializer.preload(this)
         super.onCreate()
+        com.nuvio.tv.core.report.ReportLog.start(java.io.File(filesDir, "problem_reports"), android.os.Process.myPid())
         SentryInitializer.start(this, sentrySettingsDataStore, sentrySetting)
         PluginRuntimeHooks.onApplicationCreate(this)
         continueWatching.start()

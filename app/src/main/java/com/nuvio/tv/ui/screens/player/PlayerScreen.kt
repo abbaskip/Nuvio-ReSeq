@@ -2346,6 +2346,9 @@ private fun ExoPlayerSurface(
             it.syncLetterboxMask(
                 letterboxMaskEnabled && useLibass && libassRenderMode == LibassRenderMode.OVERLAY
             )
+            com.nuvio.tv.core.report.PlaybackReports.update(player, mapOf(
+                "letterbox mask" to (letterboxMaskEnabled && useLibass && libassRenderMode == LibassRenderMode.OVERLAY).toString(),
+                "view size" to "${it.width}x${it.height}"))
             latestBindSubtitleView(it.subtitleView)
         }
     )
@@ -3198,6 +3201,22 @@ private fun PlayerControlsOverlay(
                                     onFocused = onResetHideTimer
                                 )
                             }
+                            val reportContext = LocalContext.current
+                            ControlButton(
+                                icon = Icons.Default.BugReport,
+                                contentDescription = "Report a problem with this video",
+                                onClick = {
+                                    val controller = viewModel.controller
+                                    controller.mpvView?.captureReport()
+                                    val owner = controller.mpvView ?: controller.exoPlayer
+                                    owner?.let { com.nuvio.tv.core.report.PlaybackReports.update(it, mapOf(
+                                        "aspect/zoom" to uiState.aspectMode.name,
+                                        "display switching" to uiState.frameRateMatchingMode.name,
+                                        "view size" to controller.exoPlayerView?.let { view -> "${view.width}x${view.height}" }.orEmpty())) }
+                                    com.nuvio.tv.core.report.ProblemReportActivity.open(reportContext, owner)
+                                },
+                                upFocusRequester = progressUpTarget, onDownKey = onHideControls, onFocused = onResetHideTimer
+                            )
                         }
                     }
 

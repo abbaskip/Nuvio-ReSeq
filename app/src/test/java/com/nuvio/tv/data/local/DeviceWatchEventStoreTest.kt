@@ -74,9 +74,9 @@ class DeviceWatchEventStoreTest {
             mockk(relaxed = true) { every { isAuthenticated } returns false }, mockk(relaxed = true), mockk(relaxed = true), profiles,
             registry, TrackingHistoryWriterRegistry(emptySet()), mutations, mockk(relaxed = true), deviceEvents = Provider { events })
 
-        suspend fun rewatch(): WatchProgress {
-            local.saveProgress(prior, 1)
-            watched.markAsWatched(oldWatched, 1)
+        suspend fun rewatch(previous: WatchProgress = prior): WatchProgress {
+            local.saveProgress(previous, 1)
+            watched.markAsWatched(oldWatched.copy(season = previous.season, episode = previous.episode), 1)
             journal.beforeStart(TrackingScrobbleEvent(media, 0.0))
             clock = 30_000
             val played = journal.record(1, prior.copy(lastWatched = clock))
@@ -204,10 +204,16 @@ class DeviceWatchEventStoreTest {
 
     @Test fun `immediate Details undo wins over a final tracker write without visiting Home`() = runTest {
         for (selected in TrackingProviderId.entries) for (split in listOf(false, true))
-            for (dispatchBeforeUndo in listOf(true, false)) {
+            for (dispatchBeforeUndo in listOf(true, false)) for (firstWatch in listOf(true, false)) {
             val f = Fixture(selected, split)
-            val played = f.rewatch()
-            val remote = TrackingProviderId.entries.associateWith { MutableStateFlow(listOf(f.prior)) }
+            val previous = if (!firstWatch) f.prior else f.prior.copy(
+                videoId = "${f.prior.contentId}:${f.prior.season}:${f.prior.episode!! - 1}",
+                episode = f.prior.episode!! - 1, tvdbContext = null, tvdbEpisodeIds = null)
+            if (firstWatch) for (provider in f.providers) coEvery { provider.watchBaseline(any()) } answers {
+                TrackingWatchBaseline(firstArg(), true, null)
+            }
+            val played = f.rewatch(previous)
+            val remote = TrackingProviderId.entries.associateWith { MutableStateFlow(listOf(previous)) }
             for (provider in f.providers) {
                 val rows = remote.getValue(provider.providerId)
                 every { provider.allProgress } returns rows
@@ -253,18 +259,18 @@ class DeviceWatchEventStoreTest {
             inFlight.await()
             finish.complete(Unit)
             assertTrue(stop.await().isEmpty())
-            val label = "$selected split=$split dispatchBeforeUndo=$dispatchBeforeUndo"
+            val label = "$selected split=$split dispatchBeforeUndo=$dispatchBeforeUndo firstWatch=$firstWatch"
             coVerify(exactly = 1) { f.cw.deviceWatchRemoved(1, match { it.id == played.deviceWatchEventId && it.removed }) }
             for (scrobbler in scrobblers) coVerify(exactly = 1) { scrobbler.scrobble(
                 if (split) TrackingScrobbleAction.PAUSE else TrackingScrobbleAction.STOP,
                 if (split) TrackingScrobbleEvent(f.native, 50.0, allowCompletion = false)
                 else TrackingScrobbleEvent(f.media, 100.0)) }
-            for ((provider, rows) in remote) assertEquals("$label remote=$provider", listOf(f.prior), rows.value)
-            assertEquals(label, mapOf((f.prior.season!! to f.prior.episode!!) to f.prior),
+            for ((provider, rows) in remote) assertEquals("$label remote=$provider", listOf(previous), rows.value)
+            assertEquals(label, mapOf((previous.season!! to previous.episode!!) to previous),
                 repository.getAllEpisodeProgress(played.contentId, 1).first())
-            assertEquals(label, listOf(f.prior), f.local.getAllRawEntries(1).values.toList())
+            assertEquals(label, listOf(previous), f.local.getAllRawEntries(1).values.toList())
             // Restart does not resurrect the removed watch or require a Home refresh.
-            assertEquals(label, listOf(f.prior), f.journal().decorate(
+            assertEquals(label, listOf(previous), f.journal().decorate(
                 remote.getValue(selected).value, f.journal().events(1)))
         }
     }

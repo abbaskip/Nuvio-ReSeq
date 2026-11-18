@@ -144,6 +144,39 @@ class UpstreamSyncSafetyTest(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "cherry-picked"): sync.enforce_held_changes(run, {sha: entry}, "head")
 
 
+    def test_explicit_shipped_successor_keeps_original_and_raw_holds(self):
+        sha = "a" * 40
+        entry = {"outcome": "integrated", "raw_upstream": {"outcome": "held"},
+                 "accepted_adaptation": {"release_commit": "original", "protected_blobs": {"cache.kt": "old"}},
+                 "accepted_adaptation_successors": [
+                     {"release_commit": "approved-release", "protected_blobs": {"cache.kt": "new"}}]}
+        run = {"commits": [{"sha": sha}], "base": "base", "upstream": "up", "worktree": "unused"}
+        def ancestor(a, b, **kwargs): return b == "base" and a in ("original", "approved-release")
+        def commands(*args, **kwargs):
+            if args[0] == "log": return ""
+            if args[0] == "rev-parse": return "new"
+            return "- " + sha
+        with patch.object(sync, "ancestor", side_effect=ancestor), patch.object(sync, "git", side_effect=commands):
+            sync.enforce_held_changes(run, {sha: entry}, "head")
+            self.assertEqual(entry["accepted_adaptation"]["protected_blobs"], {"cache.kt": "old"})
+            self.assertEqual(entry["raw_upstream"], {"outcome": "held"})
+            with patch.object(sync, "git", side_effect=lambda *a, **k: "modified" if a[0] == "rev-parse" and a[1].startswith("head:") else commands(*a, **k)):
+                with self.assertRaises(RuntimeError): sync.enforce_held_changes(run, {sha: entry}, "head")
+            entry["requires_decision"] = True
+            with self.assertRaises(RuntimeError): sync.enforce_held_changes(run, {sha: entry}, "head")
+
+    def test_successor_cannot_drop_protected_files_or_pin_unreleased_source(self):
+        sha = "a" * 40
+        entry = {"outcome": "integrated", "raw_upstream": {"outcome": "held"},
+                 "accepted_adaptation": {"release_commit": "old", "protected_blobs": {"cache.kt": "old", "panel.kt": "old"}},
+                 "accepted_adaptation_successors": [{"release_commit": "new", "protected_blobs": {"cache.kt": "blob"}}]}
+        run = {"commits": [{"sha": sha}], "base": "base", "upstream": "up", "worktree": "unused"}
+        def commands(*a, **k): return "" if a[0] == "log" else "different" if a[0] == "rev-parse" else "- " + sha
+        with patch.object(sync, "ancestor", side_effect=lambda a, b, **k: b == "base"), patch.object(sync, "git", side_effect=commands):
+            with self.assertRaises(RuntimeError): sync.enforce_held_changes(run, {sha: entry}, "head")
+            entry["accepted_adaptation_successors"][0]["protected_blobs"]["panel.kt"] = "blob"
+            with self.assertRaises(RuntimeError): sync.enforce_held_changes(run, {sha: entry}, "head")
+
     def test_incomplete_candidate_cannot_overwrite_integrated_or_held_history(self):
         previous = {"commits": {"a": {"outcome": "integrated"}, "b": {"outcome": "held"}}}
         for sha in previous["commits"]:

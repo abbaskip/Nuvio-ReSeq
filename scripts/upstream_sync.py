@@ -229,7 +229,7 @@ def review(run, args):
     ledger = json.loads(path.read_text()) if path.exists() else {"schema": 1, "commits": {}}
     previous = ledger["commits"].get(args.commit, {})
     protected = {key:previous[key] for key in ("requires_decision", "decision_context", "raw_upstream", "accepted_adaptation",
-                                                  "historical_review_before_reconciliation") if key in previous}
+                                                  "historical_review_before_reconciliation", "accepted_adaptation_successors") if key in previous}
     if previous.get("requires_decision") and args.outcome in ("integrated", "equivalent"):
         raise RuntimeError("This functional hold requires the maintainer's design decision; lint approval does not clear it")
     ledger["commits"][args.commit] = {"outcome": args.outcome, "reason": args.reason,
@@ -358,15 +358,26 @@ def enforce_held_changes(run, ledger, head):
         if (decision["outcome"] != "integrated" or decision.get("requires_decision") or
                 decision.get("raw_upstream", {}).get("outcome") != "held"):
             continue
-        release = adaptation.get("release_commit")
-        blobs = adaptation.get("protected_blobs") or {}
-        if not release or not blobs or not ancestor(release, run["base"], cwd=worktree):
-            continue
+        original_paths = set(adaptation.get("protected_blobs") or {})
+        checkpoints = [adaptation, *decision.get("accepted_adaptation_successors", [])]
         prior = {line[2:] for line in git("cherry", run["base"], run["upstream"], cwd=worktree).splitlines()
                  if line.startswith("- ")}
-        if sha in prior and all(git("rev-parse", f"{head}:{path}", cwd=worktree) == blob
-                                for path, blob in blobs.items()):
-            blocked.remove(sha)
+        for checkpoint in checkpoints:
+            release = checkpoint.get("release_commit")
+            blobs = checkpoint.get("protected_blobs") or {}
+            if not release or not blobs or not ancestor(release, run["base"], cwd=worktree):
+                continue
+            if checkpoint is not adaptation:
+                # Explicitly reviewed shipped successors pin ALL originally protected
+                # files. Never exempt arbitrary current-base or modified source.
+                if set(blobs) != original_paths or not all(
+                        git("rev-parse", f"{release}:{path}", cwd=worktree) == blob
+                        for path, blob in blobs.items()):
+                    continue
+            if sha in prior and all(git("rev-parse", f"{head}:{path}", cwd=worktree) == blob
+                                    for path, blob in blobs.items()):
+                blocked.remove(sha)
+                break
     if blocked:
         raise RuntimeError("A held change's patch is present in the candidate")
 

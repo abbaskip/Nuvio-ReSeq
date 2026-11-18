@@ -300,18 +300,23 @@ class ContinueWatchingRepository @Inject constructor(
         if (state.profileId != profileId) return
         val progress = progressProvider.get()
         val items = progress.allProgress.first()
-        val seeds = progress.observeNextUpSeeds().first().filterNot { it.contentId in contentIds }.toMutableList()
+        val sourceSeeds = progress.observeNextUpSeeds().first()
+        val remaining = mutableListOf<WatchProgress>()
         for (id in contentIds) {
             // The provider's single latest seed may itself be the revoked event. Read
             // remaining history, not a filtered latest seed that loses the whole show.
             progress.getAllEpisodeProgress(id, profileId).first().values
-                .filter { it.isCompleted() }.maxByOrNull { it.lastWatched }?.let(seeds::add)
+                .filter { it.isCompleted() }.maxByOrNull { it.lastWatched }?.let(remaining::add)
         }
+        val seeds = sourceSeeds.filterNot { it.contentId in contentIds } + remaining
         val watched = progress.watchedItems.first()
         var applied = false
         val updated = mutate(state.lease, background = true) {
             applied = true
-            reduceProgress(it, items, seeds, progress, emptyMap())
+            val committed = reduceProgress(it, items, sourceSeeds, progress, emptyMap())
+            // A selected-order view is an offer seed, not another tracker completion.
+            // Keep the source ledger; only rebuild missing membership from that view.
+            CwMembershipReducer.progress(committed, remaining.filter { seed -> seed.contentId !in committed.members }, seeds = true)
         }
         if (!applied || updated.profileId != state.profileId || updated.source != state.source) return
         resolvePendingPauses(updated, updated.members.filterKeys { it in contentIds }.values)

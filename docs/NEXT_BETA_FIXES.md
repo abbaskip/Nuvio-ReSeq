@@ -291,3 +291,23 @@ their held parents. Complete patches and merge-resolution evidence are retained
 in the durable run evidence. Follow pending-integration.json and retain this review
 branch ancestry on the next run. Resume full exact-candidate validation after
 sufficient disk is available; do not reset the ledger or start from old snapshots.
+
+
+## 19 November 2026: authoritative post-release checkpoint
+
+The newest durable report and shared ledger supersede the older queue narrative.
+Beta 9.9 and beta 10 are published; the prepared November 16 candidate and approved
+adaptations are ancestors of fetched dev/latest beta 10. Do not replay them.
+Seventeen explicit maintainer do-not-integrate records must not be reopened.
+Private historical evidence metadata is newer than the tracked source checkpoint:
+reconcile it without downgrading evidence or changing decisions. Conflicting
+decisions must fail closed for reconciliation, never be silently overwritten.
+
+Run 20261118T145602Z-197fcf prepares only three new independent fixes: subtitle
+cue merge alignment, bounded language lookup/menu-option reuse, and TorBox
+alternative-hash cache matching with at most four concurrent fallback probes.
+Validation, publication activation and any publication are separate gates. A
+missing activation marker is never evidence of permission to bypass a rehearsal.
+The old manual 9.9 publication hold records a completed release, not permission
+to replay or republish that version. Use the current report for actual test and
+publication outcomes; these queue instructions themselves assert no pass.

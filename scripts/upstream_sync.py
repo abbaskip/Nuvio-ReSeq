@@ -116,6 +116,26 @@ def require_ledger_continuity(previous, current):
         raise RuntimeError(f"Candidate lost {len(missing)} historical review records; reconcile from the preserved branch")
 
 
+def reconcile_review_ledgers(previous, current):
+    """Keep durable decisions and evidence; never silently choose conflicting reviews."""
+    evidence_keys = {"integration_status", "integrated_dev_commit"}
+    for sha, decision in previous["commits"].items():
+        tracked = current["commits"].get(sha)
+        if tracked is None:
+            if decision["outcome"] == "integrated":
+                raise RuntimeError("Candidate lost an integrated historical record; reconcile preserved ancestry")
+            current["commits"][sha] = decision
+        elif tracked != decision:
+            differing = {key for key in tracked.keys() | decision.keys()
+                         if tracked.get(key) != decision.get(key)}
+            if not differing <= evidence_keys:
+                raise RuntimeError("Tracked and durable review decisions conflict; reconcile both histories first")
+            # Later private acceptance metadata must not be downgraded to an older
+            # tracked source-only checkpoint. This never establishes a new test pass.
+            current["commits"][sha] = decision
+    require_ledger_continuity(previous, current)
+
+
 def choose_prepared_base(ref, dev, released, root):
     base = git("rev-parse", "--verify", f"{ref}^{{commit}}", cwd=root)
     parents = git("show", "-s", "--format=%P", base, cwd=root).split()
@@ -171,10 +191,7 @@ def begin(args, root, state):
         shared = state / "review-ledger.json"
         if shared.exists():
             previous = json.loads(shared.read_text())
-            for sha, decision in previous["commits"].items():
-                if sha not in ledger["commits"] and decision["outcome"] != "integrated":
-                    ledger["commits"][sha] = decision
-            require_ledger_continuity(previous, ledger)
+            reconcile_review_ledgers(previous, ledger)
             if ledger["commits"]:
                 save(ledger_path, ledger)
         commits = upstream_inventory(base, upstream, root, ledger)

@@ -7,6 +7,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -122,13 +124,15 @@ internal suspend fun resolveTorboxAliasMatches(
         return mapOf(requestedHashes.single() to item)
     }
     val resolved = cached.toMutableMap()
+    // Bound extra alias probes without discarding any requested stream.
+    val probeSlots = Semaphore(4)
     val matches = coroutineScope {
         requestedHashes
             .filter { it !in resolved }
             .map { hash ->
                 async {
                     val item = try {
-                        fetchCached(hash)?.values?.firstOrNull()
+                        probeSlots.withPermit { fetchCached(hash)?.values?.firstOrNull() }
                     } catch (error: CancellationException) {
                         throw error
                     } catch (_: Exception) {

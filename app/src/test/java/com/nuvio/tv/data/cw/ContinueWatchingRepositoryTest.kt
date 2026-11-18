@@ -43,6 +43,10 @@ class ContinueWatchingRepositoryTest {
         every { watchedItems } returns kotlinx.coroutines.flow.flowOf(emptyList())
         every { allProgress } returns remote
         every { observeNextUpSeeds() } returns seeds
+        every { getAllEpisodeProgress(any(), any()) } answers {
+            val id = firstArg<String>()
+            seeds.map { rows -> rows.filter { it.contentId == id }.associateBy { it.season!! to it.episode!! } }
+        }
         every { observeRemoteProgressLoaded() } returns loaded
         every { hasActiveTrackingProgressProvider() } returns true
         every { isDroppedShow(any()) } returns false
@@ -53,7 +57,8 @@ class ContinueWatchingRepositoryTest {
         null, "show:1:$episode", 1, episode, null, 20, 100, time)
 
     @Test fun `undo a normal or split rewatch returns a finished show to its prior absence without a placeholder or late Details flicker`() = runTest {
-        for (split in listOf(false, true)) {
+        for (split in listOf(false, true)) for (confirmedFirst in listOf(true, false)) {
+            var confirmed = confirmedFirst
             val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(73244, "alttwo", 10719652, 6, 17, listOf(10719652), "show:6:17")
             val original = p(17, 1_000).copy(season = 6, videoId = context.requestVideoId, position = 100,
                 tvdbContext = context, tvdbEpisodeIds = context.episodeIds)
@@ -62,7 +67,7 @@ class ContinueWatchingRepositoryTest {
                 progressPercent = if (split) 50f else 100f, source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktPlaybackId = 77)
             val offer = played.seriesChoice().copy(videoId = "show:6:18", season = 6, episode = 18, chooseEpisode = false)
             val resolver = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver> {
-                io.mockk.coEvery { isFullyWatched(1, "show", any()) } coAnswers { delay(517); true }
+                io.mockk.coEvery { isFullyWatched(1, "show", any()) } coAnswers { delay(517); confirmed }
             }
             every { progress.getAllEpisodeProgress("show", 1) } returns flowOf(mapOf((6 to 17) to original))
             fun owner() = ContinueWatchingRepository(mockk { every { filesDir } returns folder.root }, profiles, settings,
@@ -83,6 +88,11 @@ class ContinueWatchingRepositoryTest {
             remote.value = emptyList()
             cw.deviceWatchRemoved(1, com.nuvio.tv.data.local.DeviceWatchEvent("play-$split", played, 8_000, 9_000,
                 removed = true, nativeEvent = native))
+            if (!confirmedFirst) {
+                assertFalse(cw.snapshot().forPresentation().nextUp.any { it.chooseEpisode })
+                confirmed = true
+                cw.historyCommitted(1, "show", before = 8_000)
+            }
             delay(60_000)
             cw.enrich(staleLease, nextUp = listOf(offer.copy(chooseEpisode = true)))
             cw.enrich(staleLease, nextUp = listOf(offer))

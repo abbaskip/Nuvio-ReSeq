@@ -22,7 +22,7 @@ class HomeCwResolutionRaceTest {
     private val created = mutableListOf<HomeViewModel>()
     @Before fun setup() = Dispatchers.setMain(Dispatchers.Unconfined)
     @After fun cleanup() {
-        created.forEach { it.viewModelScope.cancel() }
+        runBlocking { created.forEach { it.viewModelScope.coroutineContext.job.cancelAndJoin() } }
         Dispatchers.resetMain()
     }
 
@@ -126,7 +126,7 @@ class HomeCwResolutionRaceTest {
             firstEmission.complete(Unit)
             assertEquals(items.map { it.contentId }.toSet(), withTimeout(5_000) { observedAtResolution.await() }.toSet())
             withTimeout(5_000) { publicHome.first { it.continueWatchingItems.size == 3 } }
-        } finally { observer.cancel(); vm.viewModelScope.cancel() }
+        } finally { observer.cancel(); vm.viewModelScope.coroutineContext.job.cancelAndJoin() }
     }
 
     @Test fun genuinelyEmptyProjectionResolvesOnlyWhenItPublishes() = runBlocking {
@@ -136,6 +136,115 @@ class HomeCwResolutionRaceTest {
         firstEmission.complete(Unit)
         withTimeout(5_000) { vm.initialCwResolved.first { it } }
         assertTrue(vm._uiState.value.continueWatchingItems.isEmpty())
+    }
+
+    @Test fun friendsPublishesWhileAnotherSeriesLookupIsStillWaiting() = runBlocking {
+        exerciseCommittedHistory(homeVisible = true, slowSibling = true)
+    }
+
+    @Test fun unwatchRecomputesBeforeReturningFromDetailsToHome() = runBlocking {
+        exerciseCommittedHistory(homeVisible = false, slowSibling = false)
+    }
+
+    @Test fun undoUsesRemainingHistoryBeforeRemoteRefreshAndHomeReturn() = runBlocking {
+        exerciseCommittedHistory(homeVisible = false, slowSibling = false, undo = true)
+    }
+
+    @Test fun completingAwayFromHomeStartsResolutionWithoutAnotherRefresh() = runBlocking {
+        exerciseCommittedHistory(homeVisible = false, slowSibling = false, completionOnly = true)
+    }
+
+    private suspend fun exerciseCommittedHistory(homeVisible: Boolean, slowSibling: Boolean,
+        undo: Boolean = false, completionOnly: Boolean = false) {
+        val directory = java.nio.file.Files.createTempDirectory("cw-committed-history").toFile()
+        val now = System.currentTimeMillis()
+        fun completion(id: String, episode: Int, time: Long) = WatchProgress(id, "series", id,
+            null, null, null, "$id:6:$episode", 6, episode, "Episode $episode", 100, 100, time,
+            source = WatchProgress.SOURCE_TRAKT_HISTORY)
+        val first = completion("tt0108778", 1, now - 1_000)
+        val second = completion("tt0108778", 2, now)
+        val waiting = completion("slow-series", 1, now - 2_000)
+        val rows = MutableStateFlow(listOf(second))
+        val seeds = MutableStateFlow(listOf(second) + listOfNotNull(waiting.takeIf { slowSibling }))
+        val history = MutableStateFlow(mapOf((6 to 1) to first, (6 to 2) to second))
+        val blocked = CompletableDeferred<Unit>()
+        val source = mockk<WatchProgressRepository>(relaxed = true) {
+            every { allProgress } returns rows
+            every { observeNextUpSeeds() } returns seeds
+            every { observeRemoteProgressLoaded() } returns flowOf(true)
+            every { watchedItems } returns flowOf(emptyList())
+            every { isDroppedShow(any()) } returns false
+            every { hasActiveTrackingProgressProvider() } returns true
+            every { shouldUseAsNextUpSeed(any(), any()) } answers { firstArg<WatchProgress>().isCompleted() }
+            every { activeProviderContinueWatchingCutoffEpochMs(any(), any()) } returns null
+            every { getAllEpisodeProgress("tt0108778") } returns history
+            every { getAllEpisodeProgress("tt0108778", 1) } returns history
+            every { watchedEpisodeTimes("tt0108778") } returns history.map { it.mapValues { it.value.lastWatched } }
+            coEvery { prepareNextUpSeed(any()) } coAnswers {
+                val seed = firstArg<WatchProgress>()
+                if (seed.contentId == "slow-series") blocked.await()
+                seed
+            }
+        }
+        val owner = ContinueWatchingRepository(
+            mockk { every { filesDir } returns directory },
+            mockk { every { resolvedActiveProfileId } returns flowOf(1); every { activeProfileId } returns MutableStateFlow(1) },
+            mockk {
+                coEvery { getWatchProgressSource(1) } returns WatchProgressSource.TRAKT
+                every { resolvedWatchProgressSource(1) } returns flowOf(WatchProgressSource.TRAKT)
+            }, javax.inject.Provider { source })
+        val vm = home(owner.snapshot(), CompletableDeferred(Unit), CompletableDeferred(), owner, source)
+        vm.cwMetaCache["series:tt0108778"] = CwMetaSummary("tt0108778", "Friends", null, null, null,
+            null, emptyList(), null, null, null, null, (1..4).map { episode ->
+                CwVideoSummary("tt0108778:6:$episode", "Episode $episode", "2000-01-01T00:00:00Z",
+                    null, 6, episode, null)
+            })
+        try {
+            vm.setHomeContentActive(homeVisible)
+            if (completionOnly) {
+                rows.value = emptyList(); seeds.value = emptyList(); history.value = emptyMap()
+                owner.start()
+                withTimeout(5_000) { owner.settledProgress.first() }
+                rows.value = listOf(second); seeds.value = listOf(second)
+                history.value = mapOf((6 to 1) to first, (6 to 2) to second)
+            }
+            owner.committedProgress(1, listOf(second))
+            if (!completionOnly) owner.refreshProjection()
+            vm.loadContinueWatchingPipeline()
+            if (slowSibling || completionOnly) {
+                val card = withTimeout(5_000) { vm.uiState.first { state ->
+                    state.continueWatchingItems.any { it.contentId() == "tt0108778" && !it.chooseEpisode }
+                } }.continueWatchingItems.first { it.contentId() == "tt0108778" } as ContinueWatchingItem.NextUp
+                assertEquals(3, card.info.episode)
+                assertFalse(blocked.isCompleted)
+            } else {
+                withTimeout(5_000) { vm._uiState.first { state ->
+                    state.continueWatchingItems.any { it.contentId() == "tt0108778" && !it.chooseEpisode &&
+                        (it as? ContinueWatchingItem.NextUp)?.info?.episode == 3 }
+                } }
+                // The tracker write already committed. Home must consume that state without
+                // another network refresh or a navigation event from the Details screen.
+                rows.value = listOf(first)
+                // Undo can remove the provider's only aggregate seed; the per-episode
+                // history still contains E1 and must supply the new offer immediately.
+                seeds.value = if (undo) emptyList() else listOf(first)
+                history.value = mapOf((6 to 1) to first)
+                if (undo) owner.deviceWatchRemoved(1, DeviceWatchEvent("second", second,
+                    second.lastWatched, second.lastWatched, removed = true))
+                else owner.historyRemoved(1, "tt0108778", setOf(6 to 2))
+                assertFalse("A resolved offer must not turn into a loading placeholder",
+                    vm._uiState.value.continueWatchingItems.any { it.chooseEpisode })
+                val card = withTimeout(5_000) { vm._uiState.first { state ->
+                    state.continueWatchingItems.any { it.contentId() == "tt0108778" && !it.chooseEpisode &&
+                        (it as? ContinueWatchingItem.NextUp)?.info?.episode == 2 }
+                } }.continueWatchingItems.single() as ContinueWatchingItem.NextUp
+                assertEquals(2, card.info.episode)
+                assertFalse(vm.homeContentActive.value)
+            }
+        } finally {
+            vm.viewModelScope.coroutineContext.job.cancelAndJoin()
+            directory.deleteRecursively()
+        }
     }
 
     @Test fun unwatchPublicationResolvesRetainedResumeInSelectedOrder(): Unit = runBlocking {
@@ -155,6 +264,9 @@ class HomeCwResolutionRaceTest {
             every { observeNextUpSeeds() } returns seeds
             every { watchedItems } returns flowOf(emptyList())
             every { isDroppedShow(any()) } returns false
+            every { getAllEpisodeProgress(effective.id, 1) } returns rows.map { entries ->
+                entries.associateBy { it.season!! to it.episode!! }
+            }
         }
         val order = mockk<TvdbOrderStore>(relaxed = true) {
             coEvery { exportSelections(1) } returns mapOf("alias:${effective.id}" to "78874", "order:78874" to "dvd")
@@ -196,7 +308,7 @@ class HomeCwResolutionRaceTest {
             assertEquals(297989L, result.progress.tvdbEpisodeId)
             assertEquals(listOf(raw), rows.value) // Identity decoration does not rewrite tracker progress.
         } finally {
-            vm.viewModelScope.cancel()
+            vm.viewModelScope.coroutineContext.job.cancelAndJoin()
             directory.deleteRecursively()
         }
     }

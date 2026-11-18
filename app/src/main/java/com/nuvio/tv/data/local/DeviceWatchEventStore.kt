@@ -26,7 +26,9 @@ data class DeviceWatchEvent(
     val baselines: Map<String, List<TrackingWatchBaseline>> = emptyMap(),
     val removed: Boolean = false,
     val handled: Set<String> = emptySet(),
-    val nativeEvent: WatchProgress? = null
+    val nativeEvent: WatchProgress? = null,
+    /** A final tracker write can finish after Details has already undone this play. */
+    val stopRevision: Long = 0
 ) {
     fun matches(row: WatchProgress): Boolean {
         if (row.contentId != progress.contentId) return false
@@ -53,11 +55,13 @@ class DeviceWatchEventStore @Inject constructor(
     private val local: WatchProgressPreferences,
     private val watched: WatchedItemsPreferences,
     private val providers: Provider<TrackingProgressProviderRegistry>,
-    private val tvdb: Provider<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>
+    private val tvdb: Provider<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>,
+    private val cw: Provider<com.nuvio.tv.data.cw.ContinueWatchingRepository>? = null
 ) {
     private val gson = Gson()
     private val key = stringPreferencesKey("events")
     private val lock = Mutex()
+    private val reconciliationLock = Mutex()
     internal var now: () -> Long = System::currentTimeMillis
     private fun store(profile: Int) = factory.get(profile, "device_watch_events")
     private fun decode(raw: String?): List<DeviceWatchEvent> = raw?.let {
@@ -124,18 +128,31 @@ class DeviceWatchEventStore @Inject constructor(
     suspend fun currentEvent(event: TrackingScrobbleEvent): Pair<Int, String>? {
         val catalog = event.media.catalog ?: return null
         val profile = profiles.activeProfileId.value
-        val latest = events(profile).filter { !it.removed && it.progress.contentId == catalog.contentId &&
+        // Details can undo the play before the queued STOP even starts. Its identity
+        // must survive removal so the final write is followed by that same undo.
+        val latest = events(profile).filter { it.progress.contentId == catalog.contentId &&
             (catalog.tvdbContext?.episodeId?.let { id -> it.progress.tvdbContext?.episodeId == id }
                 ?: (it.progress.season == event.media.episode?.season && it.progress.episode == event.media.episode?.number)) }.maxByOrNull { it.startedAt }
         return latest?.let { profile to it.id }
     }
 
-    suspend fun afterStop(identity: Pair<Int, String>?) = lock.withLock {
-        val (profile, id) = identity ?: return@withLock
-        val latest = events(profile).firstOrNull { it.id == id } ?: return@withLock
-        // Include a slow server's confirmation, but through() clips at the next play so
-        // a shared native episode can never make this undo delete the next selected part.
-        put(profile, latest.copy(lastAt = maxOf(latest.lastAt, now())))
+    suspend fun afterStop(identity: Pair<Int, String>?) {
+        val (profile, id) = identity ?: return
+        val removed = lock.withLock {
+            val latest = events(profile).firstOrNull { it.id == id } ?: return@withLock null
+            // Include a slow server's confirmation, but through() clips at the next play so
+            // a shared native episode can never make this undo delete the next selected part.
+            val updated = latest.copy(lastAt = maxOf(latest.lastAt, now()),
+                stopRevision = latest.stopRevision + 1,
+                handled = if (latest.removed) emptySet() else latest.handled)
+            put(profile, updated)
+            updated.takeIf { it.removed }
+        } ?: return
+        // No Home visit or timer is needed. An earlier absence acknowledgement cannot
+        // settle an undo while the player's final request can still recreate the watch.
+        reconcile(profile)
+        // The projection must honour the same next-play boundary as tracker removal.
+        cw?.get()?.deviceWatchRemoved(profile, removed.copy(lastAt = through(removed, events(profile)) - 2_000))
     }
 
     suspend fun requestRemoval(profile: Int, row: WatchProgress): DeviceWatchEvent = lock.withLock {
@@ -169,6 +186,10 @@ class DeviceWatchEventStore @Inject constructor(
     /** Called only by the permitted refresh triggers, and after an explicit undo.
      * With no undo pending it does not read other providers at all. */
     suspend fun reconcile(profile: Int) {
+        reconciliationLock.withLock { reconcileLocked(profile) }
+    }
+
+    private suspend fun reconcileLocked(profile: Int) {
         for (event in events(profile).filter { it.removed }) for (provider in providers.get().providers()) {
             if (profiles.activeProfileId.value != profile) return
             if (provider.providerId.name in event.handled || !provider.isAuthenticated.first()) continue
@@ -191,7 +212,10 @@ class DeviceWatchEventStore @Inject constructor(
                         !(provider.providerId == TrackingProviderId.TRAKT && event.nativeEvent?.source == WatchProgress.SOURCE_TRAKT_PLAYBACK), profileId = profile)) && done
                 if (done) lock.withLock {
                     val latest = events(profile).firstOrNull { it.id == event.id } ?: return@withLock
-                    put(profile, latest.copy(handled = latest.handled + provider.providerId.name))
+                    // A STOP that completed during this network read invalidates its
+                    // acknowledgement, even when both completions share a timestamp.
+                    if (latest.stopRevision == event.stopRevision)
+                        put(profile, latest.copy(handled = latest.handled + provider.providerId.name))
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { /* Keep the event-specific undo durable for confirmation/retry. */ }

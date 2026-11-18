@@ -145,10 +145,17 @@ class ContinueWatchingRepository @Inject constructor(
     /** Called after the existing progress store commits; never infers completion from lifecycle. */
     suspend fun committedProgress(profileId: Int, updates: List<WatchProgress>) {
         val source = settings.getWatchProgressSource(profileId).name
+        var newlyCompleted = emptySet<String>()
         withContext(Dispatchers.IO + NonCancellable) {
             mutex.withLock {
                 val active = current?.takeIf { it.profileId == profileId && it.source == source }
                 val state = active ?: store.read(profileId, source)
+                newlyCompleted = updates.filter { row ->
+                    val previous = state.members[row.contentId]?.progress
+                    row.season != null && row.episode != null && row.isCompleted() &&
+                        (previous?.isCompleted() != true || previous.videoId != row.videoId ||
+                            previous.tvdbContentIds != row.tvdbContentIds || previous.deviceWatchEventId != row.deviceWatchEventId)
+                }.mapTo(mutableSetOf()) { it.contentId }
                 val next = approveIdentity(CwMembershipReducer.progress(state, updates)).presentChangesFrom(state)
                 if (next != state) store.write(next)
                 if (active != null) {
@@ -158,8 +165,9 @@ class ContinueWatchingRepository @Inject constructor(
                 }
             }
         }
-        // Playback delivery must not wait for network/catalogue work. The next
-        // foreground refresh reconciles the selected tracker with the device receipt.
+        // Resolve committed receipts immediately, independently of returning to Home.
+        // Scrobble delivery never waits for catalogue/network enrichment.
+        if (started.get() && newlyCompleted.isNotEmpty()) scope.launch { publishCommittedInputs(profileId, newlyCompleted) }
     }
 
     suspend fun remove(contentIds: Set<String>, profileId: Int = profiles.activeProfileId.value, nextUpOnly: Boolean = false) {
@@ -183,13 +191,14 @@ class ContinueWatchingRepository @Inject constructor(
             val seeds = progress.observeNextUpSeeds().first().filter { it.contentId == contentId }
             val items = progress.allProgress.first().filter { it.contentId == contentId }
             var committed = false
-            val updated = mutate(state.lease, afterCommit = { restoredSeries.remove(contentId) }) { current ->
+            val updated = mutate(state.lease, afterCommit = { restoredSeries.remove(contentId) }, background = true) { current ->
                 val revoked = CwMembershipReducer.historyRemoved(current, contentId, episodes, removedAt, tvdbIds)
                 committed = true
                 reduceProgress(revoked, items, seeds, progress, emptyMap())
             }
             if (committed) {
                 updated.members[contentId]?.let { resolvePendingPauses(updated, listOf(it)) }
+                publishCommittedInputs(profileId, setOf(contentId))
                 return
             }
             // Another history edit or order change committed while the history was being read.
@@ -201,7 +210,7 @@ class ContinueWatchingRepository @Inject constructor(
         val state = snapshot()
         if (state.profileId != profileId || state.source != "TRAKT") return
         mutate(state.lease) { CwMembershipReducer.removeWatchEvent(it, event) }
-        refreshProjection()
+        publishCommittedInputs(profileId, setOf(event.contentId))
     }
 
     suspend fun deviceWatchRemoved(profileId: Int, event: com.nuvio.tv.data.local.DeviceWatchEvent) {
@@ -210,7 +219,7 @@ class ContinueWatchingRepository @Inject constructor(
         mutate(state.lease, afterCommit = { restoredSeries.remove(event.progress.contentId) }, background = true) {
             CwMembershipReducer.removeDeviceWatchEvent(it, event)
         }
-        refreshProjection()
+        publishCommittedInputs(profileId, setOf(event.progress.contentId))
         hideFinishedSeries(profileId, event.progress.contentId, before = event.startedAt)
     }
 
@@ -220,7 +229,7 @@ class ContinueWatchingRepository @Inject constructor(
         mutate(state.lease, afterCommit = { restoredSeries.remove(event.contentId) }) {
             CwMembershipReducer.removePause(it, event)
         }
-        refreshProjection()
+        publishCommittedInputs(profileId, setOf(event.contentId))
         hideFinishedSeries(profileId, event.contentId)
     }
 
@@ -277,6 +286,45 @@ class ContinueWatchingRepository @Inject constructor(
 
     suspend fun refreshProjection() {
         refreshSelected(com.nuvio.tv.core.tracking.TrackingRefreshIntent.AUTOMATIC)
+    }
+
+    suspend fun historyCommitted(profileId: Int, contentId: String, before: Long) {
+        publishCommittedInputs(profileId, setOf(contentId))
+        hideFinishedSeries(profileId, contentId, before)
+    }
+
+    /** Recompute from the selected provider's committed episode history, including
+     * the durable undo journal, before network reconciliation or Home navigation. */
+    private suspend fun publishCommittedInputs(profileId: Int, contentIds: Set<String>) {
+        val state = snapshot()
+        if (state.profileId != profileId) return
+        val progress = progressProvider.get()
+        val items = progress.allProgress.first()
+        val sourceSeeds = progress.observeNextUpSeeds().first()
+        val remaining = mutableListOf<WatchProgress>()
+        for (id in contentIds) {
+            // The provider's single latest seed may itself be the revoked event. Read
+            // remaining history, not a filtered latest seed that loses the whole show.
+            progress.getAllEpisodeProgress(id, profileId).first().values
+                .filter { it.isCompleted() }.maxByOrNull { it.lastWatched }?.let(remaining::add)
+        }
+        val seeds = sourceSeeds.filterNot { it.contentId in contentIds } + remaining
+        val watched = progress.watchedItems.first()
+        var applied = false
+        val updated = mutate(state.lease, background = true) {
+            applied = true
+            val committed = reduceProgress(it, items, sourceSeeds, progress, emptyMap())
+            // A selected-order view is an offer seed, not another tracker completion.
+            // Keep the source ledger; only rebuild missing membership from that view.
+            CwMembershipReducer.progress(committed, remaining.filter { seed -> seed.contentId !in committed.members }, seeds = true)
+        }
+        if (!applied || updated.profileId != state.profileId || updated.source != state.source) return
+        resolvePendingPauses(updated, updated.members.filterKeys { it in contentIds }.values)
+        val ready = snapshot()
+        if (ready.profileId != state.profileId || ready.source != state.source || ready.epoch != updated.epoch) return
+        val absent = contentIds.filterTo(mutableSetOf()) { it !in ready.members }
+        if (absent.isNotEmpty()) mutate(ready.lease, background = true, settledIds = absent) { it }
+        _settledProgress.value = SettledProgress(ready.lease, items, seeds, watched)
     }
 
     private suspend fun refreshProjectionLocked() {

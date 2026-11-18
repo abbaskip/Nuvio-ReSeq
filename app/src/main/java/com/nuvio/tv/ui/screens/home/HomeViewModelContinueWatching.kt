@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.network.NetworkResult
 import com.nuvio.tv.data.cw.completionActivityAt
-import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.core.util.isEpisodeReleaseAired
 import com.nuvio.tv.core.util.parseEpisodeReleaseInstant
 import com.nuvio.tv.core.util.selectEpisodeReleaseValue
@@ -289,7 +288,8 @@ private class CwDebugSession {
 internal fun HomeViewModel.loadContinueWatchingPipeline() {
     cwPipelineJob?.cancel()
     cwPipelineJob = viewModelScope.launch(Dispatchers.Default) {
-        runVisibleHomeWork(homeContentActive, PlayerSessionTracker.isSessionOpen) {
+        // Committed history edits resolve while Details/player is open too.
+        coroutineScope {
         combine(
             continueWatchingRepository.settledProgress,
             combine(
@@ -1342,9 +1342,9 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
                         }
                     }
                 }
-                // A verified TVDB result can replace its stale card independently
-                // of unrelated progress loading and the full-list publish batch.
-                if (nextUp.info.tvdbEpisodeId != null && profileManager.activeProfileId.value == pipelineProfileId) {
+                // Every verified episode settles independently, including normal-order shows.
+                // A slow catalogue elsewhere must never hold this card hostage.
+                if (profileManager.activeProfileId.value == pipelineProfileId) {
                     applyConclusiveOlderNextUpResults(
                     pipelineLease = pipelineLease,
                         resolvedItems = listOf(nextUp),
@@ -2063,7 +2063,9 @@ private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
         return null
     }
     val progressFlow = watchProgressRepository.getAllEpisodeProgress(contentId)
-    val committed = withTimeoutOrNull(150L) { progressFlow.first { it.isNotEmpty() } } ?: progressFlow.first()
+    // The provider owns readiness. Cancelling its initial fetch after 150 ms
+    // discarded real history and then retried against a throttled/incomplete snapshot.
+    val committed = progressFlow.first()
     val watchedTimes = watchProgressRepository.watchedEpisodeTimes(contentId).first()
     val key = season to episode
     val history = if (key in committed) committed else committed + (key to progress)

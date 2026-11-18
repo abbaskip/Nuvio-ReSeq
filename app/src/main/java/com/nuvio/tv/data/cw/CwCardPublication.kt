@@ -53,7 +53,9 @@ internal class CwCardPublication {
         val raw = member?.progress?.let { p -> listOf(p.videoId, p.season, p.episode, p.position,
             p.progressPercentage, p.lastWatched, p.source, p.traktPlaybackId, p.simklPlaybackId,
             p.tvdbContentIds.sorted(), p.tvdbWatchedIds.sorted(), p.trackingProviderId) }
-        return listOf(preferFurthest.takeIf { member?.nextUp != null }, raw, member?.latestCompletionAt, state.completed[id], state.removals[id],
+        // Positive finished-series evidence can clear a settled card without another watch.
+        val hasCard = member?.let { it.inProgress != null || it.nextUp != null }
+        return listOf(hasCard, preferFurthest.takeIf { member?.nextUp != null }, raw, member?.latestCompletionAt, state.completed[id], state.removals[id],
             id in state.hiddenByProvider).toString()
     }
 }

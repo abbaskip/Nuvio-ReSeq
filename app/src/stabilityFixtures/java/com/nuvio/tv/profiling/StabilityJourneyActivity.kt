@@ -79,6 +79,7 @@ class StabilityJourneyActivity : ComponentActivity() {
     @Inject lateinit var addons: AddonRepository
     @Inject lateinit var shuffle: EpisodeShuffleStore
     @Inject lateinit var layout: LayoutPreferenceDataStore
+    @Inject lateinit var appOnboarding: com.nuvio.tv.data.local.AppOnboardingDataStore
     @Inject lateinit var orders: TvdbOrderStore
     @Inject lateinit var tvdb: TvdbCredentialStore
     @Inject lateinit var tvdbClient: com.nuvio.tv.data.tvdb.TvdbClient
@@ -355,6 +356,7 @@ class StabilityJourneyActivity : ComponentActivity() {
                     }
                     "prepare-cold-reminder" -> {
                         profiles.activeProfileReady.first { it }
+                        appOnboarding.setHasSeenAuthQrOnFirstLaunch(true)
                         layout.setLayout(com.nuvio.tv.domain.model.HomeLayout.MODERN)
                         sports.start()
                         val eventId = "espn:basketball/nba:80000"

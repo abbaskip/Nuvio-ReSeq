@@ -27,6 +27,50 @@ permissions:
   contents: read
 
 jobs:
+  profile-cost:
+    if: inputs.workload == 'profile-cost'
+    runs-on: ubuntu-latest
+    timeout-minutes: 155
+    permissions:
+      contents: read
+      actions: read
+    env:
+      CI_USE_DEBUG_SIGNING: 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+        with:
+          encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+      - name: Build matching profile variants for the original signed DEX
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 44579904228 --repo "$GITHUB_REPOSITORY" --name 'ReSeq-0.1.0-beta.10.12-verified-apks' --dir build/profile-cost/apks
+          gh run download 44579904228 --repo "$GITHUB_REPOSITORY" --name 'ReSeq-0.1.0-beta.10.12-r8-mapping' --dir build/profile-cost/mapping
+          ./gradlew :app:mergeFullReleaseArtProfile --max-workers=2 -PuseLocalFfmpegDecoder=false
+          python3 -u scripts/performance-fixtures/profile_cost.py prepare
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: python3 -u scripts/performance-fixtures/profile_cost.py measure
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: wildcard-cost-evidence
+          path: |
+            build/profile-cost/groups.json
+            build/profile-cost/odex.json
+            build/profile-cost/metadata/
+          retention-days: 14
+
   delivery-build:
     if: inputs.workload == 'sports-delivery'
     runs-on: ubuntu-latest

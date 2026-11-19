@@ -205,6 +205,16 @@ class M3uVodIntegrationTest {
             assertNotNull(repo.status.value.message)
             assertEquals("https://example.test/old.mp4", repo.resolvePortalMarker(old).url)
             assertEquals(1, db.count(VodKind.MOVIE))
+            val signal = com.nuvio.tv.core.player.PlayerSessionTracker.livePlayback
+            val before = signal.value
+            try {
+                signal.value = true
+                db.m3u.retain(emptySet())
+                assertFalse(db.m3u.current(source))
+                assertTrue(db.m3u.readableDatabase.rawQuery("SELECT 1 FROM links LIMIT 1", null).use { it.moveToFirst() })
+            } finally { signal.value = before }
+            db.m3u.retain(emptySet())
+            assertFalse(db.m3u.readableDatabase.rawQuery("SELECT 1 FROM links LIMIT 1", null).use { it.moveToFirst() })
         }
     }
 }

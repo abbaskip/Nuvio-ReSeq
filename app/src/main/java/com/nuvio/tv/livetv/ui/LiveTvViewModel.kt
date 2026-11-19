@@ -124,8 +124,7 @@ class LiveTvViewModel @Inject constructor(
     val status: StateFlow<LiveTvStatus> = repository.status
     val playbackState: StateFlow<LivePlaybackState> = playback.state
 
-    private val _now = MutableStateFlow(System.currentTimeMillis())
-    val now: StateFlow<Long> = _now
+    val now = liveGuideClock().stateIn(viewModelScope, SharingStarted.WhileSubscribed(), System.currentTimeMillis())
 
     private val searchQuery = MutableStateFlow("")
 
@@ -233,9 +232,9 @@ class LiveTvViewModel @Inject constructor(
             while (true) {
                 // Nothing to keep up to date while a movie or episode plays in Nuvio's player.
                 com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()
-                _now.value = System.currentTimeMillis()
+                val guideTime = System.currentTimeMillis()
                 // Keep the hours around now loaded from the guide database as time passes.
-                repository.ensureRange(_now.value - 3 * 3_600_000L, _now.value + 12 * 3_600_000L)
+                repository.ensureRange(guideTime - 3 * 3_600_000L, guideTime + 12 * 3_600_000L)
                 delay(30_000)
             }
         }
@@ -897,6 +896,10 @@ class LiveTvViewModel @Inject constructor(
 
     /** Guide scrolled ahead or back: load those hours from the guide database if needed. */
     fun ensureGuideRange(fromMs: Long, toMs: Long) = repository.ensureRange(fromMs, toMs)
+
+    suspend fun refreshPlaybackListings(keys: List<String>, at: Long) {
+        repository.readPlaybackListings(keys, at - settings.value.epgOffsetMinutes * 60_000L)
+    }
     fun loadVisibleGuideChannels(keys: List<String>) {
         val visible=(listOfNotNull(playback.state.value.channelKey)+keys).distinct()
         repository.loadChannelsNow(visible)
@@ -1167,10 +1170,10 @@ class LiveTvViewModel @Inject constructor(
         else "Recording \"$title\" until $until"
     }
 
-    fun currentProgram(channelKey: String, at: Long = _now.value): EpgProgram? =
+    fun currentProgram(channelKey: String, at: Long = System.currentTimeMillis()): EpgProgram? =
         programs.value[channelKey]?.firstOrNull { at >= it.startMs && at < it.stopMs }
 
-    fun nextProgram(channelKey: String, at: Long = _now.value): EpgProgram? =
+    fun nextProgram(channelKey: String, at: Long = System.currentTimeMillis()): EpgProgram? =
         programs.value[channelKey]?.firstOrNull { it.startMs >= at }
 
     /** Channel list used for up/down zapping in the full-screen player. */

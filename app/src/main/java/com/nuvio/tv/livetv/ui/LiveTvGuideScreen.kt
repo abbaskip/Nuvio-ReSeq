@@ -109,6 +109,7 @@ import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
 
 private const val SLOT_MS = 30L * 60L * 1000L
 private const val WINDOW_MS = 2L * 60L * 60L * 1000L
@@ -381,6 +382,14 @@ fun LiveTvGuideScreen(
     // background, so scrolling ahead in it doesn't run out after half a day.
     // Also after a guide update, which keeps only the hours around now in memory.
     val guideGeneration by viewModel.guideGeneration.collectAsStateWithLifecycle()
+    LaunchedEffect(playback.channelKey, now / 1_800_000L, guideGeneration, settings.epgOffsetMinutes, channels) {
+        val playing = playback.channelKey ?: return@LaunchedEffect
+        androidx.compose.runtime.snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo.mapNotNull { channels.getOrNull(it.index)?.key }
+        }.distinctUntilChanged().collectLatest { visible ->
+            viewModel.refreshPlaybackListings(listOf(playing) + visible, now)
+        }
+    }
     LaunchedEffect(epgUnassignedOnly, guideGeneration, windowStart, epgAutoMatches) {
         listedForUnassigned = if(epgUnassignedOnly) viewModel.guideChannelsWithListings() else null
     }

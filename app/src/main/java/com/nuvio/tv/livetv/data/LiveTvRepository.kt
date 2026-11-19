@@ -1097,6 +1097,37 @@ class LiveTvRepository @Inject constructor(
         }
     }
 
+    /** A long-running live player can outlast the resident window while bulk reads are held. */
+    suspend fun readPlaybackListings(keys: List<String>, at: Long) {
+        if (!guideInDb || keys.isEmpty()) return
+        val visible = keys.distinct().take(32)
+        if (at >= loadedFrom && at + HOUR <= loadedTo && visible.all { it in _programs.value }) return
+        val generation = _guideGeneration.value
+        withContext(BackgroundWork.reads) {
+            val listings = try {
+                guideDb.range(at - HOUR, at + 2 * HOUR, light = lightPrograms, channels = visible)
+            } catch (_: android.database.sqlite.SQLiteException) {
+                return@withContext
+            }
+            if (listings.isEmpty()) return@withContext
+            rangeMutex.withLock {
+                if (generation != _guideGeneration.value) return@withLock
+                val merged = HashMap(_programs.value)
+                for ((key, extra) in listings) {
+                    val existing = merged[key].orEmpty()
+                    val starts = existing.mapTo(HashSet()) { it.startMs }
+                    val additions = extra.filter { it.startMs !in starts }
+                    if (additions.isNotEmpty()) {
+                        val kept = existing.filter { it.startMs < loadedTo || it.stopMs > at - 24 * HOUR }
+                        merged[key] = (kept + additions).sortedBy { it.startMs }
+                    }
+                }
+                windowResidency.request(visible)
+                _programs.value = residentWindow(merged)
+            }
+        }
+    }
+
     /** Remembers which channels to load first next time, and loads them now if needed. */
     fun rememberPriority(keys: List<String>) {
         val list = keys.distinct().take(600)

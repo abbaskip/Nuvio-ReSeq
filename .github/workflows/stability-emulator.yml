@@ -86,6 +86,10 @@ jobs:
           encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
       - name: Build minified non-debuggable comparison and runner
         run: |
+          # Use a separate application ID on both sides so the same builds can run alongside a populated release on a TV.
+          sed -i 's/applicationId = "io.github.abbaskip.nuvioreseq"/applicationId = "io.github.abbaskip.nuvioreseq.perfcomparison"/' app/build.gradle.kts
+          sed -i 's/DEFAULT_TARGET_PACKAGE = "io.github.abbaskip.nuvioreseq"/DEFAULT_TARGET_PACKAGE = "io.github.abbaskip.nuvioreseq.perfcomparison"/' baselineprofile/src/main/java/com/nuvio/tv/baselineprofile/NuvioUi.kt
+          grep -Fq 'applicationId = "io.github.abbaskip.nuvioreseq.perfcomparison"' app/build.gradle.kts
           printf '%s\n' 'NUVIO_SUPABASE_URL=http://127.0.0.1:38791/' 'NUVIO_SUPABASE_ANON_KEY=comparison-fixture' > local.properties
           ./gradlew :app:assembleFullBenchmarkRelease :baselineprofile:assembleBenchmarkRelease --max-workers=2 -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
           mkdir -p build/comparison-output
@@ -94,6 +98,18 @@ jobs:
           test "${#target[@]}" = 1 && test "${#runner[@]}" = 1
           cp "${target[0]}" build/comparison-output/target.apk
           cp "${runner[0]}" build/comparison-output/runner.apk
+          mapfile -t arm < <(find app/build/outputs/apk -name '*-armeabi-v7a-benchmarkRelease.apk')
+          test "${#arm[@]}" = 1
+          mkdir -p build/comparison-arm
+          cp "${arm[0]}" build/comparison-arm/target.apk
+          echo "$GITHUB_SHA" > build/comparison-arm/workflow-revision.txt
+          git rev-parse HEAD > build/comparison-arm/application-revision.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: comparison-arm-${{ matrix.side }}
+          path: build/comparison-arm/
+          retention-days: 2
+          compression-level: 0
       - uses: actions/upload-artifact@v6
         with:
           name: comparison-${{ matrix.side }}

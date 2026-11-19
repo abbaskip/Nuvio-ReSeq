@@ -52,7 +52,8 @@ class ReSeqJourneyActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        check(Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish"))
+        val isolatedComparison = packageName == "io.github.abbaskip.nuvioreseq.perfcomparison" && intent.getStringExtra("journey") == "compare"
+        check(isolatedComparison || Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish"))
         when (intent.getStringExtra("journey")) {
             "seed" -> lifecycleScope.launch {
                 withContext(Dispatchers.IO) { withTimeout(60_000L) { seed() } }
@@ -98,7 +99,7 @@ class ReSeqJourneyActivity : ComponentActivity() {
         val view = PlayerView(this).apply { useController = false }
         setContentView(view)
         lifecycleScope.launch {
-            withTimeout(360_000) {
+            withTimeout(600_000) {
                 val clock = { android.os.SystemClock.elapsedRealtime() }
                 val pl = PlaylistSource("perf-large", "Comparison", "$HTTP/large.m3u", useEmbeddedEpg = false)
                 val report = JSONObject()

@@ -12,7 +12,7 @@ server=$!
 trap 'kill "$server" || true' EXIT
 adb reverse tcp:38791 tcp:38791
 adb reverse tcp:38792 tcp:38792
-pkg=io.github.abbaskip.nuvioreseq
+pkg=io.github.abbaskip.nuvioreseq.perfcomparison
 runner=com.nuvio.tv.baselineprofile
 for side in published integration; do
     here="$out/$side"

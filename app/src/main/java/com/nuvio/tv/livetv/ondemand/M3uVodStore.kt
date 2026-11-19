@@ -108,10 +108,27 @@ internal class M3uVodStore(private val context: Context) :
         "SELECT 1 FROM sources WHERE pl=? AND config=? AND stamp=? AND generation IS NOT NULL",
         arrayOf(pl.id, config(pl), stamp)).use { it.moveToFirst() }
 
-    private val active = "gen=(SELECT generation FROM sources WHERE pl=links.pl)"
+    private val active = "gen=(SELECT generation FROM sources WHERE pl=?1)"
     private fun SQLiteDatabase.transaction(block: () -> Unit) {
         beginTransactionNonExclusive()
         try { block(); setTransactionSuccessful() } finally { endTransaction() }
+    }
+
+    /** Keep stale generations unreachable immediately. Reclaim their pages in small, interruptible batches. */
+    private fun prune(db: SQLiteDatabase, pl: String) {
+        if (com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback) return
+        val obsolete = db.rawQuery("""SELECT DISTINCT gen FROM links WHERE pl=? AND
+            gen != COALESCE((SELECT generation FROM sources WHERE pl=?1),'')""", arrayOf(pl)).use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0)) }
+        }
+        for (generation in obsolete) {
+            while (!com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback) {
+                val count = db.delete("links", "rowid IN (SELECT rowid FROM links WHERE pl=? AND gen=? LIMIT 256)",
+                    arrayOf(pl, generation))
+                if (count < 256) break
+                BackgroundWork.yieldToNavigation()
+            }
+        }
     }
 
     /** The complete file is read once. Only the generation whose final transaction committed is visible. */
@@ -121,7 +138,7 @@ internal class M3uVodStore(private val context: Context) :
         if (indexed(pl, stamp)) return
         val db = writableDatabase
         val gen = java.util.UUID.randomUUID().toString()
-        db.execSQL("DELETE FROM links WHERE pl=? AND NOT EXISTS (SELECT 1 FROM sources WHERE pl=links.pl AND generation=links.gen)", arrayOf(pl.id))
+        prune(db, pl.id)
         val rows = ArrayList<Pair<M3uTitle, M3uEntry>>(128)
         try {
             db.compileStatement("""INSERT OR REPLACE INTO links(pl,gen,item,entry,kind,name,cat,ext,season,episode,title,icon,url,headers)
@@ -165,7 +182,7 @@ internal class M3uVodStore(private val context: Context) :
                 db.execSQL("UPDATE sources SET config=?, stamp=?, generation=? WHERE pl=?", arrayOf(config(pl), stamp, gen, pl.id))
             }
         } finally {
-            db.execSQL("DELETE FROM links WHERE pl=? AND NOT EXISTS (SELECT 1 FROM sources WHERE pl=links.pl AND generation=links.gen)", arrayOf(pl.id))
+            prune(db, pl.id)
         }
     }
 
@@ -225,11 +242,15 @@ internal class M3uVodStore(private val context: Context) :
     fun retain(ids: Set<String>) {
         if (!context.getDatabasePath(databaseName).exists()) return
         val db = writableDatabase
-        val removed = db.rawQuery("SELECT pl FROM sources", null).use { c ->
-            buildList { while (c.moveToNext()) if (c.getString(0) !in ids) add(c.getString(0)) }
+        val sources = db.rawQuery("SELECT pl FROM sources", null).use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0)) }
         }
-        for (id in removed) db.transaction {
-            db.delete("links", "pl=?", arrayOf(id)); db.delete("sources", "pl=?", arrayOf(id))
+        for (pl in sources) {
+            if (pl in ids) continue
+            db.execSQL("UPDATE sources SET generation=NULL, stamp=NULL, catalogStamp=NULL, server=NULL, username=NULL, password=NULL WHERE pl=?", arrayOf(pl))
+            prune(db, pl)
+            val remaining = db.rawQuery("SELECT 1 FROM links WHERE pl=? LIMIT 1", arrayOf(pl)).use { it.moveToFirst() }
+            if (!remaining) db.delete("sources", "pl=?", arrayOf(pl))
         }
     }
 }

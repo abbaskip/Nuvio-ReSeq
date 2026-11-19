@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording, reminder, first-card]
+        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording, reminder, first-card, rollback]
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -23,6 +23,43 @@ permissions:
   contents: read
 
 jobs:
+  rollback:
+    if: inputs.workload == 'rollback'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download the three original signed packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for beta in 10.12 10.11; do
+            gh release download "v0.1.0-beta.$beta" --repo "$GITHUB_REPOSITORY" --pattern '*-x86_64.apk' --dir "build/rollback-apks/$beta"
+          done
+          gh run download 44579904228 --repo "$GITHUB_REPOSITORY" --name 'ReSeq-0.1.0-beta.10.12-verified-apks' --dir build/rollback-apks/integration
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: python3 -u scripts/performance-fixtures/signed_rollback.py
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: signed-rollback-results
+          path: build/signed-rollback
+          if-no-files-found: warn
+          retention-days: 14
+
   first-card:
     if: inputs.workload == 'first-card'
     runs-on: ubuntu-latest

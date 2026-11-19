@@ -88,6 +88,9 @@ internal suspend fun runPlaylistUpdateChecks(
     }
 }
 
+private fun PlaylistSource.downloadIdentity() = copy(lastUpdatedMs = 0L, lastError = null,
+    channelCount = 0, serverTimezone = "", catchupNoHlsSince = 0L)
+
 @Singleton
 class LiveTvRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -225,7 +228,7 @@ class LiveTvRepository @Inject constructor(
     fun reloadAfterSync(changedPlaylists: Set<String> = emptySet()) {
         scope.launch {
             rebuild()
-            refreshInternal(forcePlaylists = false, forceEpg = false, forceIds = changedPlaylists)
+            refreshAutomatically(forceIds = changedPlaylists)
         }
     }
 
@@ -244,8 +247,8 @@ class LiveTvRepository @Inject constructor(
     }
 
     // Automatic updates run at low priority, so the screen and video stay smooth meanwhile.
-    private suspend fun refreshAutomatically(forcePlaylists: Boolean = false) = withContext(BackgroundWork.quiet) {
-        mutex.withLock { refreshLocked(forcePlaylists, forceEpg = false, forceIds = emptySet(), automatic = true) }
+    private suspend fun refreshAutomatically(forcePlaylists: Boolean = false, forceIds: Set<String> = emptySet()) = withContext(BackgroundWork.quiet) {
+        mutex.withLock { refreshLocked(forcePlaylists, forceEpg = false, forceIds = forceIds, automatic = true) }
     }
 
     // ---------------------------------------------------------------- sources CRUD
@@ -301,7 +304,13 @@ class LiveTvRepository @Inject constructor(
                 xtreamPassword = input.xtreamPassword.trim().ifBlank { fromLink?.second.orEmpty() }
             )
         } else input
-        val wasLive = prefs.currentPlaylists().firstOrNull { it.id == source.id }?.liveEnabled == true
+        val previous = prefs.currentPlaylists().firstOrNull { it.id == source.id }
+        if (source.liveEnabled && previous?.downloadIdentity() == source.downloadIdentity()) {
+            // Settings uses this entry point for Update now as well as edits. Join before waiting for the rebuild lock.
+            refreshInternal(forcePlaylists = false, forceEpg = false, forceIds = setOf(source.id))
+            return
+        }
+        val wasLive = previous?.liveEnabled == true
         prefs.updatePlaylists { list -> list.map { if (it.id == source.id) source else it } }
         if (!source.liveEnabled) {
             // TV channels switched off (or never on, for an On Demand-only login): take them out
@@ -563,7 +572,7 @@ class LiveTvRepository @Inject constructor(
         forceIds: Set<String> = emptySet()
     ): Unit {
         val automatic = !forcePlaylists && !forceEpg && forceIds.isEmpty()
-        val overlapping = if (!automatic && forceIds.isEmpty()) automaticPass else null
+        val overlapping = if (!automatic) automaticPass else null
         if (!automatic) {
             // An update you asked for (Update now, a new playlist…) doesn't queue up behind an
             // automatic check that's waiting for Nuvio's player to close: that check stops
@@ -588,8 +597,6 @@ class LiveTvRepository @Inject constructor(
         fun checked(source: PlaylistSource) { playlists += source.downloadIdentity() }
         fun covers(source: PlaylistSource) = source.downloadIdentity() in playlists
 
-        private fun PlaylistSource.downloadIdentity() = copy(lastUpdatedMs = 0L, lastError = null,
-            channelCount = 0, serverTimezone = "", catchupNoHlsSince = 0L)
         val guides = HashSet<EpgTarget>()
         var builtGuide: List<EpgTarget>? = null
     }

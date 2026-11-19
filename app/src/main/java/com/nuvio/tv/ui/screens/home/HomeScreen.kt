@@ -276,7 +276,7 @@ fun HomeScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        LiveTvHomeRow(above = true)
+        if (!showStartupLoader) LiveTvHomeRow(above = true)
         CompositionLocalProvider(LocalLiveTvHintHere provides true) {
             LiveTvHomeHint(modifier = Modifier.padding(start = 36.dp, top = 8.dp))
         }

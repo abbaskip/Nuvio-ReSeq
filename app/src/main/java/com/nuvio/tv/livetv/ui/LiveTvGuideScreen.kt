@@ -1,5 +1,7 @@
 package com.nuvio.tv.livetv.ui
 
+import androidx.lifecycle.repeatOnLifecycle
+
 import androidx.compose.ui.platform.testTag
 
 import com.nuvio.tv.livetv.data.LiveTvRepository
@@ -181,6 +183,10 @@ fun LiveTvGuideScreen(
     onReturnToSports: () -> Unit = {},
     viewModel: LiveTvViewModel = hiltViewModel()
 ) {
+    val guideLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, guideLifecycle) {
+        guideLifecycle.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { viewModel.maintainVisibleGuide() }
+    }
     // Full screen happens right here, TiviMate style: the same video view grows from the
     // preview window to the whole screen and back. The picture never moves to a different
     // view, which is what froze it (or left it loading) on some TVs.

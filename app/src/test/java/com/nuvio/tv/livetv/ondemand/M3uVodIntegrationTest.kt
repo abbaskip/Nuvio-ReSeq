@@ -140,7 +140,8 @@ class M3uVodIntegrationTest {
             val short = direct.copy(id = "short", url = "$origin/short")
             val rejected = short.copy(id = "rejected", url = "$origin/rejected")
             val native = direct.copy(id = "native", url = "", xtreamServer = origin, xtreamUsername = "fixtureUser", xtreamPassword = "fixturePass")
-            writePlaylist(short.id, "#EXTM3U\n#EXTINF:-1,Live\n$origin/live/fixtureUser/fixturePass/101.ts", "1")
+            val nonAccountChannels = (1..400).joinToString("\n") { "#EXTINF:-1,Live $it\n$origin/station$it.ts" }
+            writePlaylist(short.id, "#EXTM3U\n$nonAccountChannels\n#EXTINF:-1,Live\n$origin/live/fixtureUser/fixturePass/101.ts", "1")
             writePlaylist(rejected.id, "#EXTM3U\n#EXTINF:-1,Film (2000)\n$origin/movie/rejected/bad/4.mp4", "1")
             val sources = listOf(direct, short, rejected, native)
             val prefs = preferences(MutableStateFlow(sources))

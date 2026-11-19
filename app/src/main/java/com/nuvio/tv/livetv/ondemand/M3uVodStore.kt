@@ -48,7 +48,7 @@ internal class M3uVodStore(private val context: Context) :
 
     fun stamp(pl: PlaylistSource): String {
         val file = file(pl)
-        if (!file.exists()) return ""
+        if (!file.exists() || !belongsTo(file, pl)) return ""
         return m3uDigest(config(pl), runCatching { File(file.parentFile, file.name + ".stamp").readText().trim() }.getOrNull()?.takeIf(String::isNotEmpty)
             ?: "${file.length()}-${file.lastModified()}")
     }
@@ -70,23 +70,39 @@ internal class M3uVodStore(private val context: Context) :
     fun rememberLogin(pl: PlaylistSource, login: M3uLogin?) {
         val db = writableDatabase
         db.execSQL("INSERT OR IGNORE INTO sources(pl,config) VALUES(?,?)", arrayOf(pl.id, config(pl)))
-        db.execSQL("UPDATE sources SET config=?, server=?, username=?, password=? WHERE pl=?",
-            arrayOf(config(pl), login?.server, login?.username, login?.password, pl.id))
+        db.execSQL("UPDATE sources SET generation=CASE WHEN config=? THEN generation END, config=?, server=?, username=?, password=? WHERE pl=?",
+            arrayOf(config(pl), config(pl), login?.server, login?.username, login?.password, pl.id))
     }
 
-    fun candidates(pl: PlaylistSource): List<M3uLogin> {
-        M3uLogin.direct(pl)?.let { return listOf(it) }
+    suspend fun acceptedLogin(pl: PlaylistSource, accepts: (M3uLogin) -> Boolean): M3uLogin? {
+        M3uLogin.direct(pl)?.let { return it.takeIf(accepts) }
         val file = file(pl)
-        if (!file.isFile) return emptyList()
+        if (!file.isFile || !belongsTo(file, pl)) return null
         return reader(file).use { input ->
-            val logins = LinkedHashMap<String, M3uLogin>()
-            for (line in input.lineSequence().map(String::trim).filter { it.isNotEmpty() && it[0] != '#' }.take(256)) {
-                M3uLogin.channel(line.substringBefore('|').trim())?.let { logins.putIfAbsent(it.key(), it) }
-                if (logins.size == 3) break
+            val tried = HashSet<String>()
+            var scanned = 0
+            for (raw in input.lineSequence()) {
+                if (++scanned % 512 == 0) { BackgroundWork.awaitIdle(); BackgroundWork.yieldToNavigation() }
+                val line = raw.trim()
+                if (line.isEmpty() || line[0] == '#') continue
+                val candidate = M3uLogin.channel(line.substringBefore('|').trim()) ?: continue
+                if (tried.add(candidate.key())) {
+                    if (accepts(candidate)) return@use candidate
+                    if (tried.size >= 3) break
+                }
             }
-            logins.values.toList()
+            null
         }
     }
+
+    private fun belongsTo(file: File, pl: PlaylistSource): Boolean {
+        val origin = File(file.parentFile, file.name + ".vod-origin")
+        return !origin.exists() || runCatching { origin.readText() == config(pl) }.getOrDefault(false)
+    }
+
+    fun current(pl: PlaylistSource): Boolean = readableDatabase.rawQuery(
+        "SELECT 1 FROM sources WHERE pl=? AND config=? AND generation IS NOT NULL",
+        arrayOf(pl.id, config(pl))).use { it.moveToFirst() }
 
     fun indexed(pl: PlaylistSource, stamp: String): Boolean = readableDatabase.rawQuery(
         "SELECT 1 FROM sources WHERE pl=? AND config=? AND stamp=? AND generation IS NOT NULL",
@@ -192,6 +208,7 @@ internal class M3uVodStore(private val context: Context) :
     }
 
     fun resolve(pl: PlaylistSource, item: VodItem, season: Int?, episode: Int?, entry: String?): StalkerPortalClient.Link? {
+        if (!current(pl)) return null
         val clause = if (entry == null) "" else " AND entry=?"
         val args = listOf(pl.id, item.kind.key, item.id, (season ?: -1).toString(), (episode ?: -1).toString()) + listOfNotNull(entry)
         return readableDatabase.rawQuery("SELECT url,headers FROM links WHERE pl=? AND $active AND kind=? AND item=? AND season=? AND episode=?$clause ORDER BY rowid LIMIT 1",

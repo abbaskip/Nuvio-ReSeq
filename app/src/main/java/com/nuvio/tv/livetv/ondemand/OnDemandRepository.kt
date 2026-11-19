@@ -408,10 +408,9 @@ class OnDemandRepository @Inject constructor(
 
     private val probeHttp by lazy { detailHttp.newBuilder().followRedirects(false).followSslRedirects(false).build() }
 
-    private fun prepareM3u(pl: PlaylistSource) {
+    private suspend fun prepareM3u(pl: PlaylistSource) {
         val previous = db.m3u.login(pl)
-        val candidates = db.m3u.candidates(pl)
-        val accepted = candidates.firstOrNull { candidate ->
+        val accepted = db.m3u.acceptedLogin(pl) { candidate ->
             val source = candidate.forCatalog(pl)
             try {
                 val response = JSONObject(getText(source.xtreamApiUrl(), pl.userAgent, probeHttp)).optJSONObject("user_info")
@@ -756,7 +755,7 @@ class OnDemandRepository @Inject constructor(
     /** Provider details for a movie or series (series include every episode). Cached. */
     suspend fun info(item: VodItem): VodInfo? = withContext(Dispatchers.IO) {
         val stored = playlist(item.playlistId) ?: return@withContext null
-        if (stored.isM3u && item.id.startsWith("m3u-")) return@withContext db.m3u.info(item)
+        if (stored.isM3u && item.id.startsWith("m3u-")) return@withContext if (db.m3u.current(stored)) db.m3u.info(item) else null
         val pl = if (stored.isM3u) db.m3u.login(stored)?.forCatalog(stored) ?: return@withContext null else stored
         val cacheKey = item.uid + ":" + _version.value + ":" + java.security.MessageDigest.getInstance("SHA-256").digest(
             listOf(pl.xtreamServer, pl.xtreamUsername, pl.xtreamPassword, pl.userAgent, pl.stalkerPortal, pl.stalkerMac, pl.stalkerUsername, pl.stalkerPassword, pl.stalkerSerial).joinToString("\u0000").toByteArray()).toHexString()

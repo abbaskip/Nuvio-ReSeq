@@ -293,6 +293,7 @@ class LiveTvRepository @Inject constructor(
     }
 
     suspend fun updatePlaylist(input: PlaylistSource) {
+        if (input.isM3u && input.importVod) rememberPreviousM3uFile(input)
         val source = if (input.isXtream) {
             val fromLink = PlaylistSource.credentialsFromLink(input.xtreamServer)
             input.copy(
@@ -320,6 +321,7 @@ class LiveTvRepository @Inject constructor(
     suspend fun removePlaylist(id: String) {
         prefs.updatePlaylists { list -> list.filterNot { it.id == id } }
         File(playlistDir, "$id.m3u").delete()
+        File(playlistDir, "$id.m3u.vod-origin").delete()
         embeddedEpgUrls.remove(id)
         dropPlaylistNow(id)
         scope.launch { rebuild() }
@@ -617,7 +619,7 @@ class LiveTvRepository @Inject constructor(
             }
         }
         sweep(epgDir, { it.substringBefore(".xml").substringBefore(".tmp") }, guideIds)
-        sweep(playlistDir, { it.removeSuffix(".meta").removeSuffix(".stamp").removeSuffix(".m3u") }, playlistIds)
+        sweep(playlistDir, { it.removeSuffix(".vod-origin").removeSuffix(".meta").removeSuffix(".stamp").removeSuffix(".m3u") }, playlistIds)
         if (count > 0) LIVE_REPORT.add("Cleanup: deleted $count saved guide/playlist files no source uses (${freed / (1024 * 1024)} MB freed)")
     }
 
@@ -667,7 +669,11 @@ class LiveTvRepository @Inject constructor(
                         full = pl.importVod && (forcePlaylists || pl.id in forceIds))
                 }
                 // M3U links from Xtream providers (get.php with a login): the account's details.
-                if (!pl.isXtream && !pl.isStalker) refreshM3uAccount(pl)
+                if (pl.isM3u) {
+                    if (result.isSuccess && (pl.importVod || File(file.parentFile, file.name + ".vod-origin").exists()))
+                        withContext(Dispatchers.IO) { runCatching { rememberM3uFile(file, pl) } }
+                    refreshM3uAccount(pl)
+                }
                 val err = result.exceptionOrNull()?.let { e ->
                     when (e) {
                         is java.net.UnknownHostException -> "Couldn't find the provider's server (${e.message?.substringAfter("\"")?.substringBefore("\"") ?: "address"}). Check the address, your internet, or try again later."
@@ -2462,6 +2468,23 @@ class LiveTvRepository @Inject constructor(
     }
 
     // ---------------------------------------------------------------- IO helpers
+
+    private suspend fun rememberPreviousM3uFile(input: PlaylistSource) {
+        val previous = prefs.currentPlaylists().firstOrNull { it.id == input.id } ?: return
+        if (previous.url != input.url || previous.userAgent != input.userAgent)
+            withContext(Dispatchers.IO) { rememberM3uFile(playlistFile(input.id), previous) }
+    }
+
+    @Synchronized
+    private fun rememberM3uFile(file: File, source: PlaylistSource) {
+        if (!file.exists()) return
+        val stamp = File(file.parentFile, file.name + ".vod-origin")
+        val origin = com.nuvio.tv.livetv.ondemand.m3uDigest(source.url, source.userAgent)
+        if (stamp.isFile && stamp.readText() == origin) return
+        val next = File(file.parentFile, file.name + ".vod-origin.tmp")
+        next.writeText(origin)
+        ImportWorkFiles.publishDownloaded(next, stamp)
+    }
 
     private fun playlistFile(id: String) = sourceFile(playlistDir, "playlists", "$id.m3u")
     private fun epgFile(id: String) = sourceFile(epgDir, "epg", "$id.xml")

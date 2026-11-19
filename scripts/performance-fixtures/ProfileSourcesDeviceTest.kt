@@ -22,7 +22,7 @@ import java.io.File
 class ProfileSourcesDeviceTest {
     @Test fun twoProfilesRetainTheirOwnAddonOrderPlaylistSelectionAndLastLink() = runBlocking {
         val app = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("io.github.abbaskip.nuvioreseq.perfprofiles", app.packageName)
+        assertEquals("io.github.abbaskip.nuvioreseq.debug", app.packageName)
         val entry = EntryPointAccessors.fromApplication(app.applicationContext, ProfileSourcesFixtureEntryPoint::class.java)
         val profiles = entry.profiles()
         val order = entry.sources()

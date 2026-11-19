@@ -46,6 +46,8 @@ class ReSeqJourneyActivity : ComponentActivity() {
     @Inject lateinit var preferences: LiveTvPreferences
     @Inject lateinit var live: LiveTvRepository
     @Inject lateinit var vod: OnDemandRepository
+    @Inject lateinit var streamMatcher: com.nuvio.tv.livetv.ondemand.IptvVodStreams
+    @Inject lateinit var profiles: com.nuvio.tv.core.profile.ProfileManager
     @Inject lateinit var livePlayer: com.nuvio.tv.livetv.player.LiveTvPlaybackController
     private var player: ExoPlayer? = null
     private var sessionUrl: String? = null
@@ -119,6 +121,20 @@ class ReSeqJourneyActivity : ComponentActivity() {
                     val programs = preferences.currentEpgSources().single().programCount
                     check(programs > 0) { "Empty comparison guide" }
                     report.put("guideMs", clock() - guideStart).put("programs", programs)
+                    val samples = org.json.JSONArray()
+                    repeat(3) { i ->
+                        val sample = guide.copy(id = "perf-guide-$i", name = "Guide trial $i", url = "$HTTP/large.xml?trial=$i")
+                        preferences.updateEpgSources { listOf(sample) }
+                        val started = clock()
+                        live.refreshInternal(false, true)
+                        val elapsed = clock() - started
+                        val lines = com.nuvio.tv.livetv.model.LiveTvLoadReport.lines.value
+                        check(preferences.currentEpgSources().single().programCount == programs)
+                        check(lines.any { it.contains(sample.name) && it.contains("read and set aside") })
+                        val matched = lines.last { it.contains("Guide matched and stored:") }.substringAfterLast(" in ").substringBefore(" ms").toLong()
+                        samples.put(JSONObject().put("totalMs", elapsed).put("parseMatchStoreMs", matched))
+                    }
+                    report.put("independentGuideImports", samples)
                 }
                 val exo = livePlayer.attach()
                 view.player = exo
@@ -163,15 +179,40 @@ class ReSeqJourneyActivity : ComponentActivity() {
                 livePlayer.detach()
                 job.join()
                 check(live.channels.value.any { it.name == "Updated Channel 1" })
+                val native = PlaylistSource("perf-native", "Existing fixture", "$HTTP/get.php", xtreamServer = HTTP,
+                    xtreamUsername = "fixture", xtreamPassword = "fixture", importVod = true, importLive = false)
+                preferences.updatePlaylists { listOf(changed, native) }
+                vod.refresh(force = true, onlyId = native.id)
+                suspend fun sampleStreams(id: String, plain: Boolean): JSONObject {
+                    val elapsed = mutableListOf<Long>()
+                    repeat(45) { n ->
+                        val index = if (plain) n * 2000 + 1 else n + 1
+                        val target = if (plain) com.nuvio.tv.livetv.ondemand.VodStreamTarget(VodKind.MOVIE, null, "Film $index", 2024)
+                            else com.nuvio.tv.livetv.ondemand.VodStreamTarget(VodKind.MOVIE, (1000 + index).toString(),
+                                "Fixture Movie " + index.toString().padStart(3, '0'), null)
+                        val t = System.nanoTime()
+                        val found = streamMatcher.load(com.nuvio.tv.livetv.ondemand.IptvStreamSources.PREFIX + id,
+                            "Fixture", target, profiles.activeProfileId.value)
+                        val time = (System.nanoTime() - t) / 1000
+                        check(found.size == 1 && found.single().iptvPlaylistId == id)
+                        if (n >= 5) elapsed.add(time)
+                    }
+                    elapsed.sort()
+                    return JSONObject().put("samples", elapsed.size).put("medianUs", (elapsed[19] + elapsed[20]) / 2)
+                        .put("p95Us", elapsed[37])
+                }
+                report.put("nativeStreamLookupBefore", sampleStreams(native.id, false))
                 if (intent.getBooleanExtra("testM3uVod", false)) withContext(Dispatchers.IO) {
                     val optIn = changed.copy(importVod = true)
-                    preferences.updatePlaylists { listOf(optIn) }
+                    preferences.updatePlaylists { listOf(optIn, native) }
                     val start = clock()
                     vod.refresh(force = true, onlyId = optIn.id)
                     check(vod.status.value.message == null) { "Plain M3U catalogue did not finish" }
                     val movies = vod.categories(VodKind.MOVIE).filter { it.playlistId == optIn.id }.sumOf { it.count }
                     check(movies == 98_000) { "Incomplete plain M3U catalogue: $movies" }
                     report.put("vodMovies", movies).put("vodImportMs", clock() - start)
+                    report.put("nativeStreamLookupAfter", sampleStreams(native.id, false))
+                    report.put("plainStreamLookup", sampleStreams(optIn.id, true))
                     val database = getDatabasePath("m3u-vod-links.db")
                     report.put("vodLinkBytes", listOf(database, File(database.path + "-wal")).sumOf { it.length() })
                     report.put("vodProcessHighWaterKiB", File("/proc/self/status").useLines { lines ->

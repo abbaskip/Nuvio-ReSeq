@@ -14,7 +14,7 @@ CLIP = (ROOT / "app/src/test/resources/usenet/test-pattern.mp4").read_bytes()
 CHANNELS = [{"stream_id": i, "num": i, "name": f"Channel {i:03}", "category_id": "1",
              "epg_channel_id": f"channel{i}"} for i in range(1, 81)]
 MOVIES = [{"stream_id": i, "name": f"Fixture Movie {i:03}", "category_id": "2",
-           "container_extension": "mp4", "added": str(1000 + i)} for i in range(1, 65)]
+           "container_extension": "mp4", "tmdb": str(1000 + i), "added": str(1000 + i)} for i in range(1, 65)]
 
 
 def sports():

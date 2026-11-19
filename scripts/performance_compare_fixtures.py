@@ -13,7 +13,7 @@ for name in ("large", "large-alt"):
         for n in range(1, 100001):
             live = n % 50 == 0
             i = n // 50 if live else n
-            title = ("Channel " if live else "Film ") + str(i)
+            title = f"Channel {i}" if live else f"Film {i} (2024)"
             if name == "large-alt" and live and i == 1:
                 title = "Updated Channel 1"
             group = "Live" if live else "Films"

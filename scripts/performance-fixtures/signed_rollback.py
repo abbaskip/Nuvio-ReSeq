@@ -74,9 +74,7 @@ class Provider(Web):
 
 
 def signed_apks():
-    sdk = Path(os.environ["ANDROID_HOME"]) / "build-tools"
-    version = max((p for p in sdk.iterdir() if re.fullmatch(r"\d+\.\d+\.\d+", p.name)),
-                  key=lambda p: tuple(int(v) for v in p.name.split(".")))
+    version = Path(os.environ["ANDROID_HOME"]) / "build-tools/36.0.0"
     keys, apks = set(), {}
     for label, digest in APK_HASHES.items():
         apk, = (ROOT / "build/rollback-apks" / label).rglob("*-x86_64.apk")
@@ -335,6 +333,10 @@ def exercise():
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--apks-only"]:
+        OUT.mkdir(parents=True, exist_ok=True)
+        signed_apks()
+        sys.exit(0)
     try:
         exercise()
     except Exception:

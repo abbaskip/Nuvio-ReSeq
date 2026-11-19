@@ -32,6 +32,10 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
       - name: Download the three original signed packages
         env:
           GH_TOKEN: ${{ github.token }}
@@ -40,6 +44,7 @@ jobs:
             gh release download "v0.1.0-beta.$beta" --repo "$GITHUB_REPOSITORY" --pattern '*-x86_64.apk' --dir "build/rollback-apks/$beta"
           done
           gh run download 44579904228 --repo "$GITHUB_REPOSITORY" --name 'ReSeq-0.1.0-beta.10.12-verified-apks' --dir build/rollback-apks/integration
+          python3 -u scripts/performance-fixtures/signed_rollback.py --apks-only
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm

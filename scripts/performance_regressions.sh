@@ -4,6 +4,9 @@ export ANDROID_SERIAL=emulator-5554
 [[ "$(adb shell getprop ro.kernel.qemu | tr -d '\r')" == 1 ]]
 out=build/performance-regressions
 mkdir -p "$out"
+if [[ "${PERF_DEVICE_WORKLOAD:-regressions}" == playback ]]; then
+    exec bash scripts/performance_state_playback.sh
+fi
 python3 scripts/stability_fixtures.py > "$out/fixture-server.txt" 2>&1 &
 server=$!
 trap 'kill "$server" || true' EXIT

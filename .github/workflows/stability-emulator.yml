@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, followup]
+        options: [full, instrumentation, profile, compare, regressions, followup, playback]
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   regressions:
-    if: inputs.workload == 'regressions' || inputs.workload == 'followup'
+    if: inputs.workload == 'regressions' || inputs.workload == 'followup' || inputs.workload == 'playback'
     runs-on: ubuntu-latest
     timeout-minutes: 115
     strategy:
@@ -43,6 +43,7 @@ jobs:
         run: |
           git checkout --detach v0.1.0-beta.10.12
           git show "$GITHUB_SHA:scripts/performance_regressions.sh" > scripts/performance_regressions.sh
+          git show "$GITHUB_SHA:scripts/performance_state_playback.sh" > scripts/performance_state_playback.sh
           git show "$GITHUB_SHA:scripts/stability_run.py" > scripts/stability_run.py
           fixture=app/src/stabilityFixtures/java/com/nuvio/tv/profiling/StabilityJourneyActivity.kt
           git show "$GITHUB_SHA:$fixture" > "$fixture"

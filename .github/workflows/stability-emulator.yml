@@ -8,7 +8,11 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording, reminder, first-card, rollback, profile-sources]
+        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording, reminder, first-card, rollback, profile-sources, sports-delivery, profile-cost]
+      review_ref:
+        description: 'Integration or bisect commit for follow-up measurements'
+        type: string
+        default: '6c80c0106ce07dae3cb08576ce45e6a5c541857c'
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -23,6 +27,86 @@ permissions:
   contents: read
 
 jobs:
+  delivery-build:
+    if: inputs.workload == 'sports-delivery'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    strategy:
+      fail-fast: false
+      matrix:
+        side: [published, integration]
+    env:
+      CI_USE_DEBUG_SIGNING: 'true'
+      REVIEW_REF: ${{ inputs.review_ref }}
+      SIDE: ${{ matrix.side }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Use identical observations in both minified targets
+        run: |
+          ref="$REVIEW_REF"
+          if [[ "$SIDE" == published ]]; then ref=v0.1.0-beta.10.12; fi
+          git checkout --detach "$ref"
+          fixture=app/src/stabilityFixtures/java/com/nuvio/tv/profiling/StabilityJourneyActivity.kt
+          git show "$GITHUB_SHA:$fixture" > "$fixture"
+          sed -i 's/"matches" to matches.size,/"matches" to matches.size, "hasChannel" to matches.values.any { it.isNotEmpty() },/' "$fixture"
+          grep -q '"hasChannel"' "$fixture"
+          git show "$GITHUB_SHA:scripts/performance-fixtures/SportsDeliveryTest.kt" > baselineprofile/src/main/java/com/nuvio/tv/baselineprofile/SportsDeliveryTest.kt
+          sed -i 's/namespace = "com.nuvio.tv.baselineprofile"/namespace = "com.nuvio.tv.delivery.runner"/' baselineprofile/build.gradle.kts
+      - uses: ./.github/actions/gradle
+        with:
+          encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+      - name: Package minified ARM and x86 targets with the test runner
+        run: |
+          ./gradlew :app:assembleFullBenchmark :baselineprofile:assembleBenchmarkRelease --max-workers=2 -PstabilityFixtures=true -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
+          mkdir -p build/delivery
+          cp app/build/outputs/apk/full/benchmark/*-armeabi-v7a-benchmark.apk build/delivery/arm.apk
+          cp app/build/outputs/apk/full/benchmark/*-x86-benchmark.apk build/delivery/x86.apk
+          cp "$(find baselineprofile/build/outputs/apk -name '*-benchmarkRelease.apk')" build/delivery/runner.apk
+          unzip -t build/delivery/arm.apk assets/dexopt/baseline.prof
+          git rev-parse HEAD > build/delivery/application-revision.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: delivery-${{ matrix.side }}
+          path: build/delivery/
+          retention-days: 5
+          compression-level: 0
+
+  delivery-guest:
+    needs: delivery-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v6
+        with:
+          name: delivery-published
+          path: build/delivery/published
+      - uses: actions/download-artifact@v6
+        with:
+          name: delivery-integration
+          path: build/delivery/integration
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: android-tv
+          arch: x86
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: python3 -u scripts/performance-fixtures/sports_delivery.py --serial emulator-5554 --abi x86 --apks build/delivery --output build/delivery-evidence
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: sports-delivery-evidence
+          path: build/delivery-evidence/
+
   profile-sources:
     if: inputs.workload == 'profile-sources'
     runs-on: ubuntu-latest

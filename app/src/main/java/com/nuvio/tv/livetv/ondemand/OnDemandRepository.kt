@@ -917,7 +917,8 @@ class OnDemandRepository @Inject constructor(
         val playlistId: String = "",
         val languages: Set<String> = emptySet(),
         val categoryName: String = "",
-        val episodeTitle: String = ""
+        val episodeTitle: String = "",
+        val catalogEntry: String = ""
     )
 
     /** Indexed title lookup; no catalogue import or broad scan is required to open an episode. */
@@ -955,11 +956,11 @@ class OnDemandRepository @Inject constructor(
                         OnDemandSource("${pl.name} · S${episode.season}E${episode.episode} · ${episode.ext.uppercase()}", episode.url, headers,
                             item.name, item.year, pl.name, episode.ext, episode.tech,
                             "S%02dE%02d".format(episode.season, episode.episode), pl.id,
-                            VodLanguagePreference.resolve(episode.tech?.languageCode ?: episode.tech?.language, episode.title, item.name, category), category, episode.title)
+                            VodLanguagePreference.resolve(episode.tech?.languageCode ?: episode.tech?.language, episode.title, item.name, category), category, episode.title, "series:${item.id}:${episode.id}")
                     } else movieUrl(item)?.let { url -> listOf(OnDemandSource(
                         "${pl.name} · ${(item.ext ?: "mp4").uppercase()}", url, headers,
                         item.name, item.year, pl.name, item.ext ?: "mp4", detail?.tech, playlistId = pl.id,
-                        languages = VodLanguagePreference.resolve(detail?.tech?.languageCode ?: detail?.tech?.language, null, item.name, category), categoryName = category)) }.orEmpty()
+                        languages = VodLanguagePreference.resolve(detail?.tech?.languageCode ?: detail?.tech?.language, null, item.name, category), categoryName = category, catalogEntry = "movie:${item.id}")) }.orEmpty()
                 }
             } }.let { kotlinx.coroutines.awaitAll(*it.toTypedArray()).flatten() }
                 .let { VodSourceRanking.sort(it, preferredLanguage) }

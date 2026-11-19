@@ -36,6 +36,11 @@ class M3uVodIntegrationTest {
         app.deleteDatabase("livetv_on_demand.db")
         app.deleteDatabase("m3u-vod-links.db")
     }
+    private inline fun withDatabase(action: (OnDemandDatabase) -> Unit) {
+        val db = OnDemandDatabase(app)
+        try { action(db) } finally { db.close() }
+    }
+
     private fun preferences(sources: MutableStateFlow<List<PlaylistSource>>): LiveTvPreferences {
         val prefs = mockk<LiveTvPreferences>(relaxed = true)
         every { prefs.playlists } returns sources
@@ -75,7 +80,7 @@ class M3uVodIntegrationTest {
         val existing = VodItem("original", VodKind.MOVIE, "777", "Existing (2021)", null, "1", "mp4", null, 2021, null, 0L)
         val native = PlaylistSource("original", "Existing", "", xtreamServer = "https://example.test", importVod = true)
         val both = preferences(MutableStateFlow(listOf(pl, native)))
-        OnDemandDatabase(app).use { db ->
+        withDatabase { db ->
             db.replace(native.id, existing.kind, listOf("1" to "Original")) { emit -> emit(existing); true }
             val repo = OnDemandRepository(db, both)
             repo.refresh(true, pl.id)
@@ -99,15 +104,15 @@ class M3uVodIntegrationTest {
             val link = repo.resolvePortalMarker(episode.url)
             assertEquals("episode-agent", link.headers["User-Agent"])
             assertEquals("http://example.test/show03.mkv", link.url)
-            db.m3u.close()
+
         }
         writePlaylist(pl.id, fixture.replace("fixturePassword", "rotated").replace("show05", "show005"), "2")
-        OnDemandDatabase(app).use { db ->
+        withDatabase { db ->
             val repo = OnDemandRepository(db, prefs)
             repo.refresh(true, pl.id)
             assertTrue(repo.resolvePortalMarker(resume).url.endsWith("token=rotated"))
             assertNotNull(repo.itemByUid(seriesUid))
-            db.m3u.close()
+
         }
     }
 
@@ -139,7 +144,7 @@ class M3uVodIntegrationTest {
             writePlaylist(rejected.id, "#EXTM3U\n#EXTINF:-1,Film (2000)\n$origin/movie/rejected/bad/4.mp4", "1")
             val sources = listOf(direct, short, rejected, native)
             val prefs = preferences(MutableStateFlow(sources))
-            OnDemandDatabase(app).use { db ->
+            withDatabase { db ->
                 val repo = OnDemandRepository(db, prefs)
                 for (pl in sources.take(3)) {
                     repo.refresh(true, pl.id)
@@ -153,6 +158,16 @@ class M3uVodIntegrationTest {
                     assertFalse(ep.url.contains("fixturePass"))
                     assertEquals("$origin/series/fixtureUser/fixturePass/83.mkv", repo.resolvePortalMarker(ep.url).url)
                 }
+                val activeProfile = mockk<com.nuvio.tv.core.profile.ProfileManager>()
+                every { activeProfile.activeProfileId } returns MutableStateFlow(1)
+                val order = mockk<IptvStreamSources>()
+                coEvery { order.alternatives(native.id) } returns listOf(short, direct)
+                val streams = IptvVodStreams(repo, mockk(), mockk(), prefs, activeProfile, sourceOrdering = order)
+                // The native account was deliberately not imported. Its enabled M3U copies can still supply the title.
+                val merged = streams.load(IptvStreamSources.PREFIX + native.id, "Native", VodStreamTarget(
+                    VodKind.MOVIE, "17", "Feature", 2022), 1)
+                assertEquals(1, merged.size)
+                assertEquals(short.id, merged.single().iptvPlaylistId)
                 assertNull(repo.m3uProviderKey(rejected))
                 assertTrue(db.byTitle(VodKind.MOVIE, "Film").any { it.playlistId == rejected.id && it.id.startsWith("m3u-") })
                 fun included(order: List<String>) = IptvStreamSources.uniqueM3uProviders(sources, order, emptySet()) {
@@ -160,8 +175,35 @@ class M3uVodIntegrationTest {
                 }.map { it.id }
                 assertEquals(listOf("rejected", "native"), included(emptyList()))
                 assertEquals(listOf("short", "rejected"), included(listOf(IptvStreamSources.PREFIX + short.id)))
-                db.m3u.close()
+
             }
+        }
+    }
+
+    @Test fun interruptedPlainImportRetainsThePlayableGeneration() = runBlocking {
+        reset()
+        val source = PlaylistSource("broken", "Fixture", "https://example.test/list", importVod = true)
+        val prefs = preferences(MutableStateFlow(listOf(source)))
+        val fixture = "#EXTM3U\n#EXTINF:-1,Kept (2022)\nhttps://example.test/old.mp4"
+        writePlaylist(source.id, fixture, "original")
+        withDatabase { db ->
+            val repo = OnDemandRepository(db, prefs)
+            repo.refresh(true, source.id)
+            val old = repo.movieUrl(db.byTitle(VodKind.MOVIE, "Kept").single())!!
+            val many = buildString {
+                appendLine("#EXTM3U")
+                for (n in 1..600) {
+                    appendLine("#EXTINF:-1,Replacement $n")
+                    appendLine("https://example.test/new$n.mp4")
+                }
+            }
+            writePlaylist(source.id, many, "damaged")
+            val file = File(app.cacheDir, "livetv_sources/playlists/${source.id}.m3u")
+            java.io.RandomAccessFile(file, "rw").use { it.setLength(it.length() - 5) }
+            repo.refresh(true, source.id)
+            assertNotNull(repo.status.value.message)
+            assertEquals("https://example.test/old.mp4", repo.resolvePortalMarker(old).url)
+            assertEquals(1, db.count(VodKind.MOVIE))
         }
     }
 }

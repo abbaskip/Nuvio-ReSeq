@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import os
 from pathlib import Path
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Thread
@@ -78,6 +79,9 @@ class Web(BaseHTTPRequestHandler):
             body = ("#EXTM3U\n" + "\n".join(f'#EXTINF:-1 group-title="Fixture channels",{c["name"]}\n'
                     f'{BASE}/live/fixture/fixture/{c["stream_id"]}.ts' for c in CHANNELS)).encode()
             mime = "audio/x-mpegurl"
+        elif os.environ.get("RESEQ_COMPARISON_DATA") and url.path in ("/large.m3u", "/large-alt.m3u", "/large.xml", "/continuous.ts"):
+            body = (Path(os.environ["RESEQ_COMPARISON_DATA"]) / url.path[1:]).read_bytes()
+            mime = "video/mp2t" if url.path.endswith(".ts") else "application/octet-stream"
         elif url.path == "/xmltv.php":
             body, mime = guide(), "application/xml"
         elif url.path == "/sports":

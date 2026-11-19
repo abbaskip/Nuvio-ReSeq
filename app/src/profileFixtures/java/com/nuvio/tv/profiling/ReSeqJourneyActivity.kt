@@ -46,6 +46,7 @@ class ReSeqJourneyActivity : ComponentActivity() {
     @Inject lateinit var preferences: LiveTvPreferences
     @Inject lateinit var live: LiveTvRepository
     @Inject lateinit var vod: OnDemandRepository
+    @Inject lateinit var livePlayer: com.nuvio.tv.livetv.player.LiveTvPlaybackController
     private var player: ExoPlayer? = null
     private var sessionUrl: String? = null
 
@@ -70,6 +71,7 @@ class ReSeqJourneyActivity : ComponentActivity() {
             "vod" -> setContent {
                 NuvioTheme { OnDemandHomeScreen({}, null, { _, _, _, _ -> }, { _, _, _, _ -> }, {}) }
             }
+            "compare" -> compareImports()
             "usenet" -> playLocalArticle()
             else -> error("Unknown profile journey")
         }
@@ -90,6 +92,80 @@ class ReSeqJourneyActivity : ComponentActivity() {
         live.channels.first { it.size >= 60 }
         vod.refresh(force = true, onlyId = source.id)
         check(vod.categories(VodKind.MOVIE).any { it.name == "Fixture movies" })
+    }
+
+    private fun compareImports() {
+        val view = PlayerView(this).apply { useController = false }
+        setContentView(view)
+        lifecycleScope.launch {
+            withTimeout(360_000) {
+                val clock = { android.os.SystemClock.elapsedRealtime() }
+                val pl = PlaylistSource("perf-large", "Comparison", "$HTTP/large.m3u", useEmbeddedEpg = false)
+                val report = JSONObject()
+                withContext(Dispatchers.IO) {
+                    check(preferences.currentPlaylists().isEmpty())
+                    preferences.updatePlaylists { listOf(pl) }
+                    val start = clock()
+                    live.refreshInternal(false, false, setOf(pl.id))
+                    val channels = live.channels.value
+                    check(channels.size == 2_000)
+                    report.put("playlistMs", clock() - start).put("channels", channels.size)
+                    report.put("channelKeyHash", channels.map { it.key to it.number }.hashCode())
+                    val guide = com.nuvio.tv.livetv.model.EpgSource("perf-guide", "Comparison guide", "$HTTP/large.xml")
+                    preferences.updateEpgSources { listOf(guide) }
+                    val guideStart = clock()
+                    live.refreshInternal(false, true)
+                    val programs = preferences.currentEpgSources().single().programCount
+                    check(programs > 0) { "Empty comparison guide" }
+                    report.put("guideMs", clock() - guideStart).put("programs", programs)
+                }
+                val exo = livePlayer.attach()
+                view.player = exo
+                var underruns = 0
+                var rebuffers = 0
+                exo.addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
+                    override fun onAudioUnderrun(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
+                        bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) { underruns++ }
+                })
+                exo.addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(state: Int) { if (state == Player.STATE_BUFFERING) rebuffers++ }
+                })
+                livePlayer.play(live.channels.value.first(), overrideUrl = "$HTTP/continuous.ts")
+                livePlayer.state.first { it.isPlaying }
+                kotlinx.coroutines.delay(2_000)
+                fun sample(): IntArray {
+                    val c = checkNotNull(exo.videoDecoderCounters)
+                    c.ensureUpdated()
+                    return intArrayOf(c.renderedOutputBufferCount, c.droppedBufferCount, underruns, rebuffers)
+                }
+                suspend fun interval(name: String, work: (() -> Unit)? = null) {
+                    val before = sample()
+                    work?.invoke()
+                    kotlinx.coroutines.delay(20_000)
+                    val after = sample()
+                    val fields = listOf("rendered", "dropped", "underruns", "rebuffers")
+                    val counts = JSONObject()
+                    fields.forEachIndexed { index, key -> counts.put(key, after[index] - before[index]) }
+                    check(counts.getInt("rendered") > 0) { "Fixture video stopped rendering" }
+                    report.put(name, counts)
+                }
+                interval("idle")
+                // A changed playlist forces real decoding and a guide update while video is visible.
+                val changed = pl.copy(url = "$HTTP/large-alt.m3u")
+                withContext(Dispatchers.IO) { preferences.updatePlaylists { listOf(changed) } }
+                lateinit var job: kotlinx.coroutines.Job
+                interval("updating") {
+                    job = lifecycleScope.launch(Dispatchers.IO) { live.refreshInternal(false, true, setOf(pl.id)) }
+                }
+                livePlayer.stop()
+                view.player = null
+                livePlayer.detach()
+                job.join()
+                check(live.channels.value.any { it.name == "Updated Channel 1" })
+                android.util.Log.i("ReSeqPerfCheck", report.toString())
+                setContent { Text("Comparison complete $report") }
+            }
+        }
     }
 
     private fun playLocalArticle() {

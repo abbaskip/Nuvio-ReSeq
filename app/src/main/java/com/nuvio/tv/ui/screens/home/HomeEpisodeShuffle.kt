@@ -274,7 +274,7 @@ private fun HomeViewModel.requestHomeShuffleMetadata(
     val nativeCards = _uiState.map { it.continueWatchingItems + it.upcomingItems }.distinctUntilChanged()
     val jobs = mutableMapOf<String, Job>()
     val lastAttempt = mutableMapOf<String, Long>()
-    combine(nativeCards, seeds, episodeShuffleStore.profiles, shuffleHomeRefresh, PlayerSessionTracker.isSessionOpen) {
+    combine(nativeCards, seeds, episodeShuffleStore.profiles, shuffleHomeRefresh, PlayerSessionTracker.bulkPlaybackActive) {
         native, finished, profile, _, playing ->
         val targets = linkedMapOf<String, Pair<WatchProgress, Boolean>>()
         fun add(seed: WatchProgress) {

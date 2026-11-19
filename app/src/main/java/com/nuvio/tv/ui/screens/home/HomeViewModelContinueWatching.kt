@@ -4,6 +4,7 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.nuvio.tv.core.network.NetworkResult
+import com.nuvio.tv.data.cw.launchWhenCwPlaybackIdle
 import com.nuvio.tv.data.cw.completionActivityAt
 import com.nuvio.tv.core.util.isEpisodeReleaseAired
 import com.nuvio.tv.core.util.parseEpisodeReleaseInstant
@@ -287,9 +288,7 @@ private class CwDebugSession {
 @OptIn(kotlinx.coroutines.FlowPreview::class)
 internal fun HomeViewModel.loadContinueWatchingPipeline() {
     cwPipelineJob?.cancel()
-    cwPipelineJob = viewModelScope.launch(Dispatchers.Default) {
-        // Committed history edits resolve while Details/player is open too.
-        coroutineScope {
+    cwPipelineJob = viewModelScope.launchWhenCwPlaybackIdle(Dispatchers.Default) {
         combine(
             continueWatchingRepository.settledProgress,
             combine(
@@ -710,6 +709,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                 // Emit partial updates every few resolved items so user sees
                                 // new CW entries appearing progressively.
                                 val discoveredNextUpItems = mutableListOf<ContinueWatchingItem.NextUp>()
+                                val resolvedSeedKeys = mutableMapOf<String, String>()
                                 var resolvedSinceLastEmit = 0
                                 for (seed in uncachedSeeds) {
                                     val seedKey = buildNextUpSeedCacheKey(seed, showUnairedNextUp)
@@ -732,7 +732,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                         )
                                     }
                                     if (item != null) {
-                                        cwProcessedOlderSeedContentIds[seed.contentId] = processedKey
+                                        resolvedSeedKeys[seed.contentId] = processedKey
                                         conclusivelyProcessedOlderContentIds += seed.contentId
                                         if (
                                             inWindow(item.info.contentId, item.info.lastWatched, item.info.isReleaseAlert)
@@ -848,6 +848,8 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                         pipelineProfileId = pipelineProfileId,
                                         persistSnapshot = true
                                     )
+                                    // Playback can cancel a partial batch. Only skip seeds after settlement.
+                                    cwProcessedOlderSeedContentIds.putAll(resolvedSeedKeys)
                                 }
                             }
                         }
@@ -1021,7 +1023,6 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 throw cancelled
             }
             }
-        }
         }
     }
 }

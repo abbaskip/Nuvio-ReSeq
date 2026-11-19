@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import com.nuvio.tv.R
 import com.nuvio.tv.LocalRootContentInset
+import com.nuvio.tv.LocalSidebarRoutes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
@@ -80,8 +81,7 @@ import com.nuvio.tv.ui.screens.home.HeroBackdropState
 fun NuvioNavHost(
     navController: NavHostController,
     startDestination: String = Screen.Home.route,
-    hideBuiltInHeaders: Boolean = false,
-    discoverIsRoot: Boolean = false
+    hideBuiltInHeaders: Boolean = false
 ) {
     // The session owner below only supplies a store, not a Hilt factory. Resolve the
     // shared mix coordinator from the activity before installing that owner.
@@ -98,20 +98,20 @@ fun NuvioNavHost(
         val navViewModelStoreOwner = LocalNavViewModelStoreOwner.current
             ?: checkNotNull(LocalViewModelStoreOwner.current)
         CompositionLocalProvider(LocalViewModelStoreOwner provides navViewModelStoreOwner) {
-            PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel, discoverIsRoot)
+            PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel)
         }
     }
 }
 
 // Root destinations carry the legacy sidebar inset themselves so the NavHost container
 // keeps a constant width while navigating between root and non-root routes.
-private fun NavGraphBuilder.rootComposable(
+internal fun NavGraphBuilder.rootComposable(
     route: String,
-    withInset: Boolean = true,
     content: @Composable (NavBackStackEntry) -> Unit
 ) {
     composable(route) { backStackEntry ->
-        val inset = if (withInset) LocalRootContentInset.current else 0.dp
+        // Fullscreen can change while this destination stays on the back stack.
+        val inset = if (route in LocalSidebarRoutes.current) LocalRootContentInset.current else 0.dp
         Box(modifier = Modifier.padding(start = inset)) {
             content(backStackEntry)
         }
@@ -123,8 +123,7 @@ private fun PlaybackNavHost(
     navController: NavHostController,
     startDestination: String,
     hideBuiltInHeaders: Boolean,
-    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel,
-    discoverIsRoot: Boolean
+    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel
 ) {
     val recoveryContext = LocalContext.current
     val returnToGuide = androidx.compose.runtime.remember {
@@ -140,7 +139,6 @@ private fun PlaybackNavHost(
         }
     }
     val mixPlaying by mixViewModel.session.playing.collectAsStateWithLifecycle()
-    val liveFullscreen by com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.collectAsStateWithLifecycle()
     fun returnToMix() {
         if (!navController.popBackStack(TV_MIX_ROUTE, inclusive = false)) {
             val id = mixViewModel.state.value.mixId
@@ -287,7 +285,7 @@ private fun PlaybackNavHost(
             )
         }
 
-        rootComposable(Screen.LiveTv.route, withInset = !liveFullscreen) { entry ->
+        rootComposable(Screen.LiveTv.route) { entry ->
             // Reuse Home's live state so its selected channel/group survives opening the guide.
             // Live TV can also be the start destination, with no Home entry on the back stack.
             val liveTvOwner = androidx.compose.runtime.remember(entry) {
@@ -328,7 +326,7 @@ private fun PlaybackNavHost(
                 }
             }
         }
-        rootComposable(Screen.Sports.route, withInset = !liveFullscreen) {
+        rootComposable(Screen.Sports.route) {
             com.nuvio.tv.livetv.sports.SportsScreen(
                 onOpenLive = {
                     com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
@@ -1437,7 +1435,7 @@ private fun PlaybackNavHost(
             )
         }
 
-        rootComposable(Screen.Discover.route, withInset = discoverIsRoot) {
+        rootComposable(Screen.Discover.route) {
             DiscoverScreen(
                 showBuiltInHeader = !hideBuiltInHeaders,
                 onOpenAdvancedDiscover = { navController.navigate(Screen.AdvancedDiscover.route) },

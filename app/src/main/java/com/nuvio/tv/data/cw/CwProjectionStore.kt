@@ -46,7 +46,9 @@ internal class CwProjectionStore(private val directory: File) {
         val target = file(state.profileId, state.source)
         val pending = File(directory, target.name + ".pending")
         FileOutputStream(pending).use { stream ->
-            stream.write(gson.toJson(state).toByteArray(Charsets.UTF_8))
+            val writer = stream.bufferedWriter(Charsets.UTF_8)
+            gson.toJson(state, writer)
+            writer.flush()
             stream.fd.sync()
         }
         // rename(2) atomically replaces a same-directory file on every supported

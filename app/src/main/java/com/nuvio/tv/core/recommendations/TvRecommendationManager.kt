@@ -3,6 +3,7 @@ package com.nuvio.tv.core.recommendations
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.core.poster.CustomPosterScreen
 import com.nuvio.tv.core.poster.patternForScreen
 import com.nuvio.tv.core.poster.withCustomPosterArt
@@ -10,12 +11,11 @@ import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.ui.screens.home.ContinueWatchingItem
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -86,12 +86,14 @@ class TvRecommendationManager @Inject constructor(
 
                     // Remove only stale programs that are no longer in CW
                     (existingInternalIds - currentInternalIds).forEach { staleId ->
+                        ensureActive()
                         programBuilder.removeWatchNextProgram(staleId)
                         syncedFingerprints.remove(staleId)
                     }
 
                     // Upsert current CW programs only if they actually changed
                     decorated.forEach { p ->
+                        ensureActive()
                         val id = programBuilder.watchNextId(p)
                         val newFingerprint = ProgramFingerprint(
                             title = p.name,
@@ -120,6 +122,8 @@ class TvRecommendationManager @Inject constructor(
                         programBuilder.upsertWatchNextProgram(program, id)
                         syncedFingerprints[id] = newFingerprint
                     }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     Log.w(TAG, "updateWatchNext failed", e)
                 }
@@ -127,23 +131,16 @@ class TvRecommendationManager @Inject constructor(
         }
     }
 
-    suspend fun updateSingleWatchNextProgram(progress: WatchProgress) {
-        // All player-close notifications converge on committed repository progress.
-        // Never independently upsert the episode supplied by a closing player.
-        cwRepository.refreshProjection()
+    suspend fun refreshAfterPlayerSave() {
+        // The save already committed this title. MainActivity refreshes the selected tracker
+        // on player exit. A final save that completes after exit still needs its own refresh.
+        if (!PlayerSessionTracker.hasOpenSession) cwRepository.refreshProjection()
     }
-
-
 
     private suspend fun recommendationPosterPattern(): String {
         val pattern = layoutPreferenceDataStore.customPosterUrlPattern.first()
         val screens = layoutPreferenceDataStore.customPosterEnabledScreens.first()
         return patternForScreen(pattern, CustomPosterScreen.TV_RECOMMENDATIONS, screens)
-    }
-
-    suspend fun onProgressRemoved(contentId: String) {
-        // Completion is a projection change, not a command to remove the series.
-        cwRepository.refreshProjection()
     }
 
     private fun isTvDevice(): Boolean =

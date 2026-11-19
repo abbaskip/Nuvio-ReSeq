@@ -16,6 +16,8 @@ import com.nuvio.tv.R
 import com.nuvio.tv.domain.model.WatchProgress
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -135,6 +137,7 @@ class AndroidTvChannelManager @Inject constructor(
             for ((key, rowIds) in existing) {
                 if (key !in desiredKeys) {
                     rowIds.forEach { rowId ->
+                        ensureActive()
                         context.contentResolver.delete(
                             TvContractCompat.buildPreviewProgramUri(rowId), null, null
                         )
@@ -145,6 +148,7 @@ class AndroidTvChannelManager @Inject constructor(
             }
 
             items.forEachIndexed { index, progress ->
+                ensureActive()
                 val key = progressKey(progress)
                 val rowIds = existing[key]
 
@@ -210,7 +214,10 @@ class AndroidTvChannelManager @Inject constructor(
                 syncedProgramFingerprints[key] = newFingerprint
                 Log.d(TAG, "${if (!rowIds.isNullOrEmpty()) "Updated" else "Inserted"} program key=$key pos=${values.getAsInteger("last_playback_position_millis")} dur=${values.getAsInteger("duration_millis")} pct=${progress.progressPercent}")
             }
-        }.onFailure { Log.w(TAG, "reconcile failed", it) }
+        }.onFailure {
+            if (it is CancellationException) throw it
+            Log.w(TAG, "reconcile failed", it)
+        }
     }
 
     /** Removes all preview programs from our channel (used on sign-out / history clear). */

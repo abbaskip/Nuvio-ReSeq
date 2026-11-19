@@ -135,6 +135,7 @@ class ReSeqJourneyActivity : ComponentActivity() {
                         samples.put(JSONObject().put("totalMs", elapsed).put("parseMatchStoreMs", matched))
                     }
                     report.put("independentGuideImports", samples)
+                    android.util.Log.i("ReSeqPerfCheck", "Independent guide imports $samples")
                 }
                 val exo = livePlayer.attach()
                 view.player = exo
@@ -181,8 +182,13 @@ class ReSeqJourneyActivity : ComponentActivity() {
                 check(live.channels.value.any { it.name == "Updated Channel 1" })
                 val native = PlaylistSource("perf-native", "Existing fixture", "$HTTP/get.php", xtreamServer = HTTP,
                     xtreamUsername = "fixture", xtreamPassword = "fixture", importVod = true, importLive = false)
-                preferences.updatePlaylists { listOf(changed, native) }
-                vod.refresh(force = true, onlyId = native.id)
+                withContext(Dispatchers.IO) {
+                    preferences.updatePlaylists { listOf(changed, native) }
+                    vod.refresh(force = true, onlyId = native.id)
+                    check(vod.status.value.message == null && vod.categories(VodKind.MOVIE).filter { it.playlistId == native.id }.sumOf { it.count } == 64) {
+                        "The native comparison catalogue did not import its 64 fixture titles"
+                    }
+                }
                 suspend fun sampleStreams(id: String, plain: Boolean): JSONObject {
                     val elapsed = mutableListOf<Long>()
                     repeat(45) { n ->
@@ -194,14 +200,14 @@ class ReSeqJourneyActivity : ComponentActivity() {
                         val found = streamMatcher.load(com.nuvio.tv.livetv.ondemand.IptvStreamSources.PREFIX + id,
                             "Fixture", target, profiles.activeProfileId.value)
                         val time = (System.nanoTime() - t) / 1000
-                        check(found.size == 1 && found.single().iptvPlaylistId == id)
+                        check(found.size == 1 && found.single().iptvPlaylistId == id) { "Unexpected source result for fixture $id title $index" }
                         if (n >= 5) elapsed.add(time)
                     }
                     elapsed.sort()
                     return JSONObject().put("samples", elapsed.size).put("medianUs", (elapsed[19] + elapsed[20]) / 2)
                         .put("p95Us", elapsed[37])
                 }
-                report.put("nativeStreamLookupBefore", sampleStreams(native.id, false))
+                report.put("nativeStreamLookupBefore", withContext(Dispatchers.IO) { sampleStreams(native.id, false) })
                 if (intent.getBooleanExtra("testM3uVod", false)) withContext(Dispatchers.IO) {
                     fun bytes(name: String): Long {
                         val file = getDatabasePath(name)

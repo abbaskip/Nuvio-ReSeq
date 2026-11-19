@@ -25,7 +25,15 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
     override fun onOpen(db: SQLiteDatabase) {
         super.onOpen(db)
         if(db.isReadOnly) return
-        val partial = STAGING_TABLES.any { table -> db.rawQuery("SELECT 1 FROM $table LIMIT 1",null).use { it.moveToFirst() } }
+        // Some v3 files contain only the published guide. This also repairs a file whose
+        // schema version was already advanced by a previous app before its onOpen failed.
+        val stageCount = db.rawQuery("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN " +
+            "('stage','stage_meta','stage_channels','stage_info')", null).use { it.moveToFirst(); it.getInt(0) }
+        if (stageCount != STAGING_TABLES.size) createStageTables(db)
+        val hasCompletedStage = db.rawQuery("SELECT 1 FROM stage_info LIMIT 1", null).use { it.moveToFirst() }
+        val partial = !hasCompletedStage && STAGING_TABLES.any { table ->
+            db.rawQuery("SELECT 1 FROM $table LIMIT 1", null).use { it.moveToFirst() }
+        }
         val unfinishedCopy = db.rawQuery("SELECT 1 FROM sqlite_master WHERE name='guide_next'",null)
             .use { it.moveToFirst() }
         if(interruptedStage.exists() || partial || unfinishedCopy) {
@@ -35,13 +43,15 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         }
     }
 
-    /** Working rows are disposable; committed listings and assignments are never touched. */
-    private fun discardWorkingGuide(db: SQLiteDatabase) {
+    /** A stage_info row is committed only after the source has been staged successfully. */
+    private fun discardWorkingGuide(db: SQLiteDatabase, failedSource: String? = null) {
         db.beginTransaction()
         try {
-            for(table in STAGING_TABLES + listOf("guide_search_next","guide_next","guide_choice","auto_next","channels_next"))
+            if (failedSource != null) db.delete("stage_info", "src = ?", arrayOf(failedSource))
+            for (table in listOf("stage", "stage_meta", "stage_channels"))
+                db.execSQL("DELETE FROM $table WHERE src NOT IN (SELECT src FROM stage_info)")
+            for(table in listOf("guide_search_next","guide_next","guide_choice","auto_next","channels_next"))
                 db.execSQL("DROP TABLE IF EXISTS $table")
-            createStageTables(db)
             db.setTransactionSuccessful()
         } finally { db.endTransaction() }
     }
@@ -697,7 +707,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             )
             } catch(failure: Throwable) {
                 db.endTransaction(); transactionOpen=false
-                runCatching { discardWorkingGuide(db); interruptedStage.delete() }
+                runCatching { discardWorkingGuide(db, src); interruptedStage.delete() }
                 throw failure
             }
         }
@@ -795,7 +805,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             if(transactionOpen) { runCatching { db.endTransaction() }; transactionOpen=false }
             runCatching { stmt.close() }
             runCatching {
-                discardWorkingGuide(db)
+                discardWorkingGuide(db, src)
                 interruptedStage.delete()
                 SqliteCompact.compactIfWasteful(db,"interrupted guide")
             }
@@ -1086,8 +1096,9 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             }
         } catch (error: Throwable) {
             try {
-                discardWorkingGuide(db)
-                interruptedStage.delete()
+                // The failed copy owns only the replacement tables. Retry from the same
+                // completed source rows, including after the process restarts.
+                cleanup()
                 SqliteCompact.compactIfWasteful(db,"interrupted guide")
             } catch (cleanupError: Throwable) { error.addSuppressed(cleanupError) }
             throw error

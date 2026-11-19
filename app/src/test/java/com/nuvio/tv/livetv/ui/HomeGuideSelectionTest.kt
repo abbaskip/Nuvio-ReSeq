@@ -7,6 +7,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HomeGuideSelectionTest {
+    @Test fun emptyFavouriteAndRecentRowsExposeNoFocusTarget() {
+        val repo = mockk<LiveTvRepository>()
+        val channel = LiveChannel("a", "p", "Playlist", "Channel", null, null, null, "g", "Group", 1, "https://fixture.invalid/live")
+        for (group in listOf(ChannelGroup.FAVORITES, ChannelGroup.RECENT)) {
+            val result = repo.buildUi(listOf(channel), LiveUserState(), LiveTvSettings(), group, "", true, true, emptyMap())
+            assertTrue(result.channels.isEmpty())
+        }
+    }
+
     @Test fun homeUsesTheGuideChannelOrderWithoutBuildingUnrelatedGroups() {
         val repo = mockk<LiveTvRepository>()
         fun channel(key: String, group: String, number: Int) =

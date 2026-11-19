@@ -96,7 +96,7 @@ fun rememberLiveTvHomeRowPosition(): Boolean? {
     val profileId by profiles.activeProfileId.collectAsStateWithLifecycle()
     val settings = s ?: return null
     // On or off per Nuvio profile.
-    if (profileId in settings.homeRowHiddenProfiles || !settings.showInSidebar) return null
+    if (!settings.homeRowEnabled || profileId in settings.homeRowHiddenProfiles || !settings.showInSidebar) return null
     // Always above Continue watching (tucked away until you press Up from the top row).
     return true
 }
@@ -256,15 +256,12 @@ private fun LiveTvHomeRowContent(
     val cardFocus = remember { mutableMapOf<String, androidx.compose.ui.focus.FocusRequester>() }
     var lastFocusedKey by remember { mutableStateOf<String?>(null) }
     val actions = LocalLiveTvHomeActions.current
-    val entries by viewModel.homeRow.collectAsStateWithLifecycle()
-    val now by viewModel.now.collectAsStateWithLifecycle()
-    val playback by viewModel.playbackState.collectAsStateWithLifecycle()
-    // The hint by the top row's title shows only while there's a row to open.
-    androidx.compose.runtime.DisposableEffect(entries.isNotEmpty()) {
-        LiveTvHomeReveal.available.value = entries.isNotEmpty()
+    val available by viewModel.available.collectAsStateWithLifecycle()
+    androidx.compose.runtime.DisposableEffect(available) {
+        LiveTvHomeReveal.available.value = available
         onDispose { LiveTvHomeReveal.available.value = false; LiveTvHomeReveal.open.value = false }
     }
-    if (entries.isEmpty()) return
+    if (!available) return
     val open by LiveTvHomeReveal.open.collectAsStateWithLifecycle()
     val rowOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.LaunchedEffect(open, rowOwner, viewModel) {
@@ -290,22 +287,6 @@ private fun LiveTvHomeRowContent(
             }
             .focusable()
     )
-    androidx.compose.runtime.LaunchedEffect(open, catcherFocused) {
-        if (!open || !catcherFocused) return@LaunchedEffect
-        kotlinx.coroutines.delay(OPEN_MS.toLong())
-        runCatching { listState.scrollToItem(0) }
-        runCatching { firstCard.requestFocus() }
-    }
-    // Home chosen from Nuvio's side menu: the row takes the highlight (after Nuvio's own).
-    val focusRequests by LiveTvHomeFocus.requests.collectAsStateWithLifecycle()
-    androidx.compose.runtime.LaunchedEffect(focusRequests) {
-        if (!LiveTvHomeFocus.pending) return@LaunchedEffect
-        LiveTvHomeFocus.pending = false
-        // Back from the menu: the card you were on (Nuvio restores its own rows first).
-        kotlinx.coroutines.delay(250)
-        val target = lastFocusedKey?.let { cardFocus[it] }
-        runCatching { (target ?: firstCard).requestFocus() }.onFailure { runCatching { firstCard.requestFocus() } }
-    }
     val alpha by androidx.compose.animation.core.animateFloatAsState(
         1f, label = "liveRowAlpha"
     )
@@ -320,6 +301,25 @@ private fun LiveTvHomeRowContent(
             shrinkTowards = Alignment.Bottom
         ) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(CLOSE_MS))
     ) {
+        val entries by viewModel.homeRow.collectAsStateWithLifecycle()
+        val now by viewModel.now.collectAsStateWithLifecycle()
+        val playback by viewModel.playbackState.collectAsStateWithLifecycle()
+        androidx.compose.runtime.LaunchedEffect(open, catcherFocused, entries.isNotEmpty()) {
+            if (!open || !catcherFocused || entries.isEmpty()) return@LaunchedEffect
+            kotlinx.coroutines.delay(OPEN_MS.toLong())
+            runCatching { listState.scrollToItem(0) }
+            runCatching { firstCard.requestFocus() }
+        }
+        // Home chosen from Nuvio's side menu: the row takes the highlight (after Nuvio's own).
+        val focusRequests by LiveTvHomeFocus.requests.collectAsStateWithLifecycle()
+        androidx.compose.runtime.LaunchedEffect(focusRequests, entries.isNotEmpty()) {
+            if (!LiveTvHomeFocus.pending || entries.isEmpty()) return@LaunchedEffect
+            LiveTvHomeFocus.pending = false
+            // Back from the menu: the card you were on (Nuvio restores its own rows first).
+            kotlinx.coroutines.delay(250)
+            val target = lastFocusedKey?.let { cardFocus[it] }
+            runCatching { (target ?: firstCard).requestFocus() }.onFailure { runCatching { firstCard.requestFocus() } }
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

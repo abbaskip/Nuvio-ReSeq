@@ -57,7 +57,18 @@ class LiveTvHomeRowViewModel @Inject constructor(
         val keys = rows.take(limit).map { it.key }
         session.homePriorityKeys.value = keys
         repository.loadChannelsNow(keys)
-    }.flowOn(Dispatchers.Default)
+    }.flowOn(Dispatchers.Default).shareIn(viewModelScope, SharingStarted.WhileSubscribed(replayExpirationMillis = 0), replay = 1)
+
+    /** The collapsed row only needs to know whether its Up hint can lead to a card. */
+    val available = combine(homeRowChannels, repository.programs, now) { (channels, settings), programs, time ->
+        if (!settings.homeRowHidePlaceholders) channels.isNotEmpty() else {
+            val guideTime = time - settings.epgOffsetMinutes * 60_000L
+            channels.any { channel ->
+                val current = programs[channel.key]?.firstOrNull { guideTime >= it.startMs && guideTime < it.stopMs }
+                current != null && !LiveTvRepository.isPlaceholderTitle(current.title)
+            }
+        }
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
 
     val homeRow: StateFlow<List<HomeRowEntry>> = combine(
         homeRowChannels,

@@ -30,6 +30,8 @@ internal fun LiveTvRepository.buildUi(
     exactGroup: Boolean = false,
     providerRanks: Map<String, Int> = providerGroupRanks.value
 ): LiveTvUiState {
+    if (exactGroup && (groupIdRaw == ChannelGroup.FAVORITES && user.favorites.isEmpty() ||
+            groupIdRaw == ChannelGroup.RECENT && user.recent.isEmpty())) return LiveTvUiState()
     val shown = channels.filter { it.key !in user.hiddenChannels && it.groupId !in user.hiddenGroups }
     // Parental controls: channels in locked groups stay out of every list until unlocked.
     val lockedIds = HashSet<String>()

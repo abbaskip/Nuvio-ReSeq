@@ -1,19 +1,19 @@
 package com.nuvio.tv.ui.screens.home
 
 import androidx.lifecycle.viewModelScope
+import com.nuvio.tv.data.cw.launchWhenCwPlaybackIdle
 import com.nuvio.tv.data.cw.CwLease
 import com.nuvio.tv.data.cw.CwMembershipReducer
 import com.nuvio.tv.data.local.CachedInProgressItem
 import com.nuvio.tv.data.local.CachedNextUpItem
 import com.nuvio.tv.domain.model.WatchProgress
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 
 internal val HomeViewModel.continueWatchingRepository get() = cwEnrichmentCache.repository
 
 /** The only publication path into Home's CW lists. Metadata workers cannot remove members. */
 internal fun HomeViewModel.observeContinueWatchingProjection() {
-    viewModelScope.launch {
+    viewModelScope.launchWhenCwPlaybackIdle {
         val scoped = continueWatchingRepository.observeProjection()
         combine(scoped,
             traktSettingsDataStore.continueWatchingDaysCap, traktSettingsDataStore.dismissedNextUpKeys,

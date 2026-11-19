@@ -2,6 +2,7 @@ package com.nuvio.tv.ui.screens.home
 
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.data.cw.*
 import com.nuvio.tv.domain.model.*
 import io.mockk.*
@@ -41,6 +42,27 @@ class HomeColdStartProjectionTest {
         val publicState = vm.createShuffleHomeState(StandardTestDispatcher(testScheduler))
         vm.observeContinueWatchingProjection()
         return vm to publicState
+    }
+
+    @Test fun homeReadsOnlyTheLatestSavedCardsAfterPlayback() = runTest {
+        val session = PlayerSessionTracker.open()
+        try {
+            val empty = CwProjection(profileId = 2, source = "TRAKT")
+            val states = MutableStateFlow(empty)
+            val (home, publicState) = freshHome(states)
+            runCurrent()
+            for (row in progress) {
+                states.value = CwMembershipReducer.progress(empty, listOf(row))
+                runCurrent()
+            }
+            assertFalse(home._initialCwResolved.value)
+            session.close()
+            runCurrent()
+            assertTrue(home._initialCwResolved.value)
+            assertEquals(listOf(progress.last().contentId), publicState.value.continueWatchingItems.map { it.contentId() })
+        } finally {
+            session.close()
+        }
     }
 
     private suspend fun TestScope.coldStart(legacy: Boolean) {

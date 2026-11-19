@@ -16,6 +16,8 @@ import android.util.Log
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -115,6 +117,28 @@ class AndroidTvChannelManagerTest {
         manager.reconcile(listOf(fakeProgress("tt001", "movie")))
 
         verify(exactly = 1) { contentResolver.insert(any(), any()) }
+        verify(exactly = 0) { contentResolver.update(any(), any(), null, null) }
+    }
+
+    @Test
+    fun `interrupted publication stops between rows and retries the remaining programs`() = runTest {
+        setupLeanback()
+        setupChannelExists()
+        stubProgramQuery(emptyMap())
+        val programs = (1..184).map { fakeProgress("movie$it", "movie") }
+        val firstPass = launch(start = CoroutineStart.LAZY) { manager.reconcile(programs) }
+        every { contentResolver.insert(any(), any()) } answers {
+            firstPass.cancel()
+            mockk()
+        }
+        firstPass.start()
+        firstPass.join()
+        verify(exactly = 1) { contentResolver.insert(any(), any()) }
+
+        stubProgramQuery(mapOf("movie1" to 99L))
+        every { contentResolver.insert(any(), any()) } returns mockk()
+        manager.reconcile(programs)
+        verify(exactly = programs.size) { contentResolver.insert(any(), any()) }
         verify(exactly = 0) { contentResolver.update(any(), any(), null, null) }
     }
 

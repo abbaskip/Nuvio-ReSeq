@@ -7,11 +7,13 @@ import re
 import sqlite3
 import subprocess
 import sys
+from collections import Counter
 from tempfile import TemporaryDirectory
 from threading import Thread
 import time
 from xml.etree import ElementTree
 from http.server import ThreadingHTTPServer
+from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "baselineprofile/fixtures"))
@@ -50,10 +52,17 @@ def adb(*args):
 
 class Provider(Web):
     online = True
+    requests = Counter()
     def log_message(self, *_):
         pass
 
     def do_GET(self):
+        url = urlsplit(self.path)
+        if url.path == "/player_api.php":
+            request = parse_qs(url.query).get("action", ["account"])[0]
+            type(self).requests[request if re.fullmatch("[a-z_]+", request) else "other"] += 1
+        elif url.path == "/rollback.m3u":
+            type(self).requests["plainPlaylist"] += 1
         if not self.online:
             self.send_error(503)
             return
@@ -195,15 +204,24 @@ def controls():
     assert any(label(n) == "Open IPTV On Demand library" for n in tree().iter("node")), "On Demand settings"
 
 
-def tap(text):
-    for _ in range(8):
-        target = next((n for n in tree().iter("node") if label(n) == text), None)
-        if target is not None:
-            x, y = point(target)
-            adb("shell", "input", "tap", str(x), str(y))
-            time.sleep(1.2)
+def select(text):
+    for _ in range(20):
+        nodes = list(tree().iter("node"))
+        focus = next((n for n in nodes if n.get("focused") == "true"), None)
+        if focus is not None and any(label(n) == text for n in focus.iter()):
+            key("DPAD_CENTER", 1.5)
+            print("Selected", text, flush=True)
             return
-        key("DPAD_DOWN")
+        target = next((n for n in nodes if label(n) == text), None)
+        direction = "DOWN"
+        if focus is not None and target is not None:
+            fx, fy = point(focus)
+            tx, ty = point(target)
+            if abs(ty - fy) < 35:
+                direction = "RIGHT" if tx > fx else "LEFT"
+            elif ty < fy:
+                direction = "UP"
+        key("DPAD_" + direction)
     raise AssertionError("Missing setting " + text)
 
 
@@ -234,14 +252,16 @@ def links():
 
 def wait_count(playlist, expected):
     deadline = time.monotonic() + 65
+    last = None
     while time.monotonic() < deadline:
         try:
-            if len(catalogue(playlist)) == expected:
+            last = len(catalogue(playlist))
+            if last == expected:
                 return
-        except (subprocess.CalledProcessError, sqlite3.DatabaseError):
-            pass
+        except (subprocess.CalledProcessError, sqlite3.DatabaseError) as err:
+            last = str(err)
         time.sleep(2)
-    raise AssertionError(f"Missing {expected} catalogue rows for {playlist}")
+    raise AssertionError(f"Expected {expected} catalogue rows for {playlist}, observed {last}")
 
 
 def digest(rows):
@@ -264,7 +284,7 @@ def snapshot(label):
 
 
 def view_native():
-    tap("Open IPTV On Demand library")
+    select("Open IPTV On Demand library")
     for _ in range(7):
         visible = {label(n) for n in tree().iter("node")}
         if {"Fixture Movie 001", "Fixture movies"}.issubset(visible):
@@ -295,14 +315,14 @@ def exercise():
         uid = install(apks, "10.12")
         seed_settings(uid)
         controls()
-        tap("Update Movies & Series Now")
+        select("Update Movies & Series Now")
         wait_count(NATIVE, 64)
         initial = snapshot("published")
         assert initial["plainTitles"] == 0
 
         assert install(apks, "integration", "-r") == uid
         controls()
-        tap("Movies & Series from PlainFixture")
+        select("Movies & Series from PlainFixture")
         wait_count(PLAIN, 2)
         candidate = snapshot("candidate")
         assert candidate["nativeSha256"] == initial["nativeSha256"]
@@ -327,6 +347,7 @@ def exercise():
         assert final["plainSha256"] == candidate["plainSha256"] and final["linkSha256"] == candidate["linkSha256"]
         record("sameAndroidUidThroughout", True)
     finally:
+        record("providerRequestCounts", Provider.requests)
         server.shutdown()
         server.server_close()
 
@@ -343,7 +364,7 @@ if __name__ == "__main__":
             # Publish only static labels from the synthetic UI, never device codes or URLs.
             allow = {"Home", "Settings", "IPTV", "Providers", "On Demand", "Playlists & Guides",
                      "Open IPTV On Demand library", "Update Movies & Series Now", "Fixture Movie 001",
-                     "Fixture movies", "Offline Feature", "Movies & Series from PlainFixture",
+                     "Fixture movies", "Offline Feature", "Movies & Series from PlainFixture", "Movies & Series from NativeFixture",
                      "Skip", "Continue", "Allow", "Default", "Modern", "Movies & series imported",
                      "Nothing imported yet", "NativeFixture", "PlainFixture", "General", "Profiles",
                      "Display", "Playback", "Layout", "Search", "Library", "Discover", "Choose Profile"}

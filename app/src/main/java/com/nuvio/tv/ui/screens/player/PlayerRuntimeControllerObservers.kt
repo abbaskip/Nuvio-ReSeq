@@ -11,6 +11,7 @@ import com.nuvio.tv.data.repository.SkipInterval
 import com.nuvio.tv.domain.model.Subtitle
 import com.nuvio.tv.domain.model.WatchProgress
 import com.nuvio.tv.domain.model.enabledAddons
+import com.nuvio.tv.livetv.ondemand.StalkerVod
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -80,11 +81,12 @@ internal suspend fun PlayerRuntimeController.fetchAddonSubtitlesNow(
                         streamDescription = currentStreamDescription
                     )
                 } else if (currentStreamUrl.isNotBlank() && !isServerStream) {
+                    val reusable = StalkerVod.lastLink(currentStreamUrl, currentHeaders, portalPlayback)
                     streamLinkCacheDataStore.save(
                         contentKey = key,
-                        url = currentStreamUrl,
+                        url = reusable.url,
                         streamName = state.currentStreamName ?: title,
-                        headers = currentHeaders,
+                        headers = reusable.headers,
                         filename = currentFilename,
                         videoHash = currentVideoHash,
                         videoSize = currentVideoSize,

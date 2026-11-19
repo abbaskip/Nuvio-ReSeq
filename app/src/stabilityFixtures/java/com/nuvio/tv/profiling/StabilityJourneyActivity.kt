@@ -353,6 +353,26 @@ class StabilityJourneyActivity : ComponentActivity() {
                         lifecycleScope.launch(BackgroundWork.quiet) { vod.refresh(force = false, onlyId = "stability") }
                         lifecycleScope.launch { delay(10_000); live.refreshAll() }
                     }
+                    "prepare-cold-reminder" -> {
+                        profiles.activeProfileReady.first { it }
+                        layout.setLayout(com.nuvio.tv.domain.model.HomeLayout.MODERN)
+                        sports.start()
+                        val eventId = "espn:basketball/nba:80000"
+                        val event = withTimeout(90_000) {
+                            sports.known.first { events -> events.any { it.id == eventId } }
+                        }.first { it.id == eventId }
+                        val lead = event.startMs - System.currentTimeMillis()
+                        check(event.state == GameState.PRE && lead in 1L..3_600_000L)
+                        prefs.editSportsSettings {
+                            SportsSettings.fromJson(it).copy(showInSidebar = true, remindMinutes = 60, remindMyTeams = false).toJson()
+                        }
+                        prefs.editSportsMine {
+                            SportsFollows.fromJson(it).copy(setUp = true, reminders = listOf(
+                                SportsReminder(event.id, event.title, event.startMs, autoSwitch = false)
+                            )).toJson()
+                        }
+                        Diag.event("cold-reminder-saved", mapOf("eventId" to event.id, "startMs" to event.startMs))
+                    }
                     "nntp-stall" -> lifecycleScope.launch(Dispatchers.IO) {
                         val source = UsenetSource("$HTTP/stall.nzb", listOf("nntp://127.0.0.1:38792"), emptyList())
                         val stream = Stream("Fixture", "Stalled article", null, null, null, null, null, null,

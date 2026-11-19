@@ -382,6 +382,55 @@ def launcher_scenarios(s):
     s.save('timeline-assertions.json', json.dumps(timeline_assertions(s.events), indent=2))
 
 
+def cold_sports_reminder(s):
+    s.phase = 'cold-sports-reminder'
+    s.journey('prepare-cold-reminder', 115)
+    scheduled = next(event for event in reversed(s.events) if event['kind'] == 'cold-reminder-saved')
+    s.stop_log()
+    s.adb('shell', 'am', 'force-stop', PACKAGE)
+    started = time.monotonic()
+    s.adb('shell', 'am', 'start', '-W', '-n', PACKAGE+'/com.nuvio.tv.MainActivity')
+    s.start_log('cold-sports-reminder')
+
+    def wait_for_screen(name, select):
+        xml_path = '/data/local/tmp/reseq-cold-reminder.xml'
+        last_xml = ''
+        end = time.monotonic()+110
+        while time.monotonic() < end:
+            s.check()
+            s.adb('shell', 'uiautomator', 'dump', xml_path, check=False)
+            last_xml = s.adb('exec-out', 'cat', xml_path, check=False)
+            try:
+                nodes = list(ElementTree.fromstring(last_xml).iter('node'))
+            except ElementTree.ParseError:
+                nodes = []
+            labels = ' '.join(n.get('text', '')+' '+n.get('content-desc', '') for n in nodes).casefold()
+            result = select(nodes, labels)
+            if result is not None:
+                s.save('cold-reminder-'+name+'.xml', last_xml)
+                return result
+            s.wait(1)
+        s.save('cold-reminder-'+name+'-failed.xml', last_xml)
+        raise RuntimeError('Cold-start Sports reminder did not render '+name)
+
+    def reminder_button(nodes, labels):
+        if 'starting in' in labels and 'dismiss' in labels:
+            return next((n for n in nodes if n.get('text') == 'Open in Sports'), None)
+        return None
+
+    button = wait_for_screen('dialog', reminder_button)
+    dialog_seconds = time.monotonic()-started
+    left, top, right, bottom = map(int, re.findall(r'\d+', button.get('bounds')))
+    s.adb('shell', 'input', 'tap', str((left+right)//2), str((top+bottom)//2))
+    wait_for_screen('game', lambda nodes, labels: True if all(
+        label in labels for label in ('falcons', 'owls', 'watch on your channels')
+    ) and 'open in sports' not in labels else None)
+    s.save('cold-reminder-result.json', json.dumps({
+        'eventId': scheduled['eventId'], 'dialogSecondsFromLaunch': round(dialog_seconds, 3),
+        'gameSecondsFromLaunch': round(time.monotonic()-started, 3),
+    }, indent=2))
+
+
 def execute(s):
     s.control('tvdb=available&completed=false&slowImport=false')
     s.phase = 'launch-smoke'
@@ -392,6 +441,9 @@ def execute(s):
     s.journey('seed', 300)
     s.journey('home')
     s.wait(30)
+    if s.args.workload == 'reminder':
+        cold_sports_reminder(s)
+        return
     if s.args.workload == 'followup':
         errors = []
         for check in (launcher_scenarios, tvdb_scenarios, cricket):
@@ -463,7 +515,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--device', choices=['emulator', 'onn'], required=True)
-    parser.add_argument('--workload', choices=['full', 'focused', 'tvdb', 'followup'], default='full')
+    parser.add_argument('--workload', choices=['full', 'focused', 'tvdb', 'followup', 'reminder'], default='full')
     parser.add_argument('--apk', type=Path, required=True)
     parser.add_argument('--aapt', required=True)
     parser.add_argument('--adb', default='adb')

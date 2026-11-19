@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording]
+        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording, reminder]
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   regressions:
-    if: inputs.workload == 'regressions' || inputs.workload == 'followup' || inputs.workload == 'playback' || inputs.workload == 'recording'
+    if: inputs.workload == 'regressions' || inputs.workload == 'followup' || inputs.workload == 'playback' || inputs.workload == 'recording' || inputs.workload == 'reminder'
     runs-on: ubuntu-latest
     timeout-minutes: 115
     strategy:

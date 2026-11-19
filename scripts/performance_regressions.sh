@@ -17,8 +17,8 @@ trap 'kill "$server" || true' EXIT
 # These Android tests exercise device services, database import and Compose navigation. Timing comes from the separate minified targets.
 instrumented=0
 scenario=full
-if [[ "${PERF_DEVICE_WORKLOAD:-regressions}" == followup ]]; then
-    scenario=followup
+if [[ "${PERF_DEVICE_WORKLOAD:-regressions}" == followup || "${PERF_DEVICE_WORKLOAD:-regressions}" == reminder ]]; then
+    scenario="$PERF_DEVICE_WORKLOAD"
 else
     ./gradlew :app:connectedFullDebugAndroidTest --max-workers=2 -PstabilityFixtures=true -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process || instrumented=$?
     printf '%s\n' "$instrumented" > "$out/instrumented.exit"

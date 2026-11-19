@@ -355,3 +355,24 @@ records additionally pin the exact approved, already-shipped beta 9.9 successors
 Lint task cache inputs include the checkout root to prevent stale absolute report
 locations. The immutable seed is unchanged; six allowance records were retired.
 The 19 November morning report and recovery ZIP are authoritative current evidence.
+
+
+## Cross-chat release coordination (19 November 2026)
+
+Before scheduled work starts and again immediately before publication, inspect
+other relevant Nuvio ReSeq chats with the app thread-list/read tools and review
+recent work and status. A clean checkout, sync lock and current remote dev do
+not establish that substantial work in another chat is ready for release.
+
+Hold scheduled publication if major work underway or awaiting integration in
+another chat could affect compatibility, release contents or the intended
+combined release. Continue safe review, isolated integration, testing and backups.
+Resume publication only when the affected work is ready and coordinated; do not
+capture uncommitted work, interfere with another chat or publish around its plan.
+Exclude the sync chat itself and clearly unrelated/minor work with no release
+impact. If visibility or readiness cannot be verified, hold publication and state
+the limitation. Record the relevant chat, concrete impact and next condition in
+the morning report. Ask only for genuine coordination/product decisions.
+
+The completed beta 10.1 publication remains accepted. Standing automatic release
+authorisation continues when no such work is outstanding and all gates pass.

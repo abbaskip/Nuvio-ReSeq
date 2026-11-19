@@ -9,6 +9,7 @@ import com.nuvio.tv.livetv.model.PlaylistSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,11 +24,22 @@ class IptvStreamSources @Inject constructor(
     fun sources(): Flow<List<Addon>> = combine(addons.getInstalledAddons(), live.playlists,
         live.settings, preferences.mixedStreamSources, catalogs?.version ?: kotlinx.coroutines.flow.MutableStateFlow(0)) { installed, playlists, settings, saved, _ ->
         val eligible = if (settings.onDemandInStreams) playlists.filter { it.enabled && it.supportsVod && it.importVod } else emptyList()
-        val unique = uniqueM3uProviders(eligible, saved.first, saved.second) {
-            if (it.isM3u) catalogs?.m3uProviderKey(it) else M3uLogin.native(it)?.key()
-        }
+        val unique = uniqueM3uProviders(eligible, saved.first, saved.second, ::accountKey)
         mixedSources(installed, unique, saved.first, saved.second, settings.onDemandStreamsPosition)
     }.flowOn(kotlinx.coroutines.Dispatchers.IO)
+
+    /** Effective duplicate accounts can have different category selections and cached catalogues. */
+    internal suspend fun alternatives(id: String): List<PlaylistSource> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val sources = live.playlists.first().filter { it.enabled && it.supportsVod && it.importVod }
+        if (sources.none(PlaylistSource::isM3u)) return@withContext emptyList()
+        val active = sources.firstOrNull { it.id == id } ?: return@withContext emptyList()
+        val key = accountKey(active) ?: return@withContext emptyList()
+        val disabled = preferences.mixedStreamSources.first().second
+        sources.filter { it.id != id && (it.isM3u || active.isM3u) && PREFIX + it.id !in disabled && accountKey(it) == key }
+    }
+
+    private fun accountKey(source: PlaylistSource) =
+        if (source.isM3u) catalogs?.m3uProviderKey(source) else M3uLogin.native(source)?.key()
 
     suspend fun setOrder(sources: List<Addon>) {
         preferences.setStreamSourceOrder(sources.map { it.baseUrl })

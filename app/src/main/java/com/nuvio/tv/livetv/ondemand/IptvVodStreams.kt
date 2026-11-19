@@ -26,7 +26,8 @@ class IptvVodStreams @Inject constructor(
     private val tmdb: TmdbService,
     private val preferences: LiveTvPreferences,
     private val profiles: ProfileManager,
-    private val titleAliases: VodTitleAliases? = null
+    private val titleAliases: VodTitleAliases? = null,
+    private val sourceOrdering: IptvStreamSources? = null
 ) {
     suspend fun revision(): String = MessageDigest.getInstance("SHA-256").digest(
         (preferences.playlists.first().filter { it.enabled && it.importVod && it.supportsVod }
@@ -86,8 +87,25 @@ class IptvVodStreams @Inject constructor(
     internal suspend fun load(playlistKey: String, sourceName: String, target: VodStreamTarget?, profileId: Int): List<Stream> {
         if (target == null || profiles.activeProfileId.value != profileId) return emptyList()
         repository.start()
-        val result = repository.integratedSources(target, playlistKey.removePrefix(IptvStreamSources.PREFIX))
+        val playlistId = playlistKey.removePrefix(IptvStreamSources.PREFIX)
+        val ordered = repository.integratedSources(target, playlistId).toMutableList()
+        val alternatives = sourceOrdering?.alternatives(playlistId).orEmpty()
+        if (alternatives.isNotEmpty()) {
+            val primary = preferences.playlists.first().firstOrNull { it.id == playlistId }
+            val series = target.kind == VodKind.SERIES
+            val primaryEnabled = primary?.let { if (series) it.vodSeries else it.vodMovies } == true
+            val covered = primary?.vodCategories(series)
+            val seen = ordered.mapTo(mutableSetOf()) { it.catalogEntry }
+            val primaryHadResults = ordered.isNotEmpty()
+            for (other in alternatives) {
+                val selected = other.vodCategories(series)
+                if (primaryHadResults && primaryEnabled && (covered == null || selected != null && covered.containsAll(selected))) continue
+                for (result in repository.integratedSources(target, other.id)) {
+                    if (seen.add(result.catalogEntry)) ordered += result
+                }
+            }
+        }
         if (profiles.activeProfileId.value != profileId) return emptyList()
-        return result.map { OnDemandStreams.stream(it, sourceName) }
+        return ordered.map { OnDemandStreams.stream(it, sourceName) }
     }
 }

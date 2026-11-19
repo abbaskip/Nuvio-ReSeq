@@ -293,7 +293,6 @@ def exercise():
     try:
         adb("reverse", "tcp:38791", "tcp:38791")
         uid = install(apks, "10.12")
-        adb("shell", "pm", "grant", PACKAGE, "android.permission.POST_NOTIFICATIONS")
         seed_settings(uid)
         controls()
         tap("Update Movies & Series Now")

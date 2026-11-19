@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording, reminder, first-card, rollback]
+        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording, reminder, first-card, rollback, profile-sources]
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -23,6 +23,59 @@ permissions:
   contents: read
 
 jobs:
+  profile-sources:
+    if: inputs.workload == 'profile-sources'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI_USE_DEBUG_SIGNING: 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+        with:
+          encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+      - name: Build the isolated two-profile functional test
+        run: |
+          sed -i 's/io.github.abbaskip.nuvioreseq.iptvdebug/io.github.abbaskip.nuvioreseq.perfprofiles/' app/build.gradle.kts
+          cp scripts/performance-fixtures/ProfileSourcesFixtureEntryPoint.kt app/src/debug/java/com/nuvio/tv/
+          cp scripts/performance-fixtures/ProfileSourcesDeviceTest.kt app/src/androidTest/java/com/nuvio/tv/livetv/storage/
+          ./gradlew :app:assembleFullDebug :app:assembleFullDebugAndroidTest --max-workers=2 -PstabilityFixtures=true -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
+          mkdir -p build/profile-sources
+          cp app/build/outputs/apk/full/debug/*-armeabi-v7a-debug.apk build/profile-sources/arm.apk
+          cp app/build/outputs/apk/full/debug/*-x86-debug.apk build/profile-sources/x86.apk
+          cp app/build/outputs/apk/androidTest/full/debug/*.apk build/profile-sources/test.apk
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/upload-artifact@v6
+        with:
+          name: profile-sources-device-test
+          path: |
+            build/profile-sources/arm.apk
+            build/profile-sources/test.apk
+          compression-level: 0
+          retention-days: 4
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: android-tv
+          arch: x86
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: |
+            adb -s emulator-5554 install -t build/profile-sources/x86.apk
+            adb -s emulator-5554 install -t build/profile-sources/test.apk
+            adb -s emulator-5554 shell am instrument -w -r -e class com.nuvio.tv.livetv.storage.ProfileSourcesDeviceTest io.github.abbaskip.nuvioreseq.perfprofiles.test/androidx.test.runner.AndroidJUnitRunner > build/profile-sources/test.txt
+            cat build/profile-sources/test.txt
+            grep -Eq '^OK \(1 test\)' build/profile-sources/test.txt
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: profile-sources-result
+          path: build/profile-sources/test.txt
+          if-no-files-found: warn
+
   rollback:
     if: inputs.workload == 'rollback'
     runs-on: ubuntu-latest

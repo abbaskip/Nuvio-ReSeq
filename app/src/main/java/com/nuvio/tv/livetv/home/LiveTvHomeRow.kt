@@ -1,5 +1,7 @@
 package com.nuvio.tv.livetv.home
 
+import androidx.lifecycle.repeatOnLifecycle
+
 import androidx.compose.ui.input.key.type
 
 import androidx.compose.ui.input.key.key
@@ -54,7 +56,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.tv.livetv.model.LiveChannel
 import com.nuvio.tv.livetv.ui.ChannelLogo
 import com.nuvio.tv.livetv.ui.LiveText
-import com.nuvio.tv.livetv.ui.LiveTvViewModel
 import com.nuvio.tv.livetv.ui.formatClock
 import com.nuvio.tv.livetv.ui.liveCellColors
 import com.nuvio.tv.livetv.ui.minutesLeftLabel
@@ -170,6 +171,12 @@ fun LiveTvHomeRow(
     /** The home layout's row-title style, so the title matches the other rows. */
     titleStyle: androidx.compose.ui.text.TextStyle? = null
 ) {
+    var firstFrameDrawn by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        androidx.compose.runtime.withFrameNanos { }
+        firstFrameDrawn = true
+    }
+    if (!firstFrameDrawn) return
     val context = LocalContext.current
     val prefs = remember {
         dagger.hilt.android.EntryPointAccessors.fromApplication(
@@ -240,7 +247,7 @@ private fun LiveTvHomeRowContent(
     startPadding: androidx.compose.ui.unit.Dp,
     titleStyle: androidx.compose.ui.text.TextStyle?,
     hideUnlessFocused: Boolean,
-    viewModel: LiveTvViewModel = hiltViewModel()
+    viewModel: LiveTvHomeRowViewModel = hiltViewModel()
 ) {
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -259,6 +266,10 @@ private fun LiveTvHomeRowContent(
     }
     if (entries.isEmpty()) return
     val open by LiveTvHomeReveal.open.collectAsStateWithLifecycle()
+    val rowOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.LaunchedEffect(open, rowOwner, viewModel) {
+        if (open) rowOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { viewModel.keepRowCurrent() }
+    }
     // A one-pixel spot above the top row (always there): Up from the top row lands here, which
     // opens the row. The highlight stays here while the row slides open, then moves onto the
     // first channel, so the page doesn't lurch while the row is still growing.
@@ -373,7 +384,7 @@ private fun LiveTvHomeRowContent(
                         showNext = settings.homeRowShowNext,
                         use24h = settings.use24HourClock,
                         onClick = {
-                            viewModel.playFromHome(e.channel)
+                            viewModel.playFromHome(e.channel, settings)
                             if (settings.homeRowOpensGuide) actions.openGuide() else {
                                 viewModel.markFullscreenOpened()
                                 actions.openFullscreen()
@@ -391,7 +402,7 @@ private fun LiveTvHomeRowContent(
 private fun HomeCard(
     modifier: Modifier = Modifier,
     onFocused: () -> Unit = {},
-    entry: LiveTvViewModel.HomeRowEntry,
+    entry: LiveTvHomeRowViewModel.HomeRowEntry,
     now: Long,
     playing: Boolean,
     compact: Boolean,

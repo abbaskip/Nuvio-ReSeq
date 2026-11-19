@@ -76,7 +76,8 @@ data class LiveTrackOption(
 class LiveTvPlaybackController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val stalker: com.nuvio.tv.livetv.data.StalkerPortalClient,
-    private val preferences: com.nuvio.tv.livetv.data.LiveTvPreferences
+    private val preferences: com.nuvio.tv.livetv.data.LiveTvPreferences,
+    private val playerHooks: dagger.Lazy<LiveTvPlayerHooks>? = null
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var portalLinkJob: Job? = null
@@ -638,6 +639,7 @@ class LiveTvPlaybackController @Inject constructor(
         catchupStartMs: Long? = null,
         refreshPortalCommand: Boolean = false
     ) {
+        playerHooks?.get()?.beforePlay(this, channel)
         explicitlyStopped = false
         if (!settingsReady.value) {
             pendingPlayJob?.cancel()

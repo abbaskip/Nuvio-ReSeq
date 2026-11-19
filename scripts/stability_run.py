@@ -14,6 +14,7 @@ import re
 import subprocess
 import time
 from urllib.request import urlopen
+from xml.etree import ElementTree
 
 try:
     from .stability_smoke import PACKAGE, apk_identity, crash_lines, run
@@ -313,12 +314,28 @@ def cricket(s):
         offset = len(s.events)
         s.journey('cricket')
         s.wait(15, interval=1)
-        opened = [e for e in s.events[offset:] if e.get('kind') == 'sports-game-opened'
-                  and e.get('event') == 'espn:cricket/19430:77702']
-        if not opened:
-            raise RuntimeError('Cricket detail was not actually opened')
-        if not any(e.get('state') == 'LIVE' for e in opened):
-            raise RuntimeError('Cricket detail opened without the required live fixture state')
+        target = [e for e in s.events[offset:] if e.get('kind') == 'fixture-cricket-target'
+                  and e.get('event') == 'espn:cricket/19430:77702' and e.get('state') == 'LIVE']
+        if not target:
+            raise RuntimeError('Requested live cricket fixture was unavailable')
+        last_xml = ''
+        for attempt in range(4):
+            name = '/data/local/tmp/reseq-stability-cricket.xml'
+            s.adb('shell', 'uiautomator', 'dump', name, check=False)
+            last_xml = s.adb('exec-out', 'cat', name, check=False)
+            try:
+                nodes = ElementTree.fromstring(last_xml).iter('node')
+                labels = ' '.join((n.get('text', '') + ' ' + n.get('content-desc', '')) for n in nodes).casefold()
+            except ElementTree.ParseError:
+                labels = ''
+            if all(team in labels for team in ('australia', 'england')) and (
+                    'watch on your channels' in labels or 'showing it' in labels):
+                s.save(f'cricket-detail-{iteration}.xml', last_xml)
+                break
+            s.wait(2)
+        else:
+            s.save(f'cricket-detail-failed-{iteration}.xml', last_xml)
+            raise RuntimeError('The rendered detail did not show the fixture teams and channel section')
 
 
 def tvdb_scenarios(s):
@@ -338,6 +355,28 @@ def tvdb_scenarios(s):
     s.save('tvdb-invariants.json', json.dumps(observations, indent=2))
 
 
+def launcher_scenarios(s):
+    s.phase = 'launcher-timeline'
+    s.journey('home')
+    s.wait(20)
+    s.journey('background')
+    s.wait(5)
+    s.journey('home')
+    s.wait(5)
+    s.journey('sample')
+    s.phase = 'launcher-closed-non-home'
+    s.journey('complete')
+    s.wait(5)
+    s.phase = 'launcher-background'
+    s.journey('background')
+    s.wait(35)
+    s.phase = 'launcher-returned-home'
+    s.journey('home')
+    s.wait(35)
+    s.journey('sample')
+    s.save('timeline-assertions.json', json.dumps(timeline_assertions(s.events), indent=2))
+
+
 def execute(s):
     s.control('tvdb=available&completed=false&slowImport=false')
     s.phase = 'launch-smoke'
@@ -348,6 +387,17 @@ def execute(s):
     s.journey('seed', 300)
     s.journey('home')
     s.wait(30)
+    if s.args.workload == 'followup':
+        errors = []
+        for check in (launcher_scenarios, tvdb_scenarios, cricket):
+            try:
+                check(s)
+            except RuntimeError as error:
+                s.save(check.__name__ + '-error.txt', str(error))
+                errors.append(str(error))
+        if errors:
+            raise RuntimeError(' | '.join(errors))
+        return
     if s.args.workload == 'tvdb':
         # Separate fresh install: do not conflate key failures with prior fake completion.
         tvdb_scenarios(s)
@@ -398,25 +448,7 @@ def execute(s):
         with urlopen('http://127.0.0.1:38791/stats') as response:
             s.save('fixture-stats.json', response.read().decode())
         return
-    s.phase = 'launcher-timeline'
-    s.journey('home')
-    s.wait(20)
-    s.journey('background')
-    s.wait(5)
-    s.journey('home')
-    s.wait(5)
-    s.journey('sample')
-    s.phase = 'launcher-closed-non-home'
-    s.journey('complete')
-    s.wait(5)
-    s.phase = 'launcher-background'
-    s.journey('background')
-    s.wait(35)
-    s.phase = 'launcher-returned-home'
-    s.journey('home')
-    s.wait(35)
-    s.journey('sample')
-    s.save('timeline-assertions.json', json.dumps(timeline_assertions(s.events), indent=2))
+    launcher_scenarios(s)
     tvdb_scenarios(s)
     with urlopen('http://127.0.0.1:38791/stats') as response:
         s.save('fixture-stats.json', response.read().decode())
@@ -426,7 +458,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--device', choices=['emulator', 'onn'], required=True)
-    parser.add_argument('--workload', choices=['full', 'focused', 'tvdb'], default='full')
+    parser.add_argument('--workload', choices=['full', 'focused', 'tvdb', 'followup'], default='full')
     parser.add_argument('--apk', type=Path, required=True)
     parser.add_argument('--aapt', required=True)
     parser.add_argument('--adb', default='adb')

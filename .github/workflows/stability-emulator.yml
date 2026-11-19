@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions]
+        options: [full, instrumentation, profile, compare, regressions, followup]
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   regressions:
-    if: inputs.workload == 'regressions'
+    if: inputs.workload == 'regressions' || inputs.workload == 'followup'
     runs-on: ubuntu-latest
     timeout-minutes: 115
     strategy:
@@ -33,6 +33,7 @@ jobs:
         side: [published, integration]
     env:
       CI_USE_DEBUG_SIGNING: 'true'
+      PERF_DEVICE_WORKLOAD: ${{ inputs.workload }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -42,12 +43,15 @@ jobs:
         run: |
           git checkout --detach v0.1.0-beta.10.12
           git show "$GITHUB_SHA:scripts/performance_regressions.sh" > scripts/performance_regressions.sh
+          git show "$GITHUB_SHA:scripts/stability_run.py" > scripts/stability_run.py
       - uses: ./.github/actions/gradle
         with:
           encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
       - name: Build isolated fixture app and on-device tests
         run: |
-          ./gradlew :app:assembleFullBenchmark :app:assembleFullDebug :app:assembleFullDebugAndroidTest --max-workers=2 -PstabilityFixtures=true -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
+          tasks=(:app:assembleFullBenchmark)
+          if [[ "$PERF_DEVICE_WORKLOAD" == regressions ]]; then tasks+=(:app:assembleFullDebug :app:assembleFullDebugAndroidTest); fi
+          ./gradlew "${tasks[@]}" --max-workers=2 -PstabilityFixtures=true -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -200,7 +204,7 @@ jobs:
           if-no-files-found: error
 
   emulator:
-    if: inputs.workload != 'profile' && inputs.workload != 'compare' && inputs.workload != 'regressions'
+    if: inputs.workload == 'full' || inputs.workload == 'instrumentation'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:

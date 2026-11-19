@@ -117,7 +117,7 @@ class LiveTvRepository @Inject constructor(
     private fun sourceFile(directory: File, legacy: String, name: String): File {
         val cached = File(directory, name)
         val old = File(File(baseDir, legacy), name)
-        return if (old.exists() && (!cached.exists() || old.lastModified() > cached.lastModified())) old else cached
+        return preferredSourceFile(cached, old)
     }
 
     private fun prepareSourceStorage() {
@@ -689,7 +689,8 @@ class LiveTvRepository @Inject constructor(
                         LIVE_REPORT.add(if (unchanged) "Playlist \"${pl.name}\": no changes" else "Playlist \"${pl.name}\": new content")
                         !unchanged
                         } finally { old?.delete() }
-                    } else download(pl.resolvedUrl(), file, pl.userAgent, progressLabel = "Downloading playlist \"${pl.name}\"")
+                    } else download(pl.resolvedUrl(), file, pl.userAgent, progressLabel = "Downloading playlist \"${pl.name}\"",
+                        full = pl.importVod && (forcePlaylists || pl.id in forceIds))
                 }
                 // M3U links from Xtream providers (get.php with a login): the account's details.
                 if (!pl.isXtream && !pl.isStalker) refreshM3uAccount(pl)

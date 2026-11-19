@@ -107,6 +107,17 @@ class OnDemandDatabase @Inject constructor(@ApplicationContext private val appCo
         // Browsing On Demand doesn't wait while an import or genre lookup is writing.
         setWriteAheadLoggingEnabled(true)
     }
+    private val playlistLinks = lazy { M3uVodStore(appContext) }
+    internal val m3u by playlistLinks
+
+    override fun close() {
+        if (playlistLinks.isInitialized()) m3u.close()
+        super.close()
+    }
+
+    internal fun hasItems(playlistId: String, kind: VodKind): Boolean = readableDatabase.rawQuery(
+        "SELECT 1 FROM items WHERE pl=? AND kind=? LIMIT 1", arrayOf(playlistId, kind.key)).use { it.moveToFirst() }
+
     @Volatile private var compactStorage = false
 
     // SQLiteOpenHelper uses `this` even to return an already-open readable database.

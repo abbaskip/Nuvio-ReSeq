@@ -105,7 +105,7 @@ class LiveTvSettingsViewModel @Inject constructor(
 
     fun savePlaylist(source: PlaylistSource) = viewModelScope.launch {
         val before = playlists.value.firstOrNull { it.id == source.id }
-        val onlyImportOptions = before != null && source.copy(vodMovies = before.vodMovies, vodSeries = before.vodSeries,
+        val onlyImportOptions = before != null && source.copy(importVod = if (source.isM3u) before.importVod else source.importVod, vodMovies = before.vodMovies, vodSeries = before.vodSeries,
             vodMovieCategories = before.vodMovieCategories, vodSeriesCategories = before.vodSeriesCategories,
             vodSourceOnly = before.vodSourceOnly) == before
         if (onlyImportOptions) prefs.updatePlaylists { values -> values.map { if (it.id == source.id) source else it } }
@@ -121,6 +121,11 @@ class LiveTvSettingsViewModel @Inject constructor(
      * its movies and series are re-imported straight away (and Live TV isn't touched).
      */
     fun updatePlaylistNow(source: PlaylistSource) = viewModelScope.launch {
+        if (source.isM3u && source.importVod) {
+            repository.refreshInternal(forcePlaylists = false, forceEpg = false, forceIds = setOf(source.id))
+            onDemand.refreshNow(source.id)
+            return@launch
+        }
         repository.updatePlaylist(source)
         if (source.supportsVod && source.importVod && !source.liveEnabled) onDemand.refreshNow(source.id)
         else onDemand.refreshSoon()

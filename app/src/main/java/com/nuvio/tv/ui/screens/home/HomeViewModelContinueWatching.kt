@@ -719,6 +719,7 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                                             fullyWatchedSeriesIds.isSeedValidationFresh(seed.contentId, seedKey))) continue
                                     var identityPending = false
                                     val item = buildNextUpItem(
+                                        pipelineLease = pipelineLease,
                                         progress = seed,
                                         showUnairedNextUp = showUnairedNextUp,
                                         recheckEpisode = seed.contentId in pendingEpisodes,
@@ -1300,6 +1301,7 @@ private suspend fun HomeViewModel.buildLightweightNextUpItems(
                 val remappedProgress = watchProgressRepository.prepareNextUpSeed(progress)
                 var identityPending = false
                 val nextUp = buildNextUpItem(
+                    pipelineLease = pipelineLease,
                     progress = remappedProgress,
                     showUnairedNextUp = showUnairedNextUp,
                     debug = debug,
@@ -1621,6 +1623,7 @@ internal fun splitUpcomingItems(
 }
 
 private suspend fun HomeViewModel.buildNextUpItem(
+    pipelineLease: com.nuvio.tv.data.cw.CwLease,
     progress: WatchProgress,
     showUnairedNextUp: Boolean,
     debug: CwDebugSession? = null,
@@ -1639,6 +1642,7 @@ private suspend fun HomeViewModel.buildNextUpItem(
         )
     }
     val nextUp = findNextUpEpisodeFromMetaSeed(
+        pipelineLease = pipelineLease,
         recheckEpisode = recheckEpisode,
         progress = progress,
         showUnairedNextUp = showUnairedNextUp,
@@ -1975,6 +1979,7 @@ private suspend fun HomeViewModel.enrichNextUpItem(
 }
 
 private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
+    pipelineLease: com.nuvio.tv.data.cw.CwLease,
     progress: WatchProgress,
     showUnairedNextUp: Boolean,
     recheckEpisode: Boolean,
@@ -2076,8 +2081,15 @@ private suspend fun HomeViewModel.findNextUpEpisodeFromMetaSeed(
     val shared = meta.videos.firstOrNull { it.id == choice.nextVideoId && it.season == choice.nextSeason &&
         it.episode == choice.nextEpisode && it.available != false }
     // Keep Home's existing unaired release alerts and legacy single-season addon numbering.
-    val nextVideo = shared ?: resolveNextUpVideoFromMeta(progress, meta, showUnairedNextUp)
+    val finale = choice.completedFinalEpisode
+    val nextVideo = if (finale == null) {
+        shared ?: resolveNextUpVideoFromMeta(progress, meta, showUnairedNextUp)
+    } else {
+        // A later announced episode may still qualify for an upcoming release card.
+        resolveNextUpVideoFromMeta(finale, meta, showUnairedNextUp)
+    }
     if (nextVideo == null) {
+        if (finale != null) continueWatchingRepository.settleCaughtUp(pipelineLease, contentId)
         debug?.recordNextUpResult(
             progress = progress,
             reason = "no-next-video-after-seed",

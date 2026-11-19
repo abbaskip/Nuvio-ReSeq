@@ -250,7 +250,7 @@ internal class SeriesNextToWatch(private val localizedContext: Context) {
             }
         }
 
-        return when {
+        val fallback = when {
             resumeEpisode != null && resumeProgress != null -> {
                 NextToWatch(
                     watchProgress = resumeProgress,
@@ -295,6 +295,12 @@ internal class SeriesNextToWatch(private val localizedContext: Context) {
                 )
             }
         }
+        // Details still offers a replay or an earlier gap. Home needs to distinguish
+        // that action from continuing forward after the selected watch.
+        val finalEpisode = episodes.last()
+        return if (anchoredProgress?.isCompleted() == true &&
+            anchoredProgress.season == finalEpisode.season && anchoredProgress.episode == finalEpisode.episode
+        ) fallback.copy(completedFinalEpisode = anchoredProgress) else fallback
     }
 }
 

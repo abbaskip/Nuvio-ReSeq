@@ -245,12 +245,11 @@ class ContinueWatchingRepository @Inject constructor(
             resolver.isFullyWatched(profileId, contentId, history.values)
         } ?: false
         if (!complete) return
-        val finished = mutate(refreshed.lease, background = true) { current ->
-            if (current.members[contentId] != member) current else current.copy(
-                revision = current.revision + 1, members = current.members + (contentId to
-                    member.copy(inProgress = null, nextUp = null, changedAtRevision = current.revision + 1)))
-        }
-        mutate(finished.lease, background = true, settledIds = setOf(contentId)) { it }
+        settleCaughtUp(refreshed.lease, contentId)
+    }
+
+    internal suspend fun settleCaughtUp(lease: CwLease, contentId: String) {
+        mutate(lease) { state -> CwMembershipReducer.caughtUp(state, lease, contentId) }
     }
 
     suspend fun invalidate(profileId: Int, contentIds: Set<String>) {

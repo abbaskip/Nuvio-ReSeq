@@ -256,8 +256,8 @@ private fun HomeViewModel.finishedShuffleSeeds() = combine(
 }.distinctUntilChanged()
 
 internal fun ownedShuffleSeeds(projection: com.nuvio.tv.data.cw.CwProjection?, profileId: Int): List<WatchProgress> =
-    projection?.takeIf { it.profileId == profileId }?.members?.values?.mapNotNull {
-        it.progress.takeIf { _ -> it.nextUp != null }
+    projection?.takeIf { it.profileId == profileId }?.members?.values?.mapNotNull { member ->
+        member.progress?.takeIf { member.nextUp != null || (member.inProgress == null && it.isCompleted()) }
     }.orEmpty()
 
 /** Keep a slow lookup alive across unrelated tracker emissions. Dropping a show or switching

@@ -283,6 +283,17 @@ object CwMembershipReducer {
         return rebuilt
     }
 
+    fun caughtUp(state: CwProjection, lease: CwLease, contentId: String): CwProjection {
+        if (!accepts(state, lease)) return state
+        val member = state.members[contentId] ?: return state
+        if (member.changedAtRevision > lease.revision || member.progress?.isCompleted() != true ||
+            member.inProgress != null) return state
+        if (member.nextUp == null && state.presentedMembers?.get(contentId)?.nextUp == null) return state
+
+        val finished = member.copy(nextUp = null, changedAtRevision = state.revision + 1)
+        return state.changed(state.members + (contentId to finished))
+    }
+
     fun remove(state: CwProjection, lease: CwLease, proof: CwRemovalProof): CwProjection {
         if (!accepts(state, lease)) return state
         val ids = proof.contentIds.filter { id -> proof.reason == CwRemovalReason.USER_REMOVAL ||

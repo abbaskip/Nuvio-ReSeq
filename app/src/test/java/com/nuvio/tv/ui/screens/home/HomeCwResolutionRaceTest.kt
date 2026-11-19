@@ -59,7 +59,7 @@ class HomeCwResolutionRaceTest {
         val tracking = mockk<TraktSettingsDataStore>(relaxed = true) {
             every { continueWatchingDaysCap } returns flowOf(30)
             every { dismissedNextUpKeys } returns flowOf(emptySet())
-            every { watchProgressSource } returns MutableStateFlow(WatchProgressSource.TRAKT)
+            every { watchProgressSource } returns MutableStateFlow(WatchProgressSource.valueOf(stored.source))
         }
         val metadata = mockk<MetaRepository>(relaxed = true) {
             // Hold enrichment after the tracker-derived lightweight cards have been submitted.
@@ -136,6 +136,52 @@ class HomeCwResolutionRaceTest {
         firstEmission.complete(Unit)
         withTimeout(5_000) { vm.initialCwResolved.first { it } }
         assertTrue(vm._uiState.value.continueWatchingItems.isEmpty())
+    }
+
+    @Test fun caughtUpCloudShowWithOnlyFinaleWatchedClearsRestoredPremiere() = runBlocking {
+        val directory = java.nio.file.Files.createTempDirectory("cw-cloud-finale").toFile()
+        val id = "tt0108778"
+        val finale = WatchProgress(id, "series", "Show", null, null, null, "$id:1:4", 1, 4, "Finale",
+            100, 100, System.currentTimeMillis())
+        val source = WatchProgressSource.NUVIO_SYNC
+        val state = CwMembershipReducer.progress(CwProjection(profileId = 1, source = source.name), listOf(finale))
+        val oldCard = state.nextUp.single().copy(videoId = "$id:1:1", season = 1, episode = 1, chooseEpisode = false)
+        val store = CwProjectionStore(java.io.File(directory, "cw_enrichment"))
+        store.write(CwMembershipReducer.enrich(state, state.lease, nextUp = listOf(oldCard)))
+        val progress = mockk<WatchProgressRepository>(relaxed = true) {
+            every { allProgress } returns flowOf(listOf(finale))
+            every { observeNextUpSeeds() } returns flowOf(listOf(finale))
+            every { observeRemoteProgressLoaded() } returns flowOf(true)
+            every { watchedItems } returns flowOf(emptyList())
+            every { getAllEpisodeProgress(id) } returns flowOf(mapOf((1 to 4) to finale))
+            every { watchedEpisodeTimes(id) } returns flowOf(mapOf((1 to 4) to finale.lastWatched))
+            every { shouldUseAsNextUpSeed(any(), any()) } returns true
+            every { activeProviderContinueWatchingCutoffEpochMs(any(), any()) } returns null
+            coEvery { prepareNextUpSeed(any()) } returns finale
+        }
+        val owner = ContinueWatchingRepository(mockk { every { filesDir } returns directory },
+            mockk { every { resolvedActiveProfileId } returns flowOf(1); every { activeProfileId } returns MutableStateFlow(1) },
+            mockk { coEvery { getWatchProgressSource(1) } returns source
+                every { resolvedWatchProgressSource(1) } returns flowOf(source) }, javax.inject.Provider { progress })
+        val vm = home(owner.snapshot(), CompletableDeferred(Unit), CompletableDeferred(), owner, progress)
+        try {
+            assertEquals(1, owner.projection.value!!.nextUp.single().episode)
+            vm.cwMetaCache["series:$id"] = CwMetaSummary(id, "Show", null, null, null, null,
+                emptyList(), null, null, null, null, (1..4).map { n ->
+                    CwVideoSummary("$id:1:$n", "Episode $n", "2000-01-01", null, 1, n, null)
+                })
+            vm.setHomeContentActive(true)
+            owner.refreshProjection()
+            vm.loadContinueWatchingPipeline()
+            val hidden = withTimeout(10_000) { owner.projection.filterNotNull().first {
+                it.members[id]?.progress?.isCompleted() == true && it.nextUp.isEmpty()
+            } }
+            assertEquals(listOf(finale), ownedShuffleSeeds(hidden, 1))
+            assertTrue(store.read(1, source.name).forPresentation().nextUp.isEmpty())
+        } finally {
+            vm.viewModelScope.coroutineContext.job.cancelAndJoin()
+            directory.deleteRecursively()
+        }
     }
 
     @Test fun friendsPublishesWhileAnotherSeriesLookupIsStillWaiting() = runBlocking {

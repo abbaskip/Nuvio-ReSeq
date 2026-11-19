@@ -31,7 +31,10 @@ internal class CwCardPublication {
             // Failure/loading is not a settled answer, including when history has changed.
             if (member?.inProgress?.chooseEpisode == true || member?.nextUp?.chooseEpisode == true) continue
             val history = history(state, id)
-            if (settledHistory[id] == history) continue
+            val previous = shown[id]
+            val previouslyVisible = previous?.inProgress != null || previous?.nextUp != null
+            val visible = member?.inProgress != null || member?.nextUp != null
+            if (previouslyVisible == visible && settledHistory[id] == history) continue
             if (member == null) shown.remove(id) else shown[id] = member
         }
         return state.copy(presentedMembers = shown)

@@ -4,6 +4,10 @@ export ANDROID_SERIAL=emulator-5554
 [[ "$(adb shell getprop ro.kernel.qemu | tr -d '\r')" == 1 ]]
 out=build/performance-regressions
 mkdir -p "$out"
+if [[ "${PERF_DEVICE_WORKLOAD:-regressions}" == recording ]]; then
+    exec ./gradlew :app:connectedFullDebugAndroidTest --max-workers=2 -PstabilityFixtures=true -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process \
+        -Pandroid.testInstrumentationRunnerArguments.class=com.nuvio.tv.livetv.storage.ClosedRecordingDeviceTest
+fi
 if [[ "${PERF_DEVICE_WORKLOAD:-regressions}" == playback ]]; then
     exec bash scripts/performance_state_playback.sh
 fi

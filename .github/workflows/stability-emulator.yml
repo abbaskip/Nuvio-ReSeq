@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, followup, playback]
+        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording]
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   regressions:
-    if: inputs.workload == 'regressions' || inputs.workload == 'followup' || inputs.workload == 'playback'
+    if: inputs.workload == 'regressions' || inputs.workload == 'followup' || inputs.workload == 'playback' || inputs.workload == 'recording'
     runs-on: ubuntu-latest
     timeout-minutes: 115
     strategy:
@@ -47,6 +47,14 @@ jobs:
           git show "$GITHUB_SHA:scripts/stability_run.py" > scripts/stability_run.py
           fixture=app/src/stabilityFixtures/java/com/nuvio/tv/profiling/StabilityJourneyActivity.kt
           git show "$GITHUB_SHA:$fixture" > "$fixture"
+      - name: Prepare the identical synthetic recording for both apps
+        if: inputs.workload == 'recording'
+        run: |
+          testsrc=app/src/androidTest/java/com/nuvio/tv/livetv/storage/ClosedRecordingDeviceTest.kt
+          git show "$GITHUB_SHA:scripts/performance-fixtures/ClosedRecordingDeviceTest.kt" > "$testsrc"
+          mkdir -p app/src/androidTest/assets
+          if ! command -v ffmpeg; then sudo apt-get update -qq && sudo apt-get install -y ffmpeg; fi
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=160x96:rate=10 -t 10 -an -c:v libx264 -threads 1 -g 20 -pix_fmt yuv420p -f mpegts app/src/androidTest/assets/closed-recording.ts
       - uses: ./.github/actions/gradle
         with:
           encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
@@ -54,6 +62,7 @@ jobs:
         run: |
           tasks=(:app:assembleFullBenchmark)
           if [[ "$PERF_DEVICE_WORKLOAD" == regressions ]]; then tasks+=(:app:assembleFullDebug :app:assembleFullDebugAndroidTest); fi
+          if [[ "$PERF_DEVICE_WORKLOAD" == recording ]]; then tasks=(:app:assembleFullDebug :app:assembleFullDebugAndroidTest); fi
           ./gradlew "${tasks[@]}" --max-workers=2 -PstabilityFixtures=true -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
       - name: Enable emulator acceleration
         run: |

@@ -72,13 +72,13 @@ class HomeCwResolutionRaceTest {
                 awaitCancellation()
             }
         }
-        val profiles = mockk<com.nuvio.tv.core.profile.ProfileManager>(relaxed = true) {
+        val activeProfiles = mockk<com.nuvio.tv.core.profile.ProfileManager>(relaxed = true) {
             every { activeProfileId } returns MutableStateFlow(1)
             // Hold unrelated startup work; start the real CW pipeline explicitly below.
             every { activeProfileReady } returns MutableStateFlow(false)
         }
         val badgePreferences = com.nuvio.tv.TestPreferencesStore()
-        val badges = WatchedSeriesStateHolder(mockk { every { get(1, "watched_series_cache") } returns badgePreferences }, profiles)
+        val badges = WatchedSeriesStateHolder(mockk { every { get(1, "watched_series_cache") } returns badgePreferences }, activeProfiles)
         return HomeViewModel(
             appContext = mockk(relaxed = true), addonRepository = mockk(relaxed = true),
             startupSyncService = mockk(relaxed = true), catalogRepository = mockk(relaxed = true),
@@ -96,7 +96,7 @@ class HomeCwResolutionRaceTest {
             trailerService = mockk(relaxed = true),
             watchedSeriesStateHolder = badges,
             cwEnrichmentCache = cache,
-            profileManager = profiles,
+            profileManager = activeProfiles,
             tvRecommendationManager = mockk(relaxed = true), serverCatalog = mockk(relaxed = true),
             tvdbOrderStore = orders
         ).also { created += it; it.currentTmdbSettings = TmdbSettings(enabled = false) }

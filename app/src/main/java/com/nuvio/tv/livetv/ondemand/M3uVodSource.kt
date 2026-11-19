@@ -82,7 +82,9 @@ internal class M3uTitle(val id: String, val entryId: String, val name: String, v
                 ?.takeIf(String::isNotEmpty) ?: entry.name
             val season = tag?.groupValues?.get(1)?.toIntOrNull() ?: if (isSeries) 1 else null
             val number = tag?.groupValues?.get(2)?.toIntOrNull()
-            val entryId = m3uDigest(link.host, link.pathSegments.last(), link.queryParameter("id").orEmpty(),
+            val identityPath = if (link.pathSegments.size == 4 && link.pathSegments.first().lowercase() in setOf("movie", "series", "live"))
+                link.pathSegments.first() + "/" + link.pathSegments.last() else path
+            val entryId = m3uDigest(link.host, identityPath, link.queryParameter("id").orEmpty(),
                 entry.tvgId.orEmpty(), group, entry.name)
             val titleId = if (season == null) entryId else m3uDigest(group, name.lowercase())
             val ext = link.pathSegments.last().substringAfterLast('.', "").lowercase().takeIf(extPattern::matches) ?: "mp4"

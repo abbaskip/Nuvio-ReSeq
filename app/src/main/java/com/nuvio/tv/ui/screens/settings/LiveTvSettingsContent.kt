@@ -368,8 +368,8 @@ internal fun LiveTvSettingsContent(
                         SettingsActionRow(
                             title = pl.name + if (pl.isStalker) " (Stalker)" else if (pl.isXtream) " (Xtream)" else "",
                             subtitle = when {
-                                pl.supportsVod && pl.enabled && !pl.importLive && pl.importVod -> "Movies & series only (TV channels off)"
-                                pl.supportsVod && pl.enabled && !pl.importLive && !pl.importVod -> "Nothing included: turn on TV channels or movies & series under Edit"
+                                pl.supportsVod && pl.enabled && !pl.liveEnabled && pl.importVod -> "Movies & series only (TV channels off)"
+                                pl.supportsVod && pl.enabled && !pl.liveEnabled && !pl.importVod -> "Nothing included: turn on TV channels or movies & series under Edit"
                                 else -> sourceStatus(pl.enabled, pl.lastUpdatedMs, pl.lastError, "${pl.channelCount} channels") +
                                     (if (pl.supportsVod && pl.importVod && pl.enabled) " · + movies & series" else "")
                             } + (account?.expiryLabel()?.let { " · Expires $it" } ?: ""),
@@ -1669,8 +1669,10 @@ internal fun LiveTvSettingsContent(
                     ),
                     toggle = "Load guide linked in playlist" to src.useEmbeddedEpg,
                     onDismiss = close,
-                    onSave = { v, t ->
-                        viewModel.savePlaylist(src.copy(name = v[0], url = v[1], userAgent = v[2], useEmbeddedEpg = t))
+                    toggle2 = "Include movies & series (On Demand)" to src.importVod,
+                    onSave = { _, _ -> },
+                    onSaveBoth = { v, t, vod ->
+                        viewModel.savePlaylist(src.copy(name = v[0], url = v[1], userAgent = v[2], useEmbeddedEpg = t, importVod = vod))
                         close()
                     }
                 )
@@ -2040,7 +2042,8 @@ private fun SourceFormDialog(
                     onValueChange = { values[i].value = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = field.hint,
-                    isPassword = field.label.startsWith("Password", true),
+                    isPassword = field.label.startsWith("Password", true) || (field.label == "Playlist URL" &&
+                        values[i].value.contains("get.php?", ignoreCase = true)),
                     focusRequester = if (i == 0) firstField else null
                 )
             }

@@ -57,10 +57,11 @@ data class PlaylistSource(
 
     val isXtream: Boolean get() = xtreamServer.isNotBlank()
 
-    val supportsVod: Boolean get() = isXtream || isStalker
+    val isM3u: Boolean get() = !isXtream && !isStalker && url.isNotBlank()
+    val supportsVod: Boolean get() = isXtream || isStalker || isM3u
 
     /** Whether this source's live channels (and their guide) are loaded. */
-    val liveEnabled: Boolean get() = enabled && (!supportsVod || importLive)
+    val liveEnabled: Boolean get() = enabled && ((!isXtream && !isStalker) || importLive)
 
     fun resolvedUrl(): String {
         if (!isXtream) return tidyLink(url)

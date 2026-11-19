@@ -24,9 +24,11 @@ for side in published integration; do
     adb shell am broadcast -a androidx.profileinstaller.action.INSTALL_PROFILE -n "$pkg/androidx.profileinstaller.ProfileInstallReceiver" | tee "$here/profile-install.txt"
     grep -Eq 'result=(1|2)([^0-9]|$)' "$here/profile-install.txt"
     adb shell cmd package compile -f -m speed-profile "$pkg"
-    adb shell am start -W -S -n "$pkg/com.nuvio.tv.profiling.ReSeqJourneyActivity" --es journey compare
+    vod=false
+    if [[ "$side" == integration ]]; then vod=true; fi
+    adb shell am start -W -S -n "$pkg/com.nuvio.tv.profiling.ReSeqJourneyActivity" --es journey compare --ez testM3uVod "$vod"
     ready=false
-    for i in $(seq 1 90); do
+    for i in $(seq 1 150); do
         adb shell uiautomator dump /sdcard/comparison.xml >/dev/null 2>&1 || true
         adb shell cat /sdcard/comparison.xml > "$here/imports.xml" || true
         if grep -q 'Comparison complete' "$here/imports.xml"; then ready=true; break; fi

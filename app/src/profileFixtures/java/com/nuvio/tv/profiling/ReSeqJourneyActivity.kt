@@ -162,6 +162,21 @@ class ReSeqJourneyActivity : ComponentActivity() {
                 livePlayer.detach()
                 job.join()
                 check(live.channels.value.any { it.name == "Updated Channel 1" })
+                if (intent.getBooleanExtra("testM3uVod", false)) withContext(Dispatchers.IO) {
+                    val optIn = changed.copy(importVod = true)
+                    preferences.updatePlaylists { listOf(optIn) }
+                    val start = clock()
+                    vod.refresh(force = true, onlyId = optIn.id)
+                    check(vod.status.value.message == null) { "Plain M3U catalogue did not finish" }
+                    val movies = vod.categories(VodKind.MOVIE).filter { it.playlistId == optIn.id }.sumOf { it.count }
+                    check(movies == 98_000) { "Incomplete plain M3U catalogue: $movies" }
+                    report.put("vodMovies", movies).put("vodImportMs", clock() - start)
+                    val database = getDatabasePath("m3u-vod-links.db")
+                    report.put("vodLinkBytes", listOf(database, File(database.path + "-wal")).sumOf { it.length() })
+                    report.put("vodProcessHighWaterKiB", File("/proc/self/status").useLines { lines ->
+                        lines.first { it.startsWith("VmHWM:") }.trim().split(Regex("\\s+"))[1].toLong()
+                    })
+                }
                 android.util.Log.i("ReSeqPerfCheck", report.toString())
                 setContent { Text("Comparison complete $report") }
             }

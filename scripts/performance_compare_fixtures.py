@@ -17,7 +17,7 @@ for name in ("large", "large-alt"):
             if name == "large-alt" and live and i == 1:
                 title = "Updated Channel 1"
             group = "Live" if live else "Films"
-            link = f"{base}/live/fixture/fixture/{i}.ts" if live else f"{base}/movie/fixture/fixture/{i}.mp4"
+            link = f"{base}/channels/station{i}.ts" if live else f"{base}/files/{i}.mp4"
             out.write(f'#EXTINF:-1 tvg-id="channel{i}" tvg-name="{title}" group-title="{group}",{title}\n{link}\n')
 start = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
 times = [(start + timedelta(minutes=30 * n)).strftime("%Y%m%d%H%M%S +0000") for n in range(37)]

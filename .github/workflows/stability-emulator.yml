@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare]
+        options: [full, instrumentation, profile, compare, regressions]
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -23,6 +23,44 @@ permissions:
   contents: read
 
 jobs:
+  regressions:
+    if: inputs.workload == 'regressions'
+    runs-on: ubuntu-latest
+    timeout-minutes: 115
+    env:
+      CI_USE_DEBUG_SIGNING: 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+        with:
+          encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+      - name: Build isolated fixture app and on-device tests
+        run: |
+          ./gradlew :app:assembleFullBenchmark :app:assembleFullDebug :app:assembleFullDebugAndroidTest --max-workers=2 -PstabilityFixtures=true -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run Continue Watching, TVDB and Sports journeys and device regressions
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: android-tv
+          arch: x86
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: bash scripts/performance_regressions.sh
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: performance-regression-results
+          path: |
+            build/performance-regressions/
+            app/build/outputs/androidTest-results/
+          retention-days: 14
+
   comparison-build:
     if: inputs.workload == 'compare'
     runs-on: ubuntu-latest
@@ -135,7 +173,7 @@ jobs:
           if-no-files-found: error
 
   emulator:
-    if: inputs.workload != 'profile' && inputs.workload != 'compare'
+    if: inputs.workload != 'profile' && inputs.workload != 'compare' && inputs.workload != 'regressions'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:

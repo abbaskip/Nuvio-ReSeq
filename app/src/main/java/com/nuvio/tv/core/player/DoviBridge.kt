@@ -86,11 +86,11 @@ object DoviBridge {
         }
 
         val bridgeVersion = runCatching { nativeGetBridgeVersion() }
-            .onFailure { Log.w(TAG, "probe version failed host=${streamUrl.safeHost()}: ${it.message}") }
+            .onFailure { Log.w(TAG, "probe version failed host=${streamUrl.safeHost()} (${it.javaClass.simpleName})") }
             .getOrNull()
 
         val ready = runCatching { nativeIsConversionPathReady() }
-            .onFailure { Log.w(TAG, "probe readiness failed host=${streamUrl.safeHost()}: ${it.message}") }
+            .onFailure { Log.w(TAG, "probe readiness failed host=${streamUrl.safeHost()} (${it.javaClass.simpleName})") }
             .getOrDefault(false)
 
         val selfTest = runStartupSelfTest(streamUrl)

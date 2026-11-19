@@ -66,8 +66,9 @@ class ReSeqJourneyActivity : ComponentActivity() {
                 SportsLaunch.openEvent("espn:basketball/nba:77701")
                 setContent { NuvioTheme { SportsScreen({}) } }
             }
+            "settings" -> setContent { NuvioTheme { com.nuvio.tv.ui.screens.settings.SettingsScreen() } }
             "vod" -> setContent {
-                NuvioTheme { OnDemandHomeScreen(null, { _, _, _, _ -> }, { _, _, _, _ -> }, {}) }
+                NuvioTheme { OnDemandHomeScreen({}, null, { _, _, _, _ -> }, { _, _, _, _ -> }, {}) }
             }
             "usenet" -> playLocalArticle()
             else -> error("Unknown profile journey")

@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation]
+        options: [full, instrumentation, profile]
       ram_tiers:
         description: 'RAM tiers in MB; select one to repeat a failed tier'
         type: choice
@@ -23,7 +23,42 @@ permissions:
   contents: read
 
 jobs:
+  profile:
+    if: inputs.workload == 'profile'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI_USE_DEBUG_SIGNING: 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+      - name: Build the profile producer and target
+        run: |
+          printf '%s\n' 'NUVIO_SUPABASE_URL=http://127.0.0.1:38791/' 'NUVIO_SUPABASE_ANON_KEY=profile-fixture' > local.properties
+          ./gradlew :app:assembleFullNonMinifiedRelease :baselineprofile:assembleNonMinifiedRelease --max-workers=2 -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Collect verified ReSeq journeys
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: android-tv
+          arch: x86
+          profile: tv_1080p
+          ram-size: 3072M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: bash scripts/collect_reseq_profile.sh
+      - uses: actions/upload-artifact@v6
+        with:
+          name: reseq-generated-profile
+          path: build/reseq-profile/*
+          if-no-files-found: error
+
   emulator:
+    if: inputs.workload != 'profile'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:

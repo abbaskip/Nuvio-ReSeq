@@ -69,6 +69,7 @@ private fun MacrobenchmarkScope.exercise(pkg: String, route: String) {
             repeat(8) { device.pressDPadRight() }
             visible(By.text("Fixture Movie 009"))
         }
+        "settings" -> visible(By.text("Account"))
         "usenet" -> visible(By.desc("Local article rendered"))
         else -> error("Unsupported profile journey: $route")
     }
@@ -77,6 +78,16 @@ private fun MacrobenchmarkScope.exercise(pkg: String, route: String) {
 @RunWith(AndroidJUnit4::class)
 class ReSeqProfileGenerator {
     @get:Rule val rule = BaselineProfileRule()
+
+    @Test fun collectRelease() {
+        check(instrumentationArg("reseqFixtures") == "true")
+        val pkg = target()
+        seed(pkg)
+        rule.collect(packageName = pkg, maxIterations = 3, stableIterations = 2,
+            filterPredicate = { !it.contains("Lcom/nuvio/tv/profiling/") }) {
+            listOf("guide", "sports", "event", "vod", "settings", "usenet").forEach { exercise(pkg, it) }
+        }
+    }
 
     @Test fun collectFeatures() {
         val pkg = target()

@@ -41,7 +41,7 @@ object ReportRedactor {
         when {
             trimmed.matches(Regex("at [A-Za-z_$][\\w.$]+\\((?:[\\w$.-]+\\.(?:java|kt):\\d+|Native Method|Unknown Source)\\)")) -> trimmed
             trimmed.substringBefore('(').trim() in exitReasons -> trimmed.substringBefore('(').trim()
-            else -> Regex("\\b(?:[a-zA-Z_$][\\w$]*\\.)+[A-Za-z_$][\\w$]*(?:Exception|Error)\\b")
+            else -> exceptionType
                 .find(trimmed)?.value
         }
     }.joinToString("\n").ifBlank { "No saved exception stack or exit reason." }
@@ -49,9 +49,12 @@ object ReportRedactor {
     private val exitReasons = setOf("APP FROZE", "APP CRASHED IN NATIVE CODE", "APP RAN OUT OF MEMORY",
         "APP USED TOO MUCH OF THE DEVICE", "APP FAILED TO START", "APP KILLED")
 
+    private val warning = Regex("^\\s*(\\d+-\\d+ \\d+:\\d+:\\d+\\.\\d+)\\s+\\d+\\s+\\d+\\s+([WEF])\\s+([\\w.$-]+)\\s*:")
+    private val exceptionType = Regex("\\b(?:[a-zA-Z_$][\\w$]*\\.)+[A-Za-z_$][\\w$]*(?:Exception|Error)\\b")
+
     fun logLine(line: String): String? {
-        val match = Regex("^\\s*(\\d+-\\d+ \\d+:\\d+:\\d+\\.\\d+)\\s+\\d+\\s+\\d+\\s+([WEF])\\s+([\\w.$-]+)\\s*:").find(line) ?: return null
-        val type = Regex("\\b(?:[a-zA-Z_$][\\w$]*\\.)+[A-Za-z_$][\\w$]*(?:Exception|Error)\\b").find(line)?.value
+        val match = warning.find(line) ?: return null
+        val type = exceptionType.find(line)?.value
         return "${match.groupValues[1]} ${match.groupValues[2]} application: " +
             (type ?: "[message withheld: may contain account or viewing information]")
     }

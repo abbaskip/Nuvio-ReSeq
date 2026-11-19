@@ -1,0 +1,47 @@
+# Integration verification on Android TV
+
+Use the signed APKs in **ReSeq signed APK release** with `artifacts_only=true`. Record the workflow run, commit, APK SHA-256, package version, ABI, device model/Android version, available storage and display refresh rate. Use the same signed published beta, configuration, files and D-pad sequence for each comparison. Timings from a debuggable APK do not establish release performance.
+
+## Installation and comparison
+
+- [ ] On a low-end Fire TV Stick-class device and a faster TV, record the baseline on the current published release. Keep the display awake. With the same Home data, record five cold starts, time to the first usable Continue Watching card, and its initial focus. Keep first-install/after-update, profiled and warmed runs separate.
+- [ ] Use a populated installation with at least two profiles. Record baseline channel keys/numbers, selected group, favourites, recents, hidden/locked channels, Sports matches, Continue Watching cards and progress, saved source ordering and database versions. Use private notes or synthetic fixtures. Preserve the contents of the running user profile.
+- [ ] Upgrade the existing installation with its matching signed ABI APK (`adb install -r`). Verify package name and signer, existing data, the in-app updater and the absence of a compatibility warning on upgrade. Repeat a fresh install on a spare device or isolated emulator. Run the rest of the list on the upgrade.
+- [ ] Inspect every prepared, aligned and re-signed APK, including the universal build. Check both dexopt assets, deserialization, final DEX type coverage and DEX checksums. Record installed oat/odex size when the device allows reading it. Record whether Android has applied the profile before comparing frame timings.
+- [ ] For navigation, repeat the same remote sequence after caches settle. Record measured frame count, P50/P95/P99 frame time and missed frames. Measure Home, Settings, guide horizontal/vertical scrolling, Sports during matching and returning from Detail. Keep startup-to-first-frame and startup-to-usable-Home measurements separate.
+- [ ] Serve the same synthetic 100,000-entry m3u_plus including mixed VOD/live and the same large XMLTV bytes locally for both builds. Time from Update now to channels usable and to complete guide. Record peak PSS, disk usage, actual channel/program counts and identical channel/EPG results. Repeat on a cold cache and an unchanged update.
+
+## Home and Continue Watching
+
+- [ ] On both Home layouts and profiles, compare the complete row contents and order, progress, local resume positions, next-up, caught-up hiding, sequential mode, rewatch and immediate undo. Verify Home's initial focus, return focus/scroll after details/playback, and Continue Watching becoming usable at least as early as the published beta. Exercise an empty library and a populated slow-loading library.
+- [ ] Use deliberately different TVDB and provider ordering. Play, seek, finish, undo and rewatch. Verify the TVDB episode and its underlying tracking projections in Continue Watching, history and next-up. With fixture accounts verify Trakt, Simkl and MDBList receive the same IDs, positions and watched changes. Switch profiles and back.
+- [ ] Resume an existing addon, an existing Xtream/Stalker IPTV VOD link, and a new M3U movie and episode. Restart the app and use **Reuse Last Link**. Confirm source, title, episode, stream headers and resume position. Compare autoplay and fallback with the original mixed source order.
+- [ ] Exercise Home with Live TV disabled, row hidden, or below the fold and with Live TV as the start destination. On Home select a group and channel, open the guide, close it, open Details and return. Check group/channel selection, Channel Row lists, favourites/recents, parental lock, progress bars and now-playing titles. Navigate away for at least two guide ticks and confirm no offscreen guide-range loop or list rebuild.
+
+## Sports
+
+- [ ] Cold-launch Sports, including entry straight from a reminder. Compare event IDs, kickoff times, schedules, scores, standings, My Teams and My Sports for every day and filter. Include a large live schedule, events without channels and progressive matching still in flight.
+- [ ] Scroll to the last event and compare the complete IDs, order, counts, badges and sections with the same fixture on the published beta. **All Events** includes all eligible live events, including unmatched events. **TV Now** stays a distinct current-guide section. Check both across clock ticks, day and chip changes, team follows and a returning detail screen. Watch for false empty states, stale previous-day cards and misplaced focus.
+- [ ] Compare priority, quick, full and Gemini-refined matches by event, channel key and confidence, including saved matches.json and a blocked match. Repeat with the guide updating. Verify the first matching pass waits for a complete guide. Check watch-on-channel, the Sports-to-guide handoff, replays and highlights.
+- [ ] Create and remove a fixture reminder. Verify reminder delivery, notification deep link and Calendar at cold start and after Home settles. Recheck scores/standings after returning from a game. Leave the user's unrelated reminders intact.
+
+## Live TV and playback
+
+- [ ] Compare imported channel IDs, duplicate suffixes, order, numbering, logos/groups, headers, DRM, catch-up and shift. Check odd quoting, Kodi directives, pipe headers, VOD URLs, loop channels and a 24/7 source. Verify EPG IDs, manual mappings, time offsets, timezone, now/next, catch-up windows and channel-number navigation.
+- [ ] Verify favourites, recents, hidden channels/groups, Channel Row lists, scheduled and existing recordings, start/stop/play a fixture recording, reminders, lock/unlock and profile-specific parental settings. Confirm Drive sync starts with Live TV unopened. Back up and restore fixture data on a second installation and compare identities.
+- [ ] Start playback in turn from Home, guide, Sports, Multiview and catch-up. Force the primary fixture stream to fail. Compare backup selection, switch timing, audio and captions and catch-up recovery. Switch between live and VOD and back. Check Multiview tile selection, return focus and player controls.
+- [ ] During stable live playback trigger automatic playlist/guide refresh, progressive Sports matching, a manual update while the automatic pass is in progress, and an M3U VOD import. Repeat during initial buffering, stream failure/reconnect and timeshift. Count network GETs/import passes, audio underruns, video dropped frames, rebuffer duration and foreground navigation frames against the published beta. Verify necessary work resumes and completes. A reproducible playback or foreground regression blocks release.
+
+## M3U movies and series
+
+- [ ] With VOD off, every existing M3U live channel and Sports match is unchanged. Explicitly enable VOD for a get.php login, a short link with a provider-confirmed channel login, a rejected login with embedded VOD, and a plain playlist including movies and multiple out-of-order seasons/episodes. Check category filters and source-only mode.
+- [ ] Verify full catalogue counts and last item on a large import. Check detail, episodes, stream matching, headers and playback. Change a playlist URL/token and refresh: stale matches disappear, stable items still resolve, and a failed or interrupted scan leaves the previous complete link index usable. Disable/remove the playlist and verify its results disappear.
+- [ ] Add the same account as Xtream and M3U. Confirm one stream source for that account, unchanged original addon and IPTV ordering, saved explicit ordering, disabled sources, fallback and profile separation.
+- [ ] On a disposable installation seed a populated beta catalogue, upgrade, import M3U, inspect native title counts and check schema v11. Test an in-place return to the old beta on a snapshot that permits equal-version installs or signed downgrades. Reopen native titles, settings, Drive backups and resume links. Re-upgrade and recheck opt-in and category selections.
+- [ ] With fixture credentials, inspect UI, problem report, logcat/run summaries, crash diagnostics and stored playback markers. Confirm the synthetic username, password and credential-bearing request URLs are absent. Saved playlist configuration is handled by the existing backup mechanism.
+
+## Shared features and reporting
+
+- [ ] TV Mix still orders, plays and resumes the same entries. TVDB ordering, ratings, search/Advanced Discover, detail navigation, addon stream enumeration, autoplay and fallback, player subtitles/audio, profile isolation and the in-app updater behave as on the release.
+- [ ] Generate warning and exception fixtures during playback. Take a report immediately, then terminate the fixture process and reopen the report. Compare the redacted bytes, rotation and retained tail to the published behavior.
+- [ ] Record pass/fail or a named blocker for each row, with the device/build and measured numbers. Keep actual results distinct from this checklist. Resolve any changed CW behavior, dropped Sports events, different match confidence or playback interference before promotion.

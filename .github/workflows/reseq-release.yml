@@ -190,6 +190,7 @@ jobs:
           test_args=()
           if [[ "$ARTIFACTS_ONLY" == true ]]; then test_args+=(--allow-same-version); fi
           python3 scripts/prepare_release_apks.py --apk-dir app/build/outputs/apk/full/release --output-dir build/release --version "$VERSION" --apksigner "$tools/apksigner" --aapt "$tools/aapt" --reference-apk "${previous[0]}" "${test_args[@]}"
+          python3 scripts/verify_release_profiles.py
           python3 scripts/verify_cs3_runtime.py build/release/*-universal.apk
           python3 scripts/verify_apk_services.py --properties local.properties --apk-dir build/release --report build/service-verification.json
           cp build/service-verification.json build/release/service-verification.json

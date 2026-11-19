@@ -130,3 +130,9 @@ Deferred, not implemented yet:
 - **Marker cleanup and journey reordering.** The markers of the journeys and the order of the
   journeys of the generator change the collected profile, so they have to land together with a
   profile regeneration to keep the profile and the guard rails comparable.
+
+## ReSeq release profile refresh
+
+Refresh after changes to Home/navigation, guide, Sports, VOD, settings or the player, and before a release following a major dependency update. Dispatch **Stability emulator verification** on the review branch with workload `profile`. Its API 34 Android TV emulator uses synthetic playlist, listings, Sports and media fixtures. The runner requires visible guide navigation, an event with a matched channel, the VOD shelf, settings and a rendered frame. A missing screen fails the job. Download `reseq-generated-profile` from the successful run and replace `app/src/main/generated/baselineProfiles/baseline-prof.txt` with its `baseline-prof.txt`. Preserve the instrumentation log with the review. The collector combines those executed paths with the existing startup rules. The fixture Activity is compiled only in profile-producing and benchmarking variants.
+
+On a dedicated x86 TV emulator, build `:app:assembleFullNonMinifiedRelease :baselineprofile:assembleNonMinifiedRelease` with `CI_USE_DEBUG_SIGNING=true`, export its `ANDROID_SERIAL`, and run `bash scripts/collect_reseq_profile.sh` from the repository root. The script checks its instrumentation result before writing the profile. Production APKs also merge the hand-maintained, package-scoped rules in `app/src/main/baselineProfiles/reseq-packages.txt`. The release check inspects the merged input, the actual DEX class indices in the binary profile, and every staged APK.

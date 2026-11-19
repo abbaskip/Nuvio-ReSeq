@@ -203,6 +203,12 @@ class ReSeqJourneyActivity : ComponentActivity() {
                 }
                 report.put("nativeStreamLookupBefore", sampleStreams(native.id, false))
                 if (intent.getBooleanExtra("testM3uVod", false)) withContext(Dispatchers.IO) {
+                    fun bytes(name: String): Long {
+                        val file = getDatabasePath(name)
+                        return listOf(file, File(file.path + "-wal")).sumOf { it.length() }
+                    }
+                    val catalog = com.nuvio.tv.core.storage.DatabaseVersions.onDemand.fileName
+                    val beforeBytes = bytes(catalog) + bytes("m3u-vod-links.db")
                     val optIn = changed.copy(importVod = true)
                     preferences.updatePlaylists { listOf(optIn, native) }
                     val start = clock()
@@ -213,8 +219,10 @@ class ReSeqJourneyActivity : ComponentActivity() {
                     report.put("vodMovies", movies).put("vodImportMs", clock() - start)
                     report.put("nativeStreamLookupAfter", sampleStreams(native.id, false))
                     report.put("plainStreamLookup", sampleStreams(optIn.id, true))
-                    val database = getDatabasePath("m3u-vod-links.db")
-                    report.put("vodLinkBytes", listOf(database, File(database.path + "-wal")).sumOf { it.length() })
+                    val linkBytes = bytes("m3u-vod-links.db")
+                    val catalogBytes = bytes(catalog)
+                    report.put("vodLinkBytes", linkBytes).put("catalogBytes", catalogBytes)
+                        .put("addedCatalogAndLinkBytes", catalogBytes + linkBytes - beforeBytes)
                     report.put("vodProcessHighWaterKiB", File("/proc/self/status").useLines { lines ->
                         lines.first { it.startsWith("VmHWM:") }.trim().split(Regex("\\s+"))[1].toLong()
                     })

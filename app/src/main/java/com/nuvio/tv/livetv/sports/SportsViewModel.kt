@@ -7,6 +7,10 @@ import com.nuvio.tv.livetv.data.LiveTvRepository
 import com.nuvio.tv.livetv.model.EpgProgram
 import com.nuvio.tv.livetv.player.LiveTvPlaybackController
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -70,6 +74,21 @@ class SportsViewModel @Inject constructor(
                 _now.value = System.currentTimeMillis()
             }
         }
+    }
+
+    private val pageFilters = kotlinx.coroutines.flow.combine(settings, follows) { settings, follows ->
+        SportsPageFilters(settings, follows, repo.activeLeagues(settings, follows).mapTo(mutableSetOf()) { it.id } + SportsMatcher.OTHER_ID,
+            SportsRows.followedSports(follows, SportsCatalog.sportsOrder(settings)))
+    }
+
+    /** One complete page per publication. Collection is tied to the visible Sports screen. */
+    internal fun page(request: SportsPageRequest): kotlinx.coroutines.flow.Flow<SportsPageLists> {
+        val feed = combine(events, known, now) { events, known, now -> Triple(events, known, now) }
+        val channels = combine(hasChannels, repo.channelsMatched, playingKey) { has, matched, key -> Triple(has, matched, key) }
+        return combine(feed, pageFilters, matches, channels) { (events, known, now), filters, matches, (has, matched, key) ->
+            SportsPageLists.build(request, filters, events, known, matches, now, repo.dayStart(request.day),
+                repo.dayStart(request.day + 1), has, matched, key)
+        }.flowOn(Dispatchers.Default).buffer(kotlinx.coroutines.channels.Channel.CONFLATED)
     }
 
     /** Tunes Live TV to the channel (the screen then opens it full screen). */

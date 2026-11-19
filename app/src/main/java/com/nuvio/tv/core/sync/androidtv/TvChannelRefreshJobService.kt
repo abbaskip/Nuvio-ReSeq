@@ -65,7 +65,6 @@ class TvChannelRefreshJobService : JobService() {
                 // The cache is on disk so it's available even when the app hasn't been
                 // in the foreground recently.
                 syncService.reconcileFromCache()
-                Log.d(TAG, "Background job: reconciled from CW cache")
             } catch (e: Exception) {
                 Log.w(TAG, "Background job reconcile failed", e)
             } finally {

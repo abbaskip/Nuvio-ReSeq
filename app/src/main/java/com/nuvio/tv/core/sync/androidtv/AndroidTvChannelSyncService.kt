@@ -2,10 +2,12 @@ package com.nuvio.tv.core.sync.androidtv
 
 import android.content.Context
 import android.util.Log
+import com.nuvio.tv.core.player.PlayerSessionTracker
 import com.nuvio.tv.core.poster.CustomPosterScreen
 import com.nuvio.tv.core.poster.patternForScreen
 import com.nuvio.tv.core.poster.withCustomPosterArt
 import com.nuvio.tv.core.recommendations.TvRecommendationManager
+import com.nuvio.tv.data.cw.launchWhenCwPlaybackIdle
 import com.nuvio.tv.data.local.CachedInProgressItem
 import com.nuvio.tv.data.local.CachedNextUpItem
 import com.nuvio.tv.data.local.ContinueWatchingEnrichmentCache
@@ -16,9 +18,13 @@ import com.nuvio.tv.ui.screens.home.ContinueWatchingItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -54,8 +60,8 @@ class AndroidTvChannelSyncService @Inject constructor(
     private val reconcileMutex = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // Publish membership/offer changes promptly during playback. Suppress position-only
-    // provider writes until backgrounding so Projectivy can repaint without IPC churn.
+    // Suppress position-only updates while browsing. An idle-period restart or background
+    // refresh also publishes the latest saved position to the launcher.
     private var lastPublishedStructure: Pair<String, List<WatchProgress>>? = null
     @Volatile private var appInForeground = false
 
@@ -77,8 +83,8 @@ class AndroidTvChannelSyncService @Inject constructor(
         }
         TvChannelRefreshJobService.schedulePeriodic(context)
 
-        scope.launch {
-            // A durable projection is safe to publish on startup and while Home is absent.
+        scope.launchWhenCwPlaybackIdle {
+            var firstPublication = true
             combine(
                 cwEnrichmentCache.projection.filterNotNull(),
                 traktSettingsDataStore.continueWatchingDaysCap,
@@ -89,16 +95,26 @@ class AndroidTvChannelSyncService @Inject constructor(
             }
                 .sample(PUBLICATION_INTERVAL_MS)
                 .collect { settings ->
-                    reconcileFromCache(settings)
+                    publishFromCache(settings, force = firstPublication)
+                    firstPublication = false
                 }
         }
     }
 
     /**
      * Reads the CW enrichment cache and reconciles the launcher channel.
-     * Called both from the live observer and from [TvChannelRefreshJobService].
+     * Handles one-shot background and job requests. The idle observer handles playback exit.
      */
-    suspend fun reconcileFromCache(settings: ChannelSettingsSnapshot? = null) = reconcileMutex.withLock {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    suspend fun reconcileFromCache() {
+        // A job or background transition can race a new player. The observer replays
+        // current settings and progress after the last overlapping session closes.
+        PlayerSessionTracker.bulkPlaybackActive.mapLatest { playing ->
+            if (!playing) publishFromCache(null, force = true)
+        }.first()
+    }
+
+    private suspend fun publishFromCache(settings: ChannelSettingsSnapshot?, force: Boolean) = reconcileMutex.withLock {
         val resolvedSettings = settings ?: run {
             val daysCap = traktSettingsDataStore.continueWatchingDaysCap.first()
             val dismissed = traktSettingsDataStore.dismissedNextUpKeys.first()
@@ -129,13 +145,16 @@ class AndroidTvChannelSyncService @Inject constructor(
         val structure = "${projection.profileId}:${projection.source}" to channelItems.map {
             it.copy(position = 0, duration = 0, lastWatched = 0, progressPercent = null)
         }
-        if (appInForeground && structure == lastPublishedStructure) return@withLock
+        if (!force && appInForeground && structure == lastPublishedStructure) return@withLock
         if (cwEnrichmentCache.getSnapshot().lease != projection.lease) return@withLock
+        lastPublishedStructure = null
         manager.reconcile(channelItems)
+        currentCoroutineContext().ensureActive()
 
         runCatching {
             tvRecommendationManager.updateWatchNext(channelItems)
         }
+        currentCoroutineContext().ensureActive()
         lastPublishedStructure = structure
     }
 

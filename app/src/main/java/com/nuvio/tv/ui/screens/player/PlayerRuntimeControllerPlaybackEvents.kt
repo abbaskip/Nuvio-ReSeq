@@ -952,7 +952,6 @@ internal fun PlayerRuntimeController.saveWatchProgressInternal(position: Long, d
                         broadcastTrackingHistory = false
                     )
                 }
-                runCatching { tvRecommendationManager.onProgressRemoved(normalizedProgress.contentId) }
             } else if (!hasMarkedCurrentEpisodeCompleted) {
                 // Only save in-progress when the episode has not already been
                 // marked as completed during this playback session.  After
@@ -965,8 +964,10 @@ internal fun PlayerRuntimeController.saveWatchProgressInternal(position: Long, d
                     profileId = profileId,
                     syncRemote = syncRemote
                 )
-                runCatching { tvRecommendationManager.updateSingleWatchNextProgram(normalizedProgress) }
+            } else {
+                return@launch
             }
+            runCatching { tvRecommendationManager.refreshAfterPlayerSave() }
         } catch (error: IOException) {
             Log.w(PlayerRuntimeController.TAG, "Watch progress could not be saved", error)
         }

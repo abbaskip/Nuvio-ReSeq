@@ -600,7 +600,7 @@ object FrameRateUtils {
             }
         } catch (e: Exception) {
             call.cancel()
-            Log.d(TAG, "AFR CDN warmup failed: ${e.message}")
+            Log.d(TAG, "AFR CDN warmup failed (${e.javaClass.simpleName})")
             false
         }
     }
@@ -947,7 +947,7 @@ object FrameRateUtils {
                 }
             }
         } catch (e: Throwable) {
-            Log.w(TAG, "OkHttp AFR probe failed: ${e.message}")
+            Log.w(TAG, "OkHttp AFR probe failed (${e.javaClass.simpleName})")
         } finally {
             runCatching { tempFile.delete() }
         }
@@ -1317,7 +1317,7 @@ object FrameRateUtils {
             }
         } catch (e: Exception) {
             call.cancel()
-            Log.w(TAG, "fetchHttpRangeToFile failed for url=$url range=$rangeHeader: ${e.message}")
+            Log.w(TAG, "fetchHttpRangeToFile failed for range=$rangeHeader (${e.javaClass.simpleName})")
             HttpRangeFetchResult(success = false)
         }
     }
@@ -1447,7 +1447,7 @@ object FrameRateUtils {
                     videoHeight = video.frameHeight.takeIf { it > 0 }
                 )
             } catch (e: Throwable) {
-                Log.w(TAG, "NextLib frame rate probe failed: ${e.message}")
+                Log.w(TAG, "NextLib frame rate probe failed (${e.javaClass.simpleName})")
             } finally {
                 runCatching { mediaInfo?.release() }
             }
@@ -1536,7 +1536,7 @@ object FrameRateUtils {
                 videoHeight = detectedVideoHeight
             )
         } catch (e: Exception) {
-            Log.w(TAG, "Frame rate probe failed: ${e.message}")
+            Log.w(TAG, "Frame rate probe failed (${e.javaClass.simpleName})")
             null
         } finally {
             try {

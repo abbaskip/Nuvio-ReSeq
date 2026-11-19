@@ -24,6 +24,7 @@ import com.nuvio.tv.domain.model.scraperIdFromPluginBingeGroup
 import com.nuvio.tv.domain.model.StreamDebridCacheState
 import com.nuvio.tv.domain.model.Video
 import com.nuvio.tv.domain.model.enabledAddons
+import com.nuvio.tv.livetv.ondemand.StalkerVod
 import com.nuvio.tv.ui.components.SourceChipItem
 import com.nuvio.tv.ui.components.SourceChipStatus
 import kotlinx.coroutines.CancellationException
@@ -728,12 +729,13 @@ private fun PlayerRuntimeController.persistSelectedStreamForReuse(
     val streamName = (stream.name?.takeIf { it.isNotBlank() } ?: stream.addonName)?.takeIf { it.isNotBlank() }
         ?: title
 
+    val reusable = StalkerVod.lastLink(url, headers, portalPlayback)
     scope.launch {
         streamLinkCacheDataStore.save(
             contentKey = key,
-            url = url,
+            url = reusable.url,
             streamName = streamName,
-            headers = headers,
+            headers = reusable.headers,
             filename = currentFilename,
             videoHash = currentVideoHash,
             videoSize = currentVideoSize,

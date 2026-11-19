@@ -563,6 +563,7 @@ class LiveTvRepository @Inject constructor(
         forceIds: Set<String> = emptySet()
     ): Unit {
         val automatic = !forcePlaylists && !forceEpg && forceIds.isEmpty()
+        val overlapping = if (!automatic && forceIds.isEmpty()) automaticPass else null
         if (!automatic) {
             // An update you asked for (Update now, a new playlist…) doesn't queue up behind an
             // automatic check that's waiting for Nuvio's player to close: that check stops
@@ -570,23 +571,45 @@ class LiveTvRepository @Inject constructor(
             manualQueued.value = true
             if (mutex.isLocked) LIVE_REPORT.add("Update asked for: finishing the update already running first")
         }
-        mutex.withLock { refreshLocked(forcePlaylists, forceEpg, forceIds, automatic) }
+        withContext(if (automatic) BackgroundWork.quiet else Dispatchers.IO) {
+            mutex.withLock { refreshLocked(forcePlaylists, forceEpg, forceIds, automatic, overlapping) }
+        }
     }
 
     /** An update you asked for is waiting: automatic checks stop waiting for Nuvio's player. */
     private val manualQueued = MutableStateFlow(false)
 
+    private fun importWorker(requested: Boolean) =
+        if (requested && !com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback) Dispatchers.Default else BackgroundWork.quiet
+
+    /** Only a successful check for this exact provider can satisfy a waiting Update now. */
+    internal class AutomaticPass {
+        private val playlists = HashSet<PlaylistSource>()
+        fun checked(source: PlaylistSource) { playlists += source.downloadIdentity() }
+        fun covers(source: PlaylistSource) = source.downloadIdentity() in playlists
+
+        private fun PlaylistSource.downloadIdentity() = copy(lastUpdatedMs = 0L, lastError = null,
+            channelCount = 0, serverTimezone = "", catchupNoHlsSince = 0L)
+        val guides = HashSet<EpgTarget>()
+        var builtGuide: List<EpgTarget>? = null
+    }
+
+    @Volatile private var automaticPass: AutomaticPass? = null
+
     private suspend fun refreshLocked(
         forcePlaylists: Boolean,
         forceEpg: Boolean,
         forceIds: Set<String>,
-        automatic: Boolean
+        automatic: Boolean,
+        overlapping: AutomaticPass? = null
     ) {
         if (!automatic) manualQueued.value = false
         val t0Update = System.currentTimeMillis()
         LIVE_REPORT.add(if (automatic) "Update check started" else "Update started")
-        try { refreshBody(forcePlaylists, forceEpg, forceIds, automatic) }
-        finally { LIVE_REPORT.add("Update finished in ${(System.currentTimeMillis() - t0Update) / 1000} s") }
+        val recording = if (automatic) AutomaticPass() else null
+        automaticPass = recording
+        try { refreshBody(forcePlaylists, forceEpg, forceIds, automatic, overlapping, recording) }
+        finally { automaticPass = null; LIVE_REPORT.add("Update finished in ${(System.currentTimeMillis() - t0Update) / 1000} s") }
         runCatching { sweepLeftoverFiles() }.onFailure { Log.w(TAG, "Leftover file sweep failed", it) }
     }
 
@@ -625,7 +648,9 @@ class LiveTvRepository @Inject constructor(
         forcePlaylists: Boolean,
         forceEpg: Boolean,
         forceIds: Set<String>,
-        automatic: Boolean
+        automatic: Boolean,
+        overlapping: AutomaticPass?,
+        recording: AutomaticPass?
     ) {
         val settings = prefs.currentSettings()
         prepareSourceStorage()
@@ -648,6 +673,7 @@ class LiveTvRepository @Inject constructor(
             val stale = !file.exists() ||
                 (pl.isStalker && stalker.needsPlaylistRefresh(file)) ||
                 now - file.lastModified() > settings.playlistRefreshHours.coerceAtLeast(1) * HOUR
+            if (file.exists() && overlapping?.covers(pl) == true) continue
             if (forcePlaylists || stale || pl.id in forceIds) {
                 LIVE_REPORT.add("Checking playlist \"${pl.name}\" for updates")
                 setStatus(loading = true, message = "Updating playlist \"${pl.name}\"…")
@@ -684,6 +710,7 @@ class LiveTvRepository @Inject constructor(
                     Log.w(TAG, "Playlist ${pl.name} failed: $err")
                     LIVE_REPORT.add("Playlist \"${pl.name}\" failed: $err" + if (pl.isXtream) " (Xtream login: server ${if (pl.xtreamServer.isBlank()) "missing" else "set"}, user ${if (pl.xtreamUsername.isBlank()) "missing" else "set"}, password ${if (pl.xtreamPassword.isBlank()) "missing" else "set"})" else "")
                 }
+                if (result.isSuccess) recording?.checked(pl)
                 if (result.getOrNull() == true || (before == null && file.exists())) changed = true
             }
         }
@@ -692,7 +719,7 @@ class LiveTvRepository @Inject constructor(
         if (changed || _channels.value.isEmpty()) {
             outOfTheWay()
             setStatus(loading = true, message = "Reading channels…")
-            buildChannels()
+            buildChannels(requested = !automatic || manualQueued.value)
             saveChannels() // so the next start uses it straight away
         }
 
@@ -705,6 +732,7 @@ class LiveTvRepository @Inject constructor(
             val stale = !file.exists() ||
                 now - file.lastModified() > settings.epgRefreshHours.coerceAtLeast(1) * HOUR
             // A playlist saved again (its login, user agent…): its own guide is downloaded again too.
+            if (file.exists() && overlapping?.guides?.contains(target) == true) continue
             val forcedHere = target.sourceId in forceIds || target.playlistId in forceIds
             if (forceEpg || stale || forcedHere || guideHoles || (target.sourceId == null && changed && !file.exists())) {
                 setStatus(loading = true, message = "Downloading guide \"${target.name}\"…")
@@ -724,6 +752,7 @@ class LiveTvRepository @Inject constructor(
                         reportAs = target.name
                     )
                 }
+                if (result.isSuccess) recording?.guides?.add(target)
                 if (result.getOrNull() == true) changed = true
                 val err = result.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }
                 if (target.sourceId != null) {
@@ -744,12 +773,13 @@ class LiveTvRepository @Inject constructor(
         // "Update guide now" always matches the guides again, even when the files came back
         // unchanged: a guide matched wrong or stored empty was otherwise kept until a file
         // changed, so pressing Update did nothing for it.
-        if (changed || forceEpg || deferredGuide.exists() || guideHoles || (_programs.value.isEmpty() && (!guideInDb || storedGuideEmpty))) {
+        if (changed || (forceEpg && overlapping?.builtGuide != epgTargets) || deferredGuide.exists() || guideHoles || (_programs.value.isEmpty() && (!guideInDb || storedGuideEmpty))) {
             storedGuideEmpty = false
             guideHoles = false
             outOfTheWay()
             setStatus(loading = true, message = "Matching guide data…")
-            buildPrograms(settings, epgTargets)
+            buildPrograms(settings, epgTargets, requested = !automatic || manualQueued.value)
+            if (!deferredGuide.exists()) recording?.builtGuide = epgTargets
         }
         _status.value = LiveTvStatus(loading = false, loadedOnce = true, error = _status.value.error)
     }
@@ -1739,7 +1769,7 @@ class LiveTvRepository @Inject constructor(
             error = if (loading && !previous.loading) null else previous.error)
     }
 
-    private data class EpgTarget(
+    internal data class EpgTarget(
         val fileId: String,
         val sourceId: String?,
         val name: String,
@@ -1782,65 +1812,35 @@ class LiveTvRepository @Inject constructor(
 
     private val embeddedEpgUrls = HashMap<String, List<String>>()
 
-    private suspend fun buildChannels() = withContext(BackgroundWork.quiet) {
+    private suspend fun buildChannels(requested: Boolean = false) = withContext(importWorker(requested)) {
         val playlists = prefs.currentPlaylists().filter { it.liveEnabled }
-        val multi = playlists.size > 1
-        val out = ArrayList<LiveChannel>()
-        val usedKeys = HashSet<String>()
-        var counter = 1
+        val result = M3uChannelList(playlists.size > 1)
         for ((plIndex, pl) in playlists.withIndex()) {
             val file = playlistFile(pl.id)
             if (!file.exists()) continue
             setStatus(loading = true, message = "Reading channels from \"${pl.name}\"" + (if (playlists.size > 1) " (${plIndex + 1} of ${playlists.size})" else "") + "…")
             var channelCount = 0
-            var parsedEntries = 0
             // Do not retain a second full playlist (including all VOD entries from get.php)
             // while constructing the live channel list.
+            val append = result.appendFrom(pl)
             val parsed = runCatching {
-                openMaybeGzip(file).bufferedReader().use { reader ->
-                    M3uParser.parse(reader, onEntry = entry@ { e ->
-                        if (++parsedEntries % 256 == 0) BackgroundWork.yieldToNavigation()
-                        // Many providers' M3U links ("m3u_plus") also list every movie and episode,
-                        // often 100,000+ entries. Those aren't TV channels, and loading them all into the
-                        // guide used enough memory to crash Live TV on some devices.
-                        if (isVodEntry(e.url)) return@entry
-                        val groupTitle = e.group?.ifBlank { null } ?: "Uncategorized"
-                        val baseKey = "${pl.id}|${e.tvgId ?: ""}|${e.name}"
-                        var key = baseKey
-                        var n = 2
-                        while (!usedKeys.add(key)) { key = "$baseKey#${n++}" }
-                        val number = e.chno ?: counter
-                        counter = maxOf(counter, number) + 1
-                        val headers = if (pl.userAgent.isNotBlank() && "User-Agent" !in e.headers) {
-                            e.headers + ("User-Agent" to pl.userAgent)
-                        } else e.headers
-                        out += LiveChannel(
-                            key = key,
-                            sourceId = pl.id,
-                            sourceName = pl.name,
-                            name = e.name,
-                            tvgId = e.tvgId,
-                            tvgName = e.tvgName,
-                            logo = e.logo,
-                            groupId = if (multi) "${pl.id}::$groupTitle" else groupTitle,
-                            // Names stay exactly as the playlist has them (the playlist is shown, if you want
-                            // it, with "Group by playlist").
-                            group = groupTitle,
-                            number = number,
-                            url = e.url,
-                            headers = headers,
-                            catchup = e.catchup,
-                            drm = e.drm
-                        )
+                openMaybeGzip(file).reader().buffered(64 * 1024).use { reader ->
+                    M3uParser.parseChecked(reader, acceptUrl = { !isVodEntry(it) }, checkpoint = {
+                        BackgroundWork.yieldToNavigation()
+                        while (BackgroundWork.playbackUnstable) delay(250)
+                        if (com.nuvio.tv.core.player.PlayerSessionTracker.hasBulkPlayback) delay(8)
+                        else kotlinx.coroutines.yield()
+                    }, onEntry = { entry ->
+                        append(entry)
                         channelCount++
                     })
                 }
-            }.onFailure { Log.w(TAG, "Parse ${pl.name} failed", it) }.getOrNull() ?: continue
+            }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; Log.w(TAG, "Parse ${pl.name} failed", it) }.getOrNull() ?: continue
             embeddedEpgUrls[pl.id] = parsed.epgUrls
             prefs.updatePlaylists { list -> list.map { if (it.id == pl.id) it.copy(channelCount = channelCount) else it } }
         }
         loadProviderGroupRanks(playlists)
-        _channels.value = out
+        _channels.value = result.channels
     }
 
     private val deferredGuide get() = File(baseDir, "guide_refresh_pending")
@@ -1896,13 +1896,13 @@ class LiveTvRepository @Inject constructor(
         }
     }
 
-    private suspend fun buildPrograms(settings: LiveTvSettings, targets: List<EpgTarget>) {
+    private suspend fun buildPrograms(settings: LiveTvSettings, targets: List<EpgTarget>, requested: Boolean = false) {
         val t0 = System.currentTimeMillis()
         guideStartedAt = if (deferredGuide.exists()) deferredGuide.lastModified() else t0
         BackgroundWork.guideBuilding.value = true
         try {
             guideCheckpoint(settings)
-            BackgroundWork.heavy { buildProgramsInner(settings, targets) }
+            BackgroundWork.heavy { buildProgramsInner(settings, targets, requested) }
             deferredGuide.delete()
             _guideUpdateNotice.value = null
         } catch (defer: DeferGuide) {
@@ -1917,7 +1917,7 @@ class LiveTvRepository @Inject constructor(
         LIVE_REPORT.add("Guide matched and stored: ${_programs.value.size} channels in ${System.currentTimeMillis() - t0} ms")
     }
 
-    private suspend fun buildProgramsInner(settings: LiveTvSettings, targets: List<EpgTarget>) = withContext(BackgroundWork.quiet) {
+    private suspend fun buildProgramsInner(settings: LiveTvSettings, targets: List<EpgTarget>, requested: Boolean) = withContext(importWorker(requested)) {
         val all = _channels.value
         if (all.isEmpty()) {
             _programs.value = emptyMap()

@@ -33,15 +33,21 @@ object M3uParser {
     private val attrRegexUnquoted = Regex("""([A-Za-z0-9_\-]+)\s*=\s*([^\s",]+)""")
 
     /** With [onEntry], entries are delivered immediately and the returned entries list is empty. */
-    fun parse(reader: BufferedReader, onEntry: ((M3uEntry) -> Unit)? = null): M3uPlaylist {
+    fun parse(reader: BufferedReader, onEntry: ((M3uEntry) -> Unit)? = null): M3uPlaylist =
+        parse(reader, { true }, onEntry)
+
+    fun parse(reader: BufferedReader, acceptUrl: (String) -> Boolean, onEntry: ((M3uEntry) -> Unit)?): M3uPlaylist =
+        parseChecked(reader, acceptUrl, {}, onEntry)
+
+    internal inline fun parseChecked(reader: BufferedReader, acceptUrl: (String) -> Boolean, checkpoint: () -> Unit,
+        noinline onEntry: ((M3uEntry) -> Unit)?): M3uPlaylist {
+        var seen = 0
         val epgUrls = mutableListOf<String>()
         val entries = ArrayList<M3uEntry>(if (onEntry == null) 4096 else 0)
 
         var pendingInfo: String? = null
         var pendingGroup: String? = null
-        val pendingHeaders = mutableMapOf<String, String>()
-        // Kodi / TiviMate DRM lines ("#KODIPROP:inputstream.adaptive.license_type=…").
-        val pendingProps = mutableMapOf<String, String>()
+        val directives = ArrayList<String>(4)
         // Catch-up set once for the whole playlist on its #EXTM3U line (TiviMate supports this):
         // used for every channel that doesn't set its own.
         val headerCatchup = mutableMapOf<String, String>()
@@ -70,52 +76,66 @@ object M3uParser {
                 line.startsWith("#EXTGRP:", ignoreCase = true) -> {
                     pendingGroup = line.substringAfter(':').trim().ifEmpty { null }
                 }
-                line.startsWith("#EXTVLCOPT:", ignoreCase = true) -> {
-                    val opt = line.substringAfter(':')
-                    val key = opt.substringBefore('=').trim().lowercase()
-                    val value = opt.substringAfter('=', "").trim()
-                    when (key) {
-                        "http-user-agent" -> pendingHeaders["User-Agent"] = value
-                        "http-referrer", "http-referer" -> pendingHeaders["Referer"] = value
-                        "http-origin" -> pendingHeaders["Origin"] = value
-                    }
-                }
-                line.startsWith("#KODIPROP:", ignoreCase = true) -> {
-                    val prop = line.substringAfter(':')
-                    val key = prop.substringBefore('=').trim().lowercase()
-                        .removePrefix("inputstream.adaptive.").removePrefix("inputstream.")
-                    pendingProps[key] = prop.substringAfter('=', "").trim()
-                }
-                // TiviMate-style request headers: #EXTHTTP:{"User-Agent":"…","Referer":"…"}
-                line.startsWith("#EXTHTTP:", ignoreCase = true) -> runCatching {
-                    val o = org.json.JSONObject(line.substringAfter(':'))
-                    o.keys().forEach { k -> pendingHeaders[normalizeHeader(k)] = o.optString(k) }
-                }
+                line.startsWith("#EXTVLCOPT:", true) || line.startsWith("#KODIPROP:", true) ||
+                    line.startsWith("#EXTHTTP:", true) -> directives.add(line)
                 line.startsWith("#") -> Unit
                 else -> {
                     val info = pendingInfo
                     if (info != null) {
-                        // Request headers from Kodi lines: stream_headers, manifest_headers and
-                        // common_headers ("User-Agent=…&Referer=…").
-                        listOf("stream_headers", "manifest_headers", "common_headers").forEach { key ->
-                            val v = pendingProps[key]
-                            if (!v.isNullOrBlank()) v.split('&').forEach { part ->
-                                val k = part.substringBefore('=').trim()
-                                if (k.isNotEmpty()) pendingHeaders[normalizeHeader(k)] =
-                                    runCatching { java.net.URLDecoder.decode(part.substringAfter('=', ""), "UTF-8") }.getOrDefault(part.substringAfter('=', ""))
-                            }
+                        if (++seen % 256 == 0) checkpoint()
+                        val pipe = line.indexOf('|')
+                        val url = if (pipe > 0) line.substring(0, pipe).trim() else line.trim()
+                        if (acceptUrl(url)) {
+                            val entry = if (directives.isEmpty()) buildEntry(info, pendingGroup, line, emptyMap(), headerCatchup)
+                                else entryWithDirectives(info, pendingGroup, line, directives, headerCatchup)
+                            if (onEntry == null) entries.add(entry) else onEntry(entry)
                         }
-                        val entry = buildEntry(info, pendingGroup, line, pendingHeaders.toMap(), headerCatchup).copy(drm = drmFrom(pendingProps))
-                        if (onEntry == null) entries.add(entry) else onEntry(entry)
                     }
                     pendingInfo = null
                     pendingGroup = null
-                    pendingHeaders.clear()
-                    pendingProps.clear()
+                    directives.clear()
                 }
             }
         }
         return M3uPlaylist(epgUrls.distinct(), entries)
+    }
+
+    private fun entryWithDirectives(info: String, group: String?, url: String, directives: List<String>,
+        headerCatchup: Map<String, String>): M3uEntry {
+        val pendingHeaders = mutableMapOf<String, String>()
+        val pendingProps = mutableMapOf<String, String>()
+        for (line in directives) when {
+            line.startsWith("#EXTVLCOPT:", ignoreCase = true) -> {
+                val opt = line.substringAfter(':')
+                val key = opt.substringBefore('=').trim().lowercase()
+                val value = opt.substringAfter('=', "").trim()
+                when (key) {
+                    "http-user-agent" -> pendingHeaders["User-Agent"] = value
+                    "http-referrer", "http-referer" -> pendingHeaders["Referer"] = value
+                    "http-origin" -> pendingHeaders["Origin"] = value
+                }
+            }
+            line.startsWith("#KODIPROP:", ignoreCase = true) -> {
+                val prop = line.substringAfter(':')
+                val key = prop.substringBefore('=').trim().lowercase()
+                    .removePrefix("inputstream.adaptive.").removePrefix("inputstream.")
+                pendingProps[key] = prop.substringAfter('=', "").trim()
+            }
+            // TiviMate-style request headers: #EXTHTTP:{"User-Agent":"…","Referer":"…"}
+            line.startsWith("#EXTHTTP:", ignoreCase = true) -> runCatching {
+                val o = org.json.JSONObject(line.substringAfter(':'))
+                o.keys().forEach { k -> pendingHeaders[normalizeHeader(k)] = o.optString(k) }
+            }
+        }
+        listOf("stream_headers", "manifest_headers", "common_headers").forEach { key ->
+            val v = pendingProps[key]
+            if (!v.isNullOrBlank()) v.split('&').forEach { part ->
+                val k = part.substringBefore('=').trim()
+                if (k.isNotEmpty()) pendingHeaders[normalizeHeader(k)] =
+                    runCatching { java.net.URLDecoder.decode(part.substringAfter('=', ""), "UTF-8") }.getOrDefault(part.substringAfter('=', ""))
+            }
+        }
+        return buildEntry(info, group, url, pendingHeaders, headerCatchup).copy(drm = drmFrom(pendingProps))
     }
 
     /**
@@ -163,11 +183,14 @@ object M3uParser {
         playlistCatchup: Map<String, String> = emptyMap()
     ): M3uEntry {
         // The channel's own attributes win over the playlist-wide catch-up defaults.
-        val attrs = playlistCatchup + attributes(info)
+        val own = attributes(info)
+        val attrs = if (playlistCatchup.isEmpty()) own else playlistCatchup + own
         // Display name follows the first comma that is outside quotes.
         val name = displayName(info).ifBlank { attrs["tvg-name"].orEmpty() }.ifBlank { "Channel" }
 
-        val headers = LinkedHashMap(vlcHeaders)
+        val needHeaders = vlcHeaders.isNotEmpty() || urlLine.indexOf('|') > 0 ||
+            "user-agent" in attrs || "http-user-agent" in attrs || "http-referrer" in attrs
+        val headers = if (needHeaders) LinkedHashMap(vlcHeaders) else null
         var url = urlLine
         val pipe = urlLine.indexOf('|')
         if (pipe > 0) {
@@ -175,12 +198,12 @@ object M3uParser {
             urlLine.substring(pipe + 1).split('&').forEach { part ->
                 val k = part.substringBefore('=').trim()
                 val v = java.net.URLDecoder.decode(part.substringAfter('=', ""), "UTF-8")
-                if (k.isNotEmpty()) headers[normalizeHeader(k)] = v
+                if (k.isNotEmpty()) headers!![normalizeHeader(k)] = v
             }
         }
-        attrs["user-agent"]?.let { headers["User-Agent"] = it }
-        attrs["http-user-agent"]?.let { headers["User-Agent"] = it }
-        attrs["http-referrer"]?.let { headers["Referer"] = it }
+        attrs["user-agent"]?.let { headers!!["User-Agent"] = it }
+        attrs["http-user-agent"]?.let { headers!!["User-Agent"] = it }
+        attrs["http-referrer"]?.let { headers!!["Referer"] = it }
 
         val catchupType = attrs["catchup"] ?: attrs["catchup-type"]
         val catchupDays = (attrs["catchup-days"] ?: attrs["tvg-rec"] ?: attrs["timeshift"])?.toIntOrNull()
@@ -202,7 +225,7 @@ object M3uParser {
                 ?.split(';')?.firstOrNull()?.trim(),
             chno = (attrs["tvg-chno"] ?: attrs["channel-number"] ?: attrs["tvg-num"])?.trim()?.toIntOrNull(),
             url = url.trim(),
-            headers = headers,
+            headers = headers.orEmpty(),
             catchup = catchup
         )
     }
@@ -215,7 +238,46 @@ object M3uParser {
         else -> key
     }
 
+    private fun keyChar(c: Char) = c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9' || c == '_' || c == '-'
+    private fun attrSpace(c: Char) = c == ' ' || c in '\t'..'\r'
+
     internal fun attributes(line: String): Map<String, String> {
+        val map = HashMap<String, String>()
+        var i = 0
+        while (i < line.length) {
+            if (!keyChar(line[i])) { i++; continue }
+            val start = i
+            while (i < line.length && keyChar(line[i])) i++
+            val end = i
+            while (i < line.length && attrSpace(line[i])) i++
+            if (i == line.length || line[i] != '=') continue
+            i++
+            while (i < line.length && attrSpace(line[i])) i++
+            if (i == line.length) break
+            val key = line.substring(start, end).lowercase()
+            if (line[i] == '"') {
+                val valueStart = ++i
+                while (i < line.length && line[i] != '"') {
+                    // The two legacy expressions can find an unquoted key inside a quoted
+                    // value (often a logo query string). Preserve that obscure precedence.
+                    if (line[i] == '=') return legacyAttributes(line)
+                    i++
+                }
+                if (i == line.length) return legacyAttributes(line)
+                map[key] = line.substring(valueStart, i++)
+            } else {
+                val valueStart = i
+                while (i < line.length && !attrSpace(line[i]) && line[i] != ',' && line[i] != '"') {
+                    if (line[i] == '=') return legacyAttributes(line)
+                    i++
+                }
+                if (i > valueStart && key != "extinf" && key !in map) map[key] = line.substring(valueStart, i)
+            }
+        }
+        return map
+    }
+
+    private fun legacyAttributes(line: String): Map<String, String> {
         val map = HashMap<String, String>()
         attrRegex.findAll(line).forEach { m -> map[m.groupValues[1].lowercase()] = m.groupValues[2] }
         attrRegexUnquoted.findAll(line).forEach { m ->

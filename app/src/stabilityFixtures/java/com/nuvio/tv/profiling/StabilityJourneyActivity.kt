@@ -228,8 +228,25 @@ class StabilityJourneyActivity : ComponentActivity() {
                             }
                             writer.write("]")
                         }
-                        Diag.event("stage2-dump",mapOf("fixtures" to saved.size,"matches" to saved.values.sumOf { it.size },
-                            "maxPerFixture" to (saved.values.maxOfOrNull { it.size } ?: 0),"file" to file.name))
+                        val events = sports.events.value.map { it.id }.sorted()
+                        fun fingerprint(ids: List<String>): String {
+                            val digest = java.security.MessageDigest.getInstance("SHA-256")
+                            for (id in ids) {
+                                val channels = org.json.JSONArray()
+                                for (m in saved[id].orEmpty()) {
+                                    channels.put(org.json.JSONArray().put(m.channel.key).put(m.score)
+                                        .put(m.how).put(m.quality).put(m.catchup))
+                                }
+                                digest.update(org.json.JSONArray().put(id).put(channels).toString().toByteArray(Charsets.UTF_8))
+                                digest.update(0.toByte())
+                            }
+                            return okio.ByteString.of(*digest.digest()).hex()
+                        }
+                        val providerEvents = events.filter { it.startsWith("espn:") }
+                        Diag.event("stage2-dump", mapOf("fixtures" to saved.size, "matches" to saved.values.sumOf { it.size },
+                            "maxPerFixture" to (saved.values.maxOfOrNull { it.size } ?: 0), "file" to file.name,
+                            "events" to events.size, "providerEvents" to providerEvents.size,
+                            "allChannelConfidence" to fingerprint(events), "providerChannelConfidence" to fingerprint(providerEvents)))
                     }
                     "frames-reset" -> { frames.clear(); recordFrames = true }
                     "frames-report" -> {

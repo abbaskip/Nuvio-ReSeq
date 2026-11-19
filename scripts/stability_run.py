@@ -318,6 +318,11 @@ def cricket(s):
                   and e.get('event') == 'espn:cricket/19430:77702' and e.get('state') == 'LIVE']
         if not target:
             raise RuntimeError('Requested live cricket fixture was unavailable')
+        s.journey('stage2-dump')
+        projection = next(e for e in reversed(s.events) if e.get('kind') == 'stage2-dump')
+        if projection['events'] < 2000 or not projection['matches']:
+            raise RuntimeError('Incomplete synthetic Sports schedule or matching result')
+        s.save(f'match-projection-{iteration}.json', json.dumps(projection, indent=2))
         last_xml = ''
         for attempt in range(4):
             name = '/data/local/tmp/reseq-stability-cricket.xml'

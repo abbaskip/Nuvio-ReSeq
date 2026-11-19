@@ -44,6 +44,8 @@ jobs:
           git checkout --detach v0.1.0-beta.10.12
           git show "$GITHUB_SHA:scripts/performance_regressions.sh" > scripts/performance_regressions.sh
           git show "$GITHUB_SHA:scripts/stability_run.py" > scripts/stability_run.py
+          fixture=app/src/stabilityFixtures/java/com/nuvio/tv/profiling/StabilityJourneyActivity.kt
+          git show "$GITHUB_SHA:$fixture" > "$fixture"
       - uses: ./.github/actions/gradle
         with:
           encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}

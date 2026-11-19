@@ -180,6 +180,7 @@ private fun PlaybackNavHost(
         if (completedMovie == pendingMovie) completedMovie = null
     }
     com.nuvio.tv.livetv.sports.SportsHost(navController)
+    com.nuvio.tv.livetv.reminders.LiveTvReminderHost(navController)
     val playbackAvailability = LocalPlaybackAvailability.current
     val context = LocalContext.current
     fun isStreamToPlayer(from: String, to: String): Boolean {

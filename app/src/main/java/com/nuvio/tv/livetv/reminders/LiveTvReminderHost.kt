@@ -18,10 +18,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import com.nuvio.tv.livetv.data.LiveTvPreferences
 import com.nuvio.tv.livetv.data.LiveTvRepository
 import com.nuvio.tv.livetv.model.Reminder
+import com.nuvio.tv.livetv.parental.ParentalControls
 import com.nuvio.tv.livetv.player.LiveTvPlaybackController
 import com.nuvio.tv.livetv.ui.LiveDialog
 import com.nuvio.tv.livetv.ui.LiveText
@@ -38,6 +43,9 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+internal fun reminderDelayMs(startMs: Long, now: Long): Long? =
+    if (now >= startMs + 600_000L) null else (startMs - 60_000L - now).coerceAtLeast(0)
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -58,34 +66,32 @@ fun LiveTvReminderHost(navController: NavController) {
         runCatching { EntryPointAccessors.fromApplication(context.applicationContext, ReminderEntryPoint::class.java) }.getOrNull()
     } ?: return
     val scope = rememberCoroutineScope()
-    var due by remember { mutableStateOf<Reminder?>(null) }
-    val shown = remember { HashSet<String>() }
-
-    LaunchedEffect(Unit) {
-        val prefs = entry.liveTvPreferences()
-        var loaded = false
-        while (true) {
-            // Load channels in the background once there's a reminder, so Watch can tune in.
-            if (!loaded && runCatching { prefs.userState.first().reminders.isNotEmpty() }.getOrDefault(false)) {
-                entry.liveTvRepository().ensureLoaded(updateCheckDelayMs = 20_000)
-                loaded = true
+    val prefs = remember(entry) { entry.liveTvPreferences() }
+    val saved by prefs.guideReminders.collectAsStateWithLifecycle(initialValue = 0 to emptyList())
+    val (profile, reminders) = saved
+    var due by remember(profile) { mutableStateOf<Reminder?>(null) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(reminders, profile, lifecycle) {
+        if (due !in reminders) due = null
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (due == null && reminders.isNotEmpty()) {
+                val now = System.currentTimeMillis()
+                if (reminders.any { it.startMs + 1_800_000L <= now }) prefs.pruneReminders(now, profileId = profile)
+                val next = reminders.mapNotNull { r -> reminderDelayMs(r.startMs, now)?.let { r to it } }
+                    .minByOrNull { it.second } ?: break
+                if (next.second == 0L) {
+                    due = next.first
+                    entry.liveTvRepository().ensureLoaded(updateCheckDelayMs = 20_000)
+                    break
+                }
+                delay(next.second.coerceAtMost(60_000L))
             }
-            val now = System.currentTimeMillis()
-            runCatching { prefs.pruneReminders(now) }
-            if (due == null) {
-                val reminders = runCatching { prefs.userState.first().reminders }.getOrDefault(emptyList())
-                due = reminders.firstOrNull { r ->
-                    "${r.channelKey}|${r.startMs}" !in shown && now >= r.startMs - 60_000 && now < r.startMs + 10 * 60_000
-                }?.also { shown += "${it.channelKey}|${it.startMs}" }
-            }
-            delay(10_000)
         }
     }
 
     val r = due ?: return
     fun finish() {
-        due = null
-        scope.launch { entry.liveTvPreferences().removeReminder(r.channelKey, r.startMs) }
+        scope.launch { prefs.removeReminder(r.channelKey, r.startMs, profile) }
     }
     val first = remember(r) { FocusRequester() }
     // Goes away by itself after a couple of minutes.
@@ -104,16 +110,21 @@ fun LiveTvReminderHost(navController: NavController) {
         Spacer(Modifier.height(14.dp))
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             MenuItem("Watch", Modifier.focusRequester(first)) {
-                val channel = entry.liveTvRepository().channels.value.firstOrNull { it.key == r.channelKey }
-                finish()
-                if (channel != null) {
-                    entry.liveTvPlayback().play(channel)
-                    navController.navigate(Screen.LiveTv.route) {
+                scope.launch {
+                    if (prefs.guideReminders.first().let { it.first != profile || r !in it.second }) return@launch
+                    val channel = entry.liveTvRepository().channels.value.firstOrNull { it.key == r.channelKey }
+                    val user = prefs.userState.first()
+                    val canTune = channel != null && channel.key !in user.hiddenChannels && channel.groupId !in user.hiddenGroups &&
+                        !ParentalControls.isLocked(channel.groupId, channel.group, prefs.settings.first(), user.lockedGroups)
+                    prefs.removeReminder(r.channelKey, r.startMs, profile)
+                    if (canTune && channel != null) {
+                        entry.liveTvPlayback().play(channel)
+                        com.nuvio.tv.livetv.sports.openLiveTvFullscreen(navController)
+                    } else navController.navigate(Screen.LiveTv.route) {
                         popUpTo(navController.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
-                    navController.navigate(Screen.LiveTvPlayer.route) { launchSingleTop = true }
                 }
             }
             MenuItem("Dismiss") { finish() }

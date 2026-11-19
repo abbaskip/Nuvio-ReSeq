@@ -748,7 +748,7 @@ class OnDemandRepository @Inject constructor(
     /** Movie link: /movie/user/pass/<id>.<ext> */
     suspend fun movieUrl(item: VodItem): String? {
         val pl = playlist(item.playlistId) ?: return null
-        if (pl.isStalker || pl.isM3u) return StalkerVod.marker(item)
+        if (pl.isStalker || pl.isM3u) return StalkerVod.marker(item, m3u = pl.isM3u)
         return "${pl.xtreamBase()}/movie/${enc(pl.xtreamUsername)}/${enc(pl.xtreamPassword)}/${item.id}.${item.ext ?: "mp4"}"
     }
 
@@ -792,7 +792,7 @@ class OnDemandRepository @Inject constructor(
                         title = e.optString("title").ifBlank { "Episode $num" },
                         plot = einfo?.optString("plot")?.takeIf { it.isNotBlank() },
                         image = einfo?.optString("movie_image")?.takeIf { it.startsWith("http") },
-                        url = if (stored.isM3u) StalkerVod.marker(item, season, num, id) else "${pl.xtreamBase()}/series/${enc(pl.xtreamUsername)}/${enc(pl.xtreamPassword)}/$id.$ext",
+                        url = if (stored.isM3u) StalkerVod.marker(item, season, num, id, m3u = true) else "${pl.xtreamBase()}/series/${enc(pl.xtreamUsername)}/${enc(pl.xtreamPassword)}/$id.$ext",
                         tech = einfo?.let { parseTech(it) },
                         imdbId = (einfo?.optString("imdb_id") ?: e.optString("imdb_id")).takeIf(IMDB_ID::matches),
                         tmdbId = (einfo?.optString("tmdb_id") ?: e.optString("tmdb_id")).toLongOrNull()?.takeIf { it > 0 },

@@ -217,7 +217,7 @@ internal class M3uVodStore(private val context: Context) :
                 while (c.moveToNext()) {
                     val season = c.getInt(0); val number = c.getInt(1); val entry = c.getString(2)
                     add(VodEpisode(season, number, entry, c.getString(3), c.getString(4), null, c.getString(5),
-                        StalkerVod.marker(item, season, number, entry)))
+                        StalkerVod.marker(item, season, number, entry, m3u = true)))
                 }
             }
         }

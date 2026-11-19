@@ -1,7 +1,10 @@
 package com.nuvio.tv.livetv.ondemand
 
 import android.app.Application
+import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.core.report.ReportRedactor
+import com.nuvio.tv.data.local.ProfileDataStoreFactory
+import com.nuvio.tv.data.local.StreamLinkCacheDataStore
 import com.nuvio.tv.domain.model.EpisodeCoordinates
 import com.nuvio.tv.livetv.data.LiveTvPreferences
 import com.nuvio.tv.livetv.model.LiveTvSettings
@@ -75,6 +78,10 @@ class M3uVodIntegrationTest {
             http://example.test/show03.mkv
         """
         writePlaylist(pl.id, fixture, "1")
+        val profiles = mockk<ProfileManager> { every { activeProfileId } returns MutableStateFlow(1) }
+        val cacheFactory = ProfileDataStoreFactory(app)
+        val lastLinkCache = StreamLinkCacheDataStore(cacheFactory, profiles)
+        val contentKey = "movie:tt0000022"
         var resume = ""
         var seriesUid = ""
         val existing = VodItem("original", VodKind.MOVIE, "777", "Existing (2021)", null, "1", "mp4", null, 2021, null, 0L)
@@ -93,6 +100,14 @@ class M3uVodIntegrationTest {
             assertFalse(resume.contains("fixturePassword"))
             assertFalse(resume.contains("example.test"))
             val movie = repo.resolvePortalMarker(resume)
+            val reusable = StalkerVod.lastLink(movie.url, movie.headers, resume to movie.url)
+            lastLinkCache.save(contentKey, reusable.url, "fixture", reusable.headers)
+            assertEquals(resume, reusable.url)
+            assertTrue(reusable.headers.isEmpty())
+            val ordinaryUrl = "https://example.test/other"
+            assertEquals(ordinaryUrl, StalkerVod.lastLink(ordinaryUrl, emptyMap(), resume to movie.url).url)
+            val nativeReference = StalkerVod.marker(existing)
+            assertEquals(movie, StalkerVod.lastLink(movie.url, movie.headers, nativeReference to movie.url))
             assertEquals("fixture-agent", movie.headers["User-Agent"])
             assertEquals("https://media.example.test", movie.headers["Referer"])
             assertFalse(ReportRedactor.clean(movie.url).contains("fixturePassword"))
@@ -110,7 +125,10 @@ class M3uVodIntegrationTest {
         withDatabase { db ->
             val repo = OnDemandRepository(db, prefs)
             repo.refresh(true, pl.id)
-            assertTrue(repo.resolvePortalMarker(resume).url.endsWith("token=rotated"))
+            val saved = StreamLinkCacheDataStore(cacheFactory, profiles).getValid(contentKey, 60_000)!!
+            assertEquals(resume, saved.url)
+            assertTrue(saved.headers.isEmpty())
+            assertTrue(repo.resolvePortalMarker(saved.url).url.endsWith("token=rotated"))
             assertNotNull(repo.itemByUid(seriesUid))
 
         }

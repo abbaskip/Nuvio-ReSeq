@@ -144,14 +144,26 @@ internal class StalkerVod(private val portal: StalkerPortalClient) {
 
     companion object {
         const val PREFIX = "reseq-stalker-vod://"
+        /** A resolved M3U URL or its headers can expire before the next resume. */
+        fun lastLink(url: String, headers: Map<String, String>, activePortal: Pair<String, String>?): StalkerPortalClient.Link {
+            val reference = activePortal?.takeIf { (marker, resolved) ->
+                resolved == url && marker.startsWith("$PREFIX$M3U_AUTHORITY/")
+            }?.first
+            return if (reference == null) StalkerPortalClient.Link(url, headers)
+            else StalkerPortalClient.Link(reference, emptyMap())
+        }
+
         private val seasonPattern = Regex("""(?i)(?:\bseason\s*|\bs|^)(\d+)\b""")
         private fun JSONObject.tmdbId() = sequenceOf("tmdb_id", "tmdb", "tmdbid").mapNotNull { field(it)?.toLongOrNull() }.firstOrNull { it > 0 }?.toString()
         private fun JSONObject.field(key: String) = optString(key).trim().takeUnless { it.isEmpty() || it == "null" }
         private fun artwork(source: PlaylistSource, row: JSONObject) = row.field("screenshot_uri")?.let {
             source.stalkerPortal.toHttpUrl().resolve(it)?.toString()
         }
-        fun marker(item: VodItem, season: Int? = null, episode: Int? = null, entryId: String? = null): String {
-            val url = "http://catalog/".toHttpUrl().newBuilder().addPathSegment(item.uid)
+        private const val M3U_AUTHORITY = "playlist"
+
+        fun marker(item: VodItem, season: Int? = null, episode: Int? = null, entryId: String? = null, m3u: Boolean = false): String {
+            val authority = if (m3u) M3U_AUTHORITY else "catalog"
+            val url = "http://$authority/".toHttpUrl().newBuilder().addPathSegment(item.uid)
             if (season != null && episode != null) url.addQueryParameter("s", season.toString()).addQueryParameter("e", episode.toString()).addQueryParameter("entry", entryId)
             return PREFIX + url.build().toString().removePrefix("http://")
         }

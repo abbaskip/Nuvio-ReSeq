@@ -179,15 +179,7 @@ private fun PlaybackNavHost(
         canShow = route != null && !route.startsWith("player/") && !route.startsWith("stream/") && !route.startsWith("livetv/") && !route.startsWith("party")) {
         if (completedMovie == pendingMovie) completedMovie = null
     }
-    val startup = com.nuvio.tv.ui.components.LocalStartupLoadingState.current
-    var sportsStarted by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(route, startup?.complete) {
-        if (route != null && (route != Screen.Home.route || startup?.complete != false)) {
-            androidx.compose.runtime.withFrameNanos { }
-            sportsStarted = true
-        }
-    }
-    if (sportsStarted) com.nuvio.tv.livetv.sports.SportsHost(navController)
+    com.nuvio.tv.livetv.sports.SportsHost(navController)
     val playbackAvailability = LocalPlaybackAvailability.current
     val context = LocalContext.current
     fun isStreamToPlayer(from: String, to: String): Boolean {
@@ -296,7 +288,7 @@ private fun PlaybackNavHost(
         }
 
         rootComposable(Screen.LiveTv.route, withInset = !liveFullscreen) { entry ->
-            // Create the guide lazily and keep its focus and search state across visits.
+            // Reuse Home's live state so its selected channel/group survives opening the guide.
             // Live TV can also be the start destination, with no Home entry on the back stack.
             val liveTvOwner = androidx.compose.runtime.remember(entry) {
                 runCatching { navController.getBackStackEntry(Screen.Home.route) }.getOrNull() ?: entry

@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.nuvio.tv.livetv.ui.LiveText
 import com.nuvio.tv.ui.navigation.Screen
 import com.nuvio.tv.ui.theme.NuvioTheme
@@ -72,6 +73,17 @@ fun openLiveTvFullscreen(navController: NavController) {
  */
 @Composable
 fun SportsHost(navController: NavController) {
+    val startup = com.nuvio.tv.ui.components.LocalStartupLoadingState.current
+    val destination by navController.currentBackStackEntryAsState()
+    val route = destination?.destination?.route
+    var settled by remember { mutableStateOf(false) }
+    LaunchedEffect(route, startup?.complete) {
+        if (startup == null || startup.complete || (route != null && route != Screen.Home.route)) {
+            androidx.compose.runtime.withFrameNanos { }
+            settled = true
+        }
+    }
+    if (!settled) return
     val context = LocalContext.current
     val entry = remember {
         runCatching { EntryPointAccessors.fromApplication(context.applicationContext, SportsEntryPoint::class.java) }.getOrNull()

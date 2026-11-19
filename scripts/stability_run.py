@@ -384,6 +384,9 @@ def launcher_scenarios(s):
 
 def cold_sports_reminder(s):
     s.phase = 'cold-sports-reminder'
+    # The viewer sets the reminder on a game. The repository loads its local
+    # schedule while Sports is visible, just as it does in the normal app.
+    s.journey('sports')
     s.journey('prepare-cold-reminder', 115)
     scheduled = next(event for event in reversed(s.events) if event['kind'] == 'cold-reminder-saved')
     s.stop_log()

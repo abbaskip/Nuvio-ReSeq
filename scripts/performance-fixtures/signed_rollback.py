@@ -15,7 +15,9 @@ from http.server import ThreadingHTTPServer
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "baselineprofile/fixtures"))
+sys.path.insert(0, str(ROOT / "scripts"))
 from server import BASE, Web
+from prepare_release_apks import certificate
 
 PACKAGE = "io.github.abbaskip.nuvioreseq"
 SERIAL = "emulator-5554"
@@ -79,9 +81,7 @@ def signed_apks():
     for label, digest in APK_HASHES.items():
         apk, = (ROOT / "build/rollback-apks" / label).rglob("*-x86_64.apk")
         assert hashlib.sha256(apk.read_bytes()).hexdigest() == digest, label
-        verify = run(str(version / "apksigner"), "verify", "--print-certs", str(apk)).decode()
-        key, = re.findall(r"Signer #1 certificate SHA-256 digest: ([a-f0-9]+)", verify)
-        keys.add(key)
+        keys.add(certificate(str(version / "apksigner"), apk))
         manifest = run(str(version / "aapt"), "dump", "badging", str(apk)).decode()
         code = int(re.search(r"package: name='" + re.escape(PACKAGE) + r"' versionCode='(\d+)'", manifest)[1])
         assert "application-debuggable" not in manifest
@@ -343,7 +343,9 @@ if __name__ == "__main__":
             allow = {"Home", "Settings", "IPTV", "Providers", "On Demand", "Playlists & Guides",
                      "Open IPTV On Demand library", "Update Movies & Series Now", "Fixture Movie 001",
                      "Fixture movies", "Offline Feature", "Movies & Series from PlainFixture",
-                     "Skip", "Continue", "Allow", "Default", "Modern", "Movies & series imported"}
+                     "Skip", "Continue", "Allow", "Default", "Modern", "Movies & series imported",
+                     "Nothing imported yet", "NativeFixture", "PlainFixture", "General", "Profiles",
+                     "Display", "Playback", "Layout", "Search", "Library", "Discover", "Choose Profile"}
             nodes = list(tree().iter("node"))
             record("visibleAtFailure", sorted({label(n) for n in nodes} & allow))
             focus = next((n for n in nodes if n.get("focused") == "true"), None)

@@ -228,6 +228,7 @@ import kotlinx.coroutines.launch
 val LocalSidebarExpanded = compositionLocalOf { false }
 val LocalOpenSidebar = compositionLocalOf<() -> Unit> { {} }
 val LocalRootContentInset = compositionLocalOf { 0.dp }
+internal val LocalSidebarRoutes = compositionLocalOf { emptySet<String>() }
 val LocalContentFocusRequester = compositionLocalOf { FocusRequester.Default }
 
 data class SplashBackground(
@@ -1781,13 +1782,13 @@ private fun LegacySidebarScaffold(
                 LocalOpenSidebar provides { pendingSidebarFocusRequest = true; drawerState.setValue(DrawerValue.Open) },
                 LocalSidebarExpanded provides (drawerState.currentValue == DrawerValue.Open),
                 LocalRootContentInset provides rootContentInset,
+                LocalSidebarRoutes provides rootRoutes,
                 LocalContentFocusRequester provides contentFocusRequester
             ) {
                 NuvioNavHost(
                     navController = navController,
                     startDestination = startDestination,
-                    hideBuiltInHeaders = hideBuiltInHeaders,
-                    discoverIsRoot = Screen.Discover.route in rootRoutes
+                    hideBuiltInHeaders = hideBuiltInHeaders
                 )
             }
         }

@@ -14,12 +14,8 @@ Lcom/nuvio/tv/ui/screens/tvmix/**;
 HPLcom/nuvio/tv/ui/screens/tvmix/**;->**(**)**
 Lcom/nuvio/tv/ui/screens/search/**;
 HPLcom/nuvio/tv/ui/screens/search/**;->**(**)**
-Lcom/nuvio/tv/ui/screens/settings/**;
-HPLcom/nuvio/tv/ui/screens/settings/**;->**(**)**
 Lcom/nuvio/tv/ui/screens/home/**;
 HPLcom/nuvio/tv/ui/screens/home/**;->**(**)**
-Lcom/nuvio/tv/ui/screens/detail/**;
-HPLcom/nuvio/tv/ui/screens/detail/**;->**(**)**
 Lcom/nuvio/tv/ui/navigation/**;
 HPLcom/nuvio/tv/ui/navigation/**;->**(**)**
 Lcom/nuvio/tv/ui/components/**;

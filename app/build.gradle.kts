@@ -146,8 +146,8 @@ android {
         minSdk = 24
         targetSdk = 36
         buildConfigField("boolean", "STABILITY_FIXTURES", stabilityFixtures.toString())
-        versionCode = 10061
-        versionName = "0.1.0-beta.10.12" + (localBetaNumber?.let { ".local.$it" } ?: "")
+        versionCode = 10062
+        versionName = "0.1.0-rc.1.0" + (localBetaNumber?.let { ".local.$it" } ?: "")
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")

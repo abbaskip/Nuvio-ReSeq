@@ -6,6 +6,15 @@ import org.junit.Test
 
 class VersionUtilsTest {
     @Test
+    fun `beta users are offered the first ReSeq release candidate only once`() {
+        val candidate = "v0.1.0-rc.1.0"
+        val beta = "0.1.0-beta.10.12"
+        assertTrue(VersionUtils.isRemoteNewer(candidate, beta))
+        assertFalse(VersionUtils.isRemoteNewer(beta, candidate))
+        assertFalse(VersionUtils.isRemoteNewer(candidate, "0.1.0-rc.1.0"))
+    }
+
+    @Test
     fun `beta hotfix is offered to withdrawn beta installations only once`() {
         assertTrue(VersionUtils.isRemoteNewer("v0.1.0-beta.9.6.1", "0.1.0-beta.9.6"))
         assertFalse(VersionUtils.isRemoteNewer("v0.1.0-beta.9.6.1", "0.1.0-beta.9.6.1"))

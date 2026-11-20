@@ -67,12 +67,18 @@ fun openLiveTvFullscreen(navController: NavController) {
     com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
 }
 
+private const val REMINDER_INTERVAL_MS = 15_000L
+
+internal fun firstSportsReminderWait(hostOpenedAt: Long, now: Long): Long =
+    (REMINDER_INTERVAL_MS - (now - hostOpenedAt)).coerceIn(0L, REMINDER_INTERVAL_MS)
+
 /**
  * Sports, wherever you are in the app: starts the background updates, "starting soon"
  * reminders for your teams and the games you picked, and scoring alerts in the corner.
  */
 @Composable
 fun SportsHost(navController: NavController) {
+    val hostOpenedAt = remember { android.os.SystemClock.elapsedRealtime() }
     val startup = com.nuvio.tv.ui.components.LocalStartupLoadingState.current
     val destination by navController.currentBackStackEntryAsState()
     val route = destination?.destination?.route
@@ -128,8 +134,12 @@ fun SportsHost(navController: NavController) {
     }
     val shown = remember { HashSet<String>() }
     LaunchedEffect(Unit) {
+        var firstCheck = true
         while (true) {
-            delay(15_000)
+            val wait = if (firstCheck) firstSportsReminderWait(hostOpenedAt, android.os.SystemClock.elapsedRealtime())
+                else REMINDER_INTERVAL_MS
+            delay(wait)
+            firstCheck = false
             if (due != null) continue
             val s = repo.settings.value
             val f = repo.follows.value

@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">Hap në pamje të shumëfishtë</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">Vazhdo shikimin</string>
     <string name="type_movie">Film</string>

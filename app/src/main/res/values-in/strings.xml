@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">Buka dalam tampilan multi-layar</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">Lanjutkan Menonton</string>
     <string name="type_movie">Film</string>

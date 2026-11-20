@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">मल्टीव्यू में खोलें</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="type_movie">फ़िल्म</string>
     <string name="type_series">सीरीज़</string>

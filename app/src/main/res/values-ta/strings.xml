@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">பல்திரைக் காட்சியில் திற</string>
     <string name="app_name">நுவியோ</string>
     <string name="tv_channel_continue_watching">தொடர்ந்து பார்க்கவும்</string>
     <string name="type_movie">திரைப்படம்</string>

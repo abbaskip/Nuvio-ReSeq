@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">Otvori u višestrukom prikazu</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="type_movie">Film</string>
     <string name="type_series">Serija</string>

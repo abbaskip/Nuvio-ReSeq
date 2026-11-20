@@ -25,16 +25,22 @@ class PersonalRatingTest {
         assertTrue(target.supports(PersonalRatingProvider.SIMKL))
         assertFalse(target.supports(PersonalRatingProvider.TRAKT))
     }
-    @Test fun genuineMovieCompletionMayPrompt() {
-        assertTrue(shouldRequestMovieRating(true, "movie", true, false))
+    @Test fun watchedExitCanRateTheMovieOrParentSeries() {
+        val movie = watchedRatingRequest(2, "tt1234567", "movie", "Movie", watched = true, hasError = false)!!
+        assertTrue(movie.target.movie)
+        assertEquals(2, movie.profileId)
+        val show = watchedRatingRequest(2, "tmdb:1437", "series", "Series", watched = true, hasError = false)!!
+        assertEquals("shows", show.target.group)
+        assertEquals("Series", show.title)
     }
-    @Test fun earlyStopsErrorsAndEpisodesCannotPrompt() {
-        assertFalse(shouldRequestMovieRating(true, "movie", false, false))
-        assertFalse(shouldRequestMovieRating(true, "movie", true, true))
-        assertFalse(shouldRequestMovieRating(true, "series", true, false))
+
+    @Test fun earlyExitErrorAndUnsupportedTargetsAreSkipped() {
+        assertNull(watchedRatingRequest(1, "tt1234567", "movie", "Movie", watched = false, hasError = false))
+        assertNull(watchedRatingRequest(1, "tt1234567", "series", "Series", watched = true, hasError = true))
+        assertNull(watchedRatingRequest(1, "tt1234567", "channel", "Live", watched = true, hasError = false))
     }
+
     @Test fun promptRemainsOptIn() {
-        assertFalse(shouldRequestMovieRating(false, "movie", true, false))
         assertFalse(com.nuvio.tv.data.local.PlayerSettings().promptToRateAfterWatching)
     }
 }

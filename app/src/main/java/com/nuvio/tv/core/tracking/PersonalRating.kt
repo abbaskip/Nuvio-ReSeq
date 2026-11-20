@@ -34,7 +34,18 @@ fun personalRatingTarget(contentId: String, contentType: String, imdbId: String?
 }
 
 /** Ephemeral UI request; it never records a watch or changes playback progress. */
-data class MovieRatingRequest(val profileId: Int, val contentId: String, val title: String)
+data class WatchedRatingRequest(val profileId: Int, val target: PersonalRatingTarget, val title: String)
 
-internal fun shouldRequestMovieRating(enabled: Boolean, type: String?, ended: Boolean, hasError: Boolean): Boolean =
-    enabled && type == "movie" && ended && !hasError
+internal fun watchedRatingRequest(
+    profileId: Int,
+    contentId: String?,
+    contentType: String?,
+    title: String,
+    watched: Boolean,
+    hasError: Boolean,
+    imdbId: String? = null
+): WatchedRatingRequest? {
+    if (!watched || hasError || contentId == null || contentType == null) return null
+    val target = personalRatingTarget(contentId, contentType, imdbId) ?: return null
+    return WatchedRatingRequest(profileId, target, title)
+}

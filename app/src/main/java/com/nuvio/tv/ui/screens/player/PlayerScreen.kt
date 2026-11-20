@@ -214,7 +214,7 @@ fun PlayerScreen(
     onPlaybackErrorBack: () -> Unit = { onBackPress(null, null, null, false, false) },
     onPlaybackEnded: ((nextVideoId: String?, nextSeason: Int?, nextEpisode: Int?, exitReason: PlayerExitReason?) -> Unit)? = null,
     onMixPlaybackEnded: ((Boolean, String?) -> Unit)? = null,
-    onMovieCompleted: (com.nuvio.tv.core.tracking.MovieRatingRequest) -> Unit = {},
+    onWatchedRatingRequested: (com.nuvio.tv.core.tracking.WatchedRatingRequest) -> Unit = {},
     onPlayRecommendation: (PostPlayRecommendation, manualSelection: Boolean) -> Unit = { _, _ -> },
     onOpenRecommendationDetails: (PostPlayRecommendation) -> Unit = {},
     onOpenPartyMedia: (PartyMedia) -> Unit = {}
@@ -222,12 +222,11 @@ fun PlayerScreen(
     PlayerSeekThumbsHook(viewModel)
     val uiState by viewModel.uiState.collectAsState()
     val promptForRating by viewModel.promptToRateAfterWatching.collectAsState(initial = false)
-    var movieCompletionReported by androidx.compose.runtime.saveable.rememberSaveable(uiState.currentVideoId) { mutableStateOf(false) }
-    LaunchedEffect(uiState.playbackEnded, uiState.error, uiState.currentVideoId, promptForRating) {
-        if (!movieCompletionReported && uiState.currentVideoId != null && com.nuvio.tv.core.tracking.shouldRequestMovieRating(
-                promptForRating, uiState.contentType, uiState.playbackEnded, uiState.error != null)) {
-            movieCompletionReported = true
-            viewModel.completedMovieRatingRequest()?.let(onMovieCompleted)
+    var ratingRequested by androidx.compose.runtime.saveable.rememberSaveable(uiState.currentVideoId) { mutableStateOf(false) }
+    fun stopPlaybackAndOfferRating() {
+        viewModel.stopForWatchedRating(promptForRating && !ratingRequested)?.let { request ->
+            ratingRequested = true
+            onWatchedRatingRequested(request)
         }
     }
     val playerBadges = rememberPlayerBadges(viewModel, uiState)
@@ -281,7 +280,7 @@ fun PlayerScreen(
         if (exitDispatched) return@exitPlayer
         exitDispatched = true
         val timeline = viewModel.playbackTimeline.value
-        viewModel.stopAndRelease()
+        stopPlaybackAndOfferRating()
         val completed = postPlayRecommendationState.isVisible || uiState.playbackEnded ||
             (!timeline.isLive &&
                 timeline.duration > 0L &&
@@ -319,7 +318,7 @@ fun PlayerScreen(
     val shouldConfirmNextEpisodeOnEnd = uiState.shouldConfirmNextEpisodeOnEnd()
     val shouldAutoPlayNextEpisodeOnEnd = uiState.shouldAutoPlayNextEpisodeOnEnd()
     val returnToDetailsFromEndPrompt = {
-        viewModel.stopAndRelease()
+        stopPlaybackAndOfferRating()
         val (focusSeason, focusEpisode) = uiState.returnFocusSeasonEpisode(completed = true)
         currentOnBackPress(
             uiState.currentVideoId,
@@ -335,7 +334,7 @@ fun PlayerScreen(
             if (uiState.streamAutoPlayNextEpisodeEnabled) {
                 viewModel.onEvent(PlayerEvent.OnPlayNextEpisode)
             } else {
-                viewModel.stopAndRelease()
+                stopPlaybackAndOfferRating()
                 val cb = currentOnPlaybackEnded
                 if (cb != null) {
                     cb(next.videoId, next.season, next.episode, null)
@@ -461,7 +460,7 @@ fun PlayerScreen(
             explicitReason == null
         when {
             explicitReason == PlayerExitReason.StillWatchingPrompt -> {
-                viewModel.stopAndRelease()
+                stopPlaybackAndOfferRating()
                 val cb = currentOnPlaybackEnded
                 if (cb != null) {
                     cb(null, null, null, PlayerExitReason.StillWatchingPrompt)
@@ -482,12 +481,12 @@ fun PlayerScreen(
                     if (!exitDispatched) {
                         exitDispatched = true
                         val bingeGroup = viewModel.controller.currentStreamBingeGroup
-                        viewModel.stopAndRelease()
+                        stopPlaybackAndOfferRating()
                         currentOnMixPlaybackEnded?.invoke(uiState.streamAutoPlayNextEpisodeEnabled, bingeGroup)
                     }
                     return@LaunchedEffect
                 }
-                viewModel.stopAndRelease()
+                stopPlaybackAndOfferRating()
                 val next = uiState.nextEpisode?.takeIf {
                     it.hasAired && !(it.released.isNullOrBlank() && it.available == false)
                 }
@@ -1348,21 +1347,21 @@ fun PlayerScreen(
                 onPlay = { recommendation ->
                     if (!exitDispatched) {
                         exitDispatched = true
-                        viewModel.stopAndRelease()
+                        stopPlaybackAndOfferRating()
                         currentOnPlayRecommendation(recommendation, false)
                     }
                 },
                 onPlayManually = { recommendation ->
                     if (!exitDispatched) {
                         exitDispatched = true
-                        viewModel.stopAndRelease()
+                        stopPlaybackAndOfferRating()
                         currentOnPlayRecommendation(recommendation, true)
                     }
                 },
                 onOpenDetails = { recommendation ->
                     if (!exitDispatched) {
                         exitDispatched = true
-                        viewModel.stopAndRelease()
+                        stopPlaybackAndOfferRating()
                         currentOnOpenRecommendationDetails(recommendation)
                     }
                 },

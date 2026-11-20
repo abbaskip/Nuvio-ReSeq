@@ -150,19 +150,27 @@ private fun PersonalRatingDialog(title: String, state: PersonalRatingsState, eli
 }
 
 @Composable
-internal fun MovieRatingPromptHost(request: MovieRatingRequest?, canShow: Boolean, onConsumed: () -> Unit) {
+internal fun WatchedRatingPromptHost(
+    request: WatchedRatingRequest?,
+    ratingsOwner: androidx.lifecycle.ViewModelStoreOwner,
+    canShow: Boolean,
+    onConsumed: () -> Unit
+) {
     if (request == null) return
-    val viewModel: PersonalRatingsViewModel = hiltViewModel(key = "completed-movie-rating")
+    val viewModel: PersonalRatingsViewModel = hiltViewModel(ratingsOwner, key = "watched-title-rating")
+    DisposableEffect(viewModel, request) {
+        onDispose { viewModel.close() }
+    }
     val connected by viewModel.connected.collectAsStateWithLifecycle()
     val enabled by viewModel.promptEnabled.collectAsStateWithLifecycle()
     val profile by viewModel.activeProfileId.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val target = remember(request) { personalRatingTarget(request.contentId, "movie") }
-    val eligible = connected.orEmpty().filter { target?.supports(it) == true }
+    val target = request.target
+    val eligible = connected.orEmpty().filter(target::supports)
     var opened by remember(request) { mutableStateOf(false) }
     LaunchedEffect(request, canShow, connected, enabled, profile, state.open) {
         when {
-            profile != request.profileId || enabled == false || target == null -> { viewModel.close(); onConsumed() }
+            profile != request.profileId || enabled == false -> { viewModel.close(); onConsumed() }
             opened && !state.open -> onConsumed()
             connected == null || enabled == null -> Unit
             eligible.isEmpty() -> { viewModel.close(); onConsumed() }
@@ -170,7 +178,7 @@ internal fun MovieRatingPromptHost(request: MovieRatingRequest?, canShow: Boolea
             !canShow && opened -> { viewModel.close(); onConsumed() }
         }
     }
-    if (canShow) PersonalRatingDialog(request.title, state, eligible, viewModel::write) {
+    if (canShow) PersonalRatingDialog(if (target.movie) request.title else "Series - ${request.title}", state, eligible, viewModel::write) {
         viewModel.close(); onConsumed()
     }
 }
@@ -182,6 +190,6 @@ internal fun PersonalRatingPromptSetting(enabled: Boolean, onToggle: () -> Unit)
     if (connected.isNullOrEmpty()) return
     com.nuvio.tv.ui.screens.settings.SettingsToggleRow(
         title = "Prompt to rate after watching",
-        subtitle = "Ask when returning from a completed movie. Uses your selected rating destination.",
+        subtitle = "Ask to rate the movie or series when you leave playback after it counts as watched.",
         checked = enabled, onToggle = onToggle)
 }

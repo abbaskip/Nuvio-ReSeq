@@ -97,6 +97,7 @@ fun NuvioNavHost(
     // The session owner below only supplies a store, not a Hilt factory. Resolve the
     // shared mix coordinator from the activity before installing that owner.
     val mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val ratingsOwner = checkNotNull(LocalViewModelStoreOwner.current)
     val activity = LocalActivity.current
     DisposableEffect(mixViewModel) {
         onDispose {
@@ -113,7 +114,7 @@ fun NuvioNavHost(
                 LocalBackgroundTrailerController.current?.let { controller ->
                     BackgroundTrailerLayer(controller = controller)
                 }
-                PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel)
+                PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel, ratingsOwner)
             }
         }
     }
@@ -139,7 +140,8 @@ private fun PlaybackNavHost(
     navController: NavHostController,
     startDestination: String,
     hideBuiltInHeaders: Boolean,
-    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel
+    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel,
+    ratingsOwner: androidx.lifecycle.ViewModelStoreOwner
 ) {
     val recoveryContext = LocalContext.current
     val returnToGuide = androidx.compose.runtime.remember {
@@ -181,17 +183,17 @@ private fun PlaybackNavHost(
             }
         }
     }
-    var completedMovie by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.nuvio.tv.core.tracking.MovieRatingRequest?>(null) }
+    var ratingRequest by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.nuvio.tv.core.tracking.WatchedRatingRequest?>(null) }
     val currentEntry by navController.currentBackStackEntryAsState()
     val route = currentEntry?.destination?.route
     androidx.compose.runtime.LaunchedEffect(route) {
-        if (route?.startsWith("livetv/") == true || route?.startsWith("party") == true) completedMovie = null
+        if (route?.startsWith("livetv/") == true || route?.startsWith("party") == true) ratingRequest = null
         if (route != null && !route.startsWith("tv-mix/") && !route.startsWith("stream/") && !route.startsWith("player/")) mixViewModel.end()
     }
-    val pendingMovie = completedMovie
-    com.nuvio.tv.ui.screens.detail.MovieRatingPromptHost(pendingMovie,
-        canShow = route != null && !route.startsWith("player/") && !route.startsWith("stream/") && !route.startsWith("livetv/") && !route.startsWith("party")) {
-        if (completedMovie == pendingMovie) completedMovie = null
+    val pendingRating = ratingRequest
+    com.nuvio.tv.ui.screens.detail.WatchedRatingPromptHost(pendingRating, ratingsOwner,
+        canShow = route != null && !route.startsWith("player/") && !route.startsWith("livetv/") && !route.startsWith("party")) {
+        if (ratingRequest == pendingRating) ratingRequest = null
     }
     com.nuvio.tv.livetv.sports.SportsHost(navController)
     com.nuvio.tv.livetv.reminders.LiveTvReminderHost(navController)
@@ -1201,7 +1203,7 @@ private fun PlaybackNavHost(
             }
 
             PlayerScreen(
-                onMovieCompleted = { completedMovie = it },
+                onWatchedRatingRequested = { ratingRequest = it },
                 onBackPress = mixPlayerBack@{ currentVideoId, currentSeason, currentEpisode, autoPlayEnabled, playbackCompleted ->
                     if (mixViewModel.session.playing.value != null) {
                         mixViewModel.session.end()

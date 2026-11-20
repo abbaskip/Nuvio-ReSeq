@@ -1117,22 +1117,22 @@ internal fun PlayerRuntimeController.emitScrobbleStart() {
     }
 }
 
-internal fun PlayerRuntimeController.emitScrobbleStop(progressPercent: Float? = null) {
+internal fun PlayerRuntimeController.emitScrobbleStop(progressPercent: Float? = null): Boolean {
     logScrobbleDiagnostic("stop_evaluated", "providedProgress=${progressPercent ?: "none"}")
     if (isShortPlaceholderStream()) {
         logScrobbleDiagnostic("stop_skipped", "reason=short_placeholder")
-        return
+        return false
     }
     val item = currentScrobbleItem
     if (item == null) {
         logScrobbleDiagnostic("stop_skipped", "reason=no_scrobble_item")
-        return
+        return false
     }
 
     val provided = progressPercent
     if (!hasRequestedScrobbleStartForCurrentItem && (provided ?: 0f) < 80f) {
         logScrobbleDiagnostic("stop_skipped", "reason=no_active_scrobble providedProgress=${provided ?: "none"}")
-        return
+        return false
     }
 
     val percent = provided ?: currentPlaybackProgressPercent()
@@ -1150,6 +1150,7 @@ internal fun PlayerRuntimeController.emitScrobbleStop(progressPercent: Float? = 
     hasRequestedScrobbleStartForCurrentItem = false
     hasSentScrobbleStartForCurrentItem = false
     logScrobbleDiagnostic("stop_state_reset", "progress=$percent")
+    return true
 }
 
 internal fun PlayerRuntimeController.emitScrobblePause(progressPercent: Float? = null) {
@@ -1190,8 +1191,7 @@ internal fun PlayerRuntimeController.emitScrobblePause(progressPercent: Float? =
 
 internal fun PlayerRuntimeController.emitCompletionScrobbleStop(progressPercent: Float) {
     if (progressPercent < 80f || hasSentCompletionScrobbleForCurrentItem) return
-    hasSentCompletionScrobbleForCurrentItem = true
-    emitScrobbleStop(progressPercent = progressPercent)
+    hasSentCompletionScrobbleForCurrentItem = emitScrobbleStop(progressPercent = progressPercent)
 }
 
 internal fun PlayerRuntimeController.emitStopScrobbleForCurrentProgress() {

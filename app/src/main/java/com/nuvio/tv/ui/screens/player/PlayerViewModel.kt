@@ -220,8 +220,22 @@ class PlayerViewModel @Inject constructor(
         get() = postPlayRecommendationController.uiState
 
     val promptToRateAfterWatching = playerSettingsDataStore.playerSettings.map { it.promptToRateAfterWatching }
-    internal fun completedMovieRatingRequest(): com.nuvio.tv.core.tracking.MovieRatingRequest? =
-        controller.contentId?.let { com.nuvio.tv.core.tracking.MovieRatingRequest(controller.profileId, it, controller.title) }
+    internal fun stopForWatchedRating(enabled: Boolean): com.nuvio.tv.core.tracking.WatchedRatingRequest? {
+        val timeline = playbackTimeline.value
+        val eligible = enabled && !timeline.isLive &&
+            controller.currentTvdbContext()?.permitsTracking(timeline.duration.takeIf { it > 0L } ?: controller.lastKnownDuration) != false
+        stopAndRelease() // Flush tracking before reading the completion decision for this item.
+        if (!eligible) return null
+        return com.nuvio.tv.core.tracking.watchedRatingRequest(
+            profileId = controller.profileId,
+            contentId = controller.contentId,
+            contentType = controller.contentType,
+            title = controller.contentName?.takeIf { it.isNotBlank() } ?: controller.title,
+            watched = controller.hasSentCompletionScrobbleForCurrentItem || controller.hasMarkedCurrentEpisodeCompleted,
+            hasError = uiState.value.error != null,
+            imdbId = controller.contentId?.let(controller::serverImdbId)
+        )
+    }
 
     val effectiveAutoplayEnabled = playerSettingsDataStore.playerSettings
         .map(StreamAutoPlayPolicy::isEffectivelyEnabled)

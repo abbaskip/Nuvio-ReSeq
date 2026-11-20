@@ -620,7 +620,11 @@ internal fun LiveTvSettingsContent(
                         var importSettings by remember(pl.id) { mutableStateOf(false) }
                         SettingsToggleRow(
                             "Movies & Series from ${pl.name}",
-                            if (pl.importVod) "Included" else "Not included. Switch on to import this provider's movies and series.",
+                            when {
+                                pl.importVod -> "Included"
+                                pl.isM3u -> M3U_CATALOGUE_STORAGE
+                                else -> "Not included. Switch on to import this provider's movies and series."
+                            },
                             pl.importVod,
                             { viewModel.savePlaylist(pl.copy(importVod = !pl.importVod)) }
                         )
@@ -1670,6 +1674,7 @@ internal fun LiveTvSettingsContent(
                     toggle = "Load guide linked in playlist" to src.useEmbeddedEpg,
                     onDismiss = close,
                     toggle2 = "Include movies & series (On Demand)" to src.importVod,
+                    vodDescription = M3U_CATALOGUE_STORAGE,
                     onSave = { _, _ -> },
                     onSaveBoth = { v, t, vod ->
                         viewModel.savePlaylist(src.copy(name = v[0], url = v[1], userAgent = v[2], useEmbeddedEpg = t, importVod = vod))
@@ -1995,6 +2000,8 @@ private fun LoadingLine(message: String) {
 
 private data class FormField(val label: String, val hint: String, val initial: String = "")
 
+private const val M3U_CATALOGUE_STORAGE = "About 85 MiB of device storage per 100,000 playlist-listed movies. Series and provider catalogues vary."
+
 @Composable
 private fun SourceFormDialog(
     title: String,
@@ -2005,6 +2012,7 @@ private fun SourceFormDialog(
     toggle: Pair<String, Boolean>? = null,
     /** A second switch (Xtream: import movies & series); its value goes to [onSaveBoth]. */
     toggle2: Pair<String, Boolean>? = null,
+    vodDescription: String = "Adds the provider's movies and series to On Demand and to Nuvio's stream list",
     onSaveBoth: ((List<String>, Boolean, Boolean) -> Unit)? = null,
     /** Xtream: "Include TV channels", shown first. Its value goes to [onSaveAll]. */
     toggleLive: Pair<String, Boolean>? = null,
@@ -2068,7 +2076,7 @@ private fun SourceFormDialog(
         if (toggle2 != null) {
             SettingsToggleRow(
                 title = toggle2.first,
-                subtitle = "Adds the provider's movies and series to On Demand and to Nuvio's stream list",
+                subtitle = vodDescription,
                 checked = toggle2Value,
                 onToggle = { toggle2Value = !toggle2Value }
             )

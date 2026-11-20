@@ -162,7 +162,14 @@ def write_preferences(uid, files):
         for name, prefs in files.items():
             entries = bytearray()
             for key, value in prefs.items():
-                encoded = bytes([8, int(value)]) if isinstance(value, bool) else field(5, value.encode())
+                if isinstance(value, bool):
+                    encoded = bytes([8, int(value)])
+                elif isinstance(value, int) and value >= 0:
+                    encoded = bytes([24]) + varint(value)
+                elif isinstance(value, set):
+                    encoded = field(6, b"".join(field(1, item.encode()) for item in sorted(value)))
+                else:
+                    encoded = field(5, value.encode())
                 entries += field(1, field(1, key.encode()) + field(2, encoded))
             local = Path(temp) / (name + ".preferences_pb")
             local.write_bytes(entries)

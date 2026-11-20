@@ -5,6 +5,7 @@ internal fun rootSidebarRoutes(discoverInSidebar: Boolean, livePlaybackFullscree
     add(Screen.Home.route)
     add(Screen.Search.route)
     add(Screen.Library.route)
+    add(Screen.Calendar.route)
     add(Screen.Settings.route)
     if (discoverInSidebar) add(Screen.Discover.route)
     if (!livePlaybackFullscreen) {

@@ -46,6 +46,7 @@ class TraktTrackingLibraryProvider @Inject constructor(
     override val isAuthenticated = authDataStore.isEffectivelyAuthenticated
     override val isRefreshing = service.observeIsRefreshing()
     override val items = service.observeAllItems()
+    override suspend fun cachedItems(profileId: Int) = service.cachedItems(profileId)
     override val tabs = service.observeListTabs().map { tabs ->
         tabs.map { tab -> tab.copy(trackingProviderId = providerId.storageId) }
     }

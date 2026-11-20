@@ -15,6 +15,7 @@ interface LibraryRepository {
     val sourceMode: Flow<LibrarySourceMode>
     val isSyncing: Flow<Boolean>
     val libraryItems: Flow<List<LibraryEntry>>
+    suspend fun cachedLibraryItems(profileId: Int): List<LibraryEntry>?
     val listTabs: Flow<List<LibraryListTab>>
     val membershipListTabs: Flow<List<LibraryListTab>>
 

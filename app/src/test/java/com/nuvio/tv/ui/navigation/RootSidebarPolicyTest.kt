@@ -7,7 +7,7 @@ import org.junit.Test
 class RootSidebarPolicyTest {
     @Test fun `a retained fullscreen flag cannot disable Home or general navigation`() {
         val roots = rootSidebarRoutes(discoverInSidebar = true, livePlaybackFullscreen = true)
-        for (screen in listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Settings, Screen.Discover)) {
+        for (screen in listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Settings, Screen.Discover, Screen.Calendar)) {
             assertTrue("${screen.route} must still have its sidebar and Back handler", screen.route in roots)
         }
         assertFalse(Screen.OnDemand.route in roots)

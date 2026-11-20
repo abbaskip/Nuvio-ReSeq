@@ -105,35 +105,25 @@ class LibraryRepositoryImpl @Inject constructor(
         }
         .distinctUntilChanged()
 
-    override val libraryItems: Flow<List<LibraryEntry>> = sourceMode
-        .flatMapLatest { mode ->
-            val provider = mode.providerId?.let(trackingProviders::provider)
-            if (provider != null) {
-                provider.items
-            } else {
-                libraryPreferences.libraryItems.map { items ->
-                    items.map { saved ->
-                        LibraryEntry(
-                            id = saved.id,
-                            type = saved.type,
-                            name = saved.name,
-                            poster = saved.poster,
-                            posterShape = saved.posterShape,
-                            background = saved.background,
-                            logo = saved.logo,
-                            description = saved.description,
-                            releaseInfo = saved.releaseInfo,
-                            imdbRating = saved.imdbRating,
-                            genres = saved.genres,
-                            addonBaseUrl = saved.addonBaseUrl,
-                            listedAt = saved.addedAt,
-                            rawPosterUrl = saved.poster
-                        )
-                    }
-                }
-            }
+    private fun localLibraryItems() = libraryPreferences.libraryItems.map { items ->
+        items.map { saved ->
+            LibraryEntry(
+                id = saved.id, type = saved.type, name = saved.name, poster = saved.poster,
+                posterShape = saved.posterShape, background = saved.background, logo = saved.logo,
+                description = saved.description, releaseInfo = saved.releaseInfo, imdbRating = saved.imdbRating,
+                genres = saved.genres, addonBaseUrl = saved.addonBaseUrl, listedAt = saved.addedAt, rawPosterUrl = saved.poster
+            )
         }
-        .distinctUntilChanged()
+    }
+
+    override val libraryItems: Flow<List<LibraryEntry>> = sourceMode.flatMapLatest { mode ->
+        mode.providerId?.let(trackingProviders::provider)?.items ?: localLibraryItems()
+    }.distinctUntilChanged()
+
+    override suspend fun cachedLibraryItems(profileId: Int): List<LibraryEntry>? {
+        val provider = sourceMode.first().providerId?.let(trackingProviders::provider)
+        return if (provider == null) localLibraryItems().first() else provider.cachedItems(profileId)
+    }
 
     override val listTabs: Flow<List<LibraryListTab>> = sourceMode
         .flatMapLatest { mode ->

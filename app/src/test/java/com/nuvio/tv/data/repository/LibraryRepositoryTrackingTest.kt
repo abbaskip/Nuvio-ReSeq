@@ -35,6 +35,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LibraryRepositoryTrackingTest {
+    @Test fun `a passive library read does not collect the refreshing provider flow`() = runTest {
+        val provider = FakeLibraryProvider(TrackingProviderId.SIMKL, tab("simkl:plantowatch", TrackingProviderId.SIMKL))
+        val library = repository(MutableStateFlow(LibrarySourceMode.SIMKL), setOf(provider))
+        assertEquals(null, library.cachedLibraryItems(1))
+        assertEquals(0, provider.itemSubscriptions)
+        library.libraryItems.first()
+        assertEquals(1, provider.itemSubscriptions)
+    }
+
     @Test
     fun `screen tabs follow active provider while membership tabs include every connection`() = runTest {
         val sourceMode = MutableStateFlow(LibrarySourceMode.SIMKL)
@@ -232,7 +241,11 @@ class LibraryRepositoryTrackingTest {
         var lastConfirmed = false
         override val isAuthenticated = flowOf(true)
         override val isRefreshing = flowOf(false)
-        override val items = flowOf(emptyList<LibraryEntry>())
+        var itemSubscriptions = 0
+        override val items = kotlinx.coroutines.flow.flow {
+            itemSubscriptions++
+            emit(emptyList<LibraryEntry>())
+        }
         override val tabs = flowOf(listOf(tab))
 
         override fun recognizesListKey(key: String): Boolean = key == tab.key || key.startsWith("${providerId.storageId}:")

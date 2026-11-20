@@ -523,7 +523,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         minStopMs: Long,
         words: Collection<String>,
         inDescription: Boolean = true,
-        limit: Int = 4_000
+        limit: Int = 4_000,
+        cancellation: android.os.CancellationSignal? = null
     ): List<Pair<String, EpgProgram>> {
         val clean = words.map { it.trim() }.filter { it.length >= 3 }.distinct()
         if (clean.isEmpty()) return emptyList()
@@ -544,7 +545,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             var completeTerms=true
             if (anchors.all { it != null }) for (anchor in anchors.filterNotNull().distinct()) {
                 readableDatabase.rawQuery("SELECT term FROM search_words WHERE term LIKE ? ESCAPE '\\'",
-                    arrayOf(like(anchor))).use { c ->
+                    arrayOf(like(anchor)), cancellation).use { c ->
                     while(c.moveToNext()) {
                         terms+=c.getString(0)
                         if(terms.size>1024) { completeTerms=false;break }
@@ -568,7 +569,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             val ordering=if(indexed) " ORDER BY branch,start,programme_row,alias_row" else ""
             val sql=prefix+"SELECT ch,start,stop,title,descr,cat FROM $listings WHERE start>=? AND start<? AND stop>? AND ($conds)"+
                 ordering+" LIMIT ${limit-out.size}"
-            readableDatabase.rawQuery(sql, searchArgs.toTypedArray()).use { c ->
+            readableDatabase.rawQuery(sql, searchArgs.toTypedArray(), cancellation).use { c ->
                 while (c.moveToNext()) {
                     val ch = c.getString(0)
                     val start = c.getLong(1)

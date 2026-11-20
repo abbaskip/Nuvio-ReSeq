@@ -16,6 +16,8 @@ interface TrackingLibraryProvider {
     val isAuthenticated: Flow<Boolean>
     val isRefreshing: Flow<Boolean>
     val items: Flow<List<LibraryEntry>>
+    /** A passive reader must never schedule library synchronization. Null means no settled snapshot yet. */
+    suspend fun cachedItems(profileId: Int): List<LibraryEntry>? = null
     val tabs: Flow<List<LibraryListTab>>
 
     fun recognizesListKey(key: String): Boolean

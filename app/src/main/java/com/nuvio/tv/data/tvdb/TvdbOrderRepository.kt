@@ -32,6 +32,14 @@ class TvdbOrderRepository @Inject constructor(private val api: TvdbClient) {
     }
     private fun fresh(at: Long) = System.currentTimeMillis() - at in 0 until 24 * 60 * 60 * 1000L
 
+    /** A schedule label may use a known order without starting or waiting for a TVDB download. */
+    internal fun cachedOrder(seriesId: Long, selected: String, language: String = "eng"): TvdbEpisodeOrder? {
+        if (!mutex.tryLock()) return null
+        return try {
+            orders["$seriesId:$selected:$language"]?.takeIf { fresh(it.at) }?.value?.takeIf { it.effectiveType == selected }
+        } finally { mutex.unlock() }
+    }
+
     suspend fun available(profileId: Int, seriesId: Long): List<TvdbOrder> = mutex.withLock {
         discover(profileId, seriesId)
     }

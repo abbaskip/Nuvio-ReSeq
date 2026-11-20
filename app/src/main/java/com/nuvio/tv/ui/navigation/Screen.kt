@@ -9,6 +9,7 @@ sealed class Screen(val route: String) {
     data object Multiview : Screen("livetv/multiview")
     data object LiveTvSettings : Screen("livetv/settings")
     data object Sports : Screen("livetv/sports")
+    data object Calendar : Screen("calendar")
     data object OnDemand : Screen("livetv/ondemand")
     data object OnDemandSearch : Screen("livetv/ondemand/search")
     data object Home : Screen("home")

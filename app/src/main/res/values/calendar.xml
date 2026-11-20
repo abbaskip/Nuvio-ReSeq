@@ -1,0 +1,19 @@
+<resources>
+    <string name="nav_calendar">Calendar</string>
+    <string name="calendar_previous_week">Previous week</string>
+    <string name="calendar_next_week">Next week</string>
+    <string name="calendar_today">Today</string>
+    <string name="calendar_refresh">Refresh</string>
+    <string name="calendar_more">Check more titles (%1$d left)</string>
+    <string name="calendar_loading">Checking release dates…</string>
+    <string name="calendar_playback">Calendar updates pause during playback.</string>
+    <string name="calendar_retry">Some dates could not be updated. Refresh to try again.</string>
+    <string name="calendar_empty">Nothing scheduled for this day.</string>
+    <string name="calendar_start">Add shows or movies to your Library, or follow teams in Sports Hub.</string>
+    <string name="calendar_episode">Episode</string>
+    <string name="calendar_cinema">In cinemas</string>
+    <string name="calendar_digital">At home</string>
+    <string name="calendar_disc">On disc</string>
+    <string name="calendar_sport">Sport</string>
+    <string name="calendar_guide">On TV</string>
+</resources>

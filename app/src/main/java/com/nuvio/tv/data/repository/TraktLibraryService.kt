@@ -55,6 +55,7 @@ class TraktLibraryService @Inject constructor(
         val entriesByList: Map<String, List<LibraryEntry>> = emptyMap(),
         val allEntries: List<LibraryEntry> = emptyList(),
         val membershipByContent: Map<String, Set<String>> = emptyMap(),
+        val profileId: Int? = null,
         val updatedAtMs: Long = 0L
     )
 
@@ -90,6 +91,9 @@ class TraktLibraryService @Inject constructor(
             .distinctUntilChanged()
             .onStart { ensureFresh() }
     }
+
+    internal fun cachedItems(profileId: Int): List<LibraryEntry>? = snapshotState.value
+        .takeIf { it.profileId == profileId && it.updatedAtMs > 0 }?.allEntries
 
     fun observeMembership(itemId: String, itemType: String): Flow<Set<String>> {
         val key = contentKey(itemId = itemId, itemType = itemType)
@@ -322,9 +326,10 @@ class TraktLibraryService @Inject constructor(
 
             refreshingState.value = true
             try {
+                val profile = profileManager.activeProfileId.value
                 val previous = snapshotState.value
                 val refreshed = runCatching { fetchSnapshot() }.getOrNull()
-                val snapshotToUse = refreshed ?: previous
+                val snapshotToUse = refreshed?.copy(profileId = profile) ?: previous
                 snapshotState.value = snapshotToUse
                 lastRefreshMs = now
                 refreshed != null
@@ -424,6 +429,7 @@ class TraktLibraryService @Inject constructor(
 
         return Snapshot(
             listTabs = tabs,
+            profileId = profileManager.activeProfileId.value,
             entriesByList = entriesByList,
             allEntries = allEntriesByContent.values.toList(),
             membershipByContent = membership.mapValues { it.value.toSet() },

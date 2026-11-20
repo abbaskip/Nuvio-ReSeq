@@ -345,6 +345,16 @@ private fun PlaybackNavHost(
                 onFindInNuvio = { navController.navigate(Screen.Search.route) }
             )
         }
+        rootComposable(Screen.Calendar.route) {
+            com.nuvio.tv.livetv.calendar.CalendarScreen(
+                onDetail = { id, type -> navController.navigate(Screen.Detail.createRoute(id, type)) },
+                onSports = { id ->
+                    com.nuvio.tv.livetv.sports.SportsLaunch.openEvent(id)
+                    navController.navigate(Screen.Sports.route) { launchSingleTop = true }
+                },
+                onGuide = { navController.navigate(Screen.LiveTv.route) { launchSingleTop = true } }
+            )
+        }
         composable(Screen.OnDemand.route) {
             val vm: com.nuvio.tv.livetv.ondemand.OnDemandViewModel = androidx.hilt.navigation.compose.hiltViewModel()
             val context = androidx.compose.ui.platform.LocalContext.current

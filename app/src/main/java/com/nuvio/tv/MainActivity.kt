@@ -51,6 +51,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
@@ -1117,12 +1118,14 @@ open class MainActivity : ComponentActivity() {
                     val strNavSearch = stringResource(R.string.nav_search)
                     val strNavLibrary = stringResource(R.string.nav_library)
                     val strNavSettings = stringResource(R.string.nav_settings)
+                    val strNavCalendar = stringResource(R.string.nav_calendar)
                     val drawerItems = remember(
                         strNavHome,
                         strNavDiscover,
                         strNavSearch,
                         strNavLibrary,
                         strNavSettings,
+                        strNavCalendar,
                         discoverLocation
                     ) {
                         buildList {
@@ -1146,6 +1149,7 @@ open class MainActivity : ComponentActivity() {
                             add(DrawerItem(Screen.Search.route, strNavSearch, iconRes = R.raw.sidebar_search))
                             add(DrawerItem(Screen.LiveTv.route, "Live TV", icon = Icons.Default.LiveTv, sectionStart = true))
                             add(DrawerItem(Screen.Sports.route, "Sports Hub", icon = Icons.Default.EmojiEvents))
+                            add(DrawerItem(Screen.Calendar.route, strNavCalendar, icon = Icons.Default.DateRange))
                             add(
                                 DrawerItem(
                                     route = Screen.Settings.route,

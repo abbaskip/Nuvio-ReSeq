@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
@@ -44,6 +45,11 @@ class MdbListLibraryService(
     val listOptions = allSnapshots.map { it?.listOptions().orEmpty() }.distinctUntilChanged()
 
     val items = projection.map { it.entries }.onStart { refreshAsync() }.distinctUntilChanged()
+    internal suspend fun cachedItems(profileId: Int): List<com.nuvio.tv.domain.model.LibraryEntry>? {
+        sync.ensureLoaded()
+        if (sync.state.value.scope?.profileId != profileId) return null
+        return allSnapshots.first()?.let { MdbListLibraryProjection(it.visible()).entries }
+    }
     val tabs = snapshots.map { it?.visibleTabs().orEmpty() }.onStart { refreshAsync() }.distinctUntilChanged()
     val isRefreshing = combine(loadState, auth.state, activeProfileId) { state, authorization, profileId ->
         state.refreshing && state.scope == authorization.scope && authorization.isAuthenticated && state.scope.profileId == profileId

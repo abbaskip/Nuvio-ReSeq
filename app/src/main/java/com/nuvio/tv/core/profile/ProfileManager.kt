@@ -151,6 +151,7 @@ class ProfileManager @Inject constructor(
         if (profileId == 1) return@withContext
 
         factory.clearProfile(profileId)
+        com.nuvio.tv.livetv.calendar.CalendarPageCache.clear(context.cacheDir, profileId)
 
         val suffixWithExtension = "_p${profileId}.preferences_pb"
         val dataStoreDir = File(context.filesDir, "datastore")

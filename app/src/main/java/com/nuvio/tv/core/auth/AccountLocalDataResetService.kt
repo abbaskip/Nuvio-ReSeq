@@ -41,6 +41,7 @@ class AccountLocalDataResetService @Inject constructor(
     }
 
     private fun clearAccountFiles() {
+        com.nuvio.tv.livetv.calendar.CalendarPageCache.clear(context.cacheDir)
         val files = context.filesDir.listFiles() ?: return
         files.forEach { file ->
             if (isAccountFile(file)) {

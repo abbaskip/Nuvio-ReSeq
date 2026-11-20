@@ -40,6 +40,11 @@ class SimklLibraryService @Inject constructor(
         }
     }.distinctUntilChanged()
 
+    override suspend fun cachedItems(profileId: Int): List<com.nuvio.tv.domain.model.LibraryEntry>? {
+        syncRepository.ensureLoaded()
+        return syncRepository.projection.value.library.items.takeIf { syncRepository.state.value.profileId == profileId }
+    }
+
     override fun recognizesListKey(key: String): Boolean = simklLibraryStatusDefinition(key) != null
 
     override fun observeMembership(itemId: String, itemType: String): Flow<Set<String>> =

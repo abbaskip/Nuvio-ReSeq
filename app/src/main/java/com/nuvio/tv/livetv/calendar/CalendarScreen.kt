@@ -51,9 +51,11 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
     val context = LocalContext.current
     val timeFormat = remember(context, locale) { android.text.format.DateFormat.getTimeFormat(context) }
     val clock: (Long) -> String = { timeFormat.format(Date(it)) }
+    val selection = key(active) {
+        val preferenceFlow = remember(viewModel) { viewModel.preferences.selection(active) }
+        preferenceFlow.collectAsStateWithLifecycle(initialValue = null).value
+    } ?: return
     key(active, region, zone) {
-        val preferenceFlow = remember(active, viewModel) { viewModel.preferences.selection(active) }
-        val selection = preferenceFlow.collectAsStateWithLifecycle(initialValue = null).value ?: return@key
         val (mode, filter) = selection
         var today by remember { mutableStateOf(LocalDate.now(zone)) }
         var picked by remember { mutableStateOf(today) }

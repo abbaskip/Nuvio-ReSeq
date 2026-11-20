@@ -12,7 +12,7 @@ from urllib.parse import unquote, urlsplit
 import zipfile
 
 from signed_rollback import (BASE, DATA, NATIVE, PACKAGE, PLAIN, Provider, adb, cold, controls,
-                             label, point, read_rows, seed_settings, select, tree, write_preferences)
+                             key, label, point, read_rows, seed_settings, select, tree, write_preferences)
 from guest_failure import capture
 
 OUT = Path("build/stream-picker")
@@ -107,9 +107,15 @@ def exercise(server, count):
         if manual is None:
             capture(OUT)
             raise AssertionError("The title's Play manually action was not offered")
-        x, y = point(manual)
+        for _ in range(4):
+            focus = next((n for n in tree().iter("node") if n.get("focused") == "true"), None)
+            if focus is not None and any(label(n).casefold() == "play manually" for n in focus.iter()):
+                break
+            key("DPAD_UP" if focus is not None and point(focus)[1] > point(manual)[1] else "DPAD_DOWN")
+        else:
+            capture(OUT)
+            raise AssertionError("The TV remote could not focus Play manually")
         output = adb("shell", "am", "instrument", "-w", "-e", "index", str(index),
-                     "-e","x",str(x),"-e","y",str(y),
                      "com.nuvio.perf.observer/.PickerObserver")
         observed = re.search(r"pickerMs=(\d+)", output)
         if not observed:

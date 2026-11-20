@@ -4,7 +4,9 @@ The comparison uses the signed published 0.1.0-beta.10.12 and the six review bra
 
 ## Follow-up qualification, 20 November
 
-The table below tracks the review of the first signed integration at `6c80c01`. Sign-off remains open. The maintainer's onn accepts signed ReSeq updates in place. Disposable guest tests use a separate package. The onn was returned to its owner with one ReSeq launcher and the original signed integration APK verified by SHA-256.
+The first signed integration was `6c80c01`. The follow-up signed integration is `e347ca18`. Its full regression, lint and release jobs passed. The artifacts-only workflow verified all five APKs and skipped publication. The ARMv7 build for the onn has SHA-256 `f826ed7f8e37ad00557ce7009764cacf835b71a96b3275d4c2a1d5b8774d790d` and the same release signing certificate as the installed build. PRs #34–44 are open against dev. [Signed workflow](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645609882). [Five verified APKs](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645609882/artifacts/14589282886).
+
+Physical and account sign-off remains open. The maintainer's onn accepts signed ReSeq updates in place. The duplicate debug package and its runner were removed. The onn was returned to its owner with one ReSeq launcher and the original signed integration APK verified by SHA-256. This device has not yet received the follow-up build.
 
 ### A. Sports delivery
 
@@ -18,13 +20,13 @@ Eight adjacent beta/integration pairs ran on one 2 GiB Android TV guest. Four be
 | Saved reminder dialog visible | 16,652 (16,595–16,702) | 17,732 (17,668–17,808) | +1,074 |
 | Correct game open from reminder | 17,875 (17,826–18,048) | 18,992 (18,964–19,017) | +1,131 |
 
-The repeated series isolates a cold reminder delay. The first 15-second poll started after Home settled. PR #36 now measures that first interval from host entry and retains the Home readiness gate. The emulator control restores only the beta Sports host in the original integration. A second experiment repeats the same pairs on the combined fix. Physical paired measurements remain pending. [Control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645109596). [Combined fix](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645608361).
+The repeated series isolates a cold reminder delay. The first 15-second poll started after Home settled. PR #36 now measures that first interval from host entry and retains the Home readiness gate. The emulator control restores only the beta Sports host in the original integration. A second experiment repeats the same pairs on the combined fix. Physical paired measurements remain pending. [Control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44648260653). [Combined fix](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645608361).
 
 ### B. Storage
 
 Both switches that enable M3U import now show the measured estimate of approximately 85 MiB per 100,000 playlist-listed films. The previous 98,000-film run added 83.7 MiB. [M3U review](https://github.com/abbaskip/Nuvio-ReSeq/pull/39).
 
-Removing each group from a reconstructed profile produced odex savings ranging from 0.019 MiB for TV Mix to 5.122 MiB for Live TV. The reconstructed all-groups control itself compiled to 28.38 MiB less odex than the shipped profile on the same guest. Those marginal sizes cannot establish the release budget. A release-optimizer control checks the signed DEX CRCs and requires an identical binary profile before measuring release ablations. [Reconstruction control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44641801928). [Release-optimizer experiment](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644271540).
+Removing each group from a reconstructed profile produced odex savings ranging from 0.019 MiB for TV Mix to 5.122 MiB for Live TV. The reconstructed all-groups control itself compiled to 28.38 MiB less odex than the shipped profile on the same guest. Those marginal sizes cannot establish the release budget. The release-optimizer control subsequently reproduced all five signed DEX CRCs and the byte-identical shipped binary profile. [Reconstruction control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44641801928). [Release-optimizer experiment](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644271540).
 
 At 750 MiB free on a disposable API 34 guest, the signed update installed, ART reported `speed-profile` with reason `install-dm`, and Home opened. At 350 MiB free Android rejected the install session for insufficient space and the existing beta opened Home. At 85 MiB Android again rejected the session. Although its activity start returned success, the guest displayed the Android launcher throughout the 35-second observation window. After the filler was removed, the same signed update installed, compiled and opened Home. A physical Fire TV Stick remains outstanding. [Three pressure levels and recovery](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44646025999).
 

@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, profile-ui]
+        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, shared-features, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, profile-ui]
       signed_run:
         description: 'Completed signed integration workflow for guide playback verification'
         type: string
@@ -129,7 +129,7 @@ jobs:
           path: build/stream-picker/results.json
 
   guide-delivery:
-    if: inputs.workload == 'guide-delivery'
+    if: inputs.workload == 'guide-delivery' || inputs.workload == 'shared-features'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
@@ -163,12 +163,14 @@ jobs:
           profile: tv_1080p
           ram-size: 2048M
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
-          script: python3 -u scripts/performance-fixtures/guide_delivery.py
+          script: python3 -u scripts/performance-fixtures/${{ inputs.workload == 'shared-features' && 'shared_features.py' || 'guide_delivery.py' }}
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: signed-guide-playback-results
-          path: build/guide-delivery/results.json
+          name: signed-${{ inputs.workload }}-results
+          path: |
+            build/guide-delivery/results.json
+            build/shared-features/results.json
 
   profile-reference:
     if: inputs.workload == 'release-profile-cost'

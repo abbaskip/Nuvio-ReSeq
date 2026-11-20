@@ -281,6 +281,9 @@ fun LiveTvGuideScreen(
         if (!settings.showPreview && !fullscreen && !fullscreenComing && !LiveTvFullscreen.pending) viewModel.playback.stop()
     }
 
+    val multiviewReturn = remember(viewModel) {
+        viewModel.multiviewReturnChannelKey.also { viewModel.multiviewReturnChannelKey = null }
+    }
     val gridFocus = remember { FocusRequester() }
     val groupsFocus = remember { FocusRequester() }
     val playlistsFocus = remember { FocusRequester() }
@@ -429,6 +432,13 @@ fun LiveTvGuideScreen(
     LaunchedEffect(Unit) {
         delay(150)
         if (fullscreenComing || fullscreen) return@LaunchedEffect
+        if (multiviewReturn != null) {
+            val group = viewModel.awaitGroups()
+            if (group?.channels?.any { it.key == multiviewReturn } == true) highlightKey = multiviewReturn
+            nameFocus = viewModel.settings.value.browseByChannelName
+            runCatching { gridFocus.requestFocus() }
+            return@LaunchedEffect
+        }
         val returning = viewModel.consumeReturningFromFullscreen()
         val toGroups = returning && viewModel.consumeGroupsOnReturn()
         if (returning && !toGroups) {
@@ -623,6 +633,7 @@ fun LiveTvGuideScreen(
     //  2. Otherwise, if something is already playing, highlight it.
     //  3. Otherwise "Resume last channel in preview" starts the last channel in the preview.
     LaunchedEffect(Unit) {
+        if (multiviewReturn != null) return@LaunchedEffect
         // Sports: "Watch from the start" on a game (a replay through the channel's catch-up).
         com.nuvio.tv.livetv.sports.SportsLaunch.takeCatchup()?.let { c ->
             val ch = viewModel.channelByKey(c.channelKey)
@@ -1767,7 +1778,11 @@ fun LiveTvGuideScreen(
                 now = now,
                 onDismiss = { menuTarget = null },
                 onWatch = { menuTarget = null; viewModel.preview(target.channel); goFullscreen() },
-                onMultiview = { menuTarget = null; onMultiview(target.channel.key) },
+                onMultiview = {
+                    menuTarget = null
+                    viewModel.multiviewReturnChannelKey = target.channel.key
+                    onMultiview(target.channel.key)
+                },
                 onCatchup = { program ->
                     menuTarget = null
                     if (viewModel.playCatchup(target.channel, program)) goFullscreen()

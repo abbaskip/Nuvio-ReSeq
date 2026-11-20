@@ -80,7 +80,8 @@ class Addon(BaseHTTPRequestHandler):
 def seed_history(uid):
     profiles = [dict(id=i, name=name, avatarColorHex=color) for (i, name), color
                 in zip(NAMES.items(), ("#CC7722", "#3366CC"))]
-    files = {"profile_settings": {"profiles_json": json.dumps(profiles), "profile_has_ever_selected": True,
+    files = {"update_settings": {"update_check_frequency": "NEVER", "update_banner_enabled": False},
+             "profile_settings": {"profiles_json": json.dumps(profiles), "profile_has_ever_selected": True,
                                   "remember_last_profile_enabled": False, "startup_splash_enabled": False}}
     now = stamp()
     for profile in NAMES:
@@ -105,6 +106,8 @@ def seed_history(uid):
         assert len(watched) == 25 and len(progress) == 26
         files["addon_preferences" + suffix] = {"installed_addon_urls_ordered": json.dumps([ADDON])}
         files["experience_settings" + suffix] = {"addon_setup_skipped": True}
+        # An unauthenticated Trakt selection intentionally does not display local Nuvio history.
+        files["trakt_settings" + suffix] = {"watch_progress_source": "NUVIO_SYNC", "library_source_mode": "LOCAL"}
         files["watch_progress_preferences" + suffix] = {"watch_progress_storage_version": 1}
         files["watch_progress_recent_preferences" + suffix] = {"watch_progress_map": json.dumps(progress)}
         files["watched_items_preferences" + suffix] = {"watched_items": watched}
@@ -112,7 +115,7 @@ def seed_history(uid):
 
 
 def projection(profile):
-    paths = adb("shell", "find", DATA + "/files", "-name", f"'projection_{profile}_*.json'").splitlines()
+    paths = adb("shell", "find", DATA + "/files", "-name", f"projection_{profile}_NUVIO_SYNC.json").splitlines()
     if len(paths) != 1:
         return {}
     document = json.loads(adb("exec-out", "cat", paths[0]))

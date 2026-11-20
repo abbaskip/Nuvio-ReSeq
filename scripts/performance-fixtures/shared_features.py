@@ -185,6 +185,12 @@ def discover():
     return {"visibleResultCards":len(results),"resetReturnedToFilters":True}
 
 
+def seed_mix(uid):
+    show = {"id":SERIES,"name":SHOW,"type":"series","imdbId":SERIES,"addonBaseUrl":ADDON}
+    seed_settings(uid, {}, {"addon_preferences":{"installed_addon_urls_ordered":json.dumps([ADDON])},
+                            "tv_mix":{"mix:guest-mix":json.dumps({"id":"guest-mix","name":MIX,"shows":[show]})}})
+
+
 def main():
     assert os.environ.get("GITHUB_ACTIONS") == "true" and adb("shell","getprop","ro.kernel.qemu") == "1"
     adb("root")
@@ -200,9 +206,7 @@ def main():
     key("WAKEUP")
     adb("shell","wm","dismiss-keyguard")
     adb("reverse","tcp:38791","tcp:38791")
-    show = {"id":SERIES,"name":SHOW,"type":"series","imdbId":SERIES,"addonBaseUrl":ADDON}
-    seed_settings(uid, {}, {"addon_preferences":{"installed_addon_urls_ordered":json.dumps([ADDON])},
-                            "tv_mix":{"mix:guest-mix":json.dumps({"id":"guest-mix","name":MIX,"shows":[show]})}})
+    seed_mix(uid)
     server = ThreadingHTTPServer(("127.0.0.1",38791),Fixture)
     server.media = Path("build/guide-delivery/live.ts").read_bytes()
     server.played = set()

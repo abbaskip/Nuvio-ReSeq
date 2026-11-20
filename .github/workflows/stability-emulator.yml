@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, shared-features, college-restart, channel-shortcut, compiled-size, public-upgrade, sports-reminder-surfaces, cw-layouts, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, measure-release-profiles, profile-ui]
+        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, shared-features, college-restart, channel-shortcut, compiled-size, public-upgrade, sports-reminder-surfaces, cw-layouts, player-controls, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, measure-release-profiles, profile-ui]
       expected_tag:
         description: 'Expected public Latest release for the in-app upgrade test'
         type: string
@@ -173,7 +173,7 @@ jobs:
             build/stream-picker/failure.*
 
   guide-delivery:
-    if: contains(fromJSON('["guide-delivery","shared-features","college-restart","channel-shortcut","compiled-size","sports-reminder-surfaces","cw-layouts"]'), inputs.workload)
+    if: contains(fromJSON('["guide-delivery","shared-features","college-restart","channel-shortcut","compiled-size","sports-reminder-surfaces","cw-layouts","player-controls"]'), inputs.workload)
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
@@ -203,7 +203,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Get the signed reference beta for paired comparisons
-        if: contains(fromJSON('["compiled-size","sports-reminder-surfaces","cw-layouts"]'), inputs.workload)
+        if: contains(fromJSON('["compiled-size","sports-reminder-surfaces","cw-layouts","player-controls"]'), inputs.workload)
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release download 'v0.1.0-beta.10.12' --repo "$GITHUB_REPOSITORY" --pattern '*-x86_64.apk' --dir build/reference-apks
@@ -215,7 +215,7 @@ jobs:
           profile: tv_1080p
           ram-size: 2048M
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
-          script: python3 -u scripts/performance-fixtures/${{ inputs.workload == 'shared-features' && 'shared_features.py' || inputs.workload == 'college-restart' && 'sports_actions.py college-restart' || inputs.workload == 'channel-shortcut' && 'sports_actions.py channel-shortcut' || inputs.workload == 'compiled-size' && 'signed_compiled_size.py' || inputs.workload == 'sports-reminder-surfaces' && 'sports_reminder_surfaces.py' || inputs.workload == 'cw-layouts' && 'cw_layouts.py' || 'guide_delivery.py' }}
+          script: python3 -u scripts/performance-fixtures/${{ inputs.workload == 'shared-features' && 'shared_features.py' || inputs.workload == 'college-restart' && 'sports_actions.py college-restart' || inputs.workload == 'channel-shortcut' && 'sports_actions.py channel-shortcut' || inputs.workload == 'compiled-size' && 'signed_compiled_size.py' || inputs.workload == 'sports-reminder-surfaces' && 'sports_reminder_surfaces.py' || inputs.workload == 'cw-layouts' && 'cw_layouts.py' || inputs.workload == 'player-controls' && 'player_controls.py' || 'guide_delivery.py' }}
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -225,6 +225,7 @@ jobs:
             build/compiled-size/results.json
             build/sports-reminder-surfaces/
             build/cw-layouts/
+            build/player-controls/
             build/shared-features/results.json
             build/shared-features/*/failure.*
             build/sports-actions/

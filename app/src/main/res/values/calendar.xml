@@ -32,5 +32,6 @@
     <string name="calendar_sports_source">Sports on Calendar</string>
     <string name="calendar_my_sports">My Sports</string>
     <string name="calendar_all_enabled">All enabled events</string>
+    <string name="calendar_empty_sport_day">No %1$s events scheduled for this day.</string>
     <string name="calendar_empty_my_sports">No My Sports events on this day. Hold OK on Sports to manage your follows.</string>
 </resources>

@@ -90,6 +90,14 @@ class CalendarGuideTest {
         assertEquals(setOf(cricket.id, wbblGame.id), rows("guide/cricket"))
         assertEquals(setOf(football.id, youthGame.id), rows("taxonomy/football-soccer"))
         assertEquals(setOf(racing.id), rows("taxonomy/motorsport"))
+        val mine = SportsFollows(leagues = setOf("guide/cricket", InternationalCricket.LEAGUE_ID))
+        val shortcuts = SportsRows.followedSports(mine, Sport.entries)
+        assertEquals(listOf(Sport.CRICKET), shortcuts)
+        val window = CalendarWindow(day, day)
+        val all = CalendarLocalListings.sportRows(listOf(wbblGame, football), emptyMap(), mine, SportsSettings(),
+            emptyMap(), mapOf("visible" to "Sports TV"), window, zone, allSports = true)
+        assertEquals(2, all.size)
+        assertEquals(wbblGame.id, CalendarPolicy.displayed(all, window, day, shortcuts.single()).single().contentId)
         assertTrue(rows("soccer/eng.1", "cricket/8048").isEmpty())
     }
 

@@ -116,6 +116,8 @@ internal class CalendarRepository @Inject constructor(
     fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, day: StateFlow<Long>, force: Boolean, overview: Boolean, allSports: Boolean) =
         local.get().sports(profile, zone, window, day, force, overview, allSports)
 
+    fun followedSports(profile: Int) = local.get().followedSports(profile)
+
     fun selectFixture(item: CalendarItem) { item.fixture?.let { local.get().select(it) } }
 
     fun pages(profile: Int, region: String, zone: ZoneId, week: Long, playing: Flow<Boolean>, requests: Flow<Boolean>, days: Int = 7) = flow {

@@ -1,5 +1,6 @@
 package com.nuvio.tv.livetv.calendar
 
+import com.nuvio.tv.livetv.sports.Sport
 import com.squareup.moshi.JsonClass
 import java.time.Instant
 import java.time.LocalDate
@@ -29,7 +30,8 @@ internal data class CalendarItem(
     val artwork: String? = null,
     @com.squareup.moshi.Json(ignore = true) val fixture: com.nuvio.tv.livetv.sports.SportsEvent? = null,
     @com.squareup.moshi.Json(ignore = true) val leagueName: String? = null,
-    @com.squareup.moshi.Json(ignore = true) val followedSides: List<String> = emptyList()
+    @com.squareup.moshi.Json(ignore = true) val followedSides: List<String> = emptyList(),
+    @com.squareup.moshi.Json(ignore = true) val sport: Sport? = null
 )
 
 internal data class CalendarTitle(
@@ -80,8 +82,8 @@ internal object CalendarPolicy {
     fun due(page: CalendarPage, now: Long) =
         !fresh(page.checkedAt, now) || page.retryAt > 0 && now >= page.retryAt
 
-    fun displayed(items: Collection<CalendarItem>, window: CalendarWindow, today: Long): List<CalendarItem> =
-        items.asSequence().filter { it.day in window }.distinctBy { it.key }
+    fun displayed(items: Collection<CalendarItem>, window: CalendarWindow, today: Long, sport: Sport? = null): List<CalendarItem> =
+        items.asSequence().filter { it.day in window && (sport == null || it.sport == sport) }.distinctBy { it.key }
             .sortedWith(compareBy<CalendarItem> { kotlin.math.abs(it.day - today) }
                 .thenBy { it.day }.thenBy { it.time ?: Long.MAX_VALUE }.thenByDescending { it.followedTeam != null }.thenBy { it.key })
             .take(MAX_ITEMS).sortedWith(compareBy<CalendarItem> { it.day }.thenBy { it.time ?: Long.MAX_VALUE }.thenByDescending { it.followedTeam != null }

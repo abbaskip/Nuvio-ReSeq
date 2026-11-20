@@ -1,8 +1,10 @@
 package com.nuvio.tv.livetv.calendar
 
+import com.nuvio.tv.livetv.sports.Sport
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.nuvio.tv.data.local.ProfileDataStoreFactory
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -24,7 +26,7 @@ import org.robolectric.annotation.ConscryptMode
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class CalendarPreferencesTest {
     @Test fun aReopenedCalendarKeepsBothChoicesForTheRightProfile() = runBlocking {
-        Dispatchers.setMain(Dispatchers.Unconfined)
+        Dispatchers.setMain(Dispatchers.Default.limitedParallelism(1))
         val stores = ProfileDataStoreFactory(RuntimeEnvironment.getApplication())
         try {
             val preferences = CalendarPreferences(stores)
@@ -40,8 +42,25 @@ class CalendarPreferencesTest {
             val reopened = CalendarPreferences(stores)
             assertEquals(saved, reopened.selection(71).first())
             assertEquals(defaults, reopened.selection(72).first())
+            val cricket = Sport.CRICKET
+            val football = Sport.FOOTBALL
+            suspend fun awaitSaved(sport: Sport?) = withTimeout(5_000) {
+                while (reopened.selection(71).first() != saved.copy(quickSport = sport)) delay(25)
+            }
+            reopened.toggleSport(71, cricket)
+            awaitSaved(cricket)
+            reopened.toggleSport(71, football)
+            awaitSaved(football)
+            reopened.toggleSport(71, football)
+            awaitSaved(null)
+            reopened.toggleSport(71, cricket)
+            awaitSaved(cricket)
+            reopened.setFilter(71, saved.filter)
+            awaitSaved(null)
+            assertEquals(defaults, reopened.selection(72).first())
             stores.get(71, "calendar_display").edit { it[stringPreferencesKey("view")] = "UNKNOWN" }
             assertEquals(saved.copy(mode = CalendarMode.DAY), reopened.selection(71).first())
+
         } finally {
             stores.clearProfile(71)
             stores.clearProfile(72)

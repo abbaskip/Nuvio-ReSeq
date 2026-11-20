@@ -37,6 +37,14 @@ internal class CalendarLocalListings @Inject constructor(
     private val guideReads = Mutex()
     fun select(event: SportsEvent) = fixtures.get().select(event)
 
+    fun followedSports(profile: Int): Flow<List<Sport>> =
+        combine(prefs.get().sportsMineJson(profile), prefs.get().sportsSettingsJson, SportsCatalog.extraFlow) { raw, options, _ ->
+            val follows = SportsFollows.fromJson(raw)
+            val ids = follows.leagues + follows.pins + follows.teams.map { it.leagueId }
+            val saved = if (ids.any { it.startsWith("tsdb/") && SportsCatalog.league(it) == null }) localLeagueMetadata(follows) else emptyMap()
+            SportsRows.followedSports(follows, SportsCatalog.sportsOrder(SportsSettings.fromJson(options)), saved)
+        }.distinctUntilChanged()
+
     private data class Airings(val names: Map<String, String> = emptyMap(), val events: List<SportsEvent> = emptyList(),
         val loading: Boolean = false, val failed: Boolean = false)
     private data class Schedule(val events: List<SportsEvent>, val loading: Boolean, val failed: Boolean = false)
@@ -140,7 +148,7 @@ internal class CalendarLocalListings @Inject constructor(
     // its small metadata section. Calendar never needs to import the Hub's provider payloads.
     private fun localLeagueMetadata(follows: SportsFollows): Map<String, League> {
         val ids = follows.leagues + follows.pins + follows.teams.map { it.leagueId }
-        if (SportsCatalog.extra.isNotEmpty() || ids.none { it.startsWith("taxonomy/") || it.startsWith("guide/") ||
+        if ((SportsCatalog.extra.isNotEmpty() && ids.none { it.startsWith("tsdb/") && SportsCatalog.league(it) == null }) || ids.none { it.startsWith("taxonomy/") || it.startsWith("guide/") ||
                 it == InternationalCricket.LEAGUE_ID || it.startsWith("tsdb/") && SportsCatalog.league(it) == null }) return emptyMap()
         val directory = File(context.cacheDir, "sports")
         val found = mutableMapOf<String, League>()
@@ -243,7 +251,7 @@ internal class CalendarLocalListings @Inject constructor(
                     result += CalendarItem("sport/" + event.id + "/" + d, "sports", event.title.take(240), d, CalendarKind.SPORT,
                         detail = note + (channel ?: "Channel TBC"), time = event.startMs.takeIf { event.hasTime && d == days.first },
                         contentId = event.id, followedTeam = teams.takeIf { it.isNotEmpty() }?.joinToString(" & "),
-                        fixture = fixture, leagueName = competition?.name, followedSides = followedSides)
+                        fixture = fixture, leagueName = competition?.name, followedSides = followedSides, sport = competition?.sport)
                 }
             }
             return result

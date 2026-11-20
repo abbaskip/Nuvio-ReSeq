@@ -59,9 +59,12 @@ internal object SportsRows {
     }
 
     /** Sports you follow something in (a team, a whole league, a league on the top bar). */
-    fun followedSports(follows: SportsFollows, order: List<Sport>): List<Sport> {
+    @JvmOverloads
+    fun followedSports(follows: SportsFollows, order: List<Sport>, saved: Map<String, League> = emptyMap()): List<Sport> {
         val ids = follows.teams.map { it.leagueId } + follows.leagues + follows.pins
-        val sports = ids.mapNotNull { SportsCatalog.league(it)?.sport }.toSet()
+        val sports = ids.mapNotNull { id ->
+            if (id == InternationalCricket.LEAGUE_ID) Sport.CRICKET else (SportsCatalog.league(id) ?: saved[id])?.sport
+        }.toSet()
         return sports.sortedBy { s -> order.indexOf(s).let { if (it < 0) 99 else it } }
     }
 

@@ -22,6 +22,7 @@ internal class CalendarViewModel @Inject constructor(
     val profile = repository.profile
     private val refresh = MutableSharedFlow<Boolean>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val playing = combine(PlayerSessionTracker.playbackActive, PlayerSessionTracker.livePlayback) { video, live -> video || live }
+    fun followedSports(profile: Int) = flow { emitAll(repository.followedSports(profile)) }.flowOn(BackgroundWork.quiet)
     fun refresh() { refresh.tryEmit(true) }
     fun selectFixture(item: CalendarItem) = repository.selectFixture(item)
 

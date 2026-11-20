@@ -374,6 +374,9 @@ class LiveTvViewModel @Inject constructor(
         return ui.groupFor(channel)
     }
 
+    // Return the guide cursor to the held station after Multiview. This key never requests playback.
+    internal var multiviewReturnChannelKey: String? = null
+
     private fun channelInGroup(channel: LiveChannel, groupId: String, user: LiveUserState): Boolean = when {
         groupId == ChannelGroup.ALL -> true
         groupId == ChannelGroup.FAVORITES -> channel.key in user.favorites

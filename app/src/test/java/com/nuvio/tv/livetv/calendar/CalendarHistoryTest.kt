@@ -48,7 +48,6 @@ class CalendarHistoryTest {
         coEvery { dates.scheduledEpisodes(capture(lookups), any(), any()) } returns emptyList()
         coEvery { dates.movieCandidates(id, emptyList(), any(), any()) } returns emptyList()
         val listings = mockk<CalendarLocalListings>()
-        coEvery { listings.guide(any(), any(), any(), any()) } answers { firstArg() }
         val context = RuntimeEnvironment.getApplication()
         CalendarPageCache.clear(context.cacheDir, id)
         val repo = CalendarRepository(context, profiles, Lazy { library }, Lazy { tracker }, Lazy { cw }, Lazy { settings },

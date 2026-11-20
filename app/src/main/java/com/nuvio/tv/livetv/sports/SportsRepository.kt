@@ -454,7 +454,14 @@ class SportsRepository @Inject constructor(
 
     /** The Sports page (or a game) is on screen: keep scores fresh. */
     fun setViewing(on: Boolean) {
-        if (on) fixtureCache.get().known = known
+        if (on) {
+            val calendar = fixtureCache.get()
+            calendar.known = known
+            calendar.matches = matches
+            calendar.takeSelected()?.let { event ->
+                lookedUp.update { it + ("calendar" to LeagueData(listOf(event), System.currentTimeMillis(), null)) }
+            }
+        }
         viewers.update { (it + if (on) 1 else -1).coerceAtLeast(0) }
         if (on) {
             queueGeminiMatching()

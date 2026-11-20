@@ -49,7 +49,8 @@ internal class CalendarRepository @Inject constructor(
         if (profiles.resolvedActiveProfileId.first() != profile) throw CancellationException("Calendar profile changed")
     }
 
-    private data class Inputs(val watchedIds: Map<String, String>, val movies: List<CalendarTitle>, val libraryReady: Boolean) {
+    private data class Inputs(val watchedIds: Map<String, String>, val movies: List<CalendarTitle>, val libraryReady: Boolean,
+        val artwork: Map<String, String>) {
         val signature: String by lazy {
             val digest = MessageDigest.getInstance("SHA-256")
             fun add(value: String) { digest.update(value.toByteArray()); digest.update(0.toByte()) }
@@ -68,6 +69,7 @@ internal class CalendarRepository @Inject constructor(
             ?: cw.observeProjection().first { it.profileId == profile && it.source == source.name }
         val tracker = progress.get()
         val watchedIds = LinkedHashMap<String, String>()
+        val artwork = mutableMapOf<String, String>()
         fun add(id: String) {
             if (id.isNotBlank() && id !in history.hiddenByProvider && !tracker.isDroppedShow(id)) watchedIds[id] = id
         }
@@ -81,6 +83,8 @@ internal class CalendarRepository @Inject constructor(
         }
         history.members.forEach { (id, member) ->
             if (member.progress?.season != null || member.inProgress?.season != null || (member.nextUp?.lastWatched ?: 0) > 0) add(id)
+            (member.nextUp?.backdrop ?: member.inProgress?.backdrop ?: member.progress?.backdrop ?:
+                member.nextUp?.poster ?: member.inProgress?.poster ?: member.progress?.poster)?.let { artwork[id] = it }
         }
 
         val entries = library.get().cachedLibraryItems(profile)
@@ -90,6 +94,7 @@ internal class CalendarRepository @Inject constructor(
             val imdb = entry.imdbId ?: entry.id.takeIf(IMDB::matches)
             val tmdb = entry.tmdbId ?: entry.id.removePrefix("tmdb:").takeIf { entry.id.startsWith("tmdb:") }?.toIntOrNull()
             if (entry.type.equals("movie", true)) {
+                (entry.background ?: entry.landscapePoster ?: entry.poster)?.let { artwork[entry.id] = it }
                 movies += CalendarTitle(entry.id, entry.name.take(240), true, imdb, tmdb, entry.listedAt,
                     entry.traktId ?: entry.id.takeIf { it.startsWith("trakt:") }?.substringAfter(':')?.toIntOrNull())
             } else {
@@ -98,22 +103,26 @@ internal class CalendarRepository @Inject constructor(
                 val aliases = listOfNotNull(entry.id, imdb, tmdb?.let { "tmdb:" + it }, entry.traktId?.let { "trakt:" + it },
                     entry.simklId?.let { "simkl:" + it })
                 if (aliases.any(watchedIds::containsKey) && aliases.none { it in history.hiddenByProvider || tracker.isDroppedShow(it) }) {
+                    (entry.background ?: entry.landscapePoster ?: entry.poster ?: aliases.firstNotNullOfOrNull(artwork::get))
+                        ?.let { artwork[entry.id] = it }
                     aliases.forEach { watchedIds[it] = entry.id }
                 }
             }
         }
         checkProfile(profile)
-        Inputs(watchedIds, movies.distinctBy { it.key }, entries != null)
+        Inputs(watchedIds, movies.distinctBy { it.key }, entries != null, artwork)
     } ?: throw IOException("Calendar inputs unavailable")
 
-    fun allowedNames(keys: Set<String>) = local.get().allowedNames(keys)
-    fun sports(profile: Int, zone: ZoneId, week: Long) = local.get().sports(profile, zone, CalendarWindow(week, week + 6))
+    fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, day: StateFlow<Long>, force: Boolean, overview: Boolean = false) =
+        local.get().sports(profile, zone, window, day, force, overview)
 
-    fun pages(profile: Int, region: String, zone: ZoneId, week: Long, playing: Flow<Boolean>, requests: Flow<Boolean>) = flow {
+    fun selectFixture(item: CalendarItem) { item.fixture?.let { local.get().select(it) } }
+
+    fun pages(profile: Int, region: String, zone: ZoneId, week: Long, playing: Flow<Boolean>, requests: Flow<Boolean>, days: Int = 7) = flow {
         var changedInputs: Inputs? = null
         emitAll(calendarSession(playing, requests, System::currentTimeMillis,
-            restore = { cache.read(profile, region, zone.id, week) ?: CalendarPage(region = region, zone = zone.id,
-                weekStart = week, generation = CalendarPageCache.generation(profile)) },
+            restore = { cache.read(profile, region, zone.id, week, days) ?: CalendarPage(region = region, zone = zone.id,
+                weekStart = week, days = days, generation = CalendarPageCache.generation(profile)) },
             inputsChanged = { page ->
                 val current = inputs(profile)
                 (current.signature != page.inputSignature).also { if (it) changedInputs = current }
@@ -130,44 +139,38 @@ internal class CalendarRepository @Inject constructor(
         checkProfile(profile)
         val now = System.currentTimeMillis()
         val zone = ZoneId.of(initial.zone)
-        val week = CalendarWindow(initial.weekStart, initial.weekStart + 6)
+        val week = CalendarWindow(initial.weekStart, initial.weekStart + initial.days - 1)
         val today = now.calendarDay(zone)
         val savedMovies = input.movies.associateBy { it.key }
         val watchedShows = input.watchedIds.values.toHashSet()
         val sameInputs = input.signature == initial.inputSignature
         val items = initial.items.filter { row -> when (row.kind) {
             CalendarKind.EPISODE -> row.contentId in watchedShows
-            CalendarKind.GUIDE -> sameInputs
+            CalendarKind.GUIDE, CalendarKind.SPORT -> false
             else -> !input.libraryReady || row.source in savedMovies
         } }.toMutableList()
         val checks = initial.checked.filterKeys { it in savedMovies || (it == EPISODES && sameInputs) }.toMutableMap()
         val episodesFresh = CalendarPolicy.fresh(checks[EPISODES] ?: 0L, now)
-        var page = initial.copy(inputSignature = input.signature)
+        val page = initial.copy(inputSignature = input.signature)
         var failed = !input.libraryReady
         var dirty = true
         fun snapshot(finished: Boolean) = page.copy(
             checkedAt = if (finished) now else 0, checked = checks.toMap(),
             retryAt = if (failed) now + CalendarPolicy.RETRY_MS else 0,
-            items = CalendarPolicy.displayed(items, week, today))
+            items = CalendarPolicy.displayed(items.map { row ->
+                input.artwork[row.contentId]?.let { art -> if (art == row.artwork) row else row.copy(artwork = art) } ?: row
+            }, week, today))
         fun store(value: CalendarPage) {
             try { cache.write(profile, value) } catch (_: IOException) { failed = true }
             dirty = false
         }
         val oldEpisodes = items.filter { it.kind == CalendarKind.EPISODE }
-        val guidePage = page.copy(items = items.filter { it.kind == CalendarKind.GUIDE },
-            guideTitles = if (sameInputs) page.guideTitles else emptyList())
         try {
             publish(snapshot(false))
             calendarLookups(
                 episodes = {
                     if (!manual && episodesFresh) oldEpisodes
                     else sources.get().scheduledEpisodes(input.watchedIds, week, zone)
-                },
-                guide = { episodes ->
-                    val airing = (episodes ?: oldEpisodes).distinctBy { it.contentId }.mapNotNull { row ->
-                        row.contentId?.let { CalendarTitle(it, row.title, false, null, null, row.time ?: 0) }
-                    }
-                    local.get().guide(guidePage, airing + input.movies.sortedByDescending { it.lastActivity }, now, zone)
                 },
                 movies = { sources.get().movieCandidates(profile, input.movies, week, initial.region)
                     .filter { manual || !CalendarPolicy.fresh(initial.checked[it.key] ?: 0L, now) } },
@@ -179,14 +182,10 @@ internal class CalendarRepository @Inject constructor(
                         items.removeAll { it.kind == CalendarKind.EPISODE }; items.addAll(result.rows)
                         checks[EPISODES] = now
                     }
-                    is CalendarLookup.Guide -> if (result.page == null) failed = true else {
-                        val guide = result.page
-                        items.removeAll { it.kind == CalendarKind.GUIDE }; items.addAll(guide.items)
-                        page = page.copy(guideTitles = guide.guideTitles, guideDay = guide.guideDay, guideRevision = guide.guideRevision)
-                    }
                     is CalendarLookup.Release -> if (result.rows == null) failed = true else {
                         val key = result.title.key
-                        items.removeAll { it.source == key && it.kind != CalendarKind.GUIDE }; items.addAll(result.rows)
+                        items.removeAll { it.source == key }
+                        items.addAll(result.rows)
                         checks[key] = now
                     }
                     CalendarLookup.MoviesUnavailable -> failed = true

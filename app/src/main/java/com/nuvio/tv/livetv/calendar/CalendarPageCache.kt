@@ -12,14 +12,21 @@ import java.io.IOException
 internal class CalendarPageCache(private val directory: File) {
     private val adapter = Moshi.Builder().build().adapter(CalendarPage::class.java)
 
-    fun read(profile: Int, region: String, zone: String, weekStart: Long = 0): CalendarPage? {
+    private fun name(profile: Int, start: Long, days: Int) =
+        "profile-$profile-week-$start" + if (days == 7) "" else "-$days"
+
+    fun read(profile: Int, region: String, zone: String, weekStart: Long = 0, days: Int = 7): CalendarPage? {
         val generation = generation(profile)
-        val file = File(directory, "profile-$profile-week-$weekStart.json")
+        val file = File(directory, name(profile, weekStart, days) + ".json")
         if (file.length() !in 1..MAX_BYTES) return null
         return try {
             file.source().buffer().use { input ->
-                adapter.fromJson(input)?.takeIf { it.version == 2 && it.weekStart == weekStart && it.region == region && it.zone == zone &&
-                    it.items.size <= CalendarPolicy.MAX_ITEMS && it.checked.size <= CalendarPolicy.MAX_CHECKS }?.copy(generation = generation)
+                adapter.fromJson(input)?.takeIf { it.version in 2..3 && it.weekStart == weekStart && it.days == days &&
+                    it.region == region && it.zone == zone && it.items.size <= CalendarPolicy.MAX_ITEMS &&
+                    it.checked.size <= CalendarPolicy.MAX_CHECKS }?.let { page ->
+                    page.copy(version = 3, generation = generation, items = page.items.filterNot { it.kind == CalendarKind.GUIDE },
+                        inputSignature = page.inputSignature.takeIf { page.version == 3 })
+                }
             }
         } catch (_: IOException) { null }
         catch (_: com.squareup.moshi.JsonDataException) { null }
@@ -28,8 +35,9 @@ internal class CalendarPageCache(private val directory: File) {
     fun write(profile: Int, page: CalendarPage) {
         if (!directory.isDirectory && !directory.mkdirs() && !directory.isDirectory) throw IOException("Calendar cache unavailable")
         val prefix = "profile-$profile-week-"
-        val target = File(directory, prefix + page.weekStart + ".json")
-        val pending = File(directory, prefix + page.weekStart + ".tmp")
+        val base = name(profile, page.weekStart, page.days)
+        val target = File(directory, "$base.json")
+        val pending = File(directory, "$base.tmp")
         try {
             pending.outputStream().bufferedWriter(Charsets.UTF_8).use { it.write(adapter.toJson(page)) }
             if (pending.length() > MAX_BYTES) throw IOException("Calendar snapshot too large")

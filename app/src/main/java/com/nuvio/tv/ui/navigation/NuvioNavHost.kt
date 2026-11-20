@@ -351,8 +351,7 @@ private fun PlaybackNavHost(
                 onSports = { id ->
                     com.nuvio.tv.livetv.sports.SportsLaunch.openEvent(id)
                     navController.navigate(Screen.Sports.route) { launchSingleTop = true }
-                },
-                onGuide = { navController.navigate(Screen.LiveTv.route) { launchSingleTop = true } }
+                }
             )
         }
         composable(Screen.OnDemand.route) {

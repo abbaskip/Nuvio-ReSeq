@@ -14,16 +14,15 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarLookupsTest {
     private val titles = (1..7).map { CalendarTitle("tt" + it, "Show " + it, false, null, null, it.toLong()) }
-    private val page = CalendarPage(region = "AU", zone = "Australia/Sydney")
 
-    @Test fun readyTitlesReachTheScreenWhileGuideAndFirstProviderAreStillBusy() = runTest {
-        val guide = CompletableDeferred<CalendarPage>()
+    @Test fun readyMoviesReachTheScreenWhileEpisodesAndFirstMovieAreStillLoading() = runTest {
+        val episodes = CompletableDeferred<List<CalendarItem>>()
         val slow = CompletableDeferred<Unit>()
         val results = mutableListOf<CalendarLookup>()
         var active = 0
         var peak = 0
         val job = launch {
-            calendarLookups({ emptyList() }, { guide.await() }, { titles }) { title ->
+            calendarLookups({ episodes.await() }, { titles }) { title ->
                 active++
                 peak = maxOf(peak, active)
                 try { if (title == titles.first()) slow.await(); emptyList() } finally { active-- }
@@ -32,22 +31,22 @@ class CalendarLookupsTest {
         runCurrent()
         assertEquals(titles.drop(1), results.filterIsInstance<CalendarLookup.Release>().map { it.title })
         assertEquals(2, peak)
-        guide.complete(page)
+        episodes.complete(emptyList())
         runCurrent()
-        assertEquals(CalendarLookup.Guide(page), results.last())
+        assertEquals(CalendarLookup.Episodes(emptyList()), results.last())
         slow.complete(Unit)
         job.join()
         assertEquals(titles.first(), (results.last() as CalendarLookup.Release).title)
     }
 
-    @Test fun leavingCancelsBothTitleRequestsAndTheGuideWithoutStartingTheRest() = runTest {
+    @Test fun leavingCancelsEpisodesAndBothMovieRequestsWithoutStartingTheRest() = runTest {
         var started = 0
         var stopped = 0
         suspend fun block(): Nothing {
             started++
             try { awaitCancellation() } finally { stopped++ }
         }
-        val job = launch { calendarLookups({ block() }, { error("Guide needs scheduled shows") }, { titles }, { block() }).collect() }
+        val job = launch { calendarLookups({ block() }, { titles }, { block() }).collect() }
         runCurrent()
         assertEquals(3, started)
         job.cancelAndJoin()

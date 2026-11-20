@@ -120,6 +120,7 @@ data class Standing(val pos: String, val name: String, val detail: String?)
 
 enum class EventSource { ESPN, GUIDE, FIXTURES, THESPORTSDB, CRICKET_AUSTRALIA }
 
+@com.squareup.moshi.JsonClass(generateAdapter = true)
 data class SportsBroadcast(val name: String, val country: String?)
 
 data class SportsEvent(

@@ -177,17 +177,18 @@ internal data class SportsSnapshotEvent(val id: String, val leagueId: String, va
     val away: SportsSnapshotSide?, val home: SportsSnapshotSide?, val source: String, val espnId: String?,
     val broadcasts: List<String>, val note: String?, val word: String?, val updatedAt: Long?,
     @com.squareup.moshi.Json(ignore = true) val awaitingUpdate: Boolean = false,
-    val hits: List<SportsSnapshotHit>, val league: SportsSnapshotLeague? = null) {
+    val hits: List<SportsSnapshotHit>, val league: SportsSnapshotLeague? = null,
+    val coverage: List<SportsBroadcast> = emptyList()) {
     fun event() = SportsEvent(id, leagueId, start, hasTime, GameState.valueOf(state), title, subtitle, status,
         away?.side(), home?.side(), broadcasts, source = EventSource.valueOf(source), endMs = end,
         espnId = espnId, note = note, word = word, updatedAt = updatedAt, awaitingUpdate = awaitingUpdate,
-        guideHits = hits.map { it.key to it.program.program() })
+        guideHits = hits.map { it.key to it.program.program() }, broadcastCoverage = coverage)
     companion object {
         fun from(e: SportsEvent) = SportsSnapshotEvent(e.id, e.leagueId, e.startMs, e.endMs, e.hasTime, e.state.name,
             e.title.take(400), e.subtitle?.take(400),
             if (e.awaitingUpdate) "Live score pending" else e.status?.take(200), e.away?.let(SportsSnapshotSide::from),
             e.home?.let(SportsSnapshotSide::from), e.source.name, e.espnId, e.broadcasts.take(16), e.note?.take(200),
             e.word, e.updatedAt, e.awaitingUpdate, e.guideHits.take(SportsPageSnapshot.MAX_MATCHES).map { (key, p) -> SportsSnapshotHit(key, SportsSnapshotProgram.from(p)) },
-            SportsCatalog.league(e.leagueId)?.let(SportsSnapshotLeague::from))
+            SportsCatalog.league(e.leagueId)?.let(SportsSnapshotLeague::from), e.broadcastCoverage.take(24))
     }
 }

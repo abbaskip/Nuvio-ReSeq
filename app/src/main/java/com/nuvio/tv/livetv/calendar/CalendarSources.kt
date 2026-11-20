@@ -63,7 +63,7 @@ internal class CalendarSources @Inject constructor(
         // IMDb-only libraries also need the IDs exposed by the public release calendars.
         if (key.isBlank() || movies.any { it.tmdb == null }) {
             for (feed in listOf("movies", "streaming", "dvd")) {
-                val rows = trakt("/calendars/all/$feed/$first/7") ?: throw IOException("Movie calendar unavailable")
+                val rows = trakt("/calendars/all/$feed/$first/" + week.days) ?: throw IOException("Movie calendar unavailable")
                 rows.objects().forEach { row -> row.optJSONObject("movie")?.optJSONObject("ids")?.let { aliases += mediaIds(it) } }
             }
         }

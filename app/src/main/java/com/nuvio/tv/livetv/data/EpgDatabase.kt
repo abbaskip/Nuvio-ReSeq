@@ -465,6 +465,16 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         }
     }
 
+    /** The start-time index bounds week/month Calendar reads to dates the playlist has published. */
+    fun sportsGuideRange(fromMs: Long, untilMs: Long): LongRange? {
+        fun boundary(order: String): Long? = readableDatabase.rawQuery(
+            "SELECT start FROM programs WHERE start>=CAST(? AS INTEGER) AND start<CAST(? AS INTEGER) ORDER BY start $order LIMIT 1",
+            arrayOf(fromMs.toString(), untilMs.toString())
+        ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else null }
+        val first = boundary("ASC") ?: return null
+        return first..(boundary("DESC") ?: first)
+    }
+
     /** Sports discovery uses the classifier's complete vocabulary, with bounded cursor retention. */
     fun visitSportsPrograms(fromMs:Long,toMs:Long,minStopMs:Long,words:Collection<String>,visit:(String,EpgProgram)->Unit) =
         visitIndexedAliases(fromMs,toMs,minStopMs,words,visit)

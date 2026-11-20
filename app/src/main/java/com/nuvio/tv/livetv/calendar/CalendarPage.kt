@@ -25,7 +25,11 @@ internal data class CalendarItem(
     val season: Int? = null,
     val episode: Int? = null,
     val airedDate: String? = null,
-    val followedTeam: String? = null
+    val followedTeam: String? = null,
+    val artwork: String? = null,
+    @com.squareup.moshi.Json(ignore = true) val fixture: com.nuvio.tv.livetv.sports.SportsEvent? = null,
+    @com.squareup.moshi.Json(ignore = true) val leagueName: String? = null,
+    @com.squareup.moshi.Json(ignore = true) val followedSides: List<String> = emptyList()
 )
 
 internal data class CalendarTitle(
@@ -37,24 +41,28 @@ internal data class CalendarTitle(
 
 @JsonClass(generateAdapter = true)
 internal data class CalendarPage(
-    val version: Int = 2,
+    val version: Int = 3,
     val region: String,
     val zone: String,
     val weekStart: Long = 0,
+    val days: Int = 7,
     val inputSignature: String? = null,
     val checkedAt: Long = 0,
     val checked: Map<String, Long> = emptyMap(),
     val items: List<CalendarItem> = emptyList(),
     val retryAt: Long = 0,
-    val guideRevision: String? = null,
-    val guideTitles: List<String> = emptyList(),
-    val guideDay: Long = 0,
     @com.squareup.moshi.Json(ignore = true) val generation: Long = 0
 )
 
 internal data class CalendarWindow(val first: Long, val last: Long) {
+    val days get() = (last - first + 1).toInt()
     operator fun contains(day: Long): Boolean = day in first..last
     companion object {
+        fun week(day: LocalDate, locale: Locale): CalendarWindow {
+            val start = day.with(WeekFields.of(locale).dayOfWeek(), 1).toEpochDay()
+            return CalendarWindow(start, start + 6)
+        }
+        fun month(day: LocalDate) = CalendarWindow(day.withDayOfMonth(1).toEpochDay(), day.withDayOfMonth(day.lengthOfMonth()).toEpochDay())
         fun around(today: LocalDate, locale: Locale = Locale.getDefault()): CalendarWindow {
             val first = today.with(WeekFields.of(locale).dayOfWeek(), 1).toEpochDay()
             return CalendarWindow(first - 7, first + 34)

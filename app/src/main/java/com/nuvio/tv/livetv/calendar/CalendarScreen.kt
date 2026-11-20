@@ -2,32 +2,30 @@ package com.nuvio.tv.livetv.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.res.stringResource
+import com.nuvio.tv.R
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.nuvio.tv.LocalContentFocusRequester
 import com.nuvio.tv.LocalOpenSidebar
 import com.nuvio.tv.LocalSidebarExpanded
-import com.nuvio.tv.R
-import com.nuvio.tv.livetv.ui.LiveFocusRow
 import com.nuvio.tv.livetv.ui.LiveText
-import com.nuvio.tv.livetv.ui.focusedTextColor
 import com.nuvio.tv.ui.theme.NuvioTheme
 import java.time.LocalDate
 import java.time.ZoneId
@@ -37,148 +35,128 @@ import java.util.Date
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 
-/** A TV week strip and daily agenda, following NuvioPlusIPTV's Calendar. */
 @Composable
-internal fun CalendarScreen(onDetail: (String, String) -> Unit, onSports: (String) -> Unit, onGuide: () -> Unit,
+internal fun CalendarScreen(onDetail: (String, String) -> Unit, onSports: (String) -> Unit,
     viewModel: CalendarViewModel = hiltViewModel()) {
-    val profile by viewModel.profile.collectAsStateWithLifecycle(initialValue = null)
-    val active = profile ?: return
+    val active = viewModel.profile.collectAsStateWithLifecycle(initialValue = null).value ?: return
     val locale = LocalConfiguration.current.locales[0]
     val region = locale.country.ifBlank { CalendarRepository.region() }
     val zone = ZoneId.systemDefault()
+    val context = LocalContext.current
+    val timeFormat = remember(context, locale) { android.text.format.DateFormat.getTimeFormat(context) }
+    val clock: (Long) -> String = { timeFormat.format(Date(it)) }
     key(active, region, zone) {
         var today by remember { mutableStateOf(LocalDate.now(zone)) }
-        val window = CalendarWindow.around(today, locale)
-        var picked by remember { mutableLongStateOf(today.toEpochDay()) }
-        val selected = picked.coerceIn(window.first, window.last)
-        val week = window.first + (selected - window.first) / 7 * 7
-        val source = remember(viewModel, active, region, zone, week) { viewModel.display(active, region, zone, week) }
-        val state = key(source) { source.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
-        val dayFormat = remember(locale) { DateTimeFormatter.ofPattern("EEE", locale) }
-        val shortDate = remember(locale) { DateTimeFormatter.ofPattern("MMM d", locale) }
-        val longDate = remember(locale) { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale) }
-        val context = LocalContext.current
-        val clock = remember(context, locale) { android.text.format.DateFormat.getTimeFormat(context) }
-        val forDay = remember(state.items, selected) { state.items.filter { it.day == selected } }
+        var picked by remember { mutableStateOf(today) }
+        var mode by remember { mutableStateOf(CalendarMode.DAY) }
+        var filter by remember { mutableStateOf(CalendarFilter.ALL) }
+        val selected = picked.toEpochDay()
+        val week = CalendarWindow.week(picked, locale)
+        val window = if (mode == CalendarMode.MONTH) CalendarWindow.month(picked) else week
+        val releaseFlow = remember(active, region, zone, window) { viewModel.releases(active, region, zone, window) }
+        val releases = key(releaseFlow) { releaseFlow.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
+        val sportDay = remember(window) { kotlinx.coroutines.flow.MutableStateFlow(selected) }
+        LaunchedEffect(sportDay, selected) { sportDay.value = selected }
+        val overview = mode != CalendarMode.DAY
+        val sportFlow = remember(active, zone, window, sportDay, overview) { viewModel.sports(active, zone, window, sportDay, overview) }
+        val sports = key(sportFlow) { sportFlow.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
+        val grouped = remember(releases.items, sports.items, window, filter) {
+            CalendarPolicy.displayed((releases.items + sports.items).filter { filter.includes(it.kind) }, window, today.toEpochDay()).groupBy { it.day }
+        }
+        val rawDay = grouped[selected].orEmpty()
+        val rows = key(rawDay) { produceState(rawDay) { value = viewModel.labelDay(active, rawDay) }.value }
+        val focus = remember { FocusRequester() }
         val contentFocus = LocalContentFocusRequester.current
-        val initialFocus = remember { FocusRequester() }
         val sidebarOpen by rememberUpdatedState(LocalSidebarExpanded.current)
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         LaunchedEffect(lifecycle, zone) {
             lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 today = LocalDate.now(zone)
-                picked = today.toEpochDay()
+                picked = today
                 snapshotFlow { sidebarOpen }.first { !it }
                 withFrameNanos { }
-                if (!sidebarOpen) initialFocus.requestFocus()
+                if (!sidebarOpen) focus.requestFocus()
                 while (true) {
-                    val midnight = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-                    delay((midnight - System.currentTimeMillis()).coerceAtLeast(1))
+                    delay((today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - System.currentTimeMillis()).coerceAtLeast(1))
                     val next = LocalDate.now(zone)
-                    if (picked == today.toEpochDay()) picked = next.toEpochDay()
+                    if (picked == today) picked = next
                     today = next
                 }
             }
         }
+        val selectedFocus = Modifier.focusRequester(contentFocus).focusRequester(focus)
         val openSidebar = LocalOpenSidebar.current
-        val leftToSidebar = Modifier.onPreviewKeyEvent { event ->
-            if (event.key == Key.DirectionLeft && event.type == KeyEventType.KeyDown) { openSidebar(); true } else false
+        val leftEdge = Modifier.onPreviewKeyEvent {
+            if (it.type == KeyEventType.KeyDown && it.key == Key.DirectionLeft) { openSidebar(); true } else false
         }
-
-        Column(Modifier.fillMaxSize().background(NuvioTheme.colors.Background).padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LiveText(stringResource(R.string.nav_calendar), Modifier.weight(1f), size = 28.sp, weight = FontWeight.Bold)
-                if (state.status == CalendarStatus.READY || state.status == CalendarStatus.RETRY)
-                    CalendarButton(stringResource(R.string.calendar_refresh), onClick = viewModel::refresh)
+        val open: (CalendarItem) -> Unit = { item ->
+            item.contentId?.let { id ->
+                if (item.kind == CalendarKind.SPORT) { viewModel.selectFixture(item); onSports(id) }
+                else onDetail(id, if (item.kind == CalendarKind.EPISODE) "series" else "movie")
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (week > window.first) CalendarButton(stringResource(R.string.calendar_previous_week),
-                    modifier = leftToSidebar) { picked = selected - 7 }
-                CalendarButton(stringResource(R.string.calendar_today),
-                    modifier = if (week == window.first) leftToSidebar else Modifier) { picked = today.toEpochDay() }
-                if (week + 7 <= window.last) CalendarButton(stringResource(R.string.calendar_next_week)) { picked = selected + 7 }
+        }
+        val changeDay: (Long) -> Unit = { picked = LocalDate.ofEpochDay(it) }
+        var focusDay by remember { mutableIntStateOf(0) }
+        val openDay: (Long) -> Unit = { changeDay(it); mode = CalendarMode.DAY; focusDay++ }
+        LaunchedEffect(focusDay) { if (focusDay > 0) { withFrameNanos { }; focus.requestFocus() } }
+        val changing = listOfNotNull(releases.status.takeUnless { filter == CalendarFilter.SPORTS },
+            sports.status.takeIf { filter == CalendarFilter.SPORTS || filter == CalendarFilter.ALL })
+        val loading = changing.any { it == CalendarStatus.OPENING || it == CalendarStatus.UPDATING }
+        val retry = CalendarStatus.RETRY in changing
+        val dateFormat = remember(locale) { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale) }
+        val short = remember(locale) { DateTimeFormatter.ofPattern("EEE d", locale) }
+        val monthName = remember(locale) { DateTimeFormatter.ofPattern("MMMM yyyy", locale) }
+        val dateShort = remember(locale) { DateTimeFormatter.ofPattern("MMM d", locale) }
+        val period = if (mode == CalendarMode.MONTH) monthName.format(picked)
+            else dateShort.format(LocalDate.ofEpochDay(week.first)) + " – " + dateShort.format(LocalDate.ofEpochDay(week.last))
+        val theme = NuvioTheme.colors
+        Column(Modifier.fillMaxSize().background(theme.Background).padding(horizontal = 23.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                LiveText(stringResource(R.string.nav_calendar), size = 27.sp, weight = FontWeight.ExtraBold)
+                LiveText(stringResource(R.string.calendar_timezone, zone.id.substringAfterLast('/').replace('_', ' ')), size = 12.sp, color = theme.TextSecondary)
                 Spacer(Modifier.weight(1f))
-                LiveText(shortDate.format(LocalDate.ofEpochDay(week)) + " – " + shortDate.format(LocalDate.ofEpochDay(week + 6)),
-                    size = 16.sp)
+                Row(Modifier.clip(RoundedCornerShape(50)).background(theme.BackgroundElevated).padding(2.dp)) {
+                    CalendarMode.entries.forEach { option -> CalendarPill(stringResource(option.label), option == mode) { mode = option } }
+                }
+                CalendarPill(stringResource(R.string.calendar_refresh), false) { viewModel.refresh() }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (offset in 0..6) {
-                    val day = LocalDate.ofEpochDay(week + offset)
-                    val epoch = day.toEpochDay()
-                    LiveFocusRow(modifier = Modifier.weight(1f)
-                        .then(if (epoch == selected) Modifier.focusRequester(contentFocus).focusRequester(initialFocus) else Modifier)
-                        .then(if (offset == 0) leftToSidebar else Modifier),
-                        horizontalPadding = 6.dp, selected = epoch == selected, onClick = { picked = epoch }) { focused ->
-                        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                            LiveText(if (day == today) stringResource(R.string.calendar_today) else dayFormat.format(day),
-                                color = focusedTextColor(focused), size = 13.sp)
-                            LiveText(day.dayOfMonth.toString(), color = focusedTextColor(focused), size = 20.sp, weight = FontWeight.Bold)
-                        }
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                CalendarFilter.entries.forEach { choice -> CalendarPill(stringResource(choice.label), choice == filter,
+                    if (choice == CalendarFilter.ALL) leftEdge else Modifier) { filter = choice } }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                LiveText(dateFormat.format(picked), Modifier.weight(1f), size = 19.sp, weight = FontWeight.Bold)
+                CalendarPill(stringResource(if (mode == CalendarMode.MONTH) R.string.calendar_previous_month else R.string.calendar_previous_week), false) {
+                    picked = if (mode == CalendarMode.MONTH) picked.minusMonths(1) else picked.minusWeeks(1)
+                }
+                CalendarPill(stringResource(R.string.calendar_today), false) { picked = today }
+                LiveText(period, size = 12.sp, weight = FontWeight.Bold)
+                CalendarPill(stringResource(if (mode == CalendarMode.MONTH) R.string.calendar_next_month else R.string.calendar_next_week), false) {
+                    picked = if (mode == CalendarMode.MONTH) picked.plusMonths(1) else picked.plusWeeks(1)
                 }
             }
-            LiveText(longDate.format(LocalDate.ofEpochDay(selected)), size = 17.sp, weight = FontWeight.SemiBold)
-            val message = when (state.status) {
-                CalendarStatus.OPENING -> stringResource(R.string.calendar_opening)
-                CalendarStatus.UPDATING -> stringResource(R.string.calendar_loading)
-                CalendarStatus.PLAYBACK -> stringResource(R.string.calendar_playback)
-                CalendarStatus.RETRY -> stringResource(R.string.calendar_retry)
-                else -> null
-            }
-            if (message != null) LiveText(message, size = 13.sp)
-            if (forDay.isEmpty() && state.status != CalendarStatus.OPENING && state.status != CalendarStatus.UPDATING) {
-                LiveText(stringResource(R.string.calendar_empty), size = 16.sp)
-                if (state.items.isEmpty() && state.status == CalendarStatus.READY) LiveText(stringResource(R.string.calendar_start), size = 14.sp)
-            }
-            key(selected) {
-                val labelled = key(forDay) {
-                    produceState(forDay) { value = viewModel.labelDay(active, forDay) }.value
+            if (mode == CalendarMode.DAY) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                for (day in week.first..week.last) {
+                    val date = LocalDate.ofEpochDay(day)
+                    CalendarPill(if (date == today) stringResource(R.string.calendar_today_number, date.dayOfMonth) else short.format(date), selected == day,
+                        Modifier.weight(1f).then(if (day == selected) selectedFocus else Modifier)
+                            .then(if (day == week.first) leftEdge else Modifier)) { picked = date }
                 }
-                LazyColumn(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    items(labelled, key = { it.key }) { item ->
-                        LiveFocusRow(Modifier.fillMaxWidth().then(leftToSidebar),
-                            unfocusedBorderColor = if (item.followedTeam != null) NuvioTheme.colors.Secondary.copy(alpha = .65f) else null,
-                            onClick = {
-                            val id = item.contentId
-                            when (item.kind) {
-                                CalendarKind.GUIDE -> onGuide()
-                                CalendarKind.SPORT -> if (id != null) onSports(id)
-                                else -> if (id != null) onDetail(id, if (item.kind == CalendarKind.EPISODE) "series" else "movie")
-                            }
-                        }) { focused ->
-                            val color = focusedTextColor(focused)
-                            Column(Modifier.weight(1f)) {
-                                LiveText(item.title, color = color, size = 17.sp,
-                                    weight = if (item.followedTeam != null) FontWeight.Bold else FontWeight.Medium)
-                                if (item.detail.isNotBlank()) LiveText(item.detail, color = color, size = 14.sp)
-                            }
-                            if (item.followedTeam != null) {
-                                LiveText(stringResource(R.string.calendar_followed_team, item.followedTeam),
-                                    color = if (focused) color else NuvioTheme.colors.Secondary, size = 14.sp, weight = FontWeight.Bold)
-                            } else LiveText(stringResource(item.kind.label()),
-                                color = color, size = 13.sp)
-                            item.time?.let { LiveText(clock.format(Date(it)), color = color, size = 15.sp) }
-                        }
-                    }
-                }
+            }
+            when {
+                CalendarStatus.PLAYBACK in changing -> LiveText(stringResource(R.string.calendar_playback), size = 11.sp, color = theme.TextSecondary)
+                retry -> LiveText(stringResource(R.string.calendar_retry), size = 11.sp, color = theme.TextSecondary)
+                loading -> LiveText(stringResource(R.string.calendar_loading), size = 11.sp, color = theme.TextSecondary)
+                rows.isEmpty() && mode != CalendarMode.WEEK -> LiveText(
+                    stringResource(if (filter == CalendarFilter.SPORTS) R.string.calendar_empty_sports else R.string.calendar_empty),
+                    size = 12.sp, color = theme.TextSecondary)
+            }
+            when (mode) {
+                CalendarMode.DAY -> DayCards(rows, clock, open)
+                CalendarMode.WEEK -> WeekView(week, selected, grouped, locale, selectedFocus, clock, changeDay, openDay, open)
+                CalendarMode.MONTH -> MonthView(window, selected, today.toEpochDay(), grouped, rows, locale, selectedFocus, clock, changeDay, openDay, open)
             }
         }
     }
-}
-
-@Composable
-private fun CalendarButton(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    LiveFocusRow(modifier, selected = true, onClick = onClick) { focused ->
-        LiveText(label, color = focusedTextColor(focused), size = 14.sp)
-    }
-}
-
-private fun CalendarKind.label(): Int = when (this) {
-    CalendarKind.EPISODE -> R.string.calendar_episode
-    CalendarKind.CINEMA -> R.string.calendar_cinema
-    CalendarKind.DIGITAL -> R.string.calendar_digital
-    CalendarKind.DISC -> R.string.calendar_disc
-    CalendarKind.SPORT -> R.string.calendar_sport
-    CalendarKind.GUIDE -> R.string.calendar_guide
 }

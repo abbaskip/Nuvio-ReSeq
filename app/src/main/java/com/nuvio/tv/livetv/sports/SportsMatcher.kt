@@ -791,12 +791,14 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         extraSearchWords: List<String> = emptyList(),
         selection: SportsSettings = SportsSettings(),
         quality: Map<String, String> = emptyMap(),
+        liveCompetitionsOnly: Boolean = false,
         checkCancelled: () -> Unit = {}
     ): List<SportsEvent> {
         val scanKey = if (currentOnly) null else GuideScanKey(dayStart, dayEnd, db.fingerprint(), db.contentRevision(),
             channelDigest(channels),
             SportsGuideCache.digest(leagues.map { listOf(it.id, it.sport.name, it.liveByDefault.toString()) + it.guideWords }.flatten()),
-            followedWords.toList(), shiftMs, selection.toString() + quality.hashCode() + java.util.Locale.getDefault().toLanguageTag())
+            followedWords.toList(), shiftMs, selection.toString() + quality.hashCode() + java.util.Locale.getDefault().toLanguageTag() +
+                if (liveCompetitionsOnly) "|live-competitions" else "")
         if (!currentOnly) guideScans[dayStart]?.takeIf { it.key == scanKey }
             ?.let { return it.events.map { event -> guideState(event, now) } }
         val diskKey = if (scanKey == null) "" else SportsGuideCache.digest(listOf("4", scanKey.selection, scanKey.start.toString(), scanKey.end.toString(),
@@ -873,6 +875,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             val ch = channels[key] ?: return@collect
             val p0 = sharedPrograms.getOrPut(row) { row }
             currentProgramme?.invoke(ch.key,p0)
+            if (liveCompetitionsOnly && !SportsEventListings.liveCompetition(p0)) return@collect
             val included = includedText.getOrPut(p0.title to p0.description) {
                 classify(p0)?.let { classifiedLeague(it) != null } == true ||
                     (otherIndex.isNotEmpty() && norm(p0.title + " " + p0.description.orEmpty()).let { t ->
@@ -944,8 +947,8 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
                 retained.offer(g to ch.key,hit)
             }
         }
-        val searchWords = (SportsTaxonomy.nodes.flatMap { it.aliases.map { a -> a.term } } +
-            leagueWords.map { it.first } + followedWords + extraSearchWords).distinct()
+        val searchWords = if (liveCompetitionsOnly) listOf("live") else
+            (SportsTaxonomy.nodes.flatMap { it.aliases.map { a -> a.term } } + leagueWords.map { it.first } + followedWords + extraSearchWords).distinct()
         db.visitSportsPrograms(
             if(currentOnly) now-shiftMs-30*HOUR else dayStart-shiftMs,
             if(currentOnly) now-shiftMs+1 else dayEnd-shiftMs,

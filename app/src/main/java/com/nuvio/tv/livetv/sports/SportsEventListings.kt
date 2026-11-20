@@ -10,6 +10,22 @@ internal fun SportsEvent.awaitingCollegeStatus(now: Long): Boolean =
 
 /** Fixtures and TV airings have separate timelines; channel matching never sets event order. */
 internal object SportsEventListings {
+    private val nonEvent = Regex("""\b(?:replays?|repeats?|highlights?|classics?|encore|condensed|review|preview|magazine|news|countdown|analysis|studio|(?:pre|post) ?(?:game|match|race)|press conference|talk show|sports ?cent(?:er|re)|nfl live|nba today|match of the day)\b""")
+    private val competition = Regex("""\b(?:vs?|versus|round|match|matchplay|race|racing|grand prix|qualifying|practice|sprint|finals?|semifinal|quarterfinal|session|day [1-5]|test|odi|t20i?|innings|tournament|championships?|fight|bout|stage|heats?|wrestlemania|smackdown|wwe (?:raw|nxt)|aew (?:dynamite|collision))\b""")
+
+    /** A live talk show, a replay and a channel currently on air are not live competitions. */
+    fun liveCompetition(p: com.nuvio.tv.livetv.model.EpgProgram): Boolean {
+        val title = SportsCatalog.norm(p.title.replace("@", " vs "))
+        val description = SportsCatalog.norm(p.description.orEmpty())
+        if (nonEvent.containsMatchIn(title) || nonEvent.containsMatchIn(description.take(42)) ||
+            description.trimStart().startsWith("recorded coverage")) return false
+        val live = SportsCatalog.hasWord(title, "live") || description.trimStart().startsWith("live ") ||
+            SportsCatalog.hasWord(description, "live coverage") || SportsCatalog.hasWord(description, "live action")
+        if (!live) return false
+        if (competition.containsMatchIn(title + description)) return true
+        val pairing = title.substringAfter("live ").trim()
+        return " at " in pairing && !pairing.startsWith("at ") && !pairing.startsWith("coverage at ")
+    }
     fun guideAiring(event: SportsEvent, now: Long): SportsEvent? {
         val end = event.endMs ?: event.guideHits.maxOfOrNull { it.second.stopMs }
         if (end != null && now >= end) return null

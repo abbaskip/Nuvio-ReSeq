@@ -1,9 +1,12 @@
 package com.nuvio.tv.livetv.sports
 
+internal fun isCollegeBasketball(leagueId: String): Boolean =
+    leagueId == "basketball/mens-college-basketball" || leagueId == "basketball/womens-college-basketball"
+
 /** ESPN can still report a scheduled tip-off while a college scoreboard is catching up. */
 internal fun SportsEvent.awaitingCollegeStatus(now: Long): Boolean =
     source == EventSource.ESPN && state == GameState.PRE && hasTime && now - startMs >= 60_000L &&
-        (leagueId == "basketball/mens-college-basketball" || leagueId == "basketball/womens-college-basketball")
+        isCollegeBasketball(leagueId)
 
 /** Fixtures and TV airings have separate timelines; channel matching never sets event order. */
 internal object SportsEventListings {

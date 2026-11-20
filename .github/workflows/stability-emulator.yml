@@ -8,7 +8,10 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, shared-features, college-restart, channel-shortcut, compiled-size, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, measure-release-profiles, profile-ui]
+        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, shared-features, college-restart, channel-shortcut, compiled-size, public-upgrade, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, measure-release-profiles, profile-ui]
+      expected_tag:
+        description: 'Expected public Latest release for the in-app upgrade test'
+        type: string
       signed_run:
         description: 'Completed signed integration workflow for guide playback verification'
         type: string
@@ -31,6 +34,43 @@ permissions:
   contents: read
 
 jobs:
+  public-upgrade:
+    if: inputs.workload == 'public-upgrade'
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      EXPECTED_TAG: ${{ inputs.expected_tag }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+          log-accepted-android-sdk-licenses: false
+      - name: Get the previous signed beta and public update metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p build/public-upgrade
+          gh release download v0.1.0-beta.10.12 --repo "$GITHUB_REPOSITORY" --pattern '*-x86_64.apk' --dir build/public-upgrade
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > build/public-upgrade/latest.json
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: python3 -u scripts/performance-fixtures/public_upgrade.py
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: signed-in-app-upgrade
+          path: build/public-upgrade/results.json
+
   profile-ui:
     if: inputs.workload == 'profile-ui'
     runs-on: ubuntu-latest

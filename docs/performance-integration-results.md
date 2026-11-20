@@ -26,7 +26,7 @@ Both switches that enable M3U import now show the measured estimate of approxima
 
 Removing each group from a reconstructed profile produced odex savings ranging from 0.019 MiB for TV Mix to 5.122 MiB for Live TV. The reconstructed all-groups control itself compiled to 28.38 MiB less odex than the shipped profile on the same guest. Those marginal sizes cannot establish the release budget. A release-optimizer control checks the signed DEX CRCs and requires an identical binary profile before measuring release ablations. [Reconstruction control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44641801928). [Release-optimizer experiment](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644271540).
 
-At 350 MiB free on a disposable API 34 guest, Android refused the signed update while creating its install session. The existing installation still rendered Home. A Fire TV Stick with low free space remains a separate physical sign-off. [First disk-pressure run](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644488117).
+At 750 MiB free on a disposable API 34 guest, the signed update installed, ART reported `speed-profile` with reason `install-dm`, and Home opened. At 350 MiB free Android rejected the install session for insufficient space and the existing beta opened Home. At 85 MiB Android again rejected the session. Although its activity start returned success, the guest displayed the Android launcher throughout the 35-second observation window. After the filler was removed, the same signed update installed, compiled and opened Home. A physical Fire TV Stick remains outstanding. [Three pressure levels and recovery](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44646025999).
 
 ### C. Pre-existing defects
 

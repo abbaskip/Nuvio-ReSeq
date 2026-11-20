@@ -306,33 +306,37 @@ def view_native():
 
 
 def attempt_shelf_play(title, media_key):
-    def tap(text, allow_prefix=False):
-        for node in tree().iter("node"):
-            value = label(node)
-            if value == text or (allow_prefix and value.startswith(text)):
-                x, y = point(node)
-                adb("shell", "input", "tap", str(x), str(y))
-                return True
-        return False
-
     before = Provider.requests[media_key]
-    assert tap("Open IPTV On Demand library")
-    for _ in range(8):
-        if tap(title, allow_prefix=True):
+    select("Open IPTV On Demand library")
+    # The modern TV shelf shows the focused card's title in the hero. That text
+    # has no click action. Use the remote's OK button on the actual card.
+    seen = set()
+    for step in range(8):
+        labels = {label(n) for n in tree().iter("node")}
+        seen.update(s for s in labels if s.startswith(("Offline Feature", "Fixture Movie 001", "Local films", "Fixture movies")))
+        if any(s.startswith(title) for s in labels):
+            key("DPAD_CENTER", 1)
             break
-        key("DPAD_DOWN", .12)
+        key("DPAD_UP" if step >= 3 else "DPAD_DOWN", .3)
     else:
-        return {"cardVisible":False, "providerPlayed":False}
+        return {"cardVisible": False, "providerPlayed": False, "shelfLabels": sorted(seen)}
     play = False
-    for _ in range(4):
-        if tap("Play", allow_prefix=True):
+    for _ in range(6):
+        if Provider.requests[media_key] > before:
+            break
+        nodes = list(tree().iter("node"))
+        options = [label(n) for n in nodes if label(n) in ("Play", "Watch", "Play Movie", "Resume", "Watch Now", "Play now")]
+        if options:
+            select(options[0])
             play = True
             break
+        time.sleep(.3)
     for _ in range(20):
         if Provider.requests[media_key] > before:
             break
         time.sleep(.3)
-    return {"cardVisible":True, "selectedPlay":play, "providerPlayed":Provider.requests[media_key] > before}
+    return {"cardVisible": True, "selectedPlay": play, "providerPlayed": Provider.requests[media_key] > before,
+            "shelfLabels": sorted(seen)}
 
 
 def exercise():

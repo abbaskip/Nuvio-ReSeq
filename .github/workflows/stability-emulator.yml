@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, profile-sources, sports-delivery, profile-cost, release-profile-cost]
+        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost]
       signed_run:
         description: 'Completed signed integration workflow for guide playback verification'
         type: string
@@ -31,6 +31,52 @@ permissions:
   contents: read
 
 jobs:
+  stream-picker:
+    if: inputs.workload == 'stream-picker'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        first-size: [small, large]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Prepare the signed app and guest-only accessibility observer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SIGNED_RUN: ${{ inputs.signed_run }}
+        run: |
+          [[ "$SIGNED_RUN" =~ ^[0-9]+$ ]]
+          test "$(gh run view "$SIGNED_RUN" --repo "$GITHUB_REPOSITORY" --json headBranch,workflowName --jq '[.headBranch,.workflowName]|join("|")')" = 'perf-integration|ReSeq signed APK release'
+          gh run download "$SIGNED_RUN" --repo "$GITHUB_REPOSITORY" --pattern '*verified-apks' --dir build/guide-apks
+          bash scripts/performance-fixtures/observer/build.sh
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        env:
+          FIRST_SIZE: ${{ matrix.first-size }}
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: python3 -u scripts/performance-fixtures/stream_picker.py
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stream-picker-${{ matrix.first-size }}-first
+          path: build/stream-picker/results.json
+
   guide-delivery:
     if: inputs.workload == 'guide-delivery'
     runs-on: ubuntu-latest

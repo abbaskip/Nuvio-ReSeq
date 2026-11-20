@@ -86,7 +86,7 @@ class EpgInterruptedStageTest {
         assertEquals(1000,db.channelRange("old",0,1_000_000).size)
     }
 
-    @Test fun `interrupted publication removes complete staging too and retains the committed guide`() = kotlinx.coroutines.runBlocking {
+    @Test fun `interrupted publication discards its working copy and retains completed input for retry`() = kotlinx.coroutines.runBlocking {
         db.replaceAll("published",mapOf("old" to listOf(EpgProgram(1,3,"Old"))),emptyMap())
         val writer=db.startStage("complete")
         writer.add("channel",listOf(EpgProgram(1,3,"New"))) { false }
@@ -96,8 +96,16 @@ class EpgInterruptedStageTest {
             throw kotlinx.coroutines.CancellationException("fixture interruption")
         } }.exceptionOrNull()
         assertTrue(error is kotlinx.coroutines.CancellationException)
-        assertEquals(0,stagedRows())
+        assertEquals(1L, stagedRows())
+        db.readableDatabase.rawQuery("SELECT name FROM sqlite_master WHERE name='guide_next'", null).use {
+            assertFalse(it.moveToFirst())
+        }
         assertEquals("published",db.fingerprint())
         assertEquals("Old",db.channelRange("old",0,5).single().title)
+        db.close()
+        db = EpgDatabase(context)
+        db.replaceAllFromStageBatched("retried", mapOf("new" to assignment), emptyMap(), null, 0, 5) {}
+        assertEquals("retried", db.fingerprint())
+        assertEquals("New", db.channelRange("new", 0, 5).single().title)
     }
 }

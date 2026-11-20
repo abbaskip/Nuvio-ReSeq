@@ -3,6 +3,8 @@ package com.nuvio.tv.livetv.calendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +27,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,18 +53,24 @@ internal enum class CalendarFilter(@StringRes val label: Int) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun CalendarPill(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun CalendarPill(label: String, selected: Boolean? = null, modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val theme = NuvioTheme.colors
     val shape = RoundedCornerShape(50)
-    Box(modifier.clip(shape).background(if (selected) theme.Secondary else theme.BackgroundElevated)
+    val active = selected == true
+    Box(modifier.clip(shape).background(if (active) theme.Secondary else theme.BackgroundElevated)
         .border(if (focused) 2.dp else 0.dp, if (focused) Color.White else Color.Transparent, shape)
         .onFocusChanged { focused = it.isFocused }
-        .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+        .then(if (selected == null) Modifier else Modifier.semantics { this.selected = selected })
+        .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null, role = Role.Button,
+            onLongClickLabel = if (onLongClick != null) stringResource(R.string.calendar_choose_sports) else null,
+            onLongClick = onLongClick, onClick = onClick)
         .padding(horizontal = 11.dp, vertical = 5.dp), contentAlignment = Alignment.Center) {
-        LiveText(label, size = 13.sp, weight = if (selected || focused) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) theme.OnSecondary else theme.TextPrimary)
+        LiveText(label, size = 13.sp, weight = if (active || focused) FontWeight.Bold else FontWeight.Medium,
+            color = if (active) theme.OnSecondary else theme.TextPrimary)
     }
 }
 

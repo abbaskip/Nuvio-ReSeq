@@ -10,6 +10,7 @@ sealed class Screen(val route: String) {
     data object LiveTvSettings : Screen("livetv/settings")
     data object Sports : Screen("livetv/sports")
     data object Calendar : Screen("calendar")
+    data object CalendarTeams : Screen("calendar/teams")
     data object CalendarGame : Screen("calendar/game/{eventId}") {
         fun createRoute(eventId: String) = "calendar/game/" + URLEncoder.encode(eventId, "UTF-8").replace("+", "%20")
     }

@@ -16,7 +16,8 @@ internal data class CalendarDisplay(val items: List<CalendarItem> = emptyList(),
 
 @HiltViewModel
 internal class CalendarViewModel @Inject constructor(
-    private val repository: CalendarRepository, private val labels: dagger.Lazy<CalendarEpisodeLabels>
+    private val repository: CalendarRepository, private val labels: dagger.Lazy<CalendarEpisodeLabels>,
+    val preferences: CalendarPreferences
 ) : ViewModel() {
     val profile = repository.profile
     private val refresh = MutableSharedFlow<Boolean>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)

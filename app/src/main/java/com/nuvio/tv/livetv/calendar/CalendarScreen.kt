@@ -1,14 +1,18 @@
 package com.nuvio.tv.livetv.calendar
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.res.stringResource
 import com.nuvio.tv.R
@@ -25,6 +29,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.nuvio.tv.LocalContentFocusRequester
 import com.nuvio.tv.LocalOpenSidebar
 import com.nuvio.tv.LocalSidebarExpanded
+import com.nuvio.tv.livetv.sports.ChooseSportsDialog
 import com.nuvio.tv.livetv.ui.LiveText
 import com.nuvio.tv.ui.theme.NuvioTheme
 import java.time.LocalDate
@@ -36,7 +41,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 
 @Composable
-internal fun CalendarScreen(onDetail: (String, String) -> Unit, onSports: (String) -> Unit,
+internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit, onSports: (String) -> Unit,
+    onFollowTeams: () -> Unit,
     viewModel: CalendarViewModel = hiltViewModel()) {
     val active = viewModel.profile.collectAsStateWithLifecycle(initialValue = null).value ?: return
     val locale = LocalConfiguration.current.locales[0]
@@ -46,28 +52,40 @@ internal fun CalendarScreen(onDetail: (String, String) -> Unit, onSports: (Strin
     val timeFormat = remember(context, locale) { android.text.format.DateFormat.getTimeFormat(context) }
     val clock: (Long) -> String = { timeFormat.format(Date(it)) }
     key(active, region, zone) {
+        val preferenceFlow = remember(active, viewModel) { viewModel.preferences.selection(active) }
+        val selection = preferenceFlow.collectAsStateWithLifecycle(initialValue = null).value ?: return@key
+        val (mode, filter) = selection
         var today by remember { mutableStateOf(LocalDate.now(zone)) }
         var picked by remember { mutableStateOf(today) }
-        var mode by remember { mutableStateOf(CalendarMode.DAY) }
-        var filter by remember { mutableStateOf(CalendarFilter.ALL) }
         val selected = picked.toEpochDay()
         val week = CalendarWindow.week(picked, locale)
         val window = if (mode == CalendarMode.MONTH) CalendarWindow.month(picked) else week
-        val releaseFlow = remember(active, region, zone, window) { viewModel.releases(active, region, zone, window) }
-        val releases = key(releaseFlow) { releaseFlow.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
+        val releases = if (filter != CalendarFilter.SPORTS) {
+            val flow = remember(active, region, zone, window) { viewModel.releases(active, region, zone, window) }
+            key(flow) { flow.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
+        } else CalendarDisplay(status = CalendarStatus.READY)
         val sportDay = remember(window) { kotlinx.coroutines.flow.MutableStateFlow(selected) }
         LaunchedEffect(sportDay, selected) { sportDay.value = selected }
         val overview = mode != CalendarMode.DAY
-        val sportFlow = remember(active, zone, window, sportDay, overview) { viewModel.sports(active, zone, window, sportDay, overview) }
-        val sports = key(sportFlow) { sportFlow.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
+        val sports = if (filter == CalendarFilter.ALL || filter == CalendarFilter.SPORTS) {
+            val flow = remember(active, zone, window, sportDay, overview) { viewModel.sports(active, zone, window, sportDay, overview) }
+            key(flow) { flow.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
+        } else CalendarDisplay(status = CalendarStatus.READY)
         val grouped = remember(releases.items, sports.items, window, filter) {
             CalendarPolicy.displayed((releases.items + sports.items).filter { filter.includes(it.kind) }, window, today.toEpochDay()).groupBy { it.day }
         }
         val rawDay = grouped[selected].orEmpty()
         val rows = key(rawDay) { produceState(rawDay) { value = viewModel.labelDay(active, rawDay) }.value }
         val focus = remember { FocusRequester() }
+        val todayControl = remember { FocusRequester() }
+        val sportsFilter = remember { FocusRequester() }
+        val dayMode = remember { FocusRequester() }
+        var todayControlFocused by remember { mutableStateOf(false) }
+        var sportsFilterFocused by remember { mutableStateOf(false) }
+        var choosingSports by rememberSaveable { mutableStateOf(false) }
         val contentFocus = LocalContentFocusRequester.current
         val sidebarOpen by rememberUpdatedState(LocalSidebarExpanded.current)
+        BackHandler(enabled = !sidebarOpen && !choosingSports && !todayControlFocused) { todayControl.requestFocus() }
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         LaunchedEffect(lifecycle, zone) {
             lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -92,13 +110,23 @@ internal fun CalendarScreen(onDetail: (String, String) -> Unit, onSports: (Strin
         val open: (CalendarItem) -> Unit = { item ->
             item.contentId?.let { id ->
                 if (item.kind == CalendarKind.SPORT) { viewModel.selectFixture(item); onSports(id) }
-                else onDetail(id, if (item.kind == CalendarKind.EPISODE) "series" else "movie")
+                else onDetail(id, if (item.kind == CalendarKind.EPISODE) "series" else "movie", item.title, item.artwork)
             }
         }
         val changeDay: (Long) -> Unit = { picked = LocalDate.ofEpochDay(it) }
-        var focusDay by remember { mutableIntStateOf(0) }
-        val openDay: (Long) -> Unit = { changeDay(it); mode = CalendarMode.DAY; focusDay++ }
-        LaunchedEffect(focusDay) { if (focusDay > 0) { withFrameNanos { }; focus.requestFocus() } }
+        var focusOpenedDay by remember { mutableStateOf(false) }
+        val openDay: (Long) -> Unit = {
+            changeDay(it)
+            focusOpenedDay = true
+            viewModel.preferences.setMode(active, CalendarMode.DAY)
+        }
+        LaunchedEffect(mode, focusOpenedDay) {
+            if (focusOpenedDay && mode == CalendarMode.DAY) {
+                withFrameNanos { }
+                focus.requestFocus()
+                focusOpenedDay = false
+            }
+        }
         val changing = listOfNotNull(releases.status.takeUnless { filter == CalendarFilter.SPORTS },
             sports.status.takeIf { filter == CalendarFilter.SPORTS || filter == CalendarFilter.ALL })
         val loading = changing.any { it == CalendarStatus.OPENING || it == CalendarStatus.UPDATING }
@@ -117,22 +145,40 @@ internal fun CalendarScreen(onDetail: (String, String) -> Unit, onSports: (Strin
                 LiveText(stringResource(R.string.calendar_timezone, zone.id.substringAfterLast('/').replace('_', ' ')), size = 12.sp, color = theme.TextSecondary)
                 Spacer(Modifier.weight(1f))
                 Row(Modifier.clip(RoundedCornerShape(50)).background(theme.BackgroundElevated).padding(2.dp)) {
-                    CalendarMode.entries.forEach { option -> CalendarPill(stringResource(option.label), option == mode) { mode = option } }
+                    CalendarMode.entries.forEach { option ->
+                        val navigation = if (option == CalendarMode.DAY) {
+                            Modifier.focusRequester(dayMode).focusProperties { left = sportsFilter }
+                        } else Modifier
+                        CalendarPill(stringResource(option.label), option == mode, navigation) { viewModel.preferences.setMode(active, option) }
+                    }
                 }
-                CalendarPill(stringResource(R.string.calendar_refresh), false) { viewModel.refresh() }
+                CalendarPill(stringResource(R.string.calendar_refresh)) { viewModel.refresh() }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                CalendarFilter.entries.forEach { choice -> CalendarPill(stringResource(choice.label), choice == filter,
-                    if (choice == CalendarFilter.ALL) leftEdge else Modifier) { filter = choice } }
+                CalendarFilter.entries.forEach { choice ->
+                    val navigation = when (choice) {
+                        CalendarFilter.ALL -> leftEdge
+                        CalendarFilter.SPORTS -> Modifier.focusRequester(sportsFilter).focusProperties { right = dayMode }
+                            .onFocusChanged { sportsFilterFocused = it.isFocused }
+                        else -> Modifier
+                    }
+                    CalendarPill(stringResource(choice.label), choice == filter, navigation,
+                        onLongClick = if (choice == CalendarFilter.SPORTS) ({ choosingSports = true }) else null
+                    ) { viewModel.preferences.setFilter(active, choice) }
+                }
+                if (sportsFilterFocused) LiveText(stringResource(R.string.calendar_hold_choose_sports),
+                    Modifier.padding(start = 6.dp), size = 11.sp, color = theme.TextSecondary)
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 LiveText(dateFormat.format(picked), Modifier.weight(1f), size = 19.sp, weight = FontWeight.Bold)
-                CalendarPill(stringResource(if (mode == CalendarMode.MONTH) R.string.calendar_previous_month else R.string.calendar_previous_week), false) {
+                CalendarPill(stringResource(if (mode == CalendarMode.MONTH) R.string.calendar_previous_month else R.string.calendar_previous_week),
+                    modifier = Modifier.focusProperties { left = sportsFilter }) {
                     picked = if (mode == CalendarMode.MONTH) picked.minusMonths(1) else picked.minusWeeks(1)
                 }
-                CalendarPill(stringResource(R.string.calendar_today), false) { picked = today }
+                CalendarPill(stringResource(R.string.calendar_today),
+                    modifier = Modifier.focusRequester(todayControl).onFocusChanged { todayControlFocused = it.isFocused }) { picked = today }
                 LiveText(period, size = 12.sp, weight = FontWeight.Bold)
-                CalendarPill(stringResource(if (mode == CalendarMode.MONTH) R.string.calendar_next_month else R.string.calendar_next_week), false) {
+                CalendarPill(stringResource(if (mode == CalendarMode.MONTH) R.string.calendar_next_month else R.string.calendar_next_week)) {
                     picked = if (mode == CalendarMode.MONTH) picked.plusMonths(1) else picked.plusWeeks(1)
                 }
             }
@@ -158,5 +204,8 @@ internal fun CalendarScreen(onDetail: (String, String) -> Unit, onSports: (Strin
                 CalendarMode.MONTH -> MonthView(window, selected, today.toEpochDay(), grouped, rows, locale, selectedFocus, clock, changeDay, openDay, open)
             }
         }
+        if (choosingSports) ChooseSportsDialog(viewModel = hiltViewModel(),
+            onTeams = { choosingSports = false; onFollowTeams() },
+            onClose = { choosingSports = false })
     }
 }

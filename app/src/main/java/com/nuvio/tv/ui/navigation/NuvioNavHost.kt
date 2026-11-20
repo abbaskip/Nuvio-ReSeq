@@ -76,6 +76,11 @@ import com.nuvio.tv.ui.screens.profile.ProfileSelectionMode
 import com.nuvio.tv.ui.screens.profile.ProfileSelectionScreen
 import com.nuvio.tv.ui.screens.tmdb.TmdbEntityBrowseScreen
 import com.nuvio.tv.ui.screens.home.HeroBackdropState
+import com.nuvio.tv.livetv.calendar.CalendarDetailPreview
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.withFrameNanos
 
 @Composable
 fun NuvioNavHost(
@@ -349,9 +354,21 @@ private fun PlaybackNavHost(
         }
         rootComposable(Screen.Calendar.route) {
             com.nuvio.tv.livetv.calendar.CalendarScreen(
-                onDetail = { id, type -> navController.navigate(Screen.Detail.createRoute(id, type)) },
-                onSports = { id -> navController.navigate(Screen.CalendarGame.createRoute(id)) { launchSingleTop = true } }
+                onDetail = { id, type, title, artwork ->
+                    navController.navigate(Screen.Detail.createRoute(id, type))
+                    navController.currentBackStackEntry?.savedStateHandle?.apply {
+                        set("calendarPreviewTitle", title)
+                        set("calendarPreviewArtwork", artwork)
+                    }
+                },
+                onSports = { id -> navController.navigate(Screen.CalendarGame.createRoute(id)) { launchSingleTop = true } },
+                onFollowTeams = { navController.navigate(Screen.CalendarTeams.route) { launchSingleTop = true } }
             )
+        }
+        composable(Screen.CalendarTeams.route) {
+            val sports: com.nuvio.tv.livetv.sports.SportsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+            com.nuvio.tv.livetv.sports.SportsPicker(viewModel = sports, backLabel = androidx.compose.ui.res.stringResource(R.string.nav_calendar),
+                onClose = { sports.repo.markSetUp(); navController.popBackStack() })
         }
         composable(Screen.OnDemand.route) {
             val vm: com.nuvio.tv.livetv.ondemand.OnDemandViewModel = androidx.hilt.navigation.compose.hiltViewModel()
@@ -532,6 +549,19 @@ private fun PlaybackNavHost(
                 return@composable
             }
             val savedState = backStackEntry.savedStateHandle
+            val previewTitle = savedState.get<String>("calendarPreviewTitle")
+            val loadingPreview: (@Composable () -> Unit)? = previewTitle?.let { title ->
+                { CalendarDetailPreview(title, savedState.get<String>("calendarPreviewArtwork")) }
+            }
+            if (loadingPreview != null) {
+                var previewDrawn by rememberSaveable { mutableStateOf(false) }
+                if (!previewDrawn) {
+                    loadingPreview()
+                    // Paint the selected show before constructing the detail screen and its ViewModel.
+                    LaunchedEffect(backStackEntry) { withFrameNanos { }; previewDrawn = true }
+                    return@composable
+                }
+            }
             val returnToHomeOnBack = detailArgs
                 ?.getString("returnToHomeOnBack")
                 ?.toBooleanStrictOrNull() == true
@@ -553,6 +583,7 @@ private fun PlaybackNavHost(
                 returnFocusEpisode = returnFocusEpisode,
                 heroRestoreToken = heroRestoreToken,
                 heroBackdropUrl = heroBackdropUrl,
+                loadingPreview = loadingPreview,
                 playOnLoad = playOnLoad,
                 playOnLoadManually = manualSelection,
                 onReturnFocusConsumed = {

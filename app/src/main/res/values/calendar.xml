@@ -5,6 +5,9 @@
     <string name="calendar_today">Today</string>
     <string name="calendar_refresh">Refresh</string>
     <string name="calendar_loading">Checking schedules…</string>
+    <string name="calendar_loading_details">Loading details…</string>
+    <string name="calendar_choose_sports">Choose Sports</string>
+    <string name="calendar_hold_choose_sports">Hold OK to choose sports</string>
     <string name="calendar_playback">Calendar updates pause during playback.</string>
     <string name="calendar_retry">Some schedules could not be checked. Refresh to try again.</string>
     <string name="calendar_empty">Nothing scheduled for this day.</string>

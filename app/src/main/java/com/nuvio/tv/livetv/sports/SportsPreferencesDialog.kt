@@ -5,13 +5,38 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuvio.tv.livetv.ui.LiveText
 
 @Composable
-internal fun SportsPreferencesDialog(excluded: Set<String>, region: String, onRegion: (String) -> Unit, onToggle: (String) -> Unit,
+internal fun ChooseSportsDialog(viewModel: SportsViewModel, onTeams: () -> Unit, onClose: () -> Unit) {
+    var geminiSetup by rememberSaveable { mutableStateOf(false) }
+    if (geminiSetup) {
+        SportsGeminiKeyDialog(viewModel.gemini, onClose)
+        return
+    }
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    SportsPreferencesDialog(settings.excludedSportsNodes, SportsCatalog.regionOf(settings),
+        onRegion = { region -> viewModel.repo.updateSettings { it.copy(region = region) } },
+        onToggle = { id -> viewModel.repo.updateSettings { current ->
+            val excluded = current.excludedSportsNodes
+            current.copy(excludedSportsNodes = if (id in excluded) excluded - id else excluded + id)
+        } },
+        geminiMatching = settings.backgroundGeminiMatching,
+        onToggleGemini = {
+            if (!settings.backgroundGeminiMatching && !viewModel.gemini.configured()) geminiSetup = true
+            else viewModel.repo.updateSettings { it.copy(backgroundGeminiMatching = !it.backgroundGeminiMatching) }
+        },
+        onTeams = onTeams, onGemini = { geminiSetup = true },
+        onClose = { viewModel.repo.markSetUp(); onClose() })
+}
+
+@Composable
+private fun SportsPreferencesDialog(excluded: Set<String>, region: String, onRegion: (String) -> Unit, onToggle: (String) -> Unit,
     geminiMatching: Boolean, onToggleGemini: () -> Unit, onTeams: () -> Unit, onGemini: () -> Unit, onClose: () -> Unit) {
     var regionOpen by remember { mutableStateOf(false) }
     var parentId by remember { mutableStateOf<String?>(null) }

@@ -410,6 +410,7 @@ fun MetaDetailsScreen(
     returnFocusEpisode: Int? = null,
     heroRestoreToken: Int = 0,
     heroBackdropUrl: String? = null,
+    loadingPreview: (@Composable () -> Unit)? = null,
     playOnLoad: Boolean = false,
     playOnLoadManually: Boolean = false,
     onBackPress: () -> Unit,
@@ -658,6 +659,8 @@ fun MetaDetailsScreen(
             uiState.isLoading -> {
                 if (playOnLoad && !playOnLoadReturnContentRevealed) {
                     PlaybackHandoffBackdrop(backdropUrl = heroBackdropUrl)
+                } else if (loadingPreview != null) {
+                    loadingPreview()
                 } else {
                     if (!heroBackdropUrl.isNullOrBlank()) {
                         val localContext = LocalContext.current

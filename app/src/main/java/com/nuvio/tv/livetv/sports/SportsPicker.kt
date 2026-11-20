@@ -68,7 +68,7 @@ import java.util.Locale
  * followed too ("Luke Littler"): shows that mention it come up under My Teams.
  */
 @Composable
-fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
+fun SportsPicker(viewModel: SportsViewModel, backLabel: String = "Sports", onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val follows by viewModel.follows.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -169,7 +169,7 @@ fun SportsPicker(viewModel: SportsViewModel, onClose: () -> Unit) {
         Column(Modifier.fillMaxSize().padding(start = 56.dp, end = 44.dp, top = 26.dp)) {
             // A way back that's on screen (Back works too): "‹ Sports" on the left, Done on the right.
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SportsAction("‹  Sports", onClick = onClose)
+                SportsAction("‹  $backLabel", onClick = onClose)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     LiveText("Follow Teams & Leagues", size = 26.sp, weight = FontWeight.Black)

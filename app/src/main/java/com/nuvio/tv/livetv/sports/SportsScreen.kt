@@ -200,7 +200,6 @@ fun SportsScreen(
     val events = page?.events.orEmpty()
     val matches = projection?.matches.orEmpty()
     var picker by rememberSaveable { mutableStateOf(false) }
-    var geminiSetup by remember { mutableStateOf(false) }
     var sportsPreferences by rememberSaveable { mutableStateOf(false) }
     var fixFor by remember { mutableStateOf<SportsEvent?>(null) }
     // A league's whole table, opened from a game page (Back goes back to the game).
@@ -479,20 +478,9 @@ fun SportsScreen(
         }
         SportsMenuRow("Cancel") { previewOptions = false }
     }
-    if (sportsPreferences) SportsPreferencesDialog(settings.excludedSportsNodes,
-        region = SportsCatalog.regionOf(settings), onRegion = { region -> viewModel.repo.updateSettings { it.copy(region = region) } },
-        onToggle = { id -> viewModel.repo.updateSettings { s -> s.copy(excludedSportsNodes =
-            if (id in s.excludedSportsNodes) s.excludedSportsNodes - id else s.excludedSportsNodes + id) } },
-        geminiMatching = settings.backgroundGeminiMatching,
-        onToggleGemini = {
-            if (!settings.backgroundGeminiMatching && !viewModel.gemini.configured()) {
-                sportsPreferences = false; geminiSetup = true
-            } else viewModel.repo.updateSettings { it.copy(backgroundGeminiMatching = !it.backgroundGeminiMatching) }
-        },
+    if (sportsPreferences) ChooseSportsDialog(viewModel,
         onTeams = { sportsPreferences = false; picker = true },
-        onGemini = { sportsPreferences = false; geminiSetup = true },
-        onClose = { sportsPreferences = false; viewModel.repo.markSetUp() })
-    if (geminiSetup) SportsGeminiKeyDialog(viewModel.gemini) { geminiSetup = false }
+        onClose = { sportsPreferences = false })
     fixFor?.let { ev -> FixChannelDialog(ev, matches[ev.id].orEmpty(), settings.hideScores, viewModel) { fixFor = null } }
 }
 

@@ -8,6 +8,15 @@ The first signed integration was `6c80c01`. The follow-up signed integration is 
 
 Physical and account sign-off remains open. The maintainer's onn accepts signed ReSeq updates in place. The duplicate debug package and its runner were removed. The onn was returned to its owner with one ReSeq launcher and the original signed integration APK verified by SHA-256. This device has not yet received the follow-up build.
 
+| Follow-up | Qualification status |
+| --- | --- |
+| A. Sports delivery | Guest pairs and one-factor control complete. Repeated signed observations on the onn remain open. |
+| B. Storage | All 14 release wildcard groups measured. Physical Fire TV storage, the final profile choice and its footprint remain open. |
+| C. Pre-existing bugs | All three fixes verified on Android, including all six previously failing instrumentation cases. PRs are open for review. |
+| D. Sign-off | Partial. Account-dependent and physical-device checks are listed below. |
+| E. Upstream comparison | Upstream binary identified. Three-build physical journeys await access to the onn. |
+| F. Confirmation | Launcher timing explained. Downgrade playback failure reproduced on a cached M3U card. End-to-end low-end picker latency remains open. |
+
 ### A. Sports delivery
 
 Eight adjacent beta/integration pairs ran on one 2 GiB Android TV guest. Four began with the beta and four began with integration. Both apps used the same minified build type, profiles, fixtures and observation code. Times below are milliseconds. Parentheses give the 25th and 75th percentiles. Paired differences are calculated within each pair. [All 16 raw runs and observations](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44640254942).
@@ -36,7 +45,19 @@ Eight new counterbalanced pairs on a second 2 GiB guest run measured the combine
 
 Both switches that enable M3U import now show the measured estimate of approximately 85 MiB per 100,000 playlist-listed films. The previous 98,000-film run added 83.7 MiB. [M3U review](https://github.com/abbaskip/Nuvio-ReSeq/pull/39).
 
-Removing each group from a reconstructed profile produced odex savings ranging from 0.019 MiB for TV Mix to 5.122 MiB for Live TV. The reconstructed all-groups control itself compiled to 28.38 MiB less odex than the shipped profile on the same guest. Those marginal sizes cannot establish the release budget. The release-optimizer control subsequently reproduced all five signed DEX CRCs and the byte-identical shipped binary profile. [Reconstruction control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44641801928). [Release-optimizer experiment](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644271540).
+For each row, the release optimizer removed just the named wildcard group. All five DEX checksums matched the signed integration. The all-groups control reproduced its embedded binary profile byte for byte. Every variant installed with a dex metadata profile on the same 2 GiB x86_64 Android 14 guest and compiled with ART `speed-profile`. The comparison used `base.odex` bytes. [Optimizer inputs and checksums](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644271540). [Compiled size for every variant](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44653669223/artifacts/14592512176).
+
+| Wildcard group removed | Marginal odex saving (MiB) | Wildcard group removed | Marginal odex saving (MiB) |
+| --- | ---: | --- | ---: |
+| Live TV and Sports | 8.744 | Settings | 5.515 |
+| Media3 ExoPlayer | 4.785 | Detail | 2.049 |
+| Home | 1.879 | UI components | 1.327 |
+| Media3 common | 1.181 | Search and Advanced Discover | 0.761 |
+| TVDB | 0.746 | Media3 datasource | 0.405 |
+| Navigation | 0.392 | Media3 MP4 extractor | 0.282 |
+| Media3 TS extractor | 0.271 | TV Mix | 0.090 |
+
+With all rules, odex was 66,989,872 bytes. With only the generated journey profile it was 30,906,184 bytes, a difference of 34.412 MiB on this guest. Removing Settings and Detail together saved 7.663 MiB. These marginal costs overlap. The separate physical onn measurement reported 29.6 MiB of additional compiled files for the complete integration relative to beta.10.12.
 
 At 750 MiB free on a disposable API 34 guest, the signed update installed, ART reported `speed-profile` with reason `install-dm`, and Home opened. At 350 MiB free Android rejected the install session for insufficient space and the existing beta opened Home. At 85 MiB Android again rejected the session. Although its activity start returned success, the guest displayed the Android launcher throughout the 35-second observation window. After the filler was removed, the same signed update installed, compiled and opened Home. A physical Fire TV Stick remains outstanding. [Three pressure levels and recovery](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44646025999).
 
@@ -67,6 +88,10 @@ The signed rollback reproduced a failure on the transient plain-M3U shelf. The s
 The 10.10 ms result after 98,000 films measures the repository lookup. The full stream-picker comparison uses a selectable provider card on the signed app with the library sizes reversed on two 2 GiB guests. The low-end physical check remains open. [Signed stream-picker verification](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44648555226).
 
 The reported 3–4 a.m. college basketball cards illustrate a separate display issue. A pregame fixture stayed below live events and its countdown kept saying “Starting” after tip-off. The public ESPN and ReSeq feeds both had finals for all six women's fixtures at 3 and 4 a.m. Sydney. The display fix keeps the provider state and channel associations and shows “Status pending” until the real result arrives. [College basketball review](https://github.com/abbaskip/Nuvio-ReSeq/pull/44). [ESPN scoreboard](https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard?dates=20261119&limit=1000&groups=50).
+
+A force-stop also exposed the loss of already observed NCAA results when the first-paint cache omitted a game. The follow-up retains an ESPN-confirmed result for the same game, teams and scheduled tip-off. The release-signed guest exercise replaces the catalogue with a pregame copy after seeing a real rendered final, force-stops the app, and checks the same score alongside a never-confirmed overdue game. [Regression tests](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44651668261). [Signed restart exercise](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44654274300).
+
+The maintainer also requested a channel long-press shortcut. The Live TV guide and the matched channels in a Sports game expose **Open in multi view**. The chosen live station opens in pane 1 through the existing Multiview permission and connection checks. The signed integration workflow includes the return-focus correction. [Shortcut PR](https://github.com/abbaskip/Nuvio-ReSeq/pull/45). [Integration APK workflow](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44654129011).
 
 ## Populated physical TV
 

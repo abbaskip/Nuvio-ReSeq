@@ -10,7 +10,7 @@ import sys
 import time
 from threading import Thread
 
-from signed_rollback import BASE, DATA, PACKAGE, SERIAL, adb, cold, key, label, point, rail_item, run, seed_settings, select, tree
+from signed_rollback import BASE, DATA, PACKAGE, SERIAL, adb, cold, key, label, point, run, seed_settings, select, tree
 
 OUT = Path("build/sports-actions")
 CACHE = DATA + "/cache/sports"
@@ -87,7 +87,7 @@ def publish(uid, start, confirmed, *, unseen=False):
 
 def open_sports():
     cold()
-    rail_item("Sports Hub")
+    tap("Sports Hub")
     wait(lambda: any("All Events" in v or "TV Now" in v for v in visible()), "Sports Hub did not open")
     tap("All Events")
 
@@ -220,7 +220,7 @@ def shortcuts(uid):
     publish(uid,start,False)
     try:
         cold()
-        rail_item("Live TV")
+        tap("Live TV")
         wait(lambda: all(ch in " ".join(visible()) for ch in CHANNELS), "Guide did not load both fixture channels")
         # The guide initially focuses the group chooser. Right moves into its channel grid.
         key("DPAD_RIGHT", .7)

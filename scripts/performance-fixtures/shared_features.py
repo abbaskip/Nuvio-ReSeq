@@ -160,7 +160,7 @@ def discover():
     global STEP
     STEP = "open Search from the sidebar"
     cold()
-    rail_item("Search")
+    assert tap("Search")
     STEP = "open Advanced Discover"
     def control(name):
         nodes = [n for n in tree().iter("node") if name.casefold() in label(n).casefold()]

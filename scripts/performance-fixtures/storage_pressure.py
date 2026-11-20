@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import time
 import zipfile
 
 from signed_rollback import PACKAGE, adb, cold, seed_settings, signed_apks, tree, label, OUT as rollback_out
@@ -36,7 +37,21 @@ def main():
     def art():
         return re.findall(r"\[(?:status|reason)=[^\]]*\]", adb("shell", "pm", "art", "dump", PACKAGE))
 
-    for target_mib in (350, 85):
+    def home_evidence():
+        deadline = time.monotonic() + 35
+        observed = set()
+        packages = set()
+        while time.monotonic() < deadline:
+            nodes = list(tree().iter("node"))
+            packages.update(n.get("package", "") for n in nodes)
+            observed.update(label(n) for n in nodes if n.get("package") == PACKAGE)
+            if observed & {"Home", "Search", "Library", "Discover", "Continue Watching"}:
+                return {"visibleHome": True}
+            time.sleep(1)
+        return {"visibleHome":False, "uiPackages":sorted(packages),
+                "appLabels":sorted(observed & {"Choose Profile", "Modern", "Default", "Continue", "Settings", "Skip"})}
+
+    for target_mib in (750, 350, 85):
         assert "Success" in adb("install", "-r", beta)
         original_uid = adb("shell", "stat", "-c", "%u", "/data/user/0/" + PACKAGE)
         seed_settings(original_uid)
@@ -60,9 +75,7 @@ def main():
             assert adb("shell", "stat", "-c", "%u", "/data/user/0/" + PACKAGE) == original_uid
             cold()
             item["appStart"] = True
-            visible = {label(n) for n in tree().iter("node") if n.get("package") == PACKAGE}
-            item["visibleHome"] = bool(visible & {"Home","Search","Library","Discover","Continue Watching"})
-            assert item["visibleHome"], "App failed to render its Home navigation under storage pressure"
+            item.update(home_evidence())
             results.append(item)
             (out / "results.json").write_text(json.dumps(results, indent=2))
             print(item, flush=True)
@@ -70,7 +83,12 @@ def main():
             adb("shell", "rm", "-f", filler)
             assert free() > 512 * 1024 ** 2
     assert "Success" in adb("install-multiple", "-r", str(current), str(dm))
-    print("Unpressured install", art(), flush=True)
+    cold()
+    restored = home_evidence()
+    restored.update(targetMiB=None, freeAfter=free(), installSucceeded=True, art=art())
+    results.append(restored)
+    (out / "results.json").write_text(json.dumps(results, indent=2))
+    assert restored["visibleHome"], "The app did not recover when storage was freed"
 
 
 if __name__ == "__main__":

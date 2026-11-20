@@ -2,6 +2,54 @@
 
 The comparison uses the signed published 0.1.0-beta.10.12 and the six review branches together. The integration branch also contains the five commits already shipped in that beta so an in-place upgrade keeps its Continue Watching and navigation fixes. Every PR targets `dev`. The maintainer requested review before merge.
 
+## Follow-up qualification, 20 November
+
+The table below tracks the review of the first signed integration at `6c80c01`. Sign-off remains open. The maintainer's onn accepts signed ReSeq updates in place. Disposable guest tests use a separate package. The onn was returned to its owner with one ReSeq launcher and the original signed integration APK verified by SHA-256.
+
+### A. Sports delivery
+
+Eight adjacent beta/integration pairs ran on one 2 GiB Android TV guest. Four began with the beta and four began with integration. Both apps used the same minified build type, profiles, fixtures and observation code. Times below are milliseconds. Parentheses give the 25th and 75th percentiles. Paired differences are calculated within each pair. [All 16 raw runs and observations](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44640254942).
+
+| Cold observation | Beta median (IQR) | 6c80c01 median (IQR) | Median paired change |
+| --- | ---: | ---: | ---: |
+| First nonempty event publication | 1,894 (1,840–1,963) | 1,650 (1,619–1,710) | −253 |
+| First actual channel association | 2,966 (2,752–3,128) | 2,631 (2,217–2,804) | −527 |
+| First rendered game card | 3,108 (2,948–3,173) | 2,874 (2,659–2,953) | −336 |
+| Saved reminder dialog visible | 16,652 (16,595–16,702) | 17,732 (17,668–17,808) | +1,074 |
+| Correct game open from reminder | 17,875 (17,826–18,048) | 18,992 (18,964–19,017) | +1,131 |
+
+The repeated series isolates a cold reminder delay. The first 15-second poll started after Home settled. PR #36 now measures that first interval from host entry and retains the Home readiness gate. The emulator control restores only the beta Sports host in the original integration. A second experiment repeats the same pairs on the combined fix. Physical paired measurements remain pending. [Control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645109596). [Combined fix](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645608361).
+
+### B. Storage
+
+Both switches that enable M3U import now show the measured estimate of approximately 85 MiB per 100,000 playlist-listed films. The previous 98,000-film run added 83.7 MiB. [M3U review](https://github.com/abbaskip/Nuvio-ReSeq/pull/39).
+
+Removing each group from a reconstructed profile produced odex savings ranging from 0.019 MiB for TV Mix to 5.122 MiB for Live TV. The reconstructed all-groups control itself compiled to 28.38 MiB less odex than the shipped profile on the same guest. Those marginal sizes cannot establish the release budget. A release-optimizer control checks the signed DEX CRCs and requires an identical binary profile before measuring release ablations. [Reconstruction control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44641801928). [Release-optimizer experiment](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644271540).
+
+At 350 MiB free on a disposable API 34 guest, Android refused the signed update while creating its install session. The existing installation still rendered Home. A Fire TV Stick with low free space remains a separate physical sign-off. [First disk-pressure run](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644488117).
+
+### C. Pre-existing defects
+
+Guide reminders now mount at the shared navigation host. Guide and fullscreen clocks update while the bulk-work hold is active. The move of the maintenance loop conflicted with the original clock patch in LiveTvViewModel. PR #42 resolves the conflict on its own branch and retains the bulk anchor. [Guide reminders](https://github.com/abbaskip/Nuvio-ReSeq/pull/40). [Guide clock](https://github.com/abbaskip/Nuvio-ReSeq/pull/42).
+
+The stored v3 fixture lacked staging tables and a failed publication deleted completed input needed for a retry. Both defects have fixes. Two native tests exposed late allocations retained after reset. The native arena test also assumed a full, empty 512-slot pool even though the allocator supports smaller pools and active users. Its revised check exhausts the available pool, verifies dynamic overflow and checks the exact recycled address. The JVM guide expectation that required deleting completed input conflicted with the Android retry test. The replacement assertion checks private-table cleanup and retries after reopening. [Guide storage](https://github.com/abbaskip/Nuvio-ReSeq/pull/41). [Allocator](https://github.com/abbaskip/Nuvio-ReSeq/pull/43). [Combined device suite](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644347424).
+
+### D. Maintainer and device sign-off
+
+The remaining device sign-off table below lists the verified fixtures and outstanding checks. No authorized live Trakt, Simkl, MDBList, Gemini, Drive or third-party IPTV account was supplied for this review. Physical Sports-selected recording, the full TV Mix/addon/player journeys and a low-storage Fire TV in-app upgrade still require device time. A successful guest install of dex metadata does not establish the outcome of the Fire OS in-app updater.
+
+### E. Nuvio + IPTV comparison
+
+The upstream reference is Nuvio + IPTV 1.2.0-beta.2.1, ARMv7, published 18 November. Its signed APK SHA-256 is `52eca0e1675863228ecf7afb32d5017162d0e002b7e86c9133949d4602293a26`. The matched three-build physical traces remain pending. The maintainer resumed using the onn. [Upstream release](https://github.com/homelessbrian/NuvioPlusIPTV/releases/tag/1.2.0-beta.2.1).
+
+### F. Launcher, rollback and large-library lookup
+
+The archived launcher rows retain the same three content IDs in the same order at 60, 120 and 300 seconds. At 60 seconds the beta linked fixture `tt9900002` to its own series-detail page. Integration already had the episode projection and linked to `tt9900002:1:1`. At 120 and 300 seconds both carried the same season, episode and stream target. This observation confirms a difference in episode enrichment timing for the reported row. [Paired launcher data](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44582288333).
+
+The older installed beta preserved the original 64 Xtream films through rollback. A transient plain-M3U card is a distinct compatibility issue. The old player constructs an Xtream movie URL and cannot resolve the direct playlist URL held in the new sidecar. The 10.10 ms measurement after 98,000 films is a repository lookup. Full stream-picker latency on low-end hardware remains open. [Signed rollback and re-upgrade](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44620422558).
+
+The reported 3–4 a.m. college basketball cards illustrate a separate display issue. A pregame fixture stayed below live events and its countdown kept saying “Starting” after tip-off. The public ESPN and ReSeq feeds both had finals for all six women's fixtures at 3 and 4 a.m. Sydney. The display fix keeps the provider state and channel associations and shows “Status pending” until the real result arrives. [College basketball review](https://github.com/abbaskip/Nuvio-ReSeq/pull/44). [ESPN scoreboard](https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard?dates=20261119&limit=1000&groups=50).
+
 ## Populated physical TV
 
 An onn 4K Pro running Android TV was upgraded in place with its existing profile and remote. Android reported `speed-profile` for both sides after installation of their embedded profiles. Five cold starts used the same activity and launch sequence. D-pad traces used the same 24 actions. Measurements describe the complete integration, including the new profile.

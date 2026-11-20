@@ -3025,7 +3025,6 @@
     <string name="playback_release_decoder_on_background_sub">يحرر وحدة فك ترميز الفيديو عندما ينتقل Nuvio إلى الخلفية. فعّل هذا الخيار إذا حدث خطأ في فك الترميز عند العودة. يُعاد تحميل المشغّل عند العودة، بما في ذلك بعد شاشة التوقف.</string>
     <string name="layout_hero_description_auto_scroll">تمرير الأوصاف تلقائيًا</string>
     <string name="layout_hero_description_auto_scroll_sub">يمرر الأوصاف الطويلة ببطء على الشاشة الرئيسية بدلًا من اقتطاعها.</string>
-    <string name="autosync_toast_no_fit">تعذرت المزامنة: لا تتطابق الترجمة مع هذه النسخة من الفيديو.</string>
     <string name="usenet_opening">جارٍ فتح فيديو من Usenet…</string>
     <string name="plugin_extension_settings_failed">تعذر على هذه الإضافة فتح إعداداتها.</string>
     <string name="tmdb_collection_auth_error">رفض TMDB الطلب. تحقق من مفتاح API لهذا الملف الشخصي في الإعدادات → التكاملات → TMDB.</string>

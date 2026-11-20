@@ -202,14 +202,14 @@ class CatalogOrderViewModel @Inject constructor(
         firstUnpinnedIndex: Int,
         followAddonsOrder: Boolean,
     ): CatalogOrderItem {
-        val isCollection = isStandaloneHomeRowKey(key)
+        val isStandalone = isStandaloneHomeRowKey(key)
         val canMoveUp: Boolean
         val canMoveDown: Boolean
         if (isPinnedToTop) {
             canMoveUp = false
             canMoveDown = false
         } else if (followAddonsOrder) {
-            if (isCollection) {
+            if (isStandalone) {
                 canMoveUp = index > firstUnpinnedIndex
                 canMoveDown = index < size - 1
             } else {
@@ -528,7 +528,7 @@ class CatalogOrderViewModel @Inject constructor(
                 canMoveUp = false
                 canMoveDown = false
             } else if (followAddonsOrder) {
-                if (isCollection) {
+                if (isStandalone) {
                     canMoveUp = index > firstUnpinnedIndex
                     canMoveDown = index < effectiveOrder.lastIndex
                 } else {

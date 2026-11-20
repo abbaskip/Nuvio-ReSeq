@@ -2,6 +2,8 @@
 
 package com.nuvio.tv.ui.screens.player
 
+import com.nuvio.tv.ui.screens.player.audiosync.AudioSyncSettings
+import com.nuvio.tv.ui.screens.player.audiosync.AudioSyncTaps
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.RectF
@@ -2329,8 +2331,10 @@ private class SubtitleOffsetRenderersFactory(
             .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
             .setAudioProcessors(arrayOf(gainAudioProcessor, nightModeAudioProcessor))
         val baseAudioSink = builder.build()
+        // Audio sync hook: tap the base sink so the returned sink stays a PlaybackSpeedAwareAudioSink
+        // and buildAudioRenderers keeps installing PlaybackSpeedAwareAudioRenderer.
         val playbackSpeedAwareAudioSink = PlaybackSpeedAwareAudioSink(
-            sink = baseAudioSink,
+            sink = if (AudioSyncSettings.fallbackEnabled.value) AudioSyncTaps.wrapAudioSink(baseAudioSink) else baseAudioSink,
             initialForcePcm = initialForcePcm,
             forcePcmForBluetooth = bluetoothForcePcm
         )

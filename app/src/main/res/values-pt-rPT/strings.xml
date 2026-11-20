@@ -2573,7 +2573,6 @@
     <string name="playback_release_decoder_on_background_sub">Liberta o descodificador de vídeo quando o Nuvio passa para segundo plano. Ative se ocorrer um erro de descodificação ao regressar. O leitor volta a carregar ao regressar, mesmo após a proteção de ecrã.</string>
     <string name="layout_hero_description_auto_scroll">Deslocar descrições automaticamente</string>
     <string name="layout_hero_description_auto_scroll_sub">Desloca lentamente as descrições longas do ecrã inicial em vez de as cortar.</string>
-    <string name="autosync_toast_no_fit">Falha na sincronização: as legendas não correspondem a esta versão do vídeo.</string>
     <string name="usenet_opening">A abrir vídeo da Usenet…</string>
     <string name="plugin_extension_settings_failed">Esta extensão não conseguiu abrir as definições.</string>
     <string name="tmdb_collection_auth_error">O TMDB recusou o pedido. Verifique a chave API do perfil em Definições → Integrações → TMDB.</string>

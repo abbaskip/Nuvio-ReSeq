@@ -20,7 +20,7 @@
     <string name="advanced_discover_movies">Movies</string>
     <string name="advanced_discover_tv">TV shows</string>
     <string name="advanced_discover_title_contains">Title contains</string>
-    <string name="advanced_discover_title_contains_hint">Matches title text, ignoring capitalisation. More titles are checked as you load results.</string>
+    <string name="advanced_discover_title_contains_hint">With the default filters and sort, TMDB searches titles by relevance. Adding a TMDB filter or changing the sort checks titles as you load each page.</string>
     <string name="advanced_discover_title_matches_loaded">Matching titles loaded: %1$d</string>
     <string name="advanced_discover_genres">Include genres</string>
     <string name="advanced_discover_genres_value">Included genres: %1$d</string>
@@ -52,6 +52,7 @@
     <string name="advanced_discover_hide_watched_off">Hide watched: off</string>
     <string name="advanced_discover_watched_hint">Uses this profile’s available watch history. TV shows are hidden when fully watched.</string>
     <string name="advanced_discover_sort">Sort results</string>
+    <string name="advanced_discover_title_relevance">Title relevance</string>
     <string name="advanced_discover_sort_value">Sort: %1$s</string>
     <string name="advanced_discover_popular_desc">Popularity: highest first</string>
     <string name="advanced_discover_popular_asc">Popularity: lowest first</string>

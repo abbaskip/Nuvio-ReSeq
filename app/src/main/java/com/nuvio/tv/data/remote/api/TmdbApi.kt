@@ -9,6 +9,16 @@ import retrofit2.http.Query
 import retrofit2.http.QueryMap
 
 interface TmdbApi {
+    @GET("search/{media_type}")
+    suspend fun searchTitles(
+        @Path("media_type") mediaType: String,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String,
+        @Query("page") page: Int,
+        @Query("query") title: String,
+        @Query("include_adult") includeAdult: Boolean = false
+    ): Response<TmdbDiscoverResponse>
+
     @GET("discover/{media_type}")
     suspend fun advancedDiscover(
         @Path("media_type") mediaType: String,

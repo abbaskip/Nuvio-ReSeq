@@ -36,7 +36,7 @@ class DiscoveryRepository internal constructor(
     internal constructor(api: TmdbApi, apiKey: String, clock: () -> Long = System::nanoTime) : this(
         api, { TmdbCredentialAccess(1, 0, apiKey) }, clock
     )
-    private data class Key(val parameters: Map<String, String>, val type: String, val language: String, val page: Int)
+    private data class Key(val parameters: Map<String, String>, val type: String, val language: String, val page: Int, val searchTitle: String?)
     private data class CachedPage(val time: Long, val page: DiscoveryPage)
     private val mutex = Mutex()
     private val pages = LinkedHashMap<Key, CachedPage>(16, 0.75f, true)
@@ -69,12 +69,20 @@ class DiscoveryRepository internal constructor(
     suspend fun discover(query: DiscoveryQuery, language: String, page: Int): DiscoveryPage = withContext(Dispatchers.IO) {
         require(page in 1..500)
         val auth = credentials()
-        val key = Key(query.tmdbParameters(), query.mediaType, language, page)
+        val parameters = query.tmdbParameters()
+        val searchTitle = query.titleContains.trim().takeIf {
+            query.sort == "popularity.desc" && query.offersTitleRelevance(parameters)
+        }
+        val key = Key(parameters, query.mediaType, language, page, searchTitle)
         mutex.withLock {
             activate(auth)
             val now = clock()
             pages[key]?.takeIf { now - it.time < CACHE_TTL_NANOS }?.let { return@withLock it.page.withTitleFilter(query) }
-            val body = api.advancedDiscover(query.mediaType, auth.apiKey, language, page, key.parameters).checked(auth)
+            val body = if (searchTitle != null) {
+                api.searchTitles(query.mediaType, auth.apiKey, language, page, searchTitle)
+            } else {
+                api.advancedDiscover(query.mediaType, auth.apiKey, language, page, parameters)
+            }.checked(auth)
             val items = body.results.orEmpty().mapNotNull { result ->
                 val name = (if (query.television) result.name else result.title)?.takeIf(String::isNotBlank)
                     ?: result.originalTitle?.takeIf(String::isNotBlank) ?: result.originalName?.takeIf(String::isNotBlank)

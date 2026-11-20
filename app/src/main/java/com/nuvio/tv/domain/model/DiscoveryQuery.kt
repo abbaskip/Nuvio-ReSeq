@@ -26,8 +26,12 @@ data class DiscoveryQuery(
 ) {
     val mediaType: String get() = if (television) "tv" else "movie"
 
-    /** Literal text in the displayed title; kept local because Discover has no title query. */
+    /** Both search and discovery results must contain the literal text in the displayed title. */
     fun matchesTitle(title: String): Boolean = title.contains(titleContains.trim(), ignoreCase = true)
+
+    // TMDB Search uses its own ordering and accepts none of the extra Discover filters.
+    fun offersTitleRelevance(parameters: Map<String, String>): Boolean =
+        titleContains.isNotBlank() && parameters.keys == setOf("include_adult", "sort_by")
 
     fun validationError(): DiscoveryValidationError? {
         fun validDate(value: String): Boolean = value.isBlank() ||

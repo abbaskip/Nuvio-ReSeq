@@ -28,9 +28,22 @@ class CalendarPageCacheTest {
         val large = page.copy(items = listOf(page.items.first().copy(detail = "a".repeat(CalendarPageCache.MAX_BYTES.toInt()))))
         assertThrows(IOException::class.java) { cache.write(1, large) }
         assertEquals(page, cache.read(1, page.region, page.zone))
-        assertFalse(File(dir, "profile-1.tmp").exists())
-        File(dir, "profile-1.json").writeText("{")
+        assertFalse(File(dir, "profile-1-week-0.tmp").exists())
+        File(dir, "profile-1-week-0.json").writeText("{")
         assertNull(cache.read(1, page.region, page.zone))
+    }
+
+    @Test fun legacyTitleBacklogIsIgnoredAndEachProfileKeepsOnlySixWeeklySnapshots() {
+        val directory = File(temp.root, "calendar").apply { mkdirs() }
+        File(directory, "profile-4.json").writeText("""{"version":1,"remaining":4000}""")
+        val cache = CalendarPageCache(directory)
+        assertNull(cache.read(4, page.region, page.zone, 100))
+        cache.write(41, page.copy(weekStart = 100))
+        repeat(8) { index -> cache.write(4, page.copy(weekStart = 100L + 7 * index)) }
+        assertEquals(6, directory.listFiles()!!.count { it.name.startsWith("profile-4-week-") })
+        assertEquals(149L, cache.read(4, page.region, page.zone, 149)!!.weekStart)
+        CalendarPageCache.clear(temp.root, 4)
+        assertNotNull(cache.read(41, page.region, page.zone, 100))
     }
 
     @Test fun scheduleIsBoundedAndWeekNavigationSurvivesAYearBoundary() {

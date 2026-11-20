@@ -758,6 +758,9 @@ class LiveTvPreferences @Inject constructor(
         kotlinx.coroutines.flow.combine(store.data, profileManager.activeProfileId) { p, id -> profileView(p, id)[Keys.sportsMine] }
             .distinctUntilChanged()
 
+    fun sportsMineJson(profileId: Int): Flow<String?> =
+        store.data.map { profileView(it, profileId)[Keys.sportsMine] }.distinctUntilChanged()
+
     suspend fun editSportsSettings(transform: (String?) -> String) {
         store.edit { p -> p[Keys.sports] = transform(p[Keys.sports]) }
     }

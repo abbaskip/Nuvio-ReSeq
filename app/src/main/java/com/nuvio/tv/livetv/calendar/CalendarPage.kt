@@ -24,27 +24,28 @@ internal data class CalendarItem(
     val channelKey: String? = null,
     val season: Int? = null,
     val episode: Int? = null,
-    val airedDate: String? = null
+    val airedDate: String? = null,
+    val followedTeam: String? = null
 )
 
 internal data class CalendarTitle(
     val id: String, val title: String, val movie: Boolean, val imdb: String?, val tmdb: Int?,
-    val lastActivity: Long
+    val lastActivity: Long, val trakt: Int? = null
 ) {
     val key get() = (if (movie) "movie/" else "series/") + id
 }
 
 @JsonClass(generateAdapter = true)
 internal data class CalendarPage(
-    val version: Int = 1,
+    val version: Int = 2,
     val region: String,
     val zone: String,
+    val weekStart: Long = 0,
+    val inputSignature: String? = null,
     val checkedAt: Long = 0,
     val checked: Map<String, Long> = emptyMap(),
     val items: List<CalendarItem> = emptyList(),
-    val remaining: Int = 0,
     val retryAt: Long = 0,
-    val failedTitles: List<String> = emptyList(),
     val guideRevision: String? = null,
     val guideTitles: List<String> = emptyList(),
     val guideDay: Long = 0,
@@ -71,15 +72,11 @@ internal object CalendarPolicy {
     fun due(page: CalendarPage, now: Long) =
         !fresh(page.checkedAt, now) || page.retryAt > 0 && now >= page.retryAt
 
-    fun work(titles: List<CalendarTitle>, checks: Map<String, Long>, now: Long): List<CalendarTitle> =
-        titles.filterNot { fresh(checks[it.key] ?: 0L, now) }
-            .sortedWith(compareBy<CalendarTitle> { checks[it.key] ?: 0L }.thenByDescending { it.lastActivity })
-
     fun displayed(items: Collection<CalendarItem>, window: CalendarWindow, today: Long): List<CalendarItem> =
         items.asSequence().filter { it.day in window }.distinctBy { it.key }
             .sortedWith(compareBy<CalendarItem> { kotlin.math.abs(it.day - today) }
-                .thenBy { it.day }.thenBy { it.time ?: Long.MAX_VALUE }.thenBy { it.key })
-            .take(MAX_ITEMS).sortedWith(compareBy<CalendarItem> { it.day }.thenBy { it.time ?: Long.MAX_VALUE }
+                .thenBy { it.day }.thenBy { it.time ?: Long.MAX_VALUE }.thenByDescending { it.followedTeam != null }.thenBy { it.key })
+            .take(MAX_ITEMS).sortedWith(compareBy<CalendarItem> { it.day }.thenBy { it.time ?: Long.MAX_VALUE }.thenByDescending { it.followedTeam != null }
                 .thenBy { it.title }.thenBy { it.key }).toList()
 }
 

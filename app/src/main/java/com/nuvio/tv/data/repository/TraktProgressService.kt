@@ -628,6 +628,11 @@ class TraktProgressService @Inject constructor(
      */
     fun getShowIdSiblings(): Map<String, Set<String>> = showIdSiblingsMap
 
+    fun cachedWatchedShowIds(profileId: Int): Set<String> {
+        if (confirmedHistoryProfile != profileId || profileManager.activeProfileId.value != profileId) return emptySet()
+        return histories.value.values.filter { it.watched.isNotEmpty() }.flatMapTo(mutableSetOf()) { it.aliases }
+    }
+
     fun observeEpisodeProgress(contentId: String): Flow<Map<Pair<Int, Int>, WatchProgress>> {
         val cacheKey = canonicalLookupKey(contentId)
         return combine(histories, optimisticProgress) { state, optimistic ->

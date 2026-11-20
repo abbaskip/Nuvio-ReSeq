@@ -39,6 +39,24 @@ class InternationalCricketTest {
         assertTrue(related.any { it.contains("t20-internationals") })
         assertFalse("cricket/8048" in related)
     }
+
+    @Test fun `named fixtures with no provider IDs honor national and format-specific follows`() {
+        val odi = "taxonomy/cricket.odi-one-day.odi-internationals"
+        val t20 = "taxonomy/cricket.t20-internationals.t20-internationals"
+        val country = follows.teams.single()
+        val named = SportsEvent("odi", odi, 2000, true, GameState.PRE, "England v Australia Men’s ODI", null, null, null, null)
+        assertTrue(country.playsIn(named))
+        assertTrue(country.playsIn(named.copy(leagueId = t20, title = "Australia T20I vs. Netherlands")))
+        assertFalse(country.playsIn(named.copy(title = "Australia A v England")))
+        assertFalse(country.playsIn(named.copy(title = "England Women v Australia")))
+        assertFalse(country.playsIn(named.copy(leagueId = "soccer/fifa.world")))
+        val formatTeam = FollowedTeam(odi, "provider-1", "Australia ODI", "AUS", null, null)
+        val side = Side(team("Australia ODI", odi).copy(id = "provider-1"), null, null, false, false)
+        assertTrue(formatTeam.playsIn(named.copy(away = side)))
+        assertFalse(formatTeam.playsIn(named.copy(leagueId = t20, away = side.copy(team = side.team.copy(leagueId = t20)))))
+        val newLeague = League("tsdb/fixture-only", Sport.CRICKET, "Men’s ODI Internationals", "ODI", national = true)
+        assertTrue(country.playsIn(named.copy(leagueId = newLeague.id), savedLeague = newLeague))
+    }
     @Test fun `a busy main row includes the ODI shown in the cricket row`() {
         val odi = SportsEvent("odi", "cricket/19430", 2000, true, GameState.PRE,
             "Australia v England", null, null, Side(team("Australia ODI"), null, null, false, false), null)

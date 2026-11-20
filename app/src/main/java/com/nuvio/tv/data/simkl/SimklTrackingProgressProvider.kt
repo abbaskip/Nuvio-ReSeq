@@ -77,6 +77,15 @@ class SimklTrackingProgressProvider @Inject constructor(
         return syncRepository.projection.value.watchedShowEpisodes
     }
 
+    override suspend fun cachedWatchedShowIds(profileId: Int): Set<String> {
+        syncRepository.ensureLoaded()
+        val state = syncRepository.state.value
+        if (state.profileId != profileId) return emptySet()
+        return state.snapshot.entries.asSequence().filter { !it.isMovieEntry() && it.status != SimklListStatus.DROPPED &&
+            (it.watchedEpisodesCount > 0 || !it.lastWatched.isNullOrBlank() || it.seasons.any { season -> season.episodes.isNotEmpty() }) }
+            .mapNotNull { it.media }.flatMap { it.simklTrackingContentIds().asSequence() }.toSet()
+    }
+
     override suspend fun showIdSiblings(): Map<String, Set<String>> {
         syncRepository.ensureLoaded()
         return syncRepository.projection.value.showIdSiblings

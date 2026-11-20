@@ -157,16 +157,16 @@ internal object SportsTaxonomy {
         if (n.children.isEmpty()) n.label else "All " + n.label, n.label,
         kind = LeagueKind.EVENT, guideWords = n.aliases.map { it.term }, guideOnly = true) } }
     /** Following a taxonomy sport/category also includes its child competitions. */
-    fun includesLeague(followedId: String, candidateId: String): Boolean {
+    fun includesLeague(followedId: String, candidateId: String, savedLeague: League? = null): Boolean {
         if (SportsCompetitions.same(followedId, candidateId)) return true
         if (followedId == InternationalCricket.LEAGUE_ID)
-            return SportsCatalog.league(candidateId)?.let(InternationalCricket::includes) == true
+            return (SportsCatalog.league(candidateId) ?: savedLeague)?.let(InternationalCricket::includes) == true
         val parent = when {
             followedId.startsWith("taxonomy/") -> byId[followedId.removePrefix("taxonomy/")]
             followedId.startsWith("guide/") -> roots.firstOrNull { it.id == followedId.removePrefix("guide/") }
             else -> null
         } ?: return false
-        val candidate = SportsCatalog.league(candidateId) ?: return false
+        val candidate = SportsCatalog.league(candidateId) ?: savedLeague ?: return false
         if (parent.parentId == null && sport(parent.sportId) != Sport.OTHER)
             return candidate.sport == sport(parent.sportId)
         var node = byId[candidateId.removePrefix("taxonomy/")]

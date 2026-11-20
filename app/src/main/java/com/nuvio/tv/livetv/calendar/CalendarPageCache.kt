@@ -8,17 +8,17 @@ import okio.source
 import java.io.File
 import java.io.IOException
 
-/** Only opened from the Calendar route. One replaceable snapshot per profile in Android's cache. */
+/** Keep the six most recently visited weeks per profile. Only the visible Calendar opens these files. */
 internal class CalendarPageCache(private val directory: File) {
     private val adapter = Moshi.Builder().build().adapter(CalendarPage::class.java)
 
-    fun read(profile: Int, region: String, zone: String): CalendarPage? {
+    fun read(profile: Int, region: String, zone: String, weekStart: Long = 0): CalendarPage? {
         val generation = generation(profile)
-        val file = File(directory, "profile-$profile.json")
+        val file = File(directory, "profile-$profile-week-$weekStart.json")
         if (file.length() !in 1..MAX_BYTES) return null
         return try {
             file.source().buffer().use { input ->
-                adapter.fromJson(input)?.takeIf { it.version == 1 && it.region == region && it.zone == zone &&
+                adapter.fromJson(input)?.takeIf { it.version == 2 && it.weekStart == weekStart && it.region == region && it.zone == zone &&
                     it.items.size <= CalendarPolicy.MAX_ITEMS && it.checked.size <= CalendarPolicy.MAX_CHECKS }?.copy(generation = generation)
             }
         } catch (_: IOException) { null }
@@ -27,14 +27,18 @@ internal class CalendarPageCache(private val directory: File) {
 
     fun write(profile: Int, page: CalendarPage) {
         if (!directory.isDirectory && !directory.mkdirs() && !directory.isDirectory) throw IOException("Calendar cache unavailable")
-        val target = File(directory, "profile-$profile.json")
-        val pending = File(directory, "profile-$profile.tmp")
+        val prefix = "profile-$profile-week-"
+        val target = File(directory, prefix + page.weekStart + ".json")
+        val pending = File(directory, prefix + page.weekStart + ".tmp")
         try {
             pending.outputStream().bufferedWriter(Charsets.UTF_8).use { it.write(adapter.toJson(page)) }
             if (pending.length() > MAX_BYTES) throw IOException("Calendar snapshot too large")
             synchronized(Companion) {
                 if (generation(profile) != page.generation) throw kotlinx.coroutines.CancellationException("Calendar profile removed")
                 FileSystem.SYSTEM.atomicMove(pending.toOkioPath(), target.toOkioPath())
+                directory.listFiles { file -> file.name.startsWith(prefix) && file.extension == "json" && file != target }
+                    .orEmpty().sortedByDescending { it.lastModified() }.drop(5).forEach { it.delete() }
+                File(directory, "profile-$profile.json").delete()
             }
         } finally {
             pending.delete()
@@ -62,6 +66,7 @@ internal class CalendarPageCache(private val directory: File) {
                 profiles[profile] = sequence
                 File(directory, "profile-$profile.json").delete()
                 File(directory, "profile-$profile.tmp").delete()
+                directory.listFiles { file -> file.name.startsWith("profile-$profile-week-") }?.forEach { it.delete() }
             }
         }
     }

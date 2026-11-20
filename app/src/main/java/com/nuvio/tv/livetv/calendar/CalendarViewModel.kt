@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
@@ -14,8 +15,7 @@ internal enum class CalendarStatus { OPENING, READY, UPDATING, PLAYBACK, RETRY }
 
 internal data class CalendarDisplay(
     val items: List<CalendarItem> = emptyList(),
-    val status: CalendarStatus = CalendarStatus.OPENING,
-    val remaining: Int = 0
+    val status: CalendarStatus = CalendarStatus.OPENING
 )
 
 @HiltViewModel
@@ -31,21 +31,28 @@ internal class CalendarViewModel @Inject constructor(
         else withContext(BackgroundWork.quiet) { labels.get().apply(profile, rows) }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun display(profile: Int, region: String, zone: ZoneId): Flow<CalendarDisplay> {
+    fun display(profile: Int, region: String, zone: ZoneId, week: Long): Flow<CalendarDisplay> {
         val playing = combine(PlayerSessionTracker.playbackActive, PlayerSessionTracker.livePlayback) { video, live -> video || live }
-        val pages = calendarSession(playing, refresh, System::currentTimeMillis,
-            restore = { repository.restore(profile, region, zone) },
-            update = { page, manual, publish -> repository.update(profile, page, manual, publish) })
-        return pages.transformLatest { state ->
-            val keys = state.items.mapNotNullTo(mutableSetOf()) { it.channelKey }
-            if (keys.isEmpty()) emit(state) else {
-                emit(state.copy(items = state.items.filter { it.channelKey == null }))
-                repository.allowedNames(keys).collect { names ->
-                    emit(state.copy(items = state.items.mapNotNull { item ->
-                        if (item.channelKey == null) item else names[item.channelKey]?.let { item.copy(detail = it) }
-                    }))
+        val pages = repository.pages(profile, region, zone, week, playing, refresh)
+        val sport = playing.distinctUntilChanged().flatMapLatest { busy ->
+            if (busy) emptyFlow() else refresh.onStart { emit(false) }.flatMapLatest { repository.sports(profile, zone, week) }
+        }.onStart { emit(emptyList()) }
+        return channelFlow {
+            val agenda = combine(pages, sport) { state, fixtures ->
+                if (fixtures.isEmpty()) state else {
+                    val today = LocalDate.now(zone)
+                    state.copy(items = CalendarPolicy.displayed(state.items + fixtures, CalendarWindow(week, week + 6), today.toEpochDay()))
                 }
-            }
+            }.shareIn(this, SharingStarted.Lazily, replay = 1)
+            val names = agenda.map { state -> state.items.mapNotNullTo(mutableSetOf()) { it.channelKey } }
+                .distinctUntilChanged().flatMapLatest { keys ->
+                    if (keys.isEmpty()) flowOf(emptyMap()) else repository.allowedNames(keys)
+                }.onStart { emit(emptyMap()) }
+            combine(agenda, names) { state, allowed ->
+                state.copy(items = state.items.mapNotNull { item ->
+                    if (item.channelKey == null) item else allowed[item.channelKey]?.let { item.copy(detail = it) }
+                })
+            }.distinctUntilChanged().collect { send(it) }
         }.flowOn(BackgroundWork.quiet)
     }
 }

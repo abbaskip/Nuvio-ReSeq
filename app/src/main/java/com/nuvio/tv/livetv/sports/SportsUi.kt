@@ -69,10 +69,8 @@ internal fun endEstimate(ev: SportsEvent): Long {
 
 /** A followed team plays, a league you follow, a name you follow, or a reminder you set. */
 internal fun isMine(ev: SportsEvent, f: SportsFollows): Boolean =
-    f.leagues.any { SportsTaxonomy.includesLeague(it, ev.leagueId) } || ev.word != null ||
-        // Saved whole-league follows are migrated to pins, including team sports such as NBA.
-        f.pins.any { SportsTaxonomy.includesLeague(it, ev.leagueId) } ||
-        ev.sides.any { f.followsTeam(it.team) } ||
+    f.followsLeague(ev.leagueId) || ev.word != null ||
+        f.teams.any { it.playsIn(ev) } ||
         f.reminders.any { it.eventId == ev.id }
 
 // Flag artwork: https://flagcdn.com (Flagpedia / Wikimedia Commons).

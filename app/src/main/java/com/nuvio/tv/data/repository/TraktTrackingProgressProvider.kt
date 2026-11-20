@@ -48,6 +48,7 @@ class TraktTrackingProgressProvider @Inject constructor(
     }
 
     override suspend fun watchedShowEpisodes() = service.getWatchedShowEpisodes()
+    override suspend fun cachedWatchedShowIds(profileId: Int) = service.cachedWatchedShowIds(profileId)
 
     override suspend fun showIdSiblings() = service.getShowIdSiblings()
 

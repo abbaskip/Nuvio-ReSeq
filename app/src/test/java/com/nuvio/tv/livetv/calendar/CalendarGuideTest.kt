@@ -30,7 +30,8 @@ class CalendarGuideTest {
         val now = LocalDate.of(2026, 12, 1).atStartOfDay(zone).toInstant().toEpochMilli()
         val db = EpgDatabase(context)
         val prefs = mockk<LiveTvPreferences> { every { settings } returns flowOf(LiveTvSettings(epgOffsetMinutes = 60)) }
-        val listings = CalendarLocalListings(context, Lazy { prefs }, Lazy { error("No channel listing needed") }, Lazy { db })
+        val listings = CalendarLocalListings(context, Lazy { prefs }, Lazy { error("No channel listing needed") }, Lazy { db },
+            Lazy { error("No sports listing needed") })
         val movie = CalendarTitle("tt123", "The Crossing", true, "tt123", null, 0)
         val page = CalendarPage(region = "AU", zone = zone.id)
         val guideFile = context.getDatabasePath(DatabaseVersions.guide.fileName)

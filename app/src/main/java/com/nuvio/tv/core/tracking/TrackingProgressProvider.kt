@@ -47,6 +47,8 @@ interface TrackingProgressProvider {
         episode: Int?
     ): Flow<Boolean>
     suspend fun watchedShowEpisodes(): Map<String, Set<Pair<Int, Int>>>
+    /** Series identities with episode history already on this device. Never initiates a tracker sync. */
+    suspend fun cachedWatchedShowIds(profileId: Int): Set<String> = emptySet()
     suspend fun showIdSiblings(): Map<String, Set<String>>
     fun isWatchedByVideoId(videoId: String, episode: Int): Boolean? = null
     suspend fun refresh(intent: TrackingRefreshIntent)

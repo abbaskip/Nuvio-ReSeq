@@ -119,6 +119,7 @@ interface WatchProgressRepository {
      * Empty map when no data is available.
      */
     suspend fun getWatchedShowEpisodes(): Map<String, Set<Pair<Int, Int>>>
+    suspend fun cachedWatchedShowIds(profileId: Int): Set<String> = emptySet()
 
     /**
      * Returns sibling ID mapping: each content ID maps to its alternate IDs

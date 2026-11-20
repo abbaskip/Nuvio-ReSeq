@@ -65,7 +65,8 @@ class SportsRepository @Inject constructor(
     private val channelStore: LiveTvChannelStore,
     private val guideDb: EpgDatabase,
     private val playback: LiveTvPlaybackController,
-    private val gemini: dagger.Lazy<SportsGemini>
+    private val gemini: dagger.Lazy<SportsGemini>,
+    private val fixtureCache: dagger.Lazy<SportsFixtureCache>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val feeds = SportsFeeds()
@@ -453,6 +454,7 @@ class SportsRepository @Inject constructor(
 
     /** The Sports page (or a game) is on screen: keep scores fresh. */
     fun setViewing(on: Boolean) {
+        if (on) fixtureCache.get().known = known
         viewers.update { (it + if (on) 1 else -1).coerceAtLeast(0) }
         if (on) {
             queueGeminiMatching()

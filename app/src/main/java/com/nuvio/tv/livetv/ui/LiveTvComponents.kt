@@ -366,6 +366,7 @@ internal fun LiveFocusRow(
     onLongClick: (() -> Unit)? = null,
     onFocused: (() -> Unit)? = null,
     horizontalPadding: Dp = 14.dp,
+    unfocusedBorderColor: Color? = null,
     content: @Composable RowScope.(focused: Boolean) -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -375,7 +376,8 @@ internal fun LiveFocusRow(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(colors.background)
-            .border(2.dp, colors.border, RoundedCornerShape(8.dp))
+            .border(if (!focused && unfocusedBorderColor != null) 1.dp else 2.dp,
+                if (!focused && unfocusedBorderColor != null) unfocusedBorderColor else colors.border, RoundedCornerShape(8.dp))
             .onFocusChanged {
                 focused = it.isFocused
                 if (it.isFocused) onFocused?.invoke()

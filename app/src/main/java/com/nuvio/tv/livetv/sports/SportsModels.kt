@@ -306,6 +306,19 @@ data class FollowedTeam(
     val logo: String?
 ) {
     val key: String get() = "$leagueId:$teamId"
+
+    internal fun matches(team: TeamInfo): Boolean {
+        if (leagueId == InternationalCricket.LEAGUE_ID) return InternationalCricket.matches(this, team)
+        if (teamId != team.id) return false
+        if (leagueId == team.leagueId) return true
+        val league = SportsCatalog.league(leagueId)
+        if (league != null && InternationalCricket.includes(league)) return SportsCompetitions.same(leagueId, team.leagueId)
+        return SportsCatalog.teamFamily(leagueId) == SportsCatalog.teamFamily(team.leagueId)
+    }
+
+    internal fun playsIn(event: SportsEvent, savedLeague: League? = null): Boolean =
+        if (leagueId == InternationalCricket.LEAGUE_ID) InternationalCricket.playsIn(this, event, savedLeague)
+        else event.sides.any { matches(it.team) }
 }
 
 /** "Remind me" on a game. */
@@ -346,12 +359,12 @@ data class SportsFollows(
 
     fun followsTeam(team: TeamInfo): Boolean = followedTeam(team) != null
 
+    fun followsLeague(leagueId: String, savedLeague: League? = null): Boolean =
+        pins.any { SportsTaxonomy.includesLeague(it, leagueId, savedLeague) } ||
+            leagues.any { SportsTaxonomy.includesLeague(it, leagueId, savedLeague) }
+
     /** The followed team [team] is, if any. */
-    fun followedTeam(team: TeamInfo): FollowedTeam? {
-        val family = SportsCatalog.teamFamily(team.leagueId)
-        return teams.firstOrNull { InternationalCricket.matches(it, team) ||
-            (it.teamId == team.id && (it.leagueId == team.leagueId || SportsCatalog.teamFamily(it.leagueId) == family)) }
-    }
+    fun followedTeam(team: TeamInfo): FollowedTeam? = teams.firstOrNull { it.matches(team) }
 
     fun toJson(): String = JSONObject()
         .put("teams", JSONArray().also { a ->

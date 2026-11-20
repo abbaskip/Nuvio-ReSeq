@@ -74,7 +74,7 @@ class SportsPageRestoreTest {
         var repo: SportsRepository? = null
         try {
             val created = SportsRepository(context, prefs, live, store, mockk<EpgDatabase>(relaxed = true), playback,
-                dagger.Lazy { mockk<SportsGemini>(relaxed = true) })
+                dagger.Lazy { mockk<SportsGemini>(relaxed = true) }, dagger.Lazy { SportsFixtureCache(context) })
             repo = created
             created.start()
             delay(100)

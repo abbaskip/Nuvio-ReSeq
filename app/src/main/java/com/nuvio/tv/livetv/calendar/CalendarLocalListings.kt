@@ -10,7 +10,7 @@ import com.nuvio.tv.livetv.data.LiveTvPreferences
 import com.nuvio.tv.livetv.multiview.liveTvChannelVisibility
 import com.nuvio.tv.livetv.parental.ParentalControls
 import com.nuvio.tv.livetv.sports.SportsFollows
-import com.nuvio.tv.livetv.sports.SportsPageSnapshot
+import com.nuvio.tv.livetv.sports.SportsFixtureCache
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import java.io.File
+import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -30,21 +30,27 @@ internal class CalendarLocalListings @Inject constructor(
     @ApplicationContext private val context: Context,
     private val prefs: Lazy<LiveTvPreferences>,
     private val channels: Lazy<LiveTvChannelStore>,
-    private val guide: Lazy<EpgDatabase>
+    private val guide: Lazy<EpgDatabase>,
+    private val fixtures: Lazy<SportsFixtureCache>
 ) {
-    suspend fun sports(window: CalendarWindow, now: Long, zone: ZoneId): List<CalendarItem> {
-        val follows = SportsFollows.fromJson(prefs.get().sportsMineJson.first())
-        if (follows.teams.isEmpty()) return emptyList()
-        // Do not instantiate or start SportsRepository from this screen.
-        val file = File(context.cacheDir, "sports/page-snapshot.json")
-        val page = SportsPageSnapshot.read(file, now) ?: return emptyList()
-        return page.events.asSequence().filter { event -> event.sides.any { follows.followsTeam(it.team) } }
-            .mapNotNull { event ->
+    fun sports(profile: Int, zone: ZoneId, window: CalendarWindow): Flow<List<CalendarItem>> =
+        prefs.get().sportsMineJson(profile).map { raw ->
+            val follows = SportsFollows.fromJson(raw)
+            if (follows.teams.isEmpty() && follows.pins.isEmpty() && follows.leagues.isEmpty()) return@map emptyList()
+            val now = System.currentTimeMillis()
+            val leagues = mutableMapOf<String, Boolean>()
+            val schedule = fixtures.get().read(now)
+            schedule.events.asSequence().mapNotNull { event ->
                 val day = event.startMs.calendarDay(zone)
-                if (day !in window) null else CalendarItem("sport/" + event.id, "sports", event.title.take(240),
-                    day, CalendarKind.SPORT, time = event.startMs.takeIf { event.hasTime }, contentId = event.id)
+                if (day !in window) return@mapNotNull null
+                val savedLeague = schedule.savedLeagues[event.leagueId]
+                val teams = follows.teams.filter { it.playsIn(event, savedLeague) }
+                if (teams.isEmpty() && !leagues.getOrPut(event.leagueId) { follows.followsLeague(event.leagueId, savedLeague) }) return@mapNotNull null
+                CalendarItem("sport/" + event.id, "sports", event.title.take(240),
+                    day, CalendarKind.SPORT, time = event.startMs.takeIf { event.hasTime }, contentId = event.id,
+                    followedTeam = teams.takeIf { it.isNotEmpty() }?.map { it.name }?.distinct()?.joinToString(" & "))
             }.toList()
-    }
+        }.distinctUntilChanged()
 
     /** Only resolve the channels behind actual hits. Recheck saved hits against current profile locks. */
     fun allowedNames(keys: Set<String>): Flow<Map<String, String>> {
@@ -67,8 +73,11 @@ internal class CalendarLocalListings @Inject constructor(
         val retained = if (reusable) page.items else page.items.filterNot { it.kind == CalendarKind.GUIDE }
         if (pending.isEmpty()) return page.copy(items = retained, guideRevision = revision, guideDay = day, guideTitles = checked.toList())
         val shift = prefs.get().settings.first().epgOffsetMinutes * 60_000L
-        val start = LocalDate.ofEpochDay(day).atStartOfDay(zone).toInstant().toEpochMilli()
-        val end = LocalDate.ofEpochDay(day + 8).atStartOfDay(zone).toInstant().toEpochMilli()
+        val firstDay = if (page.weekStart == 0L) day else maxOf(day, page.weekStart)
+        val endDay = if (page.weekStart == 0L) day + 8 else minOf(day + 8, page.weekStart + 7)
+        if (firstDay >= endDay) return page.copy(items = retained, guideRevision = revision, guideDay = day)
+        val start = LocalDate.ofEpochDay(firstDay).atStartOfDay(zone).toInstant().toEpochMilli()
+        val end = LocalDate.ofEpochDay(endDay).atStartOfDay(zone).toInstant().toEpochMilli()
         val additions = mutableListOf<CalendarItem>()
         for (title in pending) {
             currentCoroutineContext().ensureActive()

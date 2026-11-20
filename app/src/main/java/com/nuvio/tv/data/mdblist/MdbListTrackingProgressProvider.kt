@@ -95,6 +95,11 @@ class MdbListTrackingProgressProvider @Inject constructor(
         return currentProjection().showIdSiblings
     }
 
+    override suspend fun cachedWatchedShowIds(profileId: Int): Set<String> {
+        sync.ensureLoaded()
+        return if (auth.state.value.scope.profileId == profileId) currentProjection().watchedShowEpisodes.keys else emptySet()
+    }
+
     override fun isWatchedByVideoId(videoId: String, episode: Int): Boolean? {
         val parts = videoId.split(':')
         if (parts.size < 3 || parts.last().toIntOrNull() != episode) return null

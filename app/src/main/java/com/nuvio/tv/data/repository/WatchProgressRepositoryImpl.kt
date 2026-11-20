@@ -869,6 +869,9 @@ class WatchProgressRepositoryImpl @Inject constructor(
         return activeProgressProvider()?.showIdSiblings().orEmpty()
     }
 
+    override suspend fun cachedWatchedShowIds(profileId: Int): Set<String> =
+        profileProgressProviderFlow(profileId).first()?.cachedWatchedShowIds(profileId).orEmpty()
+
     override fun isWatchedByVideoId(videoId: String, episode: Int): Boolean? {
         val providerId = activeProgressProviderId ?: return null
         return trackingProgressProviders.provider(providerId)?.isWatchedByVideoId(videoId, episode)

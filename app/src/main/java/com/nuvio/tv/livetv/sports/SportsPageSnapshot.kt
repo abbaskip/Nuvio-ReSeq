@@ -73,7 +73,8 @@ internal object SportsPageSnapshot {
                                 val item = requireNotNull(adapter.fromJson(reader))
                                 require(item.matches.size <= MAX_MATCHES && item.event.hits.size <= MAX_MATCHES)
                                 display(item.event.event(), item.observedAt, now)?.let { event ->
-                                    items += item.copy(event = SportsSnapshotEvent.from(event))
+                                    val shown = SportsSnapshotEvent.from(event)
+                                    items += item.copy(event = shown.copy(league = shown.league ?: item.event.league))
                                 }
                             }
                             reader.endArray()
@@ -163,9 +164,11 @@ internal data class SportsSnapshotHit(val key: String, val program: SportsSnapsh
 
 @JsonClass(generateAdapter = true)
 internal data class SportsSnapshotLeague(val id: String, val sport: String, val name: String, val short: String,
-    val kind: String, val color: Long, val minutes: Int) {
-    fun league() = League(id, Sport.valueOf(sport), name, short, kind = LeagueKind.valueOf(kind), color = color, minutes = minutes)
-    companion object { fun from(l: League) = SportsSnapshotLeague(l.id, l.sport.name, l.name, l.short, l.kind.name, l.color, l.minutes) }
+    val kind: String, val color: Long, val minutes: Int, val national: Boolean = false, val women: Boolean = false) {
+    fun league() = League(id, Sport.valueOf(sport), name, short, kind = LeagueKind.valueOf(kind), color = color,
+        minutes = minutes, national = national, women = women)
+    companion object { fun from(l: League) = SportsSnapshotLeague(l.id, l.sport.name, l.name, l.short, l.kind.name,
+        l.color, l.minutes, l.national, l.women) }
 }
 
 @JsonClass(generateAdapter = true)

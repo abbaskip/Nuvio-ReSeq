@@ -14,13 +14,14 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
@@ -43,129 +44,162 @@ internal class CalendarRepository @Inject constructor(
     private val gate = Mutex()
     val profile = profiles.resolvedActiveProfileId
 
-    fun restore(profile: Int, region: String, zone: ZoneId): CalendarPage =
-        cache.read(profile, region, zone.id) ?: CalendarPage(region = region, zone = zone.id, generation = CalendarPageCache.generation(profile))
-
     private suspend fun checkProfile(profile: Int) {
         currentCoroutineContext().ensureActive()
         if (profiles.resolvedActiveProfileId.first() != profile) throw CancellationException("Calendar profile changed")
     }
 
-    private suspend fun titles(profile: Int): List<CalendarTitle> {
-        val found = LinkedHashMap<String, CalendarTitle>()
-        fun put(id: String, title: String, type: String, at: Long, imdbId: String? = null, tmdbId: Int? = null) {
-            val movie = type.equals("movie", true)
-            if (!movie && !type.equals("series", true) && !type.equals("tv", true) && !type.equals("anime", true)) return
-            if (id.isBlank() || id.length > 256 || title.isBlank()) return
-            val imdb = (imdbId ?: id).takeIf(IMDB::matches)
-            val tmdb = tmdbId ?: id.takeIf { it.startsWith("tmdb:") }?.substringAfter(':')?.toIntOrNull()
-            val next = CalendarTitle(id, title.trim().take(240), movie, imdb, tmdb, at)
-            val prior = found[next.key]
-            found[next.key] = if (prior == null) next else prior.copy(lastActivity = maxOf(at, prior.lastActivity),
-                imdb = prior.imdb ?: imdb, tmdb = prior.tmdb ?: tmdb)
+    private data class Inputs(val watchedIds: Map<String, String>, val movies: List<CalendarTitle>, val libraryReady: Boolean) {
+        val signature: String by lazy {
+            val digest = MessageDigest.getInstance("SHA-256")
+            fun add(value: String) { digest.update(value.toByteArray()); digest.update(0.toByte()) }
+            watchedIds.toSortedMap().forEach { (alias, id) -> add(alias); add(id) }
+            add("movies")
+            movies.sortedBy { it.key }.forEach { add(it.key); add(it.imdb.orEmpty()); add(it.tmdb?.toString().orEmpty()) }
+            add(libraryReady.toString())
+            android.util.Base64.encodeToString(digest.digest(), android.util.Base64.NO_WRAP)
         }
-
-        // The ordinary Library and Next Up subscriptions can launch full tracker synchronizations.
-        val entries = library.get().cachedLibraryItems(profile) ?: throw IOException("Library snapshot pending")
-        entries.forEach { put(it.id, it.name, it.type, it.listedAt, it.imdbId, it.tmdbId) }
-        val source = settings.get().resolvedWatchProgressSource(profile).first()
-        if (source == WatchProgressSource.NUVIO_SYNC) {
-            watched.get().observeAllItems(profile).first().forEach {
-                if (it.season != null && it.episode != null) put(it.contentId, it.title, it.contentType, it.watchedAt)
-            }
-        }
-        val cw = watching.get()
-        val settled = cw.projection.value?.takeIf { it.profileId == profile && it.source == source.name }
-            ?: cw.observeProjection().first()
-        if (settled.profileId != profile || settled.source != source.name) throw CancellationException("Calendar history changed")
-        settled.members.forEach { (id, member) ->
-            if (id !in settled.hiddenByProvider && !progress.get().isDroppedShow(id)) {
-                member.inProgress?.takeIf { it.season != null }?.let { put(id, it.name, it.contentType, it.lastWatched) }
-                member.progress?.takeIf { it.season != null }?.let { put(id, it.name, it.contentType, it.lastWatched) }
-                member.nextUp?.let { put(id, it.name, it.contentType, it.lastWatched) }
-            }
-        }
-        return found.values.sortedByDescending { it.lastActivity }
     }
 
-    fun allowedNames(keys: Set<String>) = local.get().allowedNames(keys)
+    private suspend fun inputs(profile: Int): Inputs = withTimeoutOrNull(12_000) {
+        val source = settings.get().resolvedWatchProgressSource(profile).first()
+        val cw = watching.get()
+        val history = cw.projection.value?.takeIf { it.profileId == profile && it.source == source.name }
+            ?: cw.observeProjection().first { it.profileId == profile && it.source == source.name }
+        val tracker = progress.get()
+        val watchedIds = LinkedHashMap<String, String>()
+        fun add(id: String) {
+            if (id.isNotBlank() && id !in history.hiddenByProvider && !tracker.isDroppedShow(id)) watchedIds[id] = id
+        }
+        if (source == WatchProgressSource.NUVIO_SYNC) {
+            watched.get().observeAllItems(profile).first().forEach { item ->
+                if (item.season != null && item.episode != null) add(item.contentId)
+            }
+        } else tracker.cachedWatchedShowIds(profile).forEach(::add)
+        history.completed.forEach { (id, episodes) ->
+            if (episodes.values.any { it.season != null && it.episode != null }) add(id)
+        }
+        history.members.forEach { (id, member) ->
+            if (member.progress?.season != null || member.inProgress?.season != null || (member.nextUp?.lastWatched ?: 0) > 0) add(id)
+        }
 
-    /** Caller owns this work for exactly the visible, idle route lifetime. */
-    suspend fun update(profile: Int, initial: CalendarPage, manual: Boolean,
+        val entries = library.get().cachedLibraryItems(profile)
+        val movies = mutableListOf<CalendarTitle>()
+        for (entry in entries.orEmpty()) {
+            if (entry.id.isBlank() || entry.name.isBlank()) continue
+            val imdb = entry.imdbId ?: entry.id.takeIf(IMDB::matches)
+            val tmdb = entry.tmdbId ?: entry.id.removePrefix("tmdb:").takeIf { entry.id.startsWith("tmdb:") }?.toIntOrNull()
+            if (entry.type.equals("movie", true)) {
+                movies += CalendarTitle(entry.id, entry.name.take(240), true, imdb, tmdb, entry.listedAt,
+                    entry.traktId ?: entry.id.takeIf { it.startsWith("trakt:") }?.substringAfter(':')?.toIntOrNull())
+            } else {
+                // Library metadata can connect an already watched title to another provider ID.
+                // A library entry by itself is never episode watch history.
+                val aliases = listOfNotNull(entry.id, imdb, tmdb?.let { "tmdb:" + it }, entry.traktId?.let { "trakt:" + it },
+                    entry.simklId?.let { "simkl:" + it })
+                if (aliases.any(watchedIds::containsKey) && aliases.none { it in history.hiddenByProvider || tracker.isDroppedShow(it) }) {
+                    aliases.forEach { watchedIds[it] = entry.id }
+                }
+            }
+        }
+        checkProfile(profile)
+        Inputs(watchedIds, movies.distinctBy { it.key }, entries != null)
+    } ?: throw IOException("Calendar inputs unavailable")
+
+    fun allowedNames(keys: Set<String>) = local.get().allowedNames(keys)
+    fun sports(profile: Int, zone: ZoneId, week: Long) = local.get().sports(profile, zone, CalendarWindow(week, week + 6))
+
+    fun pages(profile: Int, region: String, zone: ZoneId, week: Long, playing: Flow<Boolean>, requests: Flow<Boolean>) = flow {
+        var changedInputs: Inputs? = null
+        emitAll(calendarSession(playing, requests, System::currentTimeMillis,
+            restore = { cache.read(profile, region, zone.id, week) ?: CalendarPage(region = region, zone = zone.id,
+                weekStart = week, generation = CalendarPageCache.generation(profile)) },
+            inputsChanged = { page ->
+                val current = inputs(profile)
+                (current.signature != page.inputSignature).also { if (it) changedInputs = current }
+            },
+            update = { page, manual, publish ->
+                val current = changedInputs ?: inputs(profile)
+                changedInputs = null
+                update(profile, current, page, manual, publish)
+            }))
+    }
+
+    private suspend fun update(profile: Int, input: Inputs, initial: CalendarPage, manual: Boolean,
         publish: suspend (CalendarPage) -> Unit): Boolean = gate.withLock {
         checkProfile(profile)
         val now = System.currentTimeMillis()
         val zone = ZoneId.of(initial.zone)
-        val today = LocalDate.now(zone)
-        val window = CalendarWindow.around(today)
-        val sport = local.get().sports(window, now, zone)
-        val sportsPage = initial.copy(items = CalendarPolicy.displayed(initial.items.filter { it.source != "sports" } + sport,
-            window, today.toEpochDay()))
-        if (sportsPage.items != initial.items) {
-            checkProfile(profile)
-            cache.write(profile, sportsPage)
-            publish(sportsPage)
-        }
-        val titles = withTimeoutOrNull(12_000) { titles(profile) } ?: throw IOException("Library unavailable")
-        val current = titles.mapTo(HashSet()) { it.key }
-        val remainingChecks = initial.checked.filterKeys { it in current }
-        val failedTitles = initial.failedTitles.filterTo(mutableSetOf()) { it in current }
-        val updates = CalendarPolicy.work(titles, remainingChecks, now).sortedBy { it.key in failedTitles }
-        val batch = if (manual && updates.isEmpty()) titles.take(CalendarPolicy.BATCH) else updates.take(CalendarPolicy.BATCH)
-        var page = initial.copy(checked = remainingChecks, remaining = updates.size,
-            guideTitles = initial.guideTitles.filter { it in current },
-            items = initial.items.filter { it.source in current } + sport)
-        page = local.get().guide(page, titles, now, zone)
-        val checks = page.checked.toMutableMap()
-        val items = page.items.toMutableList()
-        var failed = false
-
-        fun snapshot(finished: Boolean): CalendarPage =
-            page.copy(checkedAt = if (finished) now else initial.checkedAt,
-                retryAt = if (failedTitles.isEmpty()) 0 else now + CalendarPolicy.RETRY_MS,
-                failedTitles = failedTitles.take(CalendarPolicy.MAX_CHECKS),
-                checked = checks.entries.sortedByDescending { it.value }.take(CalendarPolicy.MAX_CHECKS).associate { it.toPair() },
-                remaining = titles.count { !CalendarPolicy.fresh(checks[it.key] ?: 0L, now) },
-                items = CalendarPolicy.displayed(items, window, today.toEpochDay()))
-        var dirty = false
-        suspend fun save(finished: Boolean) {
-            checkProfile(profile)
-            val result = snapshot(finished)
-            try { cache.write(profile, result) } catch (_: IOException) { failed = true }
+        val week = CalendarWindow(initial.weekStart, initial.weekStart + 6)
+        val today = now.calendarDay(zone)
+        val savedMovies = input.movies.associateBy { it.key }
+        val watchedShows = input.watchedIds.values.toHashSet()
+        val sameInputs = input.signature == initial.inputSignature
+        val items = initial.items.filter { row -> when (row.kind) {
+            CalendarKind.EPISODE -> row.contentId in watchedShows
+            CalendarKind.GUIDE -> sameInputs
+            else -> !input.libraryReady || row.source in savedMovies
+        } }.toMutableList()
+        val checks = initial.checked.filterKeys { it in savedMovies || (it == EPISODES && sameInputs) }.toMutableMap()
+        val episodesFresh = CalendarPolicy.fresh(checks[EPISODES] ?: 0L, now)
+        var page = initial.copy(inputSignature = input.signature)
+        var failed = !input.libraryReady
+        var dirty = true
+        fun snapshot(finished: Boolean) = page.copy(
+            checkedAt = if (finished) now else 0, checked = checks.toMap(),
+            retryAt = if (failed) now + CalendarPolicy.RETRY_MS else 0,
+            items = CalendarPolicy.displayed(items, week, today))
+        fun store(value: CalendarPage) {
+            try { cache.write(profile, value) } catch (_: IOException) { failed = true }
             dirty = false
-            publish(result)
         }
-        // Make local guide and Sports data durable before the first network request.
-        save(false)
+        val oldEpisodes = items.filter { it.kind == CalendarKind.EPISODE }
+        val guidePage = page.copy(items = items.filter { it.kind == CalendarKind.GUIDE },
+            guideTitles = if (sameInputs) page.guideTitles else emptyList())
         try {
-            for ((index, title) in batch.withIndex()) {
+            publish(snapshot(false))
+            calendarLookups(
+                episodes = {
+                    if (!manual && episodesFresh) oldEpisodes
+                    else sources.get().scheduledEpisodes(input.watchedIds, week, zone)
+                },
+                guide = { episodes ->
+                    val airing = (episodes ?: oldEpisodes).distinctBy { it.contentId }.mapNotNull { row ->
+                        row.contentId?.let { CalendarTitle(it, row.title, false, null, null, row.time ?: 0) }
+                    }
+                    local.get().guide(guidePage, airing + input.movies.sortedByDescending { it.lastActivity }, now, zone)
+                },
+                movies = { sources.get().movieCandidates(profile, input.movies, week, initial.region)
+                    .filter { manual || !CalendarPolicy.fresh(initial.checked[it.key] ?: 0L, now) } },
+                listings = { title -> sources.get().movie(profile, title, week, initial.region) }
+            ).collect { result ->
                 checkProfile(profile)
-                try {
-                    val rows = sources.get().listings(profile, title, window, zone, page.region)
-                    items.removeAll { it.source == title.key && it.kind != CalendarKind.GUIDE }
-                    items.addAll(rows)
-                    checks[title.key] = now
-                    failedTitles.remove(title.key)
-                    dirty = true
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: java.net.UnknownHostException) {
-                    failedTitles.add(title.key)
-                    failed = true
-                    break
-                } catch (_: IOException) {
-                    failedTitles.add(title.key)
-                    failed = true
-                } catch (_: org.json.JSONException) {
-                    failedTitles.add(title.key)
-                    failed = true
+                when (result) {
+                    is CalendarLookup.Episodes -> if (result.rows == null) failed = true else {
+                        items.removeAll { it.kind == CalendarKind.EPISODE }; items.addAll(result.rows)
+                        checks[EPISODES] = now
+                    }
+                    is CalendarLookup.Guide -> if (result.page == null) failed = true else {
+                        val guide = result.page
+                        items.removeAll { it.kind == CalendarKind.GUIDE }; items.addAll(guide.items)
+                        page = page.copy(guideTitles = guide.guideTitles, guideDay = guide.guideDay, guideRevision = guide.guideRevision)
+                    }
+                    is CalendarLookup.Release -> if (result.rows == null) failed = true else {
+                        val key = result.title.key
+                        items.removeAll { it.source == key && it.kind != CalendarKind.GUIDE }; items.addAll(result.rows)
+                        checks[key] = now
+                    }
+                    CalendarLookup.MoviesUnavailable -> failed = true
                 }
-                if ((index + 1) % 3 == 0 && index != batch.lastIndex && dirty) save(false)
+                dirty = true
+                val updated = snapshot(false)
+                publish(updated)
+                store(updated)
             }
-            save(true)
+            val finished = snapshot(true)
+            store(finished)
+            publish(finished)
         } finally {
-            // Only the completed rows are checkpointed on Back or background. The HTTP call
-            // and all remaining titles belong to the cancelled route, never to an app worker.
             if (dirty) withContext(NonCancellable) {
                 try { cache.write(profile, snapshot(false)) } catch (_: IOException) { }
             }
@@ -175,6 +209,7 @@ internal class CalendarRepository @Inject constructor(
 
     companion object {
         private val IMDB = Regex("tt[0-9]+")
+        private const val EPISODES = "episode-schedule"
         fun region(): String = Locale.getDefault().country.uppercase(Locale.ROOT).ifBlank { "US" }
     }
 }

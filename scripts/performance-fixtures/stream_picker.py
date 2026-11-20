@@ -8,6 +8,7 @@ import shutil
 from statistics import median
 from threading import Thread
 import time
+from urllib.parse import unquote, urlsplit
 import zipfile
 
 from signed_rollback import (BASE, DATA, NATIVE, PACKAGE, PLAIN, Provider, adb, cold, controls,
@@ -19,6 +20,25 @@ COUNT = 98_000
 
 class Library(Provider):
     def do_GET(self):
+        api = unquote(urlsplit(self.path).path)
+        if api.startswith("/picker-addon/"):
+            if api.endswith("/manifest.json"):
+                response = {"id":"com.reseq.picker", "name":"Guest metadata", "version":"1.0.0",
+                            "resources":["meta"], "types":["movie"], "idPrefixes":["tmdb:"], "catalogs":[]}
+            elif (match := re.search(r"/meta/movie/tmdb:(\d+)\.json", api)):
+                idx = int(match[1]) - 1000
+                response = {"meta":{"id":"tmdb:"+match[1], "type":"movie", "name":f"Fixture Movie {idx:03}",
+                                    "releaseInfo":"2024", "year":2024}}
+            else:
+                self.send_error(404)
+                return
+            body = json.dumps(response).encode()
+            self.send_response(200)
+            self.send_header("Content-Type","application/json")
+            self.send_header("Content-Length",str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path != "/large-picker.m3u":
             return super().do_GET()
         body = self.server.playlist
@@ -53,7 +73,8 @@ def exercise(server, count):
     sources = [dict(id=NATIVE, name="NativeFixture", url="", xtreamServer=BASE,
                     xtreamUsername="fixture", xtreamPassword="fixture", importVod=True, importLive=False),
                dict(id=PLAIN, name="PlainFixture", url=BASE+"/large-picker.m3u", importVod=True)]
-    seed_settings(uid, {"playlists": json.dumps(sources), "on_demand_in_streams": True})
+    seed_settings(uid, {"playlists": json.dumps(sources), "on_demand_in_streams": True},
+                  {"addon_preferences":{"installed_addon_urls_ordered":json.dumps([BASE+"/picker-addon"])}})
     controls()
     select("Update Movies & Series Now")
     rows(count)
@@ -61,6 +82,14 @@ def exercise(server, count):
     for index in (1, 7, 13, 21, 28, 38, 47, 59):
         cold()
         assert any(label(n) in ("Home", "Library", "Search") for n in tree().iter("node"))
+        # UiAutomation executes argv directly. The shell file preserves the spaces
+        # in the normal launcher's content name and the actual selection identity.
+        content = f"tmdb:{1000+index}"
+        script = OUT/f"reseq-picker-{index}.sh"
+        script.write_text(f"am start -n {PACKAGE}/com.nuvio.tv.launcher.AppIconDefault "
+                          f"--es launchMode stream --es contentType movie --es contentId {content} "
+                          f"--es videoId {content} --es name 'Fixture Movie {index:03}'\n")
+        adb("push", str(script), "/data/local/tmp/"+script.name)
         output = adb("shell", "am", "instrument", "-w", "-e", "index", str(index),
                      "com.nuvio.perf.observer/.PickerObserver")
         observed = re.search(r"pickerMs=(\d+)", output)

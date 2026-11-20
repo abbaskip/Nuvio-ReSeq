@@ -52,15 +52,12 @@ public final class PickerObserver extends Instrumentation {
         try {
             if (index < 1 || index > 64) throw new IllegalArgumentException("Unknown fixture");
             String name = String.format(java.util.Locale.US, "Fixture Movie %03d", index);
-            String content = "tmdb:" + (1000 + index);
             UiAutomation ui = getUiAutomation();
             if (visible(ui.getRootInActiveWindow(), name)) throw new IllegalStateException("Target already visible");
             String command;
             switch (mode) {
                 case "stream":
-                    command = "am start -n " + APP + "/com.nuvio.tv.launcher.AppIconDefault"
-                            + " --es launchMode stream --es contentType movie --es contentId " + content
-                            + " --es videoId " + content + " --es name '" + name + "'";
+                    command = "sh /data/local/tmp/reseq-picker-" + index + ".sh";
                     break;
                 case "settings":
                     command = "input keyevent KEYCODE_DPAD_CENTER";
@@ -74,7 +71,13 @@ public final class PickerObserver extends Instrumentation {
             long start = SystemClock.elapsedRealtime();
             try (InputStream output = new ParcelFileDescriptor.AutoCloseInputStream(ui.executeShellCommand(command))) {
                 byte[] data = new byte[512];
-                while (output.read(data) != -1) { }
+                StringBuilder response = new StringBuilder();
+                for (int count; (count = output.read(data)) != -1; ) {
+                    response.append(new String(data, 0, count, java.nio.charset.StandardCharsets.UTF_8));
+                }
+                if (response.toString().contains("Error") || response.toString().contains("Exception")) {
+                    throw new IllegalStateException("Android could not launch the fixture intent");
+                }
             }
             long previous = start;
             while (SystemClock.elapsedRealtime() - start < 35_000) {
@@ -88,7 +91,9 @@ public final class PickerObserver extends Instrumentation {
                 previous = SystemClock.elapsedRealtime();
                 SystemClock.sleep(25);
             }
-            throw new IllegalStateException("The expected " + mode + " controls did not render");
+            AccessibilityNodeInfo last = ui.getRootInActiveWindow();
+            throw new IllegalStateException("Missing " + mode + " controls. Foreground package was "
+                    + (last == null ? "unknown" : last.getPackageName()));
         } catch (Exception failure) {
             result.putString("error", failure.toString());
             finish(Activity.RESULT_CANCELED, result);

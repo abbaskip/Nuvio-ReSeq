@@ -139,7 +139,22 @@ def main():
         record("playbackReminderSecondsFromDue", observed-second)
         assert 0 <= observed-second <= 15
         tap("Dismiss")
-        key("BACK", .5)
+        # Back first closes an open fullscreen info panel. Reach the guide before
+        # sampling its clock, using its gear and channel text as screen evidence.
+        for attempt in range(10):
+            visible = {label(n) for n in tree().iter("node")}
+            if "Guide display" in visible and any(t.startswith("Clock fixture ") for t in visible):
+                break
+            if "Live TV" in visible and visible & {"Home", "Library", "Search"}:
+                tap("Live TV")
+                time.sleep(1)
+            elif attempt < 4:
+                key("BACK", .8)
+            else:
+                key("DPAD_RIGHT", .5)
+        else:
+            record("previewEntryMarkers", sorted(visible & {"Home","Live TV","Library","Guide display","All channels","Dismiss","Watch","Settings",CHANNEL}))
+            raise AssertionError("The remote did not enter the guide for the preview clock measurement")
         clocks = []
         for _ in range(4):
             texts = {label(n) for n in tree().iter("node")}

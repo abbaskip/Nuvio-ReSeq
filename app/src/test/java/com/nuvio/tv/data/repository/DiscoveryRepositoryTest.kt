@@ -56,7 +56,7 @@ class DiscoveryRepositoryTest {
         coEvery { api.advancedDiscover(any(), any(), any(), 2, any()) } returns Response.success(
             TmdbDiscoverResponse(results = listOf(movie.copy(title = "Wanted Film")), totalPages = 2, totalResults = 21))
         val repository = DiscoveryRepository(api, "test-key")
-        val query = DiscoveryQuery(titleContains = "wanted")
+        val query = DiscoveryQuery(titleContains = "wanted", sort = "release_date.desc")
         val first = repository.discover(query, "en", 1)
         assertTrue(first.items.isEmpty())
         assertTrue(first.hasMore)
@@ -69,7 +69,7 @@ class DiscoveryRepositoryTest {
 
     @Test
     fun `TV filter matches displayed name including original name fallback but not the description`() = runTest {
-        coEvery { api.advancedDiscover(any(), any(), any(), any(), any()) } returns Response.success(
+        coEvery { api.searchTitles("tv", any(), "en", 1, "star trek", false) } returns Response.success(
             TmdbDiscoverResponse(results = listOf(
                 TmdbDiscoverResult(id = 1, name = "Star Trek: Discovery", originalName = "Original"),
                 TmdbDiscoverResult(id = 2, name = "Other", overview = "Star Trek"),
@@ -77,6 +77,34 @@ class DiscoveryRepositoryTest {
         val repository = DiscoveryRepository(api, "test-key")
         val result = repository.discover(DiscoveryQuery(television = true, titleContains = "star trek"), "en", 1)
         assertEquals(listOf("tmdb:1", "tmdb:3"), result.items.map { it.id })
+    }
+
+    @Test
+    fun `Santa and Christmas search TMDB titles independently and paginate the selected search`() = runTest {
+        MockWebServer().use { server ->
+            val retrofitApi = Retrofit.Builder().baseUrl(server.url("/3/"))
+                .addConverterFactory(MoshiConverterFactory.create(Moshi.Builder().build())).build().create(TmdbApi::class.java)
+            val repository = DiscoveryRepository(retrofitApi, "test-key")
+            suspend fun checkSearch(term: String, page: Int, title: String) {
+                server.enqueue(MockResponse().setBody("""{"total_pages":2,"results":[{"id":1,"title":"$title"},{"id":2,"title":"Other"}]}"""))
+                val result = repository.discover(DiscoveryQuery(titleContains = term), "en", page)
+                val url = server.takeRequest(5, TimeUnit.SECONDS)!!.requestUrl!!
+                assertEquals("/3/search/movie", url.encodedPath)
+                assertEquals(term.trim(), url.queryParameter("query"))
+                assertEquals(page.toString(), url.queryParameter("page"))
+                assertEquals("false", url.queryParameter("include_adult"))
+                assertEquals(listOf(title), result.items.map { it.name })
+                assertEquals(page < 2, result.hasMore)
+            }
+            checkSearch(" Santa ", 1, "The Santa Clause")
+            checkSearch("Christmas", 1, "White Christmas")
+            checkSearch("Christmas", 2, "A Christmas Story")
+            val cached = repository.discover(DiscoveryQuery(titleContains = "Santa", hideWatched = true), "en", 1)
+            assertEquals("The Santa Clause", cached.items.single().name)
+            server.enqueue(MockResponse().setBody("""{"results":[{"id":3,"title":"Other"}]}"""))
+            assertEquals("Other", repository.discover(DiscoveryQuery(), "en", 1).items.single().name)
+            assertEquals("/3/discover/movie", server.takeRequest(5, TimeUnit.SECONDS)!!.requestUrl!!.encodedPath)
+        }
     }
 
     @Test

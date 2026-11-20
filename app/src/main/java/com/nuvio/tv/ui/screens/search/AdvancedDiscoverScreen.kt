@@ -74,6 +74,9 @@ fun AdvancedDiscoverScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val query = state.draft
+    val titleRelevance = remember(query) {
+        query.titleContains.isNotBlank() && query.validationError() == null && query.offersTitleRelevance(query.tmdbParameters())
+    }
     var picker by rememberSaveable { mutableStateOf<String?>(null) }
     var showSave by rememberSaveable { mutableStateOf(false) }
     var focusedIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -246,7 +249,7 @@ fun AdvancedDiscoverScreen(
                     DiscoveryNote(stringResource(R.string.advanced_discover_watched_hint))
                 }
                 item {
-                    val sortLabels = discoverySortLabels()
+                    val sortLabels = discoverySortLabels(titleRelevance)
                     DiscoveryButton(stringResource(R.string.advanced_discover_sort_value, sortLabels.getValue(query.sort)),
                         Modifier.fillMaxWidth(), onClick = { picker = "sort" })
                 }
@@ -265,7 +268,9 @@ fun AdvancedDiscoverScreen(
                 }
                 if (state.applied != null) {
                     if (state.applied!!.titleContains.isNotBlank()) {
-                        DiscoveryNote(stringResource(R.string.advanced_discover_title_matches_loaded, state.items.size))
+                        if (state.items.isNotEmpty() || (state.page > 0 && !state.loading && !state.filteringWatched)) {
+                            DiscoveryNote(stringResource(R.string.advanced_discover_title_matches_loaded, state.items.size))
+                        }
                     } else {
                         DiscoveryNote(stringResource(R.string.advanced_discover_result_count, state.items.size, state.totalResults))
                     }
@@ -377,7 +382,7 @@ fun AdvancedDiscoverScreen(
             "" to stringResource(R.string.advanced_discover_any), "0" to stringResource(R.string.advanced_discover_returning),
             "3" to stringResource(R.string.advanced_discover_ended), "4" to stringResource(R.string.advanced_discover_cancelled)
         ), query.seriesStatus, { picker = null }) { viewModel.edit(query.copy(seriesStatus = it)); picker = null }
-        "sort" -> DiscoveryChoices(stringResource(R.string.advanced_discover_sort), discoverySortLabels().toList(), query.sort,
+        "sort" -> DiscoveryChoices(stringResource(R.string.advanced_discover_sort), discoverySortLabels(titleRelevance).toList(), query.sort,
             { picker = null }) { viewModel.edit(query.copy(sort = it)); picker = null }
         "dates" -> {
             val today = LocalDate.now()
@@ -494,8 +499,8 @@ private fun DiscoveryChoices(title: String, options: List<Pair<String, String>>,
 }
 
 @Composable
-private fun discoverySortLabels(): Map<String, String> = linkedMapOf(
-    "popularity.desc" to stringResource(R.string.advanced_discover_popular_desc),
+private fun discoverySortLabels(titleRelevance: Boolean): Map<String, String> = linkedMapOf(
+    "popularity.desc" to stringResource(if (titleRelevance) R.string.advanced_discover_title_relevance else R.string.advanced_discover_popular_desc),
     "popularity.asc" to stringResource(R.string.advanced_discover_popular_asc),
     "release_date.desc" to stringResource(R.string.advanced_discover_date_desc),
     "release_date.asc" to stringResource(R.string.advanced_discover_date_asc),

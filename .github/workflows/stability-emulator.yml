@@ -143,8 +143,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools'
+          packages: ${{ inputs.workload == 'shared-features' && 'platform-tools platforms;android-36 build-tools;36.0.0' || 'platform-tools' }}
           log-accepted-android-sdk-licenses: false
+      - name: Build the disposable guest UI observer
+        if: inputs.workload == 'shared-features'
+        run: bash scripts/performance-fixtures/observer/build.sh
       - name: Get the signed integration APK and generate the live television fixture
         env:
           GH_TOKEN: ${{ github.token }}

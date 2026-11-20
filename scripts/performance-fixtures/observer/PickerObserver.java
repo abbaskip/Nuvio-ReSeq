@@ -14,10 +14,12 @@ public final class PickerObserver extends Instrumentation {
     private static final String APP = "io.github.abbaskip.nuvioreseq";
     private int index;
     private String mode;
+    private String actionLabel;
 
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
         mode = arguments.getString("mode", "stream");
+        actionLabel = arguments.getString("actionLabel", "");
         index = Integer.parseInt(arguments.getString("index", "1"));
         start();
     }
@@ -57,12 +59,37 @@ public final class PickerObserver extends Instrumentation {
         return false;
     }
 
+    private static AccessibilityNodeInfo button(AccessibilityNodeInfo node, String label) {
+        if (node == null || !APP.equals(String.valueOf(node.getPackageName()))) return null;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = button(node.getChild(i), label);
+            if (child != null) return child;
+        }
+        return node.isVisibleToUser() && node.isClickable() && contains(node, label, "") ? node : null;
+    }
+
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
             if (index < 1 || index > 64) throw new IllegalArgumentException("Unknown fixture");
             String name = String.format(java.util.Locale.US, "Fixture Movie %03d", index);
             UiAutomation ui = getUiAutomation();
+            if (mode.equals("discoverAction")) {
+                if (!(actionLabel.equals("Advanced Discover") || actionLabel.equals("Show results") || actionLabel.equals("Reset"))) {
+                    throw new IllegalArgumentException("Unknown Discovery action");
+                }
+                long deadline = SystemClock.elapsedRealtime() + 4_000;
+                while (SystemClock.elapsedRealtime() < deadline) {
+                    AccessibilityNodeInfo target = button(ui.getRootInActiveWindow(), actionLabel);
+                    if (target != null && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                        result.putString("activated", actionLabel);
+                        finish(Activity.RESULT_OK, result);
+                        return;
+                    }
+                    SystemClock.sleep(100);
+                }
+                throw new IllegalStateException("No selectable Discovery button");
+            }
             if (visible(ui.getRootInActiveWindow(), name)) throw new IllegalStateException("Target already visible");
             String command;
             switch (mode) {

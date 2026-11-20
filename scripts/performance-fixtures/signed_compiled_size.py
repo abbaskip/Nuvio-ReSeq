@@ -13,7 +13,7 @@ def main():
     assert os.environ.get("GITHUB_ACTIONS") == "true" and adb("shell", "getprop", "ro.kernel.qemu") == "1"
     adb("root")
     adb("wait-for-device")
-    assert adb("shell", "id", "-u") == "0" and not adb("shell", "pm", "path", PACKAGE)
+    assert adb("shell", "id", "-u") == "0" and not adb("shell", "pm", "list", "packages", PACKAGE)
     assert adb("shell", "getprop", "ro.build.version.sdk") == "34"
     adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
     adb("shell", "wm", "dismiss-keyguard")

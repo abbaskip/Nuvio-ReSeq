@@ -158,6 +158,10 @@ def rating():
 
 def discover():
     global STEP
+    def activate(button):
+        result = adb("shell", "am", "instrument", "-w", "-e", "mode", "discoverAction", "-e", "actionLabel",
+                     "'"+button+"'", "com.nuvio.perf.observer/.PickerObserver")
+        assert "activated="+button in result, result
     STEP = "open Search from the sidebar"
     cold()
     key("BACK", .8)
@@ -166,17 +170,17 @@ def discover():
     wait_until(lambda: "Advanced Discover" in labels())
     if "mInputShown=true" in adb("shell","dumpsys","input_method"):
         key("BACK", .5)
-    select("Advanced Discover")
+    activate("Advanced Discover")
     wait_until(lambda: any("show results" in entry.casefold() for entry in labels()))
     STEP = "render search results"
-    select("Show results")
+    activate("Show results")
     # A populated grid has actual poster buttons to the right of the filter column.
     def cards():
         nodes = list(tree().iter("node"))
         return [n for n in nodes if point(n)[0] > 870 and n.get("focusable") == "true"
                 and n.get("clickable") == "true" and any(label(c) for c in n.iter())]
     results = wait_until(cards, 40)
-    select("Reset")
+    activate("Reset")
     wait_until(lambda: any("show results" in entry.casefold() for entry in labels()))
     return {"visibleResultCards":len(results),"resetReturnedToFilters":True}
 
@@ -189,6 +193,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     apk, = Path("build/guide-apks").rglob("*-x86_64.apk")
     assert "Success" in adb("install",str(apk))
+    assert "Success" in adb("install", "build/picker-observer/observer.apk")
     uid = adb("shell","stat","-c","%u",DATA)
     adb("shell","wm","size","1920x1080")
     adb("shell","wm","density","320")

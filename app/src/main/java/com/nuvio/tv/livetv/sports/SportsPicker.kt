@@ -309,8 +309,10 @@ fun SportsPicker(viewModel: SportsViewModel, backLabel: String = "Sports", onClo
                                 color = colors.TextSecondary, size = 13.sp, maxLines = 4
                             )
                             league.guideOnly && !SportsCompetitions.hasTeams(league.id) -> LiveText(
-                                "${league.name} comes from your own TV guide: live shows with \"${league.guideWords.first()}\" in the title. " +
-                                    "Follow it to see them on My Sports. Follow a name (a player, a team) to catch shows that mention it.",
+                                league.guideWords.firstOrNull()?.let { keyword ->
+                                    "${league.name} comes from your own TV guide: live shows with \"$keyword\" in the title. " +
+                                        "Follow it to see them on My Sports. Follow a name (a player, a team) to catch shows that mention it."
+                                } ?: "Follow ${league.name} to include its fixtures and live TV listings in My Sports.",
                                 color = colors.TextSecondary, size = 13.sp, maxLines = 4
                             )
                             league.kind == LeagueKind.EVENT && !SportsCompetitions.hasTeams(league.id) -> LiveText(

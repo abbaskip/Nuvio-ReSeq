@@ -158,8 +158,21 @@ def home_row(profile):
 def open_profile(profile):
     cold()
     wait(lambda: set(NAMES.values()) <= {label(n) for n in tree().iter("node")}, "Profile picker missing")
-    focus_text(NAMES[profile])
-    key("DPAD_CENTER")
+    # Profiles are a horizontal row. Their name is below the avatar and the centre of its card.
+    for _ in range(5):
+        nodes = list(tree().iter("node"))
+        current = next((n for n in nodes if n.get("focused") == "true"), None)
+        target = next(n for n in nodes if label(n) == NAMES[profile])
+        if current is not None and any(label(n) == NAMES[profile] for n in current.iter()):
+            key("DPAD_CENTER")
+            return
+        if current is not None and any(label(n) in NAMES.values() for n in current.iter()):
+            key("DPAD_RIGHT" if point(target)[0] > point(current)[0] else "DPAD_LEFT")
+        else:
+            x, y = point(target)
+            adb("shell", "input", "tap", str(x), str(y))
+            return
+    raise AssertionError("Profile selection did not reach " + NAMES[profile])
 
 
 def expected_projection(profile):
@@ -252,9 +265,13 @@ def main():
                 # Qualify a populated installation. Let the release build its own durable history
                 # for both users before measuring cold entry, including its normal first focus.
                 for profile in NAMES:
-                    open_profile(profile)
-                    expected = expected_projection(profile)
-                    wait(lambda: projection(profile) == expected, "Could not populate signed beta profile", 90)
+                    try:
+                        open_profile(profile)
+                        expected = expected_projection(profile)
+                        wait(lambda: projection(profile) == expected, "Could not populate signed beta profile", 90)
+                    except Exception:
+                        capture(OUT / f"setup-{profile}")
+                        raise
                     print("Populated beta profile", profile, expected, flush=True)
             else:
                 assert uid == evidence["beta"]["uid"] and projection(2), "Upgrade lost the beta profile"

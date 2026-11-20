@@ -18,7 +18,7 @@ parser.add_argument("--serial", required=True)
 parser.add_argument("--adb", default="adb")
 parser.add_argument("--apks", type=Path, required=True)
 parser.add_argument("--output", type=Path, required=True)
-parser.add_argument("--abi", choices=["arm", "x86"], required=True)
+parser.add_argument("--abi", choices=["x86"], required=True)
 parser.add_argument("--pairs", type=int, default=8)
 args = parser.parse_args()
 out = args.output
@@ -59,8 +59,8 @@ def summary(rows):
 
 def main():
     assert args.pairs > 0
-    assert (args.abi=="x86" and adb("shell","getprop","ro.kernel.qemu")=="1") or (
-        args.abi=="arm" and adb("shell","getprop","ro.product.device")=="jarvis2")
+    if adb("shell","getprop","ro.kernel.qemu") != "1":
+        raise RuntimeError("Fixture APKs run on disposable guests. Physical TVs use signed in-place updates.")
     available()
     idle()
     out.mkdir(parents=True,exist_ok=True)

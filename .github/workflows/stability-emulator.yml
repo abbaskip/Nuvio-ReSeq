@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, followup, playback, recording, reminder, first-card, rollback, profile-sources, sports-delivery, profile-cost]
+        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, profile-sources, sports-delivery, profile-cost, release-profile-cost]
       review_ref:
         description: 'Integration or bisect commit for follow-up measurements'
         type: string
@@ -27,6 +27,77 @@ permissions:
   contents: read
 
 jobs:
+  profile-reference:
+    if: inputs.workload == 'release-profile-cost'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/r8-profile-variant
+        with:
+          shard: control
+          config: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+          cache-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+  profile-groups:
+    needs: profile-reference
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/r8-profile-variant
+        with:
+          shard: ${{ matrix.shard }}
+          config: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+          cache-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+  profile-release-guest:
+    needs: profile-groups
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: android-actions/setup-android@v3
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: r8-profile-*
+          merge-multiple: true
+          path: build/profile-cost/metadata
+      - name: Prepare the original signed APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 44579904228 --repo "$GITHUB_REPOSITORY" --name 'ReSeq-0.1.0-beta.10.12-verified-apks' --dir build/profile-cost/apks
+          cp build/profile-cost/apks/*-x86_64.apk build/profile-cost/base.apk
+          echo '85536b91337ac7b87fef53d9a3fd120da9e427e508cedefd5bbec47642b0b6f2  build/profile-cost/base.apk' | sha256sum -c -
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: python3 -u scripts/performance-fixtures/profile_cost.py measure
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: release-wildcard-cost-evidence
+          path: build/profile-cost/odex.json
+
   profile-cost:
     if: inputs.workload == 'profile-cost'
     runs-on: ubuntu-latest
@@ -289,16 +360,16 @@ jobs:
           retention-days: 14
 
   regressions:
-    if: inputs.workload == 'regressions' || inputs.workload == 'followup' || inputs.workload == 'playback' || inputs.workload == 'recording' || inputs.workload == 'reminder'
+    if: inputs.workload == 'regressions' || inputs.workload == 'review-regressions' || inputs.workload == 'followup' || inputs.workload == 'playback' || inputs.workload == 'recording' || inputs.workload == 'reminder'
     runs-on: ubuntu-latest
     timeout-minutes: 115
     strategy:
       fail-fast: false
       matrix:
-        side: [published, integration]
+        side: ${{ inputs.workload == 'review-regressions' && fromJSON('["integration"]') || fromJSON('["published","integration"]') }}
     env:
       CI_USE_DEBUG_SIGNING: 'true'
-      PERF_DEVICE_WORKLOAD: ${{ inputs.workload }}
+      PERF_DEVICE_WORKLOAD: ${{ inputs.workload == 'review-regressions' && 'regressions' || inputs.workload }}
     steps:
       - uses: actions/checkout@v6
         with:

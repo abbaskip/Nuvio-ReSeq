@@ -1,0 +1,43 @@
+name: Measure release profile variant
+description: Build ART metadata against the original release DEX
+inputs:
+  shard:
+    required: true
+    description: Control or group shard
+  config:
+    required: true
+    description: Approved release app service inputs
+  cache-key:
+    required: true
+    description: Encrypted task output cache key
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: 6c80c0106ce07dae3cb08576ce45e6a5c541857c
+        path: candidate
+    - uses: ./.github/actions/gradle
+      with:
+        encryption-key: ${{ inputs.cache-key }}
+    - name: Rebuild profile with the release optimizer
+      shell: bash
+      working-directory: candidate
+      env:
+        APP_CONFIG: ${{ inputs.config }}
+        GH_TOKEN: ${{ github.token }}
+        SHARD: ${{ inputs.shard }}
+        CI_USE_DEBUG_SIGNING: 'true'
+      run: |
+        trap 'rm -f local.properties' EXIT
+        python3 scripts/ci_app_config.py --output local.properties
+        if [[ "$SHARD" == control ]]; then
+          gh run download 44579904228 --repo "$GITHUB_REPOSITORY" --name 'ReSeq-0.1.0-beta.10.12-verified-apks' --dir build/profile-cost/apks
+        fi
+        python3 -u ../scripts/performance-fixtures/r8_profile_cost.py "$SHARD"
+    - uses: actions/upload-artifact@v6
+      with:
+        name: r8-profile-${{ inputs.shard }}
+        path: candidate/build/profile-ablation/
+        if-no-files-found: error
+        retention-days: 5

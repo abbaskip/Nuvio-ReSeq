@@ -363,7 +363,11 @@ internal fun StatusColumn(ev: SportsEvent, playing: Boolean, now: Long, use24h: 
         val clockText = when (ev.state) {
             GameState.LIVE -> cornerStatus(ev, use24h, hideScores)
             GameState.POST -> ev.status?.takeIf { it != "Final" && it != "FT" } ?: if (ev.hasTime) formatClock(ev.startMs, use24h) else ""
-            GameState.PRE -> (if (ev.hasTime && ev.startMs - now < 6 * 3_600_000L) untilLabel(ev.startMs, now, Long.MAX_VALUE) else "").ifBlank { ev.note.orEmpty() }
+            GameState.PRE -> when {
+                ev.awaitingCollegeStatus(now) -> "Status pending"
+                ev.hasTime && ev.startMs - now < 6 * 3_600_000L -> untilLabel(ev.startMs, now, Long.MAX_VALUE)
+                else -> ""
+            }.ifBlank { ev.note.orEmpty() }
             GameState.OFF -> ""
         }
         if (clockText.isNotBlank()) LiveText(clockText, color = Color.White, size = 12.sp, weight = FontWeight.Black)

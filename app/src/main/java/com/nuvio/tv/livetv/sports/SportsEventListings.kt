@@ -1,5 +1,10 @@
 package com.nuvio.tv.livetv.sports
 
+/** ESPN can still report a scheduled tip-off while a college scoreboard is catching up. */
+internal fun SportsEvent.awaitingCollegeStatus(now: Long): Boolean =
+    source == EventSource.ESPN && state == GameState.PRE && hasTime && now - startMs >= 60_000L &&
+        (leagueId == "basketball/mens-college-basketball" || leagueId == "basketball/womens-college-basketball")
+
 /** Fixtures and TV airings have separate timelines; channel matching never sets event order. */
 internal object SportsEventListings {
     fun guideAiring(event: SportsEvent, now: Long): SportsEvent? {
@@ -44,7 +49,13 @@ internal object SportsEventListings {
             if (now in dayStart until dayEnd) when (it.state) {
                 GameState.POST -> 0
                 GameState.LIVE -> 1
-                GameState.PRE, GameState.OFF -> 2
+                GameState.PRE -> if (it.awaitingCollegeStatus(now)) {
+                    val expectedEnd = it.endMs ?: SportsCatalog.league(it.leagueId)?.let { league ->
+                        it.startMs + league.minutes * 60_000L
+                    }
+                    if (expectedEnd != null && now >= expectedEnd) 0 else 1
+                } else 2
+                GameState.OFF -> 2
             } else 0
         }.thenBy { it.startMs }.thenBy { it.id })
 

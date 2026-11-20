@@ -21,6 +21,29 @@ class SportsEventListingsTest {
     private val hour = 3_600_000L
     private val now = day + 12 * hour
 
+    @Test fun `overdue college games keep their time position while waiting for provider confirmation`() {
+        for (league in listOf("basketball/mens-college-basketball", "basketball/womens-college-basketball")) {
+            fun college(id: String, at: Long) = event(id, at, GameState.PRE).copy(leagueId = league)
+            val early = college("3am", day + 3 * hour)
+            val live = event("live", now - hour, GameState.LIVE)
+            val pending = college("recent tip", now - 10 * 60_000L)
+            val next = college("next", now + hour)
+            val input = listOf(next, pending, early, live)
+            val listed = SportsEventListings.allEvents(input, day, day + 24 * hour, now)
+            assertEquals(listOf(early, live, pending, next), listed)
+            assertEquals(1, SportsEventListings.entryIndex(listed))
+            assertTrue(early.awaitingCollegeStatus(now))
+            assertFalse(next.awaitingCollegeStatus(now))
+            assertFalse(college("tip", now - 59_999L).awaitingCollegeStatus(now))
+            assertFalse(early.copy(hasTime = false).awaitingCollegeStatus(now))
+            assertFalse(early.copy(state = GameState.OFF).awaitingCollegeStatus(now))
+            val final = early.copy(state = GameState.POST, status = "Final")
+            assertFalse(final.awaitingCollegeStatus(now))
+            assertEquals(listOf(final, live, pending, next), SportsEventListings.allEvents(input - early + final, day, day + 24 * hour, now))
+            assertTrue(SportsEventListings.tvNow(input, now).isEmpty())
+        }
+    }
+
     private fun event(id: String, at: Long, state: GameState, source: EventSource = EventSource.ESPN) =
         SportsEvent(id, "basketball/nba", at, true, state, id, null, null, null, null, source = source)
 

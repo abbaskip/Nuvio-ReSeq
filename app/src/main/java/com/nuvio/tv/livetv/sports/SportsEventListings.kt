@@ -14,6 +14,8 @@ internal object SportsEventListings {
     private val competition = Regex("""\b(?:vs?|versus|round|match|matchplay|race|racing|grand prix|qualifying|practice|sprint|finals?|semifinal|quarterfinal|session|day [1-5]|test|odi|t20i?|innings|tournament|championships?|fight|bout|stage|heats?|wrestlemania|smackdown|wwe (?:raw|nxt)|aew (?:dynamite|collision))\b""")
 
     private val editorial = Regex("""\b(?:sports betting|betting (?:odds|picks|tips)|panel (?:show|discussion)|studio (?:show|discussion)|news and analysis|previews? and predictions?|latest odds|live from the studio)\b""")
+    private val qualifier = Regex("""\bqualifiers?\b""")
+    private val listingPrefix = Regex("""^(?:live |women s |womens |men s |mens )+""")
 
     /** A live talk show, a replay and a channel currently on air are not live competitions. */
     fun liveCompetition(p: com.nuvio.tv.livetv.model.EpgProgram): Boolean {
@@ -27,7 +29,13 @@ internal object SportsEventListings {
         if (!live) return false
         if (competition.containsMatchIn(title + description)) return true
         val pairing = title.substringAfter("live ").trim()
-        return " at " in pairing && !pairing.startsWith("at ") && !pairing.startsWith("coverage at ")
+        if (" at " in pairing && !pairing.startsWith("at ") && !pairing.startsWith("coverage at ")) return true
+        val competitionNode = SportsTaxonomy.classifyProgramme(p.title, p.description) ?: return false
+        if (qualifier.containsMatchIn(title)) return true
+        // Some guides give a live match only its competition's name, without teams or a round.
+        val name = title.trim().replaceFirst(listingPrefix, "").removeSuffix(" live")
+        return competitionNode.parentId != null && competitionNode.children.isEmpty() &&
+            competitionNode.aliases.any { it.term == name }
     }
     fun guideAiring(event: SportsEvent, now: Long): SportsEvent? {
         val end = event.endMs ?: event.guideHits.maxOfOrNull { it.second.stopMs }

@@ -72,6 +72,27 @@ class CalendarGuideTest {
         assertTrue(practice.title.contains("Practice 3"))
     }
 
+    @Test fun wholeSportFollowsIncludeGuideOnlyCompetitionsWithoutAnOfficialFixture() {
+        fun unmatched(title: String): SportsEvent {
+            val event = airing(title)
+            assertTrue(title, SportsEventListings.liveCompetition(event.guideHits.single().second))
+            val node = requireNotNull(SportsTaxonomy.classifyProgramme(title, null)) { title }
+            return event.copy(leagueId = "taxonomy/" + node.id)
+        }
+        val cricket = unmatched("Live: Women's WBBL Cricket")
+        val wbblGame = unmatched("Live: Women's Big Bash : Hobart Hurricanes v Sydney Thunder")
+        val football = unmatched("Live: FIFA U17 World Cup Qualifiers")
+        val youthGame = unmatched("Live: FIFA U-17 World Cup Qatar 2026™ - Serbia v Honduras")
+        val racing = unmatched("Live: Formula 1 Grand Prix Qualifying")
+        fun rows(vararg ids: String) = CalendarLocalListings.sportRows(listOf(cricket, wbblGame, football, youthGame, racing), emptyMap(),
+            SportsFollows(pins = ids.toList()), SportsSettings(), emptyMap(), mapOf("visible" to "Sports TV"),
+            CalendarWindow(day, day), zone).map { it.contentId }.toSet()
+        assertEquals(setOf(cricket.id, wbblGame.id), rows("guide/cricket"))
+        assertEquals(setOf(football.id, youthGame.id), rows("taxonomy/football-soccer"))
+        assertEquals(setOf(racing.id), rows("taxonomy/motorsport"))
+        assertTrue(rows("soccer/eng.1", "cricket/8048").isEmpty())
+    }
+
     @Test fun aChannelMatchAloneDoesNotPutAnotherTeamsGameInMySports() {
         val other = game.copy(id = "other", away = side("Chicago Bulls"), home = side("Miami Heat"))
         val events = listOf(game, other)

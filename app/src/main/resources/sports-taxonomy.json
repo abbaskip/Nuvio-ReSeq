@@ -820,6 +820,10 @@
               "display": "WBBL",
               "synonyms": [
                 {
+                  "term": "Women's Big Bash",
+                  "match": "standalone"
+                },
+                {
                   "term": "Women's Big Bash League",
                   "match": "standalone"
                 },
@@ -4039,6 +4043,14 @@
               "id": "football-soccer.international-football.fifa-u-17-world-cup",
               "display": "FIFA U-17 World Cup",
               "synonyms": [
+                {
+                  "term": "FIFA U17 World Cup",
+                  "match": "standalone"
+                },
+                {
+                  "term": "U17 FIFA World Cup",
+                  "match": "standalone"
+                },
                 {
                   "term": "FIFA U-17 World Cup",
                   "match": "standalone"

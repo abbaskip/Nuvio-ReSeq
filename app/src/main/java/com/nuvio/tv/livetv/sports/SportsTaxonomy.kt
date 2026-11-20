@@ -152,6 +152,12 @@ internal object SportsTaxonomy {
             Node("legacy/" + it.name, it.label, "legacy/" + it.name, null, emptyList(), emptyList())
         }
     }
+    val wholeSportLeagues by lazy {
+        browseRoots.map { root ->
+            val group = if (root.id.startsWith("legacy/")) Sport.valueOf(root.id.substringAfter('/')) else sport(root.id)
+            League("taxonomy/" + root.id, group, "All " + root.label, root.label, kind = LeagueKind.EVENT, guideOnly = true)
+        }
+    }
     val leagueById by lazy { leagues.associateBy { it.id } }
     val leagues by lazy { nodes.map { n -> League("taxonomy/" + n.id, sport(n.sportId),
         if (n.children.isEmpty()) n.label else "All " + n.label, n.label,
@@ -159,6 +165,10 @@ internal object SportsTaxonomy {
     /** Following a taxonomy sport/category also includes its child competitions. */
     fun includesLeague(followedId: String, candidateId: String, savedLeague: League? = null): Boolean {
         if (SportsCompetitions.same(followedId, candidateId)) return true
+        if (followedId.startsWith("taxonomy/legacy/")) {
+            val candidate = SportsCatalog.league(candidateId) ?: savedLeague
+            return candidate?.sport?.name == followedId.substringAfterLast('/')
+        }
         if (followedId == InternationalCricket.LEAGUE_ID)
             return (SportsCatalog.league(candidateId) ?: savedLeague)?.let(InternationalCricket::includes) == true
         val parent = when {

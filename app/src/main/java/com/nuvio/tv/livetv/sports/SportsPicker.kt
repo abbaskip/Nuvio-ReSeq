@@ -77,7 +77,10 @@ fun SportsPicker(viewModel: SportsViewModel, backLabel: String = "Sports", onClo
     val sports = remember(settings, extra) { SportsCatalog.sportsOrder(settings) }
     var sport by rememberSaveable { mutableStateOf(sports.firstOrNull()?.name ?: Sport.FOOTBALL.name) }
     val leagues = remember(sport, settings, extra) {
-        SportsCatalog.browseOrdered(settings).filter { it.sport.name == sport }
+        val whole = SportsTaxonomy.wholeSportLeagues.filter {
+            it.sport.name == sport && SportsTaxonomy.enabled(it.id.removePrefix("taxonomy/"), settings.excludedSportsNodes)
+        }.map { it.copy(id = SportsCompetitions.canonicalId(it.id)) }
+        (whole + SportsCatalog.browseOrdered(settings).filter { it.sport.name == sport }).distinctBy { it.id }
     }
     var leagueId by rememberSaveable(sport) { mutableStateOf(leagues.firstOrNull()?.id) }
     val league = leagues.firstOrNull { leagueId?.let { id -> SportsCompetitions.same(it.id, id) } == true } ?: leagues.firstOrNull()

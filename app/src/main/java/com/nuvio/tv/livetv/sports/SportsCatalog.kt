@@ -291,6 +291,7 @@ object SportsCatalog {
 
     private val byId by lazy { (leagues + SportsProviderCoverage.leagues).associateBy { it.id } }
     fun league(id: String): League? = byId[id] ?: extraById[id] ?: SportsTaxonomy.leagueById[id]
+        ?: if (id.startsWith("taxonomy/legacy/")) SportsTaxonomy.wholeSportLeagues.firstOrNull { it.id == id } else null
 
     /**
      * Leagues that arrive with the data rather than being built in: non-league football from

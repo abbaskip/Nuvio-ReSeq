@@ -13,6 +13,7 @@ import zipfile
 
 from signed_rollback import (BASE, DATA, NATIVE, PACKAGE, PLAIN, Provider, adb, cold, controls,
                              label, read_rows, seed_settings, select, tree, write_preferences)
+from guest_failure import capture
 
 OUT = Path("build/stream-picker")
 COUNT = 98_000
@@ -106,6 +107,7 @@ def exercise(server, count):
             # The target log records only match counts. Keep other app and system logs private.
             log = adb("logcat", "-d", "-s", "IptvVod:D")
             print("Match counts:", re.findall(r"kind=MOVIE .*?candidates=\d+ matches=\d+", log)[-5:])
+            capture(OUT)
             raise AssertionError(output)
         samples.append({"fixture": index, "ms": int(observed[1]),
                         "lastMissMs": int(re.search(r"previousMissMs=(\d+)", output)[1])})

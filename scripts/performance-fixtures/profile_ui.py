@@ -9,6 +9,7 @@ from threading import Thread
 import time
 
 from signed_rollback import BASE, DATA, PACKAGE, adb, cold, key, label, rail_settings, seed_settings, tree
+from guest_failure import capture
 
 OUT = Path("build/profile-ui")
 TITLE = "Profile measurement series"
@@ -48,7 +49,9 @@ class Fixture(BaseHTTPRequestHandler):
 
 
 def sample(mode, profile):
-    if "package:"+PACKAGE in adb("shell", "pm", "list", "packages", PACKAGE).splitlines():
+    installed = "package:"+PACKAGE in adb("shell", "pm", "list", "packages", PACKAGE).splitlines()
+    if installed:
+        adb("shell", "am", "force-stop", PACKAGE)
         assert "Success" in adb("uninstall", PACKAGE)
     shutil.copyfile(OUT/"metadata"/(profile + ".dm"), OUT/"base.dm")
     assert "Success" in adb("install-multiple", str(OUT/"base.apk"), str(OUT/"base.dm"))
@@ -57,7 +60,13 @@ def sample(mode, profile):
     uid = adb("shell", "stat", "-c", "%u", DATA)
     seed_settings(uid, {}, {"addon_preferences": {"installed_addon_urls_ordered": json.dumps([ADDON])}})
     cold()
-    assert any(label(n) in ("Home", "Search", "Library") for n in tree().iter("node"))
+    for _ in range(3):
+        nodes = list(tree().iter("node"))
+        if any(n.get("package") == PACKAGE and label(n) in ("Home", "Search", "Library") for n in nodes):
+            break
+        cold()
+    else:
+        raise AssertionError("The signed app's Home was not ready for a timed entry")
     if mode == "settings":
         rail_settings(activate=False)
     observed = adb("shell", "am", "instrument", "-w", "-e", "mode", mode,
@@ -102,6 +111,9 @@ def main():
                 print(index, profile, pair[profile], flush=True)
             samples.append(pair)
             (OUT/"samples.json").write_text(json.dumps(samples, indent=2))
+    except Exception:
+        capture(OUT)
+        raise
     finally:
         server.shutdown()
         server.server_close()

@@ -80,7 +80,9 @@ jobs:
         if: always()
         with:
           name: profile-ui-${{ matrix.screen }}
-          path: build/profile-ui/samples.json
+          path: |
+            build/profile-ui/samples.json
+            build/profile-ui/failure.*
 
   stream-picker:
     if: inputs.workload == 'stream-picker'
@@ -126,7 +128,9 @@ jobs:
         if: always()
         with:
           name: stream-picker-${{ matrix.first-size }}-first
-          path: build/stream-picker/results.json
+          path: |
+            build/stream-picker/results.json
+            build/stream-picker/failure.*
 
   guide-delivery:
     if: contains(fromJSON('["guide-delivery","shared-features","college-restart","channel-shortcut"]'), inputs.workload)
@@ -171,6 +175,7 @@ jobs:
           path: |
             build/guide-delivery/results.json
             build/shared-features/results.json
+            build/shared-features/*/failure.*
             build/sports-actions/
 
   profile-reference:

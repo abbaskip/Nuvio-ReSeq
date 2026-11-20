@@ -9,6 +9,7 @@ import time
 from urllib.parse import urlsplit
 
 from signed_rollback import BASE, DATA, PACKAGE, adb, cold, key, label, point, rail_item, seed_settings, select, tree
+from guest_failure import capture
 
 OUT = Path("build/shared-features")
 SERIES = "tt9900998"
@@ -210,6 +211,7 @@ def main():
             try:
                 RESULT[name] = check()
             except Exception as exc:
+                capture(OUT / name)
                 allowed = ("Home","Search","TV Mix","Next random episode","Remix","Play",MIX,FILM,
                            "Guest episode","Fixture addon","Released","Advanced Discover","Show results","Reset",
                            "No results","IMDb","Sources","Default","Addons")

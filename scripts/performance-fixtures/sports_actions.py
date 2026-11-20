@@ -87,7 +87,8 @@ def publish(uid, start, confirmed, *, unseen=False):
 
 def open_sports():
     cold()
-    tap("Sports Hub")
+    key("BACK", .8)
+    select("Sports Hub")
     wait(lambda: any("All Events" in v or "TV Now" in v for v in visible()), "Sports Hub did not open")
     tap("All Events")
 
@@ -220,7 +221,8 @@ def shortcuts(uid):
     publish(uid,start,False)
     try:
         cold()
-        tap("Live TV")
+        key("BACK", .8)
+        select("Live TV")
         wait(lambda: all(ch in " ".join(visible()) for ch in CHANNELS), "Guide did not load both fixture channels")
         # The guide initially focuses the group chooser. Right moves into its channel grid.
         key("DPAD_RIGHT", .7)

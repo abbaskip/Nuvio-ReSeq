@@ -873,7 +873,6 @@
 
     <!-- MDBListSettingsScreen -->
     <string name="mdblist_title">تقييمات MDBList</string>
-    <string name="mdblist_subtitle">ضبط التقييمات الخارجية المعروضة في تفاصيل العمل</string>
     <string name="mdblist_enable_title">تفعيل تقييمات MDBList</string>
     <string name="mdblist_enable_subtitle">جلب التقييمات من مصادر خارجية في شاشة التفاصيل</string>
     <string name="mdblist_api_key_title">مفتاح API</string>

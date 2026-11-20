@@ -843,7 +843,6 @@
 
     <!-- MDBListSettingsScreen -->
     <string name="mdblist_title">Rating MDBList</string>
-    <string name="mdblist_subtitle">Konfigurasikan rating eksternal yang ditampilkan di hero detail</string>
     <string name="mdblist_enable_title">Aktifkan Rating MDBList</string>
     <string name="mdblist_enable_subtitle">Ambil rating dari penyedia eksternal di layar detail metadata</string>
     <string name="mdblist_api_key_title">Kunci API</string>

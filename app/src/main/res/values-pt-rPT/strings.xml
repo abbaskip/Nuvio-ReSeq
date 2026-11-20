@@ -845,7 +845,6 @@
     <string name="layout_reset_default">Repor predefinições</string>
     <string name="layout_custom">Personalizado</string>
     <string name="mdblist_title">Classificações MDBList</string>
-    <string name="mdblist_subtitle">Configura as classificações externas apresentadas no destaque dos detalhes</string>
     <string name="mdblist_enable_title">Ativar classificações MDBList</string>
     <string name="mdblist_enable_subtitle">Procurar classificações de fornecedores externos no ecrã de detalhes dos metadados</string>
     <string name="mdblist_api_key_title">Chave API</string>

@@ -122,6 +122,14 @@ class CatalogOrderTvMixTest {
         assertEquals(keys(vm), homeOrder())
     }
 
+    private fun CatalogOrderViewModel.moveUp(key: String) = moveOne(key, -1)
+    private fun CatalogOrderViewModel.moveDown(key: String) = moveOne(key, 1)
+    private fun CatalogOrderViewModel.moveOne(key: String, direction: Int) {
+        enterMoveMode(key)
+        moveDuringDrag(key, direction)
+        confirmMove()
+    }
+
     private fun keys(vm: CatalogOrderViewModel) = vm.uiState.value.items.map { it.key }
 
     private fun model(): CatalogOrderViewModel {

@@ -123,7 +123,7 @@ def projection(profile):
     members = document.get("presentedMembers") or {}
     visible = {identifier: value for identifier, value in members.items()
                if value.get("inProgress") or value.get("nextUp")}
-    ((movie, _), (series, _), *finished) = library(profile)
+    (movie, _), (series, _) = library(profile)[:2]
     pause = (visible.get(movie) or {}).get("inProgress") or {}
     next_ep = (visible.get(series) or {}).get("nextUp") or {}
     final_episodes = {identifier for identifier, records in document.get("completed", {}).items()
@@ -155,21 +155,51 @@ def home_row(profile):
     return {"order": sorted(cards, key=cards.get), "focus": focused or (labels or ["unlabelled control"])[0]}
 
 
-def exercise(phase, layout, profile, server, result):
+def open_profile(profile):
     cold()
     wait(lambda: set(NAMES.values()) <= {label(n) for n in tree().iter("node")}, "Profile picker missing")
     focus_text(NAMES[profile])
     key("DPAD_CENTER")
-    rows = library(profile)
-    (movie, movie_name), (series, _), *finished = rows
-    initial = wait(lambda: home_row(profile), "Home did not show both positive controls", 65)
-    result["home"] = initial
 
-    expected = {"visible": sorted((movie, series)), "finalesInHistory": sorted(i for i, _ in finished),
-                "resumeMs": profile * 60_000 + 420_000, "durationMs": DURATION,
-                "nextVideo": series + ":1:2", "nextEpisode": 2}
+
+def expected_projection(profile):
+    (movie, _), (series, _), *finished = library(profile)
+    return {"visible": sorted((movie, series)), "finalesInHistory": sorted(i for i, _ in finished),
+            "resumeMs": profile * 60_000 + 420_000, "durationMs": DURATION,
+            "nextVideo": series + ":1:2", "nextEpisode": 2}
+
+
+def entry_focus():
+    nodes = list(tree().iter("node"))
+    labels = {label(n) for n in nodes}
+    if not labels.intersection(set(TITLES.values()) | {SHELF["name"]}):
+        return None
+    current = next((n for n in nodes if n.get("focused") == "true"), None)
+    if current is None:
+        return None
+    focused = [label(n) for n in current.iter() if label(n)]
+    return next((n for n in focused if n in TITLES.values() or n == SHELF["name"]), (focused or ["unlabelled control"])[0])
+
+
+def exercise(phase, layout, profile, server, result):
+    open_profile(profile)
+    rows = library(profile)
+    movie_name = rows[0][1]
+    expected = expected_projection(profile)
     wait(lambda: projection(profile) == expected, "The settled library or episode mapping did not match", 75)
     result["projection"] = expected
+    result["entryFocus"] = wait(entry_focus, "Home did not focus a visible control", 45)
+    # A newly inserted row above the focused catalogue can be outside the lazy list's viewport.
+    for moves in range(4):
+        initial = home_row(profile)
+        if initial:
+            break
+        if moves < 3:
+            key("DPAD_UP", .7)
+    else:
+        raise AssertionError("Home did not show both positive controls above the catalogue")
+    result["upPressesToRow"] = moves
+    result["home"] = initial
     assert all(identifier in server.requested for identifier, _ in rows[1:]), "Missing fixture episode metadata"
     assert initial["order"] == [name for _, name in rows[:2]]
     (OUT / f"{phase}-{layout}-{profile}.png").write_bytes(run("adb", "-s", SERIAL, "exec-out", "screencap", "-p"))
@@ -219,6 +249,13 @@ def main():
             evidence[phase] = {"apkSha256": digest, "uid": uid, "cases": cases}
             if phase == "beta":
                 seed_history(uid)
+                # Qualify a populated installation. Let the release build its own durable history
+                # for both users before measuring cold entry, including its normal first focus.
+                for profile in NAMES:
+                    open_profile(profile)
+                    expected = expected_projection(profile)
+                    wait(lambda: projection(profile) == expected, "Could not populate signed beta profile", 90)
+                    print("Populated beta profile", profile, expected, flush=True)
             else:
                 assert uid == evidence["beta"]["uid"] and projection(2), "Upgrade lost the beta profile"
             for layout in LAYOUTS:
@@ -241,8 +278,9 @@ def main():
                                                     or re.search("Continue Watching|Go to details|Profile|Who.s watching|Chapter|Synopsis", v, re.I)]
                     (OUT / "results.json").write_text(json.dumps(evidence, indent=2))
                     print(phase, case, result, flush=True)
-                    if "error" in result:
-                        raise AssertionError(f"{phase} {case}: {result['error']}")
+        failures = [(phase, case, value["error"]) for phase, run_result in evidence.items()
+                    for case, value in run_result["cases"].items() if "error" in value]
+        assert not failures, failures
         assert evidence["beta"]["cases"] == evidence["integration"]["cases"], "Signed builds differed"
     finally:
         server.shutdown()

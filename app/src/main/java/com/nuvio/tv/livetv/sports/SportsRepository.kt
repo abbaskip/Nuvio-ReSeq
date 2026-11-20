@@ -460,6 +460,21 @@ class SportsRepository @Inject constructor(
             calendar.matches = matches
             calendar.takeSelected()?.let { event ->
                 lookedUp.update { it + ("calendar" to LeagueData(listOf(event), System.currentTimeMillis(), null)) }
+                if (event.guideHits.isNotEmpty()) scope.launch {
+                    val live = prefs.settings.first()
+                    val user = prefs.userState.first()
+                    val sports = settings.value
+                    val channelKeys = event.guideHits.mapTo(HashSet()) { it.first }
+                    val available = visibleSportsChannels(live, user, sports).filter { it.key in channelKeys }.associateBy { it.key }
+                    val confirmed = event.guideHits.mapNotNull { (key, programme) ->
+                        val ch = available[key]?.takeUnless { "${event.id}|$key" in sports.blocked } ?: return@mapNotNull null
+                        ChannelMatch(ch, 100, "Guide: ${programme.title}", programme,
+                            user.channelQuality[key] ?: SportsMatcher.nameQuality(ch.name), false)
+                    }
+                    if (confirmed.isNotEmpty()) _matches.update {
+                        SportsCurrentGuide.mergeMatches(it, emptyMap(), mapOf(event.id to confirmed), sports)
+                    }
+                }
             }
         }
         viewers.update { (it + if (on) 1 else -1).coerceAtLeast(0) }

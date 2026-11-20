@@ -4,6 +4,7 @@ import android.content.Context
 import com.nuvio.tv.core.storage.DatabaseVersions
 import com.nuvio.tv.livetv.data.*
 import com.nuvio.tv.livetv.multiview.liveTvChannelVisibility
+import com.nuvio.tv.livetv.model.EpgProgram
 import com.nuvio.tv.livetv.parental.ParentalControls
 import com.nuvio.tv.livetv.sports.*
 import dagger.Lazy
@@ -123,7 +124,7 @@ internal class CalendarLocalListings @Inject constructor(
                             liveCompetitionsOnly = true, checkCancelled = { job.ensureActive() })
                     }
                 }
-                events += SportsGuideEvents.merge(batch, emptySet())
+                events += batch
                 emit(Airings(names, events.toList()))
             }
         }.onStart { emit(Airings(loading = true)) }.catch { e ->
@@ -202,17 +203,20 @@ internal class CalendarLocalListings @Inject constructor(
                 league(e)?.let { l -> espn.anyNear(e) { other -> league(other)?.let { identities.same(e, other, l, it) } == true } } == true }
             val primary = CricketAustralia.merge(real.filter { it.source != EventSource.CRICKET_AUSTRALIA },
                 real.filter { it.source == EventSource.CRICKET_AUSTRALIA })
-            val broadcasts = mutableMapOf<Pair<String, Long>, String>()
+            val broadcasts = mutableMapOf<Pair<String, Long>, MutableList<Pair<String, EpgProgram>>>()
             val extra = mutableListOf<SportsEvent>()
-            for (air in usable.filter { it.source == EventSource.GUIDE }) {
-                val hit = air.guideHits.firstOrNull { (key, p) -> key in names && SportsEventListings.liveCompetition(p) } ?: continue
+            val liveAirings = usable.filter { it.source == EventSource.GUIDE }.mapNotNull { air ->
+                val hits = air.guideHits.filter { (key, programme) -> key in names && SportsEventListings.liveCompetition(programme) }
+                when { hits.isEmpty() -> null; hits.size == air.guideHits.size -> air; else -> air.copy(guideHits = hits) }
+            }
+            for (air in CalendarLiveBroadcasts.merge(liveAirings)) {
                 val match = (primary.asSequence() + official.asSequence()).firstOrNull { e -> league(e)?.let { l -> l.sport == league(air)?.sport &&
                     SportsEventIdentity.guideCoversFixture(air, e, l) } == true }
                 if (match != null) {
-                    broadcasts.putIfAbsent(match.id to air.startMs.calendarDay(zone), names.getValue(hit.first))
+                    broadcasts.getOrPut(match.id to air.startMs.calendarDay(zone)) { mutableListOf() }.addAll(air.guideHits)
                     if (match !in primary && extra.none { it.id == match.id }) extra += match
                 }
-                else { extra += air; broadcasts[air.id to air.startMs.calendarDay(zone)] = names.getValue(hit.first) }
+                else extra += air
             }
             val result = mutableListOf<CalendarItem>()
             for (event in primary + extra) {
@@ -225,12 +229,14 @@ internal class CalendarLocalListings @Inject constructor(
                     event.broadcastCoverage.firstOrNull { FreeSportsDb.region(it.country) == SportsCatalog.regionOf(settings) }?.name ?:
                     event.broadcasts.firstOrNull()?.takeIf { SportsCatalog.regionOf(settings) == "US" }
                 for (d in maxOf(window.first, days.first)..minOf(window.last, days.last)) {
-                    val channel = broadcasts[event.id to d] ?: regionalChannel
+                    val hits = broadcasts[event.id to d].orEmpty().ifEmpty { event.guideHits }
+                    val channel = hits.firstNotNullOfOrNull { names[it.first] } ?: regionalChannel
+                    val fixture = if (hits === event.guideHits || hits.isEmpty()) event else event.copy(guideHits = hits.distinctBy { it.first to it.second.startMs })
                     val note = if (days.first != days.last) "Day " + (d - days.first + 1) + " · " else ""
                     result += CalendarItem("sport/" + event.id + "/" + d, "sports", event.title.take(240), d, CalendarKind.SPORT,
                         detail = note + (channel ?: "Channel TBC"), time = event.startMs.takeIf { event.hasTime && d == days.first },
                         contentId = event.id, followedTeam = teams.takeIf { it.isNotEmpty() }?.joinToString(" & "),
-                        fixture = event, leagueName = competition?.name, followedSides = followedSides)
+                        fixture = fixture, leagueName = competition?.name, followedSides = followedSides)
                 }
             }
             return result

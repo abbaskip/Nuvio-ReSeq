@@ -166,7 +166,9 @@ fun SportsScreen(
     onChannelMultiview: (String) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onFindInNuvio: () -> Unit = {},
-    viewModel: SportsViewModel = hiltViewModel()
+    viewModel: SportsViewModel = hiltViewModel(),
+    initialEventId: String? = null,
+    onCloseInitialEvent: (() -> Unit)? = null
 ) {
     val follows by viewModel.follows.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -189,7 +191,7 @@ fun SportsScreen(
 
     var day by rememberSaveable { mutableIntStateOf(0) }
     var chip by rememberSaveable { mutableStateOf<String?>(null) }
-    var openId by rememberSaveable { mutableStateOf<String?>(null) }
+    var openId by rememberSaveable(initialEventId) { mutableStateOf(initialEventId) }
     val request = remember(day, chip, openId) { SportsPageRequest(day, chip, openId) }
     val projection by remember(viewModel, request) { viewModel.page(request) }
         .collectAsStateWithLifecycle(initialValue = null)
@@ -260,6 +262,7 @@ fun SportsScreen(
         }
     }
     LaunchedEffect(Unit) {
+        if (initialEventId != null) return@LaunchedEffect
         // Back from watching a game: the highlight goes back on it.
         SportsLaunch.takeFocusEvent()?.let { if (openId == null) { returnTo = it; rowsReturning = true } }
         SportsLaunch.takeOpenEvent()?.let { openId = it }
@@ -354,8 +357,14 @@ fun SportsScreen(
             val computed = projection
             val opened = computed?.opened?.takeIf { it.id == openId }
                 ?: openId?.let { id -> computed?.known?.firstOrNull { it.id == id && it.source != EventSource.GUIDE } }
-            if (openId != null && computed?.request == request && opened == null && computed.known.isNotEmpty()) openId = null
+            if (initialEventId == null && openId != null && computed?.request == request && opened == null && computed.known.isNotEmpty()) openId = null
             when {
+                onCloseInitialEvent != null && opened == null && tableReq == null -> {
+                    BackHandler(onBack = onCloseInitialEvent)
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        LiveText(if (computed == null || loading) "Loading fixture…" else "Fixture details unavailable", color = SportsLook.Dim, size = 16.sp)
+                    }
+                }
                 picker -> SportsPicker(viewModel = viewModel, onClose = { picker = false; returnTo = null; rowsReturning = false; viewModel.repo.markSetUp() })
                 tableReq != null -> {
                     BackHandler { tableReq = null }
@@ -401,7 +410,7 @@ fun SportsScreen(
                     onTable = { tableReq = TableRequest(opened.leagueId, opened.sides.map { it.team.id }.toSet()) },
                     onOpenGame = { ev -> openId = ev.id },
                     onQuickWatch = ::quickWatch,
-                    onClose = { returnTo = opened.id; rowsReturning = true; openId = null }
+                    onClose = onCloseInitialEvent ?: { returnTo = opened.id; rowsReturning = true; openId = null }
                 )
                 else -> SportsHub(
                     events = events,

@@ -330,8 +330,10 @@ private fun PlaybackNavHost(
                 }
             }
         }
-        rootComposable(Screen.Sports.route) {
+        for (sportsRoute in listOf(Screen.Sports.route, Screen.CalendarGame.route)) rootComposable(sportsRoute) { entry ->
             com.nuvio.tv.livetv.sports.SportsScreen(
+                initialEventId = entry.arguments?.getString("eventId"),
+                onCloseInitialEvent = if (sportsRoute == Screen.CalendarGame.route) ({ navController.popBackStack(); Unit }) else null,
                 onChannelMultiview = ::openMultiview,
                 onOpenLive = {
                     com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
@@ -348,10 +350,7 @@ private fun PlaybackNavHost(
         rootComposable(Screen.Calendar.route) {
             com.nuvio.tv.livetv.calendar.CalendarScreen(
                 onDetail = { id, type -> navController.navigate(Screen.Detail.createRoute(id, type)) },
-                onSports = { id ->
-                    com.nuvio.tv.livetv.sports.SportsLaunch.openEvent(id)
-                    navController.navigate(Screen.Sports.route) { launchSingleTop = true }
-                }
+                onSports = { id -> navController.navigate(Screen.CalendarGame.createRoute(id)) { launchSingleTop = true } }
             )
         }
         composable(Screen.OnDemand.route) {

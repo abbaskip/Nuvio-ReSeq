@@ -30,7 +30,7 @@ class CalendarGuideTest {
         assertTrue(live("Live: WWE SmackDown"))
         assertFalse(live("Live at the studio"))
         for (title in listOf("NBA Today", "Live: NBA Pregame", "Live: NBA Highlights", "NFL Live", "Live: World Cup Preview",
-            "Replay: Celtics v Raptors", "NBA: Celtics @ Raptors", "Live: Sports News", "The Crossing"))
+            "Replay: Celtics v Raptors", "NBA: Celtics @ Raptors", "Live: Sports News", "Oregon vs. Michigan State College Football In-Game Live Gameday", "Tennis Channel Live at the Finals", "The Crossing"))
             assertFalse(title, live(title))
     }
 
@@ -46,9 +46,25 @@ class CalendarGuideTest {
             val row = rows(follows, items).single()
             assertEquals(game.id, row.contentId)
             assertEquals("Live Sports", row.detail)
-            assertEquals(game, row.fixture)
+            assertEquals(game.id, row.fixture?.id)
+            assertEquals(air.guideHits, row.fixture?.guideHits)
         }
         assertEquals(air.id, rows(SportsFollows(), listOf(air)).single().contentId)
+    }
+
+    @Test fun simulcastsOfOneFormulaOneSessionKeepTheirChannelsAndOtherSessionsStaySeparate() {
+        fun race(title: String, mins: Int, key: String) = airing("Live: " + title, key).copy(leagueId = "racing/f1",
+            startMs = noon + mins * 60_000, endMs = noon + 90 * 60_000)
+        val slots = listOf(race("FIA Formula One World Championship: Las Vegas P3", 0, "a"),
+            race("Las Vegas F1 GP: Practice 3", 0, "b"), race("Formula 1 Practice 2026", 10, "c"),
+            race("F1 Academy: Race 1", 0, "d"), race("F1 Academy: Race 2", 5, "e"),
+            race("Formula 1 Qualifying", 0, "f"), race("Formula 1 Practice 1", 180, "g"))
+        val merged = CalendarLiveBroadcasts.merge(slots)
+        assertEquals(5, merged.size)
+        val practice = merged.single { it.guideHits.size > 1 }
+        assertEquals(setOf("a", "b", "c"), practice.guideHits.map { it.first }.toSet())
+        assertEquals(noon, practice.startMs)
+        assertTrue(practice.title.contains("Practice 3"))
     }
 
     @Test fun cachedChannelAnnouncementsKeepTheirMarket() {

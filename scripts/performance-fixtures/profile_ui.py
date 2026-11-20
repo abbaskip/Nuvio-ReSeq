@@ -23,7 +23,11 @@ class Fixture(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path.endswith("/manifest.json"):
             payload = {"id": "com.reseq.fixture.profile", "version": "1.0.0", "name": "Profile fixture",
-                       "resources": ["meta", "stream"], "types": ["series"], "idPrefixes": [SERIES], "catalogs": []}
+                       "resources": ["meta", "catalog", "stream"], "types": ["series", "movie"],
+                       "idPrefixes": [SERIES,"tt990100"], "catalogs": [{"type":"movie","id":"local","name":"Guest films"}]}
+        elif "/catalog/movie/" in self.path:
+            payload = {"metas":[{"id":f"tt990100{i}","type":"movie","name":f"Guest film {i}","releaseInfo":"2024"}
+                                for i in range(1,9)]}
         elif "/meta/series/" in self.path:
             payload = {"meta": {"id": SERIES, "type": "series", "name": TITLE,
                        "description": "Controlled series synopsis", "releaseInfo": "2024", "year": 2024,

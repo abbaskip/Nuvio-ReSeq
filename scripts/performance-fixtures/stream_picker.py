@@ -12,7 +12,7 @@ from urllib.parse import unquote, urlsplit
 import zipfile
 
 from signed_rollback import (BASE, DATA, NATIVE, PACKAGE, PLAIN, Provider, adb, cold, controls,
-                             label, read_rows, seed_settings, select, tree)
+                             label, read_rows, seed_settings, select, tree, write_preferences)
 
 OUT = Path("build/stream-picker")
 COUNT = 98_000
@@ -24,7 +24,11 @@ class Library(Provider):
         if api.startswith("/picker-addon/"):
             if api.endswith("/manifest.json"):
                 response = {"id":"com.reseq.picker", "name":"Guest metadata", "version":"1.0.0",
-                            "resources":["meta"], "types":["movie"], "idPrefixes":["tmdb:"], "catalogs":[]}
+                            "resources":["meta","catalog"], "types":["movie"], "idPrefixes":["tmdb:"],
+                            "catalogs":[{"type":"movie","id":"picker","name":"Picker fixtures"}]}
+            elif "/catalog/movie/" in api:
+                response = {"metas":[{"id":f"tmdb:{1000+i}","type":"movie","name":f"Fixture Movie {i:03}",
+                                      "releaseInfo":"2024"} for i in range(1,65)]}
             elif (match := re.search(r"/meta/movie/tmdb:(\d+)\.json", api)):
                 idx = int(match[1]) - 1000
                 response = {"meta":{"id":"tmdb:"+match[1], "type":"movie", "name":f"Fixture Movie {idx:03}",
@@ -73,11 +77,12 @@ def exercise(server, count):
     sources = [dict(id=NATIVE, name="NativeFixture", url="", xtreamServer=BASE,
                     xtreamUsername="fixture", xtreamPassword="fixture", importVod=True, importLive=False),
                dict(id=PLAIN, name="PlainFixture", url=BASE+"/large-picker.m3u", importVod=True)]
-    seed_settings(uid, {"playlists": json.dumps(sources), "on_demand_in_streams": True},
-                  {"addon_preferences":{"installed_addon_urls_ordered":json.dumps([BASE+"/picker-addon"])}})
+    seed_settings(uid, {"playlists": json.dumps(sources), "on_demand_in_streams": True})
     controls()
     select("Update Movies & Series Now")
     rows(count)
+    adb("shell","am","force-stop",PACKAGE)
+    write_preferences(uid, {"addon_preferences":{"installed_addon_urls_ordered":json.dumps([BASE+"/picker-addon"])}})
     samples = []
     for index in (1, 7, 13, 21, 28, 38, 47, 59):
         cold()

@@ -8,7 +8,7 @@ from threading import Thread
 import time
 from urllib.parse import urlsplit
 
-from signed_rollback import BASE, DATA, PACKAGE, adb, cold, key, label, point, seed_settings, tree
+from signed_rollback import BASE, DATA, PACKAGE, adb, cold, key, label, point, rail_item, seed_settings, select, tree
 
 OUT = Path("build/shared-features")
 SERIES = "tt9900998"
@@ -18,6 +18,7 @@ FILM = "Fixture ratings film"
 MIX = "Fixture episode mix"
 ADDON = BASE + "/guest-addon"
 RESULT = {}
+STEP = ""
 
 
 class Fixture(BaseHTTPRequestHandler):
@@ -26,6 +27,8 @@ class Fixture(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
+        group = next((name for name in ("manifest","catalog","meta","stream","screen-media") if name in path),"other")
+        self.server.requests[group] = self.server.requests.get(group,0)+1
         if path.startswith("/screen-media/"):
             self.server.played.add(path.rsplit("/", 1)[-1])
             data = self.server.media
@@ -97,6 +100,8 @@ def playback_state():
 
 
 def series(server):
+    global STEP
+    STEP = "open mix"
     cold()
     for _ in range(12):
         visible = labels()
@@ -110,22 +115,28 @@ def series(server):
                 break
         key("DPAD_DOWN")
     wait_until(lambda: any("Guest episode" in text for text in labels()))
-    assert tap("Remix")
-    wait_until(lambda: "Play" in labels())
-    assert tap("Play")
+    STEP = "choose another episode"
+    select("Remix")
+    wait_until(lambda: any("Guest episode" in text for text in labels()))
+    STEP = "open selected episode"
+    select("Play")
+    STEP = "choose addon stream"
     def choose_source():
         if server.played:
             return True
-        if tap("Guest episode source"):
+        if "Guest episode source" in labels():
+            select("Guest episode source")
             return True
         return False
     wait_until(choose_source, 35)
     def position(expected):
         actual = playback_state()
         return actual if actual and actual[0] == expected else None
+    STEP = "observe playing position"
     first = wait_until(lambda: position("PLAYING"))
     second = wait_until(lambda: (p if (p := position("PLAYING")) and p[1] >= first[1]+600 else None))
     key("MEDIA_PAUSE")
+    STEP = "observe pause and resume"
     paused = wait_until(lambda: position("PAUSED"))
     key("MEDIA_PLAY")
     wait_until(lambda: position("PLAYING"))
@@ -135,6 +146,8 @@ def series(server):
 
 
 def rating():
+    global STEP
+    STEP = "read rating on detail"
     cold()
     adb("shell","am","start","-a","android.intent.action.VIEW","-d","nuvio://movie/"+MOVIE,"-p",PACKAGE)
     wait_until(lambda: any(FILM in text for text in labels()))
@@ -143,15 +156,15 @@ def rating():
 
 
 def discover():
+    global STEP
+    STEP = "open Search from the sidebar"
     cold()
-    for _ in range(12):
-        if tap("Search"):
-            if tap("Advanced Discover"):
-                break
-        if tap("Advanced Discover"):
-            break
-        key("DPAD_LEFT")
+    rail_item("Search")
+    STEP = "open Advanced Discover"
+    wait_until(lambda: "Advanced Discover" in labels())
+    assert tap("Advanced Discover")
     wait_until(lambda: "Show results" in labels())
+    STEP = "render search results"
     assert tap("Show results")
     # A populated grid has actual poster buttons to the right of the filter column.
     def cards():
@@ -184,6 +197,7 @@ def main():
     server = ThreadingHTTPServer(("127.0.0.1",38791),Fixture)
     server.media = Path("build/guide-delivery/live.ts").read_bytes()
     server.played = set()
+    server.requests = {}
     Thread(target=server.serve_forever,daemon=True).start()
     try:
         for name, check in (("tvMixAddonPlayer",lambda:series(server)),("metadataRating",rating),("advancedDiscover",discover)):
@@ -194,7 +208,8 @@ def main():
                            "Guest episode","Fixture addon","Released","Advanced Discover","Show results","Reset",
                            "No results","IMDb","Sources","Default","Addons")
                 visible = labels()
-                RESULT[name] = {"error":str(exc),"visibleMarkers":[a for a in allowed if any(a in item for item in visible)]}
+                RESULT[name] = {"error":str(exc),"step":STEP,"requests":dict(server.requests),
+                                "visibleMarkers":[a for a in allowed if any(a in item for item in visible)]}
             (OUT/"results.json").write_text(json.dumps(RESULT,indent=2))
             print(name, RESULT[name],flush=True)
     finally:

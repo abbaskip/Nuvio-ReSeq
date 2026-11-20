@@ -152,6 +152,10 @@ def seed_settings(uid, live=None, profile_files=None):
         "live_tv": {"playlists": json.dumps(sources)} if live is None else live,
     }
     files.update(profile_files or {})
+    write_preferences(uid, files)
+
+
+def write_preferences(uid, files):
     folder = DATA + "/files/datastore"
     adb("shell", "mkdir", "-p", folder)
     with TemporaryDirectory() as temp:
@@ -195,19 +199,23 @@ def cold():
     time.sleep(5)
 
 
-def rail_settings(activate=True):
+def rail_item(name, activate=True):
     for _ in range(30):
         nodes = list(tree().iter("node"))
         focus = next((n for n in nodes if n.get("focused") == "true"), None)
-        targets = [n for n in nodes if label(n) == "Settings" and point(n)[0] < 300]
-        if focus is not None and point(focus)[0] < 210 and any(label(n) == "Settings" for n in focus.iter()):
+        targets = [n for n in nodes if label(n) == name and point(n)[0] < 300]
+        if focus is not None and point(focus)[0] < 210 and any(label(n) == name for n in focus.iter()):
             if activate:
                 key("DPAD_CENTER", 2)
             return
         direction = "LEFT" if focus is None or point(focus)[0] > 210 or not targets else (
             "DOWN" if point(focus)[1] < point(targets[-1])[1] else "UP")
         key("DPAD_" + direction)
-    raise AssertionError("Settings was unreachable from the launcher")
+    raise AssertionError(name + " was unreachable from the launcher")
+
+
+def rail_settings(activate=True):
+    rail_item("Settings", activate)
 
 
 def controls():

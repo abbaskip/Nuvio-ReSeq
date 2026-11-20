@@ -12,7 +12,7 @@ from urllib.parse import unquote, urlsplit
 import zipfile
 
 from signed_rollback import (BASE, DATA, NATIVE, PACKAGE, PLAIN, Provider, adb, cold, controls,
-                             label, read_rows, seed_settings, select, tree, write_preferences)
+                             label, point, read_rows, seed_settings, select, tree, write_preferences)
 from guest_failure import capture
 
 OUT = Path("build/stream-picker")
@@ -83,20 +83,33 @@ def exercise(server, count):
     select("Update Movies & Series Now")
     rows(count)
     adb("shell","am","force-stop",PACKAGE)
-    write_preferences(uid, {"addon_preferences":{"installed_addon_urls_ordered":json.dumps([BASE+"/picker-addon"])}})
+    write_preferences(uid, {"addon_preferences":{"installed_addon_urls_ordered":json.dumps([BASE+"/picker-addon"])},
+                            "player_settings":{"stream_auto_play_mode":"FIRST_STREAM", "stream_reuse_last_link_enabled":False}})
     samples = []
     for index in (1, 7, 13, 21, 28, 38, 47, 59):
         cold()
         assert any(label(n) in ("Home", "Library", "Search") for n in tree().iter("node"))
-        # UiAutomation executes argv directly. The shell file preserves the spaces
-        # in the normal launcher's content name and the actual selection identity.
         content = f"tmdb:{1000+index}"
-        script = OUT/f"reseq-picker-{index}.sh"
-        script.write_text(f"am start -n {PACKAGE}/com.nuvio.tv.launcher.AppIconDefault "
-                          f"--es launchMode stream --es contentType movie --es contentId {content} "
-                          f"--es videoId {content} --es name 'Fixture Movie {index:03}'\n")
-        adb("push", str(script), "/data/local/tmp/"+script.name)
+        adb("shell","am","start","-a","android.intent.action.VIEW","-d","nuvio://movie/"+content,"-p",PACKAGE)
+        title = f"Fixture Movie {index:03}"
+        deadline = time.monotonic()+35
+        while time.monotonic()<deadline and not any(title in label(n) for n in tree().iter("node")):
+            time.sleep(.2)
+        # The fixture enables the public manual override so a normal Play or launcher-autoplay
+        # cannot tune the film before there is a selectable stream screen to time.
+        adb("shell","input","keyevent","--longpress","KEYCODE_DPAD_CENTER")
+        manual = None
+        for _ in range(6):
+            manual = next((n for n in tree().iter("node") if label(n).casefold()=="play manually"), None)
+            if manual is not None:
+                break
+            time.sleep(.25)
+        if manual is None:
+            capture(OUT)
+            raise AssertionError("The title's Play manually action was not offered")
+        x, y = point(manual)
         output = adb("shell", "am", "instrument", "-w", "-e", "index", str(index),
+                     "-e","x",str(x),"-e","y",str(y),
                      "com.nuvio.perf.observer/.PickerObserver")
         observed = re.search(r"pickerMs=(\d+)", output)
         if not observed:

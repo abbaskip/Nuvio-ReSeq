@@ -52,13 +52,21 @@ def sample(mode, profile):
     installed = "package:"+PACKAGE in adb("shell", "pm", "list", "packages", PACKAGE).splitlines()
     if installed:
         adb("shell", "am", "force-stop", PACKAGE)
-        assert "Success" in adb("uninstall", PACKAGE)
+        assert "Success" in adb("shell","cmd","package","compile","--reset",PACKAGE)
     shutil.copyfile(OUT/"metadata"/(profile + ".dm"), OUT/"base.dm")
-    assert "Success" in adb("install-multiple", str(OUT/"base.apk"), str(OUT/"base.dm"))
+    assert "Success" in adb("install-multiple", "-r", str(OUT/"base.apk"), str(OUT/"base.dm"))
     art = adb("shell", "pm", "art", "dump", PACKAGE)
     assert "status=speed-profile" in art and "reason=install-dm" in art, art[:500]
-    uid = adb("shell", "stat", "-c", "%u", DATA)
-    seed_settings(uid, {}, {"addon_preferences": {"installed_addon_urls_ordered": json.dumps([ADDON])}})
+    assert "Success" in adb("shell","cmd","package","compile","-f","-m","speed-profile",PACKAGE)
+    # All three values came from the original DEX on the matching API/ABI guest.
+    # Guard against timing an update which retained its old compiled code.
+    sizes={"all":66989872, "com.nuvio.tv.ui.screens.settings":61207344, "com.nuvio.tv.ui.screens.detail":64841304}
+    base=adb("shell","pm","path",PACKAGE).split("package:")[1].rsplit("/",1)[0]
+    size=int(adb("shell","stat","-c","%s",base+"/oat/x86_64/base.odex"))
+    assert abs(size-sizes[profile])<512*1024 and min(sizes,key=lambda k:abs(sizes[k]-size))==profile, (profile,size)
+    if not installed:
+        uid = adb("shell", "stat", "-c", "%u", DATA)
+        seed_settings(uid, {}, {"addon_preferences": {"installed_addon_urls_ordered": json.dumps([ADDON])}})
     cold()
     for _ in range(3):
         nodes = list(tree().iter("node"))
@@ -81,7 +89,7 @@ def sample(mode, profile):
     counts = re.search(r"Total frames rendered:\s*(\d+)", frame_data)
     p95 = re.search(r"95th percentile:\s*(\d+)ms", frame_data)
     assert counts and int(counts[1]) > 0 and p95
-    return {"entryMs": int(measurement[1]), "frames": int(counts[1]), "dpadP95Ms": int(p95[1])}
+    return {"entryMs": int(measurement[1]), "frames": int(counts[1]), "dpadP95Ms": int(p95[1]), "odexBytes":size}
 
 
 def main():

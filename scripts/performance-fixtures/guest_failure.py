@@ -15,5 +15,7 @@ def capture(output: Path):
     crash = adb("logcat","-d","-b","crash","-t","100")
     summary = {"packages":sorted({n.get("package","") for n in nodes}), "nodes":len(nodes),
                "failures":re.findall(r"(?:java|android|kotlin)[\w.]+(?:Exception|Error)\b", crash)[-8:],
-               "appHasProcess":PACKAGE in adb("shell","ps","-A","-o","NAME").splitlines()}
+               "appHasProcess":PACKAGE in adb("shell","ps","-A","-o","NAME").splitlines(),
+               "fileErrors":re.findall(r"(?:EACCES|ENOENT|ENOSPC|EIO|EROFS|ENOTDIR|EDQUOT)\b", crash)[-5:],
+               "dataSpace":adb("shell","df","-k","/data").splitlines()[-1]}
     (output/"failure.json").write_text(json.dumps(summary,indent=2))

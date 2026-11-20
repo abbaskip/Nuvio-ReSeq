@@ -13,12 +13,15 @@ import java.io.InputStream;
 public final class PickerObserver extends Instrumentation {
     private static final String APP = "io.github.abbaskip.nuvioreseq";
     private int index;
+    private int x, y;
     private String mode;
 
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
         mode = arguments.getString("mode", "stream");
         index = Integer.parseInt(arguments.getString("index", "1"));
+        x = Integer.parseInt(arguments.getString("x", "0"));
+        y = Integer.parseInt(arguments.getString("y", "0"));
         start();
     }
 
@@ -67,7 +70,8 @@ public final class PickerObserver extends Instrumentation {
             String command;
             switch (mode) {
                 case "stream":
-                    command = "sh /data/local/tmp/reseq-picker-" + index + ".sh";
+                    if (x <= 0 || y <= 0 || x >= 1920 || y >= 1080) throw new IllegalArgumentException("Missing Play manually control");
+                    command = "input tap " + x + " " + y;
                     break;
                 case "settings":
                     command = "input keyevent KEYCODE_DPAD_CENTER";

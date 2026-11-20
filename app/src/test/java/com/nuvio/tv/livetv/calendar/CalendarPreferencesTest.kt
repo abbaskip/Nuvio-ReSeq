@@ -29,11 +29,12 @@ class CalendarPreferencesTest {
         try {
             val preferences = CalendarPreferences(stores)
             val defaults = CalendarSelection(CalendarMode.DAY, CalendarFilter.ALL)
-            val saved = CalendarSelection(CalendarMode.MONTH, CalendarFilter.SPORTS)
+            val saved = CalendarSelection(CalendarMode.MONTH, CalendarFilter.SPORTS, allSports = true)
             assertEquals(defaults, preferences.selection(71).first())
             preferences.setMode(71, CalendarMode.WEEK)
             preferences.setMode(71, saved.mode)
             preferences.setFilter(71, saved.filter)
+            preferences.setAllSports(71, true)
             withTimeout(5_000) { preferences.selection(71).first { it == saved } }
 
             val reopened = CalendarPreferences(stores)

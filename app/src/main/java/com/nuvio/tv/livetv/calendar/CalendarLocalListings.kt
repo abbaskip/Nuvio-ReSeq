@@ -42,10 +42,13 @@ internal class CalendarLocalListings @Inject constructor(
     private data class Schedule(val events: List<SportsEvent>, val loading: Boolean, val failed: Boolean = false)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, day: StateFlow<Long>, force: Boolean, overview: Boolean = false): Flow<CalendarDisplay> =
+    fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, day: StateFlow<Long>, force: Boolean, overview: Boolean = false,
+        allSports: Boolean = false): Flow<CalendarDisplay> =
         combine(prefs.get().sportsMineJson(profile), prefs.get().sportsSettingsJson) { raw, options ->
             SportsFollows.fromJson(raw) to SportsSettings.fromJson(options)
         }.distinctUntilChanged().flatMapLatest { (follows, settings) ->
+            if (!allSports && follows.isEmpty && follows.reminders.isEmpty())
+                return@flatMapLatest flowOf(CalendarDisplay(status = CalendarStatus.READY))
             flow {
                 val now = System.currentTimeMillis()
                 val saved = fixtures.get().read(now)
@@ -72,10 +75,10 @@ internal class CalendarLocalListings @Inject constructor(
                 }
                 val guideDays = if (overview) flowOf(day.value) else day
                 val tv = guideDays.flatMapLatest { date ->
-                    airings(guideLeagues, settings, date, zone, now, if (overview) window else CalendarWindow(date, date))
+                    airings(guideLeagues, settings, follows.words, date, zone, now, if (overview) window else CalendarWindow(date, date))
                 }
                 emitAll(combine(provider, daily, tv) { games, dated, guide ->
-                    val rows = sportRows(games.events + dated.events + guide.events + saved.events, byId, follows, settings, saved.channels, guide.names, window, zone)
+                    val rows = sportRows(games.events + dated.events + guide.events + saved.events, byId, follows, settings, saved.channels, guide.names, window, zone, allSports)
                     val status = when {
                         games.loading || dated.loading || guide.loading -> CalendarStatus.UPDATING
                         games.failed || dated.failed || guide.failed -> CalendarStatus.RETRY
@@ -100,7 +103,7 @@ internal class CalendarLocalListings @Inject constructor(
     }.conflate()
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    private fun airings(leagues: List<League>, sports: SportsSettings, day: Long, zone: ZoneId, now: Long, window: CalendarWindow): Flow<Airings> {
+    private fun airings(leagues: List<League>, sports: SportsSettings, words: List<String>, day: Long, zone: ZoneId, now: Long, window: CalendarWindow): Flow<Airings> {
         if (!context.getDatabasePath(DatabaseVersions.guide.fileName).isFile) return flowOf(Airings())
         val preferences = prefs.get()
         return combine(channels.get().displayChannels, preferences.userState, preferences.settings, ParentalControls.unlocked) {
@@ -120,7 +123,7 @@ internal class CalendarLocalListings @Inject constructor(
                 val batch = withContext(BackgroundWork.reads) {
                     val job = currentCoroutineContext()
                     guideReads.withLock {
-                        matcher.guideEvents(midnight(date), midnight(date + 1), leagues, emptyList(), visible, offset, now, selection = sports,
+                        matcher.guideEvents(midnight(date), midnight(date + 1), leagues, words, visible, offset, now, selection = sports,
                             liveCompetitionsOnly = true, checkCancelled = { job.ensureActive() })
                     }
                 }
@@ -176,13 +179,12 @@ internal class CalendarLocalListings @Inject constructor(
         }
 
         internal fun sportRows(events: List<SportsEvent>, leagues: Map<String, League>, follows: SportsFollows, settings: SportsSettings,
-            matches: Map<String, List<String>>, names: Map<String, String>, window: CalendarWindow, zone: ZoneId): List<CalendarItem> {
+            matches: Map<String, List<String>>, names: Map<String, String>, window: CalendarWindow, zone: ZoneId, allSports: Boolean = false): List<CalendarItem> {
             val byId = events.distinctBy { it.id }
-            val leagueFollows = mutableMapOf<String, Boolean>()
+            val membership = mutableMapOf<String, Boolean>()
             fun league(event: SportsEvent) = leagues[event.leagueId] ?: SportsCatalog.league(event.leagueId)
             fun followed(event: SportsEvent) = follows.teams.filter { it.playsIn(event, league(event)) }
-            fun wanted(event: SportsEvent) = leagueFollows.getOrPut(event.leagueId) { follows.followsLeague(event.leagueId, league(event)) } ||
-                followed(event).isNotEmpty()
+            fun wanted(event: SportsEvent) = membership.getOrPut(event.id) { isMine(event, follows, league(event)) }
             fun span(event: SportsEvent): LongRange {
                 val first = event.startMs.calendarDay(zone)
                 val multi = !event.hasTime || league(event)?.sport == Sport.CRICKET
@@ -196,7 +198,7 @@ internal class CalendarLocalListings @Inject constructor(
                     !(e.state == GameState.OFF && e.status.orEmpty().lowercase().let { "cancel" in it || "postpon" in it || "abandon" in it })
             }
             val official = usable.filter { it.source != EventSource.GUIDE }
-            val reported = official.filter { wanted(it) || matches[it.id].orEmpty().any(names::containsKey) }
+            val reported = official.filter { wanted(it) || (allSports && matches[it.id].orEmpty().any(names::containsKey)) }
             val identities = SportsEventIdentity.Round()
             val espn = SportsFixtureIndex(reported.filter { it.source == EventSource.ESPN })
             val real = reported.filterNot { e -> e.source == EventSource.THESPORTSDB &&
@@ -209,9 +211,14 @@ internal class CalendarLocalListings @Inject constructor(
                 val hits = air.guideHits.filter { (key, programme) -> key in names && SportsEventListings.liveCompetition(programme) }
                 when { hits.isEmpty() -> null; hits.size == air.guideHits.size -> air; else -> air.copy(guideHits = hits) }
             }
+            // A simulcast can carry a followed name or reminder on just one channel.
+            val followedHits = if (allSports) emptySet() else liveAirings.filter(::wanted).flatMap { it.guideHits }.toHashSet()
             for (air in CalendarLiveBroadcasts.merge(liveAirings)) {
-                val match = (primary.asSequence() + official.asSequence()).firstOrNull { e -> league(e)?.let { l -> l.sport == league(air)?.sport &&
+                val keepAiring = allSports || air.guideHits.any { it in followedHits }
+                val candidates = if (keepAiring) primary.asSequence() + official.asSequence() else primary.asSequence()
+                val match = candidates.firstOrNull { e -> league(e)?.let { l -> l.sport == league(air)?.sport &&
                     SportsEventIdentity.guideCoversFixture(air, e, l) } == true }
+                if (!keepAiring && match == null) continue
                 if (match != null) {
                     broadcasts.getOrPut(match.id to air.startMs.calendarDay(zone)) { mutableListOf() }.addAll(air.guideHits)
                     if (match !in primary && extra.none { it.id == match.id }) extra += match

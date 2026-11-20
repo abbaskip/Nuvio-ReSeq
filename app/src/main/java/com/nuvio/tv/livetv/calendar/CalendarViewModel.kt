@@ -33,11 +33,11 @@ internal class CalendarViewModel @Inject constructor(
         repository.pages(profile, region, zone, window.first, playing, refresh, window.days).flowOn(BackgroundWork.quiet)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, selected: StateFlow<Long>, overview: Boolean): Flow<CalendarDisplay> =
+    fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, selected: StateFlow<Long>, overview: Boolean, allSports: Boolean): Flow<CalendarDisplay> =
         playing.distinctUntilChanged().flatMapLatest { busy ->
             if (busy) flowOf(CalendarDisplay(status = CalendarStatus.PLAYBACK))
             else refresh.onStart { emit(false) }.flatMapLatest { force ->
-                repository.sports(profile, zone, window, selected, force, overview).catch { e ->
+                repository.sports(profile, zone, window, selected, force, overview, allSports).catch { e ->
                     if (e is CancellationException) throw e
                     emit(CalendarDisplay(status = CalendarStatus.RETRY))
                 }

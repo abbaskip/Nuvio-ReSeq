@@ -161,7 +161,7 @@ class CalendarSportsTest {
             val source = CalendarLocalListings(context, Lazy { prefs }, Lazy { store }, Lazy { db }, Lazy { cache }, Lazy { schedules })
             var last = CalendarDisplay()
             val result = kotlinx.coroutines.withTimeoutOrNull(5_000) {
-                source.sports(7, zone, CalendarWindow(day, day + 6), MutableStateFlow(day), false, overview = true)
+                source.sports(7, zone, CalendarWindow(day, day + 6), MutableStateFlow(day), false, overview = true, allSports = true)
                     .first { rows -> last = rows; rows.items.map { it.day }.toSet().size == 2 }
             } ?: throw AssertionError("Last Calendar state " + last.status + ", items " + last.items.map { it.title })
             assertEquals(setOf(day, day + 1), result.items.map { it.day }.toSet())

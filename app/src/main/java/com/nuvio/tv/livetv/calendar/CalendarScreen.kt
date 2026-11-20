@@ -70,7 +70,9 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
         LaunchedEffect(sportDay, selected) { sportDay.value = selected }
         val overview = mode != CalendarMode.DAY
         val sports = if (filter == CalendarFilter.ALL || filter == CalendarFilter.SPORTS) {
-            val flow = remember(active, zone, window, sportDay, overview) { viewModel.sports(active, zone, window, sportDay, overview) }
+            val flow = remember(active, zone, window, sportDay, overview, selection.allSports) {
+                viewModel.sports(active, zone, window, sportDay, overview, selection.allSports)
+            }
             key(flow) { flow.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
         } else CalendarDisplay(status = CalendarStatus.READY)
         val grouped = remember(releases.items, sports.items, window, filter) {
@@ -199,7 +201,11 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
                 retry -> LiveText(stringResource(R.string.calendar_retry), size = 11.sp, color = theme.TextSecondary)
                 loading -> LiveText(stringResource(R.string.calendar_loading), size = 11.sp, color = theme.TextSecondary)
                 rows.isEmpty() && mode != CalendarMode.WEEK -> LiveText(
-                    stringResource(if (filter == CalendarFilter.SPORTS) R.string.calendar_empty_sports else R.string.calendar_empty),
+                    stringResource(when {
+                        filter != CalendarFilter.SPORTS -> R.string.calendar_empty
+                        selection.allSports -> R.string.calendar_empty_sports
+                        else -> R.string.calendar_empty_my_sports
+                    }),
                     size = 12.sp, color = theme.TextSecondary)
             }
             when (mode) {
@@ -209,6 +215,13 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
             }
         }
         if (choosingSports) ChooseSportsDialog(viewModel = hiltViewModel(),
+            calendarOptions = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    LiveText(stringResource(R.string.calendar_sports_source), size = 14.sp)
+                    CalendarPill(stringResource(R.string.calendar_my_sports), !selection.allSports) { viewModel.preferences.setAllSports(active, false) }
+                    CalendarPill(stringResource(R.string.calendar_all_enabled), selection.allSports) { viewModel.preferences.setAllSports(active, true) }
+                }
+            },
             onTeams = { choosingSports = false; onFollowTeams() },
             onClose = { choosingSports = false })
     }

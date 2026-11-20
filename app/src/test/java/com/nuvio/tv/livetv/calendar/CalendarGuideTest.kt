@@ -37,19 +37,24 @@ class CalendarGuideTest {
     @Test fun aVerifiedLiveAiringOnAVisibleChannelJoinsItsFixtureOnlyOnce() {
         val air = airing("Live: Boston Celtics at Toronto Raptors")
         val items = listOf(game, air, airing("Live: NBA highlights"), airing("NBA Today"), airing("Live: Wizards at Heat", "hidden"))
-        fun rows(follows: SportsFollows, events: List<SportsEvent>) = CalendarLocalListings.sportRows(events, mapOf(nba.id to nba),
-            follows, SportsSettings(region = "AU"), emptyMap(), mapOf("visible" to "Live Sports"), CalendarWindow(day, day), zone)
+        fun rows(follows: SportsFollows, events: List<SportsEvent>, allSports: Boolean = false) = CalendarLocalListings.sportRows(events, mapOf(nba.id to nba),
+            follows, SportsSettings(region = "AU"), emptyMap(), mapOf("visible" to "Live Sports"), CalendarWindow(day, day), zone, allSports)
         val followed = SportsFollows(leagues = setOf(nba.id))
         assertEquals("Channel TBC", rows(followed, listOf(game)).single().detail)
         assertTrue(rows(SportsFollows(), listOf(game)).isEmpty())
         for (follows in listOf(followed, SportsFollows())) {
-            val row = rows(follows, items).single()
+            val row = rows(follows, items, allSports = true).single()
             assertEquals(game.id, row.contentId)
             assertEquals("Live Sports", row.detail)
             assertEquals(game.id, row.fixture?.id)
             assertEquals(air.guideHits, row.fixture?.guideHits)
         }
-        assertEquals(air.id, rows(SportsFollows(), listOf(air)).single().contentId)
+        assertTrue(rows(SportsFollows(), items).isEmpty())
+        assertEquals(game.id, rows(followed, items).single().contentId)
+        assertEquals(air.id, rows(SportsFollows(), listOf(air), allSports = true).single().contentId)
+        val named = air.copy(word = "Celtics")
+        assertEquals(game.id, rows(SportsFollows(words = listOf("Celtics")), listOf(named, game)).single().contentId)
+        assertTrue(rows(SportsFollows(words = listOf("Rugby")), listOf(named, game)).isEmpty())
     }
 
     @Test fun simulcastsOfOneFormulaOneSessionKeepTheirChannelsAndOtherSessionsStaySeparate() {
@@ -65,6 +70,18 @@ class CalendarGuideTest {
         assertEquals(setOf("a", "b", "c"), practice.guideHits.map { it.first }.toSet())
         assertEquals(noon, practice.startMs)
         assertTrue(practice.title.contains("Practice 3"))
+    }
+
+    @Test fun aChannelMatchAloneDoesNotPutAnotherTeamsGameInMySports() {
+        val other = game.copy(id = "other", away = side("Chicago Bulls"), home = side("Miami Heat"))
+        val events = listOf(game, other)
+        fun rows(follows: SportsFollows, all: Boolean = false) = CalendarLocalListings.sportRows(events, mapOf(nba.id to nba),
+            follows, SportsSettings(), events.associate { it.id to listOf("visible") }, mapOf("visible" to "Sports TV"),
+            CalendarWindow(day, day), zone, all).map { it.contentId }
+        val team = FollowedTeam(nba.id, "Boston Celtics", "Boston Celtics", "BOS", null, null)
+        assertEquals(listOf(game.id), rows(SportsFollows(teams = listOf(team))))
+        assertEquals(listOf(other.id), rows(SportsFollows(reminders = listOf(SportsReminder(other.id, other.title, noon)))))
+        assertEquals(setOf(game.id, other.id), rows(SportsFollows(), all = true).toSet())
     }
 
     @Test fun cachedChannelAnnouncementsKeepTheirMarket() {

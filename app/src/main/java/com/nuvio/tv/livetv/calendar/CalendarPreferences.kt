@@ -20,12 +20,13 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-internal data class CalendarSelection(val mode: CalendarMode, val filter: CalendarFilter)
+internal data class CalendarSelection(val mode: CalendarMode, val filter: CalendarFilter, val allSports: Boolean = false)
 
 @Singleton
 internal class CalendarPreferences @Inject constructor(private val stores: ProfileDataStoreFactory) {
     private val modeKey = stringPreferencesKey("view")
     private val filterKey = stringPreferencesKey("filter")
+    private val allSportsKey = androidx.datastore.preferences.core.booleanPreferencesKey("all_sports")
     // Enqueue remote clicks in order and let an edit finish even if Calendar closes immediately.
     private val writes = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -37,14 +38,17 @@ internal class CalendarPreferences @Inject constructor(private val stores: Profi
     }.map { prefs ->
         CalendarSelection(
             CalendarMode.entries.firstOrNull { it.name == prefs[modeKey] } ?: CalendarMode.DAY,
-            CalendarFilter.entries.firstOrNull { it.name == prefs[filterKey] } ?: CalendarFilter.ALL
+            CalendarFilter.entries.firstOrNull { it.name == prefs[filterKey] } ?: CalendarFilter.ALL,
+            prefs[allSportsKey] ?: false
         )
     }.distinctUntilChanged().flowOn(Dispatchers.IO)
 
     fun setMode(profile: Int, mode: CalendarMode) = write(profile, modeKey, mode.name)
     fun setFilter(profile: Int, filter: CalendarFilter) = write(profile, filterKey, filter.name)
 
-    private fun write(profile: Int, key: Preferences.Key<String>, value: String) {
+    fun setAllSports(profile: Int, enabled: Boolean) = write(profile, allSportsKey, enabled)
+
+    private fun <T> write(profile: Int, key: Preferences.Key<T>, value: T) {
         writes.launch {
             try {
                 stores.get(profile, "calendar_display").edit { it[key] = value }

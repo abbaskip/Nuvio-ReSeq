@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.sp
 import com.nuvio.tv.livetv.ui.LiveText
 
 @Composable
-internal fun ChooseSportsDialog(viewModel: SportsViewModel, onTeams: () -> Unit, onClose: () -> Unit) {
+internal fun ChooseSportsDialog(viewModel: SportsViewModel, onTeams: () -> Unit, calendarOptions: (@Composable () -> Unit)? = null, onClose: () -> Unit) {
     var geminiSetup by rememberSaveable { mutableStateOf(false) }
     if (geminiSetup) {
         SportsGeminiKeyDialog(viewModel.gemini, onClose)
@@ -31,13 +31,14 @@ internal fun ChooseSportsDialog(viewModel: SportsViewModel, onTeams: () -> Unit,
             if (!settings.backgroundGeminiMatching && !viewModel.gemini.configured()) geminiSetup = true
             else viewModel.repo.updateSettings { it.copy(backgroundGeminiMatching = !it.backgroundGeminiMatching) }
         },
-        onTeams = onTeams, onGemini = { geminiSetup = true },
+        onTeams = onTeams, onGemini = { geminiSetup = true }, calendarOptions = calendarOptions,
         onClose = { viewModel.repo.markSetUp(); onClose() })
 }
 
 @Composable
 private fun SportsPreferencesDialog(excluded: Set<String>, region: String, onRegion: (String) -> Unit, onToggle: (String) -> Unit,
-    geminiMatching: Boolean, onToggleGemini: () -> Unit, onTeams: () -> Unit, onGemini: () -> Unit, onClose: () -> Unit) {
+    geminiMatching: Boolean, onToggleGemini: () -> Unit, onTeams: () -> Unit, onGemini: () -> Unit,
+    calendarOptions: (@Composable () -> Unit)?, onClose: () -> Unit) {
     var regionOpen by remember { mutableStateOf(false) }
     var parentId by remember { mutableStateOf<String?>(null) }
     val parent = parentId?.let(SportsTaxonomy.byId::get)
@@ -66,6 +67,7 @@ private fun SportsPreferencesDialog(excluded: Set<String>, region: String, onReg
                 if (parent == null) SportsPill("Region", onClick = { regionOpen = true })
             }
             if (parent == null) {
+                calendarOptions?.invoke()
                 SportsPill("Gemini guide matching: " + if (geminiMatching) "On" else "Off", onClick = onToggleGemini)
                 LiveText("Sends uncertain event and programme text to Google using your key. Up to 12 requests/hour and 40 per 24 hours per device. Google project charges may apply.", size = 12.sp, maxLines = 3)
             }

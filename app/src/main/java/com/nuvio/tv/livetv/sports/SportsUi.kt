@@ -68,9 +68,9 @@ internal fun endEstimate(ev: SportsEvent): Long {
 }
 
 /** A followed team plays, a league you follow, a name you follow, or a reminder you set. */
-internal fun isMine(ev: SportsEvent, f: SportsFollows): Boolean =
-    f.followsLeague(ev.leagueId) || ev.word != null ||
-        f.teams.any { it.playsIn(ev) } ||
+internal fun isMine(ev: SportsEvent, f: SportsFollows, league: League? = null): Boolean =
+    f.followsLeague(ev.leagueId, league) || (ev.word != null && f.words.any { it.equals(ev.word, ignoreCase = true) }) ||
+        f.teams.any { it.playsIn(ev, league) } ||
         f.reminders.any { it.eventId == ev.id }
 
 // Flag artwork: https://flagcdn.com (Flagpedia / Wikimedia Commons).

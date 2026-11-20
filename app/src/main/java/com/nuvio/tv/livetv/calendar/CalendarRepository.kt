@@ -113,8 +113,8 @@ internal class CalendarRepository @Inject constructor(
         Inputs(watchedIds, movies.distinctBy { it.key }, entries != null, artwork)
     } ?: throw IOException("Calendar inputs unavailable")
 
-    fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, day: StateFlow<Long>, force: Boolean, overview: Boolean = false) =
-        local.get().sports(profile, zone, window, day, force, overview)
+    fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, day: StateFlow<Long>, force: Boolean, overview: Boolean, allSports: Boolean) =
+        local.get().sports(profile, zone, window, day, force, overview, allSports)
 
     fun selectFixture(item: CalendarItem) { item.fixture?.let { local.get().select(it) } }
 

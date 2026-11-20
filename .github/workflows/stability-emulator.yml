@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, storage-pressure, profile-sources, sports-delivery, profile-cost, release-profile-cost]
+        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, profile-sources, sports-delivery, profile-cost, release-profile-cost]
       review_ref:
         description: 'Integration or bisect commit for follow-up measurements'
         type: string
@@ -276,7 +276,7 @@ jobs:
           if-no-files-found: warn
 
   rollback:
-    if: inputs.workload == 'rollback' || inputs.workload == 'storage-pressure'
+    if: inputs.workload == 'rollback' || inputs.workload == 'rollback-play' || inputs.workload == 'storage-pressure'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -308,7 +308,7 @@ jobs:
           profile: tv_1080p
           ram-size: 2048M
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
-          script: python3 -u scripts/performance-fixtures/${{ inputs.workload == 'storage-pressure' && 'storage_pressure.py' || 'signed_rollback.py' }}
+          script: python3 -u scripts/performance-fixtures/${{ inputs.workload == 'storage-pressure' && 'storage_pressure.py' || inputs.workload == 'rollback-play' && 'signed_rollback.py --play-window' || 'signed_rollback.py' }}
       - uses: actions/upload-artifact@v6
         if: always()
         with:

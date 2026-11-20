@@ -18,7 +18,7 @@ from urllib.parse import parse_qs, urlsplit
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "baselineprofile/fixtures"))
 sys.path.insert(0, str(ROOT / "scripts"))
-from server import BASE, Web
+from server import BASE, CLIP, Web
 from prepare_release_apks import certificate
 
 PACKAGE = "io.github.abbaskip.nuvioreseq"
@@ -58,6 +58,18 @@ class Provider(Web):
 
     def do_GET(self):
         url = urlsplit(self.path)
+        if url.path == "/feature.mp4" or url.path.startswith("/movie/"):
+            plain = url.path == "/feature.mp4"
+            if plain and self.headers.get("X-QA") != "fixture":
+                self.send_error(403)
+                return
+            type(self).requests["plainMedia" if plain else "nativeMedia"] += 1
+            self.send_response(200)
+            self.send_header("Content-Type", "video/mp4")
+            self.send_header("Content-Length", str(len(CLIP)))
+            self.end_headers()
+            self.wfile.write(CLIP)
+            return
         if url.path == "/player_api.php":
             request = parse_qs(url.query).get("action", ["account"])[0]
             type(self).requests[request if re.fullmatch("[a-z_]+", request) else "other"] += 1
@@ -293,6 +305,36 @@ def view_native():
     raise AssertionError("The signed app did not display the saved native shelf")
 
 
+def attempt_shelf_play(title, media_key):
+    def tap(text, allow_prefix=False):
+        for node in tree().iter("node"):
+            value = label(node)
+            if value == text or (allow_prefix and value.startswith(text)):
+                x, y = point(node)
+                adb("shell", "input", "tap", str(x), str(y))
+                return True
+        return False
+
+    before = Provider.requests[media_key]
+    assert tap("Open IPTV On Demand library")
+    for _ in range(8):
+        if tap(title, allow_prefix=True):
+            break
+        key("DPAD_DOWN", .12)
+    else:
+        return {"cardVisible":False, "providerPlayed":False}
+    play = False
+    for _ in range(4):
+        if tap("Play", allow_prefix=True):
+            play = True
+            break
+    for _ in range(20):
+        if Provider.requests[media_key] > before:
+            break
+        time.sleep(.3)
+    return {"cardVisible":True, "selectedPlay":play, "providerPlayed":Provider.requests[media_key] > before}
+
+
 def exercise():
     OUT.mkdir(parents=True, exist_ok=True)
     apks = signed_apks()
@@ -327,11 +369,25 @@ def exercise():
         candidate = snapshot("candidate")
         assert candidate["nativeSha256"] == initial["nativeSha256"]
         assert candidate["plainTitles"] == 2
+        probe_play = "--play-window" in sys.argv
+        if probe_play:
+            controls()
+            result = attempt_shelf_play("Offline Feature", "plainMedia")
+            record("candidatePlainPlaybackControl", result)
+            assert result["providerPlayed"], result
 
         Provider.online = False
         assert install(apks, "10.11", "-r", "-d") == uid
         record("lowerVersionInstalled", True)
         controls()
+        if probe_play:
+            result = attempt_shelf_play("Offline Feature", "plainMedia")
+            record("lowerBetaTransientPlainPlayback", result)
+            controls()
+            native_play = attempt_shelf_play("Fixture Movie 001", "nativeMedia")
+            record("lowerBetaExistingNativePlayback", native_play)
+            assert native_play["providerPlayed"], native_play
+            controls()
         view_native()
         record("lowerBetaOfflineNativeShelfDisplayed", True)
         time.sleep(27)  # Allow the older release's normal 20-second catalogue maintenance.

@@ -67,42 +67,30 @@ class DefaultAllocatorNativeTest {
         val arenaBaseAddress = fieldBase.get(null) as Long
         val arenaEndAddress = fieldEnd.get(null) as Long
 
-        // If JNI is not available (e.g. running on JVM / non-Android environment), skip test
-        if (arenaBaseAddress == 0L) {
-            return
+        assertTrue("Native arena must be present on the instrumented TV", arenaBaseAddress != 0L)
+        val capacity = ((arenaEndAddress - arenaBaseAddress) / segmentSize).toInt()
+        assertTrue("The arena uses 64 to 512 chunks", capacity in 64..512)
+        val pool = DefaultAllocatorNative::class.java.getDeclaredField("arenaPool").run {
+            isAccessible = true
+            get(null) as java.util.Queue<*>
         }
+        val available = pool.size
+        assertTrue("Arena should have free chunks", available in 1..capacity)
 
-        // Exhaust the Arena pool (capacity is 512 chunks)
-        val arenaAllocations = (1..512).map {
-            val alloc = DefaultAllocatorNative.createAllocation(segmentSize)
-            assertNotNull("Allocation should succeed", alloc)
-            assertTrue("Should belong to Arena pool", alloc!!.nativeHandle in arenaBaseAddress until arenaEndAddress)
-            alloc
+        val owned = mutableListOf<Allocation>()
+        fun allocate(): Allocation = requireNotNull(DefaultAllocatorNative.createAllocation(segmentSize)).also { owned.add(it) }
+        try {
+            repeat(available) {
+                assertTrue("Expected an arena chunk", allocate().nativeHandle in arenaBaseAddress until arenaEndAddress)
+            }
+            assertTrue("Overflow must use a dynamic allocation", allocate().nativeHandle !in arenaBaseAddress until arenaEndAddress)
+            val returned = owned.removeAt(0)
+            val address = returned.nativeHandle
+            DefaultAllocatorNative.freeAllocation(returned)
+            assertEquals("Expected the returned arena chunk", address, allocate().nativeHandle)
+        } finally {
+            owned.forEach(DefaultAllocatorNative::freeAllocation)
         }
-
-        // Allocate one more 64 KB segment. This should overflow to dynamic allocation path
-        val dynamicAlloc = DefaultAllocatorNative.createAllocation(segmentSize)
-        assertNotNull("Overflow allocation should succeed", dynamicAlloc)
-        assertTrue(
-            "Overflow allocation must NOT belong to Arena pool",
-            dynamicAlloc!!.nativeHandle < arenaBaseAddress || dynamicAlloc.nativeHandle >= arenaEndAddress
-        )
-
-        // Free one Arena allocation to replenish the pool
-        val firstArenaAlloc = arenaAllocations[0]
-        DefaultAllocatorNative.freeAllocation(firstArenaAlloc)
-
-        // Allocate again; it should be fetched from the replenished Arena pool
-        val recycledAlloc = DefaultAllocatorNative.createAllocation(segmentSize)
-        assertNotNull("Recycled allocation should succeed", recycledAlloc)
-        assertTrue(
-            "Recycled allocation should belong to Arena pool",
-            recycledAlloc!!.nativeHandle in arenaBaseAddress until arenaEndAddress
-        )
-
-        // Clean up everything
-        arenaAllocations.drop(1).forEach { DefaultAllocatorNative.freeAllocation(it) }
-        DefaultAllocatorNative.freeAllocation(recycledAlloc)
-        DefaultAllocatorNative.freeAllocation(dynamicAlloc)
+        assertEquals("Restore the pool for subsequent tests", available, pool.size)
     }
 }

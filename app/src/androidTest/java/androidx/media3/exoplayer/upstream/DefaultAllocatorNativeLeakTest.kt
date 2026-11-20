@@ -98,6 +98,28 @@ class DefaultAllocatorNativeLeakTest {
     }
 
 
+    @Test
+    fun lateNodeReleaseAndSubsequentPlaybackUseTheirOwnBufferTargets() {
+        val size = 65536
+        val allocator = DefaultAllocator(true, size, 0, true)
+        val first = allocator.allocate()
+        val last = allocator.allocate()
+        fun node(allocation: Allocation, next: Allocator.AllocationNode?) = object : Allocator.AllocationNode {
+            override fun getAllocation() = allocation
+            override fun next() = next
+        }
+        allocator.reset()
+        allocator.release(node(first, node(last, null)))
+        org.junit.Assert.assertEquals(0, allocator.memoryFootprint)
+
+        allocator.setTargetBufferSize(size)
+        val active = allocator.allocate()
+        allocator.release(active)
+        org.junit.Assert.assertEquals(size, allocator.availableBytes)
+        allocator.reset()
+        org.junit.Assert.assertEquals(0, allocator.memoryFootprint)
+    }
+
     private fun runGc() {
         for (i in 0..3) {
             Runtime.getRuntime().gc()

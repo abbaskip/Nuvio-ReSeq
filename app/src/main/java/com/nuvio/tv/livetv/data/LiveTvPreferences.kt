@@ -797,20 +797,26 @@ class LiveTvPreferences @Inject constructor(
         }
     }
 
-    suspend fun removeReminder(channelKey: String, startMs: Long) {
+    val guideReminders: Flow<Pair<Int, List<Reminder>>> =
+        kotlinx.coroutines.flow.combine(store.data, profileManager.activeProfileId) { p, id -> id to p[my(Keys.reminders, id)] }
+            .distinctUntilChanged().map { (id, raw) -> id to decodeReminders(raw) }
+
+    suspend fun removeReminder(channelKey: String, startMs: Long, profileId: Int = currentProfile) {
         store.edit { p ->
-            p[my(Keys.reminders)] = encodeReminders(
-                decodeReminders(p[my(Keys.reminders)]).filterNot { it.channelKey == channelKey && it.startMs == startMs }
+            val key = my(Keys.reminders, profileId)
+            p[key] = encodeReminders(
+                decodeReminders(p[key]).filterNot { it.channelKey == channelKey && it.startMs == startMs }
             )
         }
     }
 
     /** Drops reminders for shows that started more than [graceMs] ago. */
-    suspend fun pruneReminders(now: Long, graceMs: Long = 30 * 60_000L) {
+    suspend fun pruneReminders(now: Long, graceMs: Long = 30 * 60_000L, profileId: Int = currentProfile) {
         store.edit { p ->
-            val cur = decodeReminders(p[my(Keys.reminders)])
+            val key = my(Keys.reminders, profileId)
+            val cur = decodeReminders(p[key])
             val kept = cur.filter { it.startMs + graceMs > now }
-            if (kept.size != cur.size) p[my(Keys.reminders)] = encodeReminders(kept)
+            if (kept.size != cur.size) p[key] = encodeReminders(kept)
         }
     }
 

@@ -28,7 +28,10 @@ internal class MultiviewLifecycle<T>(
 
 /** One in-memory entry intent. Restored/deep-linked routes always return to the guide. */
 internal object MultiviewRouteAccess {
-    private var requested = false
-    fun request() { requested = true }
-    fun take(): Boolean = requested.also { requested = false }
+    data class Request(val channelKey: String?)
+
+    private var pending: Request? = null
+    fun request(channelKey: String? = null) { pending = Request(channelKey) }
+    fun takeRequest(): Request? = pending.also { pending = null }
+    fun take(): Boolean = takeRequest() != null
 }

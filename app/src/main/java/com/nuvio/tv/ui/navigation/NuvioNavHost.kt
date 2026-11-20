@@ -190,6 +190,11 @@ private fun PlaybackNavHost(
         return from.startsWith("player/") && to.startsWith("stream/")
     }
 
+    fun openMultiview(channelKey: String?) {
+        com.nuvio.tv.livetv.multiview.MultiviewRouteAccess.request(channelKey)
+        navController.navigate(Screen.Multiview.route) { launchSingleTop = true }
+    }
+
     fun openPartyMedia(media: PartyMedia) {
         if (navController.currentDestination?.route?.startsWith("player/") == true) navController.popBackStack()
         navController.navigate(
@@ -298,10 +303,7 @@ private fun PlaybackNavHost(
                 viewModel = vm,
                 onOpenFullscreen = { com.nuvio.tv.livetv.ui.LiveTvFullscreen.request() },
                 onOpenSettings = { navController.navigate(Screen.LiveTvSettings.route) },
-                onMultiview = {
-                    com.nuvio.tv.livetv.multiview.MultiviewRouteAccess.request()
-                    navController.navigate(Screen.Multiview.route) { launchSingleTop = true }
-                },
+                onMultiview = ::openMultiview,
                 onReturnToSports = {
                     if (!navController.popBackStack(Screen.Sports.route, inclusive = false)) {
                         navController.navigate(Screen.Sports.route) {
@@ -314,11 +316,12 @@ private fun PlaybackNavHost(
             )
         }
         composable(Screen.Multiview.route) { entry ->
-            val permitted = androidx.compose.runtime.remember(entry) {
-                com.nuvio.tv.livetv.multiview.MultiviewRouteAccess.take()
+            val request = androidx.compose.runtime.remember(entry) {
+                com.nuvio.tv.livetv.multiview.MultiviewRouteAccess.takeRequest()
             }
-            if (permitted) {
-                com.nuvio.tv.livetv.multiview.MultiviewScreen(onBack = { navController.popBackStack() })
+            if (request != null) {
+                com.nuvio.tv.livetv.multiview.MultiviewScreen(onBack = { navController.popBackStack() },
+                    initialChannelKey = request.channelKey)
             } else {
                 androidx.compose.runtime.LaunchedEffect(entry) {
                     navController.navigate(Screen.LiveTv.route) {
@@ -330,6 +333,7 @@ private fun PlaybackNavHost(
         }
         rootComposable(Screen.Sports.route, withInset = !liveFullscreen) {
             com.nuvio.tv.livetv.sports.SportsScreen(
+                onChannelMultiview = ::openMultiview,
                 onOpenLive = {
                     com.nuvio.tv.livetv.ui.LiveTvFullscreen.request()
                     navController.navigate(Screen.LiveTv.route) { launchSingleTop = true }

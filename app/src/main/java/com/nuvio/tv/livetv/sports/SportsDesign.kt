@@ -827,6 +827,7 @@ internal fun GameHeaderBands(ev: SportsEvent, hideScores: Boolean) {
  * (SHOWING IT, or MAYBE with the reason when highlighted), the picture quality, and the show's
  * progress along the bottom.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun SportsChannelRow(
     m: ChannelMatch,
@@ -838,6 +839,7 @@ internal fun SportsChannelRow(
     eventStartMs: Long? = null,
     use24h: Boolean = false,
     paused: Boolean = false,
+    onLongClick: () -> Unit,
     onClick: () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -850,7 +852,8 @@ internal fun SportsChannelRow(
             .height(56.dp)
             .sportsFrame(focused, false, accent, radius = 12.dp)
             .onFocusChanged { focused = it.isFocused }
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+            .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
+                onLongClickLabel = "Channel options", onLongClick = onLongClick, onClick = onClick)
     ) {
         Row(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(

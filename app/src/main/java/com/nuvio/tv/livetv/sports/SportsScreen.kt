@@ -84,6 +84,7 @@ import com.nuvio.tv.livetv.ui.drawThemeGlow
 import com.nuvio.tv.livetv.ui.formatClock
 import com.nuvio.tv.ui.theme.NuvioTheme
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.input.key.Key
@@ -162,6 +163,7 @@ fun SportsScreen(
     /** Live TV is playing the picked channel: open it full screen. */
     onOpenLive: () -> Unit,
     onOpenGuide: () -> Unit = onOpenLive,
+    onChannelMultiview: (String) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onFindInNuvio: () -> Unit = {},
     viewModel: SportsViewModel = hiltViewModel()
@@ -392,6 +394,7 @@ fun SportsScreen(
                     previewFocus = previewFocus.takeIf { videoOn && previewState.hasPreviewContent },
                     viewModel = viewModel,
                     onChoose = { m -> choose(opened, m) },
+                    onChannelMultiview = onChannelMultiview,
                     onFromStart = { m -> fromStart(opened, m) },
                     onFix = { fixFor = opened },
                     onTable = { tableReq = TableRequest(opened.leagueId, opened.sides.map { it.team.id }.toSet()) },
@@ -456,6 +459,13 @@ fun SportsScreen(
     }
     if (previewOptions) com.nuvio.tv.livetv.ui.LiveDialog(onDismiss = { previewOptions = false }) {
         SportsMenuRow("Stop playback") { viewModel.playback.stop(); previewOptions = false }
+        val channel = viewModel.playback.playingChannel
+        if (channel != null && previewState.channelKey == channel.key && previewState.catchupTitle == null) {
+            SportsMenuRow(stringResource(R.string.open_in_multiview)) {
+                previewOptions = false
+                onChannelMultiview(channel.key)
+            }
+        }
         SportsMenuRow("Cancel") { previewOptions = false }
     }
     if (sportsPreferences) SportsPreferencesDialog(settings.excludedSportsNodes,
@@ -1188,6 +1198,7 @@ private fun GamePage(
     previewFocus: FocusRequester?,
     viewModel: SportsViewModel,
     onChoose: (ChannelMatch) -> Unit,
+    onChannelMultiview: (String) -> Unit,
     onFromStart: (ChannelMatch) -> Unit,
     onFix: () -> Unit,
     /** OK on the Table panel: the league's whole table. */
@@ -1242,6 +1253,23 @@ private fun GamePage(
     val sides = ev.ordered(sport)
     val showScore = ev.hasScore && !settings.hideScores
     val first = remember(ev.id) { FocusRequester() }
+    val channelList = rememberLazyListState()
+    var menuChannel by remember(ev.id) { mutableStateOf<LiveChannel?>(null) }
+    var returnChannelKey by rememberSaveable(ev.id) { mutableStateOf<String?>(null) }
+    val returnFocus = remember(ev.id) { FocusRequester() }
+    menuChannel?.let { channel ->
+        com.nuvio.tv.livetv.ui.LiveDialog(onDismiss = { menuChannel = null }) {
+            val action = remember { FocusRequester() }
+            LiveText(channel.name, size = 18.sp, weight = FontWeight.Bold)
+            SportsMenuRow(stringResource(R.string.open_in_multiview), Modifier.focusRequester(action)) {
+                menuChannel = null
+                returnChannelKey = channel.key
+                onChannelMultiview(channel.key)
+            }
+            SportsMenuRow("Cancel") { menuChannel = null }
+            LaunchedEffect(Unit) { action.requestFocus() }
+        }
+    }
     var askRecord by remember(ev.id) { mutableStateOf(false) }
     if (askRecord) {
         val pad by viewModel.recordPadding.collectAsStateWithLifecycle()
@@ -1254,8 +1282,23 @@ private fun GamePage(
     val firstAction = remember(ev.id) { FocusRequester() }
     val plays = rememberScoringPlays(ev, settings.hideScores, viewModel)
     LaunchedEffect(ev.id) {
+        if (returnChannelKey != null) return@LaunchedEffect
         delay(120)
         runCatching { if (matches.isNotEmpty()) first.requestFocus() else firstAction.requestFocus() }
+    }
+    val returnIndex = returnChannelKey?.let { key -> matches.indexOfFirst { it.channel.key == key } } ?: -1
+    LaunchedEffect(returnChannelKey, returnIndex) {
+        if (returnChannelKey == null) return@LaunchedEffect
+        owner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            if (returnIndex < 0) {
+                runCatching { firstAction.requestFocus() }
+            } else {
+                channelList.scrollToItem(returnIndex)
+                androidx.compose.runtime.snapshotFlow { channelList.layoutInfo.visibleItemsInfo.any { it.index == returnIndex } }
+                    .first { it }
+                if (returnFocus.requestFocus()) returnChannelKey = null
+            }
+        }
     }
 
     // More about the game, in the space under it all (see SportsGameExtras), and before it
@@ -1284,6 +1327,7 @@ private fun GamePage(
             matches.isNotEmpty() -> LazyColumn(
                 // Two channels showing (the rest scroll), so the panels underneath stay on screen.
                 Modifier.heightIn(max = 126.dp).keepFocusWhileHeld(horizontal = false),
+                state = channelList,
                 verticalArrangement = Arrangement.spacedBy(7.dp),
                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
             ) {
@@ -1296,12 +1340,15 @@ private fun GamePage(
                         eventStartMs = ev.startMs,
                         use24h = use24h,
                         paused = ev.isPausedOngoingCricket(now),
-                        modifier = (if (i == 0) Modifier.focusRequester(first) else Modifier).focusProperties {
-                            previewFocus?.let { preview ->
-                                right = preview
-                                if (i == 0) up = preview
-                            }
-                        },
+                        modifier = (if (i == 0) Modifier.focusRequester(first) else Modifier)
+                            .then(if (m.channel.key == returnChannelKey) Modifier.focusRequester(returnFocus) else Modifier)
+                            .focusProperties {
+                                previewFocus?.let { preview ->
+                                    right = preview
+                                    if (i == 0) up = preview
+                                }
+                            },
+                        onLongClick = { menuChannel = m.channel },
                         onClick = { onChoose(m) }
                     )
                 }

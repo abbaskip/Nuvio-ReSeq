@@ -175,7 +175,7 @@ private fun nextMidnight(ms: Long): Long = java.util.Calendar.getInstance().appl
 fun LiveTvGuideScreen(
     onOpenFullscreen: () -> Unit,
     onOpenSettings: () -> Unit,
-    onMultiview: () -> Unit = {},
+    onMultiview: (String?) -> Unit = {},
     onFindInNuvio: () -> Unit = {},
     /** Full screen was opened from the Sports page: Back goes back there. */
     onReturnToSports: () -> Unit = {},
@@ -1031,7 +1031,7 @@ fun LiveTvGuideScreen(
                 onGlassBounds = { headerGlassBounds = it },
                 gearFocus = guideGearFocus,
                 onGear = { guideGearOpen = true },
-                onMultiview = onMultiview,
+                onMultiview = { onMultiview(null) },
                 onGearDown = { runCatching { gridFocus.requestFocus() } },
                 playlistName = if (settings.showPlaylistInInfo) headerChannel?.sourceId?.let { playlistNames[it] } else null,
                 settings = settings,
@@ -1767,6 +1767,7 @@ fun LiveTvGuideScreen(
                 now = now,
                 onDismiss = { menuTarget = null },
                 onWatch = { menuTarget = null; viewModel.preview(target.channel); goFullscreen() },
+                onMultiview = { menuTarget = null; onMultiview(target.channel.key) },
                 onCatchup = { program ->
                     menuTarget = null
                     if (viewModel.playCatchup(target.channel, program)) goFullscreen()
@@ -3110,6 +3111,7 @@ private fun ChannelContextMenu(
     now: Long,
     onDismiss: () -> Unit,
     onWatch: () -> Unit,
+    onMultiview: () -> Unit,
     onCatchup: (EpgProgram) -> Unit,
     onToggleFavorite: () -> Unit,
     customGroupId: String?,
@@ -3165,6 +3167,7 @@ private fun ChannelContextMenu(
                 MenuItem(restartLabel, onClick = onRestart)
             }
             if (canCatchup) item { MenuItem("Play from archive: ${program!!.title}", onClick = { onCatchup(program!!) }) }
+            item { MenuItem(androidx.compose.ui.res.stringResource(com.nuvio.tv.R.string.open_in_multiview), onClick = onMultiview) }
             if (program != null || streamProgram != null) {
                 item { MenuHeader("This show") }
                 if (program != null) item { MenuItem("Program info", onClick = onProgramInfo) }

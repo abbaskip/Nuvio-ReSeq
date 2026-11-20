@@ -82,6 +82,13 @@ class SportsRepository @Inject constructor(
     @Volatile private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
     private val sportsCache = SportsDiskCache.directory(context.filesDir, context.cacheDir)
     private val dir get() = sportsCache.apply { mkdirs() }
+    private val collegeScores = CollegeBasketballScores(File(sportsCache, "college-scores.json"))
+
+    private fun scoreboardResults(league: League, games: List<SportsEvent>, now: Long): List<SportsEvent> {
+        if (!isCollegeBasketball(league.id)) return games
+        collegeScores.remember(games, now)
+        return games.map { collegeScores.apply(it, now) }
+    }
 
     val settings: StateFlow<SportsSettings> = prefs.sportsSettingsJson
         .map { SportsSettings.fromJson(it) }
@@ -275,15 +282,17 @@ class SportsRepository @Inject constructor(
             channelLookupAllowed.first { it }
             val openedAt = android.os.SystemClock.elapsedRealtime()
             try {
+                val now = System.currentTimeMillis()
                 val page = withContext(SportsPageSnapshot.dispatcher) {
-                    SportsPageSnapshot.read(File(dir, "page-snapshot.json"), System.currentTimeMillis())
+                    collegeScores.read(now)
+                    SportsPageSnapshot.read(File(dir, "page-snapshot.json"), now)
                 }
                 if (page != null) {
                     pageSnapshotAt = page.savedAt
                     page.items.mapNotNull { it.event.league?.league() }.distinctBy { it.id }
                         .filter { SportsCatalog.league(it.id) == null }.forEach { freeLeagues[it.id] = it }
                     if (freeLeagues.isNotEmpty()) SportsCatalog.setExtra(freeLeagues.values.toList())
-                    pageData.value = page.events
+                    pageData.value = page.events.map { collegeScores.apply(it, now) }
                     scope.launch {
                         val channels = channelStore.displayChannels.first { it.isNotEmpty() }.associateBy { it.key }
                         _matches.update { page.matches(channels) + it }
@@ -508,7 +517,8 @@ class SportsRepository @Inject constructor(
                             else -> FreeSportsDb.events(league, saved.second, saved.first)
                         }.map { it.copy(updatedAt = saved.first) }
                     }
-                    result.onSuccess { fetched += it }.onFailure { failed.incrementAndGet() }
+                    result.onSuccess { fetched += scoreboardResults(league, it, System.currentTimeMillis()) }
+                        .onFailure { failed.incrementAndGet() }
                 }
                 // Keep other dates and already saved fixtures when a provider is unavailable.
                 val key = "day|$start|${league.id}"
@@ -608,7 +618,8 @@ class SportsRepository @Inject constructor(
                     emptyList()
                 }
                 val now = System.currentTimeMillis()
-                val batch = events.mapNotNull { SportsPageSnapshot.display(SportsBaseFeed.scheduled(it, entry.fetchedAt), entry.fetchedAt, now) }
+                val scheduled = events.mapNotNull { SportsPageSnapshot.display(SportsBaseFeed.scheduled(it, entry.fetchedAt), entry.fetchedAt, now) }
+                val batch = scoreboardResults(league, scheduled, now)
                 parsed.addAll(batch)
                 if (appliedBaseAt == 0L && pageData.value.isEmpty()) {
                     val grew = firstPage.addAll(batch.filter { it.state == GameState.LIVE || it.startMs in today })
@@ -667,8 +678,9 @@ class SportsRepository @Inject constructor(
             val previousAttempt = scoreAttempts.put(league.id, now)
             val at = SportsRefreshPolicy.scoreboardAnchor(known.value, league, focused, playing, browsing, now)
             sportsCatching {
-                val parsed = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, SportsRefreshPolicy.scoreboardDay(league, at)))
+                val scoreboard = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, SportsRefreshPolicy.scoreboardDay(league, at)))
                     .map { it.copy(updatedAt = now) }
+                val parsed = scoreboardResults(league, scoreboard, now)
                 val previous = leagueData.value[league.id]
                 val prior = previous?.events.orEmpty().filter {
                     it.startMs >= now - DAY || (it.endMs?.let { end -> end > now } == true)

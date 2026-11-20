@@ -28,7 +28,7 @@ The maintainer's populated onn received `4081e7ade` in place through a signed AD
 | B. Storage | All 14 groups measured. Removed the Settings and Detail wildcards after eight matched pairs per screen, saving 7.66 MiB of guest odex. Physical Fire TV storage remains open. |
 | C. Pre-existing bugs | All three fixes verified on Android, including all six previously failing instrumentation cases. PRs are open for review. |
 | D. Sign-off | Partial. Account-dependent and physical-device checks are listed below. |
-| E. Upstream comparison | Upstream binary identified. Three-build physical journeys await access to the onn. |
+| E. Nuvio + IPTV comparison | Waived by the maintainer after testing the ReSeq improvements. |
 | F. Confirmation | Launcher timing explained. Downgrade playback failure reproduced on a cached M3U card. Full picker timed on two 2 GiB guests. Physical low-end picker timing remains open. |
 
 ### A. Sports delivery
@@ -114,7 +114,7 @@ On the signed guest, TV Mix remixed the episode and opened the addon stream for 
 
 ### E. Nuvio + IPTV comparison
 
-The upstream reference is Nuvio + IPTV 1.2.0-beta.2.1, ARMv7, published 18 November. Its signed APK SHA-256 is `52eca0e1675863228ecf7afb32d5017162d0e002b7e86c9133949d4602293a26`. The matched three-build physical traces remain pending. The maintainer resumed using the onn. [Upstream release](https://github.com/homelessbrian/NuvioPlusIPTV/releases/tag/1.2.0-beta.2.1).
+On 20 November the maintainer accepted the ReSeq performance improvements and withdrew the request for device comparisons with Nuvio + IPTV. The signed ReSeq beta and integration measurements below are the performance reference for RC1.0.
 
 ### F. Launcher, rollback and large-library lookup
 
@@ -277,4 +277,4 @@ On the physical signed integration, a failed channel produced warnings before th
 | M3U VOD | Three import paths covered in tests, signed playback with required headers, cold link reuse after URL rotation, large catalogue import and lookup, signed lower-version rollback and offline recovery, independent source order and last links for two profiles on the physical onn | Fallback with a live third-party provider account. |
 | Shared features | Full existing unit suite, release lint, six asserted profile journeys, byte-identical retained logger output and physical report recovery after a process kill. TV Mix played a selected addon episode, pause/resume advanced the real playhead, ratings rendered, and Advanced Discover displayed results and reset its filters. The published beta updated itself to RC1.0 on a 2 GiB Android TV guest and ART applied the profile. | Full addon/player controls and an in-app update on physical low-end hardware. |
 
-The second connected physical TV was playing live media during qualification and the 1.5 and 2 GiB Android guests supplied memory-constrained coverage. A Fire TV Stick and authenticated test accounts were unavailable. The maintainer’s approved in-place update on the onn left it available for their own viewing. Repeated three-build physical journeys need a separate period of exclusive remote use. [Combined checklist](https://github.com/abbaskip/Nuvio-ReSeq/blob/perf-device-qualification/docs/performance-integration-checklist.md).
+The second connected physical TV was playing live media during qualification and the 1.5 and 2 GiB Android guests supplied memory-constrained coverage. A Fire TV Stick and authenticated test accounts were unavailable. The maintainer’s approved in-place update on the onn left it available for their own viewing. [Combined checklist](https://github.com/abbaskip/Nuvio-ReSeq/blob/perf-device-qualification/docs/performance-integration-checklist.md).

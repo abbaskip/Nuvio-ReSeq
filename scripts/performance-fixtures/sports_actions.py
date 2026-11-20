@@ -66,7 +66,7 @@ def stamp():
 def publish(uid, start, confirmed, *, unseen=False):
     now = stamp()
     def game(identifier, teams, at, final):
-        sides = [{"homeAway": ha, "team": {"id": str(i), "name": team, "displayName": team,
+        sides = [{"homeAway": ha, "team": {"id": identifier + str(i), "name": team, "displayName": team,
                   "shortDisplayName": team, "abbreviation": team.split()[-1][:3].upper()}}
                  for i, (ha, team) in enumerate(zip(("away","home"), teams), 1)]
         if final:
@@ -111,7 +111,7 @@ def scores_on_page():
 def restart(uid):
     # The isolated guest cannot download a newer real scoreboard between the two cold launches.
     adb("shell", "settings", "put", "global", "http_proxy", "127.0.0.1:9")
-    seed_settings(uid, {"sports_mine":json.dumps({"setUp":True}), "sports":json.dumps({"region":"us"})})
+    seed_settings(uid, {"sports_mine":json.dumps({"setUp":True}), "sports":json.dumps({"region":"US"})})
     start = stamp() - 4 * 3_600_000
     publish(uid, start, True)
     open_sports()
@@ -217,7 +217,7 @@ def shortcuts(uid):
     source = {"id":"shortcuts","name":"Fixture sports","url":BASE+"/channels.m3u","useEmbeddedEpg":False}
     mapping = {name.lower():f"shortcuts|arena{i}|{name}" for i,name in enumerate(CHANNELS)}
     seed_settings(uid, {"playlists":json.dumps([source]),"sports_mine":json.dumps({"setUp":True}),
-                        "sports":json.dumps({"region":"us","networkChannels":mapping})})
+                        "sports":json.dumps({"region":"US","networkChannels":mapping})})
     publish(uid,start,False)
     try:
         cold()
@@ -281,6 +281,7 @@ def main():
                  "WATCH ON YOUR CHANNELS","Favorite","Pane","Sound","Channel","No games",*TEAMS,*CHANNELS)
         labels = " ".join(visible())
         record("lastScreenMarkers", [w for w in words if w.lower() in labels.lower()])
+        record("appCaches", {name:exists(name) for name in ("college-scores.json", "page-snapshot.json")})
         raise
 
 

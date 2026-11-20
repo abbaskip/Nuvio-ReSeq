@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -452,30 +453,36 @@ class SportsRepository @Inject constructor(
         }
     }
 
+    internal fun takeCalendarEvent(id: String): SportsEvent? {
+        val event = fixtureCache.get().takeSelected()?.takeIf { it.id == id } ?: return null
+        lookedUp.update { it + ("calendar" to LeagueData(listOf(event), System.currentTimeMillis(), null)) }
+        return event
+    }
+
+    /** The Calendar day supplies its own verified programmes, including later sessions of a Test. */
+    internal fun calendarChannels(event: SportsEvent) = combine(channelStore.displayChannels, prefs.settings,
+        prefs.userState, settings, ParentalControls.unlocked) { channels, live, user, sports, _ ->
+        val at = System.currentTimeMillis()
+        val programmes = event.guideHits.groupBy({ it.first }, { it.second })
+        val manual = sports.eventChannels[event.id]?.substringBeforeLast('|')
+        val eligible = visibleSportsChannels(live, user, sports, channels.filter { it.key in programmes || it.key == manual })
+        val matches = eligible.filterNot { "${event.id}|${it.key}" in sports.blocked }.map { ch ->
+            val slots = programmes[ch.key].orEmpty()
+            val p = slots.firstOrNull { at in it.startMs until it.stopMs }
+                ?: slots.filter { it.startMs > at }.minByOrNull { it.startMs } ?: slots.maxByOrNull { it.startMs }
+            val picked = ch.key == manual
+            ChannelMatch(ch, if (picked) 200 else 100, if (picked) "Your pick" else "Guide: ${p?.title.orEmpty()}",
+                p, user.channelQuality[ch.key] ?: SportsMatcher.nameQuality(ch.name), false)
+        }
+        SportsMatcher.sortMatches(matches, sports.bestChannelFirst, SportsMatcher.preferenceRank(sports))
+    }.distinctUntilChanged().flowOn(Dispatchers.Default)
+
     /** The Sports page (or a game) is on screen: keep scores fresh. */
     fun setViewing(on: Boolean) {
         if (on) {
             val calendar = fixtureCache.get()
             calendar.known = known
             calendar.matches = matches
-            calendar.takeSelected()?.let { event ->
-                lookedUp.update { it + ("calendar" to LeagueData(listOf(event), System.currentTimeMillis(), null)) }
-                if (event.guideHits.isNotEmpty()) scope.launch {
-                    val live = prefs.settings.first()
-                    val user = prefs.userState.first()
-                    val sports = settings.value
-                    val channelKeys = event.guideHits.mapTo(HashSet()) { it.first }
-                    val available = visibleSportsChannels(live, user, sports).filter { it.key in channelKeys }.associateBy { it.key }
-                    val confirmed = event.guideHits.mapNotNull { (key, programme) ->
-                        val ch = available[key]?.takeUnless { "${event.id}|$key" in sports.blocked } ?: return@mapNotNull null
-                        ChannelMatch(ch, 100, "Guide: ${programme.title}", programme,
-                            user.channelQuality[key] ?: SportsMatcher.nameQuality(ch.name), false)
-                    }
-                    if (confirmed.isNotEmpty()) _matches.update {
-                        SportsCurrentGuide.mergeMatches(it, emptyMap(), mapOf(event.id to confirmed), sports)
-                    }
-                }
-            }
         }
         viewers.update { (it + if (on) 1 else -1).coerceAtLeast(0) }
         if (on) {
@@ -1339,12 +1346,12 @@ class SportsRepository @Inject constructor(
     private var lastSummary: String? = null
 
     private fun visibleSportsChannels(live: com.nuvio.tv.livetv.model.LiveTvSettings,
-        user: com.nuvio.tv.livetv.model.LiveUserState, sp: SportsSettings): List<LiveChannel> {
+        user: com.nuvio.tv.livetv.model.LiveUserState, sp: SportsSettings, channels: List<LiveChannel> = channelStore.displayChannels.value): List<LiveChannel> {
         val picked = HashSet<String>().apply {
             sp.eventChannels.values.forEach { add(it.substringBeforeLast('|')) }
             addAll(sp.networkChannels.values); addAll(sp.teamChannels.values); addAll(sp.leagueChannels.values)
         }
-        return channelStore.displayChannels.value.filter { ch ->
+        return channels.filter { ch ->
             (ch.key in picked || (ch.key !in user.hiddenChannels && ch.groupId !in user.hiddenGroups)) &&
                 !ParentalControls.isLocked(ch.groupId, ch.group, live, user.lockedGroups) &&
                 !(ParentalControls.enabled(live) && live.lockAdultContent && ParentalControls.isAdult(ch.name))

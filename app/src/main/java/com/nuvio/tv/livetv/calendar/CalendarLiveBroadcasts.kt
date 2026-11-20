@@ -2,7 +2,6 @@ package com.nuvio.tv.livetv.calendar
 
 import com.nuvio.tv.livetv.sports.SportsCatalog
 import com.nuvio.tv.livetv.sports.SportsEvent
-import com.nuvio.tv.livetv.sports.SportsGuideEvents
 
 /** Different channels often start their coverage of the same single-series race session a few minutes apart. */
 internal object CalendarLiveBroadcasts {
@@ -38,7 +37,7 @@ internal object CalendarLiveBroadcasts {
 
     fun merge(events: List<SportsEvent>): List<SportsEvent> {
         val result = mutableListOf<SportsEvent>()
-        val races = SportsGuideEvents.merge(events, emptySet()).mapNotNull { event ->
+        val races = events.mapNotNull { event ->
             val slot = session(event)
             if (slot == null) { result += event; null } else slot to event
         }

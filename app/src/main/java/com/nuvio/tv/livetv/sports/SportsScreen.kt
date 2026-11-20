@@ -198,7 +198,13 @@ fun SportsScreen(
     val page = projection?.takeIf { it.request.day == day && it.request.chip == chip &&
         it.filters.follows == follows && it.filters.settings == settings }
     val events = page?.events.orEmpty()
-    val matches = projection?.matches.orEmpty()
+    val calendarFixture = remember(viewModel, initialEventId) { initialEventId?.let(viewModel::calendarFixture) }
+    val hubMatches = projection?.matches.orEmpty()
+    val matches = if (calendarFixture != null && calendarFixture.guideHits.isNotEmpty() && openId == calendarFixture.id) {
+        val verified by remember(viewModel, calendarFixture) { viewModel.repo.calendarChannels(calendarFixture) }
+            .collectAsStateWithLifecycle(initialValue = emptyList())
+        hubMatches + (calendarFixture.id to verified)
+    } else hubMatches
     var picker by rememberSaveable { mutableStateOf(false) }
     var sportsPreferences by rememberSaveable { mutableStateOf(false) }
     var fixFor by remember { mutableStateOf<SportsEvent?>(null) }
@@ -354,8 +360,9 @@ fun SportsScreen(
             // The same soft glow in the theme colour as the top of the guide.
             ThemeGlow(Modifier.fillMaxWidth().height(SPORTS_GLOW_HEIGHT))
             val computed = projection
-            val opened = computed?.opened?.takeIf { it.id == openId }
-                ?: openId?.let { id -> computed?.known?.firstOrNull { it.id == id && it.source != EventSource.GUIDE } }
+            val selectedFixture = calendarFixture?.takeIf { it.id == openId }
+            val opened = selectedFixture?.takeIf { it.source == EventSource.GUIDE } ?: computed?.opened?.takeIf { it.id == openId }
+                ?: openId?.let { id -> computed?.known?.firstOrNull { it.id == id && it.source != EventSource.GUIDE } } ?: selectedFixture
             if (initialEventId == null && openId != null && computed?.request == request && opened == null && computed.known.isNotEmpty()) openId = null
             when {
                 onCloseInitialEvent != null && opened == null && tableReq == null -> {

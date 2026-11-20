@@ -94,7 +94,7 @@ private fun Tile(modifier: Modifier, marked: Boolean = false, selected: Boolean 
 @Composable
 private fun GameArt(row: CalendarItem, clock: (Long) -> String, modifier: Modifier) {
     val event = row.fixture ?: return
-    val sides = SportsCatalog.league(event.leagueId)?.let { event.ordered(it.sport) } ?: event.sides
+    val sides = row.guideSides.ifEmpty { SportsCatalog.league(event.leagueId)?.let { event.ordered(it.sport) } ?: event.sides }
     if (sides.size != 2) {
         Box(modifier.background(leagueColor(SportsCatalog.league(event.leagueId))), contentAlignment = Alignment.Center) {
             LeagueMark(SportsCatalog.league(event.leagueId), 22.dp)
@@ -118,7 +118,7 @@ private fun GameArt(row: CalendarItem, clock: (Long) -> String, modifier: Modifi
 @Composable
 private fun EntryCard(row: CalendarItem, clock: (Long) -> String, modifier: Modifier, onOpen: (CalendarItem) -> Unit) {
     val event = row.fixture
-    val sides = if (event == null) emptyList() else SportsCatalog.league(event.leagueId)?.let { event.ordered(it.sport) } ?: event.sides
+    val sides = row.guideSides.ifEmpty { if (event == null) emptyList() else SportsCatalog.league(event.leagueId)?.let { event.ordered(it.sport) } ?: event.sides }
     val star = row.followedTeam != null
     Tile(modifier.semantics { contentDescription = row.title }, marked = star, onClick = { onOpen(row) }) {
         if (sides.size == 2) {
@@ -234,7 +234,7 @@ internal fun MonthView(month: CalendarWindow, selected: Long, today: Long, group
                         }
                         LiveText(number, Modifier.align(Alignment.TopStart).padding(start = 4.dp, top = 1.dp), size = 11.sp,
                             color = Color.White, weight = FontWeight.ExtraBold, shadow = true)
-                        if (entry != null && (entry.fixture == null || entry.fixture.sides.size != 2))
+                        if (entry != null && entry.guideSides.isEmpty() && (entry.fixture == null || entry.fixture.sides.size != 2))
                             LiveText(entry.title, Modifier.align(Alignment.BottomStart).padding(start = 4.dp, end = 18.dp, bottom = 2.dp),
                                 size = 10.sp, color = Color.White, weight = FontWeight.Bold, shadow = true)
                         if (entries.size > 1) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp)) {

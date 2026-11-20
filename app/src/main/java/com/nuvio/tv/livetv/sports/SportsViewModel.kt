@@ -31,6 +31,10 @@ class SportsViewModel @Inject constructor(
     liveRepo: LiveTvRepository,
     private val recordings: com.nuvio.tv.livetv.record.LiveTvRecordingScheduler
 ) : ViewModel() {
+    private var calendarFixture: SportsEvent? = null
+    internal fun calendarFixture(id: String): SportsEvent? =
+        calendarFixture?.takeIf { it.id == id } ?: repo.takeCalendarEvent(id)?.also { calendarFixture = it }
+
     val liveSettings = livePrefs.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.nuvio.tv.livetv.model.LiveTvSettings())
     val pictureShapes = livePrefs.pictureShapes

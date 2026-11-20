@@ -201,7 +201,9 @@ internal class CalendarLocalListings @Inject constructor(
             }
             val usable = byId.filter { e ->
                 val days = span(e)
-                days.first <= window.last && days.last >= window.first &&
+                val testInProgress = days.last < window.first && window.first - days.first <= 4 &&
+                    e.source != EventSource.GUIDE && CalendarTestMatches.fixture(e, league(e)) != null
+                days.first <= window.last && (days.last >= window.first || testInProgress) &&
                     SportsTaxonomy.acceptsEvent(league(e), e.title, e.subtitle, settings.excludedSportsNodes) &&
                     !(e.state == GameState.OFF && e.status.orEmpty().lowercase().let { "cancel" in it || "postpon" in it || "abandon" in it })
             }
@@ -211,9 +213,11 @@ internal class CalendarLocalListings @Inject constructor(
             val espn = SportsFixtureIndex(reported.filter { it.source == EventSource.ESPN })
             val real = reported.filterNot { e -> e.source == EventSource.THESPORTSDB &&
                 league(e)?.let { l -> espn.anyNear(e) { other -> league(other)?.let { identities.same(e, other, l, it) } == true } } == true }
-            val primary = CricketAustralia.merge(real.filter { it.source != EventSource.CRICKET_AUSTRALIA },
+            val preferred = CricketAustralia.merge(real.filter { it.source != EventSource.CRICKET_AUSTRALIA },
                 real.filter { it.source == EventSource.CRICKET_AUSTRALIA })
-            val broadcasts = mutableMapOf<Pair<String, Long>, MutableList<Pair<String, EpgProgram>>>()
+            val tests = CalendarTestMatches.Fixtures(preferred + official, zone, ::league)
+            val primary = preferred.map(tests::canonical).distinctBy { it.id }
+            val broadcasts = mutableMapOf<String, MutableMap<Long, MutableList<Pair<String, EpgProgram>>>>()
             val extra = mutableListOf<SportsEvent>()
             val liveAirings = usable.filter { it.source == EventSource.GUIDE }.mapNotNull { air ->
                 val hits = air.guideHits.filter { (key, programme) -> key in names && SportsEventListings.liveCompetition(programme) }
@@ -221,21 +225,33 @@ internal class CalendarLocalListings @Inject constructor(
             }
             // A simulcast can carry a followed name or reminder on just one channel.
             val followedHits = if (allSports) emptySet() else liveAirings.filter(::wanted).flatMap { it.guideHits }.toHashSet()
-            for (air in CalendarLiveBroadcasts.merge(liveAirings)) {
+            val guideGames = CalendarGuideMatchups.merge(CalendarTestMatches.merge(liveAirings, zone, ::league), ::league)
+            val cards = guideGames.mapNotNull { game -> game.card?.let { game.event.id to it } }.toMap()
+            val airings = CalendarLiveBroadcasts.merge(guideGames.map { it.event })
+            val namedTests = airings.mapNotNull { air -> tests.named(air, league(air))?.let { air.id to it } }.toMap()
+            val corroborated = airings.groupBy { it.startMs.calendarDay(zone) }.mapValues { (_, rows) ->
+                rows.mapNotNullTo(mutableSetOf()) { namedTests[it.id]?.id }
+            }
+            for (air in airings) {
                 val keepAiring = allSports || air.guideHits.any { it in followedHits }
                 val candidates = if (keepAiring) primary.asSequence() + official.asSequence() else primary.asSequence()
-                val match = candidates.firstOrNull { e -> league(e)?.let { l -> l.sport == league(air)?.sport &&
+                val date = air.startMs.calendarDay(zone)
+                val test = namedTests[air.id] ?: tests.unnamed(air, league(air), corroborated[date].orEmpty())
+                val match = test?.takeIf { keepAiring || it in primary } ?: candidates.firstOrNull { e -> league(e)?.let { l -> l.sport == league(air)?.sport &&
                     SportsEventIdentity.guideCoversFixture(air, e, l) } == true }
                 if (!keepAiring && match == null) continue
                 if (match != null) {
-                    broadcasts.getOrPut(match.id to air.startMs.calendarDay(zone)) { mutableListOf() }.addAll(air.guideHits)
+                    val liveHits = if (match == test) air.guideHits.filter { tests.liveSession(it.second, match) } else air.guideHits
+                    if (liveHits.isEmpty()) continue
+                    broadcasts.getOrPut(match.id) { mutableMapOf() }.getOrPut(date) { mutableListOf() }.addAll(liveHits)
                     if (match !in primary && extra.none { it.id == match.id }) extra += match
                 }
-                else extra += air
+                else if (!CalendarTestMatches.anonymousTest(air, league(air))) extra += air
             }
             val result = mutableListOf<CalendarItem>()
             for (event in primary + extra) {
                 val competition = league(event)
+                val card = cards[event.id]
                 val days = span(event)
                 val roster = followed(event)
                 val teams = roster.map { it.name }.distinct()
@@ -243,15 +259,24 @@ internal class CalendarLocalListings @Inject constructor(
                 val regionalChannel = matches[event.id]?.firstNotNullOfOrNull(names::get) ?:
                     event.broadcastCoverage.firstOrNull { FreeSportsDb.region(it.country) == SportsCatalog.regionOf(settings) }?.name ?:
                     event.broadcasts.firstOrNull()?.takeIf { SportsCatalog.regionOf(settings) == "US" }
-                for (d in maxOf(window.first, days.first)..minOf(window.last, days.last)) {
-                    val hits = broadcasts[event.id to d].orEmpty().ifEmpty { event.guideHits }
+                val eventDays = (maxOf(window.first, days.first)..minOf(window.last, days.last)).toMutableSet()
+                val coverage = broadcasts[event.id].orEmpty()
+                eventDays += coverage.keys.filter { it in window }
+                for (d in eventDays) {
+                    val hits = coverage[d].orEmpty().ifEmpty { event.guideHits }
                     val channel = hits.firstNotNullOfOrNull { names[it.first] } ?: regionalChannel
-                    val fixture = if (hits === event.guideHits || hits.isEmpty()) event else event.copy(guideHits = hits.distinctBy { it.first to it.second.startMs })
-                    val note = if (days.first != days.last) "Day " + (d - days.first + 1) + " · " else ""
-                    result += CalendarItem("sport/" + event.id + "/" + d, "sports", event.title.take(240), d, CalendarKind.SPORT,
-                        detail = note + (channel ?: "Channel TBC"), time = event.startMs.takeIf { event.hasTime && d == days.first },
+                    val title = card?.teams?.takeIf { it.isNotEmpty() }?.joinToString(" v ") ?: event.title
+                    val fixture = if (title == event.title && (hits === event.guideHits || hits.isEmpty())) event
+                        else event.copy(title = title, guideHits = hits.distinctBy { it.first to it.second.startMs })
+                    val note = if (days.first != days.last || d > days.first) "Day " + (d - days.first + 1) + " · " else ""
+                    val channelCount = hits.distinctBy { it.first }.size
+                    val caption = if (channelCount > 1) "$channelCount channels" else channel ?: "Channel TBC"
+                    result += CalendarItem("sport/" + event.id + "/" + d, "sports", title.take(240), d, CalendarKind.SPORT,
+                        detail = note + caption, time = event.startMs.takeIf { event.hasTime && d == days.first }
+                            ?: coverage[d]?.minOfOrNull { it.second.startMs },
                         contentId = event.id, followedTeam = teams.takeIf { it.isNotEmpty() }?.joinToString(" & "),
-                        fixture = fixture, leagueName = competition?.name, followedSides = followedSides, sport = competition?.sport)
+                        fixture = fixture, leagueName = card?.competition ?: competition?.name, followedSides = followedSides,
+                        sport = competition?.sport, guideSides = card?.sides(event.leagueId).orEmpty())
                 }
             }
             return result

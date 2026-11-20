@@ -15,6 +15,7 @@ internal object SportsEventListings {
 
     private val editorial = Regex("""\b(?:sports betting|betting (?:odds|picks|tips)|panel (?:show|discussion)|studio (?:show|discussion)|news and analysis|previews? and predictions?|latest odds|live from the studio)\b""")
     private val qualifier = Regex("""\bqualifiers?\b""")
+    private val recorded = Regex("""\b(?:as live|tape delayed?|delayed (?:coverage|broadcast|telecast)|recorded coverage|originally (?:aired|broadcast)|re ?airs?|re ?runs?|live on tape)\b""")
     private val listingPrefix = Regex("""^(?:live |women s |womens |men s |mens )+""")
 
     /** A live talk show, a replay and a channel currently on air are not live competitions. */
@@ -23,7 +24,7 @@ internal object SportsEventListings {
         val description = SportsCatalog.norm(p.description.orEmpty())
         if (nonEvent.containsMatchIn(title) || nonEvent.containsMatchIn(SportsCatalog.norm(p.category.orEmpty())) ||
             editorial.containsMatchIn(description) || nonEvent.containsMatchIn(description.take(42)) ||
-            description.trimStart().startsWith("recorded coverage")) return false
+            recorded.containsMatchIn(title) || recorded.containsMatchIn(description)) return false
         val live = SportsCatalog.hasWord(title, "live") || description.trimStart().startsWith("live ") ||
             SportsCatalog.hasWord(description, "live coverage") || SportsCatalog.hasWord(description, "live action")
         if (!live) return false

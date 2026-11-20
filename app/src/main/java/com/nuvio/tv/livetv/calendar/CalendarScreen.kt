@@ -73,6 +73,7 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
         val filter = if (quickSport == null) selection.filter else CalendarFilter.SPORTS
         var today by remember { mutableStateOf(LocalDate.now(zone)) }
         var picked by remember { mutableStateOf(today) }
+        var detailDay by rememberSaveable { mutableStateOf<Long?>(null) }
         val selected = picked.toEpochDay()
         val week = CalendarWindow.week(picked, locale)
         val window = if (mode == CalendarMode.MONTH) CalendarWindow.month(picked) else week
@@ -116,7 +117,8 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
         LaunchedEffect(lifecycle, zone) {
             lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 today = LocalDate.now(zone)
-                picked = today
+                picked = detailDay?.let(LocalDate::ofEpochDay) ?: today
+                detailDay = null
                 snapshotFlow { sidebarOpen }.first { !it }
                 withFrameNanos { }
                 if (!sidebarOpen) focus.requestFocus()
@@ -134,6 +136,7 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
         }
         val open: (CalendarItem) -> Unit = { item ->
             item.contentId?.let { id ->
+                detailDay = selected
                 if (item.kind == CalendarKind.SPORT) { viewModel.selectFixture(item); onSports(id) }
                 else onDetail(id, if (item.kind == CalendarKind.EPISODE) "series" else "movie", item.title, item.artwork)
             }

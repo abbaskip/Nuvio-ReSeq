@@ -27,6 +27,8 @@ class CalendarGuideTest {
         assertTrue(live("NBA: Celtics @ Raptors", "Live coverage from Boston"))
         assertTrue(live("LIVE: Formula 1 Grand Prix Qualifying"))
         assertTrue(live("Live Cricket: India v Australia"))
+        assertFalse(live("As live: India v New Zealand"))
+        assertFalse(live("Live: Women's Big Bash", "A tape-delayed broadcast of today's match"))
         assertTrue(live("Live: WWE SmackDown"))
         assertFalse(live("Live at the studio"))
         for (title in listOf("NBA Today", "Live: NBA Pregame", "Live: NBA Highlights", "NFL Live", "Live: World Cup Preview",
@@ -121,6 +123,94 @@ class CalendarGuideTest {
             SportsFollows(leagues = setOf(nba.id)), SportsSettings(region = "AU"), emptyMap(), emptyMap(), CalendarWindow(day, day), zone).single().detail
         assertEquals("Australian network", label(saved))
         assertEquals("Channel TBC", label(saved.copy(broadcastCoverage = listOf(SportsBroadcast("Unspecified market", null)))))
+    }
+
+    @Test fun laterTestSessionsOpenOneOfficialFixtureWithAllGuideChannels() {
+        val league = League("test/series", Sport.CRICKET, "Test Matches", "Tests")
+        val fixture = game.copy(id = "official", leagueId = league.id, title = "New Zealand v India", startMs = noon - 3 * 3_600_000L - 2 * 86_400_000L,
+            endMs = noon + 2 * 86_400_000L, away = side("India"), home = side("New Zealand"))
+        fun listing(channel: String, title: String, hour: Int, description: String = "Live coverage") = airing(title, channel).let {
+            val at = noon + (hour - 12) * 3_600_000L
+            it.copy(id = channel + hour, leagueId = league.id, startMs = at, endMs = at + 2 * 3_600_000L,
+                subtitle = description, guideHits = listOf(channel to EpgProgram(at, at + 2 * 3_600_000L, "Live: $title", description)))
+        }
+        val channels = listOf(listing("TNT", "Test Cricket: 1st Test, Day 2: New Zealand v India", 3),
+            listing("Fox", "New Zealand v India 1st Test Day 3", 8), listing("Willow", "Test Cricket", 9, "1st Test, Day 3."),
+            listing("Willow", "Test Cricket", 14, "1st Test, Day 3."), listing("BT", "Test Cricket: India vs. New Zealand", 9))
+        val follows = SportsFollows(leagues = setOf(league.id))
+        fun rows(events: List<SportsEvent>) = CalendarLocalListings.sportRows(events, mapOf(league.id to league), follows,
+            SportsSettings(), emptyMap(), channels.flatMap { it.guideHits }.associate { it.first to it.first }, CalendarWindow(day, day), zone)
+        val row = rows(listOf(fixture, fixture.copy(id = "tsdb-copy", source = EventSource.THESPORTSDB)) + channels).single()
+        assertEquals(fixture.id, row.contentId)
+        assertEquals(fixture.id, row.fixture?.id)
+        assertEquals(channels.drop(1).flatMap { it.guideHits }.toSet(), row.fixture!!.guideHits.toSet())
+        assertEquals(channels[1].startMs, row.time)
+        val other = fixture.copy(id = "other", title = "England v Australia", home = side("England"), away = side("Australia"))
+        val ambiguous = rows(listOf(fixture, other) + channels)
+        assertTrue(ambiguous.single { it.contentId == fixture.id }.fixture!!.guideHits.none { it.first == "Willow" })
+        assertFalse(ambiguous.any { it.title == "Test Cricket" })
+        val namedOnly = channels.filterNot { it.title == "Test Cricket" }
+        assertEquals(namedOnly.flatMap { it.guideHits }.toSet(), rows(namedOnly).single().fixture!!.guideHits.toSet())
+    }
+
+    @Test fun guideOnlyGamesMergeAcrossNetworksAndKeepTeamsCompetitionAndSeparateGames() {
+        fun tv(title: String, minutes: Int, channel: String, league: League): SportsEvent {
+            val start = noon + minutes * 60_000L
+            val p = EpgProgram(start, start + 2 * 3_600_000L, "Live: $title")
+            return airing(title, channel).copy(id = channel, leagueId = league.id, startMs = start, endMs = p.stopMs,
+                guideHits = listOf(channel to p))
+        }
+        fun check(league: League, first: String, second: String, separate: String, names: List<String>, label: String) {
+            val games = listOf(tv(first, 0, "A", league), tv(second, 25, "B", league), tv(separate, 15, "C", league),
+                tv(first, 240, "D", league))
+            val rows = CalendarLocalListings.sportRows(games, mapOf(league.id to league), SportsFollows(), SportsSettings(),
+                emptyMap(), games.associate { it.id to it.id }, CalendarWindow(day, day), zone, true)
+            assertEquals(first, 3, rows.size)
+            val merged = rows.single { it.fixture!!.guideHits.size == 2 }
+            assertEquals(setOf("A", "B"), merged.fixture!!.guideHits.map { it.first }.toSet())
+            assertEquals(names.toSet(), merged.guideSides.map { it.team.name }.toSet())
+            assertEquals(label, merged.leagueName)
+            assertEquals("2 channels", merged.detail)
+        }
+        check(League("guide/cricket", Sport.CRICKET, "Cricket", "Cricket"), "Women's Big Bash League: WBBL: Hurricanes v Thunder",
+            "WBBL: Sydney Thunder vs. Hobart Hurricanes", "WBBL: Hobart Hurricanes v Sydney Sixers",
+            listOf("Sydney Thunder", "Hobart Hurricanes"), "WBBL")
+        check(League("guide/hockey", Sport.HOCKEY, "Field Hockey", "Hockey"), "NCAA Field Hockey: #3 Boston College at North Carolina",
+            "NCAA Field Hockey: UNC vs. BC", "NCAA Field Hockey: North Carolina State v Boston College",
+            listOf("North Carolina", "Boston College"), "NCAA Field Hockey")
+        check(League("guide/football", Sport.AMERICAN_FOOTBALL, "High School Football", "HSFB"),
+            "High School Football: St. Xavier HS @ Trinity", "High School Football: Trinity vs Saint Xavier High School",
+            "High School Football: Trinity v Saint Xavier High School (Game 2)",
+            listOf("Trinity", "Saint Xavier High School"), "High School Football")
+    }
+
+    @Test fun twoListingsForTheSameNamedChampionshipFinalCanMergeBeforeTeamsAreAnnounced() {
+        val cricket = League("guide/cricket", Sport.CRICKET, "Cricket", "Cricket")
+        fun slot(title: String, key: String, start: Long = noon) = airing(title, key).copy(id = key, leagueId = cricket.id,
+            startMs = start, endMs = start + 7_200_000L,
+            guideHits = listOf(key to EpgProgram(start, start + 7_200_000L, "Live: $title")))
+        val listings = listOf(slot("Abu Dhabi T10 Cricket : Final: Teams TBA", "a"), slot("Abu Dhabi T10 League : Final", "b"),
+            slot("Abu Dhabi T10 League : Semi Final", "c"), slot("Abu Dhabi T10 League : Final", "d", noon + 86_400_000L))
+        val games = CalendarGuideMatchups.merge(listings) { cricket }
+        assertEquals(3, games.size)
+        val final = games.single { it.event.guideHits.size == 2 }
+        assertEquals("Abu Dhabi T10 Final", final.event.title)
+        assertEquals(setOf("a", "b"), final.event.guideHits.map { it.first }.toSet())
+    }
+
+    @Test fun testCoverageAllowsEarlyStartsAndOvernightPlayInTheViewersTimeZone() {
+        val start = saturday.atTime(22, 0).atZone(zone).toInstant().toEpochMilli()
+        val fixture = game.copy(startMs = start)
+        val tests = CalendarTestMatches.Fixtures(emptyList(), zone) { null }
+        fun covered(minutes: Int, dayLabel: Int): Boolean {
+            val at = start + minutes * 60_000L
+            return tests.liveSession(EpgProgram(at, at + 2 * 3_600_000L, "Live: Test Cricket, Day $dayLabel"), fixture)
+        }
+        assertTrue(covered(-90, 1))
+        assertFalse(covered(-91, 1))
+        assertTrue(covered(240, 1))
+        assertFalse(covered(240, 2))
+        assertTrue(covered(24 * 60 - 45, 2))
     }
 
     @Test fun aSecondDayOfTestCricketHasItsOwnDateWithoutRepeatingYesterdaysStartTime() {

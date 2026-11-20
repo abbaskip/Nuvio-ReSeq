@@ -99,12 +99,33 @@ def main():
     assert adb("shell", "stat", "-c", "%u", DATA) == uid and current_first == first_install
     assert adb("shell", "cat", saved) == marker.read_text()
     record("preservedUidFirstInstallAndPrivateData", True)
-    art = adb("shell", "pm", "art", "dump", PACKAGE)
-    assert "status=speed-profile" in art and "reason=install-dm" in art
-    record("compiledAtInstall", "speed-profile/install-dm")
+    base_dir = installed_apk.rsplit("/", 1)[0]
+    dm_present = "base.dm" in adb("shell", "ls", "-1", base_dir).splitlines()
+    record("installedDexMetadataSha256", adb("shell", "sha256sum", base_dir + "/base.dm").split()[0] if dm_present else None)
+    record("freeDataKiB", int(adb("shell", "df", "-k", "/data").splitlines()[-1].split()[3]))
+    record("installCompilerFilter", adb("shell", "getprop", "pm.dexopt.install"))
+    observations = []
+    deadline = time.monotonic() + 60
+    compiled = False
+    while time.monotonic() < deadline:
+        art = adb("shell", "pm", "art", "dump", PACKAGE)
+        dex_states = [line.strip() for line in art.splitlines() if "[status=" in line]
+        if not observations or observations[-1] != dex_states:
+            observations.append(dex_states)
+            record("artAfterUpgrade", observations)
+        compiled = any("[status=speed-profile]" in state and "[reason=install-dm]" in state for state in dex_states)
+        if compiled:
+            break
+        time.sleep(2)
+    record("compiledAtInstall", compiled)
+    if not compiled:
+        logs = adb("logcat", "-d", "-t", "2500", "-s", "artd", "dex2oat64", "ArtService", "PackageDexOptimizer", "PackageInstallerSession", "UpdateJobs")
+        relevant = [line for line in logs.splitlines() if PACKAGE in line or re.search(r"(dexopt|profile|\.dm\b)", line, re.I)]
+        record("artInstallLog", relevant[-18:])
     cold()
     assert any(label(n) in ("Home", "Search", "Library") for n in tree().iter("node") if n.get("package") == PACKAGE)
     record("openedHome", True)
+    assert compiled, "Android's reported ART state is recorded in artAfterUpgrade"
 
 
 if __name__ == "__main__":

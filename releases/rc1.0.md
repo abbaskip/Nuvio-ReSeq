@@ -1,5 +1,7 @@
 # Nuvio ReSeq RC1.0
 
+This is the first release candidate for Nuvio ReSeq 1.0. **Settings → About** shows `1.0.0-rc.1`.
+
 ## What’s new
 
 - Hold **OK** on a channel in the Live TV guide or under **Watch on your channels** in Sports Hub, then choose **Open in multi view**. The selected station opens with sound in pane 1. Back returns focus to that station.
@@ -12,7 +14,7 @@
 
 Open **Settings → About → Check for updates** to install RC1.0 over your signed ReSeq beta and keep your profiles, Continue Watching and IPTV settings. Android 12 and later also support idle installs when **Install updates automatically** and the TV’s install permission for ReSeq are enabled.
 
-The installed build used 24.05 MiB more compiled storage than beta 10.12 on the onn. Physical Fire TV Stick qualification and live-account checks are still open. [Device results and remaining checks](https://github.com/abbaskip/Nuvio-ReSeq/blob/perf-device-qualification/docs/performance-integration-results.md).
+The tested build used 24.05 MiB more compiled storage than beta 10.12 on the onn. If you downgrade after importing M3U movies, an older beta can briefly show cached M3U titles it cannot play until it refreshes. Physical Fire TV Stick qualification and live-account checks are still open. [Device results and remaining checks](https://github.com/abbaskip/Nuvio-ReSeq/blob/perf-device-qualification/docs/performance-integration-results.md).
 
 ## Credits and content sources
 

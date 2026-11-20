@@ -74,10 +74,12 @@ public final class PickerObserver extends Instrumentation {
             if (index < 1 || index > 64) throw new IllegalArgumentException("Unknown fixture");
             String name = String.format(java.util.Locale.US, "Fixture Movie %03d", index);
             UiAutomation ui = getUiAutomation();
-            if (mode.equals("discoverAction")) {
-                if (!(actionLabel.equals("Advanced Discover") || actionLabel.equals("Show results") || actionLabel.equals("Reset"))) {
-                    throw new IllegalArgumentException("Unknown Discovery action");
-                }
+            if (mode.equals("discoverAction") || mode.equals("playerAction")) {
+                java.util.List<String> allowed = mode.equals("playerAction")
+                        ? java.util.Arrays.asList("Audio tracks", "Spanish", "French", "Built in", "More actions",
+                            "Playback speed", "1.5x", "Sources", "Guest mirror source")
+                        : java.util.Arrays.asList("Advanced Discover", "Show results", "Reset");
+                if (!allowed.contains(actionLabel)) throw new IllegalArgumentException("Unknown screen action");
                 long deadline = SystemClock.elapsedRealtime() + 4_000;
                 while (SystemClock.elapsedRealtime() < deadline) {
                     AccessibilityNodeInfo target = button(ui.getRootInActiveWindow(), actionLabel);
@@ -88,7 +90,7 @@ public final class PickerObserver extends Instrumentation {
                     }
                     SystemClock.sleep(100);
                 }
-                throw new IllegalStateException("No selectable Discovery button");
+                throw new IllegalStateException("No selectable button for " + actionLabel);
             }
             if (visible(ui.getRootInActiveWindow(), name)) throw new IllegalStateException("Target already visible");
             String command;

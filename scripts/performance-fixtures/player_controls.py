@@ -12,7 +12,7 @@ from urllib.parse import unquote, urlsplit
 
 from guest_failure import capture
 from shared_features import Fixture, playback_state, seed_mix, series
-from signed_rollback import APK_HASHES, BASE, DATA, PACKAGE, adb, key, label, point, tree, write_preferences
+from signed_rollback import APK_HASHES, BASE, DATA, PACKAGE, adb, key, label, tree, write_preferences
 from sports_actions import wait
 
 
@@ -84,17 +84,15 @@ def visible():
 
 
 def press(name, reveal=False):
-    """Activate a rendered label. The player's main controls can auto-hide between observations."""
-    def activate():
-        targets = [n for n in tree().iter("node") if label(n).casefold() == name.casefold()]
-        if targets:
-            x, y = point(targets[0])
-            adb("shell", "input", "tap", str(x), str(y))
-            return True
+    """Activate the visible TV control before it fades, even when the video never idles."""
+    for _ in range(3 if reveal else 1):
         if reveal:
             key("DPAD_UP", .2)
-        return False
-    wait(activate, "Missing player control " + name, 15)
+        result = adb("shell", "am", "instrument", "-w", "-e", "mode", "playerAction",
+                     "-e", "actionLabel", "'" + name + "'", "com.nuvio.perf.observer/.PickerObserver")
+        if "activated=" + name in result:
+            return
+    raise AssertionError("No selectable player action " + name)
 
 
 def selected(name):
@@ -126,7 +124,7 @@ def checks(server, save):
     wait(lambda: {"English", "Spanish"} <= visible(), "Both audio tracks were not offered")
     press("Spanish")
     # Some player configurations close the picker on applying a track.
-    if "Default (media file)" not in visible():
+    if not {"English", "Spanish"} <= visible():
         press("Audio tracks", reveal=True)
     wait(lambda: selected("Spanish"), "Spanish was not selected")
     save("selectedAudio", "Spanish")
@@ -171,6 +169,7 @@ def main():
     key("WAKEUP")
     adb("shell", "wm", "dismiss-keyguard")
     adb("reverse", "tcp:38791", "tcp:38791")
+    assert "Success" in adb("install", "build/picker-observer/observer.apk")
     server = ThreadingHTTPServer(("127.0.0.1", 38791), PlayerAddon)
     server.media = test_media()
     server.requests = {}

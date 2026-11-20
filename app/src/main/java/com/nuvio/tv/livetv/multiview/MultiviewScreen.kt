@@ -84,13 +84,13 @@ import kotlinx.coroutines.withContext
 
 /** Channels-only M1. Pane selections never enter a saved state or navigation argument. */
 @Composable
-fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltViewModel()) {
+fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltViewModel(), initialChannelKey: String? = null) {
     val context = LocalContext.current
     val deviceLimit = remember { MultiviewDevicePolicy.read(context) }
     if (deviceLimit == 0) {
         Column(Modifier.fillMaxSize().background(NuvioTheme.colors.Background).padding(24.dp)) {
             LiveText("This device has no spare video decoder for Multiview.")
-            MultiviewChip("Back to guide", onClick = onBack)
+            MultiviewChip(if (initialChannelKey == null) "Back to guide" else "Back", onClick = onBack)
         }
         return
     }
@@ -106,7 +106,7 @@ fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltView
             releaseSingle = viewModel.playback::releaseNow,
             create = { MultiviewPlaybackSession(context, initialLayout = layout, maxPanes = limit,
                 mayPlayChannel = { channel -> viewModel.activeProfileId.value == openingProfile &&
-                    viewModel.allowedChannels.value.any { it == channel } },
+                    viewModel.allowedChannels.value.orEmpty().any { it == channel } },
                 autoReconnect = { viewModel.autoReconnect.value },
                 findBackup = { _, failed, tried -> viewModel.backupFor(failed, tried) },
                 startFailure = viewModel::startFailure) },
@@ -119,14 +119,16 @@ fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltView
     fun leave() { owner.close(); MultiviewRecovery.left(context); latestOnBack() }
     val state by session.state.collectAsStateWithLifecycle()
     val soundPaused = state.isForeground && state.panes.any { it.channelKey != null } && !state.hasAudioFocus
-    val allowedChannels by viewModel.allowedChannels.collectAsStateWithLifecycle()
+    val permissions by viewModel.allowedChannels.collectAsStateWithLifecycle()
+    val allowedChannels = permissions.orEmpty()
     val validChannels = allowedChannels
     val pickerGroups by viewModel.pickerGroups.collectAsStateWithLifecycle()
     val panelBackground by viewModel.panelBackground.collectAsStateWithLifecycle()
     val use24h by viewModel.use24HourClock.collectAsStateWithLifecycle()
     val autoBackup by viewModel.autoBackup.collectAsStateWithLifecycle()
     var pickerGroup by remember { mutableStateOf<String?>(null) }
-    var editorOpen by remember { mutableStateOf(true) }
+    var pendingChannelKey by remember { mutableStateOf(initialChannelKey) }
+    var editorOpen by remember { mutableStateOf(initialChannelKey == null) }
     var layoutOpen by remember { mutableStateOf(false) }
     var editedPane by remember { mutableIntStateOf(0) }
     var zoomedPane by remember { mutableStateOf<Int?>(null) }
@@ -144,6 +146,21 @@ fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltView
         if (profileId != openingProfile) { owner.close(); MultiviewRecovery.left(context); latestOnBack() }
     }
     LaunchedEffect(allowedChannels) { session.validateAllowedChannels(allowedChannels) }
+    fun assignAllowed(pane: Int, key: String): Boolean {
+        if (viewModel.activeProfileId.value != openingProfile) return false
+        val channel = viewModel.allowedChannels.value.orEmpty().firstOrNull { it.key == key } ?: return false
+        session.assignChannel(pane, channel)
+        return true
+    }
+    LaunchedEffect(pendingChannelKey, permissions, state.isForeground, editorOpen, layoutOpen) {
+        val key = pendingChannelKey ?: return@LaunchedEffect
+        if (editorOpen || layoutOpen) {
+            pendingChannelKey = null
+        } else if (state.isForeground && permissions != null) {
+            pendingChannelKey = null
+            if (!assignAllowed(0, key)) editorOpen = true
+        }
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(owner, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -392,9 +409,7 @@ fun MultiviewScreen(onBack: () -> Unit, viewModel: MultiviewViewModel = hiltView
             group = pickerGroup, onGroup = { pickerGroup = it }, panelBackground = panelBackground,
             nowOn = viewModel::nowOn,
             onSelect = { option ->
-                if (viewModel.activeProfileId.value == openingProfile) {
-                    viewModel.allowedChannels.value.firstOrNull { it.key == option.key }?.let { session.assignChannel(pane, it) }
-                }
+                assignAllowed(pane, option.key)
                 editorOpen = false
             },
             onClear = { session.clearPane(pane) }, onRetry = { session.retryPane(pane) },

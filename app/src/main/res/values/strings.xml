@@ -1,6 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="database_compatibility_title">A newer build is needed</string>
     <string name="sports_preview_fullscreen" translatable="false">Video preview. Press OK for full screen</string>
+    <string name="open_in_multiview">Open in multi view</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">Continue Watching</string>
     <string name="type_movie">Movie</string>

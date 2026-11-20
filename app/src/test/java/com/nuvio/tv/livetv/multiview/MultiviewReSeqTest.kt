@@ -128,6 +128,17 @@ class MultiviewReSeqTest {
         assertFalse(MultiviewRouteAccess.take())
     }
 
+    @Test fun `channel shortcut is consumed once and a later guide opening starts empty`() {
+        MultiviewRouteAccess.request("provider-b|espn2")
+        assertEquals("provider-b|espn2", MultiviewRouteAccess.takeRequest()?.channelKey)
+        assertNull(MultiviewRouteAccess.takeRequest())
+        MultiviewRouteAccess.request()
+        val header = MultiviewRouteAccess.takeRequest()
+        assertNotNull(header)
+        assertNull(header?.channelKey)
+        assertNull(MultiviewRouteAccess.takeRequest())
+    }
+
     @Test fun `all pane buffers fit within the single player allowance`() {
         for (heap in listOf(64L, 128, 256, 384, 512, 1024, 4096)) {
             val total = MultiviewBufferBudget.totalBytes(heap)

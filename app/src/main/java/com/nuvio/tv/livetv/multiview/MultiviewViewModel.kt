@@ -51,14 +51,15 @@ class MultiviewViewModel @Inject constructor(
     // Keep this small policy snapshot current in the background for safe native resume.
     val playlists = preferences.playlists.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val accounts = preferences.playlistAccounts.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    val allowedChannels: StateFlow<List<LiveChannel>> = combine(
+    // null while permissions are loading. An empty result is a valid decision for a locked profile.
+    val allowedChannels: StateFlow<List<LiveChannel>?> = combine(
         allowedLiveTvChannelsFlow(channelStore.displayChannels, preferences.userState, preferences.settings),
-        playlists, accounts,
-    ) { channels, sources, limits ->
-        if (sources == null || limits == null) emptyList() else channels.filter { c ->
+        playlists.filterNotNull(), accounts.filterNotNull(),
+    ) { channels, sources, _ ->
+        channels.filter { c ->
             sources.any { it.id == c.sourceId && it.liveEnabled }
         }
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun startFailure(channel: LiveChannel, active: List<LiveChannel>): String? {
         val sources = playlists.value ?: return "Playlist information is still loading. Retry shortly."
@@ -94,7 +95,7 @@ class MultiviewViewModel @Inject constructor(
      * playlists' groups as "Reorder groups" set them (the provider's order for any you haven't placed).
      * Locked and empty groups are left out.
      */
-    val pickerGroups: StateFlow<List<MultiviewGroup>> = combine(pickerInput.filterNotNull(), allowedChannels) { input, permitted ->
+    val pickerGroups: StateFlow<List<MultiviewGroup>> = combine(pickerInput.filterNotNull(), allowedChannels.filterNotNull()) { input, permitted ->
         val ui = buildMultiviewGuide(input.channels, input.user, input.settings, null, "", true, providerRanks = input.ranks)
         val allowed = allowedKeys(ui.allVisibleChannels).intersect(allowedKeys(permitted))
         val sourceNames = HashMap<String, String>().also { m -> input.channels.forEach { m.putIfAbsent(it.sourceId, it.sourceName) } }
@@ -116,7 +117,7 @@ class MultiviewViewModel @Inject constructor(
         val input = pickerInput.value ?: return@withContext emptyList()
         val ui = buildMultiviewGuide(input.channels, input.user, input.settings, groupId ?: ChannelGroup.ALL, "", true,
             exactGroup = true, providerRanks = input.ranks)
-        val allowed = allowedKeys(ui.allVisibleChannels).intersect(allowedKeys(allowedChannels.value))
+        val allowed = allowedKeys(ui.allVisibleChannels).intersect(allowedKeys(allowedChannels.value.orEmpty()))
         ui.channels.asSequence().filter { it.key in allowed }.distinctBy { it.key }
             .map { MultiviewChannelOption(it.key, it.name, it.number, it.group) }.toList()
     }
@@ -130,7 +131,7 @@ class MultiviewViewModel @Inject constructor(
     val autoBackup: StateFlow<Boolean> = preferences.settings.map { it.autoBackupChannel }
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
-    private val backupIndex = allowedChannels.map { list -> list.groupBy { com.nuvio.tv.livetv.ui.backupName(it.name) } }
+    private val backupIndex = allowedChannels.filterNotNull().map { list -> list.groupBy { com.nuvio.tv.livetv.ui.backupName(it.name) } }
         .flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     /**

@@ -86,8 +86,11 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
         var sportsFilterFocused by remember { mutableStateOf(false) }
         var choosingSports by rememberSaveable { mutableStateOf(false) }
         val contentFocus = LocalContentFocusRequester.current
+        val openSidebar = LocalOpenSidebar.current
         val sidebarOpen by rememberUpdatedState(LocalSidebarExpanded.current)
-        BackHandler(enabled = !sidebarOpen && !choosingSports && !todayControlFocused) { todayControl.requestFocus() }
+        BackHandler(enabled = !sidebarOpen && !choosingSports) {
+            if (todayControlFocused) openSidebar() else todayControl.requestFocus()
+        }
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         LaunchedEffect(lifecycle, zone) {
             lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -105,7 +108,6 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
             }
         }
         val selectedFocus = Modifier.focusRequester(contentFocus).focusRequester(focus)
-        val openSidebar = LocalOpenSidebar.current
         val leftEdge = Modifier.onPreviewKeyEvent {
             if (it.type == KeyEventType.KeyDown && it.key == Key.DirectionLeft) { openSidebar(); true } else false
         }

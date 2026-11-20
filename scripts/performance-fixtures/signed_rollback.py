@@ -134,7 +134,7 @@ def field(tag, value):
     return bytes([tag << 3 | 2]) + varint(len(value)) + value
 
 
-def seed_settings(uid):
+def seed_settings(uid, live=None):
     # AndroidX Preferences' normal on-disk protobuf. Only first-run settings and source
     # configuration are seeded; the signed release creates every database and catalogue row.
     sources = [
@@ -149,7 +149,7 @@ def seed_settings(uid):
                              "startup_splash_enabled": False},
         "layout_settings": {"selected_layout": "MODERN", "has_chosen_layout": True},
         "experience_settings": {"addon_setup_skipped": True},
-        "live_tv": {"playlists": json.dumps(sources)},
+        "live_tv": {"playlists": json.dumps(sources)} if live is None else live,
     }
     folder = DATA + "/files/datastore"
     adb("shell", "mkdir", "-p", folder)

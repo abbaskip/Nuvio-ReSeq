@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">在多画面模式中打开</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">继续观看</string>
     <string name="type_movie">电影</string>

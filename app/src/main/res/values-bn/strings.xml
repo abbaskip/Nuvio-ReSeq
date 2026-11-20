@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="open_in_multiview">মাল্টিভিউতে খুলুন</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">দেখা চালিয়ে যান</string>
     <string name="type_movie">মুভি</string>

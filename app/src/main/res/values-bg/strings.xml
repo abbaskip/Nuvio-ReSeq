@@ -1,4 +1,5 @@
 <resources> 
+    <string name="open_in_multiview">Отваряне в многоекранен изглед</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">Продължи гледането</string> 
     <string name="type_movie">Филм</string>

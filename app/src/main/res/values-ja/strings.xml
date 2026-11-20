@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">マルチビューで開く</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="tv_channel_continue_watching">視聴を続ける</string>
     <string name="type_movie">映画</string>

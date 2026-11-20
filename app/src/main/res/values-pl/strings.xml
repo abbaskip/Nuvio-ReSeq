@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">Otwórz w widoku wieloekranowym</string>
     <string name="type_movie">Film</string>
     <string name="type_series">Serial</string>
 

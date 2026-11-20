@@ -1,4 +1,5 @@
 <resources>
+    <string name="open_in_multiview">Atidaryti kelių ekranų rodinyje</string>
     <string name="app_name">Nuvio ReSeq</string>
     <string name="type_movie">Filmas</string>
     <string name="type_series">Serialas</string>

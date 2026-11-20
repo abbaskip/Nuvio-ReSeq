@@ -20,7 +20,17 @@ Eight adjacent beta/integration pairs ran on one 2 GiB Android TV guest. Four be
 | Saved reminder dialog visible | 16,652 (16,595–16,702) | 17,732 (17,668–17,808) | +1,074 |
 | Correct game open from reminder | 17,875 (17,826–18,048) | 18,992 (18,964–19,017) | +1,131 |
 
-The repeated series isolates a cold reminder delay. The first 15-second poll started after Home settled. PR #36 now measures that first interval from host entry and retains the Home readiness gate. The emulator control restores only the beta Sports host in the original integration. A second experiment repeats the same pairs on the combined fix. Physical paired measurements remain pending. [Control](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44648260653). [Combined fix](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645608361).
+The first 15-second reminder poll started after Home settled. Replacing just the Sports host with the beta version removed the repeated one-second delay. Its median paired differences were −80 ms for events, −284 ms for a channel, −265 ms for a card, −34 ms for the dialog and +105 ms for opening the game. PR #36 now starts that first interval at host entry and retains the Home readiness gate. [One-factor control and raw pairs](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44648260653).
+
+Eight new counterbalanced pairs on a second 2 GiB guest run measured the combined correction. Values are milliseconds, rounded to the nearest millisecond. Physical paired measurements remain open. The event and reminder observations improved. The channel and card measurements varied in both directions. [Corrected integration, all 16 observations](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44645608361).
+
+| Corrected integration | Beta median (IQR) | Integration median (IQR) | Paired change (IQR) |
+| --- | ---: | ---: | ---: |
+| First nonempty event publication | 2,484 (2,410–2,565) | 2,320 (2,212–2,388) | −163 (−223 to +19) |
+| First actual channel association | 3,966 (3,875–4,063) | 3,989 (3,725–4,112) | +42 (−149 to +222) |
+| First rendered game card | 3,891 (3,795–3,976) | 3,990 (3,777–4,143) | +208 (−60 to +277) |
+| Saved reminder dialog visible | 17,060 (17,011–17,107) | 16,994 (16,954–17,093) | −19 (−170 to +41) |
+| Correct game open from reminder | 18,617 (18,515–18,707) | 18,465 (18,389–18,557) | −230 (−278 to +92) |
 
 ### B. Storage
 
@@ -38,9 +48,11 @@ On the follow-up signed APK a saved guide reminder appeared on Home two seconds 
 
 The stored v3 fixture lacked staging tables and a failed publication deleted completed input needed for a retry. Both defects have fixes. Two native tests exposed late allocations retained after reset. The native arena test also assumed a full, empty 512-slot pool even though the allocator supports smaller pools and active users. Its revised check exhausts the available pool, verifies dynamic overflow and checks the exact recycled address. The JVM guide expectation that required deleting completed input conflicted with the Android retry test. The replacement assertion checks private-table cleanup and retries after reopening. [Guide storage](https://github.com/abbaskip/Nuvio-ReSeq/pull/41). [Allocator](https://github.com/abbaskip/Nuvio-ReSeq/pull/43). [Combined device suite](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644347424).
 
+The complete Android instrumentation rerun discovered 119 tests. Of these 106 passed, 13 retained their existing optional prerequisites, and zero failed. All three named guide cases and all three named allocator cases executed and passed. The new allocator regression also passed. Both the instrumentation and journey exit codes were zero. The paired playback suite passed against both binaries. [Android test XML](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44644347424/artifacts/14591665518). [Paired Continue Watching and Multiview playback](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44648757014).
+
 ### D. Maintainer and device sign-off
 
-The remaining device sign-off table below lists the verified fixtures and outstanding checks. No authorized live Trakt, Simkl, MDBList, Gemini, Drive or third-party IPTV account was supplied for this review. Physical Sports-selected recording, the full TV Mix/addon/player journeys and a low-storage Fire TV in-app upgrade still require device time. A successful guest install of dex metadata does not establish the outcome of the Fire OS in-app updater.
+On the signed guest, TV Mix remixed the episode and opened the addon stream for episode 2. Its playing position advanced from 23 to 2,977 ms, paused at 3,164 ms and resumed. The detail screen rendered the expected rating of 8.3. The Advanced Discover fixture has yet to verify its results. Physical Sports-selected recording, system notification and Calendar, the full player controls, a low-storage Fire TV in-app upgrade and live Trakt, Simkl, MDBList, Gemini, Drive and third-party IPTV accounts remain open. [Signed TV Mix, player and ratings evidence](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44650365432).
 
 ### E. Nuvio + IPTV comparison
 

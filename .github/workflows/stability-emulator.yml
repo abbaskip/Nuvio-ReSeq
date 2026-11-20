@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, shared-features, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, profile-ui]
+        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, shared-features, college-restart, channel-shortcut, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, measure-release-profiles, profile-ui]
       signed_run:
         description: 'Completed signed integration workflow for guide playback verification'
         type: string
@@ -129,7 +129,7 @@ jobs:
           path: build/stream-picker/results.json
 
   guide-delivery:
-    if: inputs.workload == 'guide-delivery' || inputs.workload == 'shared-features'
+    if: contains(fromJSON('["guide-delivery","shared-features","college-restart","channel-shortcut"]'), inputs.workload)
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
@@ -163,7 +163,7 @@ jobs:
           profile: tv_1080p
           ram-size: 2048M
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
-          script: python3 -u scripts/performance-fixtures/${{ inputs.workload == 'shared-features' && 'shared_features.py' || 'guide_delivery.py' }}
+          script: python3 -u scripts/performance-fixtures/${{ inputs.workload == 'shared-features' && 'shared_features.py' || inputs.workload == 'college-restart' && 'sports_actions.py college-restart' || inputs.workload == 'channel-shortcut' && 'sports_actions.py channel-shortcut' || 'guide_delivery.py' }}
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -171,6 +171,7 @@ jobs:
           path: |
             build/guide-delivery/results.json
             build/shared-features/results.json
+            build/sports-actions/
 
   profile-reference:
     if: inputs.workload == 'release-profile-cost'
@@ -205,6 +206,7 @@ jobs:
 
   profile-release-guest:
     needs: profile-groups
+    if: always() && (inputs.workload == 'measure-release-profiles' || (inputs.workload == 'release-profile-cost' && needs.profile-groups.result == 'success'))
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -213,8 +215,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - uses: actions/download-artifact@v6
         with:
+          run-id: ${{ inputs.workload == 'measure-release-profiles' && '44644271540' || github.run_id }}
+          github-token: ${{ github.token }}
           pattern: r8-profile-*
           merge-multiple: true
           path: build/profile-cost/metadata

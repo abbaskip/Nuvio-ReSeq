@@ -44,7 +44,17 @@ public final class PickerObserver extends Instrumentation {
         }
         // Both values occur in the description of one real stream. A page heading
         // and a provider filter chip on their own can never satisfy this check.
-        return contains(root, title, "NativeFixture");
+        return streamCard(root, title);
+    }
+
+    private static boolean streamCard(AccessibilityNodeInfo node, String title) {
+        if (node == null || !APP.equals(String.valueOf(node.getPackageName()))) return false;
+        if (node.isVisibleToUser() && node.isClickable() && contains(node, title, "")
+                && contains(node, "NativeFixture", "")) return true;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            if (streamCard(node.getChild(i), title)) return true;
+        }
+        return false;
     }
 
     @Override public void onStart() {

@@ -48,7 +48,7 @@ class Fixture(BaseHTTPRequestHandler):
 
 
 def sample(mode, profile):
-    if adb("shell", "pm", "path", PACKAGE):
+    if "package:"+PACKAGE in adb("shell", "pm", "list", "packages", PACKAGE).splitlines():
         assert "Success" in adb("uninstall", PACKAGE)
     shutil.copyfile(OUT/"metadata"/(profile + ".dm"), OUT/"base.dm")
     assert "Success" in adb("install-multiple", str(OUT/"base.apk"), str(OUT/"base.dm"))

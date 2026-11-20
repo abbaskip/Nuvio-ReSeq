@@ -161,19 +161,25 @@ def discover():
     cold()
     rail_item("Search")
     STEP = "open Advanced Discover"
-    wait_until(lambda: "Advanced Discover" in labels())
-    assert tap("Advanced Discover")
-    wait_until(lambda: "Show results" in labels())
+    def control(name):
+        nodes = [n for n in tree().iter("node") if name.casefold() in label(n).casefold()]
+        if not nodes:
+            return False
+        x, y = point(min(nodes, key=lambda n: len(label(n))))
+        adb("shell","input","tap",str(x),str(y))
+        return True
+    wait_until(lambda: control("Advanced Discover"))
+    wait_until(lambda: any("show results" in entry.casefold() for entry in labels()))
     STEP = "render search results"
-    assert tap("Show results")
+    assert control("Show results")
     # A populated grid has actual poster buttons to the right of the filter column.
     def cards():
         nodes = list(tree().iter("node"))
         return [n for n in nodes if point(n)[0] > 870 and n.get("focusable") == "true"
                 and n.get("clickable") == "true" and any(label(c) for c in n.iter())]
     results = wait_until(cards, 40)
-    assert tap("Reset")
-    assert "Show results" in labels()
+    assert control("Reset")
+    wait_until(lambda: any("show results" in entry.casefold() for entry in labels()))
     return {"visibleResultCards":len(results),"resetReturnedToFilters":True}
 
 

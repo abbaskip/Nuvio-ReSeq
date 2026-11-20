@@ -80,7 +80,8 @@ class PlayerAddon(Fixture):
 
 
 def visible():
-    return {label(n) for n in tree().iter("node") if label(n)}
+    # Stream info wraps technical values with Android's left-to-right display marks.
+    return {label(n).strip("\u200e\u200f") for n in tree().iter("node") if label(n)}
 
 
 def press(name, reveal=False):

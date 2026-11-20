@@ -64,7 +64,15 @@ def exercise(server, count):
         output = adb("shell", "am", "instrument", "-w", "-e", "index", str(index),
                      "com.nuvio.perf.observer/.PickerObserver")
         observed = re.search(r"pickerMs=(\d+)", output)
-        assert observed, output
+        if not observed:
+            labels = {label(n) for n in tree().iter("node")}
+            markers = ("Fixture Movie", "NativeFixture", "No streams", "No sources", "Home", "Library",
+                       "Loading", "Streams", "Try installing", "Choose", "Provider", "Retry", "stopped")
+            print("Visible fixture markers:", sorted({marker for marker in markers if any(marker in s for s in labels)}), flush=True)
+            # The target log records only match counts. Keep other app and system logs private.
+            log = adb("logcat", "-d", "-s", "IptvVod:D")
+            print("Match counts:", re.findall(r"kind=MOVIE .*?candidates=\d+ matches=\d+", log)[-5:])
+            raise AssertionError(output)
         samples.append({"fixture": index, "ms": int(observed[1]),
                         "lastMissMs": int(re.search(r"previousMissMs=(\d+)", output)[1])})
         print(count, samples[-1], flush=True)

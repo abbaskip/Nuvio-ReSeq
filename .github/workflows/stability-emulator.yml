@@ -8,7 +8,7 @@ on:
         description: 'Full baseline or existing instrumentation only'
         type: choice
         default: full
-        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost]
+        options: [full, instrumentation, profile, compare, regressions, review-regressions, followup, playback, recording, reminder, first-card, rollback, rollback-play, storage-pressure, guide-delivery, stream-picker, profile-sources, sports-delivery, profile-cost, release-profile-cost, profile-ui]
       signed_run:
         description: 'Completed signed integration workflow for guide playback verification'
         type: string
@@ -31,6 +31,57 @@ permissions:
   contents: read
 
 jobs:
+  profile-ui:
+    if: inputs.workload == 'profile-ui'
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - screen: settings
+            shard: 0
+          - screen: detail
+            shard: 2
+    steps:
+      - uses: actions/checkout@v6
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Prepare original DEX and optimizer-produced test profiles
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          gh run download 44579904228 --repo "$GITHUB_REPOSITORY" --pattern '*verified-apks' --dir build/profile-ui/apks
+          for part in control "$SHARD"; do
+            gh run download 44644271540 --repo "$GITHUB_REPOSITORY" --name "r8-profile-$part" --dir build/profile-ui/metadata
+          done
+          bash scripts/performance-fixtures/observer/build.sh
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        env:
+          UI_MODE: ${{ matrix.screen }}
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: tv_1080p
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: python3 -u scripts/performance-fixtures/profile_ui.py
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: profile-ui-${{ matrix.screen }}
+          path: build/profile-ui/samples.json
+
   stream-picker:
     if: inputs.workload == 'stream-picker'
     runs-on: ubuntu-latest
@@ -87,6 +138,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+          log-accepted-android-sdk-licenses: false
       - name: Get the signed integration APK and generate the live television fixture
         env:
           GH_TOKEN: ${{ github.token }}

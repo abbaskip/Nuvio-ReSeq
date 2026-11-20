@@ -134,7 +134,7 @@ def field(tag, value):
     return bytes([tag << 3 | 2]) + varint(len(value)) + value
 
 
-def seed_settings(uid, live=None):
+def seed_settings(uid, live=None, profile_files=None):
     # AndroidX Preferences' normal on-disk protobuf. Only first-run settings and source
     # configuration are seeded; the signed release creates every database and catalogue row.
     sources = [
@@ -151,6 +151,7 @@ def seed_settings(uid, live=None):
         "experience_settings": {"addon_setup_skipped": True},
         "live_tv": {"playlists": json.dumps(sources)} if live is None else live,
     }
+    files.update(profile_files or {})
     folder = DATA + "/files/datastore"
     adb("shell", "mkdir", "-p", folder)
     with TemporaryDirectory() as temp:
@@ -194,13 +195,14 @@ def cold():
     time.sleep(5)
 
 
-def rail_settings():
+def rail_settings(activate=True):
     for _ in range(30):
         nodes = list(tree().iter("node"))
         focus = next((n for n in nodes if n.get("focused") == "true"), None)
         targets = [n for n in nodes if label(n) == "Settings" and point(n)[0] < 300]
         if focus is not None and point(focus)[0] < 210 and any(label(n) == "Settings" for n in focus.iter()):
-            key("DPAD_CENTER", 2)
+            if activate:
+                key("DPAD_CENTER", 2)
             return
         direction = "LEFT" if focus is None or point(focus)[0] > 210 or not targets else (
             "DOWN" if point(focus)[1] < point(targets[-1])[1] else "UP")

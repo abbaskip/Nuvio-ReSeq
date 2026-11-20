@@ -13,34 +13,38 @@ import java.io.InputStream;
 public final class PickerObserver extends Instrumentation {
     private static final String APP = "io.github.abbaskip.nuvioreseq";
     private int index;
+    private String mode;
 
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
-        index = Integer.parseInt(arguments.getString("index"));
+        mode = arguments.getString("mode", "stream");
+        index = Integer.parseInt(arguments.getString("index", "1"));
         start();
     }
 
-    private static boolean hasStreamCard(AccessibilityNodeInfo node, String name) {
-        boolean title = false;
-        boolean provider = false;
-        for (AccessibilityNodeInfo n : node.findAccessibilityNodeInfosByText(name)) {
-            CharSequence text = n.getText();
-            if (text != null && text.toString().contains(name)) title = true;
-        }
-        for (AccessibilityNodeInfo n : node.findAccessibilityNodeInfosByText("NativeFixture")) {
-            CharSequence text = n.getText();
-            if (text != null && text.toString().contains("NativeFixture")) provider = true;
-        }
-        return title && provider;
-    }
-
-    private static boolean rendered(AccessibilityNodeInfo node, String title) {
+    private static boolean contains(AccessibilityNodeInfo node, String text, String other) {
         if (node == null || !APP.equals(String.valueOf(node.getPackageName()))) return false;
-        if (node.isVisibleToUser() && node.isFocusable() && node.isClickable() && hasStreamCard(node, title)) return true;
+        String value = String.valueOf(node.getText()) + " " + String.valueOf(node.getContentDescription());
+        if (node.isVisibleToUser() && value.contains(text) && value.contains(other)) return true;
         for (int i = 0; i < node.getChildCount(); i++) {
-            if (rendered(node.getChild(i), title)) return true;
+            if (contains(node.getChild(i), text, other)) return true;
         }
         return false;
+    }
+
+    private boolean visible(AccessibilityNodeInfo root, String title) {
+        if (root == null || !APP.equals(String.valueOf(root.getPackageName()))) return false;
+        if (mode.equals("settings")) {
+            return contains(root, "Backup & Sync", "") && contains(root, "Profiles", "");
+        }
+        if (mode.equals("detail")) {
+            return contains(root, "Profile measurement series", "")
+                    && (contains(root, "Season 1", "") || contains(root, "Experiment episode", "")
+                    || contains(root, "Controlled series synopsis", ""));
+        }
+        // Both values occur in the description of one real stream. A page heading
+        // and a provider filter chip on their own can never satisfy this check.
+        return contains(root, title, "NativeFixture");
     }
 
     @Override public void onStart() {
@@ -50,10 +54,23 @@ public final class PickerObserver extends Instrumentation {
             String name = String.format(java.util.Locale.US, "Fixture Movie %03d", index);
             String content = "tmdb:" + (1000 + index);
             UiAutomation ui = getUiAutomation();
-            if (rendered(ui.getRootInActiveWindow(), name)) throw new IllegalStateException("Picker already visible");
-            String command = "am start -n " + APP + "/com.nuvio.tv.launcher.AppIconDefault"
-                    + " --es launchMode stream --es contentType movie --es contentId " + content
-                    + " --es videoId " + content + " --es name '" + name + "'";
+            if (visible(ui.getRootInActiveWindow(), name)) throw new IllegalStateException("Target already visible");
+            String command;
+            switch (mode) {
+                case "stream":
+                    command = "am start -n " + APP + "/com.nuvio.tv.launcher.AppIconDefault"
+                            + " --es launchMode stream --es contentType movie --es contentId " + content
+                            + " --es videoId " + content + " --es name '" + name + "'";
+                    break;
+                case "settings":
+                    command = "input keyevent KEYCODE_DPAD_CENTER";
+                    break;
+                case "detail":
+                    command = "am start -a android.intent.action.VIEW -d nuvio://series/tt9900998 -p " + APP;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown journey");
+            }
             long start = SystemClock.elapsedRealtime();
             try (InputStream output = new ParcelFileDescriptor.AutoCloseInputStream(ui.executeShellCommand(command))) {
                 byte[] data = new byte[512];
@@ -62,7 +79,7 @@ public final class PickerObserver extends Instrumentation {
             long previous = start;
             while (SystemClock.elapsedRealtime() - start < 35_000) {
                 AccessibilityNodeInfo root = ui.getRootInActiveWindow();
-                if (rendered(root, name)) {
+                if (visible(root, name)) {
                     result.putLong("pickerMs", SystemClock.elapsedRealtime() - start);
                     result.putLong("previousMissMs", previous - start);
                     finish(Activity.RESULT_OK, result);
@@ -71,7 +88,7 @@ public final class PickerObserver extends Instrumentation {
                 previous = SystemClock.elapsedRealtime();
                 SystemClock.sleep(25);
             }
-            throw new IllegalStateException("The matching stream card did not render");
+            throw new IllegalStateException("The expected " + mode + " controls did not render");
         } catch (Exception failure) {
             result.putString("error", failure.toString());
             finish(Activity.RESULT_CANCELED, result);

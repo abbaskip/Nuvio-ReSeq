@@ -98,6 +98,10 @@ fun LiveTvPlayerScreen(
     val programs by viewModel.programs.collectAsStateWithLifecycle()
     val recordings by viewModel.recordings.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
+    val guideGeneration by viewModel.guideGeneration.collectAsStateWithLifecycle()
+    LaunchedEffect(playback.channelKey, now / 1_800_000L, guideGeneration, settings.epgOffsetMinutes) {
+        playback.channelKey?.let { viewModel.refreshPlaybackListings(listOf(it), now) }
+    }
     val scope = rememberCoroutineScope()
     val view = LocalView.current
 

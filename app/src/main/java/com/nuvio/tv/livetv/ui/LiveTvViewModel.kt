@@ -129,8 +129,9 @@ class LiveTvViewModel @Inject constructor(
     val status: StateFlow<LiveTvStatus> = repository.status
     val playbackState: StateFlow<LivePlaybackState> = playback.state
 
+    // Bulk range maintenance can keep its last read time throughout a live session.
     private val _now = MutableStateFlow(System.currentTimeMillis())
-    val now: StateFlow<Long> = _now
+    val now = liveGuideClock().stateIn(viewModelScope, SharingStarted.WhileSubscribed(), System.currentTimeMillis())
 
     private val searchQuery = MutableStateFlow("")
 
@@ -613,6 +614,10 @@ class LiveTvViewModel @Inject constructor(
 
     /** Guide scrolled ahead or back: load those hours from the guide database if needed. */
     fun ensureGuideRange(fromMs: Long, toMs: Long) = repository.ensureRange(fromMs, toMs)
+
+    suspend fun refreshPlaybackListings(keys: List<String>, at: Long) {
+        repository.readPlaybackListings(keys, at - settings.value.epgOffsetMinutes * 60_000L)
+    }
     fun loadVisibleGuideChannels(keys: List<String>) {
         val visible=(listOfNotNull(playback.state.value.channelKey)+keys).distinct()
         repository.loadChannelsNow(visible)
@@ -883,10 +888,10 @@ class LiveTvViewModel @Inject constructor(
         else "Recording \"$title\" until $until"
     }
 
-    fun currentProgram(channelKey: String, at: Long = _now.value): EpgProgram? =
+    fun currentProgram(channelKey: String, at: Long = System.currentTimeMillis()): EpgProgram? =
         programs.value[channelKey]?.firstOrNull { at >= it.startMs && at < it.stopMs }
 
-    fun nextProgram(channelKey: String, at: Long = _now.value): EpgProgram? =
+    fun nextProgram(channelKey: String, at: Long = System.currentTimeMillis()): EpgProgram? =
         programs.value[channelKey]?.firstOrNull { it.startMs >= at }
 
     /** Channel list used for up/down zapping in the full-screen player. */

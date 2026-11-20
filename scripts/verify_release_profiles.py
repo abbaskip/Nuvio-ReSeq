@@ -12,6 +12,7 @@ from prepare_release_apks import ABIS
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "app/src/main/baselineProfiles/reseq-packages.txt"
 ASSETS = "assets/dexopt/baseline."
+JOURNEY_PACKAGES = {"com/nuvio/tv/ui/screens/settings/", "com/nuvio/tv/ui/screens/detail/"}
 
 
 def packages(rules):
@@ -86,7 +87,7 @@ def dex_classes(dex, indices):
 
 def verify(apk_dir, intermediates, mapping):
     rules = RULES.read_text().splitlines()
-    required = packages(rules)
+    required = packages(rules) | JOURNEY_PACKAGES
     merged = list((intermediates / "merged_art_profile/fullRelease").rglob("*.txt"))
     if not any(set(rules) <= set(p.read_text().splitlines()) for p in merged):
         raise ValueError("Release merge is missing hand-written rules")

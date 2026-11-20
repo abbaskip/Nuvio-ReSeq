@@ -124,6 +124,8 @@ class LiveTvViewModel @Inject constructor(
     val status: StateFlow<LiveTvStatus> = repository.status
     val playbackState: StateFlow<LivePlaybackState> = playback.state
 
+    // Bulk range maintenance can keep its last read time throughout a live session.
+    private val _now = MutableStateFlow(System.currentTimeMillis())
     val now = liveGuideClock().stateIn(viewModelScope, SharingStarted.WhileSubscribed(), System.currentTimeMillis())
 
     private val searchQuery = MutableStateFlow("")
@@ -232,9 +234,9 @@ class LiveTvViewModel @Inject constructor(
             while (true) {
                 // Nothing to keep up to date while a movie or episode plays in Nuvio's player.
                 com.nuvio.tv.livetv.data.BackgroundWork.awaitIdle()
-                val guideTime = System.currentTimeMillis()
+                _now.value = System.currentTimeMillis()
                 // Keep the hours around now loaded from the guide database as time passes.
-                repository.ensureRange(guideTime - 3 * 3_600_000L, guideTime + 12 * 3_600_000L)
+                repository.ensureRange(_now.value - 3 * 3_600_000L, _now.value + 12 * 3_600_000L)
                 delay(30_000)
             }
         }

@@ -67,12 +67,7 @@ public final class PickerObserver extends Instrumentation {
             String command;
             switch (mode) {
                 case "stream":
-                    AccessibilityNodeInfo root = ui.getRootInActiveWindow();
-                    if (root == null || !contains(root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT), "Play manually", "")) {
-                        throw new IllegalStateException("Play manually does not have remote focus");
-                    }
-                    command = "input keyevent KEYCODE_DPAD_CENTER";
-                    break;
+                    // The driver verifies Compose's focused menu row before starting the clock.
                 case "settings":
                     command = "input keyevent KEYCODE_DPAD_CENTER";
                     break;

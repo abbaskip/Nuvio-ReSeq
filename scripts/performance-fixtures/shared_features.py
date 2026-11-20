@@ -163,24 +163,20 @@ def discover():
     key("BACK", .8)
     select("Search")
     STEP = "open Advanced Discover"
-    def control(name):
-        nodes = [n for n in tree().iter("node") if name.casefold() in label(n).casefold()]
-        if not nodes:
-            return False
-        x, y = point(min(nodes, key=lambda n: len(label(n))))
-        adb("shell","input","tap",str(x),str(y))
-        return True
-    wait_until(lambda: control("Advanced Discover"))
+    wait_until(lambda: "Advanced Discover" in labels())
+    if "mInputShown=true" in adb("shell","dumpsys","input_method"):
+        key("BACK", .5)
+    select("Advanced Discover")
     wait_until(lambda: any("show results" in entry.casefold() for entry in labels()))
     STEP = "render search results"
-    assert control("Show results")
+    select("Show results")
     # A populated grid has actual poster buttons to the right of the filter column.
     def cards():
         nodes = list(tree().iter("node"))
         return [n for n in nodes if point(n)[0] > 870 and n.get("focusable") == "true"
                 and n.get("clickable") == "true" and any(label(c) for c in n.iter())]
     results = wait_until(cards, 40)
-    assert control("Reset")
+    select("Reset")
     wait_until(lambda: any("show results" in entry.casefold() for entry in labels()))
     return {"visibleResultCards":len(results),"resetReturnedToFilters":True}
 
@@ -215,7 +211,8 @@ def main():
                 capture(OUT / name)
                 allowed = ("Home","Search","TV Mix","Next random episode","Remix","Play",MIX,FILM,
                            "Guest episode","Fixture addon","Released","Advanced Discover","Show results","Reset",
-                           "No results","IMDb","Sources","Default","Addons")
+                           "No results","IMDb","Sources","Default","Addons","Add a valid TMDB API key",
+                           "Retry results","TMDB key settings")
                 visible = labels()
                 RESULT[name] = {"error":str(exc),"step":STEP,"requests":dict(server.requests),
                                 "visibleMarkers":[a for a in allowed if any(a in item for item in visible)]}

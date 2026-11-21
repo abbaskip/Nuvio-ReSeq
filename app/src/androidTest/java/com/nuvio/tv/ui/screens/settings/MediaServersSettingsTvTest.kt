@@ -1,11 +1,14 @@
 package com.nuvio.tv.ui.screens.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.platform.app.InstrumentationRegistry
 import com.nuvio.tv.R
@@ -25,8 +28,13 @@ class MediaServersSettingsTvTest {
             compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(provider))
             compose.onNodeWithText(provider).assertIsDisplayed()
         }
-        compose.onNodeWithText("Silo").performClick()
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        compose.onNodeWithText("Silo").performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_DPAD_CENTER)
+        val address = compose.onNodeWithText(context.getString(R.string.silo_address_hint))
+        compose.waitUntil(5_000) { address.isDisplayed() }
         compose.onNodeWithText(context.getString(R.string.silo_address_subtitle)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.servers_connect)).assertIsNotEnabled()
     }
 }

@@ -83,7 +83,10 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
         LaunchedEffect(needsReleases) { if (needsReleases) openedReleases = true }
         val releases = if (needsReleases || (openedReleases && quickSport != null && selection.filter != CalendarFilter.SPORTS)) {
             val flow = remember(active, region, zone, window) { viewModel.releases(active, region, zone, window) }
-            key(flow) { flow.collectAsStateWithLifecycle(initialValue = CalendarDisplay(), minActiveState = Lifecycle.State.RESUMED).value }
+            key(flow) {
+                val cached = remember { viewModel.cachedReleases(active, region, zone, window) }
+                flow.collectAsStateWithLifecycle(initialValue = cached, minActiveState = Lifecycle.State.RESUMED).value
+            }
         } else CalendarDisplay(status = CalendarStatus.READY)
         val sportDay = remember(window) { kotlinx.coroutines.flow.MutableStateFlow(selected) }
         LaunchedEffect(sportDay, selected) { sportDay.value = selected }

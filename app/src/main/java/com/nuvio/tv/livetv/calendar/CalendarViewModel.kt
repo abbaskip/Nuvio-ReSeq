@@ -30,6 +30,11 @@ internal class CalendarViewModel @Inject constructor(
         if (rows.none { it.kind == CalendarKind.EPISODE }) rows
         else withContext(BackgroundWork.quiet) { labels.get().apply(profile, rows) }
 
+    fun cachedReleases(profile: Int, region: String, zone: ZoneId, window: CalendarWindow) =
+        repository.cachedReleases(profile, region, zone, window)?.let {
+            CalendarDisplay(it.items, if (it.retryAt > 0) CalendarStatus.RETRY else CalendarStatus.READY)
+        } ?: CalendarDisplay()
+
     fun releases(profile: Int, region: String, zone: ZoneId, window: CalendarWindow) =
         repository.pages(profile, region, zone, window.first, playing, refresh, window.days).flowOn(BackgroundWork.quiet)
 

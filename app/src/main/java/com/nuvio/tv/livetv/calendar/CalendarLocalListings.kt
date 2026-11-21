@@ -4,6 +4,9 @@ import android.content.Context
 import com.nuvio.tv.core.storage.DatabaseVersions
 import com.nuvio.tv.livetv.data.*
 import com.nuvio.tv.livetv.multiview.liveTvChannelVisibility
+import com.nuvio.tv.livetv.model.LiveUserState
+import com.nuvio.tv.livetv.model.LiveTvSettings
+import com.nuvio.tv.livetv.model.LiveChannel
 import com.nuvio.tv.livetv.model.EpgProgram
 import com.nuvio.tv.livetv.parental.ParentalControls
 import com.nuvio.tv.livetv.sports.*
@@ -13,6 +16,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
@@ -46,9 +50,47 @@ internal class CalendarLocalListings @Inject constructor(
         }.distinctUntilChanged()
 
     private data class Airings(val names: Map<String, String> = emptyMap(), val events: List<SportsEvent> = emptyList(),
-        val loading: Boolean = false, val failed: Boolean = false)
-    private data class Schedule(val events: List<SportsEvent>, val loading: Boolean, val failed: Boolean = false)
+        val loading: Boolean = false, val failed: Boolean = false, val day: Long? = null)
+    private data class Schedule(val events: List<SportsEvent>, val loading: Boolean, val failed: Boolean = false,
+        val day: Long? = null, val complete: Boolean = true)
     private data class DayCheck(val leagues: List<League>, val until: Long, val failed: Boolean)
+
+    private class ChannelVisibility(val channels: List<LiveChannel>, val user: LiveUserState,
+        val settings: LiveTvSettings, val unlocked: Set<String>) {
+        val visible = liveTvChannelVisibility(channels, user, settings).visible.associateBy { it.key }
+    }
+    @Volatile private var lastVisibility: ChannelVisibility? = null
+    private data class GuideInputs(val visible: Map<String, LiveChannel>, val shift: Int, val revision: String?)
+    private data class SportsPageKey(val profile: Int, val generation: Long, val zone: ZoneId, val window: CalendarWindow,
+        val overview: Boolean, val allSports: Boolean, val follows: SportsFollows, val settings: SportsSettings, val guide: GuideInputs)
+    private data class SportsPage(val key: SportsPageKey, val day: Long, val rows: List<CalendarItem>, val checkedAt: Long?)
+    private val recentPages = ArrayDeque<SportsPage>()
+
+    @Synchronized private fun cachedPage(key: SportsPageKey, day: Long): SportsPage? =
+        recentPages.lastOrNull { it.day == day && it.key == key }
+            ?: if (key.overview) recentPages.lastOrNull { it.key == key } else null
+
+    @Synchronized private fun rememberPage(page: SportsPage) {
+        recentPages.removeAll { it.key == page.key && it.day == page.day || it.key.profile != page.key.profile }
+        recentPages.addLast(page)
+        // A busy month can fill the whole budget. Keep that page usable with every quick filter.
+        while (recentPages.size > 1 && (recentPages.size > 3 || recentPages.sumOf { it.rows.size } > 3 * CalendarPolicy.MAX_ITEMS)) {
+            recentPages.removeFirst()
+        }
+    }
+
+    private fun guideInputs(): Flow<GuideInputs> {
+        if (!context.getDatabasePath(DatabaseVersions.guide.fileName).isFile) return flowOf(GuideInputs(emptyMap(), 0, null))
+        val preferences = prefs.get()
+        return combine(channels.get().displayChannels, preferences.userState, preferences.settings, ParentalControls.unlocked) {
+            all, user, settings, unlocked ->
+            val visibility = lastVisibility?.takeIf {
+                it.channels === all && it.user == user && it.settings == settings && it.unlocked == unlocked
+            } ?: ChannelVisibility(all, user, settings, unlocked).also { lastVisibility = it }
+            GuideInputs(visibility.visible,
+                settings.epgOffsetMinutes, guide.get().contentRevision())
+        }.distinctUntilChanged()
+    }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, day: StateFlow<Long>, force: Boolean, overview: Boolean = false,
@@ -58,35 +100,78 @@ internal class CalendarLocalListings @Inject constructor(
         }.distinctUntilChanged().flatMapLatest { (follows, settings) ->
             if (!allSports && follows.isEmpty && follows.reminders.isEmpty())
                 return@flatMapLatest flowOf(CalendarDisplay(status = CalendarStatus.READY))
-            flow {
-                val now = System.currentTimeMillis()
-                val saved = fixtures.get().read(now)
-                val leagues = requestedLeagues(follows, saved.savedLeagues + localLeagueMetadata(follows), settings)
-                val guideLeagues = if (context.getDatabasePath(DatabaseVersions.guide.fileName).isFile)
-                    (SportsCatalog.all + leagues).distinctBy { it.id }.filter { SportsTaxonomy.accepts(it, settings.excludedSportsNodes) }
-                    else emptyList()
-                val periodIds = leagues.filter { it.espnPath != null || it.fixtureSlug != null || it.id.startsWith("ca/") }
-                    .mapTo(HashSet()) { SportsCompetitions.canonicalId(it.id) }
-                val explicitIds = follows.leagues + follows.pins + follows.teams.map { it.leagueId }
-                val providers = leagues.filter { !it.id.startsWith("tsdb/") || it.id in explicitIds || SportsCompetitions.canonicalId(it.id) !in periodIds }
-                val provider = schedule(providers, window, day.value, zone, force)
-                val byId = (saved.savedLeagues.values + guideLeagues + leagues).associateBy { it.id }
-                val daily = dailySchedule(providers, day, zone, force, overview)
-                val guideDays = if (overview) flowOf(day.value) else day
-                val tv = guideDays.flatMapLatest { date ->
-                    airings(guideLeagues, settings, follows.words, date, zone, now, if (overview) window else CalendarWindow(date, date))
-                }
-                emitAll(combine(provider, daily, tv) { games, dated, guide ->
-                    val rows = sportRows(games.events + dated.events + guide.events + saved.events, byId, follows, settings, saved.channels, guide.names, window, zone, allSports)
-                    val status = when {
-                        games.loading || dated.loading || guide.loading -> CalendarStatus.UPDATING
-                        games.failed || dated.failed || guide.failed -> CalendarStatus.RETRY
-                        else -> CalendarStatus.READY
-                    }
-                    CalendarDisplay(rows, status)
-                }.distinctUntilChanged())
+            guideInputs().flatMapLatest { guide ->
+                val key = SportsPageKey(profile, CalendarPageCache.generation(profile), zone, window, overview, allSports, follows, settings, guide)
+                sportsPage(key, day, force)
             }
         }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun sportsPage(key: SportsPageKey, day: StateFlow<Long>, force: Boolean): Flow<CalendarDisplay> = flow {
+        val zone = key.zone
+        val window = key.window
+        val overview = key.overview
+        val allSports = key.allSports
+        val follows = key.follows
+        val settings = key.settings
+        val initialDay = day.value
+        var previous = cachedPage(key, initialDay)
+        if (previous != null) {
+            val checked = previous.checkedAt
+            val fresh = previous.day == initialDay && !force && checked != null && android.os.SystemClock.elapsedRealtime() - checked in 0 until REOPEN_FRESH_MS
+            emit(CalendarDisplay(previous.rows, if (fresh) CalendarStatus.READY else CalendarStatus.UPDATING))
+            if (fresh) day.first { it != initialDay }
+        } else emit(CalendarDisplay())
+        val now = System.currentTimeMillis()
+        val saved = fixtures.get().read(now)
+        val leagues = requestedLeagues(follows, saved.savedLeagues + localLeagueMetadata(follows), settings)
+        val guideLeagues = if (context.getDatabasePath(DatabaseVersions.guide.fileName).isFile)
+            (SportsCatalog.all + leagues).distinctBy { it.id }.filter { SportsTaxonomy.accepts(it, settings.excludedSportsNodes) }
+            else emptyList()
+        val periodIds = leagues.filter { it.espnPath != null || it.fixtureSlug != null || it.id.startsWith("ca/") }
+            .mapTo(HashSet()) { SportsCompetitions.canonicalId(it.id) }
+        val explicitIds = follows.leagues + follows.pins + follows.teams.map { it.leagueId }
+        val providers = leagues.filter { !it.id.startsWith("tsdb/") || it.id in explicitIds || SportsCompetitions.canonicalId(it.id) !in periodIds }
+        val provider = schedule(providers, window, day.value, zone, force)
+        val byId = (saved.savedLeagues.values + guideLeagues + leagues).associateBy { it.id }
+        val daily = dailySchedule(providers, day, zone, force, overview)
+        val guideDays = if (overview) flowOf(day.value) else day
+        val tv = guideDays.flatMapLatest { date ->
+            airings(key.guide, guideLeagues, settings, follows.words, date, zone, now, if (overview) window else CalendarWindow(date, date))
+                .map { it.copy(day = date) }
+        }
+        // In All events a visible guide competition need not be one of the user's follows.
+        // Fetch only competitions the guide found, sharing the existing scan and disk cache.
+        val listings = if (allSports || follows.words.isNotEmpty()) guideSchedules(tv, providers, window, day, zone, force, overview) {
+            allSports || isMine(it, follows, byId[it.leagueId])
+        } else tv
+        emitAll(combine(provider, daily, listings) { games, dated, guide ->
+            val rows = sportRows(games.events + dated.events + guide.events + saved.events, byId, follows, settings, saved.channels, guide.names, window, zone, allSports)
+            val status = when {
+                games.loading || dated.loading || guide.loading -> CalendarStatus.UPDATING
+                games.failed || dated.failed || guide.failed -> CalendarStatus.RETRY
+                else -> CalendarStatus.READY
+            }
+            val date = dated.day
+            val sameDay = date != null && date == day.value && (overview || date == guide.day)
+            val old = previous?.takeIf { overview || it.day == day.value }
+            val retained = old?.takeIf { status != CalendarStatus.READY || !dated.complete || !sameDay }
+            val shown = when {
+                retained == null -> rows
+                retained.checkedAt != null || rows.isEmpty() -> retained.rows
+                else -> (rows + retained.rows).distinctBy { it.key }
+            }
+            if (date != null && sameDay && retained?.checkedAt == null) {
+                val checked = if (status == CalendarStatus.READY && dated.complete) android.os.SystemClock.elapsedRealtime() else null
+                if (shown.isNotEmpty() || checked != null) {
+                    val snapshot = SportsPage(key, date, shown, checked)
+                    rememberPage(snapshot)
+                    if (checked != null) previous = snapshot
+                }
+            }
+            CalendarDisplay(shown, status)
+        }.distinctUntilChanged())
+    }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun dailySchedule(providers: List<League>, selected: StateFlow<Long>, zone: ZoneId, force: Boolean, overview: Boolean) = flow {
@@ -98,7 +183,7 @@ internal class CalendarLocalListings @Inject constructor(
             schedules.get().dayLeagues(providers, date, zone).transformLatest { leagues ->
                 val checked = completed[date]
                 if (checked != null && checked.leagues == leagues && android.os.SystemClock.elapsedRealtime() < checked.until) {
-                    emit(Schedule(visited.values.flatten(), false, checked.failed))
+                    emit(Schedule(visited.values.flatten(), false, checked.failed, date))
                     return@transformLatest
                 }
                 if (overview && date != initialDay && leagues.isNotEmpty()) delay(180)
@@ -111,11 +196,38 @@ internal class CalendarLocalListings @Inject constructor(
                         val ttl = if (games.failed) CalendarPolicy.RETRY_MS else CalendarPolicy.FRESH_MS
                         completed[date] = DayCheck(leagues, android.os.SystemClock.elapsedRealtime() + ttl, games.failed)
                     }
-                    emit(Schedule(visited.values.flatten(), showLoading, games.failed))
+                    emit(Schedule(visited.values.flatten(), showLoading, games.failed, date, !games.loading))
                 }
             }
         }
         emitAll(daily.distinctUntilChanged())
+    }
+
+    private fun guideSchedules(tv: Flow<Airings>, providers: List<League>, window: CalendarWindow, day: StateFlow<Long>,
+        zone: ZoneId, force: Boolean, overview: Boolean, wanted: (SportsEvent) -> Boolean): Flow<Airings> = channelFlow {
+        val seen = providers.mapTo(HashSet()) { SportsCompetitions.canonicalId(it.id) }
+        val extra = MutableStateFlow(emptyMap<String, Schedule>())
+        val listings = tv.onEach { guide ->
+            for (air in guide.events) {
+                val id = SportsCompetitions.canonicalId(air.leagueId)
+                if (id in seen || !wanted(air)) continue
+                seen.add(id)
+                val sources = SportsCompetitions.sources(id)
+                val source = sources.firstOrNull { it.espnPath != null }
+                    ?: sources.firstOrNull { it.fixtureSlug != null || it.id.startsWith("tsdb/") } ?: continue
+                extra.update { it + (id to Schedule(emptyList(), true)) }
+                launch {
+                    val league = listOf(source)
+                    combine(schedule(league, window, day.value, zone, force), dailySchedule(league, day, zone, force, overview)) { a, b ->
+                        Schedule(a.events + b.events, a.loading || b.loading, a.failed || b.failed)
+                    }.collect { chunk -> extra.update { it + (id to chunk) } }
+                }
+            }
+        }
+        combine(listings, extra) { guide, chunks ->
+            guide.copy(events = guide.events + chunks.values.flatMap { it.events },
+                loading = guide.loading || chunks.values.any { it.loading }, failed = guide.failed || chunks.values.any { it.failed })
+        }.collect { send(it) }
     }
 
     private fun schedule(leagues: List<League>, window: CalendarWindow, day: Long, zone: ZoneId, force: Boolean): Flow<Schedule> = flow {
@@ -131,38 +243,35 @@ internal class CalendarLocalListings @Inject constructor(
         emit(Schedule(chunks.values.flatten(), false, failed.isNotEmpty()))
     }.conflate()
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    private fun airings(leagues: List<League>, sports: SportsSettings, words: List<String>, day: Long, zone: ZoneId, now: Long, window: CalendarWindow): Flow<Airings> {
-        if (!context.getDatabasePath(DatabaseVersions.guide.fileName).isFile) return flowOf(Airings())
-        val preferences = prefs.get()
-        return combine(channels.get().displayChannels, preferences.userState, preferences.settings, ParentalControls.unlocked) {
-            all, user, settings, _ -> liveTvChannelVisibility(all, user, settings).visible.associateBy { it.key } to settings.epgOffsetMinutes
-        }.distinctUntilChanged().transformLatest { (visible, shift) ->
-            val names = visible.mapValues { it.value.name }
-            if (names.isEmpty() || leagues.isEmpty()) { emit(Airings(names)); return@transformLatest }
-            emit(Airings(names, loading = true))
-            delay(180)
-            val offset = shift * 60_000L
-            fun midnight(epochDay: Long) = LocalDate.ofEpochDay(epochDay).atStartOfDay(zone).toInstant().toEpochMilli()
-            val covered = withContext(BackgroundWork.reads) { guide.get().sportsGuideRange(midnight(window.first) - offset, midnight(window.last + 1) - offset) }
-            if (covered == null) { emit(Airings(names)); return@transformLatest }
-            val days = ((covered.first + offset).calendarDay(zone)..(covered.last + offset).calendarDay(zone)).sortedBy { kotlin.math.abs(it - day) }
-            val events = mutableListOf<SportsEvent>()
-            for (date in days) {
-                val batch = withContext(BackgroundWork.reads) {
-                    val job = currentCoroutineContext()
-                    guideReads.withLock {
-                        matcher.guideEvents(midnight(date), midnight(date + 1), leagues, words, visible, offset, now, selection = sports,
-                            liveCompetitionsOnly = true, checkCancelled = { job.ensureActive() })
-                    }
+    private fun airings(inputs: GuideInputs, leagues: List<League>, sports: SportsSettings, words: List<String>, day: Long,
+        zone: ZoneId, now: Long, window: CalendarWindow): Flow<Airings> = flow {
+        val (visible, shift) = inputs
+        val names = visible.mapValues { it.value.name }
+        if (names.isEmpty() || leagues.isEmpty()) { emit(Airings(names)); return@flow }
+        emit(Airings(names, loading = true))
+        delay(180)
+        val offset = shift * 60_000L
+        fun midnight(epochDay: Long) = LocalDate.ofEpochDay(epochDay).atStartOfDay(zone).toInstant().toEpochMilli()
+        val from = midnight(window.first) - CalendarFixtureBroadcasts.EARLY_COVERAGE_MS
+        val covered = withContext(BackgroundWork.reads) { guide.get().sportsGuideRange(from - offset, midnight(window.last + 1) - offset) }
+        if (covered == null) { emit(Airings(names)); return@flow }
+        val first = maxOf(window.first, (covered.first + offset).calendarDay(zone))
+        val days = (first..maxOf(first, (covered.last + offset).calendarDay(zone))).sortedBy { kotlin.math.abs(it - day) }
+        val events = mutableListOf<SportsEvent>()
+        for (date in days) {
+            val batch = withContext(BackgroundWork.reads) {
+                val job = currentCoroutineContext()
+                guideReads.withLock {
+                    matcher.guideEvents(if (date == window.first) from else midnight(date), midnight(date + 1), leagues, words, visible, offset, now, selection = sports,
+                        liveCompetitionsOnly = true, checkCancelled = { job.ensureActive() })
                 }
-                events += batch
-                emit(Airings(names, events.toList()))
             }
-        }.onStart { emit(Airings(loading = true)) }.catch { e ->
-            if (e is CancellationException) throw e
-            emit(Airings(failed = true))
+            events += batch
+            emit(Airings(names, events.toList(), loading = date != days.last()))
         }
+    }.onStart { emit(Airings(loading = true)) }.catch { e ->
+        if (e is CancellationException) throw e
+        emit(Airings(failed = true))
     }
 
     // A synced follow can refer to a TheSportsDB league added by the shared catalogue. Read only
@@ -198,6 +307,8 @@ internal class CalendarLocalListings @Inject constructor(
     }
 
     companion object {
+        private const val REOPEN_FRESH_MS = 2 * 60_000L
+
         internal fun requestedLeagues(follows: SportsFollows, saved: Map<String, League>, settings: SportsSettings): List<League> {
             val ids = (follows.teams.flatMap { listOf(it.leagueId) + SportsCatalog.relatedLeagues(it.leagueId) } +
                 follows.pins + follows.leagues).toSet()
@@ -209,9 +320,9 @@ internal class CalendarLocalListings @Inject constructor(
 
         internal fun sportRows(events: List<SportsEvent>, leagues: Map<String, League>, follows: SportsFollows, settings: SportsSettings,
             matches: Map<String, List<String>>, names: Map<String, String>, window: CalendarWindow, zone: ZoneId, allSports: Boolean = false): List<CalendarItem> {
-            val byId = events.distinctBy { it.id }
             val membership = mutableMapOf<String, Boolean>()
             fun league(event: SportsEvent) = leagues[event.leagueId] ?: SportsCatalog.league(event.leagueId)
+            val byId = CalendarFixtureBroadcasts.withoutRaceDuplicates(events.distinctBy { it.id }, ::league)
             fun followed(event: SportsEvent) = follows.teams.filter { it.playsIn(event, league(event)) }
             fun wanted(event: SportsEvent) = membership.getOrPut(event.id) { isMine(event, follows, league(event)) }
             fun span(event: SportsEvent): LongRange {
@@ -220,24 +331,28 @@ internal class CalendarLocalListings @Inject constructor(
                 val last = if (multi) event.endMs?.takeIf { it > event.startMs }?.minus(1)?.calendarDay(zone) ?: first else first
                 return first..last.coerceIn(first, first + 30)
             }
+            val firstStart = LocalDate.ofEpochDay(window.first).atStartOfDay(zone).toInstant().toEpochMilli()
             val usable = byId.filter { e ->
                 val days = span(e)
                 val testInProgress = days.last < window.first && window.first - days.first <= 4 &&
                     e.source != EventSource.GUIDE && CalendarTestMatches.fixture(e, league(e)) != null
-                days.first <= window.last && (days.last >= window.first || testInProgress) &&
+                val earlyGuide = e.source == EventSource.GUIDE && e.startMs in firstStart - CalendarFixtureBroadcasts.EARLY_COVERAGE_MS until firstStart
+                days.first <= window.last && (days.last >= window.first || testInProgress || earlyGuide) &&
                     SportsTaxonomy.acceptsEvent(league(e), e.title, e.subtitle, settings.excludedSportsNodes) &&
                     !(e.state == GameState.OFF && e.status.orEmpty().lowercase().let { "cancel" in it || "postpon" in it || "abandon" in it })
             }
             val official = usable.filter { it.source != EventSource.GUIDE }
-            val reported = official.filter { wanted(it) || (allSports && matches[it.id].orEmpty().any(names::containsKey)) }
             val identities = SportsEventIdentity.Round()
-            val espn = SportsFixtureIndex(reported.filter { it.source == EventSource.ESPN })
-            val real = reported.filterNot { e -> e.source == EventSource.THESPORTSDB &&
+            val espn = SportsFixtureIndex(official.filter { it.source == EventSource.ESPN })
+            val real = official.filterNot { e -> e.source == EventSource.THESPORTSDB &&
                 league(e)?.let { l -> espn.anyNear(e) { other -> league(other)?.let { identities.same(e, other, l, it) } == true } } == true }
             val preferred = CricketAustralia.merge(real.filter { it.source != EventSource.CRICKET_AUSTRALIA },
                 real.filter { it.source == EventSource.CRICKET_AUSTRALIA })
-            val tests = CalendarTestMatches.Fixtures(preferred + official, zone, ::league)
-            val primary = preferred.map(tests::canonical).distinctBy { it.id }
+            val tests = CalendarTestMatches.Fixtures(preferred, zone, ::league)
+            val canonical = preferred.map(tests::canonical).distinctBy { it.id }
+            val primary = canonical.filter { wanted(it) || (allSports && matches[it.id].orEmpty().any(names::containsKey)) }
+            val primaryIds = primary.mapTo(HashSet()) { it.id }
+            val fixtureGuide = CalendarFixtureBroadcasts(canonical, ::league, byId)
             val broadcasts = mutableMapOf<String, MutableMap<Long, MutableList<Pair<String, EpgProgram>>>>()
             val extra = mutableListOf<SportsEvent>()
             val liveAirings = usable.filter { it.source == EventSource.GUIDE }.mapNotNull { air ->
@@ -255,19 +370,22 @@ internal class CalendarLocalListings @Inject constructor(
             }
             for (air in airings) {
                 val keepAiring = allSports || air.guideHits.any { it in followedHits }
-                val candidates = if (keepAiring) primary.asSequence() + official.asSequence() else primary.asSequence()
                 val date = air.startMs.calendarDay(zone)
                 val test = namedTests[air.id] ?: tests.unnamed(air, league(air), corroborated[date].orEmpty())
-                val match = test?.takeIf { keepAiring || it in primary } ?: candidates.firstOrNull { e -> league(e)?.let { l -> l.sport == league(air)?.sport &&
-                    SportsEventIdentity.guideCoversFixture(air, e, l) } == true }
-                if (!keepAiring && match == null) continue
-                if (match != null) {
-                    val liveHits = if (match == test) air.guideHits.filter { tests.liveSession(it.second, match) } else air.guideHits
-                    if (liveHits.isEmpty()) continue
-                    broadcasts.getOrPut(match.id) { mutableMapOf() }.getOrPut(date) { mutableListOf() }.addAll(liveHits)
-                    if (match !in primary && extra.none { it.id == match.id }) extra += match
+                val fixtures = fixtureGuide.fixturesFor(air)
+                if (test == null && fixtures.isEmpty()) {
+                    if (keepAiring && !fixtureGuide.covers(air) && !CalendarTestMatches.anonymousTest(air, league(air))) extra += air
+                    continue
                 }
-                else if (!CalendarTestMatches.anonymousTest(air, league(air))) extra += air
+                for ((programme, hits) in air.guideHits.groupBy { it.second }) {
+                    val match = if (test != null) test.takeIf { tests.liveSession(programme, it) }
+                        else fixtureGuide.match(air, programme, fixtures)
+                    if (match == null || !keepAiring && match.id !in primaryIds) continue
+                    // Early coverage may start the previous evening. Keep it on the fixture's date.
+                    val playDay = if (test != null) date else match.startMs.calendarDay(zone)
+                    broadcasts.getOrPut(match.id) { mutableMapOf() }.getOrPut(playDay) { mutableListOf() }.addAll(hits)
+                    if (match.id !in primaryIds && extra.none { it.id == match.id }) extra += match
+                }
             }
             val result = mutableListOf<CalendarItem>()
             for (event in primary + extra) {

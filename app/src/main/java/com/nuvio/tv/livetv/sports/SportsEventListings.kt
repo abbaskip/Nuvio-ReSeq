@@ -15,6 +15,7 @@ internal object SportsEventListings {
 
     private val editorial = Regex("""\b(?:sports betting|betting (?:odds|picks|tips)|panel (?:show|discussion)|studio (?:show|discussion)|news and analysis|previews? and predictions?|latest odds|live from the studio)\b""")
     private val qualifier = Regex("""\bqualifiers?\b""")
+    private val companionShow = Regex("""\b(?:(?:pre|post) ?(?:show|qualifying|practice|session)|pressekonferenz|press conference|conference de presse|conferencia de prensa|conferenza stampa)\b""")
     private val recorded = Regex("""\b(?:as live|tape delayed?|delayed (?:coverage|broadcast|telecast)|recorded coverage|originally (?:aired|broadcast)|re ?airs?|re ?runs?|live on tape)\b""")
     private val listingPrefix = Regex("""^(?:live |women s |womens |men s |mens )+""")
 
@@ -22,7 +23,8 @@ internal object SportsEventListings {
     fun liveCompetition(p: com.nuvio.tv.livetv.model.EpgProgram): Boolean {
         val title = SportsCatalog.norm(p.title.replace("@", " vs "))
         val description = SportsCatalog.norm(p.description.orEmpty())
-        if (nonEvent.containsMatchIn(title) || nonEvent.containsMatchIn(SportsCatalog.norm(p.category.orEmpty())) ||
+        if (companionShow.containsMatchIn(title) || companionShow.containsMatchIn(description.take(45)) ||
+            nonEvent.containsMatchIn(title) || nonEvent.containsMatchIn(SportsCatalog.norm(p.category.orEmpty())) ||
             editorial.containsMatchIn(description) || nonEvent.containsMatchIn(description.take(42)) ||
             recorded.containsMatchIn(title) || recorded.containsMatchIn(description)) return false
         val live = SportsCatalog.hasWord(title, "live") || description.trimStart().startsWith("live ") ||

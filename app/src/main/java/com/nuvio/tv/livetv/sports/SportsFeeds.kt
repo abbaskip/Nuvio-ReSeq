@@ -385,7 +385,7 @@ internal class SportsFeeds {
             return out
         }
 
-        fun parseScoreboard(league: League, raw: String, strict: Boolean = false): List<SportsEvent> {
+        fun parseScoreboard(league: League, raw: String, strict: Boolean = false, racingSessions: Boolean = false): List<SportsEvent> {
             val root = JSONObject(raw)
             if (!leagueLogos.containsKey(league.id)) runCatching {
                 val logos = root.optJSONArray("leagues")?.optJSONObject(0)?.optJSONArray("logos")
@@ -405,9 +405,40 @@ internal class SportsFeeds {
             val out = ArrayList<SportsEvent>()
             for (i in 0 until events.length()) {
                 val ev = events.optJSONObject(i) ?: continue
+                if (racingSessions && league.sport == Sport.RACING) {
+                    val sessions = raceSessions(league, ev)
+                    if (sessions.isNotEmpty()) {
+                        out.addAll(sessions)
+                        continue
+                    }
+                }
                 runCatching { parseEvent(league, ev) }.getOrNull()?.let { out += it }
             }
             return out
+        }
+
+        private fun raceSessions(league: League, weekend: JSONObject): List<SportsEvent> {
+            val parent = weekend.str("id") ?: return emptyList()
+            val competitions = weekend.optJSONArray("competitions") ?: return emptyList()
+            return (0 until competitions.length()).mapNotNull { i ->
+                val session = competitions.optJSONObject(i) ?: return@mapNotNull null
+                val id = session.str("id") ?: return@mapNotNull null
+                val type = session.optJSONObject("type") ?: return@mapNotNull null
+                val code = type.str("abbreviation").orEmpty().uppercase(Locale.ROOT)
+                val phase = when (code) {
+                    "FP1", "FP2", "FP3", "FP4" -> "Free Practice " + code.last()
+                    "QUAL", "Q" -> "Qualifying"
+                    "SQ", "SS" -> "Sprint Qualifying"
+                    "S", "SPRINT" -> "Sprint"
+                    "R", "RACE" -> "Race"
+                    else -> type.str("text") ?: type.str("name") ?: return@mapNotNull null
+                }
+                val event = JSONObject().put("id", parent).put("date", session.str("date"))
+                    .put("endDate", session.str("endDate")).put("circuit", weekend.optJSONObject("circuit"))
+                    .put("name", (weekend.str("name") ?: league.name) + " · " + phase)
+                    .put("competitions", JSONArray().put(session))
+                parseEvent(league, event)?.copy(id = "espn:" + league.id + ":" + parent + ":session:" + id)
+            }
         }
 
         private fun parseEvent(league: League, ev: JSONObject): SportsEvent? {

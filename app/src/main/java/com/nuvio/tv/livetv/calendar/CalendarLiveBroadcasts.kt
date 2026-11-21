@@ -5,34 +5,47 @@ import com.nuvio.tv.livetv.sports.SportsEvent
 
 /** Different channels often start their coverage of the same single-series race session a few minutes apart. */
 internal object CalendarLiveBroadcasts {
+    internal data class Phase(val name: String, val number: Int? = null) {
+        fun compatible(other: Phase) = name == other.name && (number == null || other.number == null || number == other.number)
+    }
     private data class Session(val series: String, val phase: String, val number: Int?)
     private val series = Regex("""\b(f(?:ormula)? ?(?:1|one) academy|formula one|formula [123]|f[123]|moto ?gp|moto[23])\b""")
     private val practice = Regex("""\b(?:free practice|practice|fp|p) ?([1-4])?\b""")
     private val race = Regex("""\b(?:race|reverse grid)\b(?: ([1-4])\b)?""")
     private val virtual = Regex("""\b(?:virtual|esports|sim racing)\b""")
 
-    private fun session(event: SportsEvent): Session? {
-        val title = SportsCatalog.norm(event.title)
+    fun seriesId(text: String): String? {
+        val title = SportsCatalog.norm(text)
         val matches = series.findAll(title).map { it.value }.toList()
         // "F1 Academy" is a separate championship racing on the same weekend as Formula 1.
         val competition = matches.firstOrNull { "academy" in it } ?: matches.firstOrNull() ?: return null
         if (virtual.containsMatchIn(title)) return null
-        val id = when (competition) {
+        return when (competition) {
             "formula one", "formula 1" -> "f1"
             "formula 2" -> "f2"
             "formula 3" -> "f3"
             "moto gp" -> "motogp"
             else -> if ("academy" in competition) "f1 academy" else competition
         }
+    }
+
+    fun phase(text: String): Phase? {
+        val title = SportsCatalog.norm(text)
         val phase = when {
-            "qualifying" in title || "qualification" in title -> if ("sprint" in title) "sprint qualifying" else "qualifying"
+            "qualifying" in title || "qualification" in title || "shootout" in title -> if ("sprint" in title) "sprint qualifying" else "qualifying"
             "sprint" in title -> "sprint"
             else -> null
         }
-        if (phase != null) return Session(id, phase, null)
-        practice.find(title)?.let { return Session(id, "practice", it.groupValues[1].toIntOrNull()) }
-        race.find(title)?.let { return Session(id, "race", it.groupValues[1].toIntOrNull()) }
+        if (phase != null) return Phase(phase)
+        practice.find(title)?.let { return Phase("practice", it.groupValues[1].toIntOrNull()) }
+        race.find(title)?.let { return Phase("race", it.groupValues[1].toIntOrNull()) }
         return null
+    }
+
+    private fun session(event: SportsEvent): Session? {
+        val id = seriesId(event.title) ?: return null
+        val phase = phase(event.title) ?: return null
+        return Session(id, phase.name, phase.number)
     }
 
     fun merge(events: List<SportsEvent>): List<SportsEvent> {

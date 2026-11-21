@@ -53,7 +53,7 @@ class CalendarGuideTest {
         }
         assertTrue(rows(SportsFollows(), items).isEmpty())
         assertEquals(game.id, rows(followed, items).single().contentId)
-        assertEquals(air.id, rows(SportsFollows(), listOf(air), allSports = true).single().contentId)
+        assertTrue(rows(SportsFollows(), listOf(air), allSports = true).isEmpty())
         val named = air.copy(word = "Celtics")
         assertEquals(game.id, rows(SportsFollows(words = listOf("Celtics")), listOf(named, game)).single().contentId)
         assertTrue(rows(SportsFollows(words = listOf("Rugby")), listOf(named, game)).isEmpty())
@@ -74,6 +74,61 @@ class CalendarGuideTest {
         assertTrue(practice.title.contains("Practice 3"))
     }
 
+    @Test fun lasVegasCalendarUsesSessionTimesAndAttachesOnlyLiveCoverage() {
+        val f1 = requireNotNull(SportsCatalog.league("racing/f1"))
+        val raw = """{"events":[{"id":"600057449","name":"Heineken Las Vegas Grand Prix","date":"2026-11-20T00:30Z",
+            "endDate":"2026-11-22T06:00Z","competitions":[
+            {"id":"401839135","date":"2026-11-21T00:30Z","type":{"abbreviation":"FP3"}},
+            {"id":"401839136","date":"2026-11-21T04:00Z","type":{"abbreviation":"Qual"}},
+            {"id":"401839137","date":"2026-11-22T04:00Z","type":{"abbreviation":"Race"}}]}]}"""
+        val sessions = SportsFeeds.parseScoreboard(f1, raw, racingSessions = true)
+        val parent = SportsFeeds.parseScoreboard(f1, raw).single()
+        fun slot(title: String, minutes: Int, key: String): SportsEvent {
+            val start = noon + minutes * 60_000L
+            val p = EpgProgram(start, start + 2 * 3_600_000L, "Live: " + title)
+            return airing(title, key).copy(id = key, leagueId = f1.id, startMs = start, endMs = p.stopMs, guideHits = listOf(key to p))
+        }
+        val tv = listOf(slot("Las Vegas F1 GP: Practice 3", -35, "practice"),
+            slot("Formula 1 Qualifying", 90, "early"), slot("Las Vegas F1 GP: Qualifying", 120, "sky"),
+            slot("Formula 1 Qualifying 2026", 175, "tsn"), slot("Formula 1 Racing", 175, "generic"),
+            slot("Formula 1 Qualifying", 89, "too-early"), slot("Formula 1 FP2", -30, "wrong-session"),
+            slot("Formula 1 Qualifying Post Show", 185, "post"), slot("F1: Pressekonferenz: Qualifying", 190, "press"),
+            slot("Formula 1: Las Vegas Grand Prix: Qualifying", 620, "repeat"),
+            slot("F1 Academy: Race 1", 175, "academy"))
+        val rows = CalendarLocalListings.sportRows(sessions + parent + tv + sessions[1].copy(id = "alternate", source = EventSource.THESPORTSDB),
+            mapOf(f1.id to f1), SportsFollows(), SportsSettings(), emptyMap(), tv.associate { it.id to it.id }, CalendarWindow(day, day), zone, true)
+        assertEquals(3, rows.size)
+        val practice = rows.single { it.title.endsWith("Free Practice 3") }
+        assertEquals(noon - 30 * 60_000L, practice.time)
+        assertEquals(listOf("practice"), practice.fixture!!.guideHits.map { it.first })
+        val qualifying = rows.single { it.title.endsWith(" · Qualifying") }
+        assertEquals(noon + 180 * 60_000L, qualifying.time)
+        assertEquals(setOf("early", "sky", "tsn", "generic"), qualifying.fixture!!.guideHits.map { it.first }.toSet())
+        assertTrue(rows.any { it.contentId == "academy" })
+    }
+
+    @Test fun coveredLeagueDropsUnmatchedAiringsWithoutHidingAnotherCompetition() {
+        val air = airing("Live: Boston Celtics at Toronto Raptors")
+        val replay = air.copy(id = "rerun", startMs = noon + 6 * 3_600_000,
+            guideHits = listOf("visible" to air.guideHits.single().second.copy(startMs = noon + 6 * 3_600_000, stopMs = noon + 8 * 3_600_000)))
+        val youth = airing("Live: FIFA U17 World Cup Qualifiers").copy(leagueId = "guide/youth-football")
+        val rows = CalendarLocalListings.sportRows(listOf(game, air, replay, youth), mapOf(nba.id to nba), SportsFollows(), SportsSettings(),
+            emptyMap(), mapOf("visible" to "Sports"), CalendarWindow(day, day), zone, true)
+        assertEquals(setOf(game.id, youth.id), rows.map { it.contentId }.toSet())
+        assertEquals(air.guideHits, rows.single { it.contentId == game.id }.fixture!!.guideHits)
+    }
+
+    @Test fun coverageBeforeMidnightBelongsToTheOfficialFixturesDay() {
+        val start = saturday.atTime(0, 20).atZone(zone).toInstant().toEpochMilli()
+        val listing = EpgProgram(start - 60 * 60_000L, start + 120 * 60_000L, "Live: Boston Celtics at Toronto Raptors")
+        val air = airing(listing.title).copy(startMs = listing.startMs, endMs = listing.stopMs, guideHits = listOf("visible" to listing))
+        val row = CalendarLocalListings.sportRows(listOf(game.copy(startMs = start), air), mapOf(nba.id to nba),
+            SportsFollows(leagues = setOf(nba.id)), SportsSettings(), emptyMap(), mapOf("visible" to "Sports"), CalendarWindow(day, day), zone).single()
+        assertEquals(day, row.day)
+        assertEquals(start, row.time)
+        assertEquals(air.guideHits, row.fixture!!.guideHits)
+    }
+
     @Test fun wholeSportFollowsIncludeGuideOnlyCompetitionsWithoutAnOfficialFixture() {
         fun unmatched(title: String): SportsEvent {
             val event = airing(title)
@@ -91,7 +146,7 @@ class CalendarGuideTest {
             CalendarWindow(day, day), zone).map { it.contentId }.toSet()
         assertEquals(setOf(cricket.id, wbblGame.id), rows("guide/cricket"))
         assertEquals(setOf(football.id, youthGame.id), rows("taxonomy/football-soccer"))
-        assertEquals(setOf(racing.id), rows("taxonomy/motorsport"))
+        assertTrue(rows("taxonomy/motorsport").isEmpty())
         val mine = SportsFollows(leagues = setOf("guide/cricket", InternationalCricket.LEAGUE_ID))
         val shortcuts = SportsRows.followedSports(mine, Sport.entries)
         assertEquals(listOf(Sport.CRICKET), shortcuts)

@@ -54,7 +54,7 @@ internal class CalendarFixtureSchedules @Inject constructor(@ApplicationContext 
         val months = dateStrings(date, zone, EASTERN, "yyyy-MM")
         return fallbackMonths.map { missing ->
             leagues.filter { league -> league.id.startsWith("tsdb/") || league.espnPath != null &&
-                months.any { month -> "espn-" + league.id.replace('/', '_') + "-" + month in missing } }
+                months.any { month -> "espn-" + scheduleId(league) + "-" + month in missing } }
         }.distinctUntilChanged()
     }
 
@@ -114,7 +114,7 @@ internal class CalendarFixtureSchedules @Inject constructor(@ApplicationContext 
         val chosen = LocalDate.ofEpochDay(day)
         val now = System.currentTimeMillis()
         for (league in leagues.sortedBy { it.id.startsWith("tsdb/") }) {
-            val id = league.id.replace('/', '_')
+            val id = scheduleId(league)
             val providerZone = if (league.sport == Sport.CRICKET || league.id.startsWith("tsdb/")) UTC else EASTERN
             val months = generateSequence(YearMonth.from(first.atZone(providerZone))) { it.plusMonths(1) }
                 .takeWhile { it <= YearMonth.from(end.atZone(providerZone)) }
@@ -128,11 +128,11 @@ internal class CalendarFixtureSchedules @Inject constructor(@ApplicationContext 
                 }
                 league.id == "cricket/19430" && leagues.any { it.id == "ca/test" } -> Unit
                 league.espnPath != null && window.days == 1 -> for (date in dateStrings(chosen, zone, EASTERN, "yyyyMMdd")) {
-                    add("espn-day-$id-$date") { SportsFeeds.parseScoreboard(league, espn.scoreboardDayRaw(league, date), strict = true) }
+                    add("espn-day-$id-$date") { SportsFeeds.parseScoreboard(league, espn.scoreboardDayRaw(league, date), strict = true, racingSessions = true) }
                 }
                 league.espnPath != null -> for (month in months) add("espn-${id}-$month", monthly = true) {
                     val raw = espn.scoreboardDayRaw(league, month.format(MONTH))
-                    SportsFeeds.parseScoreboard(league, raw, strict = true)
+                    SportsFeeds.parseScoreboard(league, raw, strict = true, racingSessions = true)
                 }
                 league.fixtureSlug != null -> add("fixtures-$id") {
                     SportsFeeds.parseFixtures(league, espn.fixturesRaw(league.fixtureSlug))
@@ -176,6 +176,9 @@ internal class CalendarFixtureSchedules @Inject constructor(@ApplicationContext 
     }
 
     companion object {
+        // Racing snapshots made before sessions were parsed contain only a weekend-wide entry.
+        private fun scheduleId(league: League) = league.id.replace('/', '_') +
+            if (league.espnPath != null && league.sport == Sport.RACING) "-sessions" else ""
         private const val MAX_BYTES = 4L * 1024 * 1024
         private val UTC = ZoneId.of("UTC")
         private val EASTERN = ZoneId.of("America/New_York")

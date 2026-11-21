@@ -41,6 +41,15 @@ internal class CalendarRepository @Inject constructor(
     private val local: Lazy<CalendarLocalListings>
 ) {
     private val cache by lazy { CalendarPageCache(File(context.cacheDir, "calendar")) }
+    private data class ReleaseSnapshot(val profile: Int, val page: CalendarPage)
+    @Volatile private var lastReleases: ReleaseSnapshot? = null
+
+    fun cachedReleases(profile: Int, region: String, zone: ZoneId, window: CalendarWindow): CalendarPage? =
+        lastReleases?.takeIf { it.profile == profile }?.page?.takeIf {
+            it.region == region && it.zone == zone.id && it.weekStart == window.first && it.days == window.days &&
+                it.generation == CalendarPageCache.generation(profile)
+        }
+
     private val gate = Mutex()
     val profile = profiles.resolvedActiveProfileId
 
@@ -123,8 +132,11 @@ internal class CalendarRepository @Inject constructor(
     fun pages(profile: Int, region: String, zone: ZoneId, week: Long, playing: Flow<Boolean>, requests: Flow<Boolean>, days: Int = 7) = flow {
         var changedInputs: Inputs? = null
         emitAll(calendarSession(playing, requests, System::currentTimeMillis,
-            restore = { cache.read(profile, region, zone.id, week, days) ?: CalendarPage(region = region, zone = zone.id,
-                weekStart = week, days = days, generation = CalendarPageCache.generation(profile)) },
+            restore = {
+                cachedReleases(profile, region, zone, CalendarWindow(week, week + days - 1))
+                    ?: cache.read(profile, region, zone.id, week, days)?.also { lastReleases = ReleaseSnapshot(profile, it) }
+                    ?: CalendarPage(region = region, zone = zone.id, weekStart = week, days = days, generation = CalendarPageCache.generation(profile))
+            },
             inputsChanged = { page ->
                 val current = inputs(profile)
                 (current.signature != page.inputSignature).also { if (it) changedInputs = current }
@@ -132,7 +144,10 @@ internal class CalendarRepository @Inject constructor(
             update = { page, manual, publish ->
                 val current = changedInputs ?: inputs(profile)
                 changedInputs = null
-                update(profile, current, page, manual, publish)
+                update(profile, current, page, manual) { updated ->
+                    lastReleases = ReleaseSnapshot(profile, updated)
+                    publish(updated)
+                }
             }))
     }
 

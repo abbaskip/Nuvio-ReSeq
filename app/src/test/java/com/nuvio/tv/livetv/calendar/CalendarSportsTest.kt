@@ -138,6 +138,73 @@ class CalendarSportsTest {
         assertEquals(5, calls.size)
     }
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test fun reopeningSportsReusesCardsAndManualRefreshKeepsThemUntilReplacement() = runTest {
+        val league = "basketball/nba"
+        val first = fixture("previous", league, 0)
+        val replacement = fixture("updated", league, 0)
+        val day = today.toEpochDay()
+        val window = CalendarWindow(day, day + 6)
+        val selected = MutableStateFlow(day)
+        val finish = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var calls = 0
+        raw.value = SportsFollows(leagues = setOf(league)).toJson()
+        every { schedules.fetch(any(), any(), any(), any(), any()) } answers {
+            flow {
+                calls++
+                val next = if (calls == 1) first else { finish.await(); replacement }
+                emit(CalendarFixtureResult("nba", listOf(next), false))
+            }
+        }
+        fun visit(force: Boolean = false) = local.sports(7, zone, window, selected, force)
+        assertEquals("previous", visit().first { it.status == CalendarStatus.READY }.items.single().contentId)
+        val reopened = mutableListOf<CalendarDisplay>()
+        val warm = backgroundScope.launch { visit().toList(reopened) }
+        runCurrent()
+        assertEquals(CalendarStatus.READY, reopened.single().status)
+        assertEquals("previous", reopened.single().items.single().contentId)
+        assertEquals(1, calls)
+        warm.cancel()
+        val frames = mutableListOf<CalendarDisplay>()
+        val refresh = backgroundScope.launch { visit(true).toList(frames) }
+        runCurrent()
+        assertEquals(2, calls)
+        assertTrue(frames.isNotEmpty() && frames.all { it.items.single().contentId == "previous" })
+        finish.complete(Unit)
+        runCurrent()
+        assertEquals("updated", frames.last().items.single().contentId)
+        refresh.cancel()
+        raw.value = SportsFollows().toJson()
+        assertTrue(visit().first().items.isEmpty())
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test fun reopeningAnUnfinishedMonthShowsPartialCardsUntilAnEmptyScheduleIsConfirmed() = runTest {
+        val league = "basketball/nba"
+        val day = MutableStateFlow(today.toEpochDay())
+        val month = CalendarWindow.month(today)
+        val finish = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var calls = 0
+        raw.value = SportsFollows(leagues = setOf(league)).toJson()
+        every { schedules.fetch(any(), any(), any(), any(), any()) } answers {
+            flow {
+                if (++calls == 1) emit(CalendarFixtureResult("nba", listOf(fixture("partial", league, 0)), false))
+                finish.await()
+                emit(CalendarFixtureResult("nba", emptyList(), false))
+            }
+        }
+        fun visit() = local.sports(7, zone, month, day, false, overview = true)
+        visit().first { it.status == CalendarStatus.UPDATING && it.items.isNotEmpty() }
+        val frames = mutableListOf<CalendarDisplay>()
+        backgroundScope.launch { visit().toList(frames) }
+        runCurrent()
+        assertEquals(2, calls)
+        assertTrue(frames.isNotEmpty() && frames.all { it.items.single().contentId == "partial" })
+        finish.complete(Unit)
+        runCurrent()
+        assertEquals(CalendarDisplay(emptyList(), CalendarStatus.READY), frames.last())
+    }
+
     @Test fun saturdayFixturesLoadWithoutAnyHubSnapshotAndRefreshFetchesIndependently() = runBlocking {
         val saturday = today.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SATURDAY))
         val id = "basketball/nba"
@@ -209,6 +276,11 @@ class CalendarSportsTest {
             val games = SportsMatcher(db).guideEvents(from, until, SportsCatalog.all, emptyList(), mapOf(channel.key to channel),
                 0, from, liveCompetitionsOnly = true)
             assertEquals("Classified competitions: " + games.map { it.title }, 2, games.size)
+            val f1 = requireNotNull(SportsCatalog.league("racing/f1"))
+            val official = games.mapIndexed { i, air -> air.copy(id = "official-" + i, leagueId = f1.id,
+                source = EventSource.ESPN, startMs = air.startMs + 5 * 60_000L, guideHits = emptyList()) }
+            every { schedules.fetch(match { selected -> selected.any { it.id == f1.id } }, any(), any(), any(), any()) } returns
+                flowOf(CalendarFixtureResult("f1", official, false))
             val source = CalendarLocalListings(context, Lazy { prefs }, Lazy { store }, Lazy { db }, Lazy { cache }, Lazy { schedules })
             var last = CalendarDisplay()
             val result = kotlinx.coroutines.withTimeoutOrNull(5_000) {
@@ -216,6 +288,7 @@ class CalendarSportsTest {
                     .first { rows -> last = rows; rows.items.map { it.day }.toSet().size == 2 }
             } ?: throw AssertionError("Last Calendar state " + last.status + ", items " + last.items.map { it.title })
             assertEquals(setOf(day, day + 1), result.items.map { it.day }.toSet())
+            assertEquals(official.map { it.id }.toSet(), result.items.map { it.contentId }.toSet())
             assertTrue(result.items.all { it.kind == CalendarKind.SPORT && it.detail == channel.name })
         } finally { db.close(); context.deleteDatabase(DatabaseVersions.guide.fileName) }
     }

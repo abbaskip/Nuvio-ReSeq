@@ -2169,7 +2169,6 @@
     <string name="playback_release_decoder_on_background_sub">Sprosti video dekodirnik, ko Nuvio preide v ozadje. Vklopite ob napaki dekodirnika po vrnitvi. Predvajalnik se ob vrnitvi znova naloži, tudi po ohranjevalniku zaslona.</string>
     <string name="layout_hero_description_auto_scroll">Samodejno pomikanje opisov</string>
     <string name="layout_hero_description_auto_scroll_sub">Dolgi opisi na začetnem zaslonu se počasi pomikajo, namesto da bi bili odrezani.</string>
-    <string name="autosync_toast_no_fit">Sinhronizacija ni uspela: podnapisi ne ustrezajo tej različici videa.</string>
     <string name="usenet_opening">Odpiranje videa iz Useneta…</string>
     <string name="plugin_extension_settings_failed">Razširitev ni mogla odpreti nastavitev.</string>
     <string name="tmdb_collection_auth_error">TMDB je zavrnil zahtevo. Preverite ključ API profila v Nastavitve → Integracije → TMDB.</string>

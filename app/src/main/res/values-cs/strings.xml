@@ -2830,7 +2830,6 @@
     <string name="playback_release_decoder_on_background_sub">Uvolní dekodér videa, když Nuvio přejde na pozadí. Zapněte při chybě dekodéru po návratu. Přehrávač se při návratu znovu načte, i po spořiči obrazovky.</string>
     <string name="layout_hero_description_auto_scroll">Automaticky posouvat popisy</string>
     <string name="layout_hero_description_auto_scroll_sub">Dlouhé popisy na hlavní obrazovce se pomalu posouvají místo oříznutí.</string>
-    <string name="autosync_toast_no_fit">Synchronizace selhala: titulky neodpovídají této verzi videa.</string>
     <string name="usenet_opening">Otevírání videa z Usenetu…</string>
     <string name="plugin_extension_settings_failed">Rozšíření nemohlo otevřít nastavení.</string>
     <string name="tmdb_collection_auth_error">TMDB odmítlo požadavek. Zkontrolujte klíč API profilu v Nastavení → Integrace → TMDB.</string>

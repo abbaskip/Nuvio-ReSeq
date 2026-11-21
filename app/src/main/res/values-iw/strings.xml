@@ -3424,7 +3424,7 @@
     <string name="playback_release_decoder_on_background_sub">מפנה את מפענח הווידאו כאשר Nuvio עוברת לרקע. כדאי להפעיל אם מופיעה שגיאת פענוח בחזרה לאפליקציה. הנגן נטען מחדש בחזרה, גם לאחר שומר המסך.</string>
     <string name="layout_hero_description_auto_scroll">גלילה אוטומטית של תיאורים</string>
     <string name="layout_hero_description_auto_scroll_sub">גלילה איטית של תיאורים ארוכים במסך הבית במקום לקצר אותם.</string>
-    <string name="autosync_toast_no_fit">הסנכרון נכשל: הכתוביות אינן מתאימות לגרסה זו של הסרטון.</string>
+
     <string name="usenet_opening">פותח סרטון מ־Usenet…</string>
     <string name="plugin_extension_settings_failed">ההרחבה לא הצליחה לפתוח את ההגדרות שלה.</string>
     <string name="tmdb_collection_auth_error">TMDB דחה את הבקשה. בדוק את מפתח ה־API של הפרופיל בהגדרות → שילובים → TMDB.</string>

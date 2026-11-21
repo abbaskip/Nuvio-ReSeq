@@ -993,7 +993,6 @@
     <string name="playback_release_decoder_on_background_sub">Nuvio के बैकग्राउंड में जाने पर वीडियो डिकोडर खाली करता है। लौटने पर डिकोडर की गड़बड़ी हो तो इसे चालू करें। लौटने पर प्लेयर फिर से लोड होता है, स्क्रीनसेवर के बाद भी।</string>
     <string name="layout_hero_description_auto_scroll">विवरण अपने आप स्क्रॉल करें</string>
     <string name="layout_hero_description_auto_scroll_sub">होम स्क्रीन पर लंबे विवरण काटने के बजाय उन्हें धीरे-धीरे स्क्रॉल करें।</string>
-    <string name="autosync_toast_no_fit">सिंक नहीं हो सका: ये सबटाइटल वीडियो के इस संस्करण से मेल नहीं खाते।</string>
     <string name="usenet_opening">Usenet वीडियो खोला जा रहा है…</string>
     <string name="plugin_extension_settings_failed">यह एक्सटेंशन अपनी सेटिंग नहीं खोल सका।</string>
     <string name="tmdb_collection_auth_error">TMDB ने अनुरोध अस्वीकार कर दिया। सेटिंग → इंटीग्रेशन → TMDB में इस प्रोफ़ाइल की API कुंजी जाँचें।</string>

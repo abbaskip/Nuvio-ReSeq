@@ -3592,4 +3592,25 @@
     <string name="episodes_remove_last_watch">Usuń ostatnie obejrzenie · %1$s</string>
     <string name="episodes_last_watch_removed">Ostatnie obejrzenie usunięto z Trakt</string>
     <string name="episodes_last_watch_failed">Nie udało się usunąć tego obejrzenia. Odśwież odcinek i spróbuj ponownie.</string>
+    <string name="mdblist_subtitle">Skonfiguruj zewnętrzne oceny wyświetlane na ekranie szczegółów</string>
+    <string name="mdblist_rating_order_subtitle">Pierwsze 3 włączone i dostępne oceny są pokazywane w sekcji hero układu modern. Kolejność zmienisz przyciskiem przesuwania.</string>
+    <string name="catalog_order_pinned">Przypięte</string>
+    <string name="catalog_order_pinned_to_top">Przypięte nad katalogami</string>
+    <string name="catalog_order_pin_to_move_toast">Aby przesunąć, wyłącz w kolekcji przypięcie nad katalogami</string>
+    <string name="cd_reorder">Zmień kolejność</string>
+    <string name="collections_pinned">Przypięta</string>
+    <string name="collections_editor_unsaved_title">Zapisać zmiany?</string>
+    <string name="collections_editor_unsaved_subtitle">Masz niezapisane zmiany w tej kolekcji.</string>
+    <string name="collections_editor_unsaved_incomplete_title">Niezapisane zmiany</string>
+    <string name="collections_editor_unsaved_missing_title_and_folder">Wpisz tytuł i dodaj co najmniej jeden folder, aby zapisać tę kolekcję.</string>
+    <string name="collections_editor_unsaved_missing_title">Wpisz tytuł kolekcji, aby zapisać zmiany.</string>
+    <string name="collections_editor_unsaved_missing_folder">Dodaj co najmniej jeden folder, aby zapisać tę kolekcję.</string>
+    <string name="collections_editor_folder_unsaved_title">Zapisać zmiany w folderze?</string>
+    <string name="collections_editor_folder_unsaved_subtitle">Masz niezapisane zmiany w tym folderze.</string>
+    <string name="collections_editor_folder_unsaved_incomplete_title">Niezapisane zmiany w folderze</string>
+    <string name="collections_editor_folder_unsaved_missing_source">Dodaj co najmniej jedno źródło, aby zapisać ten folder.</string>
+    <string name="plugin_repo_delete_confirm_title">Usunąć repozytorium?</string>
+    <string name="plugin_repo_delete_confirm_message">Czy na pewno chcesz je usunąć?</string>
+    <string name="plugin_repo_delete_no">Nie</string>
+    <string name="plugin_repo_delete_yes">Tak</string>
 </resources>

@@ -3398,7 +3398,6 @@
     <string name="playback_release_decoder_on_background_sub">Освобождава видеодекодера, когато Nuvio премине във фонов режим. Включете при грешка на декодера след връщане. Плейърът се зарежда отново при връщане, включително след скрийнсейвър.</string>
     <string name="layout_hero_description_auto_scroll">Автоматично превъртане на описанията</string>
     <string name="layout_hero_description_auto_scroll_sub">Дългите описания на началния екран се превъртат бавно, вместо да се съкращават.</string>
-    <string name="autosync_toast_no_fit">Синхронизирането е неуспешно: субтитрите не съответстват на тази версия на видеото.</string>
     <string name="usenet_opening">Отваряне на видео от Usenet…</string>
     <string name="plugin_extension_settings_failed">Разширението не успя да отвори настройките.</string>
     <string name="tmdb_collection_auth_error">TMDB отказа заявката. Проверете API ключа на профила в Настройки → Интеграции → TMDB.</string>

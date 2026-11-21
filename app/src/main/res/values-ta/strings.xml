@@ -2254,7 +2254,6 @@
     <string name="playback_release_decoder_on_background_sub">Nuvio பின்னணிக்குச் செல்லும்போது வீடியோ டிகோடரை விடுவிக்கும். திரும்பும்போது டிகோடர் பிழை ஏற்பட்டால் இதை இயக்கவும். திரைச் சேமிப்பானிலிருந்து திரும்பும்போதும் பிளேயர் மீண்டும் ஏற்றப்படும்.</string>
     <string name="layout_hero_description_auto_scroll">விளக்கங்களைத் தானாக உருட்டு</string>
     <string name="layout_hero_description_auto_scroll_sub">முகப்புத் திரையில் நீளமான விளக்கங்களை வெட்டாமல் மெதுவாக உருட்டிக் காட்டும்.</string>
-    <string name="autosync_toast_no_fit">ஒத்திசைக்க முடியவில்லை: இந்த வசனங்கள் வீடியோவின் இந்தப் பதிப்புடன் பொருந்தவில்லை.</string>
     <string name="usenet_opening">Usenet வீடியோ திறக்கப்படுகிறது…</string>
     <string name="plugin_extension_settings_failed">இந்த நீட்டிப்பால் அதன் அமைப்புகளைத் திறக்க முடியவில்லை.</string>
     <string name="tmdb_collection_auth_error">TMDB கோரிக்கையை நிராகரித்தது. அமைப்புகள் → ஒருங்கிணைப்புகள் → TMDB இல் இந்தச் சுயவிவரத்தின் API விசையைச் சரிபார்க்கவும்.</string>

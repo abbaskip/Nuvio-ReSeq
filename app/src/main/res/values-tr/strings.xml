@@ -3460,7 +3460,7 @@
     <string name="audio_downmix_lfe_level_off">Kapalı</string>
     <string name="audio_downmix_lfe_level_half">%50</string>
     <string name="audio_downmix_lfe_level_full">%100</string>
-    <string name="autosync_toast_no_fit">Eşitleme başarısız: Bu altyazı videonun bu sürümüyle uyuşmuyor.</string>
+
     <string name="layout_hero_description_auto_scroll">Açıklamaları otomatik kaydır</string>
     <string name="layout_hero_description_auto_scroll_sub">Ana ekrandaki uzun açıklamaları kesmek yerine yavaşça kaydırır.</string>
     <string name="usenet_opening">Usenet videosu açılıyor…</string>
@@ -3489,4 +3489,8 @@
     <string name="episodes_remove_last_watch">Son izlemeyi kaldır · %1$s</string>
     <string name="episodes_last_watch_removed">Son izleme Trakt’tan kaldırıldı</string>
     <string name="episodes_last_watch_failed">Bu izleme kaldırılamadı. Bölümü yenileyip tekrar deneyin.</string>
+    <string name="layout_season_posters">Sezon Posterleri</string>
+    <string name="layout_season_posters_sub">Varsa sezonları metin sekmeleri yerine poster olarak göster.</string>
+    <string name="tmdb_season_posters_title">Sezon Posterleri</string>
+    <string name="tmdb_season_posters_subtitle">Ayrıntılar sayfasındaki sezon sekmeleri için TMDB sezon posterleri</string>
 </resources>

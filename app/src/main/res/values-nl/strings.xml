@@ -3135,7 +3135,7 @@
     <string name="playback_release_decoder_on_background_sub">Geef de videodecoder vrij wanneer Nuvio naar de achtergrond gaat. Schakel dit in als het afspelen na terugkeer naar de app mislukt met een decoderfout. De speler laadt opnieuw bij terugkeer, ook na de screensaver</string>
     <string name="layout_hero_description_auto_scroll">Beschrijvingen automatisch scrollen</string>
     <string name="layout_hero_description_auto_scroll_sub">Scrol lange beschrijvingen op het startscherm langzaam door in plaats van ze af te kappen.</string>
-    <string name="autosync_toast_no_fit">Synchroniseren mislukt: deze ondertitels passen niet bij deze versie van de video.</string>
+
     <string name="usenet_opening">Usenet-video openen…</string>
     <string name="plugin_extension_settings_failed">Deze extensie kon de instellingen niet openen.</string>
     <string name="tmdb_collection_auth_error">TMDB heeft het verzoek geweigerd. Controleer de API-sleutel van dit profiel onder Instellingen → Integraties → TMDB.</string>

@@ -2695,7 +2695,6 @@
     <string name="playback_release_decoder_on_background_sub">Frigiver videodekoderen, når Nuvio går i baggrunden. Slå indstillingen til ved dekoderfejl, når du vender tilbage. Afspilleren genindlæses, når du vender tilbage, også efter pauseskærmen.</string>
     <string name="layout_hero_description_auto_scroll">Rul automatisk gennem beskrivelser</string>
     <string name="layout_hero_description_auto_scroll_sub">Rul langsomt gennem lange beskrivelser på startskærmen i stedet for at afkorte dem.</string>
-    <string name="autosync_toast_no_fit">Synkronisering mislykkedes: Underteksterne passer ikke til denne version af videoen.</string>
     <string name="usenet_opening">Åbner Usenet-video…</string>
     <string name="plugin_extension_settings_failed">Udvidelsen kunne ikke åbne sine indstillinger.</string>
     <string name="tmdb_collection_auth_error">TMDB afviste anmodningen. Kontrollér profilens API-nøgle under Indstillinger → Integrationer → TMDB.</string>

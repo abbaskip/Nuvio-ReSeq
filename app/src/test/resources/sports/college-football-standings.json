@@ -1,0 +1,49 @@
+{
+  "name": "FBS",
+  "children": [
+    {
+      "name": "American Conference",
+      "standings": {"entries": [{
+        "team": {"id": "2636", "displayName": "UTSA Roadrunners"},
+        "stats": [
+          {"name": "wins", "type": "wins", "value": 8.0, "displayValue": "8"},
+          {"name": "overall", "type": "total", "displayValue": "8-2", "summary": "8-2"},
+          {"name": "wins", "type": "homerecord_wins", "value": 5.0, "displayValue": "5"},
+          {"name": "wins", "type": "awayrecord_wins", "value": 3.0, "displayValue": "3"},
+          {"name": "wins", "type": "vsusarankedteams_wins", "value": 0.0, "displayValue": "0"}
+        ]
+      }]}
+    },
+    {
+      "name": "Sun Belt Conference",
+      "children": [
+        {
+          "name": "Sun Belt - East",
+          "standings": {"entries": [{
+            "team": {"id": "256", "displayName": "James Madison Dukes"},
+            "stats": [
+              {"name": "wins", "type": "wins", "value": 8.0, "displayValue": "8"},
+              {"name": "overall", "type": "total", "displayValue": "8-3", "summary": "8-3"},
+              {"name": "wins", "type": "homerecord_wins", "value": 4.0, "displayValue": "4"},
+              {"name": "wins", "type": "awayrecord_wins", "value": 4.0, "displayValue": "4"},
+              {"name": "wins", "type": "vsusarankedteams_wins", "value": 0.0, "displayValue": "0"}
+            ]
+          }]}
+        },
+        {
+          "name": "Sun Belt - West",
+          "standings": {"entries": [{
+            "team": {"id": "2348", "displayName": "Louisiana Tech Bulldogs"},
+            "stats": [
+              {"name": "wins", "type": "wins", "value": 8.0, "displayValue": "8"},
+              {"name": "overall", "type": "total", "displayValue": "8-2", "summary": "8-2"},
+              {"name": "wins", "type": "homerecord_wins", "value": 5.0, "displayValue": "5"},
+              {"name": "wins", "type": "awayrecord_wins", "value": 3.0, "displayValue": "3"},
+              {"name": "wins", "type": "vsusarankedteams_wins", "value": 0.0, "displayValue": "0"}
+            ]
+          }]}
+        }
+      ]
+    }
+  ]
+}

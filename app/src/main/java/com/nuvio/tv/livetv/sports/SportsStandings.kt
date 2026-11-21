@@ -49,7 +49,9 @@ data class StandingsRow(
 )
 
 /** A division, a conference, a group, or the whole league. [parent]: its conference, if any. */
-data class StandingsGroup(val name: String, val parent: String?, val rows: List<StandingsRow>)
+data class StandingsGroup(val name: String, val parent: String?, val rows: List<StandingsRow>) {
+    val conference: String get() = parent ?: name
+}
 
 enum class StandingsView { DIVISION, CONFERENCE, LEAGUE }
 
@@ -74,19 +76,22 @@ data class Standings(
     val source: String,
     val fetchedAt: Long
 ) {
-    /** The conferences (AFC, NFC…), when the groups have them. */
-    val conferences: List<String> get() = groups.mapNotNull { it.parent }.distinct()
-
     /** True when there are divisions inside conferences (Division / Conference / League make sense). */
-    val hasDivisions: Boolean get() = conferences.isNotEmpty()
+    val hasDivisions: Boolean = groups.any { it.parent != null }
+
+    /** Flat conferences and tournament groups are selectable alongside conferences with divisions. */
+    val conferences: List<String> = if (groups.size > 1 || hasDivisions) groups.map { it.conference }.distinct() else emptyList()
 
     /** The groups for a view: divisions of one conference, a whole conference, or the league. */
     fun view(view: StandingsView, conference: String?): List<StandingsGroup> {
-        if (!hasDivisions) return groups
+        if (conferences.isEmpty()) return groups
         val conf = conference?.takeIf { it in conferences } ?: conferences.first()
+        val selected = groups.filter { it.conference == conf }
+        if (!hasDivisions) return selected
         return when (view) {
-            StandingsView.DIVISION -> groups.filter { it.parent == conf }
-            StandingsView.CONFERENCE -> listOf(merged(conf, groups.filter { it.parent == conf }.flatMap { it.rows }, bySeed = true))
+            StandingsView.DIVISION -> selected
+            StandingsView.CONFERENCE -> if (selected.size == 1 && selected.first().parent == null) selected
+                else listOf(merged(conf, selected.flatMap { it.rows }, bySeed = true))
             StandingsView.LEAGUE -> listOf(merged(SportsCatalog.league(leagueId)?.name ?: "League", groups.flatMap { it.rows }, bySeed = false))
         }
     }
@@ -132,7 +137,7 @@ data class Standings(
     }
 
     companion object {
-        private const val HOUR = 3_600_000L
+        internal const val CACHE_DURATION_MS = 3_600_000L
 
         fun ordinal(n: Int): String {
             val suffix = if (n % 100 in 11..13) "th" else when (n % 10) { 1 -> "st"; 2 -> "nd"; 3 -> "rd"; else -> "th" }
@@ -157,6 +162,39 @@ data class Standings(
             return "https://site.api.espn.com/apis/v2/sports/$path/standings" + if (divisions) "?level=3" else ""
         }
 
+        /** Some NCAA feeds put conferences one level below their default division-wide table. */
+        internal suspend fun withCollegeConferences(raw: String, loadDetail: suspend () -> String): String {
+            val root = JSONObject(raw)
+            val divisions = root.optJSONArray("children").objs().filter { it.isCollegeDivision() && it.optJSONArray("children").objs().isEmpty() }
+            if (divisions.isEmpty()) return raw
+            val detail = sportsCatching { JSONObject(loadDetail()) }.getOrNull() ?: return raw
+            val detailedDivisions = detail.optJSONArray("children").objs().associateBy { it.str("id") }
+            for (division in divisions) {
+                val overall = division.optJSONObject("standings")
+                val season = overall?.str("season")
+                val seasonType = overall?.str("seasonType")
+                val children = detailedDivisions[division.str("id")]?.optJSONArray("children").objs().filter { group ->
+                    val standings = group.optJSONObject("standings")
+                    standings != null && (standings.optJSONArray("entries")?.length() ?: 0) > 0 &&
+                        (season == null || standings.str("season") == season) &&
+                        (seasonType == null || standings.str("seasonType") == seasonType)
+                }
+                if (children.isEmpty()) continue
+                val grouped = children.flatMap { it.getJSONObject("standings").optJSONArray("entries").objs() }
+                    .mapNotNull { it.optJSONObject("team")?.str("id") }.toSet()
+                // Some teams only appear in the division-wide feed. Keep them after the named conferences.
+                val remaining = overall?.optJSONArray("entries").objs().filter { it.optJSONObject("team")?.str("id") !in grouped }
+                val tabs = JSONArray(children)
+                if (overall != null && remaining.isNotEmpty()) {
+                    tabs.put(JSONObject().put("name", "Other teams · ${division.str("name")}")
+                        .put("standings", overall.put("entries", JSONArray(remaining))))
+                }
+                division.remove("standings")
+                division.put("children", tabs)
+            }
+            return root.toString()
+        }
+
         fun parseEspn(league: League, raw: String, now: Long = System.currentTimeMillis()): Standings? {
             val root = JSONObject(raw)
             val leaves = ArrayList<Triple<String, String?, JSONObject>>()
@@ -171,7 +209,8 @@ data class Standings(
                 val kids = node.optJSONArray("children") ?: return
                 // A node with children: its name is the parent of what's inside (a conference).
                 val name = node.str("name")
-                for (i in 0 until kids.length()) kids.optJSONObject(i)?.let { walk(it, if (node === root) null else name) }
+                val groupParent = name?.takeUnless { node === root || node.isCollegeDivision() }
+                for (i in 0 until kids.length()) kids.optJSONObject(i)?.let { walk(it, groupParent) }
             }
             walk(root, null)
             if (leaves.isEmpty()) return null
@@ -243,10 +282,11 @@ data class Standings(
                 val type = s.str("type").orEmpty().lowercase()
                 when (type) {
                     "total" -> record = s.str("summary") ?: s.str("displayValue")
-                    "home" -> home = s.str("summary") ?: s.str("displayValue")
-                    "road", "away" -> road = s.str("summary") ?: s.str("displayValue")
+                    "home", "homerecord" -> home = s.str("summary") ?: s.str("displayValue")
+                    "road", "away", "awayrecord" -> road = s.str("summary") ?: s.str("displayValue")
                 }
-                s.str("name")?.let { stats[it] = s }
+                // Split fields reuse the overall name (e.g. wins, type=vsconf_wins).
+                if ('_' !in type) s.str("name")?.let { stats[it] = s }
             }
             // Rugby league uses different stat names for the same table columns.
             for ((key, alias) in listOf("wins" to "gamesWon", "losses" to "gamesLost",
@@ -259,6 +299,11 @@ data class Standings(
             for (k in listOf("gamesPlayed", "wins", "losses", "ties", "otLosses", "pointDifferential", "points", "winPercent", "gamesBehind", "streak")) {
                 shown(k)?.let { values[k] = it }
             }
+            // Some record tables (notably FBS) supply losses only in their overall W-L[-T].
+            if (kind == StandingsKind.RECORD) {
+                val parts = record?.takeIf { OVERALL_RECORD.matches(it) }?.split('-').orEmpty()
+                for ((key, value) in listOf("wins", "losses", "ties").zip(parts)) values.putIfAbsent(key, value)
+            }
             if (kind == StandingsKind.RACING) (shown("championshipPts") ?: shown("points"))?.let { values["points"] = it }
             if (values["gamesBehind"] == "-") values["gamesBehind"] = "–"
             val rank = num("rank")?.toInt() ?: 0
@@ -269,7 +314,13 @@ data class Standings(
             val change = num("rankChange")?.toInt()?.takeIf { it != 0 }
             val sortValue = when (kind) {
                 StandingsKind.TABLE, StandingsKind.HOCKEY, StandingsKind.RACING -> (num("points") ?: num("championshipPts") ?: 0.0) * 1000 + (num("pointDifferential") ?: 0.0)
-                StandingsKind.RECORD -> (num("winPercent") ?: 0.0) * 1000 + (num("wins") ?: 0.0)
+                StandingsKind.RECORD -> {
+                    val wins = num("wins") ?: values["wins"]?.toDoubleOrNull() ?: 0.0
+                    val ties = values["ties"]?.toDoubleOrNull() ?: 0.0
+                    val games = wins + ties + (values["losses"]?.toDoubleOrNull() ?: 0.0)
+                    val pct = num("winPercent") ?: if (games > 0) (wins + ties / 2) / games else 0.0
+                    pct * 1000 + wins
+                }
             }
             val logo = team?.optJSONArray("logos").objs().firstOrNull()?.str("href")
                 ?: athlete?.optJSONObject("flag")?.str("href")
@@ -399,6 +450,11 @@ data class Standings(
         }
 
         // ------------------------------------------------------------------ helpers
+
+        private val OVERALL_RECORD = Regex("""\d+-\d+(?:-\d+)?""")
+
+        private fun JSONObject.isCollegeDivision(): Boolean =
+            str("name")?.contains("NCAA Division ", ignoreCase = true) == true
 
         private fun JSONObject.str(name: String): String? = optString(name, "").takeIf { it.isNotBlank() && it != "null" }
         private fun JSONArray?.objs(): List<JSONObject> = if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }

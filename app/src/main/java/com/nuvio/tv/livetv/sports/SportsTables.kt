@@ -113,7 +113,8 @@ internal fun TablesPage(
     val table = leagueId?.let { tables[it] }
 
     // The picked league first, then the others (to find out which have a table).
-    LaunchedEffect(leagueId) {
+    val tableAgeHours = table?.let { (now - it.fetchedAt).coerceAtLeast(0L) / Standings.CACHE_DURATION_MS } ?: 0L
+    LaunchedEffect(leagueId, tableAgeHours) {
         val id = leagueId ?: return@LaunchedEffect
         val t = viewModel.repo.standings(id)
         if (t == null) {
@@ -131,21 +132,23 @@ internal fun TablesPage(
 
     // Division / Conference / League, and which conference (your team's, at first).
     var view by remember(leagueId) { mutableStateOf(StandingsView.DIVISION) }
-    var conference by remember(leagueId) { mutableStateOf<String?>(null) }
+    var pickedConference by remember(leagueId) { mutableStateOf<String?>(null) }
     val marked = remember(follows, leagueId, request) {
         val fam = leagueId?.let { SportsCatalog.teamFamily(it) }
         follows.teams.filter { fam != null && SportsCatalog.teamFamily(it.leagueId) == fam }.map { it.teamId }.toSet() +
             (if (request?.leagueId == leagueId) request?.mark.orEmpty() else emptySet())
     }
-    LaunchedEffect(table?.leagueId, table?.fetchedAt) {
-        val t = table ?: return@LaunchedEffect
-        if (conference == null && t.hasDivisions) {
-            conference = marked.firstNotNullOfOrNull { id -> t.find(id)?.first?.parent } ?: t.conferences.first()
+    val conference = remember(table, pickedConference, marked) {
+        table?.let { t ->
+            pickedConference?.takeIf { it in t.conferences }
+                ?: marked.firstNotNullOfOrNull { t.find(it)?.first?.conference }
+                ?: t.conferences.firstOrNull()
         }
     }
 
+    val groups = remember(table, view, conference) { table?.view(view, conference).orEmpty() }
     var card by remember { mutableStateOf<StandingsRow?>(null) }
-    var focusedRow by remember { mutableStateOf<StandingsRow?>(null) }
+    var focusedTeamId by remember(leagueId, view, conference) { mutableStateOf<String?>(null) }
     card?.let { row ->
         val lid = leagueId ?: return@let
         TeamCard(
@@ -201,17 +204,18 @@ internal fun TablesPage(
                 table == null -> LiveText("Getting the table…", color = SportsLook.Dim, size = 12.sp, modifier = Modifier.padding(top = 14.dp, start = 4.dp))
                 else -> TableView(
                     table = table,
+                    groups = groups,
                     view = view,
                     conference = conference,
                     onView = { view = it },
-                    onConference = { conference = it },
+                    onConference = { pickedConference = it },
                     marked = marked,
                     followedIds = remember(follows, leagueId) {
                         val fam = leagueId?.let { SportsCatalog.teamFamily(it) }
                         follows.teams.filter { fam != null && SportsCatalog.teamFamily(it.leagueId) == fam }.map { it.teamId }.toSet()
                     },
                     focusTable = focusTable,
-                    onFocusRow = { focusedRow = it },
+                    onFocusRow = { focusedTeamId = it.id },
                     onRow = { card = it },
                     modifier = Modifier.weight(1f)
                 )
@@ -228,8 +232,10 @@ internal fun TablesPage(
                     videoSlot(Modifier.fillMaxWidth().aspectRatio(16f / 9f))
                     Spacer(Modifier.height(10.dp))
                     if (table != null && !settings.hideScores) {
-                        val row = focusedRow?.takeIf { r -> table.find(r.id) != null }
-                            ?: marked.firstNotNullOfOrNull { table.find(it)?.second }
+                        val row = remember(groups, focusedTeamId, marked) {
+                            val rows = groups.asSequence().flatMap { it.rows }
+                            rows.firstOrNull { it.id == focusedTeamId } ?: rows.firstOrNull { it.id in marked } ?: rows.firstOrNull()
+                        }
                         row?.let { TeamSummary(table, it, it.id in marked, viewModel, now, use24h) }
                         Spacer(Modifier.height(8.dp))
                         TableKey(table, view)
@@ -280,6 +286,7 @@ private fun LeagueButton(league: League, selected: Boolean, modifier: Modifier =
 @Composable
 private fun TableView(
     table: Standings,
+    groups: List<StandingsGroup>,
     view: StandingsView,
     conference: String?,
     onView: (StandingsView) -> Unit,
@@ -291,8 +298,8 @@ private fun TableView(
     onRow: (StandingsRow) -> Unit,
     modifier: Modifier
 ) {
-    val groups = remember(table, view, conference) { table.view(view, conference) }
-    val merged = table.hasDivisions && view != StandingsView.DIVISION
+    val merged = table.hasDivisions && (view == StandingsView.LEAGUE ||
+        (view == StandingsView.CONFERENCE && table.groups.any { it.parent == conference && it.parent != null }))
     val lines = remember(table, view) { table.playoffLines(view) }
     val listState = rememberLazyListState()
     val markReq = remember { FocusRequester() }
@@ -310,9 +317,11 @@ private fun TableView(
             }
         }
     }
-    LaunchedEffect(markKey, table.leagueId) {
+    LaunchedEffect(table.leagueId, view, conference, markKey) {
         val i = markKey?.let { keys.indexOf(it) } ?: -1
-        if (i > 3) runCatching { listState.scrollToItem((i - 3).coerceAtLeast(0)) }
+        listState.scrollToItem((i - 3).coerceAtLeast(0))
+    }
+    LaunchedEffect(table.leagueId) {
         if (focusTable) {
             delay(150)
             runCatching { (if (markKey != null) markReq else firstReq).requestFocus() }
@@ -320,20 +329,33 @@ private fun TableView(
     }
 
     Column(modifier) {
-        if (table.hasDivisions) {
+        if (table.conferences.isNotEmpty()) {
+            val tabsState = rememberLazyListState()
+            LaunchedEffect(table.leagueId, conference, view) {
+                val index = table.conferences.indexOf(conference)
+                if (index >= 0 && (view != StandingsView.LEAGUE || !table.hasDivisions)) {
+                    val tabIndex = index + if (table.hasDivisions) StandingsView.entries.size + 1 else 0
+                    if (tabsState.layoutInfo.visibleItemsInfo.none { it.index == tabIndex }) {
+                        tabsState.scrollToItem(if (index == 0) 0 else tabIndex)
+                    }
+                }
+            }
             LazyRow(
                 Modifier.fillMaxWidth().padding(top = 6.dp).keepFocusWhileHeld(vertical = false),
+                state = tabsState,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 3.dp)
             ) {
-                items(StandingsView.entries.toList(), key = { "v" + it.name }) { v ->
-                    DayTab(
-                        when (v) { StandingsView.DIVISION -> "Division"; StandingsView.CONFERENCE -> "Conference"; StandingsView.LEAGUE -> "League" },
-                        selected = view == v
-                    ) { onView(v) }
+                if (table.hasDivisions) {
+                    items(StandingsView.entries.toList(), key = { "v" + it.name }) { v ->
+                        DayTab(
+                            when (v) { StandingsView.DIVISION -> "Division"; StandingsView.CONFERENCE -> "Conference"; StandingsView.LEAGUE -> "League" },
+                            selected = view == v
+                        ) { onView(v) }
+                    }
+                    if (view != StandingsView.LEAGUE) item(key = "gap") { Spacer(Modifier.width(10.dp)) }
                 }
-                if (view != StandingsView.LEAGUE) {
-                    item(key = "gap") { Spacer(Modifier.width(10.dp)) }
+                if (!table.hasDivisions || view != StandingsView.LEAGUE) {
                     items(table.conferences, key = { "c$it" }) { c ->
                         DayTab(Standings.shortGroupName(c), selected = (conference ?: table.conferences.first()) == c) { onConference(c) }
                     }

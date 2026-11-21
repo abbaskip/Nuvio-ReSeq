@@ -68,7 +68,10 @@ internal class SportsFeeds {
     suspend fun summaryJson(league: League, espnId: String): JSONObject = JSONObject(get("$ESPN${league.espnPath}/summary?event=$espnId"))
 
     /** A league table (ESPN's standings address, see [Standings.espnUrl]). */
-    suspend fun standingsRaw(url: String): String = get(url)
+    suspend fun standingsRaw(league: League, url: String): String {
+        val raw = get(url)
+        return if (league.schoolNames) Standings.withCollegeConferences(raw) { get("$url?level=3") } else raw
+    }
 
     // ------------------------------------------------------------------ sporting-events.org
 

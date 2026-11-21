@@ -14,20 +14,23 @@ class CalendarPageCacheTest {
     private val page = CalendarPage(region = "AU", zone = "Australia/Sydney", checkedAt = 10,
         items = listOf(CalendarItem("series/1", "series", "Example", 20_000, CalendarKind.EPISODE)))
 
+    private fun pageFor(profile: Int) = page.copy(generation = CalendarPageCache.generation(profile))
+
     @Test fun independentProfilesAndRegionsWithAtomicLastGoodReplacement() {
         val dir = File(temp.root, "calendar")
         val cache = CalendarPageCache(dir)
         assertNull(cache.read(1, page.region, page.zone))
         assertFalse(dir.exists())
-        cache.write(1, page)
-        cache.write(2, page.copy(items = emptyList()))
-        assertEquals(page, cache.read(1, page.region, page.zone))
+        val first = pageFor(1)
+        cache.write(1, first)
+        cache.write(2, pageFor(2).copy(items = emptyList()))
+        assertEquals(first, cache.read(1, page.region, page.zone))
         assertTrue(cache.read(2, page.region, page.zone)!!.items.isEmpty())
         assertNull(cache.read(1, "NZ", page.zone))
         assertNull(cache.read(1, page.region, "Pacific/Auckland"))
-        val large = page.copy(items = listOf(page.items.first().copy(detail = "a".repeat(CalendarPageCache.MAX_BYTES.toInt()))))
+        val large = first.copy(items = listOf(first.items.first().copy(detail = "a".repeat(CalendarPageCache.MAX_BYTES.toInt()))))
         assertThrows(IOException::class.java) { cache.write(1, large) }
-        assertEquals(page, cache.read(1, page.region, page.zone))
+        assertEquals(first, cache.read(1, page.region, page.zone))
         assertFalse(File(dir, "profile-1-week-0.tmp").exists())
         File(dir, "profile-1-week-0.json").writeText("{")
         assertNull(cache.read(1, page.region, page.zone))
@@ -38,8 +41,8 @@ class CalendarPageCacheTest {
         File(directory, "profile-4.json").writeText("""{"version":1,"remaining":4000}""")
         val cache = CalendarPageCache(directory)
         assertNull(cache.read(4, page.region, page.zone, 100))
-        cache.write(41, page.copy(weekStart = 100))
-        repeat(8) { index -> cache.write(4, page.copy(weekStart = 100L + 7 * index)) }
+        cache.write(41, pageFor(41).copy(weekStart = 100))
+        repeat(8) { index -> cache.write(4, pageFor(4).copy(weekStart = 100L + 7 * index)) }
         assertEquals(6, directory.listFiles()!!.count { it.name.startsWith("profile-4-week-") })
         assertEquals(149L, cache.read(4, page.region, page.zone, 149)!!.weekStart)
         CalendarPageCache.clear(temp.root, 4)
@@ -61,7 +64,7 @@ class CalendarPageCacheTest {
     @Test fun deletingAProfileInvalidatesARefreshThatFinishesAfterTheSlotIsReused() {
         val id = 41
         val cache = CalendarPageCache(File(temp.root, "calendar"))
-        val old = page.copy(generation = CalendarPageCache.generation(id))
+        val old = pageFor(id)
         cache.write(id, old)
         CalendarPageCache.clear(temp.root, id)
         assertNull(cache.read(id, old.region, old.zone))

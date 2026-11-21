@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">评分</string>
+    <string name="rating_your_rating">您的评价</string>
+    <string name="rating_rate_episode">评价本集</string>
+    <string name="rating_rated">评分 %1$s/10</string>
+    <string name="rating_value">%1$s 满分 10</string>
+    <string name="rating_syncs_to">同步到%1$s</string>
+    <string name="rating_saved">评级已保存</string>
+    <string name="rating_removed">评级已删除</string>
+    <string name="rating_failed">无法更新您对 %1$s 的评分</string>
+    <string name="rating_remove">移除</string>
+    <string name="tracking_ratings_title">评分</string>
+    <string name="tracking_ratings_subtitle">选择存储和显示您的评分的服务</string>
+    <string name="tracking_ratings_dialog_subtitle">从详细信息页面对标题进行评分。您的评分将保存到您选择的服务中并显示。</string>
+    <string name="tracking_ratings_off_description">隐藏费率按钮。</string>
+    <string name="tracking_ratings_simkl_description">评价电影和节目。对不在 Simkl 列表中的标题进行评级会将其添加到列表中。</string>
+    <string name="tracking_ratings_mdblist_description">对电影、节目和剧集进行评分。</string>
+    <string name="rating_all_trackers">所有连接的追踪器</string>
+    <string name="rating_all_trackers_description">将标题评级保存到每个兼容的登录跟踪器。选择 MDBList 还可对各个剧集进行评分。</string>
+</resources>

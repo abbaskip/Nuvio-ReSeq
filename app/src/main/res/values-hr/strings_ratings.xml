@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Ocijeni</string>
+    <string name="rating_your_rating">Vaša ocjena</string>
+    <string name="rating_rate_episode">Ocijenite ovu epizodu</string>
+    <string name="rating_rated">Ocijenjeno %1$s/10</string>
+    <string name="rating_value">%1$s od 10</string>
+    <string name="rating_syncs_to">Sinkronizira se s %1$s</string>
+    <string name="rating_saved">Ocjena spremljena</string>
+    <string name="rating_removed">Ocjena uklonjena</string>
+    <string name="rating_failed">Nije moguće ažurirati vašu ocjenu na %1$s</string>
+    <string name="rating_remove">Ukloni</string>
+    <string name="tracking_ratings_title">Ocjene</string>
+    <string name="tracking_ratings_subtitle">Odaberite uslugu koja pohranjuje i prikazuje vaše ocjene</string>
+    <string name="tracking_ratings_dialog_subtitle">Ocijenite naslove sa njihove stranice s detaljima. Vaše se ocjene spremaju i prikazuju na usluzi koju odaberete.</string>
+    <string name="tracking_ratings_off_description">Sakrij gumb za ocjenu.</string>
+    <string name="tracking_ratings_simkl_description">Ocijenite filmove i emisije. Ocjenjivanje naslova koji nije na vašim Simkl popisima dodaje ga njima.</string>
+    <string name="tracking_ratings_mdblist_description">Ocijenite filmove, emisije i epizode.</string>
+    <string name="rating_all_trackers">Svi povezani tragači</string>
+    <string name="rating_all_trackers_description">Spremite ocjene naslova na svaki kompatibilni prijavljeni tracker. Odaberite MDBList da biste također ocijenili pojedinačne epizode.</string>
+</resources>

@@ -16,4 +16,6 @@
     <string name="tracking_ratings_off_description">Ẩn nút đánh giá.</string>
     <string name="tracking_ratings_simkl_description">Đánh giá phim và chương trình. Đánh giá một nội dung chưa có trong danh sách Simkl của bạn sẽ thêm nội dung đó vào danh sách.</string>
     <string name="tracking_ratings_mdblist_description">Đánh giá phim, chương trình và tập phim.</string>
+    <string name="rating_all_trackers">Tất cả các trình theo dõi được kết nối</string>
+    <string name="rating_all_trackers_description">Lưu xếp hạng tiêu đề vào mọi trình theo dõi đăng nhập tương thích. Chọn MDBList để xếp hạng từng tập riêng lẻ.</string>
 </resources>

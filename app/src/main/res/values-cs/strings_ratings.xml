@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Ohodnotit</string>
+    <string name="rating_your_rating">Vaše hodnocení</string>
+    <string name="rating_rate_episode">Ohodnoťte tuto epizodu</string>
+    <string name="rating_rated">Hodnoceno %1$s/10</string>
+    <string name="rating_value">%1$s z 10</string>
+    <string name="rating_syncs_to">Synchronizuje se s %1$s</string>
+    <string name="rating_saved">Hodnocení bylo uloženo</string>
+    <string name="rating_removed">Hodnocení odstraněno</string>
+    <string name="rating_failed">Nepodařilo se aktualizovat vaše hodnocení na %1$s</string>
+    <string name="rating_remove">Odebrat</string>
+    <string name="tracking_ratings_title">Hodnocení</string>
+    <string name="tracking_ratings_subtitle">Vyberte službu, která ukládá a zobrazuje vaše hodnocení</string>
+    <string name="tracking_ratings_dialog_subtitle">Ohodnoťte tituly na stránce podrobností. Vaše hodnocení se uloží a zobrazí ve službě, kterou si vyberete.</string>
+    <string name="tracking_ratings_off_description">Skrýt tlačítko sazby.</string>
+    <string name="tracking_ratings_simkl_description">Ohodnoťte filmy a pořady. Hodnocení titulu, který není ve vašich Simkl seznamech, jej k nim přidá.</string>
+    <string name="tracking_ratings_mdblist_description">Ohodnoťte filmy, pořady a epizody.</string>
+    <string name="rating_all_trackers">Všechny připojené sledovače</string>
+    <string name="rating_all_trackers_description">Uložte hodnocení titulů do všech kompatibilních přihlášených trackerů. Vyberte MDBList, chcete-li také hodnotit jednotlivé epizody.</string>
+</resources>

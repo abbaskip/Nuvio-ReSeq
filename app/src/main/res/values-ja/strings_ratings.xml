@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">評価する</string>
+    <string name="rating_your_rating">あなたの評価</string>
+    <string name="rating_rate_episode">このエピソードを評価する</string>
+    <string name="rating_rated">評価 %1$s/10</string>
+    <string name="rating_value">%1$s 10点中</string>
+    <string name="rating_syncs_to">%1$sと同期します</string>
+    <string name="rating_saved">評価が保存されました</string>
+    <string name="rating_removed">評価が削除されました</string>
+    <string name="rating_failed">%1$s の評価を更新できませんでした</string>
+    <string name="rating_remove">削除</string>
+    <string name="tracking_ratings_title">評価</string>
+    <string name="tracking_ratings_subtitle">評価を保存および表示するサービスを選択してください</string>
+    <string name="tracking_ratings_dialog_subtitle">詳細ページからタイトルを評価します。あなたの評価は選択したサービスに保存され、そこから表示されます。</string>
+    <string name="tracking_ratings_off_description">レートボタンを非表示にします。</string>
+    <string name="tracking_ratings_simkl_description">映画や番組を評価します。 Simkl リストにないタイトルを評価すると、そのタイトルがリストに追加されます。</string>
+    <string name="tracking_ratings_mdblist_description">映画、番組、エピソードを評価します。</string>
+    <string name="rating_all_trackers">接続されているすべてのトラッカー</string>
+    <string name="rating_all_trackers_description">タイトルの評価を、互換性のあるサインインしているすべてのトラッカーに保存します。個々のエピソードも評価するには、MDBList を選択してください。</string>
+</resources>

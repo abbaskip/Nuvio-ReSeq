@@ -27,6 +27,8 @@ Plex and Silo use upstream's provider implementations for search, external-ID ma
 - Catalog images use bounded request sizes. Hardware bitmaps remain opt-in on ReSeq. Player changes include low-memory Dolby Vision profile 7 back-buffer handling and a single HTTP/2 retry for eligible 403 responses.
 - Other changes cover profile sync for ambient settings, movie/series filters and talk-show guest appearances in filmography, sorting upcoming episodes by release time, plugin repository deletion confirmation and updated translations.
 
+New labels preserve the translations supplied upstream. For the remaining gaps, the integration reuses existing ReSeq wording and adds machine-assisted translations across 37 locales. Product names and format arguments were checked, and the trailer toggle and rating action received individual wording checks. A native-speaker review of every locale is still outstanding.
+
 ## Cloudstream comparison
 
 Beta.3 carries the same Cloudstream loader, runner and extractor registry as beta.2. Both ReSeq and upstream consume `.cs3` providers. The extractor registry files match at these revisions. The integration adopts two checks from upstream's compatibility tests. They verify that compiled plugins can call the Kotlin default-argument toast method and can safely check the type of the host activity. The beta's confirmation before removing a plugin repository is included. [Upstream runner](https://github.com/NuvioMedia/NuvioTV/blob/1.2.0-beta.3/app/src/full/java/com/nuvio/tv/core/plugin/cloudstream/ExternalExtensionRunner.kt)

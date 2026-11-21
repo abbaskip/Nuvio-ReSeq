@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Sinkronkan subtitle ke audio</string>
+    <string name="audio_sync_setting_description">Menyelaraskan subtitle dengan dialog ketika Sinkronisasi Otomatis tidak menemukan kecocokan yang dapat diandalkan.</string>
+    <string name="audio_sync_model_title">Model pidato bahasa Inggris (%1$d MB)</string>
+    <string name="audio_sync_model_description">Opsional. Mengenali ucapan bahasa Inggris dan mencocokkannya dengan teks bahasa Inggris eksternal, untuk sinkronisasi yang lebih cepat dan akurat. Menggunakan lebih banyak CPU dan memori.</string>
+    <string name="audio_sync_model_downloading">Mengunduh… %1$d%%</string>
+    <string name="audio_sync_model_ready">Diunduh. Jika pemutaran melambat, hapus model untuk menggunakan deteksi ucapan saja.</string>
+    <string name="audio_sync_model_failed">Pengunduhan gagal. Pilih untuk mencoba lagi. Deteksi ucapan masih berfungsi.</string>
+    <string name="audio_sync_model_download">Unduhan</string>
+    <string name="audio_sync_model_delete">Hapus</string>
+    <string name="audio_sync_sampling_title">Pengambilan sampel audio</string>
+    <string name="audio_sync_sampling_description">Dengarkan dialog sebelum diputar, sehingga sinkronisasi dapat ditemukan lebih cepat.</string>
+    <string name="audio_sync_sampling_off">Nonaktif</string>
+    <string name="audio_sync_sampling_low">Rendah</string>
+    <string name="audio_sync_sampling_high">Tinggi</string>
+    <string name="audio_sync_sampling_off_description">Hanya mendengarkan apa yang sedang diputar, jadi sinkronisasi membutuhkan waktu lebih lama. Tidak bekerja dengan pemain mpv.</string>
+    <string name="audio_sync_sampling_low_description">Dengarkan beberapa adegan dialog terlebih dahulu melalui satu koneksi tambahan, hingga 75 MB per judul. Juga digunakan sebagai pengganti Tinggi pada jaringan terukur.</string>
+    <string name="audio_sync_sampling_high_description">Sinkronisasi tercepat. Mendengarkan lebih banyak adegan melalui beberapa koneksi, biasanya hingga 150 MB per judul, dan menggunakan lebih banyak CPU. Beberapa server membatasi jumlah koneksi yang diizinkan.</string>
+    <string name="licenses_attributions_audio_sync_title">Sinkronisasi subtitle audio</string>
+    <string name="licenses_attributions_audio_sync_body">Deteksi ucapan menggunakan bobot Silero VAD v5 (MIT, Silero Team). Pengenalan ucapan opsional menggunakan sherpa-onnx (Apache-2.0, k2-fsa) dan model bahasa Inggris Zipformer GigaSpeech (Apache-2.0). Pemberitahuan lengkap dikirimkan bersama aplikasi di licenses/audio_sync_NOTICE.md.</string>
+</resources>

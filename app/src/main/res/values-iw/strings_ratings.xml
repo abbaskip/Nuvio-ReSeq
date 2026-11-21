@@ -16,4 +16,6 @@
     <string name="tracking_ratings_off_description">הסתרת כפתור הדירוג.</string>
     <string name="tracking_ratings_simkl_description">דירוג סרטים וסדרות. דירוג כותרת שאינה ברשימות Simkl שלך מוסיף אותה אליהן.</string>
     <string name="tracking_ratings_mdblist_description">דירוג סרטים, סדרות ופרקים.</string>
+    <string name="rating_all_trackers">כל הגששים המחוברים</string>
+    <string name="rating_all_trackers_description">שמור דירוגי כותרות לכל גשש מחובר תואם. בחר MDBList כדי לדרג גם פרקים בודדים.</string>
 </resources>

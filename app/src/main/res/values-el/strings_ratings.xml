@@ -16,4 +16,6 @@
     <string name="tracking_ratings_off_description">Απόκρυψη του κουμπιού βαθμολόγησης.</string>
     <string name="tracking_ratings_simkl_description">Βαθμολογήστε ταινίες και σειρές. Η βαθμολόγηση τίτλου που δεν βρίσκεται στις λίστες Simkl σας τον προσθέτει σε αυτές.</string>
     <string name="tracking_ratings_mdblist_description">Βαθμολογήστε ταινίες, σειρές και επεισόδια.</string>
+    <string name="rating_all_trackers">Όλοι οι συνδεδεμένοι ιχνηλάτες</string>
+    <string name="rating_all_trackers_description">Αποθηκεύστε τις αξιολογήσεις τίτλων σε κάθε συμβατό συνδεδεμένο πρόγραμμα παρακολούθησης. Επιλέξτε MDBList για να βαθμολογήσετε επίσης μεμονωμένα επεισόδια.</string>
 </resources>

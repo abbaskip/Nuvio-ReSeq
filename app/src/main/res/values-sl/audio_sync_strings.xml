@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Sinhronizacija podnapisov z zvokom</string>
+    <string name="audio_sync_setting_description">Poravna podnapise z dialogom, ko samodejna sinhronizacija ne najde zanesljivega ujemanja.</string>
+    <string name="audio_sync_model_title">Angleški govorni model (%1$d MB)</string>
+    <string name="audio_sync_model_description">Neobvezno. Prepozna angleški govor in ga poveže z zunanjimi angleškimi podnapisi za hitrejšo in natančnejšo sinhronizacijo. Uporablja več procesorja in pomnilnika.</string>
+    <string name="audio_sync_model_downloading">Prenašanje ... %1$d%%</string>
+    <string name="audio_sync_model_ready">Preneseno. Če se predvajanje upočasni, izbrišite model, da uporabite samo zaznavanje govora.</string>
+    <string name="audio_sync_model_failed">Prenos ni uspel. Izberite za ponovni poskus. Zaznavanje govora še vedno deluje.</string>
+    <string name="audio_sync_model_download">Prenos</string>
+    <string name="audio_sync_model_delete">Izbriši</string>
+    <string name="audio_sync_sampling_title">Avdio vzorčenje</string>
+    <string name="audio_sync_sampling_description">Posluša dialog pred predvajanjem, tako da je sinhronizacija najdena prej.</string>
+    <string name="audio_sync_sampling_off">Izklopljeno</string>
+    <string name="audio_sync_sampling_low">Nizka</string>
+    <string name="audio_sync_sampling_high">visoko</string>
+    <string name="audio_sync_sampling_off_description">Posluša samo tisto, kar se predvaja, zato sinhronizacija traja dlje. Ne deluje s predvajalnikom mpv.</string>
+    <string name="audio_sync_sampling_low_description">Vnaprej posluša nekaj dialogov prek ene dodatne povezave, do 75 MB na naslov. Uporablja se tudi namesto High v omrežjih z omejenim prenosom.</string>
+    <string name="audio_sync_sampling_high_description">Najhitrejša sinhronizacija. Vnaprej posluša več prizorov prek več povezav, običajno do 150 MB na naslov, in uporablja več procesorja. Nekateri strežniki omejujejo število povezav, ki jih dovoljujejo.</string>
+    <string name="licenses_attributions_audio_sync_title">Sinhronizacija zvočnih podnapisov</string>
+    <string name="licenses_attributions_audio_sync_body">Zaznavanje govora uporablja Silero VAD v5 uteži (MIT, Silero Team). Izbirno prepoznavanje govora uporablja sherpa-onnx (Apache-2.0, k2-fsa) in njegov Zipformer GigaSpeech angleški model (Apache-2.0). Celotna obvestila so priložena aplikaciji v licenses/audio_sync_NOTICE.md.</string>
+</resources>

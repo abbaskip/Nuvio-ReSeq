@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Đồng bộ phụ đề với âm thanh</string>
+    <string name="audio_sync_setting_description">Căn chỉnh phụ đề với đoạn hội thoại khi Tự động đồng bộ hóa không thể tìm thấy kết quả khớp đáng tin cậy.</string>
+    <string name="audio_sync_model_title">Mẫu giọng nói tiếng Anh (%1$d MB)</string>
+    <string name="audio_sync_model_description">Tùy chọn. Nhận dạng giọng nói tiếng Anh và khớp với phụ đề tiếng Anh bên ngoài để đồng bộ hóa nhanh hơn và chính xác hơn. Sử dụng nhiều CPU và bộ nhớ hơn.</string>
+    <string name="audio_sync_model_downloading">Đang tải xuống… %1$d%%</string>
+    <string name="audio_sync_model_ready">Đã tải xuống. Nếu quá trình phát lại chậm lại, hãy xóa mô hình để chỉ sử dụng tính năng phát hiện giọng nói.</string>
+    <string name="audio_sync_model_failed">Tải xuống không thành công. Chọn để thử lại. Tính năng phát hiện giọng nói vẫn hoạt động.</string>
+    <string name="audio_sync_model_download">Tải xuống</string>
+    <string name="audio_sync_model_delete">Xóa</string>
+    <string name="audio_sync_sampling_title">Lấy mẫu âm thanh</string>
+    <string name="audio_sync_sampling_description">Nghe đoạn hội thoại trước khi phát lại, nhờ đó, quá trình đồng bộ hóa được tìm thấy sớm hơn.</string>
+    <string name="audio_sync_sampling_off">Tắt</string>
+    <string name="audio_sync_sampling_low">Thấp</string>
+    <string name="audio_sync_sampling_high">Cao</string>
+    <string name="audio_sync_sampling_off_description">Chỉ nghe nội dung đang phát nên quá trình đồng bộ hóa sẽ mất nhiều thời gian hơn. Không hoạt động với trình phát mpv.</string>
+    <string name="audio_sync_sampling_low_description">Nghe trước một số cảnh hội thoại qua một kết nối bổ sung, tối đa 75 MB mỗi tiêu đề. Cũng được sử dụng thay vì Cao trên các mạng có đồng hồ đo.</string>
+    <string name="audio_sync_sampling_high_description">Đồng bộ nhanh nhất. Nghe trước nhiều cảnh hơn qua nhiều kết nối, thường lên tới 150 MB mỗi tiêu đề và sử dụng nhiều CPU hơn. Một số máy chủ giới hạn số lượng kết nối mà chúng cho phép.</string>
+    <string name="licenses_attributions_audio_sync_title">Đồng bộ phụ đề âm thanh</string>
+    <string name="licenses_attributions_audio_sync_body">Tính năng phát hiện giọng nói sử dụng trọng số Silero VAD v5 (MIT, Silero Team). Nhận dạng giọng nói tùy chọn sử dụng sherpa-onnx (Apache-2.0, k2-fsa) và mẫu tiếng Anh Zipformer GigaSpeech của nó (Apache-2.0). Thông báo đầy đủ được gửi kèm theo ứng dụng trong licenses/audio_sync_NOTICE.md.</string>
+</resources>

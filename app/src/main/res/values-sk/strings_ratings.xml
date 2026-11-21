@@ -16,4 +16,6 @@
     <string name="tracking_ratings_off_description">Skryť tlačidlo hodnotenia.</string>
     <string name="tracking_ratings_simkl_description">Hodnoťte filmy a seriály. Ak ohodnotíte titul, ktorý nie je vo vašich zoznamoch Simkl, automaticky sa do nich pridá.</string>
     <string name="tracking_ratings_mdblist_description">Hodnoťte filmy, seriály a epizódy.</string>
+    <string name="rating_all_trackers">Všetky pripojené sledovače</string>
+    <string name="rating_all_trackers_description">Uložte hodnotenia titulov do všetkých kompatibilných prihlásených sledovačov. Zvoľte MDBList, ak chcete ohodnotiť aj jednotlivé epizódy.</string>
 </resources>

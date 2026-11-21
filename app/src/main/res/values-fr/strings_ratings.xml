@@ -16,4 +16,6 @@
     <string name="tracking_ratings_off_description">Masquer le bouton Noter.</string>
     <string name="tracking_ratings_simkl_description">Noter des films et des séries. Noter un titre absent de vos listes Simkl l’y ajoute.</string>
     <string name="tracking_ratings_mdblist_description">Noter des films, des séries et des épisodes.</string>
+    <string name="rating_all_trackers">Tous les trackers connectés</string>
+    <string name="rating_all_trackers_description">Enregistrez les évaluations des titres sur chaque tracker connecté compatible. Choisissez MDBList pour évaluer également les épisodes individuels.</string>
 </resources>

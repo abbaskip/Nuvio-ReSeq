@@ -3493,4 +3493,19 @@
     <string name="layout_season_posters_sub">Varsa sezonları metin sekmeleri yerine poster olarak göster.</string>
     <string name="tmdb_season_posters_title">Sezon Posterleri</string>
     <string name="tmdb_season_posters_subtitle">Ayrıntılar sayfasındaki sezon sekmeleri için TMDB sezon posterleri</string>
+    <string name="advanced_hardware_bitmaps">Donanım görüntü kod çözme</string>
+    <string name="advanced_hardware_bitmaps_subtitle">Kodu çözülmüş görüntüleri yalnızca grafik belleğinde tutun. Daha az RAM kullanır, ancak yeni görüntülerin yüklenmesi daha zayıf GPU\'larda takılmalara neden olabilir.</string>
+    <string name="layout_trailer_subtitles">Fragman Altyazıları</string>
+    <string name="layout_trailer_subtitles_sub">Mümkün olduğunda, fragmanlardaki altyazıları tercih ettiğiniz altyazı dilinde gösterin.</string>
+    <string name="layout_trailer_continue_in_details">Ayrıntılar sayfasında fragmanı oynatmaya devam et</string>
+    <string name="layout_trailer_continue_in_details_sub">Ayrıntılar sayfasını açtığınızda aynı fragmanı oynatmaya devam edin.</string>
+    <string name="layout_trailer_hero_media_no_expand">Kahraman alanı (posterleri kapalı tutun)</string>
+    <string name="cast_detail_filter_all">Tümü</string>
+    <string name="autosync_status_title">Otomatik Senkronizasyon Durumu</string>
+    <string name="autosync_status_synced">Senkronize edildi</string>
+    <string name="autosync_status_not_needed">Gerekli değil</string>
+    <string name="autosync_status_in_progress">Devam ediyor</string>
+    <string name="autosync_status_no_fit">Eşleşmeyebilir</string>
+    <string name="autosync_status_no_reference">Gömülü altyazı yok</string>
+    <string name="autosync_status_failed">Başarısız</string>
 </resources>

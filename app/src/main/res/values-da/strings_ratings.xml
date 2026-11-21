@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Bedøm</string>
+    <string name="rating_your_rating">Din vurdering</string>
+    <string name="rating_rate_episode">Bedøm denne episode</string>
+    <string name="rating_rated">Vurderet %1$s/10</string>
+    <string name="rating_value">%1$s ud af 10</string>
+    <string name="rating_syncs_to">Synkroniserer med %1$s</string>
+    <string name="rating_saved">Bedømmelse gemt</string>
+    <string name="rating_removed">Bedømmelse fjernet</string>
+    <string name="rating_failed">Kunne ikke opdatere din bedømmelse på %1$s</string>
+    <string name="rating_remove">Fjern</string>
+    <string name="tracking_ratings_title">Bedømmelser</string>
+    <string name="tracking_ratings_subtitle">Vælg den tjeneste, der gemmer og viser dine vurderinger</string>
+    <string name="tracking_ratings_dialog_subtitle">Bedøm titler fra deres side med detaljer. Dine vurderinger gemmes til og vises fra den tjeneste, du vælger.</string>
+    <string name="tracking_ratings_off_description">Skjul prisknappen.</string>
+    <string name="tracking_ratings_simkl_description">Bedøm film og serier. Bedømmelse af en titel, der ikke er på dine Simkl-lister, føjer den til dem.</string>
+    <string name="tracking_ratings_mdblist_description">Bedøm film, serier og episoder.</string>
+    <string name="rating_all_trackers">Alle tilsluttede trackere</string>
+    <string name="rating_all_trackers_description">Gem titelvurderinger på alle kompatible trackere, der er logget ind. Vælg MDBList for også at bedømme individuelle episoder.</string>
+</resources>

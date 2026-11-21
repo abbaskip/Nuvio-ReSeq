@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Vlerëso</string>
+    <string name="rating_your_rating">Vlerësimi juaj</string>
+    <string name="rating_rate_episode">Vlerësoni këtë episod</string>
+    <string name="rating_rated">Vlerësuar %1$s/10</string>
+    <string name="rating_value">%1$s nga 10</string>
+    <string name="rating_syncs_to">Sinkronizohet me %1$s</string>
+    <string name="rating_saved">Vlerësimi u ruajt</string>
+    <string name="rating_removed">Vlerësimi u hoq</string>
+    <string name="rating_failed">Vlerësimi yt nuk mund të përditësohej në %1$s</string>
+    <string name="rating_remove">Hiq</string>
+    <string name="tracking_ratings_title">Vlerësimet</string>
+    <string name="tracking_ratings_subtitle">Zgjidhni shërbimin që ruan dhe shfaq vlerësimet tuaja</string>
+    <string name="tracking_ratings_dialog_subtitle">Vlerësoni titujt nga faqja e tyre me detaje. Vlerësimet tuaja ruhen dhe shfaqen nga shërbimi që zgjidhni.</string>
+    <string name="tracking_ratings_off_description">Fshih butonin e normës.</string>
+    <string name="tracking_ratings_simkl_description">Vlerësoni filmat dhe shfaqjet. Vlerësimi i një titulli që nuk është në listat tuaja Simkl e shton atë në to.</string>
+    <string name="tracking_ratings_mdblist_description">Vlerësoni filmat, shfaqjet dhe episodet.</string>
+    <string name="rating_all_trackers">Të gjithë gjurmuesit e lidhur</string>
+    <string name="rating_all_trackers_description">Ruani vlerësimet e titujve në çdo gjurmues të përputhshëm të identifikuar. Zgjidhni MDBList për të vlerësuar edhe episodet individuale.</string>
+</resources>

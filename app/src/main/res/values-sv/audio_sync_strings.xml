@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Synkronisera undertexter till ljud</string>
+    <string name="audio_sync_setting_description">Justerar undertexter med dialogen när Auto Sync inte kan hitta en tillförlitlig matchning.</string>
+    <string name="audio_sync_model_title">Engelsk talmodell (%1$d MB)</string>
+    <string name="audio_sync_model_description">Valfritt. Känner igen engelskt tal och matchar det med externa engelska undertexter, för snabbare och mer exakt synkronisering. Använder mer CPU och minne.</string>
+    <string name="audio_sync_model_downloading">Laddar ned... %1$d%%</string>
+    <string name="audio_sync_model_ready">Nedladdat. Om uppspelningen saktar ner, radera modellen för att använda enbart taldetektering.</string>
+    <string name="audio_sync_model_failed">Nedladdningen misslyckades. Välj för att försöka igen. Taldetektering fungerar fortfarande.</string>
+    <string name="audio_sync_model_download">Nedladdning</string>
+    <string name="audio_sync_model_delete">Radera</string>
+    <string name="audio_sync_sampling_title">Ljudsampling</string>
+    <string name="audio_sync_sampling_description">Lyssnar på dialog före uppspelning, så synkroniseringen hittas tidigare.</string>
+    <string name="audio_sync_sampling_off">Av</string>
+    <string name="audio_sync_sampling_low">Låg</string>
+    <string name="audio_sync_sampling_high">Hög</string>
+    <string name="audio_sync_sampling_off_description">Lyssnar bara på det som spelas, så synkroniseringen tar längre tid. Fungerar inte med mpv-spelaren.</string>
+    <string name="audio_sync_sampling_low_description">Lyssnar framåt på några dialogscener över en extra anslutning, upp till 75 MB per titel. Används även istället för Hög på mätnätverk.</string>
+    <string name="audio_sync_sampling_high_description">Snabbaste synkroniseringen. Lyssnar framåt på fler scener över flera anslutningar, vanligtvis upp till 150 MB per titel, och använder mer CPU. Vissa servrar begränsar hur många anslutningar de tillåter.</string>
+    <string name="licenses_attributions_audio_sync_title">Synkronisera ljud undertexter</string>
+    <string name="licenses_attributions_audio_sync_body">Taldetektering använder Silero VAD v5 vikter (MIT, Silero Team). Valfri taligenkänning använder sherpa-onnx (Apache-2.0, k2-fsa) och dess Zipformer GigaSpeech engelska modell (Apache-2.0). Fullständiga meddelanden skickas med appen i licenses/audio_sync_NOTICE.md.</string>
+</resources>

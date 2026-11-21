@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Синхронизиране на субтитри с аудио</string>
+    <string name="audio_sync_setting_description">Подравнява субтитрите с диалога, когато автоматичната синхронизация не може да намери надеждно съвпадение.</string>
+    <string name="audio_sync_model_title">Модел на английски език (%1$d MB)</string>
+    <string name="audio_sync_model_description">Не е задължително. Разпознава английската реч и я свързва с външни английски субтитри за по-бързо и по-точно синхронизиране. Използва повече процесор и памет.</string>
+    <string name="audio_sync_model_downloading">Изтегля се... %1$d%%</string>
+    <string name="audio_sync_model_ready">Изтеглено. Ако възпроизвеждането се забави, изтрийте модела, за да използвате само разпознаването на реч.</string>
+    <string name="audio_sync_model_failed">Неуспешно изтегляне. Изберете, за да опитате отново. Разпознаването на говор все още работи.</string>
+    <string name="audio_sync_model_download">Изтегляне</string>
+    <string name="audio_sync_model_delete">Изтриване</string>
+    <string name="audio_sync_sampling_title">Аудио семплиране</string>
+    <string name="audio_sync_sampling_description">Слуша диалога преди възпроизвеждането, така че синхронизирането се намира по-рано.</string>
+    <string name="audio_sync_sampling_off">Изключено</string>
+    <string name="audio_sync_sampling_low">ниско</string>
+    <string name="audio_sync_sampling_high">високо</string>
+    <string name="audio_sync_sampling_off_description">Слуша само това, което се възпроизвежда, така че синхронизирането отнема повече време. Не работи с плейър mpv.</string>
+    <string name="audio_sync_sampling_low_description">Слуша предварително няколко диалогови сцени през една допълнителна връзка, до 75 MB на заглавие. Използва се и вместо High в мрежи с измерване.</string>
+    <string name="audio_sync_sampling_high_description">Най-бърза синхронизация. Слуша напред повече сцени през няколко връзки, обикновено до 150 MB на заглавие, и използва повече CPU. Някои сървъри ограничават броя на връзките, които позволяват.</string>
+    <string name="licenses_attributions_audio_sync_title">Синхронизиране на аудио субтитри</string>
+    <string name="licenses_attributions_audio_sync_body">Откриването на реч използва Silero VAD v5 тегла (MIT, Silero Team). Незадължителното разпознаване на реч използва sherpa-onnx (Apache-2.0, k2-fsa) и неговия Zipformer GigaSpeech английски модел (Apache-2.0). Пълните известия се изпращат с приложението в licenses/audio_sync_NOTICE.md.</string>
+</resources>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">تقييم العنوان</string>
+    <string name="rating_your_rating">تقييمك</string>
+    <string name="rating_rate_episode">قيم هذه الحلقة</string>
+    <string name="rating_rated">تصنيف %1$s/10</string>
+    <string name="rating_value">%1$s من 10</string>
+    <string name="rating_syncs_to">يتزامن مع %1$s</string>
+    <string name="rating_saved">تم حفظ التقييم</string>
+    <string name="rating_removed">تمت إزالة التقييم</string>
+    <string name="rating_failed">لا يمكن تحديث تقييمك على %1$s</string>
+    <string name="rating_remove">إزالة</string>
+    <string name="tracking_ratings_title">التقييمات</string>
+    <string name="tracking_ratings_subtitle">حدد الخدمة التي تخزن تقييماتك وتعرضها</string>
+    <string name="tracking_ratings_dialog_subtitle">معدل العناوين من صفحة التفاصيل الخاصة بهم. يتم حفظ تقييماتك وعرضها من خلال الخدمة التي تختارها.</string>
+    <string name="tracking_ratings_off_description">إخفاء زر المعدل.</string>
+    <string name="tracking_ratings_simkl_description">تقييم الأفلام والعروض. يؤدي تصنيف عنوان غير موجود في قوائم Simkl الخاصة بك إلى إضافته إليه.</string>
+    <string name="tracking_ratings_mdblist_description">معدل الأفلام والعروض والحلقات.</string>
+    <string name="rating_all_trackers">جميع أجهزة التتبع المتصلة</string>
+    <string name="rating_all_trackers_description">احفظ تقييمات العناوين في كل أداة تعقب متوافقة تم تسجيل الدخول إليها. اختر MDBList لتقييم الحلقات الفردية أيضًا.</string>
+</resources>

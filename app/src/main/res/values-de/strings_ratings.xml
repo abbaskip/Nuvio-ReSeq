@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Bewerten</string>
+    <string name="rating_your_rating">Ihre Bewertung</string>
+    <string name="rating_rate_episode">Bewerten Sie diese Episode</string>
+    <string name="rating_rated">Bewertet mit %1$s/10</string>
+    <string name="rating_value">%1$s von 10</string>
+    <string name="rating_syncs_to">Synchronisiert mit %1$s</string>
+    <string name="rating_saved">Bewertung gespeichert</string>
+    <string name="rating_removed">Bewertung entfernt</string>
+    <string name="rating_failed">Ihre Bewertung für %1$s konnte nicht aktualisiert werden.</string>
+    <string name="rating_remove">Entfernen</string>
+    <string name="tracking_ratings_title">Bewertungen</string>
+    <string name="tracking_ratings_subtitle">Wählen Sie den Dienst aus, der Ihre Bewertungen speichert und anzeigt</string>
+    <string name="tracking_ratings_dialog_subtitle">Bewerten Sie Titel auf ihrer Detailseite. Ihre Bewertungen werden in dem von Ihnen ausgewählten Dienst gespeichert und dort angezeigt.</string>
+    <string name="tracking_ratings_off_description">Blenden Sie die Preisschaltfläche aus.</string>
+    <string name="tracking_ratings_simkl_description">Bewerten Sie Filme und Serien. Wenn Sie einen Titel bewerten, der nicht in Ihren Simkl-Listen enthalten ist, wird er diesen hinzugefügt.</string>
+    <string name="tracking_ratings_mdblist_description">Bewerten Sie Filme, Shows und Episoden.</string>
+    <string name="rating_all_trackers">Alle angeschlossenen Tracker</string>
+    <string name="rating_all_trackers_description">Speichern Sie Titelbewertungen in jedem kompatiblen angemeldeten Tracker. Wählen Sie MDBList, um auch einzelne Episoden zu bewerten.</string>
+</resources>

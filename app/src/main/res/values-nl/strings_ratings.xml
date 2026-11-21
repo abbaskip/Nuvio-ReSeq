@@ -16,4 +16,6 @@
     <string name="tracking_ratings_off_description">Verberg de knop om te beoordelen.</string>
     <string name="tracking_ratings_simkl_description">Beoordeel films en series. Als je een titel beoordeelt die nog niet in je Simkl-lijsten staat, wordt die eraan toegevoegd.</string>
     <string name="tracking_ratings_mdblist_description">Beoordeel films, series en afleveringen.</string>
+    <string name="rating_all_trackers">Alle aangesloten trackers</string>
+    <string name="rating_all_trackers_description">Sla titelbeoordelingen op voor elke compatibele ingelogde tracker. Kies MDBList om ook individuele afleveringen te beoordelen.</string>
 </resources>

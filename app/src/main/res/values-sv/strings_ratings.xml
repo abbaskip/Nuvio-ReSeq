@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Betygsätt</string>
+    <string name="rating_your_rating">Ditt betyg</string>
+    <string name="rating_rate_episode">Betygsätt det här avsnittet</string>
+    <string name="rating_rated">Betygsatt %1$s/10</string>
+    <string name="rating_value">%1$s av 10</string>
+    <string name="rating_syncs_to">Synkar till %1$s</string>
+    <string name="rating_saved">Betyget har sparats</string>
+    <string name="rating_removed">Betyget har tagits bort</string>
+    <string name="rating_failed">Det gick inte att uppdatera ditt betyg på %1$s</string>
+    <string name="rating_remove">Ta bort</string>
+    <string name="tracking_ratings_title">Betyg</string>
+    <string name="tracking_ratings_subtitle">Välj tjänsten som lagrar och visar dina betyg</string>
+    <string name="tracking_ratings_dialog_subtitle">Betygsätt titlar från deras informationssida. Dina betyg sparas i och visas från den tjänst du väljer.</string>
+    <string name="tracking_ratings_off_description">Dölj prisknappen.</string>
+    <string name="tracking_ratings_simkl_description">Betygsätt filmer och program. Betygsätt en titel som inte finns i dina Simkl-listor lägger till den i dem.</string>
+    <string name="tracking_ratings_mdblist_description">Betygsätt filmer, serier och avsnitt.</string>
+    <string name="rating_all_trackers">Alla anslutna trackers</string>
+    <string name="rating_all_trackers_description">Spara titelbetyg till alla kompatibla inloggade spårare. Välj MDBList för att även betygsätta enskilda avsnitt.</string>
+</resources>

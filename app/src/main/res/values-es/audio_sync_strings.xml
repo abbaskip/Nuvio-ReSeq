@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Sincronizar subtítulos con audio</string>
+    <string name="audio_sync_setting_description">Alinea los subtítulos con el diálogo cuando Auto Sync no puede encontrar una coincidencia confiable.</string>
+    <string name="audio_sync_model_title">Modelo de habla inglesa (%1$d MB)</string>
+    <string name="audio_sync_model_description">Opcional. Reconoce el habla en inglés y la compara con subtítulos externos en inglés, para una sincronización más rápida y precisa. Utiliza más CPU y memoria.</string>
+    <string name="audio_sync_model_downloading">Descargando… %1$d%%</string>
+    <string name="audio_sync_model_ready">Descargado. Si la reproducción se ralentiza, elimine el modelo para utilizar únicamente la detección de voz.</string>
+    <string name="audio_sync_model_failed">La descarga falló. Seleccione para volver a intentarlo. La detección de voz todavía funciona.</string>
+    <string name="audio_sync_model_download">Descarga</string>
+    <string name="audio_sync_model_delete">Eliminar</string>
+    <string name="audio_sync_sampling_title">Muestreo de audio</string>
+    <string name="audio_sync_sampling_description">Escucha el diálogo antes de la reproducción, para que la sincronización se encuentre antes.</string>
+    <string name="audio_sync_sampling_off">Desactivado</string>
+    <string name="audio_sync_sampling_low">Bajo</string>
+    <string name="audio_sync_sampling_high">Alto</string>
+    <string name="audio_sync_sampling_off_description">Escucha sólo lo que se está reproduciendo, por lo que la sincronización lleva más tiempo. No funciona con el reproductor mpv.</string>
+    <string name="audio_sync_sampling_low_description">Escucha con anticipación algunas escenas de diálogo a través de una conexión adicional, hasta 75 MB por título. También se utiliza en lugar de Alto en redes de uso medido.</string>
+    <string name="audio_sync_sampling_high_description">Sincronización más rápida. Escucha más escenas a través de varias conexiones, normalmente hasta 150 MB por título, y utiliza más CPU. Algunos servidores limitan la cantidad de conexiones que permiten.</string>
+    <string name="licenses_attributions_audio_sync_title">Sincronización de subtítulos de audio</string>
+    <string name="licenses_attributions_audio_sync_body">La detección de voz utiliza pesos Silero VAD v5 (MIT, Silero Team). El reconocimiento de voz opcional utiliza sherpa-onnx (Apache-2.0, k2-fsa) y su modelo en inglés Zipformer GigaSpeech (Apache-2.0). Los avisos completos se envían con la aplicación en licenses/audio_sync_NOTICE.md.</string>
+</resources>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Синхронізувати субтитри з аудіо</string>
+    <string name="audio_sync_setting_description">Вирівнює субтитри з діалогом, коли автоматична синхронізація не може знайти надійний збіг.</string>
+    <string name="audio_sync_model_title">Модель мовлення англійською мовою (%1$d МБ)</string>
+    <string name="audio_sync_model_description">Додатково. Розпізнає англійську мову та зіставляє її із зовнішніми англійськими субтитрами для швидшої та точнішої синхронізації. Використовує більше ЦП і пам\'яті.</string>
+    <string name="audio_sync_model_downloading">Завантаження… %1$d%%</string>
+    <string name="audio_sync_model_ready">Завантажено. Якщо відтворення сповільнюється, видаліть модель, щоб використовувати лише розпізнавання мовлення.</string>
+    <string name="audio_sync_model_failed">Помилка завантаження. Виберіть, щоб повторити спробу. Розпізнавання мовлення все ще працює.</string>
+    <string name="audio_sync_model_download">Завантаження</string>
+    <string name="audio_sync_model_delete">Видалити</string>
+    <string name="audio_sync_sampling_title">Вибірка звуку</string>
+    <string name="audio_sync_sampling_description">Прослуховує діалоги перед відтворенням, тому синхронізація знайдена швидше.</string>
+    <string name="audio_sync_sampling_off">Вимк</string>
+    <string name="audio_sync_sampling_low">Низький</string>
+    <string name="audio_sync_sampling_high">Високий</string>
+    <string name="audio_sync_sampling_off_description">Прослуховує лише те, що грає, тому синхронізація займає більше часу. Не працює з плеєром mpv.</string>
+    <string name="audio_sync_sampling_low_description">Попередньо прослуховує кілька діалогових сцен через одне додаткове з’єднання, до 75 МБ на заголовок. Також використовується замість високого в мережах з лічильником.</string>
+    <string name="audio_sync_sampling_high_description">Найшвидша синхронізація. Застосунок заздалегідь прослуховує більше сцен через кілька з’єднань, зазвичай до 150 МБ на один фільм або серію, і більше навантажує процесор. Деякі сервери обмежують кількість з’єднань.</string>
+    <string name="licenses_attributions_audio_sync_title">Синхронізація звукових субтитрів</string>
+    <string name="licenses_attributions_audio_sync_body">Виявлення мовлення використовує Silero VAD v5 ваги (MIT, Silero Team). Optional speech recognition uses sherpa-onnx (Apache-2.0, k2-fsa) and its Zipformer GigaSpeech English model (Apache-2.0). Повні повідомлення надсилаються разом із додатком у licenses/audio_sync_NOTICE.md.</string>
+</resources>

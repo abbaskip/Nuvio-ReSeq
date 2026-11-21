@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Acordă o notă</string>
+    <string name="rating_your_rating">Evaluarea dvs</string>
+    <string name="rating_rate_episode">Evaluează acest episod</string>
+    <string name="rating_rated">Evaluat %1$s/10</string>
+    <string name="rating_value">%1$s din 10</string>
+    <string name="rating_syncs_to">Se sincronizează cu %1$s</string>
+    <string name="rating_saved">Evaluarea a fost salvată</string>
+    <string name="rating_removed">Evaluarea a fost eliminată</string>
+    <string name="rating_failed">Nu s-a putut actualiza evaluarea pentru %1$s</string>
+    <string name="rating_remove">Elimină</string>
+    <string name="tracking_ratings_title">Evaluări</string>
+    <string name="tracking_ratings_subtitle">Selectați serviciul care stochează și afișează evaluările dvs</string>
+    <string name="tracking_ratings_dialog_subtitle">Evaluați titlurile din pagina lor de detalii. Evaluările dvs. sunt salvate și afișate din serviciul ales.</string>
+    <string name="tracking_ratings_off_description">Ascunde butonul Rata.</string>
+    <string name="tracking_ratings_simkl_description">Evaluați filme și emisiuni. Evaluarea unui titlu care nu se află în listele dvs. Simkl îl adaugă la ele.</string>
+    <string name="tracking_ratings_mdblist_description">Evaluați filme, emisiuni și episoade.</string>
+    <string name="rating_all_trackers">Toate trackerele conectate</string>
+    <string name="rating_all_trackers_description">Salvați evaluările titlurilor în fiecare tracker compatibil conectat. Alegeți MDBList pentru a evalua și episoadele individuale.</string>
+</resources>

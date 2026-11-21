@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">उपशीर्षक को ऑडियो के साथ सिंक करें</string>
+    <string name="audio_sync_setting_description">जब ऑटो सिंक को विश्वसनीय मिलान नहीं मिल पाता तो उपशीर्षक को संवाद के साथ संरेखित करता है।</string>
+    <string name="audio_sync_model_title">अंग्रेजी भाषण मॉडल (%1$d एमबी)</string>
+    <string name="audio_sync_model_description">वैकल्पिक. तेज़ और अधिक सटीक सिंक के लिए अंग्रेजी भाषण को पहचानता है और बाहरी अंग्रेजी उपशीर्षक के साथ इसका मिलान करता है। अधिक सीपीयू और मेमोरी का उपयोग करता है।</string>
+    <string name="audio_sync_model_downloading">डाउनलोड हो रहा है… %1$d%%</string>
+    <string name="audio_sync_model_ready">डाउनलोड किया गया. यदि प्लेबैक धीमा हो जाता है, तो केवल वाक् पहचान का उपयोग करने के लिए मॉडल को हटा दें।</string>
+    <string name="audio_sync_model_failed">डाउनलोड विफल रहा. पुनः प्रयास करने के लिए चयन करें. वाक् पहचान अभी भी काम करती है।</string>
+    <string name="audio_sync_model_download">डाउनलोड</string>
+    <string name="audio_sync_model_delete">हटाएँ</string>
+    <string name="audio_sync_sampling_title">ऑडियो नमूनाकरण</string>
+    <string name="audio_sync_sampling_description">प्लेबैक से पहले संवाद सुनता है, इसलिए सिंक जल्दी मिल जाता है।</string>
+    <string name="audio_sync_sampling_off">बंद</string>
+    <string name="audio_sync_sampling_low">नीचा</string>
+    <string name="audio_sync_sampling_high">ऊँचा</string>
+    <string name="audio_sync_sampling_off_description">केवल वही सुनता है जो चल रहा है, इसलिए समन्वयन में अधिक समय लगता है। mpv प्लेयर के साथ काम नहीं करता।</string>
+    <string name="audio_sync_sampling_low_description">प्रति शीर्षक 75 एमबी तक, एक अतिरिक्त कनेक्शन पर कुछ संवाद दृश्यों को आगे सुनता है। मीटर्ड नेटवर्क पर हाई के स्थान पर भी उपयोग किया जाता है।</string>
+    <string name="audio_sync_sampling_high_description">सबसे तेज़ सिंक. कई कनेक्शनों पर अधिक दृश्यों को सुनता है, आमतौर पर प्रति शीर्षक 150 एमबी तक, और अधिक सीपीयू का उपयोग करता है। कुछ सर्वर सीमित करते हैं कि वे कितने कनेक्शन की अनुमति देते हैं।</string>
+    <string name="licenses_attributions_audio_sync_title">ऑडियो उपशीर्षक समन्वयन</string>
+    <string name="licenses_attributions_audio_sync_body">वाक् पहचान Silero VAD v5 वज़न (MIT, Silero Team) का उपयोग करती है। वैकल्पिक वाक् पहचान sherpa-onnx (Apache-2.0, k2-fsa) और इसके Zipformer GigaSpeech अंग्रेजी मॉडल (Apache-2.0) का उपयोग करती है। संपूर्ण नोटिस licenses/audio_sync_NOTICE.md में ऐप के साथ भेजा जाता है।</string>
+</resources>

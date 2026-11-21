@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Beri nilai</string>
+    <string name="rating_your_rating">Peringkat Anda</string>
+    <string name="rating_rate_episode">Nilai episode ini</string>
+    <string name="rating_rated">Dinilai %1$s/10</string>
+    <string name="rating_value">%1$s dari 10</string>
+    <string name="rating_syncs_to">Sinkronisasi ke %1$s</string>
+    <string name="rating_saved">Peringkat disimpan</string>
+    <string name="rating_removed">Peringkat dihapus</string>
+    <string name="rating_failed">Tidak dapat memperbarui peringkat Anda di %1$s</string>
+    <string name="rating_remove">Hapus</string>
+    <string name="tracking_ratings_title">Rating</string>
+    <string name="tracking_ratings_subtitle">Pilih layanan yang menyimpan dan menampilkan peringkat Anda</string>
+    <string name="tracking_ratings_dialog_subtitle">Nilai judul dari halaman detailnya. Peringkat Anda disimpan dan ditampilkan dari layanan yang Anda pilih.</string>
+    <string name="tracking_ratings_off_description">Sembunyikan tombol tarif.</string>
+    <string name="tracking_ratings_simkl_description">Beri peringkat film dan acara. Memberi peringkat pada judul yang tidak ada dalam daftar Simkl Anda akan menambahkannya ke dalamnya.</string>
+    <string name="tracking_ratings_mdblist_description">Beri peringkat film, acara, dan episode.</string>
+    <string name="rating_all_trackers">Semua pelacak yang terhubung</string>
+    <string name="rating_all_trackers_description">Simpan peringkat judul ke setiap pelacak masuk yang kompatibel. Pilih MDBList untuk juga menilai masing-masing episode.</string>
+</resources>

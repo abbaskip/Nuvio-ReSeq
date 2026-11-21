@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Оценяване</string>
+    <string name="rating_your_rating">Вашата оценка</string>
+    <string name="rating_rate_episode">Оценете този епизод</string>
+    <string name="rating_rated">Оценка %1$s/10</string>
+    <string name="rating_value">%1$s от 10</string>
+    <string name="rating_syncs_to">Синхронизира се с %1$s</string>
+    <string name="rating_saved">Оценката е запазена</string>
+    <string name="rating_removed">Оценката е премахната</string>
+    <string name="rating_failed">Не можах да актуализирам оценката ви за %1$s</string>
+    <string name="rating_remove">Премахване</string>
+    <string name="tracking_ratings_title">Оценки</string>
+    <string name="tracking_ratings_subtitle">Изберете услугата, която съхранява и показва вашите оценки</string>
+    <string name="tracking_ratings_dialog_subtitle">Оценете заглавия от страницата с подробности. Вашите оценки се запазват и показват от избраната от вас услуга.</string>
+    <string name="tracking_ratings_off_description">Скрийте бутона за оценка.</string>
+    <string name="tracking_ratings_simkl_description">Оценявайте филми и предавания. Оценяването на заглавие, което не е във вашите Simkl списъци, го добавя към тях.</string>
+    <string name="tracking_ratings_mdblist_description">Оценявайте филми, предавания и епизоди.</string>
+    <string name="rating_all_trackers">Всички свързани тракери</string>
+    <string name="rating_all_trackers_description">Запазете оценките на заглавията във всеки съвместим инструмент за проследяване, в който сте влезли. Изберете MDBList, за да оцените и отделни епизоди.</string>
+</resources>

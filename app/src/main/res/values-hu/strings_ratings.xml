@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Értékelés</string>
+    <string name="rating_your_rating">Az Ön értékelése</string>
+    <string name="rating_rate_episode">Értékelje ezt az epizódot</string>
+    <string name="rating_rated">Besorolás: %1$s/10</string>
+    <string name="rating_value">%1$s 10-ből</string>
+    <string name="rating_syncs_to">Szinkronizál: %1$s</string>
+    <string name="rating_saved">Értékelés mentve</string>
+    <string name="rating_removed">Értékelés eltávolítva</string>
+    <string name="rating_failed">Nem sikerült frissíteni az értékelést itt: %1$s</string>
+    <string name="rating_remove">Eltávolítás</string>
+    <string name="tracking_ratings_title">Értékelések</string>
+    <string name="tracking_ratings_subtitle">Válassza ki azt a szolgáltatást, amely tárolja és megjeleníti az értékeléseit</string>
+    <string name="tracking_ratings_dialog_subtitle">Értékelje a címeket a részletek oldaláról. Értékeléseit a rendszer az Ön által választott szolgáltatásba menti, és ott jeleníti meg.</string>
+    <string name="tracking_ratings_off_description">Az árfolyam gomb elrejtése.</string>
+    <string name="tracking_ratings_simkl_description">Értékelje a filmeket és műsorokat. Egy olyan cím értékelése, amely nem szerepel a Simkl listáiban, hozzáadja azokat.</string>
+    <string name="tracking_ratings_mdblist_description">Értékeljen filmeket, műsorokat és epizódokat.</string>
+    <string name="rating_all_trackers">Minden csatlakoztatott nyomkövető</string>
+    <string name="rating_all_trackers_description">Mentse el a címbesorolásokat minden kompatibilis bejelentkezett nyomkövetőbe. Válassza a MDBList lehetőséget az egyes epizódok értékeléséhez.</string>
+</resources>

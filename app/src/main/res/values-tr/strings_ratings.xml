@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Puan ver</string>
+    <string name="rating_your_rating">Derecelendirmeniz</string>
+    <string name="rating_rate_episode">Bu bölüme puan verin</string>
+    <string name="rating_rated">Puan %1$s/10</string>
+    <string name="rating_value">%1$s 10 üzerinden</string>
+    <string name="rating_syncs_to">%1$s ile senkronize edilir</string>
+    <string name="rating_saved">Değerlendirme kaydedildi</string>
+    <string name="rating_removed">Derecelendirme kaldırıldı</string>
+    <string name="rating_failed">%1$s\'deki derecelendirmeniz güncellenemedi</string>
+    <string name="rating_remove">Kaldır</string>
+    <string name="tracking_ratings_title">Değerlendirmeler</string>
+    <string name="tracking_ratings_subtitle">Derecelendirmelerinizi saklayan ve görüntüleyen hizmeti seçin</string>
+    <string name="tracking_ratings_dialog_subtitle">Ayrıntılar sayfasından başlıkları derecelendirin. Derecelendirmeleriniz seçtiğiniz hizmete kaydedilir ve buradan gösterilir.</string>
+    <string name="tracking_ratings_off_description">Oran düğmesini gizleyin.</string>
+    <string name="tracking_ratings_simkl_description">Filmleri ve şovları derecelendirin. Simkl listelerinizde olmayan bir başlığı derecelendirmek onu listelerinize ekler.</string>
+    <string name="tracking_ratings_mdblist_description">Filmleri, şovları ve bölümleri derecelendirin.</string>
+    <string name="rating_all_trackers">Bağlı tüm izleyiciler</string>
+    <string name="rating_all_trackers_description">Başlık derecelendirmelerini oturum açmış tüm uyumlu izleyicilere kaydedin. Bireysel bölümleri de derecelendirmek için MDBList\'i seçin.</string>
+</resources>

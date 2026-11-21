@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">রেটিং দিন</string>
+    <string name="rating_your_rating">আপনার রেটিং</string>
+    <string name="rating_rate_episode">এই পর্ব রেট</string>
+    <string name="rating_rated">রেট করা হয়েছে %1$s/10</string>
+    <string name="rating_value">%1$s 10 এর মধ্যে</string>
+    <string name="rating_syncs_to">সিঙ্ক করে %1$s</string>
+    <string name="rating_saved">রেটিং সংরক্ষিত</string>
+    <string name="rating_removed">রেটিং সরানো হয়েছে</string>
+    <string name="rating_failed">%1$s এ আপনার রেটিং আপডেট করা যায়নি</string>
+    <string name="rating_remove">সরান</string>
+    <string name="tracking_ratings_title">রেটিং</string>
+    <string name="tracking_ratings_subtitle">আপনার রেটিং সঞ্চয় এবং প্রদর্শন করে এমন পরিষেবা নির্বাচন করুন৷</string>
+    <string name="tracking_ratings_dialog_subtitle">তাদের বিবরণ পৃষ্ঠা থেকে শিরোনাম রেট. আপনার রেটিং সংরক্ষিত হয় এবং আপনি বাছাই করা পরিষেবা থেকে দেখানো হয়।</string>
+    <string name="tracking_ratings_off_description">হার বাটন লুকান.</string>
+    <string name="tracking_ratings_simkl_description">সিনেমা এবং শো রেট. আপনার Simkl তালিকায় নেই এমন একটি শিরোনামকে রেটিং দিলে এটি তাদের সাথে যুক্ত হয়।</string>
+    <string name="tracking_ratings_mdblist_description">সিনেমা, শো এবং পর্বগুলিকে রেট করুন।</string>
+    <string name="rating_all_trackers">সমস্ত সংযুক্ত ট্র্যাকার</string>
+    <string name="rating_all_trackers_description">প্রতিটি সামঞ্জস্যপূর্ণ সাইন-ইন ট্র্যাকারে শিরোনাম রেটিং সংরক্ষণ করুন। এছাড়াও পৃথক পর্ব রেট করতে MDBList চয়ন করুন।</string>
+</resources>

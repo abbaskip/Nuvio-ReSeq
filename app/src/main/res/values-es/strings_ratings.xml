@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Puntuar</string>
+    <string name="rating_your_rating">Tu calificación</string>
+    <string name="rating_rate_episode">Califica este episodio</string>
+    <string name="rating_rated">Clasificado %1$s/10</string>
+    <string name="rating_value">%1$s de 10</string>
+    <string name="rating_syncs_to">Se sincroniza con %1$s</string>
+    <string name="rating_saved">Calificación guardada</string>
+    <string name="rating_removed">Calificación eliminada</string>
+    <string name="rating_failed">No se pudo actualizar su calificación en %1$s</string>
+    <string name="rating_remove">Eliminar</string>
+    <string name="tracking_ratings_title">Calificaciones</string>
+    <string name="tracking_ratings_subtitle">Selecciona el servicio que almacena y muestra tus valoraciones</string>
+    <string name="tracking_ratings_dialog_subtitle">Califica títulos desde su página de detalles. Sus calificaciones se guardan y se muestran desde el servicio que elija.</string>
+    <string name="tracking_ratings_off_description">Oculta el botón de tarifa.</string>
+    <string name="tracking_ratings_simkl_description">Califica películas y programas. Calificar un título que no está en sus listas Simkl lo agrega a ellas.</string>
+    <string name="tracking_ratings_mdblist_description">Califica películas, programas y episodios.</string>
+    <string name="rating_all_trackers">Todos los rastreadores conectados</string>
+    <string name="rating_all_trackers_description">Guarde las calificaciones de títulos en todos los rastreadores compatibles que hayan iniciado sesión. Elija MDBList para calificar también episodios individuales.</string>
+</resources>

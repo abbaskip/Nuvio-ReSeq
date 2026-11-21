@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">வசனங்களை ஆடியோவுடன் ஒத்திசைக்கவும்</string>
+    <string name="audio_sync_setting_description">தானியங்கு ஒத்திசைவு நம்பகமான பொருத்தத்தைக் கண்டறிய முடியாதபோது வசனங்களுடன் வசனங்களை சீரமைக்கும்.</string>
+    <string name="audio_sync_model_title">ஆங்கில பேச்சு மாதிரி (%1$d MB)</string>
+    <string name="audio_sync_model_description">விருப்பமானது. வேகமான மற்றும் துல்லியமான ஒத்திசைவுக்காக ஆங்கிலப் பேச்சை அங்கீகரித்து வெளிப்புற ஆங்கில வசனங்களுடன் பொருத்துகிறது. அதிக CPU மற்றும் நினைவகத்தைப் பயன்படுத்துகிறது.</string>
+    <string name="audio_sync_model_downloading">பதிவிறக்குகிறது… %1$d%%</string>
+    <string name="audio_sync_model_ready">பதிவிறக்கம் செய்யப்பட்டது. பிளேபேக் வேகம் குறைந்தால், பேச்சு கண்டறிதலை மட்டும் பயன்படுத்த மாதிரியை நீக்கவும்.</string>
+    <string name="audio_sync_model_failed">பதிவிறக்கம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்க தேர்ந்தெடுக்கவும். பேச்சு கண்டறிதல் இன்னும் வேலை செய்கிறது.</string>
+    <string name="audio_sync_model_download">பதிவிறக்கம்</string>
+    <string name="audio_sync_model_delete">நீக்கு</string>
+    <string name="audio_sync_sampling_title">ஆடியோ மாதிரி</string>
+    <string name="audio_sync_sampling_description">பிளேபேக்கிற்கு முன்னதாக உரையாடலைக் கேட்கிறது, எனவே ஒத்திசைவு விரைவில் கண்டறியப்படும்.</string>
+    <string name="audio_sync_sampling_off">நிறுத்து</string>
+    <string name="audio_sync_sampling_low">குறைந்த</string>
+    <string name="audio_sync_sampling_high">உயர்</string>
+    <string name="audio_sync_sampling_off_description">விளையாடுவதை மட்டுமே கேட்கும், எனவே ஒத்திசைக்க அதிக நேரம் எடுக்கும். mpv பிளேயருடன் வேலை செய்யாது.</string>
+    <string name="audio_sync_sampling_low_description">ஒரு கூடுதல் இணைப்பில் சில உரையாடல் காட்சிகளைக் கேட்கும், ஒரு தலைப்புக்கு 75 எம்பி வரை. மீட்டர் நெட்வொர்க்குகளில் High என்பதற்குப் பதிலாகப் பயன்படுத்தப்படுகிறது.</string>
+    <string name="audio_sync_sampling_high_description">வேகமான ஒத்திசைவு. பல இணைப்புகளில், பொதுவாக ஒரு தலைப்புக்கு 150 MB வரை அதிகமான காட்சிகளைக் கேட்கும், மேலும் அதிக CPU ஐப் பயன்படுத்துகிறது. சில சேவையகங்கள் எத்தனை இணைப்புகளை அனுமதிக்கின்றன என்பதைக் கட்டுப்படுத்துகின்றன.</string>
+    <string name="licenses_attributions_audio_sync_title">ஆடியோ வசன ஒத்திசைவு</string>
+    <string name="licenses_attributions_audio_sync_body">பேச்சு கண்டறிதல் Silero VAD v5 எடைகளைப் பயன்படுத்துகிறது (MIT, Silero Team). விருப்பமான பேச்சு அங்கீகாரம் sherpa-onnx (Apache-2.0, k2-fsa) மற்றும் அதன் Zipformer GigaSpeech ஆங்கில மாதிரி (Apache-2.0) ஆகியவற்றைப் பயன்படுத்துகிறது. முழு அறிவிப்புகளும் ஆப்ஸுடன் licenses/audio_sync_NOTICE.md அனுப்பப்படும்.</string>
+</resources>

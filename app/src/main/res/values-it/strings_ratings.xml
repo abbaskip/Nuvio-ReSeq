@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Vota</string>
+    <string name="rating_your_rating">La tua valutazione</string>
+    <string name="rating_rate_episode">Vota questo episodio</string>
+    <string name="rating_rated">Valutato %1$s/10</string>
+    <string name="rating_value">%1$s su 10</string>
+    <string name="rating_syncs_to">Sincronizza con %1$s</string>
+    <string name="rating_saved">Valutazione salvata</string>
+    <string name="rating_removed">Valutazione rimossa</string>
+    <string name="rating_failed">Impossibile aggiornare la tua valutazione su %1$s</string>
+    <string name="rating_remove">Rimuovi</string>
+    <string name="tracking_ratings_title">Valutazioni</string>
+    <string name="tracking_ratings_subtitle">Seleziona il servizio che memorizza e visualizza le tue valutazioni</string>
+    <string name="tracking_ratings_dialog_subtitle">Valuta i titoli dalla relativa pagina dei dettagli. Le tue valutazioni vengono salvate e mostrate dal servizio che scegli.</string>
+    <string name="tracking_ratings_off_description">Nascondi il pulsante della tariffa.</string>
+    <string name="tracking_ratings_simkl_description">Valuta film e programmi. La valutazione di un titolo che non è presente negli elenchi Simkl lo aggiunge ad essi.</string>
+    <string name="tracking_ratings_mdblist_description">Valuta film, programmi ed episodi.</string>
+    <string name="rating_all_trackers">Tutti i tracker collegati</string>
+    <string name="rating_all_trackers_description">Salva le valutazioni dei titoli su ogni tracker compatibile su cui hai effettuato l\'accesso. Scegli MDBList per valutare anche i singoli episodi.</string>
+</resources>

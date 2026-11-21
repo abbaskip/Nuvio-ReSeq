@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Sinchronizuoti subtitrus su garso įrašu</string>
+    <string name="audio_sync_setting_description">Sulygina subtitrus su dialogu, kai automatinis sinchronizavimas negali rasti patikimos atitikties.</string>
+    <string name="audio_sync_model_title">Anglų kalbos modelis (%1$d MB)</string>
+    <string name="audio_sync_model_description">Neprivaloma. Atpažįsta anglišką kalbą ir suderina ją su išoriniais angliškais subtitrais, kad sinchronizavimas būtų greitesnis ir tikslesnis. Naudoja daugiau procesoriaus ir atminties.</string>
+    <string name="audio_sync_model_downloading">Atsisiunčiama… %1$d%%</string>
+    <string name="audio_sync_model_ready">Atsisiųsta. Jei atkūrimas sulėtėja, ištrinkite modelį, kad galėtumėte naudoti tik kalbos aptikimą.</string>
+    <string name="audio_sync_model_failed">Atsisiųsti nepavyko. Pasirinkite, kad bandytumėte dar kartą. Kalbos aptikimas vis dar veikia.</string>
+    <string name="audio_sync_model_download">Atsisiuntimas</string>
+    <string name="audio_sync_model_delete">Ištrinti</string>
+    <string name="audio_sync_sampling_title">Garso atranka</string>
+    <string name="audio_sync_sampling_description">Klausosi dialogo prieš atkūrimą, todėl sinchronizavimas randamas greičiau.</string>
+    <string name="audio_sync_sampling_off">Išjungta</string>
+    <string name="audio_sync_sampling_low">Žemas</string>
+    <string name="audio_sync_sampling_high">Aukštas</string>
+    <string name="audio_sync_sampling_off_description">Klausosi tik to, kas groja, todėl sinchronizavimas užtrunka ilgiau. Neveikia su mpv grotuvu.</string>
+    <string name="audio_sync_sampling_low_description">Iš anksto klausosi kelių dialogo scenų vienu papildomu ryšiu, iki 75 MB vienam pavadinimui. Taip pat naudojamas vietoj aukšto matuojamuose tinkluose.</string>
+    <string name="audio_sync_sampling_high_description">Greičiausias sinchronizavimas. Iš anksto klausosi daugiau scenų per kelis ryšius, paprastai iki 150 MB vienam pavadinimui, ir naudoja daugiau procesoriaus. Kai kurie serveriai riboja leidžiamų jungčių skaičių.</string>
+    <string name="licenses_attributions_audio_sync_title">Garso subtitrų sinchronizavimas</string>
+    <string name="licenses_attributions_audio_sync_body">Kalbos aptikimas naudoja Silero VAD v5 svarmenis (MIT, Silero Team). Pasirenkamas kalbos atpažinimas naudoja sherpa-onnx (Apache-2.0, k2-fsa) ir jo Zipformer GigaSpeech anglišką modelį (Apache-2.0). Visi pranešimai pateikiami kartu su programa licenses/audio_sync_NOTICE.md.</string>
+</resources>

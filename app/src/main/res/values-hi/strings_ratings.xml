@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">रेटिंग दें</string>
+    <string name="rating_your_rating">आपकी रेटिंग</string>
+    <string name="rating_rate_episode">इस एपिसोड को रेट करें</string>
+    <string name="rating_rated">रेटेड %1$s/10</string>
+    <string name="rating_value">%1$s 10 में से</string>
+    <string name="rating_syncs_to">%1$s से समन्वयित होता है</string>
+    <string name="rating_saved">रेटिंग सहेजी गई</string>
+    <string name="rating_removed">रेटिंग हटा दी गई</string>
+    <string name="rating_failed">%1$s पर आपकी रेटिंग अपडेट नहीं की जा सकी</string>
+    <string name="rating_remove">हटाएँ</string>
+    <string name="tracking_ratings_title">रेटिंग्स</string>
+    <string name="tracking_ratings_subtitle">उस सेवा का चयन करें जो आपकी रेटिंग संग्रहीत और प्रदर्शित करती है</string>
+    <string name="tracking_ratings_dialog_subtitle">शीर्षकों को उनके विवरण पृष्ठ से रेट करें। आपकी रेटिंग आपके द्वारा चुनी गई सेवा में सहेजी और दिखाई जाती है।</string>
+    <string name="tracking_ratings_off_description">दर बटन छिपाएँ.</string>
+    <string name="tracking_ratings_simkl_description">फिल्मों और शो को रेटिंग दें. किसी शीर्षक को रेटिंग देना जो आपकी Simkl सूचियों में नहीं है, उसे उनमें जोड़ देता है।</string>
+    <string name="tracking_ratings_mdblist_description">फिल्मों, शो और एपिसोड को रेटिंग दें।</string>
+    <string name="rating_all_trackers">सभी कनेक्टेड ट्रैकर</string>
+    <string name="rating_all_trackers_description">प्रत्येक संगत साइन-इन ट्रैकर में शीर्षक रेटिंग सहेजें। व्यक्तिगत एपिसोड को रेटिंग देने के लिए MDBList चुनें।</string>
+</resources>

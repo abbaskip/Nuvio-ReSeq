@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Синхронизировать субтитры со звуком</string>
+    <string name="audio_sync_setting_description">Совмещает субтитры с диалогами, если автосинхронизация не может найти надежное совпадение.</string>
+    <string name="audio_sync_model_title">Английская речевая модель (%1$d МБ)</string>
+    <string name="audio_sync_model_description">Необязательно. Распознает английскую речь и сопоставляет ее с внешними английскими субтитрами для более быстрой и точной синхронизации. Использует больше процессора и памяти.</string>
+    <string name="audio_sync_model_downloading">Загрузка… %1$d%%</string>
+    <string name="audio_sync_model_ready">Скачано. Если воспроизведение замедляется, удалите модель, чтобы использовать только распознавание речи.</string>
+    <string name="audio_sync_model_failed">Загрузка не удалась. Выберите, чтобы повторить попытку. Распознавание речи по-прежнему работает.</string>
+    <string name="audio_sync_model_download">Загрузка</string>
+    <string name="audio_sync_model_delete">Удалить</string>
+    <string name="audio_sync_sampling_title">Сэмплирование аудио</string>
+    <string name="audio_sync_sampling_description">Прослушивает диалог перед воспроизведением, поэтому синхронизация обнаруживается раньше.</string>
+    <string name="audio_sync_sampling_off">Выкл</string>
+    <string name="audio_sync_sampling_low">Низкий</string>
+    <string name="audio_sync_sampling_high">Высокий</string>
+    <string name="audio_sync_sampling_off_description">Прослушивает только то, что воспроизводится, поэтому синхронизация занимает больше времени. Не работает с плеером mpv.</string>
+    <string name="audio_sync_sampling_low_description">Прослушивает вперед несколько сцен диалога через одно дополнительное соединение, до 75 МБ на заголовок. Также используется вместо High в сетях с лимитным тарифным планом.</string>
+    <string name="audio_sync_sampling_high_description">Самая быстрая синхронизация. Прослушивает больше сцен вперед по нескольким соединениям, обычно до 150 МБ на заголовок, и использует больше ресурсов ЦП. Некоторые серверы ограничивают количество разрешенных соединений.</string>
+    <string name="licenses_attributions_audio_sync_title">Синхронизация аудио субтитров</string>
+    <string name="licenses_attributions_audio_sync_body">При обнаружении речи используются веса Silero VAD v5 (MIT, Silero Team). Дополнительное распознавание речи использует sherpa-onnx (Apache-2.0, k2-fsa) и его Zipformer GigaSpeech английскую модель (Apache-2.0). Полные уведомления поставляются вместе с приложением в licenses/audio_sync_NOTICE.md.</string>
+</resources>

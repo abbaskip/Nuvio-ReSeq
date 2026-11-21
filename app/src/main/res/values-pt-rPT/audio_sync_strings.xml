@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">Sincronizar legendas com áudio</string>
+    <string name="audio_sync_setting_description">Alinha as legendas com o diálogo quando o Auto Sync não consegue encontrar uma correspondência fidedigna.</string>
+    <string name="audio_sync_model_title">Modelo de fala em inglês (%1$d MB)</string>
+    <string name="audio_sync_model_description">Opcional. Reconhece a fala em inglês e combina-a com legendas externas em inglês, para uma sincronização mais rápida e precisa. Usa mais CPU e memória.</string>
+    <string name="audio_sync_model_downloading">A descarregar… %1$d%%</string>
+    <string name="audio_sync_model_ready">Baixado. Se a reprodução ficar mais lenta, apague o modelo para utilizar apenas a deteção de voz.</string>
+    <string name="audio_sync_model_failed">Falha no download. Selecione para tentar novamente. A deteção de fala ainda funciona.</string>
+    <string name="audio_sync_model_download">Transferência</string>
+    <string name="audio_sync_model_delete">Eliminar</string>
+    <string name="audio_sync_sampling_title">Amostragem de áudio</string>
+    <string name="audio_sync_sampling_description">Ouve o diálogo antes da reprodução, para que a sincronização seja encontrada mais cedo.</string>
+    <string name="audio_sync_sampling_off">Desativado</string>
+    <string name="audio_sync_sampling_low">Baixo</string>
+    <string name="audio_sync_sampling_high">Alto</string>
+    <string name="audio_sync_sampling_off_description">Ouve apenas o que está a tocar, pelo que a sincronização demora mais tempo. Não funciona com o reprodutor mpv.</string>
+    <string name="audio_sync_sampling_low_description">Ouve algumas cenas de diálogo através de uma ligação extra, até 75 MB por título. Também utilizado em vez de Alto em redes limitadas.</string>
+    <string name="audio_sync_sampling_high_description">Sincronização mais rápida. Ouve mais cenas em diversas ligações, geralmente até 150 MB por título, e utiliza mais CPU. Alguns servidores limitam o número de ligações que permitem.</string>
+    <string name="licenses_attributions_audio_sync_title">Sincronização de legendas de áudio</string>
+    <string name="licenses_attributions_audio_sync_body">A deteção de fala utiliza pesos Silero VAD v5 (MIT, Silero Team). O reconhecimento de voz opcional utiliza o sherpa-onnx (Apache-2.0, k2-fsa) e o seu modelo Zipformer GigaSpeech inglês (Apache-2.0). Os avisos completos são enviados com a aplicação em licenses/audio_sync_NOTICE.md.</string>
+</resources>

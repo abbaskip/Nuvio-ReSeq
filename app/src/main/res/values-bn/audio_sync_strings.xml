@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">অডিওতে সাবটাইটেল সিঙ্ক করুন</string>
+    <string name="audio_sync_setting_description">যখন অটো সিঙ্ক একটি নির্ভরযোগ্য মিল খুঁজে পায় না তখন ডায়ালগের সাথে সাবটাইটেলগুলি সারিবদ্ধ করে৷</string>
+    <string name="audio_sync_model_title">ইংরেজি বক্তৃতা মডেল (%1$d এমবি)</string>
+    <string name="audio_sync_model_description">ঐচ্ছিক। দ্রুত এবং আরও নির্ভুল সিঙ্কের জন্য ইংরেজি বক্তৃতা শনাক্ত করে এবং বহিরাগত ইংরেজি সাবটাইটেলগুলির সাথে মেলে। বেশি সিপিইউ এবং মেমরি ব্যবহার করে।</string>
+    <string name="audio_sync_model_downloading">ডাউনলোড হচ্ছে... %1$d%%</string>
+    <string name="audio_sync_model_ready">ডাউনলোড করা হয়েছে। যদি প্লেব্যাক মন্থর হয়ে যায়, একা স্পিচ সনাক্তকরণ ব্যবহার করতে মডেল মুছুন।</string>
+    <string name="audio_sync_model_failed">ডাউনলোড ব্যর্থ হয়েছে৷ আবার চেষ্টা করতে নির্বাচন করুন। বক্তৃতা সনাক্তকরণ এখনও কাজ করে।</string>
+    <string name="audio_sync_model_download">ডাউনলোড</string>
+    <string name="audio_sync_model_delete">মুছুন</string>
+    <string name="audio_sync_sampling_title">অডিও স্যাম্পলিং</string>
+    <string name="audio_sync_sampling_description">প্লেব্যাকের আগে সংলাপ শোনে, তাই সিঙ্ক তাড়াতাড়ি পাওয়া যায়।</string>
+    <string name="audio_sync_sampling_off">বন্ধ</string>
+    <string name="audio_sync_sampling_low">কম</string>
+    <string name="audio_sync_sampling_high">উচ্চ</string>
+    <string name="audio_sync_sampling_off_description">যা বাজছে তা শুধু শোনে, তাই সিঙ্ক করতে বেশি সময় লাগে। mpv প্লেয়ারের সাথে কাজ করে না।</string>
+    <string name="audio_sync_sampling_low_description">প্রতি শিরোনাম 75 MB পর্যন্ত একটি অতিরিক্ত সংযোগের মাধ্যমে কয়েকটি সংলাপ দৃশ্যের সামনে শুনুন। এছাড়াও মিটারযুক্ত নেটওয়ার্কগুলিতে উচ্চ এর পরিবর্তে ব্যবহৃত হয়।</string>
+    <string name="audio_sync_sampling_high_description">দ্রুততম সিঙ্ক। বেশ কয়েকটি সংযোগে আরও দৃশ্যের সামনে শুনবে, সাধারণত প্রতি শিরোনাম 150 MB পর্যন্ত, এবং আরও CPU ব্যবহার করে। কিছু সার্ভার কতগুলি সংযোগের অনুমতি দেয় তা সীমিত করে।</string>
+    <string name="licenses_attributions_audio_sync_title">অডিও সাবটাইটেল সিঙ্ক</string>
+    <string name="licenses_attributions_audio_sync_body">বক্তৃতা সনাক্তকরণ Silero VAD v5 ওজন (MIT, Silero Team) ব্যবহার করে। ঐচ্ছিক বক্তৃতা স্বীকৃতি sherpa-onnx (Apache-2.0, k2-fsa) এবং এর Zipformer GigaSpeech ইংরেজি মডেল (Apache-2.0) ব্যবহার করে। সম্পূর্ণ নোটিশ অ্যাপের সাথে শিপ licenses/audio_sync_NOTICE.md.</string>
+</resources>

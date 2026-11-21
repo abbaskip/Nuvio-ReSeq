@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">סנכרן כתוביות לאודיו</string>
+    <string name="audio_sync_setting_description">מיישר כתוביות עם הדיאלוג כאשר סנכרון אוטומטי לא יכול למצוא התאמה אמינה.</string>
+    <string name="audio_sync_model_title">מודל לזיהוי דיבור באנגלית (%1$d MB)</string>
+    <string name="audio_sync_model_description">אופציונלי. מזהה דיבור באנגלית ומתאים אותו עם כתוביות חיצוניות באנגלית, לסנכרון מהיר ומדויק יותר. משתמש יותר במעבד וזיכרון.</string>
+    <string name="audio_sync_model_downloading">מוריד… %1$d%%</string>
+    <string name="audio_sync_model_ready">הורד. אם ההשמעה מואטת, מחק את הדגם כדי להשתמש בזיהוי דיבור בלבד.</string>
+    <string name="audio_sync_model_failed">ההורדה נכשלה. בחרו כדי לנסות שוב. זיהוי קטעי דיבור עדיין פעיל.</string>
+    <string name="audio_sync_model_download">הורדה</string>
+    <string name="audio_sync_model_delete">מחיקה</string>
+    <string name="audio_sync_sampling_title">דגימת אודיו</string>
+    <string name="audio_sync_sampling_description">מאזין לדיאלוג לפני ההשמעה, כך שהסנכרון יימצא מוקדם יותר.</string>
+    <string name="audio_sync_sampling_off">כבוי</string>
+    <string name="audio_sync_sampling_low">נמוך</string>
+    <string name="audio_sync_sampling_high">גבוה</string>
+    <string name="audio_sync_sampling_off_description">האזנה רק לשמע שמתנגן כעת, ולכן הסנכרון נמשך זמן רב יותר. האפשרות אינה פועלת בנגן mpv.</string>
+    <string name="audio_sync_sampling_low_description">דגימת מספר קטעי דיבור מראש דרך חיבור נוסף, עד 75 MB לכותר. ברשת בחיוב לפי שימוש תופעל רמה זו במקום הרמה הגבוהה.</string>
+    <string name="audio_sync_sampling_high_description">הסנכרון המהיר ביותר. מאזין קדימה ליותר סצנות על פני מספר חיבורים, בדרך כלל עד 150 מגה-בייט לכותר, ומשתמש יותר במעבד. חלק מהשרתים מגבילים את מספר החיבורים שהם מאפשרים.</string>
+    <string name="licenses_attributions_audio_sync_title">סנכרון כתוביות אודיו</string>
+    <string name="licenses_attributions_audio_sync_body">זיהוי דיבור משתמש במשקלים Silero VAD v5 (MIT, Silero Team). זיהוי דיבור אופציונלי משתמש ב-sherpa-onnx (Apache-2.0, k2-fsa) ובדגם האנגלי Zipformer GigaSpeech שלו (Apache-2.0). Full notices ship with the app in licenses/audio_sync_NOTICE.md.</string>
+</resources>

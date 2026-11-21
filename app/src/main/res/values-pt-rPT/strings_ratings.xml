@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Avaliar</string>
+    <string name="rating_your_rating">A sua classificação</string>
+    <string name="rating_rate_episode">Avalie este episódio</string>
+    <string name="rating_rated">Classificação %1$s/10</string>
+    <string name="rating_value">%1$s de 10</string>
+    <string name="rating_syncs_to">Sincroniza com %1$s</string>
+    <string name="rating_saved">Avaliação guardada</string>
+    <string name="rating_removed">Avaliação removida</string>
+    <string name="rating_failed">Não foi possível atualizar a sua classificação em %1$s</string>
+    <string name="rating_remove">Remover</string>
+    <string name="tracking_ratings_title">Classificações</string>
+    <string name="tracking_ratings_subtitle">Selecione o serviço que armazena e apresenta as suas avaliações</string>
+    <string name="tracking_ratings_dialog_subtitle">Avalie os títulos na página de detalhes. As suas classificações são guardadas e mostradas no serviço que escolher.</string>
+    <string name="tracking_ratings_off_description">Oculte o botão de taxa.</string>
+    <string name="tracking_ratings_simkl_description">Avalie filmes e programas. A ordenação de um título que não está nas suas listas Simkl adiciona-o a estas.</string>
+    <string name="tracking_ratings_mdblist_description">Avalie filmes, programas e episódios.</string>
+    <string name="rating_all_trackers">Todos os rastreadores ligados</string>
+    <string name="rating_all_trackers_description">Guarde as classificações de títulos em todos os rastreadores conectados compatíveis. Escolha MDBList para avaliar também episódios individuais.</string>
+</resources>

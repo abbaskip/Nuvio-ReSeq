@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Оцінити</string>
+    <string name="rating_your_rating">Ваша оцінка</string>
+    <string name="rating_rate_episode">Оцініть цей епізод</string>
+    <string name="rating_rated">Рейтинг %1$s/10</string>
+    <string name="rating_value">%1$s з 10</string>
+    <string name="rating_syncs_to">Синхронізація з %1$s</string>
+    <string name="rating_saved">Рейтинг збережено</string>
+    <string name="rating_removed">Оцінку видалено</string>
+    <string name="rating_failed">Не вдалося оновити ваш рейтинг %1$s</string>
+    <string name="rating_remove">Видалити</string>
+    <string name="tracking_ratings_title">Рейтинги</string>
+    <string name="tracking_ratings_subtitle">Виберіть службу, яка зберігає та відображає ваші оцінки</string>
+    <string name="tracking_ratings_dialog_subtitle">Оцініть назви зі сторінки інформації про них. Ваші оцінки зберігаються та відображаються з вибраної вами служби.</string>
+    <string name="tracking_ratings_off_description">Сховати кнопку оцінки.</string>
+    <string name="tracking_ratings_simkl_description">Оцінюйте фільми та шоу. Оцінка назви, якої немає у ваших Simkl списках, додає її до них.</string>
+    <string name="tracking_ratings_mdblist_description">Оцінюйте фільми, шоу та епізоди.</string>
+    <string name="rating_all_trackers">Усі підключені трекери</string>
+    <string name="rating_all_trackers_description">Зберігайте рейтинги назв на кожному сумісному трекері, у якому ви ввійшли в систему. Виберіть MDBList, щоб також оцінити окремі епізоди.</string>
+</resources>

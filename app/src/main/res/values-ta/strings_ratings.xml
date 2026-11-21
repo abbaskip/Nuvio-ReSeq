@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">மதிப்பிடு</string>
+    <string name="rating_your_rating">உங்கள் மதிப்பீடு</string>
+    <string name="rating_rate_episode">இந்த அத்தியாயத்தை மதிப்பிடவும்</string>
+    <string name="rating_rated">மதிப்பிடப்பட்டது %1$s/10</string>
+    <string name="rating_value">10 இல் %1$s</string>
+    <string name="rating_syncs_to">%1$s உடன் ஒத்திசைக்கிறது</string>
+    <string name="rating_saved">மதிப்பீடு சேமிக்கப்பட்டது</string>
+    <string name="rating_removed">மதிப்பீடு அகற்றப்பட்டது</string>
+    <string name="rating_failed">%1$s இல் உங்கள் மதிப்பீட்டைப் புதுப்பிக்க முடியவில்லை</string>
+    <string name="rating_remove">அகற்று</string>
+    <string name="tracking_ratings_title">மதிப்பீடுகள்</string>
+    <string name="tracking_ratings_subtitle">உங்கள் மதிப்பீடுகளைச் சேமித்து காண்பிக்கும் சேவையைத் தேர்ந்தெடுக்கவும்</string>
+    <string name="tracking_ratings_dialog_subtitle">அவற்றின் விவரங்கள் பக்கத்திலிருந்து தலைப்புகளை மதிப்பிடவும். நீங்கள் தேர்ந்தெடுக்கும் சேவையில் உங்கள் மதிப்பீடுகள் சேமிக்கப்பட்டு காண்பிக்கப்படும்.</string>
+    <string name="tracking_ratings_off_description">விகிதம் பொத்தானை மறை.</string>
+    <string name="tracking_ratings_simkl_description">திரைப்படங்கள் மற்றும் நிகழ்ச்சிகளை மதிப்பிடவும். உங்கள் Simkl பட்டியலில் இல்லாத ஒரு தலைப்பை மதிப்பிடுவது, அதை அவர்களுடன் சேர்க்கிறது.</string>
+    <string name="tracking_ratings_mdblist_description">திரைப்படங்கள், நிகழ்ச்சிகள் மற்றும் எபிசோட்களை மதிப்பிடவும்.</string>
+    <string name="rating_all_trackers">இணைக்கப்பட்ட அனைத்து டிராக்கர்கள்</string>
+    <string name="rating_all_trackers_description">ஒவ்வொரு இணக்கமான உள்நுழைந்த டிராக்கருக்கும் தலைப்பு மதிப்பீடுகளைச் சேமிக்கவும். தனிப்பட்ட எபிசோட்களை மதிப்பிட MDBList என்பதைத் தேர்ந்தெடுக்கவும்.</string>
+</resources>

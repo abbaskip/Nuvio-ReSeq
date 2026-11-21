@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_sync_setting_title">مزامنة الترجمات مع الصوت</string>
+    <string name="audio_sync_setting_description">يقوم بمحاذاة الترجمات مع مربع الحوار عندما يتعذر على المزامنة التلقائية العثور على تطابق موثوق.</string>
+    <string name="audio_sync_model_title">نموذج الكلام باللغة الانجليزية (%1$d ميجابايت)</string>
+    <string name="audio_sync_model_description">اختياري. يتعرف على الكلام باللغة الإنجليزية ويطابقه مع الترجمة الإنجليزية الخارجية، من أجل مزامنة أسرع وأكثر دقة. يستخدم المزيد من وحدة المعالجة المركزية والذاكرة.</string>
+    <string name="audio_sync_model_downloading">جارٍ التنزيل… %1$d%%</string>
+    <string name="audio_sync_model_ready">تم التنزيل. إذا تباطأ التشغيل، فاحذف النموذج لاستخدام اكتشاف الكلام وحده.</string>
+    <string name="audio_sync_model_failed">فشل التنزيل. حدد لإعادة المحاولة. لا يزال اكتشاف الكلام يعمل.</string>
+    <string name="audio_sync_model_download">التنزيل</string>
+    <string name="audio_sync_model_delete">حذف</string>
+    <string name="audio_sync_sampling_title">أخذ العينات الصوتية</string>
+    <string name="audio_sync_sampling_description">يستمع إلى الحوار قبل التشغيل، بحيث يتم العثور على المزامنة في وقت أقرب.</string>
+    <string name="audio_sync_sampling_off">معطل</string>
+    <string name="audio_sync_sampling_low">منخفض</string>
+    <string name="audio_sync_sampling_high">عالية</string>
+    <string name="audio_sync_sampling_off_description">يستمع فقط إلى ما يتم تشغيله، لذا تستغرق المزامنة وقتًا أطول. لا يعمل مع المشغل mpv .</string>
+    <string name="audio_sync_sampling_low_description">يستمع مسبقًا إلى بعض مشاهد الحوار عبر اتصال إضافي واحد، يصل إلى 75 ميجابايت لكل عنوان. يُستخدم أيضًا بدلاً من High على الشبكات المُقاسة.</string>
+    <string name="audio_sync_sampling_high_description">أسرع مزامنة. يستمع مسبقًا إلى المزيد من المشاهد عبر عدة اتصالات، عادةً ما يصل إلى 150 ميجابايت لكل عنوان، ويستخدم المزيد من وحدة المعالجة المركزية. تحدد بعض الخوادم عدد الاتصالات التي تسمح بها.</string>
+    <string name="licenses_attributions_audio_sync_title">مزامنة الترجمة الصوتية</string>
+    <string name="licenses_attributions_audio_sync_body">يستخدم كشف الكلام Silero VAD v5 الأوزان (MIT، Silero Team). يستخدم التعرف على الكلام الاختياري sherpa-onnx (Apache-2.0، k2-fsa) ونموذجه الإنجليزي Zipformer GigaSpeech (Apache-2.0). يتم شحن الإشعارات الكاملة مع التطبيق في licenses/audio_sync_NOTICE.md.</string>
+</resources>

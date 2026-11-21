@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Įvertinti</string>
+    <string name="rating_your_rating">Jūsų įvertinimas</string>
+    <string name="rating_rate_episode">Įvertinkite šią seriją</string>
+    <string name="rating_rated">Įvertinta %1$s/10</string>
+    <string name="rating_value">%1$s iš 10</string>
+    <string name="rating_syncs_to">Sinchronizuojama su %1$s</string>
+    <string name="rating_saved">Įvertinimas išsaugotas</string>
+    <string name="rating_removed">Įvertinimas pašalintas</string>
+    <string name="rating_failed">Nepavyko atnaujinti jūsų įvertinimo %1$s</string>
+    <string name="rating_remove">Pašalinti</string>
+    <string name="tracking_ratings_title">Įvertinimai</string>
+    <string name="tracking_ratings_subtitle">Pasirinkite paslaugą, kurioje saugomi ir rodomi jūsų įvertinimai</string>
+    <string name="tracking_ratings_dialog_subtitle">Įvertinkite pavadinimus iš jų išsamios informacijos puslapio. Jūsų įvertinimai išsaugomi ir rodomi pasirinktoje paslaugoje.</string>
+    <string name="tracking_ratings_off_description">Slėpti normos mygtuką.</string>
+    <string name="tracking_ratings_simkl_description">Įvertinkite filmus ir laidas. Įvertinus pavadinimą, kurio nėra jūsų Simkl sąrašuose, jis pridedamas prie jų.</string>
+    <string name="tracking_ratings_mdblist_description">Įvertinkite filmus, laidas ir serijas.</string>
+    <string name="rating_all_trackers">Visi prijungti stebėjimo įrenginiai</string>
+    <string name="rating_all_trackers_description">Išsaugokite pavadinimų įvertinimus kiekvienoje suderinamoje prisijungusio stebėjimo priemonėje. Pasirinkite MDBList, kad taip pat įvertintumėte atskirus epizodus.</string>
+</resources>

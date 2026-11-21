@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rating_rate">Gi vurdering</string>
+    <string name="rating_your_rating">Din vurdering</string>
+    <string name="rating_rate_episode">Vurder denne episoden</string>
+    <string name="rating_rated">Vurdert %1$s/10</string>
+    <string name="rating_value">%1$s av 10</string>
+    <string name="rating_syncs_to">Synkroniserer med %1$s</string>
+    <string name="rating_saved">Vurdering lagret</string>
+    <string name="rating_removed">Vurdering fjernet</string>
+    <string name="rating_failed">Kunne ikke oppdatere vurderingen din på %1$s</string>
+    <string name="rating_remove">Fjern</string>
+    <string name="tracking_ratings_title">Vurderinger</string>
+    <string name="tracking_ratings_subtitle">Velg tjenesten som lagrer og viser vurderingene dine</string>
+    <string name="tracking_ratings_dialog_subtitle">Vurder titler fra deres detaljside. Vurderingene dine lagres til og vises fra tjenesten du velger.</string>
+    <string name="tracking_ratings_off_description">Skjul prisknappen.</string>
+    <string name="tracking_ratings_simkl_description">Vurder filmer og serier. Rangering av en tittel som ikke er i Simkl-listene dine, legger den til dem.</string>
+    <string name="tracking_ratings_mdblist_description">Vurder filmer, serier og episoder.</string>
+    <string name="rating_all_trackers">Alle tilkoblede trackere</string>
+    <string name="rating_all_trackers_description">Lagre tittelvurderinger til alle kompatible påloggede trackere. Velg MDBList for også å rangere individuelle episoder.</string>
+</resources>

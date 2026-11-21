@@ -2,7 +2,6 @@ package com.nuvio.tv.core.recommendations
 
 import android.content.Context
 import android.content.Intent
-import android.media.tv.TvContract
 import android.net.Uri
 import androidx.tvprovider.media.tv.TvContractCompat
 import androidx.tvprovider.media.tv.WatchNextProgram
@@ -40,12 +39,14 @@ class ProgramBuilder @Inject constructor(
             .setInternalProviderId(watchNextId(progress))
             .setIntentUri(buildPlayUri(progress))
 
-        builder.setPosterArtAspectRatio(TvContract.PreviewPrograms.ASPECT_RATIO_16_9)
+        builder.setPosterArtAspectRatio(TvContractCompat.PreviewPrograms.ASPECT_RATIO_16_9)
 
-        val horizontalArt = progress.backdrop?.takeUnless(PlexArtworkLink::needsToken)
-            ?: progress.poster?.takeUnless(PlexArtworkLink::needsToken)
+        val horizontalArt = progress.backdrop ?: progress.poster
         horizontalArt?.let {
-            val uriWithCacheBuster = Uri.parse(it).buildUpon()
+            val publicArt = it.takeUnless(PlexArtworkLink::needsToken)
+                ?: progress.poster?.takeUnless(PlexArtworkLink::needsToken)
+                ?: return@let
+            val uriWithCacheBuster = Uri.parse(publicArt).buildUpon()
                 .appendQueryParameter("v", "horizontal_fix")
                 .build()
             builder.setPosterArtUri(uriWithCacheBuster)

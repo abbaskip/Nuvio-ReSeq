@@ -36,33 +36,29 @@ object MediaServerModule {
         identity: SyncClientIdentity,
         profileDataStore: ProfileDataStore
     ): ServerRepository {
-        val http = OkHttpClient.Builder()
-            .socketFactory(NoDelaySocketFactory)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .callTimeout(45, TimeUnit.SECONDS)
-            .build()
-        val clientIdentity = ServerClientIdentity(
-            device = Build.MODEL.orEmpty().ifBlank { "Android TV" },
-            version = BuildConfig.VERSION_NAME,
-            deviceId = identity::currentClientId
-        )
-        lateinit var repository: ServerRepository
-        val profileClientIdentity = ServerClientIdentity(
-            device = clientIdentity.device,
-            version = clientIdentity.version,
-            deviceId = { repository.profileDeviceId(identity.currentClientId()) }
-        )
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        repository = ServerRepository(
+        val repository = ServerRepository(
             persistence = persistence,
-            providers = listOf(
-                JellyfinProvider(http, profileClientIdentity),
-                EmbyProvider(http, profileClientIdentity),
-                PlexProvider(http, clientIdentity),
-                SiloProvider(http, clientIdentity)
-            ),
-            scope = scope
+            scope = scope,
+            createProviders = {
+                val http = OkHttpClient.Builder()
+                    .socketFactory(NoDelaySocketFactory)
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .callTimeout(45, TimeUnit.SECONDS)
+                    .build()
+                val device = Build.MODEL.orEmpty().ifBlank { "Android TV" }
+                val clientIdentity = ServerClientIdentity(device, BuildConfig.VERSION_NAME, identity::currentClientId)
+                val profileClientIdentity = ServerClientIdentity(device, BuildConfig.VERSION_NAME) {
+                    profileDeviceId(identity.currentClientId())
+                }
+                listOf(
+                    JellyfinProvider(http, profileClientIdentity),
+                    EmbyProvider(http, profileClientIdentity),
+                    PlexProvider(http, clientIdentity),
+                    SiloProvider(http, clientIdentity)
+                )
+            }
         )
         scope.launch { profileDataStore.activeProfileId.collect(repository::selectProfile) }
         return repository

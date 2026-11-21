@@ -29,6 +29,26 @@ class ServerRepositoryTest {
     )
 
     @Test
+    fun loadingAnEmptyProfileDefersProviderCreationUntilFirstUse() {
+        var creations = 0
+        val server = ServerRepository(
+            persistence = persistence,
+            scope = CoroutineScope(Dispatchers.Unconfined),
+            createProviders = {
+                creations++
+                emptyList()
+            }
+        )
+
+        server.selectProfile(2)
+        assertTrue(server.enabledConnections().isEmpty())
+        assertEquals(0, creations)
+        assertTrue(server.providers.isEmpty())
+        assertTrue(server.providers.isEmpty())
+        assertEquals(1, creations)
+    }
+
+    @Test
     fun keepsConnectionsAndTokensPerProfile() {
         repository.store(connection("c1", "k1"), "token-one")
         assertEquals("token-one", repository.session("c1")?.token)

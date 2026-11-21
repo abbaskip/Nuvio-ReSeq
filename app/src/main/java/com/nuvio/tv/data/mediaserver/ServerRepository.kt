@@ -32,10 +32,19 @@ data class ServersUiState(
 
 class ServerRepository(
     private val persistence: ServerPersistence,
-    val providers: List<ServerProvider>,
+    createProviders: ServerRepository.() -> List<ServerProvider>,
     private val scope: CoroutineScope,
     initialProfileId: Int = 1
 ) : ProfileScopedCredentialStore {
+    constructor(
+        persistence: ServerPersistence,
+        providers: List<ServerProvider>,
+        scope: CoroutineScope,
+        initialProfileId: Int = 1
+    ) : this(persistence, { providers }, scope, initialProfileId)
+
+    val providers: List<ServerProvider> by lazy { createProviders() }
+
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val lock = Any()
     private val mutableState = MutableStateFlow(ServersUiState())

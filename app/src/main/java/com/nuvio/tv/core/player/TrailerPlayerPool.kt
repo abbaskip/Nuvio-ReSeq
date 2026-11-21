@@ -62,7 +62,7 @@ class TrailerPlayerPool @Inject constructor(
     private val playerSettingsDataStore: PlayerSettingsDataStore,
     private val trailerSettingsDataStore: TrailerSettingsDataStore,
     private val liveTv: dagger.Lazy<com.nuvio.tv.livetv.player.LiveTvPlaybackController>,
-    private val youTubeExtractor: InAppYouTubeExtractor
+    private val youTubeExtractor: dagger.Lazy<InAppYouTubeExtractor>
 ) {
     companion object {
         private const val TAG = "TrailerPlayerPool"
@@ -133,10 +133,10 @@ class TrailerPlayerPool @Inject constructor(
      * subtitles are off, the trailer has no captions, or none of them match.
      */
     suspend fun subtitleFor(streamUrl: String): TrailerSubtitleTrack? {
-        val tracks = youTubeExtractor.captionTracks(streamUrl)
-        if (tracks.isEmpty()) return null
         val settings = cachedTrailerSettings ?: trailerSettingsDataStore.settings.first()
         if (!settings.subtitlesEnabled) return null
+        val tracks = youTubeExtractor.get().captionTracks(streamUrl)
+        if (tracks.isEmpty()) return null
         val style = (cachedPlayerSettings ?: playerSettingsDataStore.playerSettings.first()).subtitleStyle
         return pickTrailerSubtitle(
             tracks,

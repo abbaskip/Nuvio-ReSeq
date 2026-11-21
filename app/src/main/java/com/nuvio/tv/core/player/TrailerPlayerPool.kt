@@ -19,6 +19,7 @@ import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import com.nuvio.tv.data.local.PlayerSettings
 import com.nuvio.tv.data.local.PlayerSettingsDataStore
 import com.nuvio.tv.data.local.SubtitleStyleSettings
+import com.nuvio.tv.data.local.TrailerSettings
 import com.nuvio.tv.data.local.TrailerSettingsDataStore
 import com.nuvio.tv.data.trailer.InAppYouTubeExtractor
 import com.nuvio.tv.data.trailer.TrailerSubtitleTrack
@@ -31,6 +32,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -97,10 +99,9 @@ class TrailerPlayerPool @Inject constructor(
     private var cachedPlayerSettings: PlayerSettings? = null
 
     @Volatile
-    private var cachedAllow4k: Boolean = TrailerVideoPolicy.default4kTrailers(context)
+    private var cachedTrailerSettings: TrailerSettings? = null
 
-    @Volatile
-    private var cachedPlayInBackground: Boolean = false
+    private val defaultAllow4k = TrailerVideoPolicy.default4kTrailers(context)
 
     // Height cap currently applied to the player's track selection; reset when the player is rebuilt.
     private var appliedMaxHeight: Int? = null
@@ -109,10 +110,7 @@ class TrailerPlayerPool @Inject constructor(
     init {
         settingsScope.launch {
             runCatching {
-                trailerSettingsDataStore.settings.collect {
-                    cachedAllow4k = it.allow4k
-                    cachedPlayInBackground = it.playInBackground
-                }
+                trailerSettingsDataStore.settings.collect { cachedTrailerSettings = it }
             }
         }
         settingsScope.launch {
@@ -135,11 +133,13 @@ class TrailerPlayerPool @Inject constructor(
      * subtitles are off, the trailer has no captions, or none of them match.
      */
     suspend fun subtitleFor(streamUrl: String): TrailerSubtitleTrack? {
-        val settings = trailerSettingsDataStore.settings.first()
+        val tracks = youTubeExtractor.captionTracks(streamUrl)
+        if (tracks.isEmpty()) return null
+        val settings = cachedTrailerSettings ?: trailerSettingsDataStore.settings.first()
         if (!settings.subtitlesEnabled) return null
-        val style = playerSettingsDataStore.playerSettings.first().subtitleStyle
+        val style = (cachedPlayerSettings ?: playerSettingsDataStore.playerSettings.first()).subtitleStyle
         return pickTrailerSubtitle(
-            youTubeExtractor.captionTracks(streamUrl),
+            tracks,
             style.preferredLanguage,
             style.secondaryPreferredLanguage
         )
@@ -152,7 +152,7 @@ class TrailerPlayerPool @Inject constructor(
     fun acquire(): ExoPlayer? {
         if (released.get()) return null
         if (yielded.get()) {
-            // Reclaim was not called yet but someone wants the player — rebuild.
+            // Reclaim was not called yet but someone wants the player â€” rebuild.
             reclaim()
         }
         val player = _player ?: createPlayer().also {
@@ -165,7 +165,7 @@ class TrailerPlayerPool @Inject constructor(
 
     // Caps HLS variants; adaptive YouTube streams are already capped by the extractor.
     private fun applyVideoSizeCap(player: ExoPlayer) {
-        val maxHeight = TrailerVideoPolicy.maxTrailerVideoHeight(cachedAllow4k)
+        val maxHeight = TrailerVideoPolicy.maxTrailerVideoHeight(cachedTrailerSettings?.allow4k ?: defaultAllow4k)
         if (appliedMaxHeight == maxHeight) return
         val maxWidth = if (maxHeight == Int.MAX_VALUE) Int.MAX_VALUE else maxHeight * 16 / 9
         player.trackSelectionParameters = player.trackSelectionParameters
@@ -246,7 +246,7 @@ class TrailerPlayerPool @Inject constructor(
             videoUrl = videoUrl,
             audioUrl = audioUrl,
             youtubeKey = youtubeKey,
-            playInBackground = cachedPlayInBackground,
+            playInBackground = cachedTrailerSettings?.playInBackground ?: false,
             letterboxZoom = ownerLetterboxZoom,
             sourceBounds = ownerBounds
         )
@@ -279,7 +279,7 @@ class TrailerPlayerPool @Inject constructor(
     fun isHandoffPending(): Boolean = pendingHandoff != null
 
     val playInBackgroundPreference: Boolean
-        get() = cachedPlayInBackground
+        get() = cachedTrailerSettings?.playInBackground ?: false
 
     private fun clearHandoff() {
         pendingHandoff = null
@@ -324,6 +324,11 @@ class TrailerPlayerPool @Inject constructor(
      */
     fun release() {
         if (released.compareAndSet(false, true)) {
+            clearHandoff()
+            mainScope.cancel()
+            settingsScope.cancel()
+            owner = null
+            loadedVideoUrl = null
             _isTrailerPlaying.value = false
             _player?.let { player ->
                 runCatching { player.stop() }
@@ -395,7 +400,7 @@ class TrailerPlayerPool @Inject constructor(
             .setTrackSelector(trackSelector)
             .setBandwidthMeter(
                 DefaultBandwidthMeter.Builder(context)
-                    .setInitialBitrateEstimate(50_000_000L) // 50 Mbps – force highest HLS variant from start
+                    .setInitialBitrateEstimate(50_000_000L) // 50 Mbps â€“ force highest HLS variant from start
                     .build()
             )
             .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS)

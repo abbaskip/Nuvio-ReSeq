@@ -66,10 +66,12 @@ internal fun MdbListSyncSnapshot.userRating(reference: TrackingMediaReference): 
 }
 
 internal fun MdbListRatingRecord.matches(target: MdbListMutationTarget): Boolean =
-    type == target.type && media.ids.matches(target.media.ids) && (type != MdbListItemType.EPISODE ||
-        (episodeTmdbId != null && episodeTmdbId == target.episodeTmdbId) ||
-        (episodeTvdbId != null && episodeTvdbId == target.episodeTvdbId) ||
-        (season == target.season && episode == target.episode))
+    type == target.type && media.ids.matches(target.media.ids) && when {
+        type != MdbListItemType.EPISODE -> true
+        episodeTvdbId != null && target.episodeTvdbId != null -> episodeTvdbId == target.episodeTvdbId
+        episodeTmdbId != null && target.episodeTmdbId != null -> episodeTmdbId == target.episodeTmdbId
+        else -> season == target.season && episode == target.episode
+    }
 
 internal fun mdbListRatingPayload(target: MdbListMutationTarget, rating: Int?): String = buildJsonObject {
     val episodeIds = buildJsonObject {

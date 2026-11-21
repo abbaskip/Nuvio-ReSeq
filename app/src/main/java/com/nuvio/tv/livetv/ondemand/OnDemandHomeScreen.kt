@@ -116,7 +116,8 @@ fun OnDemandHomeScreen(
             context.applicationContext,
             entry.playerSettingsDataStore(),
             entry.trailerSettingsDataStore(),
-            entry.liveTvPlaybackController()
+            entry.liveTvPlaybackController(),
+            entry.youTubeExtractor()
         )
     }
     androidx.compose.runtime.DisposableEffect(ownPool) { onDispose { runCatching { ownPool.release() } } }
@@ -288,6 +289,7 @@ fun OnDemandHomeScreen(
 
     androidx.compose.runtime.CompositionLocalProvider(
         com.nuvio.tv.core.player.LocalTrailerPlayerPool provides ownPool,
+        com.nuvio.tv.core.player.LocalBackgroundTrailerController provides null,
         com.nuvio.tv.LocalOpenSidebar provides onBack,
         com.nuvio.tv.LocalSidebarExpanded provides false
     ) {
@@ -565,6 +567,7 @@ private fun KindTab(label: String, selected: Boolean, onClick: () -> Unit) {
 @dagger.hilt.EntryPoint
 @dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
 interface OnDemandPlayerEntryPoint {
+    fun youTubeExtractor(): com.nuvio.tv.data.trailer.InAppYouTubeExtractor
     fun liveTvPlaybackController(): dagger.Lazy<com.nuvio.tv.livetv.player.LiveTvPlaybackController>
     fun playerSettingsDataStore(): com.nuvio.tv.data.local.PlayerSettingsDataStore
     fun trailerSettingsDataStore(): com.nuvio.tv.data.local.TrailerSettingsDataStore

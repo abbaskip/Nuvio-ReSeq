@@ -64,6 +64,7 @@ class BackgroundTrailerController @Inject constructor() {
     private var renderedUrl by mutableStateOf<String?>(null)
     private var transfer: BackgroundTrailerTransfer? = null
     private var pinnedOwner: String? = null
+    private var pinnedOwnerDisposed = false
     private var transferTimeoutJob: Job? = null
     private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -82,20 +83,15 @@ class BackgroundTrailerController @Inject constructor() {
         }
         if (!owners.contains(owner)) {
             owners.add(owner)
-            if (pinnedOwner != null) {
-                transfer = null
-                transferTimeoutJob?.cancel()
-                transferTimeoutJob = null
-            }
+            if (pinnedOwner != null) finishTransfer(removeSource = pinnedOwnerDisposed)
         }
     }
 
     fun release(owner: String) {
         if (owner == pinnedOwner) {
-            pinnedOwner = null
-            transfer = null
-            transferTimeoutJob?.cancel()
-            transferTimeoutJob = null
+            // Home can leave composition before Details registers its request.
+            pinnedOwnerDisposed = true
+            return
         }
         remove(owner)
     }
@@ -120,7 +116,7 @@ class BackgroundTrailerController @Inject constructor() {
     fun beginTransfer(itemId: String, videoUrl: String, audioUrl: String?, youtubeKey: String?): Boolean {
         val owner = owners.lastOrNull() ?: return false
         val active = requests[owner] ?: return false
-        if (active.videoUrl != videoUrl || !active.isPlaying) return false
+        if (active.videoUrl != videoUrl || !active.isPlaying || active.isPaused) return false
         transfer = BackgroundTrailerTransfer(itemId, videoUrl, audioUrl, youtubeKey)
         val frozenAlpha = active.alpha()
         requests[owner] = BackgroundTrailerRequest(
@@ -138,6 +134,7 @@ class BackgroundTrailerController @Inject constructor() {
             onFirstFrameRendered = active.onFirstFrameRendered
         )
         pinnedOwner = owner
+        pinnedOwnerDisposed = false
         transferTimeoutJob?.cancel()
         transferTimeoutJob = mainScope.launch {
             delay(TRANSFER_TIMEOUT_MS)
@@ -152,13 +149,16 @@ class BackgroundTrailerController @Inject constructor() {
         if (transfer?.itemId == itemId) cancelPinnedTransfer()
     }
 
-    private fun cancelPinnedTransfer() {
+    private fun cancelPinnedTransfer() = finishTransfer(removeSource = true)
+
+    private fun finishTransfer(removeSource: Boolean) {
         val owner = pinnedOwner
         pinnedOwner = null
         transfer = null
         transferTimeoutJob?.cancel()
         transferTimeoutJob = null
-        owner?.let(::remove)
+        pinnedOwnerDisposed = false
+        if (removeSource) owner?.let(::remove)
     }
 
     private fun remove(owner: String) {

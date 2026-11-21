@@ -597,7 +597,7 @@ class CatalogOrderViewModel @Inject constructor(
                 result.add(ck)
             }
         }
-        return normalizeCollectionPositions(result, addonIdForKey)
+        return normalizeStandalonePositions(result, addonIdForKey)
     }
 
     /**

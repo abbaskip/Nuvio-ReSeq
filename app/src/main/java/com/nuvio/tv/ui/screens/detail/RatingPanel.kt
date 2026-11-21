@@ -123,7 +123,7 @@ internal fun RatingPanel(
     fun submit(rating: Int?) {
         if (saving) return
         saving = true
-        viewModel.rate(media, rating, state.provider) {
+        viewModel.rate(media, rating, state) {
             saving = false
             onFinished()
         }

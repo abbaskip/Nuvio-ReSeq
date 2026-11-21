@@ -31,7 +31,8 @@ interface TrackingRatingProvider {
 
 data class TrackingRatingState(
     val provider: TrackingProviderId? = null,
-    val rating: Double? = null
+    val rating: Double? = null,
+    val profileId: Int? = null
 ) {
     val isAvailable: Boolean
         get() = provider != null
@@ -67,14 +68,14 @@ class TrackingRatings @Inject constructor(
         } else {
             stored
         }
-        return TrackingRatingState(provider.providerId, rating)
+        return TrackingRatingState(provider.providerId, rating, profiles.activeProfileId.value)
     }
 
-    suspend fun rate(media: TrackingMediaReference, rating: Int?, expected: TrackingProviderId?): Boolean = withContext(NonCancellable) {
+    suspend fun rate(media: TrackingMediaReference, rating: Int?, expected: TrackingRatingState): Boolean = withContext(NonCancellable) {
         require(rating == null || rating in 1..MAX)
         val provider = provider(media) ?: return@withContext false
-        if (provider.providerId != expected) return@withContext false
         val profileId = profiles.activeProfileId.value
+        if (provider.providerId != expected.provider || profileId != expected.profileId) return@withContext false
         val key = media.ratingKey(provider.providerId, profileId)
         val saved = try {
             provider.rate(profileId, media, rating).isComplete

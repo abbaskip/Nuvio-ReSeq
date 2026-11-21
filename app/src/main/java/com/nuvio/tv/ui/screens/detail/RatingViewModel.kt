@@ -43,16 +43,16 @@ class RatingViewModel @Inject constructor(
     fun rate(
         media: TrackingMediaReference,
         rating: Int?,
-        provider: TrackingProviderId?,
+        state: TrackingRatingState,
         onFinished: () -> Unit
     ) {
         viewModelScope.launch {
             val saved = try {
-                ratings.rate(media, rating, provider)
+                ratings.rate(media, rating, state)
             } finally {
                 onFinished()
             }
-            _results.emit(RatingResult(saved = saved, removed = rating == null, provider = provider))
+            _results.emit(RatingResult(saved = saved, removed = rating == null, provider = state.provider))
         }
     }
 }

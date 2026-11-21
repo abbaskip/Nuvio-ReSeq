@@ -60,6 +60,8 @@ import androidx.media3.ui.SubtitleView
 import android.view.LayoutInflater
 import android.view.TextureView
 import com.nuvio.tv.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 
 private fun buildTrailerMediaItem(videoUrl: String, subtitle: TrailerSubtitleTrack?): MediaItem =
@@ -108,8 +110,10 @@ fun TrailerPlayer(
     val lifecycleOwner = LocalLifecycleOwner.current
     val activityLifecycleOwner = remember(context) { context as? androidx.lifecycle.LifecycleOwner ?: lifecycleOwner }
     val currentIsPlaying by rememberUpdatedState(isPlaying)
-    val currentTrailerUrl by rememberUpdatedState(trailerUrl)
-    val currentTrailerAudioUrl by rememberUpdatedState(trailerAudioUrl)
+    val currentIsPaused by rememberUpdatedState(isPaused)
+    var hostResumed by remember(activityLifecycleOwner) {
+        mutableStateOf(activityLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
     val currentOnEnded by rememberUpdatedState(onEnded)
     val currentOnError by rememberUpdatedState(onError)
     val currentOnFirstFrameRendered by rememberUpdatedState(onFirstFrameRendered)
@@ -124,8 +128,6 @@ fun TrailerPlayer(
         incomingHandoff?.sourceBounds?.coversView(rootView.width, rootView.height) == true
     }
     var hasRenderedFirstFrame by remember(trailerUrl) { mutableStateOf(seamlessHandoff) }
-    var subtitleTrack by remember(trailerUrl) { mutableStateOf<TrailerSubtitleTrack?>(null) }
-    val currentSubtitleTrack by rememberUpdatedState(subtitleTrack)
     val subtitleStyle by remember(resolvedPool) {
         resolvedPool?.subtitleStyle ?: MutableStateFlow(SubtitleStyleSettings())
     }.collectAsState()
@@ -167,50 +169,52 @@ fun TrailerPlayer(
         }
     }
 
-    LaunchedEffect(isPlaying, trailerUrl, trailerAudioUrl, trailerPlayer) {
-        val player = trailerPlayer ?: return@LaunchedEffect
-        player.volume = if (muted) 0f else 1f
-        if (isPlaying && trailerUrl != null) {
-            if (resolvedPool?.isLoadedBy(ownerToken, trailerUrl) == true && player.currentMediaItem != null) {
-                player.playWhenReady = true
-                return@LaunchedEffect
-            }
-            val claimedHandoff = resolvedPool?.claimHandoff(ownerToken, trailerUrl)
-            if (claimedHandoff != null) {
-                letterboxZoom = claimedHandoff.letterboxZoom ?: 1f
-                letterboxZoomLocked = claimedHandoff.letterboxZoom != null
-                player.playWhenReady = true
-                return@LaunchedEffect
-            }
-            hasRenderedFirstFrame = false
-            val subtitle = resolvedPool?.subtitleFor(trailerUrl)
-            subtitleTrack = subtitle
-            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-                .setPreferredTextLanguage(subtitle?.languageCode)
-                .build()
-            if (!trailerAudioUrl.isNullOrBlank()) {
-                val mediaSourceFactory = DefaultMediaSourceFactory(YoutubeChunkedDataSourceFactory())
-                val videoSource = mediaSourceFactory.createMediaSource(buildTrailerMediaItem(trailerUrl, subtitle))
-                val audioSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(trailerAudioUrl))
-                player.setMediaSource(MergingMediaSource(videoSource, audioSource))
+    LaunchedEffect(isPlaying, trailerUrl, trailerAudioUrl, trailerPlayer, hostResumed) {
+        if (!hostResumed) return@LaunchedEffect
+        withContext(Dispatchers.Main.immediate) {
+            val player = trailerPlayer ?: return@withContext
+            player.volume = if (muted) 0f else 1f
+            if (isPlaying && trailerUrl != null) {
+                if (resolvedPool?.isLoadedBy(ownerToken, trailerUrl) == true && player.currentMediaItem != null) {
+                    player.playWhenReady = !currentIsPaused
+                    return@withContext
+                }
+                val claimedHandoff = resolvedPool?.claimHandoff(ownerToken, trailerUrl)
+                if (claimedHandoff != null) {
+                    letterboxZoom = claimedHandoff.letterboxZoom ?: 1f
+                    letterboxZoomLocked = claimedHandoff.letterboxZoom != null
+                    player.playWhenReady = !currentIsPaused
+                    return@withContext
+                }
+                hasRenderedFirstFrame = false
+                val subtitle = resolvedPool?.subtitleFor(trailerUrl)
+                player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                    .setPreferredTextLanguage(subtitle?.languageCode)
+                    .build()
+                if (!trailerAudioUrl.isNullOrBlank()) {
+                    val mediaSourceFactory = DefaultMediaSourceFactory(YoutubeChunkedDataSourceFactory())
+                    val videoSource = mediaSourceFactory.createMediaSource(buildTrailerMediaItem(trailerUrl, subtitle))
+                    val audioSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(trailerAudioUrl))
+                    player.setMediaSource(MergingMediaSource(videoSource, audioSource))
+                } else {
+                    player.setMediaItem(buildTrailerMediaItem(trailerUrl, subtitle))
+                }
+                player.prepare()
+                resolvedPool?.onMediaLoaded(ownerToken, trailerUrl)
+                lastBounds[0]?.let { resolvedPool?.onOwnerBounds(ownerToken, it) }
+                player.playWhenReady = !currentIsPaused
             } else {
-                player.setMediaItem(buildTrailerMediaItem(trailerUrl, subtitle))
-            }
-            player.prepare()
-            resolvedPool?.onMediaLoaded(ownerToken, trailerUrl)
-            lastBounds[0]?.let { resolvedPool?.onOwnerBounds(ownerToken, it) }
-            player.playWhenReady = true
-        } else {
-            hasRenderedFirstFrame = false
-            if (resolvedPool?.isHandoffPending() == true) return@LaunchedEffect
-            if (resolvedPool?.isOwnerOrFree(ownerToken) == false) return@LaunchedEffect
-            player.playWhenReady = false
-            // Defer heavy stop and clear until focus settling/collapse has finished
-            delay(150)
-            if (!isPlaying) {
-                player.stop()
-                player.clearMediaItems()
-                resolvedPool?.onMediaCleared(ownerToken)
+                hasRenderedFirstFrame = false
+                if (resolvedPool?.isHandoffPending() == true) return@withContext
+                if (resolvedPool?.isOwnerOrFree(ownerToken) == false) return@withContext
+                player.playWhenReady = false
+                // Defer heavy stop and clear until focus settling/collapse has finished
+                delay(150)
+                if (!isPlaying) {
+                    player.stop()
+                    player.clearMediaItems()
+                    resolvedPool?.onMediaCleared(ownerToken)
+                }
             }
         }
     }
@@ -250,7 +254,7 @@ fun TrailerPlayer(
 
     LaunchedEffect(isPaused, trailerPlayer) {
         val player = trailerPlayer ?: return@LaunchedEffect
-        if (!isPlaying) return@LaunchedEffect
+        if (!isPlaying || !hostResumed) return@LaunchedEffect
         player.playWhenReady = !isPaused
     }
 
@@ -301,29 +305,11 @@ fun TrailerPlayer(
         }
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    if (currentIsPlaying && !currentTrailerUrl.isNullOrBlank()) {
-                        if (player.currentMediaItem == null) {
-                            if (!currentTrailerAudioUrl.isNullOrBlank()) {
-                                val mediaSourceFactory = DefaultMediaSourceFactory(YoutubeChunkedDataSourceFactory())
-                                val videoSource = mediaSourceFactory.createMediaSource(buildTrailerMediaItem(currentTrailerUrl!!, currentSubtitleTrack))
-                                val audioSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(currentTrailerAudioUrl!!))
-                                player.setMediaSource(MergingMediaSource(videoSource, audioSource))
-                            } else {
-                                player.setMediaItem(buildTrailerMediaItem(currentTrailerUrl!!, currentSubtitleTrack))
-                            }
-                            player.prepare()
-                            resolvedPool?.onMediaLoaded(ownerToken, currentTrailerUrl!!)
-                        }
-                        player.playWhenReady = true
-                    }
-                }
+                Lifecycle.Event.ON_RESUME -> hostResumed = true
                 Lifecycle.Event.ON_PAUSE,
                 Lifecycle.Event.ON_STOP -> {
-                    player.playWhenReady = false
-                    player.pause()
-                    player.stop()
-                    player.clearMediaItems()
+                    hostResumed = false
+                    resolvedPool?.stopIfOwner(ownerToken)
                 }
                 // Do NOT release on destroy — the pool owns the lifecycle.
                 else -> Unit

@@ -1,7 +1,6 @@
 package com.nuvio.tv.data.local
 
 import android.content.Context
-import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,10 +21,7 @@ class ImagePerformancePreferences @Inject constructor(
     }
 
     val hardwareBitmapsEnabled: Boolean
-        get() = preferences.getBoolean(
-            KEY_HARDWARE_BITMAPS_ENABLED,
-            Build.VERSION.SDK_INT <= Build.VERSION_CODES.R
-        )
+        get() = preferences.getBoolean(KEY_HARDWARE_BITMAPS_ENABLED, false)
 
     fun setHardwareBitmapsEnabled(enabled: Boolean): Boolean {
         return preferences.edit()

@@ -1664,12 +1664,12 @@ class SportsRepository @Inject constructor(
         lock.lock()
         try {
             val now = System.currentTimeMillis()
-            _standings.value[leagueId]?.let { if (!force && now - it.fetchedAt < HOUR) return@withContext it }
+            _standings.value[leagueId]?.let { if (!force && now - it.fetchedAt < Standings.CACHE_DURATION_MS) return@withContext it }
             if (!mayHaveTable(league)) return@withContext null
             val file = File(dir, "table_${safe(leagueId)}.json")
             val raw = sportsCatching {
                 if (leagueId.startsWith("tsdb/")) return@withContext null
-                else feeds.standingsRaw(Standings.espnUrl(league) ?: return@withContext null)
+                else feeds.standingsRaw(league, Standings.espnUrl(league) ?: return@withContext null)
             }.getOrElse { e ->
                 Log.w(TAG, "Table for $leagueId failed: ${describe(e)}")
                 // No connection: the last copy (it says how old it is on the page).

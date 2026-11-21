@@ -2,6 +2,7 @@ package com.nuvio.tv.core.plugin.cloudstream
 
 import android.app.Activity
 import com.lagradost.cloudstream3.CommonActivity
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
@@ -14,6 +15,11 @@ class CloudStreamActivityAbiTest {
         assertNotNull(type.getMethod("showToast", String::class.java, Int::class.javaPrimitiveType))
         assertNotNull(type.getMethod("showToast", String::class.java, Integer::class.java))
         assertNotNull(type.getMethod("showToast", Activity::class.java, String::class.java, Integer::class.java))
-        assertNotNull(Class.forName("com.lagradost.cloudstream3.MainActivity"))
+        assertNotNull(type.getMethod(
+            "showToast\$default", type, String::class.java, Integer::class.java,
+            Int::class.javaPrimitiveType, Any::class.java
+        ))
+        val upstreamActivity = Class.forName("com.lagradost.cloudstream3.MainActivity")
+        assertFalse(Activity::class.java.isAssignableFrom(upstreamActivity))
     }
 }

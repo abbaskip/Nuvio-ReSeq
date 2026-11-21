@@ -29,7 +29,7 @@ Plex and Silo use upstream's provider implementations for search, external-ID ma
 
 ## Cloudstream comparison
 
-Beta.3 carries the same Cloudstream loader, runner and extractor registry as beta.2. Both ReSeq and upstream consume `.cs3` providers. The extractor registry files match at these revisions. The beta's confirmation before removing a plugin repository is included. [Upstream runner](https://github.com/NuvioMedia/NuvioTV/blob/1.2.0-beta.3/app/src/full/java/com/nuvio/tv/core/plugin/cloudstream/ExternalExtensionRunner.kt)
+Beta.3 carries the same Cloudstream loader, runner and extractor registry as beta.2. Both ReSeq and upstream consume `.cs3` providers. The extractor registry files match at these revisions. The integration adopts two checks from upstream's compatibility tests. They verify that compiled plugins can call the Kotlin default-argument toast method and can safely check the type of the host activity. The beta's confirmation before removing a plugin repository is included. [Upstream runner](https://github.com/NuvioMedia/NuvioTV/blob/1.2.0-beta.3/app/src/full/java/com/nuvio/tv/core/plugin/cloudstream/ExternalExtensionRunner.kt)
 
 | Area | ReSeq behavior worth retaining |
 | --- | --- |

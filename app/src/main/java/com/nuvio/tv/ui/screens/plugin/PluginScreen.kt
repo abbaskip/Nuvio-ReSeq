@@ -309,7 +309,9 @@ fun PluginScreenContent(
                     onToggleAll = { enabled ->
                         viewModel.onEvent(PluginUiEvent.ToggleAllScrapersForRepo(repo.id, enabled))
                     },
-                    removeFocusRequester = repoDeleteFocusRequesters.getOrPut(repo.id) { FocusRequester() },
+                    removeFocusRequester = remember(repoDeleteFocusRequesters, repo.id) {
+                        repoDeleteFocusRequesters.getOrPut(repo.id) { FocusRequester() }
+                    },
                     isLoading = uiState.isLoading,
                     isReadOnly = viewModel.isReadOnly
                 )

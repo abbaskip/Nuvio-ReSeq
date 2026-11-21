@@ -621,7 +621,7 @@
 <string name="supporters_contributors_donate_copy">Nuvio è gratuito e open source. Se vuoi supportare il progetto, puoi aiutare a coprire il tempo e l\'infrastruttura dietro allo stesso.</string>
 <string name="supporters_contributors_donation_progress_title">Server e manutenzione di questo mese</string>
 <string name="supporters_contributors_donation_progress_complete">Coperto. Il supporto aggiuntivo ora va allo sviluppo.</string>
-<string name="supporters_contributors_donation_progress_remaining">Dopo il 100%, il supporto aggiuntivo va allo sviluppo.</string>
+<string name="supporters_contributors_donation_progress_remaining" formatted="false">Dopo il 100%, il supporto aggiuntivo va allo sviluppo.</string>
 <string name="supporters_contributors_loading_donation_progress">Caricamento dell\'avanzamento del finanziamento...</string>
 <string name="supporters_contributors_donate_button">Dona a Nuvio</string>
 <string name="supporters_contributors_qr_title">Scansiona per donare</string>

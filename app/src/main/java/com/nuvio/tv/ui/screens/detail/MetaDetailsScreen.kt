@@ -119,6 +119,7 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import com.nuvio.tv.domain.model.ContentType
@@ -541,16 +542,16 @@ fun MetaDetailsScreen(
     }
 
     val ratingViewModel: RatingViewModel = hiltViewModel()
-    val ratingContext = LocalContext.current
-    LaunchedEffect(ratingViewModel) {
+    val ratingResources = LocalResources.current
+    LaunchedEffect(ratingViewModel, ratingResources) {
         ratingViewModel.results.collect { result ->
             val message = when {
-                !result.saved -> ratingContext.getString(
+                !result.saved -> ratingResources.getString(
                     R.string.rating_failed,
-                    result.provider?.let { ratingContext.getString(trackingProviderNameRes(it)) }.orEmpty()
+                    result.provider?.let { ratingResources.getString(trackingProviderNameRes(it)) }.orEmpty()
                 )
-                result.removed -> ratingContext.getString(R.string.rating_removed)
-                else -> ratingContext.getString(R.string.rating_saved)
+                result.removed -> ratingResources.getString(R.string.rating_removed)
+                else -> ratingResources.getString(R.string.rating_saved)
             }
             viewModel.onEvent(MetaDetailsEvent.OnShowMessage(message, isError = !result.saved))
         }

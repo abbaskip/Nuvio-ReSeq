@@ -675,7 +675,7 @@
     <string name="supporters_contributors_donate_copy">Nuvio יישאר חינמי וקוד פתוח. תמיכה בפרויקט מסייעת לכסות את הזמן והתשתית שמאחוריו.</string>
     <string name="supporters_contributors_donation_progress_title">שרת ותחזוקה לחודש זה</string>
     <string name="supporters_contributors_donation_progress_complete">מכוסה. תמיכה נוספת תלך כעת לפיתוח.</string>
-    <string name="supporters_contributors_donation_progress_remaining">לאחר 100%, תמיכה נוספת הולכת לפיתוח.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">לאחר 100%, תמיכה נוספת הולכת לפיתוח.</string>
     <string name="supporters_contributors_loading_donation_progress">טוען התקדמות מימון…</string>
     <string name="supporters_contributors_donate_button">תרומה ל-Nuvio</string>
     <string name="supporters_contributors_qr_title">סריקה לתרומה</string>

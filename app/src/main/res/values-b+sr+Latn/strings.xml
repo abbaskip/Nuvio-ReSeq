@@ -648,7 +648,7 @@
     <string name="supporters_contributors_donate_copy">Nuvio će ostati besplatan i otvorenog koda. Ako želite da podržite projekat, možete pomoći da se pokrije vreme i infrastruktura iza njega.</string>
     <string name="supporters_contributors_donation_progress_title">Ovomesečni server i održavanje</string>
     <string name="supporters_contributors_donation_progress_complete">Pokriveno. Dodatna podrška sada ide na razvoj.</string>
-    <string name="supporters_contributors_donation_progress_remaining">Nakon 100%, dodatna podrška ide na razvoj.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">Nakon 100%, dodatna podrška ide na razvoj.</string>
     <string name="supporters_contributors_loading_donation_progress">Učitavanje napretka finansiranja...</string>
     <string name="supporters_contributors_donate_button">Podržite Nuvio</string>
     <string name="supporters_contributors_qr_title">Skenirajte da podržite</string>

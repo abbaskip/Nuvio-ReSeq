@@ -1501,7 +1501,7 @@
     <string name="action_back">Grįžti</string>
     <string name="supporters_contributors_donation_progress_title">Šio mėnesio serverio ir priežiūros išlaidos</string>
     <string name="supporters_contributors_donation_progress_complete">Padengta. Papildoma parama skiriama kūrimui.</string>
-    <string name="supporters_contributors_donation_progress_remaining">Pasiekus 100%, papildoma parama skiriama kūrimui.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">Pasiekus 100%, papildoma parama skiriama kūrimui.</string>
     <string name="supporters_contributors_loading_donation_progress">Įkeliama finansavimo eiga...</string>
     <string name="supporter_membership_title">„Nuvio“ rėmėjo narystė</string>
     <string name="supporter_membership_description">Parama „Nuvio“ padeda padengti infrastruktūros ir tolesnio kūrimo išlaidas, o pagrindinės funkcijos visiems lieka nemokamos.</string>

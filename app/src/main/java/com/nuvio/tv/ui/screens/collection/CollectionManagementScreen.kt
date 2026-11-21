@@ -308,7 +308,9 @@ fun CollectionManagementScreen(
                     Text(stringResource(R.string.collections_import))
                 }
                 val firstCollectionEditRequester = uiState.collections.firstOrNull()?.id?.let { firstId ->
-                    itemFocusRequesters.getOrPut(firstId) { FocusRequester() }
+                    remember(itemFocusRequesters, firstId) {
+                        itemFocusRequesters.getOrPut(firstId) { FocusRequester() }
+                    }
                 }
                 NuvioButton(
                     onClick = {
@@ -380,8 +382,12 @@ fun CollectionManagementScreen(
                     }
                 },
             ) { collection, isMoving, onStartMove, onConfirmMove ->
-                val editFocusRequester = itemFocusRequesters.getOrPut(collection.id) { FocusRequester() }
-                val deleteFocusRequester = itemDeleteFocusRequesters.getOrPut(collection.id) { FocusRequester() }
+                val editFocusRequester = remember(itemFocusRequesters, collection.id) {
+                    itemFocusRequesters.getOrPut(collection.id) { FocusRequester() }
+                }
+                val deleteFocusRequester = remember(itemDeleteFocusRequesters, collection.id) {
+                    itemDeleteFocusRequesters.getOrPut(collection.id) { FocusRequester() }
+                }
                 CollectionListItem(
                     collection = collection,
                     isMoving = isMoving,

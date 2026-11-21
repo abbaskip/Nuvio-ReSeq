@@ -2643,7 +2643,7 @@
     <string name="action_switch">Перемкнути</string>
     <string name="supporters_contributors_donation_progress_title">Сервер і обслуговування цього місяця</string>
     <string name="supporters_contributors_donation_progress_complete">Покрито. Додаткова підтримка тепер спрямовується на розробку.</string>
-    <string name="supporters_contributors_donation_progress_remaining">Після 100% додаткова підтримка спрямовується на розробку.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">Після 100% додаткова підтримка спрямовується на розробку.</string>
     <string name="supporters_contributors_loading_donation_progress">Завантаження прогресу фінансування...</string>
     <string name="audio_force_optical_passthrough">Примусове транскодування AC-3 (Optical/SPDIF)</string>
     <string name="audio_force_optical_passthrough_sub">Транскодує багатоканальні формати (TrueHD, DTS, AAC тощо) у Dolby Digital 5.1 в реальному часі для підключень Optical/SPDIF.</string>

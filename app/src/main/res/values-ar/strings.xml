@@ -2939,7 +2939,7 @@
     <string name="subtitle_delay_reset">تصفير</string>
     <string name="support_nuvio_name">ادعم Nuvio</string>
     <string name="supporters_contributors_donation_progress_complete">تمت التغطية. الدعم الإضافي الآن يذهب للتطوير.</string>
-    <string name="supporters_contributors_donation_progress_remaining">بعد 100%، الدعم الإضافي يذهب للتطوير.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">بعد 100%، الدعم الإضافي يذهب للتطوير.</string>
     <string name="supporters_contributors_donation_progress_title">خوادم وصيانة هذا الشهر</string>
     <string name="supporters_contributors_loading_donation_progress">جارٍ تحميل تقدم التمويل...</string>
     <string name="supporters_level_supporter">داعم</string>

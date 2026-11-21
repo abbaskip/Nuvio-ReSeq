@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package com.nuvio.tv.ui.screens.player.audiosync
 
 import android.content.Context
@@ -64,6 +62,7 @@ import java.util.concurrent.atomic.AtomicReference
  * only through spots sampled ahead of playback, and the mapping is shown the way AutoSync shows
  * its own result there: a retimed copy of the subtitle loaded as an external mpv track.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class AudioSyncFallback private constructor(
     private val runtime: PlayerRuntimeController,
     /** The ExoPlayer that plays the stream; null when mpv plays it. */
@@ -623,6 +622,7 @@ internal class AudioSyncFallback private constructor(
  * Routes audio the player demuxes or plays to the fallback of the stream being played. The
  * player's extractors and audio output are created before the fallback, so they look it up here.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal object AudioSyncTaps {
     @Volatile
     private var active: AudioSubtitleSyncController? = null

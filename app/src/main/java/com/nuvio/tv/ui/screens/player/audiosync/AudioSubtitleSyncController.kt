@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package com.nuvio.tv.ui.screens.player.audiosync
 
 import android.content.Context
@@ -42,6 +40,7 @@ import kotlin.math.roundToInt
  * subtitle cues. The resulting mapping is exposed as an extra subtitle delay through
  * [autoDelayMs], on top of the user's manual delay. One instance lives per player surface.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class AudioSubtitleSyncController(
     context: Context,
     /** The user's current manual subtitle delay. */

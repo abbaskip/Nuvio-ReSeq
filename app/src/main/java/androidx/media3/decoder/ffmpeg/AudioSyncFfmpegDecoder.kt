@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package androidx.media3.decoder.ffmpeg
 
 import androidx.media3.common.C
@@ -11,6 +9,7 @@ import androidx.media3.common.Format
  * Lives in this package because [FfmpegAudioDecoder] is package-private. Outputs float PCM in
  * FFmpeg's channel order (FL, FR, FC, LFE, ...).
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class AudioSyncFfmpegDecoder(format: Format) {
     private val decoder = FfmpegAudioDecoder(
         format,

@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package com.nuvio.tv.ui.screens.player.audiosync
 
 import android.media.MediaFormat
@@ -29,6 +27,7 @@ import kotlin.math.abs
  * [minSpotMs] of audio when the connection is clearly faster than the stream (playback keeps its
  * bandwidth), never past [maxBytes] in total. Blocking; run it on a background thread.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class AudioSpotSampler(
     private val uri: Uri,
     private val dataSourceFactory: DataSource.Factory,

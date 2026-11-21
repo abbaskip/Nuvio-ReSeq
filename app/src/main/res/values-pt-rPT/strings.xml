@@ -2745,7 +2745,7 @@
     <string name="action_back">Voltar</string>
     <string name="supporters_contributors_donation_progress_title">Servidor e manutenção deste mês</string>
     <string name="supporters_contributors_donation_progress_complete">Coberto. O apoio adicional reverte agora para o desenvolvimento.</string>
-    <string name="supporters_contributors_donation_progress_remaining">Após os 100%, o apoio adicional reverte para o desenvolvimento.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">Após os 100%, o apoio adicional reverte para o desenvolvimento.</string>
     <string name="supporters_contributors_loading_donation_progress">A carregar progresso de financiamento...</string>
     <string name="supporter_membership_title">Subscrição de Apoiante Nuvio</string>
     <string name="supporter_membership_description">Apoiar o Nuvio ajuda a cobrir a infraestrutura e o desenvolvimento contínuo, mantendo a experiência principal gratuita para todos.</string>

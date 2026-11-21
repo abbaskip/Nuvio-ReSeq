@@ -558,8 +558,12 @@ fun CollectionEditorScreen(
             }
         },
     ) { folder, isMoving, onStartMove, onConfirmMove ->
-        val editFocusRequester = folderFocusRequesters.getOrPut(folder.id) { FocusRequester() }
-        val deleteFocusRequester = folderDeleteFocusRequesters.getOrPut(folder.id) { FocusRequester() }
+        val editFocusRequester = remember(folderFocusRequesters, folder.id) {
+            folderFocusRequesters.getOrPut(folder.id) { FocusRequester() }
+        }
+        val deleteFocusRequester = remember(folderDeleteFocusRequesters, folder.id) {
+            folderDeleteFocusRequesters.getOrPut(folder.id) { FocusRequester() }
+        }
         Box(modifier = Modifier.padding(start = NuvioTheme.spacing.sm, end = NuvioTheme.spacing.sm)) {
             FolderListItem(
                 folder = folder,

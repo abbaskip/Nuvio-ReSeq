@@ -378,7 +378,7 @@
     <string name="supporters_contributors_donate_copy">Nuvio всегда будет бесплатным и открытым. Если вы хотите поддержать проект, вы можете помочь покрыть затраты на время и инфраструктуру.</string>
     <string name="supporters_contributors_donation_progress_title">Сервер и поддержка в этом месяце</string>
     <string name="supporters_contributors_donation_progress_complete">Покрыто. Дополнительная поддержка теперь идёт на развитие.</string>
-    <string name="supporters_contributors_donation_progress_remaining">После 100% дополнительная поддержка идёт на развитие.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">После 100% дополнительная поддержка идёт на развитие.</string>
     <string name="supporters_contributors_loading_donation_progress">Загрузка прогресса финансирования…</string>
     <string name="supporters_contributors_donate_button">Пожертвовать Nuvio</string>
     <string name="supporters_contributors_qr_title">Отсканируйте для пожертвования</string>

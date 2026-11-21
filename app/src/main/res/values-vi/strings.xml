@@ -671,7 +671,7 @@
     <string name="supporters_contributors_donate_copy">Nuvio sẽ luôn miễn phí và là mã nguồn mở. Nếu bạn muốn tài trợ dự án, bạn có thể góp phần trang trải thời gian và cơ sở hạ tầng cần thiết để duy trì dự án.</string>
     <string name="supporters_contributors_donation_progress_title">Máy chủ và bảo trì trong tháng này</string>
     <string name="supporters_contributors_donation_progress_complete">Đã đủ. Khoản tài trợ bổ sung hiện được dành cho việc phát triển.</string>
-    <string name="supporters_contributors_donation_progress_remaining">Sau khi đạt 100%, khoản tài trợ bổ sung sẽ được dành cho việc phát triển.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">Sau khi đạt 100%, khoản tài trợ bổ sung sẽ được dành cho việc phát triển.</string>
     <string name="supporters_contributors_loading_donation_progress">Đang tải tiến độ tài trợ…</string>
     <string name="supporters_contributors_donate_button">Quyên góp cho Nuvio</string>
     <string name="supporters_contributors_qr_title">Quét để quyên góp</string>

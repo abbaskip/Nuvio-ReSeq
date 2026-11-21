@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package com.nuvio.tv.ui.screens.player.audiosync
 
 import android.media.AudioFormat
@@ -28,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong
  * only formats neither can decode fall back to the playback tap. The
  * queues are bounded; if analysis falls behind, input is dropped and the gap is left unknown.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class AudioSyncDecoder(
     private val analyzer: SpeechAnalyzer,
     private val liveAnalyzer: SpeechAnalyzer,

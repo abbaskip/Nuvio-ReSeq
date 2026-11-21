@@ -576,7 +576,7 @@
     <string name="supporters_contributors_donate_copy">Nuvio do të mbetet falas dhe me burim të hapur. Nëse dëshironi ta mbështesni projektin, mund të ndihmoni në mbulimin e kohës dhe infrastrukturës pas tij.</string>
     <string name="supporters_contributors_donation_progress_title">Serveri dhe mirëmbajtja e këtij muaji</string>
     <string name="supporters_contributors_donation_progress_complete">U mbulua. Mbështetja shtesë tani shkon për zhvillim.</string>
-    <string name="supporters_contributors_donation_progress_remaining">Pas 100%, mbështetja shtesë shkon për zhvillim.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">Pas 100%, mbështetja shtesë shkon për zhvillim.</string>
     <string name="supporters_contributors_loading_donation_progress">Duke ngarkuar progresin e financimit...</string>
     <string name="supporters_contributors_donate_button">Mbështet Nuvio</string>
     <string name="supporters_contributors_qr_title">Skano për të mbështetur</string>

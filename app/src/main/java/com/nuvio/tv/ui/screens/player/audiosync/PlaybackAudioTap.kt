@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package com.nuvio.tv.ui.screens.player.audiosync
 
 import androidx.media3.common.C
@@ -25,6 +23,7 @@ internal interface PlaybackPcmListener {
  * E-AC3 or DTS decoders and HLS/DASH streams) but only in real time, without look-ahead. Nothing is
  * modified; passthrough/offloaded (still encoded) audio is ignored.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class PlaybackAudioTap(
     sink: AudioSink,
     private val listener: PlaybackPcmListener,

@@ -650,7 +650,7 @@
     <string name="supporters_contributors_donate_copy">Nuvio 将保持免费和开源。如果您想支持项目，可以帮助支付其背后的时间和基础设施费用。</string>
     <string name="supporters_contributors_donation_progress_title">本月的服务器与维护</string>
     <string name="supporters_contributors_donation_progress_complete">已覆盖。额外的支持现在用于开发。</string>
-    <string name="supporters_contributors_donation_progress_remaining">达到 100% 后，额外的支持将用于开发。</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">达到 100% 后，额外的支持将用于开发。</string>
     <string name="supporters_contributors_loading_donation_progress">正在加载资金进度...</string>
     <string name="supporters_contributors_donate_button">支持 Nuvio</string>
     <string name="supporters_contributors_qr_title">扫描以支持</string>

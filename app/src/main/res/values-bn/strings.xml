@@ -625,7 +625,7 @@
     <string name="supporters_contributors_donate_copy">Nuvio ফ্রি এবং ওপেন সোর্স থাকবে। আপনি যদি প্রজেক্টটিকে সমর্থন করতে চান, তাহলে আপনি এর পেছনের সময় এবং ইনফ্রাস্ট্রাকচারের খরচ কভার করতে সাহায্য করতে পারেন।</string>
     <string name="supporters_contributors_donation_progress_title">এই মাসের সার্ভার ও মেইনটেন্যান্স</string>
     <string name="supporters_contributors_donation_progress_complete">লক্ষ্যমাত্রা পূর্ণ হয়েছে। অতিরিক্ত সাপোর্ট এখন উন্নয়নের কাজে ব্যবহৃত হবে।</string>
-    <string name="supporters_contributors_donation_progress_remaining">১০০% অর্জনের পর, অতিরিক্ত সাপোর্ট উন্নয়নের কাজে ব্যবহৃত হবে।</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">১০০% অর্জনের পর, অতিরিক্ত সাপোর্ট উন্নয়নের কাজে ব্যবহৃত হবে।</string>
     <string name="supporters_contributors_loading_donation_progress">অর্থায়নের অগ্রগতি লোড হচ্ছে…</string>
     <string name="supporters_contributors_donate_button">Nuvio-কে সাপোর্ট করুন</string>
     <string name="supporters_contributors_qr_title">সাপোর্ট করতে স্ক্যান করুন</string>

@@ -832,9 +832,15 @@ fun FolderEditorContent(
         }
         val isMissing = addonSource != null && catalog == null && addonCatalogInfo == null
         val sourceKey = item.key
-        val genreFocusRequester = sourceGenreFocusRequesters.getOrPut(sourceKey) { FocusRequester() }
-        val editFocusRequester = sourceEditFocusRequesters.getOrPut(sourceKey) { FocusRequester() }
-        val removeFocusRequester = sourceRemoveFocusRequesters.getOrPut(sourceKey) { FocusRequester() }
+        val genreFocusRequester = remember(sourceGenreFocusRequesters, sourceKey) {
+            sourceGenreFocusRequesters.getOrPut(sourceKey) { FocusRequester() }
+        }
+        val editFocusRequester = remember(sourceEditFocusRequesters, sourceKey) {
+            sourceEditFocusRequesters.getOrPut(sourceKey) { FocusRequester() }
+        }
+        val removeFocusRequester = remember(sourceRemoveFocusRequesters, sourceKey) {
+            sourceRemoveFocusRequesters.getOrPut(sourceKey) { FocusRequester() }
+        }
         val genreLabel = addonSource?.genre ?: if (catalog?.genreRequired == true) {
             stringResource(R.string.collections_editor_select_genre)
         } else {

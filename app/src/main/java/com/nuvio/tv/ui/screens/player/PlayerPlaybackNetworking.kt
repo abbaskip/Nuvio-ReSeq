@@ -147,6 +147,7 @@ internal object PlayerPlaybackNetworking {
         }
     }
 
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     fun createHttpClient(
         defaultHeaders: Map<String, String> = emptyMap(),
         useLongReadTimeout: Boolean = false

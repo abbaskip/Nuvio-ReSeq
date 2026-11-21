@@ -3151,7 +3151,7 @@
     <!-- Supporters / donation progress -->
     <string name="supporters_contributors_donation_progress_title">Serwer i utrzymanie w tym miesiącu</string>
     <string name="supporters_contributors_donation_progress_complete">Pokryto. Dodatkowe wsparcie idzie teraz na rozwój.</string>
-    <string name="supporters_contributors_donation_progress_remaining">Po 100%, dodatkowe wsparcie idzie na rozwój.</string>
+    <string name="supporters_contributors_donation_progress_remaining" formatted="false">Po 100%, dodatkowe wsparcie idzie na rozwój.</string>
     <string name="supporters_contributors_loading_donation_progress">Ładowanie postępu finansowania...</string>
 
     <!-- Missing translations added -->

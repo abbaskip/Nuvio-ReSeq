@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.media.tv.TvContract
 import android.net.Uri
 import android.util.Log
 import androidx.tvprovider.media.tv.Channel
@@ -153,11 +154,7 @@ class AndroidTvChannelManager @Inject constructor(
                 val key = progressKey(progress)
                 val rowIds = existing[key]
 
-                val (imageUri, _) = when {
-                    launcherArt(progress.backdrop) != null -> progress.backdrop to TvContractCompat.PreviewPrograms.ASPECT_RATIO_16_9
-                    launcherArt(progress.poster) != null -> progress.poster to TvContractCompat.PreviewPrograms.ASPECT_RATIO_2_3
-                    else -> null to null
-                }
+                val imageUri = launcherArt(progress.backdrop) ?: launcherArt(progress.poster)
                 val positionMs = if (progress.position > 0) {
                     progress.position.toInt()
                 } else {
@@ -309,9 +306,9 @@ class AndroidTvChannelManager @Inject constructor(
         // so the launcher renders it as a small badge overlay on focus.
         val (imageUri, aspectRatio) = when {
             launcherArt(progress.backdrop) != null ->
-                progress.backdrop to TvContractCompat.PreviewPrograms.ASPECT_RATIO_16_9
+                progress.backdrop to TvContract.PreviewPrograms.ASPECT_RATIO_16_9
             launcherArt(progress.poster) != null ->
-                progress.poster to TvContractCompat.PreviewPrograms.ASPECT_RATIO_2_3
+                progress.poster to TvContract.PreviewPrograms.ASPECT_RATIO_2_3
             else -> null to null
         }
         imageUri?.let { builder.setPosterArtUri(Uri.parse(it)).setPosterArtAspectRatio(aspectRatio!!) }

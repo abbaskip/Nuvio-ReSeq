@@ -254,7 +254,9 @@ internal fun MDBListSettingsBody(
                         isMoving = isMoving,
                         canMove = item.enabled && ratingItems.size > 1,
                         actionsEnabled = item.enabled && (uiState.movingRatingKey == null || isMoving),
-                        moveFocusRequester = moveButtonFocusRequesters.getOrPut(item.provider) { FocusRequester() },
+                        moveFocusRequester = remember(moveButtonFocusRequesters, item.provider) {
+                            moveButtonFocusRequesters.getOrPut(item.provider) { FocusRequester() }
+                        },
                         onToggle = { toggleEvent?.let { onEvent(it) } },
                         onStartMove = onItemStartMove,
                         onConfirmMove = onItemConfirmMove

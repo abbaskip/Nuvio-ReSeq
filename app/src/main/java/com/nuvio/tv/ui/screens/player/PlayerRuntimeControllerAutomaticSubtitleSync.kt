@@ -40,6 +40,7 @@ import kotlinx.coroutines.withContext
  * Wraps Nuvio's extractors so AutoSync can observe embedded subtitle timing (output is forwarded
  * unchanged), and starts AutoSync's embedded subtitle index download while the stream opens.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerRuntimeController.autoSyncExtractorsFactory(
     delegate: ExtractorsFactory,
     url: String,

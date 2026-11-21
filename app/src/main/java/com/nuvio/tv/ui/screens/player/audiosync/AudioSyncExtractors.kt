@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package com.nuvio.tv.ui.screens.player.audiosync
 
 import android.net.Uri
@@ -35,6 +33,7 @@ internal interface AudioSampleSink {
  * the player. Nothing is downloaded or decoded twice by ExoPlayer; the copy happens at load time,
  * so the sink sees audio as far ahead as the player buffers.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class AudioSyncExtractorsFactory(
     private val delegate: ExtractorsFactory,
     private val sink: AudioSampleSink,
@@ -48,6 +47,7 @@ internal class AudioSyncExtractorsFactory(
         Array(extractors.size) { index -> AudioTapExtractor(extractors[index], sink) }
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private class AudioTapExtractor(
     private val delegate: Extractor,
     private val sink: AudioSampleSink,
@@ -73,6 +73,7 @@ private class AudioTapExtractor(
     override fun getUnderlyingImplementation(): Extractor = delegate.underlyingImplementation
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private class AudioTapExtractorOutput(
     private val delegate: ExtractorOutput,
     private val sink: AudioSampleSink,
@@ -95,6 +96,7 @@ private class AudioTapExtractorOutput(
  * report its metadata later (with [offset] bytes of following samples already written), so the
  * pending bytes are kept until [sampleMetadata] identifies the sample.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private class AudioTapTrackOutput(
     private val delegate: TrackOutput,
     private val sink: AudioSampleSink,

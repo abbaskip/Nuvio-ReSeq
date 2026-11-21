@@ -146,8 +146,9 @@ internal fun TablesPage(
         }
     }
 
+    val groups = remember(table, view, conference) { table?.view(view, conference).orEmpty() }
     var card by remember { mutableStateOf<StandingsRow?>(null) }
-    var focusedRow by remember { mutableStateOf<StandingsRow?>(null) }
+    var focusedTeamId by remember(leagueId, view, conference) { mutableStateOf<String?>(null) }
     card?.let { row ->
         val lid = leagueId ?: return@let
         TeamCard(
@@ -203,6 +204,7 @@ internal fun TablesPage(
                 table == null -> LiveText("Getting the table…", color = SportsLook.Dim, size = 12.sp, modifier = Modifier.padding(top = 14.dp, start = 4.dp))
                 else -> TableView(
                     table = table,
+                    groups = groups,
                     view = view,
                     conference = conference,
                     onView = { view = it },
@@ -213,7 +215,7 @@ internal fun TablesPage(
                         follows.teams.filter { fam != null && SportsCatalog.teamFamily(it.leagueId) == fam }.map { it.teamId }.toSet()
                     },
                     focusTable = focusTable,
-                    onFocusRow = { focusedRow = it },
+                    onFocusRow = { focusedTeamId = it.id },
                     onRow = { card = it },
                     modifier = Modifier.weight(1f)
                 )
@@ -230,8 +232,10 @@ internal fun TablesPage(
                     videoSlot(Modifier.fillMaxWidth().aspectRatio(16f / 9f))
                     Spacer(Modifier.height(10.dp))
                     if (table != null && !settings.hideScores) {
-                        val row = focusedRow?.takeIf { r -> table.find(r.id) != null }
-                            ?: marked.firstNotNullOfOrNull { table.find(it)?.second }
+                        val row = remember(groups, focusedTeamId, marked) {
+                            val rows = groups.asSequence().flatMap { it.rows }
+                            rows.firstOrNull { it.id == focusedTeamId } ?: rows.firstOrNull { it.id in marked } ?: rows.firstOrNull()
+                        }
                         row?.let { TeamSummary(table, it, it.id in marked, viewModel, now, use24h) }
                         Spacer(Modifier.height(8.dp))
                         TableKey(table, view)
@@ -282,6 +286,7 @@ private fun LeagueButton(league: League, selected: Boolean, modifier: Modifier =
 @Composable
 private fun TableView(
     table: Standings,
+    groups: List<StandingsGroup>,
     view: StandingsView,
     conference: String?,
     onView: (StandingsView) -> Unit,
@@ -293,7 +298,6 @@ private fun TableView(
     onRow: (StandingsRow) -> Unit,
     modifier: Modifier
 ) {
-    val groups = remember(table, view, conference) { table.view(view, conference) }
     val merged = table.hasDivisions && (view == StandingsView.LEAGUE ||
         (view == StandingsView.CONFERENCE && table.groups.any { it.parent == conference && it.parent != null }))
     val lines = remember(table, view) { table.playoffLines(view) }
@@ -326,8 +330,19 @@ private fun TableView(
 
     Column(modifier) {
         if (table.conferences.isNotEmpty()) {
+            val tabsState = rememberLazyListState()
+            LaunchedEffect(table.leagueId, conference, view) {
+                val index = table.conferences.indexOf(conference)
+                if (index >= 0 && (view != StandingsView.LEAGUE || !table.hasDivisions)) {
+                    val tabIndex = index + if (table.hasDivisions) StandingsView.entries.size + 1 else 0
+                    if (tabsState.layoutInfo.visibleItemsInfo.none { it.index == tabIndex }) {
+                        tabsState.scrollToItem(if (index == 0) 0 else tabIndex)
+                    }
+                }
+            }
             LazyRow(
                 Modifier.fillMaxWidth().padding(top = 6.dp).keepFocusWhileHeld(vertical = false),
+                state = tabsState,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 3.dp)
             ) {

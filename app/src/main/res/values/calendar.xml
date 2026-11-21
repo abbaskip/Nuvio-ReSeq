@@ -1,5 +1,4 @@
-<!-- Calendar uses English fallback in locales awaiting translations. -->
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+<resources>
     <string name="nav_calendar">Calendar</string>
     <string name="calendar_previous_week">Previous week</string>
     <string name="calendar_next_week">Next week</string>
@@ -34,4 +33,33 @@
     <string name="calendar_all_enabled">All enabled events</string>
     <string name="calendar_empty_sport_day">No %1$s events scheduled for this day.</string>
     <string name="calendar_empty_my_sports">No My Sports events on this day. Hold OK on Sports to manage your follows.</string>
+    <string name="calendar_channel_tbc">Channel TBC</string>
+    <string name="calendar_channel_count">Channels: %1$d</string>
+    <string name="calendar_match_day">Day %1$d</string>
+    <string name="sport_name_american_football">American Football</string>
+    <string name="sport_name_basketball">Basketball</string>
+    <string name="sport_name_hockey">Ice Hockey</string>
+    <string name="sport_name_baseball">Baseball</string>
+    <string name="sport_name_football">Football</string>
+    <string name="sport_name_rugby">Rugby Union</string>
+    <string name="sport_name_fighting">Fighting</string>
+    <string name="sport_name_racing">Motorsport</string>
+    <string name="sport_name_golf">Golf</string>
+    <string name="sport_name_tennis">Tennis</string>
+    <string name="sport_name_cricket">Cricket</string>
+    <string name="sport_name_darts">Darts</string>
+    <string name="sport_name_snooker">Cue Sports</string>
+    <string name="sport_name_wrestling">Wrestling</string>
+    <string name="sport_name_aussie_rules">Aussie Rules</string>
+    <string name="sport_name_volleyball">Volleyball</string>
+    <string name="sport_name_lacrosse">Lacrosse</string>
+    <string name="sport_name_gaelic">Gaelic Games</string>
+    <string name="sport_name_netball">Netball</string>
+    <string name="sport_name_rugby_league">Rugby League</string>
+    <string name="sport_name_swimming">Swimming</string>
+    <string name="sport_name_athletics">Athletics</string>
+    <string name="sport_name_gymnastics">Gymnastics</string>
+    <string name="sport_name_cycling">Cycling</string>
+    <string name="sport_name_horse_racing">Horse Racing</string>
+    <string name="sport_name_other">More Sports</string>
 </resources>

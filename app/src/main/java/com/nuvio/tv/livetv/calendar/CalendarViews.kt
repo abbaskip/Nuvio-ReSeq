@@ -118,6 +118,14 @@ private fun GameArt(row: CalendarItem, clock: (Long) -> String, modifier: Modifi
 @Composable
 private fun EntryCard(row: CalendarItem, clock: (Long) -> String, modifier: Modifier, onOpen: (CalendarItem) -> Unit) {
     val event = row.fixture
+    val detail = if (row.kind == CalendarKind.SPORT) {
+        val channel = when {
+            row.channelCount > 1 -> stringResource(R.string.calendar_channel_count, row.channelCount)
+            row.detail.isBlank() -> stringResource(R.string.calendar_channel_tbc)
+            else -> row.detail
+        }
+        listOfNotNull(row.matchDay?.let { stringResource(R.string.calendar_match_day, it) }, channel).joinToString(" · ")
+    } else row.detail
     val sides = row.guideSides.ifEmpty { if (event == null) emptyList() else SportsCatalog.league(event.leagueId)?.let { event.ordered(it.sport) } ?: event.sides }
     val star = row.followedTeam != null
     Tile(modifier.semantics { contentDescription = row.title }, marked = star, onClick = { onOpen(row) }) {
@@ -140,7 +148,7 @@ private fun EntryCard(row: CalendarItem, clock: (Long) -> String, modifier: Modi
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                     row.time?.let { LiveText(clock(it), size = 10.sp, weight = FontWeight.Bold, color = Color.White); Spacer(Modifier.width(5.dp)) }
-                    LiveText(row.detail, Modifier.weight(1f), size = 10.sp, color = SportsLook.Dim)
+                    LiveText(detail, Modifier.weight(1f), size = 10.sp, color = SportsLook.Dim)
                 }
             }
         } else {
@@ -153,7 +161,7 @@ private fun EntryCard(row: CalendarItem, clock: (Long) -> String, modifier: Modi
             Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(7.dp)) {
                 LiveText((if (star) "★ " else "") + row.title, size = 15.sp, maxLines = 2, color = Color.White, weight = FontWeight.Bold, shadow = true)
                 val caption = listOfNotNull(if (row.kind == CalendarKind.SPORT) row.leagueName else kindLabel(row.kind),
-                    row.detail.takeIf(String::isNotBlank)).joinToString(" · ")
+                    detail.takeIf(String::isNotBlank)).joinToString(" · ")
                 if (caption.isNotBlank()) LiveText(caption, size = 11.sp, color = Color.White, shadow = true)
             }
         }

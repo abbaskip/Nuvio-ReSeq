@@ -32,6 +32,8 @@ internal data class CalendarItem(
     @com.squareup.moshi.Json(ignore = true) val leagueName: String? = null,
     @com.squareup.moshi.Json(ignore = true) val followedSides: List<String> = emptyList(),
     @com.squareup.moshi.Json(ignore = true) val sport: Sport? = null,
+    @com.squareup.moshi.Json(ignore = true) val channelCount: Int = 0,
+    @com.squareup.moshi.Json(ignore = true) val matchDay: Long? = null,
     @com.squareup.moshi.Json(ignore = true) val guideSides: List<com.nuvio.tv.livetv.sports.Side> = emptyList()
 )
 

@@ -289,11 +289,10 @@ internal class CalendarLocalListings @Inject constructor(
                     val title = card?.teams?.takeIf { it.isNotEmpty() }?.joinToString(" v ") ?: event.title
                     val fixture = if (title == event.title && (hits === event.guideHits || hits.isEmpty())) event
                         else event.copy(title = title, guideHits = hits.distinctBy { it.first to it.second.startMs })
-                    val note = if (days.first != days.last || d > days.first) "Day " + (d - days.first + 1) + " · " else ""
-                    val channelCount = hits.distinctBy { it.first }.size
-                    val caption = if (channelCount > 1) "$channelCount channels" else channel ?: "Channel TBC"
                     result += CalendarItem("sport/" + event.id + "/" + d, "sports", title.take(240), d, CalendarKind.SPORT,
-                        detail = note + caption, time = event.startMs.takeIf { event.hasTime && d == days.first }
+                        detail = channel.orEmpty(), channelCount = hits.distinctBy { it.first }.size,
+                        matchDay = (d - days.first + 1).takeIf { days.first != days.last || d > days.first },
+                        time = event.startMs.takeIf { event.hasTime && d == days.first }
                             ?: coverage[d]?.minOfOrNull { it.second.startMs },
                         contentId = event.id, followedTeam = teams.takeIf { it.isNotEmpty() }?.joinToString(" & "),
                         fixture = fixture, leagueName = card?.competition ?: competition?.name, followedSides = followedSides,

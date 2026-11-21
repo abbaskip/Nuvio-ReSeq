@@ -202,11 +202,12 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
                             var focused by remember { mutableStateOf(false) }
                             val chosen = sport == quickSport
                             val entry = if (sport == shortcuts.first()) Modifier.focusRequester(firstShortcut) else Modifier
-                            FilterIcon(sport.icon, sport.label, chosen, entry.focusProperties {
+                            val sportName = stringResource(sport.labelRes)
+                            FilterIcon(sport.icon, sportName, chosen, entry.focusProperties {
                                 if (sport == shortcuts.first()) left = sportsFilter
                                 if (sport == shortcuts.last()) right = dayMode
                             }.onFocusChanged { focused = it.isFocused }.semantics {
-                                contentDescription = sport.label
+                                contentDescription = sportName
                                 this.selected = chosen
                             }, withLabel = focused || chosen) { viewModel.preferences.toggleSport(active, sport) }
                         } }
@@ -239,7 +240,7 @@ internal fun CalendarScreen(onDetail: (String, String, String, String?) -> Unit,
                 retry -> LiveText(stringResource(R.string.calendar_retry), size = 11.sp, color = theme.TextSecondary)
                 loading -> LiveText(stringResource(R.string.calendar_loading), size = 11.sp, color = theme.TextSecondary)
                 rows.isEmpty() && mode != CalendarMode.WEEK -> LiveText(
-                    if (quickSport != null) stringResource(R.string.calendar_empty_sport_day, quickSport.label) else stringResource(when {
+                    if (quickSport != null) stringResource(R.string.calendar_empty_sport_day, stringResource(quickSport.labelRes)) else stringResource(when {
                         filter != CalendarFilter.SPORTS -> R.string.calendar_empty
                         selection.allSports -> R.string.calendar_empty_sports
                         else -> R.string.calendar_empty_my_sports

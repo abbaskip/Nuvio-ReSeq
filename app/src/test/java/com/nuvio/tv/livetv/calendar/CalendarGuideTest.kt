@@ -42,7 +42,7 @@ class CalendarGuideTest {
         fun rows(follows: SportsFollows, events: List<SportsEvent>, allSports: Boolean = false) = CalendarLocalListings.sportRows(events, mapOf(nba.id to nba),
             follows, SportsSettings(region = "AU"), emptyMap(), mapOf("visible" to "Live Sports"), CalendarWindow(day, day), zone, allSports)
         val followed = SportsFollows(leagues = setOf(nba.id))
-        assertEquals("Channel TBC", rows(followed, listOf(game)).single().detail)
+        assertEquals("", rows(followed, listOf(game)).single().detail)
         assertTrue(rows(SportsFollows(), listOf(game)).isEmpty())
         for (follows in listOf(followed, SportsFollows())) {
             val row = rows(follows, items, allSports = true).single()
@@ -122,7 +122,7 @@ class CalendarGuideTest {
         fun label(fixture: SportsEvent) = CalendarLocalListings.sportRows(listOf(fixture), mapOf(nba.id to nba),
             SportsFollows(leagues = setOf(nba.id)), SportsSettings(region = "AU"), emptyMap(), emptyMap(), CalendarWindow(day, day), zone).single().detail
         assertEquals("Australian network", label(saved))
-        assertEquals("Channel TBC", label(saved.copy(broadcastCoverage = listOf(SportsBroadcast("Unspecified market", null)))))
+        assertEquals("", label(saved.copy(broadcastCoverage = listOf(SportsBroadcast("Unspecified market", null)))))
     }
 
     @Test fun laterTestSessionsOpenOneOfficialFixtureWithAllGuideChannels() {
@@ -170,7 +170,7 @@ class CalendarGuideTest {
             assertEquals(setOf("A", "B"), merged.fixture!!.guideHits.map { it.first }.toSet())
             assertEquals(names.toSet(), merged.guideSides.map { it.team.name }.toSet())
             assertEquals(label, merged.leagueName)
-            assertEquals("2 channels", merged.detail)
+            assertEquals(2, merged.channelCount)
         }
         check(League("guide/cricket", Sport.CRICKET, "Cricket", "Cricket"), "Women's Big Bash League: WBBL: Hurricanes v Thunder",
             "WBBL: Sydney Thunder vs. Hobart Hurricanes", "WBBL: Hobart Hurricanes v Sydney Sixers",
@@ -219,7 +219,8 @@ class CalendarGuideTest {
             source = EventSource.CRICKET_AUSTRALIA)
         val row = CalendarLocalListings.sportRows(listOf(match), mapOf(cricket.id to cricket), SportsFollows(leagues = setOf(cricket.id)),
             SportsSettings(), emptyMap(), emptyMap(), CalendarWindow(day, day), zone).single()
-        assertEquals("Day 2 · Channel TBC", row.detail)
+        assertEquals(2L, row.matchDay)
+        assertEquals("", row.detail)
         assertEquals(day, row.day)
         assertNull(row.time)
     }

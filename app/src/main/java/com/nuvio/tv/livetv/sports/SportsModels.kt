@@ -1,38 +1,40 @@
 package com.nuvio.tv.livetv.sports
 
+import androidx.annotation.StringRes
+import com.nuvio.tv.R
 import com.nuvio.tv.livetv.model.EpgProgram
 import com.nuvio.tv.livetv.model.LiveChannel
 import org.json.JSONArray
 import org.json.JSONObject
 
 /** The sports the Sports page sorts everything into (the chips and the Pick Your Teams list). */
-enum class Sport(val label: String, val icon: String) {
-    AMERICAN_FOOTBALL("American Football", "🏈"),
-    BASKETBALL("Basketball", "🏀"),
-    HOCKEY("Ice Hockey", "🏒"),
-    BASEBALL("Baseball", "⚾"),
-    FOOTBALL("Football", "⚽"),
-    RUGBY("Rugby Union", "🏉"),
-    FIGHTING("Fighting", "🥊"),
-    RACING("Motorsport", "🏁"),
-    GOLF("Golf", "⛳"),
-    TENNIS("Tennis", "🎾"),
-    CRICKET("Cricket", "🏏"),
-    DARTS("Darts", "🎯"),
-    SNOOKER("Cue Sports", "🎱"),
-    WRESTLING("Wrestling", "💪"),
-    AUSSIE_RULES("Aussie Rules", "🏉"),
-    VOLLEYBALL("Volleyball", "🏐"),
-    LACROSSE("Lacrosse", "🥍"),
-    GAELIC("Gaelic Games", "☘️"),
-    NETBALL("Netball", "🤾"),
-    RUGBY_LEAGUE("Rugby League", "🏉"),
-    SWIMMING("Swimming", "🏊"),
-    ATHLETICS("Athletics", "🏃"),
-    GYMNASTICS("Gymnastics", "🤸"),
-    CYCLING("Cycling", "🚴"),
-    HORSE_RACING("Horse Racing", "🏇"),
-    OTHER("More Sports", "🏅");
+enum class Sport(val label: String, val icon: String, @StringRes val labelRes: Int) {
+    AMERICAN_FOOTBALL("American Football", "🏈", R.string.sport_name_american_football),
+    BASKETBALL("Basketball", "🏀", R.string.sport_name_basketball),
+    HOCKEY("Ice Hockey", "🏒", R.string.sport_name_hockey),
+    BASEBALL("Baseball", "⚾", R.string.sport_name_baseball),
+    FOOTBALL("Football", "⚽", R.string.sport_name_football),
+    RUGBY("Rugby Union", "🏉", R.string.sport_name_rugby),
+    FIGHTING("Fighting", "🥊", R.string.sport_name_fighting),
+    RACING("Motorsport", "🏁", R.string.sport_name_racing),
+    GOLF("Golf", "⛳", R.string.sport_name_golf),
+    TENNIS("Tennis", "🎾", R.string.sport_name_tennis),
+    CRICKET("Cricket", "🏏", R.string.sport_name_cricket),
+    DARTS("Darts", "🎯", R.string.sport_name_darts),
+    SNOOKER("Cue Sports", "🎱", R.string.sport_name_snooker),
+    WRESTLING("Wrestling", "💪", R.string.sport_name_wrestling),
+    AUSSIE_RULES("Aussie Rules", "🏉", R.string.sport_name_aussie_rules),
+    VOLLEYBALL("Volleyball", "🏐", R.string.sport_name_volleyball),
+    LACROSSE("Lacrosse", "🥍", R.string.sport_name_lacrosse),
+    GAELIC("Gaelic Games", "☘️", R.string.sport_name_gaelic),
+    NETBALL("Netball", "🤾", R.string.sport_name_netball),
+    RUGBY_LEAGUE("Rugby League", "🏉", R.string.sport_name_rugby_league),
+    SWIMMING("Swimming", "🏊", R.string.sport_name_swimming),
+    ATHLETICS("Athletics", "🏃", R.string.sport_name_athletics),
+    GYMNASTICS("Gymnastics", "🤸", R.string.sport_name_gymnastics),
+    CYCLING("Cycling", "🚴", R.string.sport_name_cycling),
+    HORSE_RACING("Horse Racing", "🏇", R.string.sport_name_horse_racing),
+    OTHER("More Sports", "🏅", R.string.sport_name_other);
 
     /** Home team first with "v" (UK style) instead of away team first with "at" (US style). */
     val homeFirst: Boolean get() = this == FOOTBALL || this == RUGBY || this == RUGBY_LEAGUE || this == CRICKET || this == AUSSIE_RULES

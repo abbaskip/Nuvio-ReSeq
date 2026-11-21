@@ -146,7 +146,7 @@ class CalendarSportsTest {
         every { schedules.fetch(match { batch -> batch.any { it.id == id && it.espnPath != null } },
             any(), saturday.toEpochDay(), zone, capture(calls)) } returns flowOf(CalendarFixtureResult("nba-month", listOf(event), false))
         raw.value = SportsFollows(leagues = setOf(id)).toJson()
-        assertEquals("Channel TBC", rows(saturday).single().detail)
+        assertEquals("", rows(saturday).single().detail)
         assertEquals("saturday", rows(saturday, refresh = true).single().contentId)
         assertEquals(listOf(false, true), calls)
         val shell = League(id, Sport.BASKETBALL, "NBA", "NBA")

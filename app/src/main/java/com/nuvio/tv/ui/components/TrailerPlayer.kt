@@ -309,7 +309,8 @@ fun TrailerPlayer(
                 Lifecycle.Event.ON_PAUSE,
                 Lifecycle.Event.ON_STOP -> {
                     hostResumed = false
-                    resolvedPool?.stopIfOwner(ownerToken)
+                    // Backgrounding the activity also cancels a transfer between its screens.
+                    if (resolvedPool?.isOwnerOrFree(ownerToken) == true) resolvedPool.stop()
                 }
                 // Do NOT release on destroy — the pool owns the lifecycle.
                 else -> Unit

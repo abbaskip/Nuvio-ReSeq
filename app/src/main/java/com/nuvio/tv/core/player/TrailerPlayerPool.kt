@@ -152,7 +152,7 @@ class TrailerPlayerPool @Inject constructor(
     fun acquire(): ExoPlayer? {
         if (released.get()) return null
         if (yielded.get()) {
-            // Reclaim was not called yet but someone wants the player â€” rebuild.
+            // Reclaim was not called yet but someone wants the player — rebuild.
             reclaim()
         }
         val player = _player ?: createPlayer().also {
@@ -400,7 +400,7 @@ class TrailerPlayerPool @Inject constructor(
             .setTrackSelector(trackSelector)
             .setBandwidthMeter(
                 DefaultBandwidthMeter.Builder(context)
-                    .setInitialBitrateEstimate(50_000_000L) // 50 Mbps â€“ force highest HLS variant from start
+                    .setInitialBitrateEstimate(50_000_000L) // 50 Mbps – force highest HLS variant from start
                     .build()
             )
             .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS)

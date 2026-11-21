@@ -21,6 +21,11 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -85,6 +90,52 @@ class CalendarSportsTest {
         assertTrue(rows().all { it.followedTeam == null })
         raw.value = SportsFollows().toJson()
         assertTrue(rows().isEmpty())
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test fun overviewReusesCompletedDaysAndOnlyFinishesChecksForDaysActuallyVisited() = runTest {
+        val nba = SportsCatalog.league("basketball/nba")!!
+        val first = today.toEpochDay()
+        val selected = MutableStateFlow(first)
+        val dated = MutableStateFlow(listOf(nba))
+        val calls = mutableListOf<Pair<Long, Boolean>>()
+        every { schedules.dayLeagues(any(), any(), zone) } returns dated
+        every { schedules.fetch(any(), match { it.days == 1 }, any(), zone, any()) } answers {
+            val date = thirdArg<Long>()
+            val force = arg<Boolean>(4)
+            flow {
+                calls += date to force
+                kotlinx.coroutines.delay(300)
+                val events = if (date == first) listOf(fixture("home", nba.id, 0)) else emptyList()
+                emit(CalendarFixtureResult("day", events, false))
+            }
+        }
+        raw.value = SportsFollows(leagues = setOf(nba.id)).toJson()
+        val displays = mutableListOf<CalendarDisplay>()
+        backgroundScope.launch {
+            local.sports(7, zone, CalendarWindow(first, first + 6), selected, true, overview = true).toList(displays)
+        }
+        suspend fun stay(date: Long, ms: Long = 600) {
+            selected.value = date
+            advanceTimeBy(ms)
+            runCurrent()
+        }
+        stay(first)
+        assertEquals(listOf("home"), displays.last().items.map { it.contentId })
+        displays.clear()
+        stay(first + 1)
+        stay(first)
+        stay(first + 1)
+        // Moving past a column quickly doesn't start its fallback. An interrupted check can resume on a revisit.
+        stay(first + 2, 50)
+        stay(first + 3, 220)
+        stay(first)
+        stay(first + 3)
+        assertEquals(listOf(first to true, (first + 1) to false, (first + 3) to false, (first + 3) to false), calls)
+        assertTrue(displays.all { it.status == CalendarStatus.READY && it.items.single().contentId == "home" })
+        dated.value = listOf(nba, SportsCatalog.league("soccer/eng.1")!!)
+        stay(first + 3)
+        assertEquals(5, calls.size)
     }
 
     @Test fun saturdayFixturesLoadWithoutAnyHubSnapshotAndRefreshFetchesIndependently() = runBlocking {

@@ -48,6 +48,7 @@ internal class CalendarLocalListings @Inject constructor(
     private data class Airings(val names: Map<String, String> = emptyMap(), val events: List<SportsEvent> = emptyList(),
         val loading: Boolean = false, val failed: Boolean = false)
     private data class Schedule(val events: List<SportsEvent>, val loading: Boolean, val failed: Boolean = false)
+    private data class DayCheck(val leagues: List<League>, val until: Long, val failed: Boolean)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun sports(profile: Int, zone: ZoneId, window: CalendarWindow, day: StateFlow<Long>, force: Boolean, overview: Boolean = false,
@@ -70,17 +71,7 @@ internal class CalendarLocalListings @Inject constructor(
                 val providers = leagues.filter { !it.id.startsWith("tsdb/") || it.id in explicitIds || SportsCompetitions.canonicalId(it.id) !in periodIds }
                 val provider = schedule(providers, window, day.value, zone, force)
                 val byId = (saved.savedLeagues.values + guideLeagues + leagues).associateBy { it.id }
-                val visited = mutableMapOf<Long, List<SportsEvent>>()
-                val refreshDay = day.value
-                val daily = day.flatMapLatest { date ->
-                    schedules.get().dayLeagues(providers, date, zone).flatMapLatest { dated ->
-                        schedule(dated, CalendarWindow(date, date), date, zone, force && date == refreshDay)
-                    }.map { games ->
-                        val events = if (games.loading) (games.events + visited[date].orEmpty()).distinctBy { it.id } else games.events
-                        visited[date] = events
-                        games.copy(events = visited.values.flatten())
-                    }
-                }
+                val daily = dailySchedule(providers, day, zone, force, overview)
                 val guideDays = if (overview) flowOf(day.value) else day
                 val tv = guideDays.flatMapLatest { date ->
                     airings(guideLeagues, settings, follows.words, date, zone, now, if (overview) window else CalendarWindow(date, date))
@@ -96,6 +87,36 @@ internal class CalendarLocalListings @Inject constructor(
                 }.distinctUntilChanged())
             }
         }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun dailySchedule(providers: List<League>, selected: StateFlow<Long>, zone: ZoneId, force: Boolean, overview: Boolean) = flow {
+        // Scoped to this window, profile, follow set and refresh. Keep empty results as well as games.
+        val visited = mutableMapOf<Long, List<SportsEvent>>()
+        val completed = mutableMapOf<Long, DayCheck>()
+        val initialDay = selected.value
+        val daily = selected.flatMapLatest { date ->
+            schedules.get().dayLeagues(providers, date, zone).transformLatest { leagues ->
+                val checked = completed[date]
+                if (checked != null && checked.leagues == leagues && android.os.SystemClock.elapsedRealtime() < checked.until) {
+                    emit(Schedule(visited.values.flatten(), false, checked.failed))
+                    return@transformLatest
+                }
+                if (overview && date != initialDay && leagues.isNotEmpty()) delay(180)
+                val refresh = force && date == initialDay && checked?.leagues != leagues
+                schedule(leagues, CalendarWindow(date, date), date, zone, refresh).collect { games ->
+                    visited[date] = if (games.loading) (games.events + visited[date].orEmpty()).distinctBy { it.id } else games.events
+                    // Day-specific fallback lookups can fill in an open overview without shifting its grid.
+                    val showLoading = games.loading && (!overview || completed.isEmpty())
+                    if (!games.loading) {
+                        val ttl = if (games.failed) CalendarPolicy.RETRY_MS else CalendarPolicy.FRESH_MS
+                        completed[date] = DayCheck(leagues, android.os.SystemClock.elapsedRealtime() + ttl, games.failed)
+                    }
+                    emit(Schedule(visited.values.flatten(), showLoading, games.failed))
+                }
+            }
+        }
+        emitAll(daily.distinctUntilChanged())
+    }
 
     private fun schedule(leagues: List<League>, window: CalendarWindow, day: Long, zone: ZoneId, force: Boolean): Flow<Schedule> = flow {
         if (leagues.isEmpty()) { emit(Schedule(emptyList(), false)); return@flow }

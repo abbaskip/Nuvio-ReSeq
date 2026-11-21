@@ -34,6 +34,7 @@ class ProfileManagerRemovedProfileDataTest {
         tempDir = Files.createTempDirectory("profile_manager_test").toFile()
         val context = mockk<Context>(relaxed = true) {
             every { filesDir } returns tempDir
+            every { cacheDir } returns File(tempDir, "cache")
         }
         val profileDataStore = mockk<ProfileDataStore>(relaxed = true) {
             every { profilesList } returns storedProfiles
@@ -99,7 +100,8 @@ class ProfileManagerRemovedProfileDataTest {
         "datastore/trakt_auth_store_p$id.preferences_pb.bak",
         "cw_enrichment/inprogress_$id.json",
         "cw_enrichment/nextup_$id.json",
-        "plugin_code_p$id/scraper.js"
+        "plugin_code_p$id/scraper.js",
+        "cache/calendar/profile-$id-week-123.json"
     ).map(::file)
 
     private fun file(path: String) = File(tempDir, path).apply {

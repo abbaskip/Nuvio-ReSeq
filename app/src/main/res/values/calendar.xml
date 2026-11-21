@@ -1,4 +1,5 @@
-<resources>
+<!-- Calendar uses English fallback in locales awaiting translations. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="nav_calendar">Calendar</string>
     <string name="calendar_previous_week">Previous week</string>
     <string name="calendar_next_week">Next week</string>
@@ -17,7 +18,6 @@
     <string name="calendar_digital">Digital rental / purchase</string>
     <string name="calendar_disc">On disc</string>
     <string name="calendar_sport">Sport</string>
-    <string name="calendar_followed_team">★ %1$s</string>
     <string name="calendar_day_view">Day</string>
     <string name="calendar_week_view">Week</string>
     <string name="calendar_month_view">Month</string>

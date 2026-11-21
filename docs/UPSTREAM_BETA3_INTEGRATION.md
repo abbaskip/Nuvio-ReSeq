@@ -4,7 +4,7 @@ This integration starts from ReSeq 1.0.0-rc.2 (`019d636b3`) and compares NuvioTV
 
 ## Trailers and Home
 
-Enable **Continue Trailer in Details** in the focused-poster autoplay settings. A trailer that is already playing can carry its player, position and video into Details. The handoff expires if the destination never claims it. Opening a cast or network page pauses the trailer. ReSeq keeps its separate IPTV On Demand preview pool.
+In **Settings → Layout → Focused Poster**, enable **Autoplay Trailer**, then **Continue Trailer in Details**. Continuation is off by default. If autoplay is hidden in a portrait-poster layout, first enable **Expand Focused Poster to Backdrop**. A trailer that is already playing can carry its player, position and video into Details. The handoff expires if the destination never claims it. Opening a cast or network page pauses the trailer. ReSeq keeps its separate IPTV On Demand preview pool.
 
 The beta also adds trailer captions, a collapsed-poster hero option, season posters in the season tabs and longer reading time for scrolling descriptions. Home keeps remote focus in the open sidebar while loading and on a Continue Watching card that moves after playback. Classic layouts and the profile editor pick up the RTL fixes.
 
@@ -17,7 +17,7 @@ The beta also adds trailer captions, a collapsed-poster hero option, season post
 | Plex | Absent from the native provider list | Sign in at plex.tv/link and select a server |
 | Silo | Absent from the native provider list | Enter the server address and use its code or password flow |
 
-Plex and Silo use upstream's provider implementations for search, external-ID matching, playback, transcoding and progress reporting. All four are under **Settings → Media Servers**. [Provider implementations](../app/src/main/java/com/nuvio/tv/data/mediaserver)
+Plex and Silo use upstream's provider implementations for search, external-ID matching, playback, transcoding and progress reporting. All four are under **Settings → Media Servers**. The app creates the server clients on first use. A profile with no servers can open without initializing the clients. [Provider implementations](../app/src/main/java/com/nuvio/tv/data/mediaserver)
 
 ## Collections, tracking and playback
 
@@ -27,7 +27,7 @@ Plex and Silo use upstream's provider implementations for search, external-ID ma
 - Catalog images use bounded request sizes. Hardware bitmaps remain opt-in on ReSeq. Player changes include low-memory Dolby Vision profile 7 back-buffer handling and a single HTTP/2 retry for eligible 403 responses.
 - Other changes cover profile sync for ambient settings, movie/series filters and talk-show guest appearances in filmography, sorting upcoming episodes by release time, plugin repository deletion confirmation and updated translations.
 
-New labels preserve the translations supplied upstream. For the remaining gaps, the integration reuses existing ReSeq wording and adds machine-assisted translations across 37 locales. Product names and format arguments were checked, and the trailer toggle and rating action received individual wording checks. A native-speaker review of every locale is still outstanding.
+New labels preserve the translations supplied upstream. For the remaining gaps, the integration reuses existing ReSeq wording and adds machine-assisted translations across 37 locales. Product names and format arguments were checked, and the trailer toggle and rating action received individual wording checks. The media server screen also passed a TV remote-navigation test in Arabic. Native-speaker review across all 37 locales is still outstanding.
 
 ## Cloudstream comparison
 
@@ -43,6 +43,17 @@ Upstream's diagnostic runner can report the class that implements search, HTTP s
 
 ## Verification on Android TV
 
-The full debug JVM suite passed 4,424 tests and skipped two opt-in tests. The 60 Plex and Silo cases used fixture servers. On an Android 14 x86 TV emulator, 25 instrumentation tests exercised both trailer handoff paths, collection and settings focus, the four server entries, the Silo address form and Cloudstream preferences. Each handoff loaded a single media item and advanced its playhead after navigation. The downloaded English speech model matched its pinned hashes on the device, and a separate test ran it through the native recognizer.
+The full debug JVM suite passed 4,425 tests and skipped two opt-in tests. The 60 Plex and Silo cases used fixture servers. On an Android 14 x86 TV emulator, 25 instrumentation tests exercised both trailer handoff paths, collection and settings focus, the four server entries, the Silo address form and Cloudstream preferences. Each handoff loaded a single media item and advanced its playhead after navigation. The downloaded English speech model matched its pinned hashes on the device, and a separate test ran it through the native recognizer.
 
-The signed-out startup comparison used eight process-cold launches per build, in alternating blocks on the same emulator. Median time to the first activity frame was 5.14 seconds for RC2 and 4.04 seconds for the integration. A clean ARM64 debug APK grew from 100.77 MiB to 112.67 MiB. The optional speech model is a separate download. Live media-server accounts and physical-device Dolby Vision playback still require testing.
+The hosted build tested the integration, checked the packaged service configuration in all five debug APKs, and passed strict lint with zero new errors. The report lists 437 new warnings. The ARM64 debug APK grew from 100.77 MiB to 112.98 MiB. The optional English speech model is a separate download of about 74 MB. [Hosted validation and debug APK](https://github.com/abbaskip/Nuvio-ReSeq/actions/runs/44926659698)
+
+### Cold startup
+
+Both standard x86 debug APKs used the same signed-out profile on the 2 GB Android TV emulator. Each result is the median of 16 process-cold launches per build in alternating blocks, measured with Android's activity launch timer. The benchmark waited for a successful cold launch and checked that the process survived. The verify-only comparison resumed after an emulator restart between its two balanced halves.
+
+| Android compilation mode | ReSeq RC2 | Integration | Difference |
+| --- | ---: | ---: | ---: |
+| Ahead-of-time compilation | 1,424 ms | 1,462.5 ms | +38.5 ms |
+| Verify only | 1,596.5 ms | 1,670.5 ms | +74 ms |
+
+The two builds' timings overlapped in both modes. Individual blocks favored different builds. These measurements cover the first activity frame on the emulator. Startup on a physical TV, live media-server accounts and physical Dolby Vision playback still require testing.

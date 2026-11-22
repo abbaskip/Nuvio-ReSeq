@@ -1,0 +1,110 @@
+name: ReSeq Mobile signed alpha
+
+on:
+  push:
+    branches: ['release/mobile-v*-alpha.*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+        with:
+          encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+      - name: Check candidate and prepare approved app services
+        env:
+          APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+        run: |
+          test -s "releases/${GITHUB_REF_NAME#release/}.md"
+          python3 -c "from pathlib import Path; from scripts.upstream_sync import assert_release_allowed; assert_release_allowed(Path('.'))"
+          python3 scripts/ci_app_config.py --output local.properties
+      - name: Assemble the signed mobile release
+        env:
+          KEYSTORE: ${{ secrets.NUVIO_RELEASE_KEYSTORE_BASE64 }}
+          NUVIO_RELEASE_KEY_ALIAS: ${{ secrets.NUVIO_RELEASE_KEY_ALIAS }}
+          NUVIO_RELEASE_KEY_PASSWORD: ${{ secrets.NUVIO_RELEASE_KEY_PASSWORD }}
+          NUVIO_RELEASE_STORE_PASSWORD: ${{ secrets.NUVIO_RELEASE_STORE_PASSWORD }}
+        run: |
+          set -eu
+          umask 077
+          export NUVIO_RELEASE_STORE_FILE="$RUNNER_TEMP/reseq-mobile.jks"
+          trap 'rm -f "$NUVIO_RELEASE_STORE_FILE"' EXIT
+          printf '%s' "$KEYSTORE" | base64 --decode > "$NUVIO_RELEASE_STORE_FILE"
+          ./gradlew :app:assembleMobileRelease --init-script scripts/ci.gradle -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --no-parallel --max-workers=2 --console=plain
+      - name: Verify packaged mobile services, identity, signer and native playback libraries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_CONFIG: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+        run: |
+          gh release download v1.0.0-rc.3.1 --pattern '*-arm64-v8a.apk' --dir build/signer-reference
+          python3 scripts/mobile_parity.py
+          python3 scripts/verify_apk_services.py --properties local.properties --apk-dir app/build/outputs/apk/mobile/release
+          python3 scripts/verify_cs3_runtime.py app/build/outputs/apk/mobile/release/app-mobile-universal-release.apk
+          python3 - <<'PY'
+          import os, shutil, sys
+          from pathlib import Path
+          from zipfile import ZipFile
+          sys.path.insert(0, 'scripts')
+          from mobile_parity import MOBILE_ID, check_mobile_manifest
+          from prepare_release_apks import ABIS, certificate, identity, validate_native_outputs
+          sdk = Path(os.environ['ANDROID_HOME']) / 'build-tools/36.0.0'
+          version = os.environ['GITHUB_REF_NAME'].removeprefix('release/mobile-v')
+          outputs = {abi: Path(f'app/build/outputs/apk/mobile/release/app-mobile-{abi}-release.apk') for abi in (*ABIS, 'universal')}
+          check_mobile_manifest(Path('app/build/intermediates/merged_manifests/mobileRelease/processMobileReleaseManifest/universal/AndroidManifest.xml'))
+          validate_native_outputs(outputs)
+          reference, = Path('build/signer-reference').glob('*.apk')
+          signer = certificate(str(sdk / 'apksigner'), reference)
+          out = Path('build/mobile-downloads')
+          out.mkdir()
+          for abi in ('universal', 'arm64-v8a'):
+              apk = outputs[abi]
+              package, code, label = identity(str(sdk / 'aapt'), apk)
+              if package != MOBILE_ID or code < 1 or label != version or certificate(str(sdk / 'apksigner'), apk) != signer:
+                  raise ValueError(f'Unexpected package, version or signer for {apk}')
+              with ZipFile(apk) as archive:
+                  for name in ('LICENSE', 'NOTICE-MOBILE.md'):
+                      if archive.read('assets/notices/' + name) != Path('app/src/mobile/assets/notices', name).read_bytes():
+                          raise ValueError(f'Missing or incorrect packaged {name}')
+              shutil.copyfile(apk, out / f'Nuvio-ReSeq-Mobile-v{version}-{abi}.apk')
+          PY
+          (cd build/mobile-downloads && sha256sum *.apk > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v6
+        with:
+          name: mobile-alpha-apks
+          path: build/mobile-downloads/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Remove build inputs
+        if: always()
+        run: rm -f local.properties
+
+  touch-test:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v6
+        with:
+          name: mobile-alpha-apks
+          path: build/mobile-downloads
+      - name: Verify downloaded bytes and enable emulator acceleration
+        run: |
+          (cd build/mobile-downloads && sha256sum -c SHA256SUMS.txt)
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_5
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: python3 scripts/mobile_smoke.py --apk build/mobile-downloads/*-universal.apk

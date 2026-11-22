@@ -64,7 +64,7 @@ def fixture():
                 thread.join()
 
 
-def run(adb, serial):
+def run(adb, serial, apk):
     if not re.fullmatch("emulator-[0-9]+", serial):
         raise ValueError("Use an isolated emulator serial for the touch smoke test")
 
@@ -122,7 +122,6 @@ def run(adb, serial):
             raise AssertionError(f"{name} rendered at unexpected dimensions: {width}x{height}")
         (output / (name + ".png")).write_bytes(png)
 
-    apk = ROOT / "app/build/outputs/apk/mobile/debug/app-mobile-x86_64-debug.apk"
     command("install", "-r", str(apk), timeout=180)
     size = shell("wm", "size")
     density = shell("wm", "density")
@@ -197,5 +196,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--adb", default=shutil.which("adb") or "adb")
     parser.add_argument("--serial", default=os.environ.get("ANDROID_SERIAL", "emulator-5554"))
+    parser.add_argument("--apk", type=Path, default=ROOT / "app/build/outputs/apk/mobile/debug/app-mobile-x86_64-debug.apk")
     options = parser.parse_args()
-    run(options.adb, options.serial)
+    run(options.adb, options.serial, options.apk)

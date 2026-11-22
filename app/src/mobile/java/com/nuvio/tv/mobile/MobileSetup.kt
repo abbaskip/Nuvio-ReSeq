@@ -20,7 +20,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 private data class SourceRemoval(val name: String, val remove: () -> Unit)
 
 @Composable
-internal fun MobileSetup(vm: LiveTvSettingsViewModel = hiltViewModel()) {
+internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel = hiltViewModel()) {
     val lists by vm.playlists.collectAsStateWithLifecycle()
     val guides by vm.epgSources.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
@@ -31,6 +31,7 @@ internal fun MobileSetup(vm: LiveTvSettingsViewModel = hiltViewModel()) {
     var removal by remember { mutableStateOf<SourceRemoval?>(null) }
     val uri = LocalUriHandler.current
     LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (!driveOnly) {
         item { SectionTitle("Playlists and guides") }
         items(lists, key = { "playlist-" + it.id }) { source ->
             SourceRow(source.name, source.enabled, remove = {
@@ -47,9 +48,10 @@ internal fun MobileSetup(vm: LiveTvSettingsViewModel = hiltViewModel()) {
         item { Action("Add XMLTV guide") { add = "XMLTV guide" } }
         if (lists.isNotEmpty() || guides.isNotEmpty()) item { Action("Refresh sources") { vm.refreshAll() } }
         (status.error ?: status.message)?.let { item { Label(it) } }
-        item { SectionTitle("Drive backup") }
+        } else {
+        item { Label("Connect the same Google account you use on ReSeq TV, phones and tablets. Choose Restore to load your saved setup.", Modifier.padding(8.dp)) }
         if (!backup.available) item { Label("Google Drive sign-in is unavailable in this build.") }
-        else if (!backup.connected) item { Action("Connect Google Drive") { drive.beginSignIn() } }
+        else if (!backup.connected) item { Action("Connect Google Drive", onClick = drive::connectForRestore) }
         else {
             backup.email?.let { item { Label(it) } }
             item { SourceRow("Automatic sync", backup.autoSync, change = drive::setAutoSync) }
@@ -58,9 +60,13 @@ internal fun MobileSetup(vm: LiveTvSettingsViewModel = hiltViewModel()) {
             }
         }
         backup.message?.let { item { Label(it, small = true) } }
+        if (backup.lastSyncMs > 0) item { Label("Last sync · " + java.text.DateFormat.getDateTimeInstance().format(java.util.Date(backup.lastSyncMs)), small = true) }
+        }
+        if (!driveOnly) {
         item { SectionTitle("Credits") }
         item { Label("Mobile layout and touch adaptations from homelessbrian/NuvioPlusIPTV-Mobile, based on Nuvio Mobile and ghbarker’s phone port. Licensed under GNU GPL v3.", small = true) }
         item { Action("Mobile source") { uri.openUri("https://github.com/homelessbrian/NuvioPlusIPTV-Mobile/tree/cbd3d8575217d85ff251d831b6cf72b90c1e4b4d") } }
+        }
     }
     add?.let { kind ->
         var name by remember { mutableStateOf("") }
@@ -111,16 +117,20 @@ internal fun MobileSetup(vm: LiveTvSettingsViewModel = hiltViewModel()) {
             Column(Modifier.padding(16.dp)) {
                 SectionTitle("Connect Google Drive")
                 Label("Enter code " + prompt.userCode + " on Google’s sign-in page.")
-                Action("Open sign-in page") { uri.openUri(prompt.url) }
+                Action("Open sign-in page") { uri.openUri(prompt.qrUrl) }
                 Action("Cancel", onClick = drive::cancelSignIn)
             }
         }
     }
     confirmation?.let { action ->
+        val remote by produceState<com.nuvio.tv.livetv.sync.LiveTvDriveSync.BackupInfo?>(null, action) {
+            if (action == "Restore") value = drive.backupInfo()
+        }
         AlertDialog(onDismissRequest = { confirmation = null }, shape = RectangleShape,
             title = { Label("$action?", strong = true) }, text = {
                 Label(when (action) {
-                    "Restore" -> "Replace this device’s IPTV, Sports, TVDB episode orders and keys, Shuffle choices and mixes with the saved configuration for matching profiles."
+                    "Restore" -> listOfNotNull(remote?.let { "Saved by " + it.device + " on " + java.text.DateFormat.getDateTimeInstance().format(java.util.Date(it.savedAtMs)) },
+                        "Restore IPTV playlists and logins, guides, Sports settings, TVDB keys and orders, Shuffle choices and mixes for matching profiles.").joinToString("\n\n")
                     "Back up" -> "Save this device’s ReSeq configuration to Google Drive."
                     else -> "Stop syncing this device with Google Drive."
                 })

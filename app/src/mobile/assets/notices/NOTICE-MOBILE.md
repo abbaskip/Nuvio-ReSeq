@@ -5,6 +5,8 @@ ReSeq Mobile adapts touch UI from **NuvioPlusIPTV-Mobile** by **homelessbrian an
 The reference files under `composeApp/src/commonMain/kotlin/com/nuvio/app` are:
 
 - `MainTabsDestination.kt` for touch tab navigation.
+- `features/home/components/HomeHeroSection.kt`, `features/search/SearchScreen.kt` and `features/library/LibraryScreen.kt` for swipeable highlights, search results and adaptive library posters.
+- `features/home/HomeScreen.kt`, `features/details/MetaDetailsScreen.kt` and `features/downloads/DownloadActionSheet.kt` for poster rows, title actions and the download sheet.
 - `features/livetv/ui/LiveTvGuideScreen.kt` for the scrolling timeline, channel column, group strip and programme actions.
 - `features/livetv/ui/LiveTvPlayerOverlay.kt` for channel swipes and the portrait, tablet and landscape channel panel.
 - `features/livetv/ui/CalendarScreen.kt` for the week strip, month grid, selected-day agenda and entry sheet.

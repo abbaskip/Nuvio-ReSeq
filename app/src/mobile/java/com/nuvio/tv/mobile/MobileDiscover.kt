@@ -24,7 +24,9 @@ import com.nuvio.tv.ui.screens.settings.TmdbSettingsViewModel
 import com.nuvio.tv.ui.screens.tvmix.TvMixViewModel
 
 @Composable
-internal fun MobileDiscover(vm: AdvancedDiscoverViewModel = hiltViewModel(), mix: TvMixViewModel = hiltViewModel()) {
+internal fun MobileDiscover(openTitle: (MetaPreview, VideoAction) -> Unit,
+    playMixEpisode: (com.nuvio.tv.domain.model.TvMixSelection) -> Unit,
+    vm: AdvancedDiscoverViewModel = hiltViewModel(), mix: TvMixViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     var sheet by rememberSaveable { mutableStateOf<String?>(null) }
     var detail by remember { mutableStateOf<MetaPreview?>(null) }
@@ -46,7 +48,8 @@ internal fun MobileDiscover(vm: AdvancedDiscoverViewModel = hiltViewModel(), mix
         LazyVerticalGrid(GridCells.Adaptive(116.dp), contentPadding = PaddingValues(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(state.items, key = { it.apiType + "/" + it.id }) { item ->
-                Column(Modifier.background(MaterialTheme.colorScheme.surface).clickable { detail = item }) {
+                Column(Modifier.background(MaterialTheme.colorScheme.surface).combinedClickable(
+                    onClick = { detail = item }, onLongClickLabel = "Title actions", onLongClick = { detail = item })) {
                     AsyncImage(item.poster, null, Modifier.fillMaxWidth().aspectRatio(2f / 3), contentScale = ContentScale.Crop)
                     Label(item.name, Modifier.padding(6.dp), small = true, lines = 2)
                 }
@@ -94,13 +97,19 @@ internal fun MobileDiscover(vm: AdvancedDiscoverViewModel = hiltViewModel(), mix
                 state.validationError?.let { item { Label(validationMessage(it)) } }
             }
         }
-        "mixes" -> TouchSheet({ mix.end(); sheet = null }) { MixList(mix) }
+        "mixes" -> TouchSheet({ mix.end(); sheet = null }) { MixList(mix) { selection ->
+            sheet = null
+            playMixEpisode(selection)
+        } }
         "key" -> MobileTmdbKey { sheet = null }
     }
     detail?.let { item -> TouchSheet({ detail = null }) {
         Column(Modifier.verticalScroll(rememberScrollState()).imePadding().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)) {
             SectionTitle(item.name)
+            Action("Title details") { detail = null; openTitle(item, VideoAction.Details) }
+            Action("Play manually") { detail = null; openTitle(item, VideoAction.Manual) }
+            Action("Download") { detail = null; openTitle(item, VideoAction.Download) }
             item.releaseInfo?.let { Label(it) }
             item.description?.let { Label(it) }
             if (item.apiType == "series" || item.apiType == "tv") {
@@ -118,7 +127,7 @@ internal fun MobileDiscover(vm: AdvancedDiscoverViewModel = hiltViewModel(), mix
 }
 
 @Composable
-private fun MixList(vm: TvMixViewModel) {
+private fun MixList(vm: TvMixViewModel, play: (com.nuvio.tv.domain.model.TvMixSelection) -> Unit) {
     val mixes by vm.mixes.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
     LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -131,7 +140,10 @@ private fun MixList(vm: TvMixViewModel) {
                 Action("Unwatched only", selected = mix.unwatchedOnly) {
                     vm.save(mix.copy(unwatchedOnly = !mix.unwatchedOnly)) { vm.remix() }
                 }
-                state.selection?.let { Label(it.meta.name + " · " + it.video.title, strong = true) }
+                state.selection?.let { pick ->
+                    Label(pick.meta.name + " · " + pick.video.title, strong = true)
+                    Action("Play episode") { play(pick) }
+                }
                 state.error?.let { Label(it) }
                 if (state.loading) LinearProgressIndicator()
                 else Action("Pick another episode", onClick = vm::remix)

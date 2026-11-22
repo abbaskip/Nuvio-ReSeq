@@ -44,6 +44,8 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MobileActivity : ComponentActivity() {
     @Inject lateinit var themes: ThemeDataStore
+    @Inject lateinit var profileLocks: com.nuvio.tv.data.local.ProfileLockStateDataStore
+    @Inject lateinit var profileManager: com.nuvio.tv.core.profile.ProfileManager
     @Inject lateinit var sync: StartupSyncService
     @Inject lateinit var sports: dagger.Lazy<com.nuvio.tv.livetv.sports.SportsRepository>
     private var ready = false
@@ -68,7 +70,17 @@ class MobileActivity : ComponentActivity() {
                 MaterialTheme(colorScheme = darkColorScheme(primary = c.Secondary, onPrimary = c.OnSecondary,
                     background = c.TintedBackground, surface = c.TintedPanel, surfaceVariant = c.TintedControl,
                     onSurface = c.TextPrimary, onSurfaceVariant = c.TextSecondary, onBackground = c.TextPrimary)) {
-                    MobileShell()
+                    val active by profileManager.activeProfileId.collectAsStateWithLifecycle()
+                    val locks by profileLocks.pinEnabled.collectAsStateWithLifecycle(initialValue = null)
+                    var unlockedProfile by remember { mutableStateOf<Int?>(null) }
+                    key(active) {
+                        val locked = locks?.get(active) == true
+                        when {
+                            locks == null -> CircularProgressIndicator()
+                            locked && unlockedProfile != active -> ProfileUnlock(active) { unlockedProfile = active }
+                            else -> CompositionLocalProvider(LocalSelectedProfile provides { id -> unlockedProfile = id }) { MobileShell() }
+                        }
+                    }
                 }
             }
         }
@@ -96,34 +108,48 @@ class MobileActivity : ComponentActivity() {
     }
 }
 
-private enum class Tab(val label: String, val icon: ImageVector) {
-    GUIDE("Guide", Icons.Default.LiveTv), DISCOVER("Discover", Icons.Default.Explore), SPORTS("Sports", Icons.Default.Sports),
-    CALENDAR("Calendar", Icons.Default.CalendarMonth), SOURCES("Setup", Icons.Default.Settings)
+internal enum class Tab(val label: String, val icon: ImageVector) {
+    HOME("Home", Icons.Default.Home),
+    SEARCH("Search", Icons.Default.Search), LIBRARY("Library", Icons.Default.Bookmarks),
+    GUIDE("Live TV", Icons.Default.LiveTv), SPORTS("Sports", Icons.Default.Sports),
+    CALENDAR("Calendar", Icons.Default.CalendarMonth), SOURCES("Settings", Icons.Default.Settings)
 }
 
 @Composable
 private fun MobileShell(live: LiveTvViewModel = hiltViewModel()) {
-    var tab by rememberSaveable { mutableStateOf(Tab.GUIDE) }
+    var tab by rememberSaveable { mutableStateOf(Tab.HOME) }
+    var inVodPlayer by remember { mutableStateOf(false) }
+    var liveSetup by rememberSaveable { mutableStateOf(false) }
     val holder = rememberSaveableStateHolder()
     var playing by remember { mutableStateOf(false) }
     val exitPlayer = { live.playback.stop(); playing = false }
-    BackHandler(playing || tab != Tab.GUIDE) {
-        if (playing) exitPlayer() else tab = Tab.GUIDE
+    BackHandler(playing || tab != Tab.HOME) {
+        if (playing) exitPlayer() else tab = Tab.HOME
     }
     val c = MaterialTheme.colorScheme
     BoxWithConstraints(Modifier.fillMaxSize().background(c.background).safeDrawingPadding()) {
         val tablet = minOf(maxWidth, maxHeight) >= 600.dp
-        val tabWidth = if (tablet) 440.dp else maxWidth
+        val tabWidth = if (tablet) 512.dp else maxWidth
         val select: (Tab) -> Unit = { tab = it }
         val content: @Composable () -> Unit = {
             holder.SaveableStateProvider(tab.name) {
                 when (tab) {
-                    Tab.GUIDE -> MobileGuide(live, onTune = { live.preview(it); playing = true },
-                        onSetup = { tab = Tab.SOURCES })
-                    Tab.SPORTS -> MobileSports(onWatch = { live.preview(it); playing = true })
-                    Tab.CALENDAR -> MobileCalendar(onWatch = { live.preview(it); playing = true })
-                    Tab.DISCOVER -> MobileDiscover()
-                    Tab.SOURCES -> MobileSetup()
+                    Tab.HOME, Tab.SEARCH, Tab.LIBRARY -> MobileCatalog(tab, { inVodPlayer = it })
+                    Tab.GUIDE, Tab.SPORTS, Tab.CALENDAR -> Column {
+                        Row(Modifier.fillMaxWidth()) {
+                            listOf(Tab.GUIDE, Tab.SPORTS, Tab.CALENDAR).forEach { section ->
+                                Action(if (section == Tab.GUIDE) "Guide" else section.label,
+                                    Modifier.weight(1f), tab == section) { tab = section }
+                            }
+                        }
+                        when (tab) {
+                            Tab.GUIDE -> MobileGuide(live, onTune = { live.preview(it); playing = true },
+                                onSetup = { liveSetup = true; tab = Tab.SOURCES })
+                            Tab.SPORTS -> MobileSports(onWatch = { live.preview(it); playing = true })
+                            else -> MobileCalendar(onWatch = { live.preview(it); playing = true })
+                        }
+                    }
+                    Tab.SOURCES -> MobileSettings(liveSetup, { liveSetup = false })
                 }
             }
         }
@@ -131,12 +157,14 @@ private fun MobileShell(live: LiveTvViewModel = hiltViewModel()) {
         else Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             val tabs: @Composable () -> Unit = {
                 Row(Modifier.widthIn(max = tabWidth).fillMaxWidth().background(c.surface)) {
-                    Tab.entries.forEach { NavItem(it, tab, Modifier.weight(1f), select) }
+                    listOf(Tab.HOME, Tab.SEARCH, Tab.LIBRARY, Tab.GUIDE, Tab.SOURCES).forEach {
+                        NavItem(it, if (tab in listOf(Tab.SPORTS, Tab.CALENDAR)) Tab.GUIDE else tab, Modifier.weight(1f), select)
+                    }
                 }
             }
-            if (tablet) tabs()
+            if (tablet && !inVodPlayer) tabs()
             Box(Modifier.fillMaxWidth().weight(1f)) { content() }
-            if (!tablet) tabs()
+            if (!tablet && !inVodPlayer) tabs()
         }
     }
 }

@@ -19,22 +19,31 @@ The table tracks every named TV navigation destination. The rows following it co
 | --- | --- | --- |
 | `LiveTv` | Partial | Guide with group selection, synchronized time scrolling, visible-channel EPG loading and programme details. Search, locked-group PIN entry, catch-up and editing remain. |
 | `LiveTvPlayer` | Partial | Shared player surface, tap controls, swipe channel switching, channel list and in-player mini-guide. Tracks and advanced controls remain. |
-| `LiveTvSettings`, `Settings` | Partial | M3U, Xtream live accounts, XMLTV, source management and Drive backup. Stalker, recordings and other settings remain. |
+| `LiveTvSettings`, `Settings` | Partial | Settings opens account, profiles, sources, extensions, playback, tracking, Drive and IPTV. Stalker and recording setup remain. |
 | `Calendar`, `CalendarGame` | Partial | Day, week, month, profile filters, followed-sport shortcuts, fixture details, channel tuning and release sheets. Full title navigation and extended fixture statistics remain. |
 | `Sports` | Partial | My Sports, All Events and On TV Now, team follows and matched-channel tuning. Tables, extended game details and alerts remain. |
 | `AdvancedDiscover`, `TmdbSettings` | Partial | Discover filters, saved searches, results, TMDB key entry and TV Mix creation. Additional filters and full TMDB settings remain. |
-| `TV_MIX_ROUTE` | Partial | Add shows, create mixes, select unwatched episodes and preview the next pick. Source selection and playback remain. |
+| `TV_MIX_ROUTE` | Partial | Add shows, create mixes, pick unwatched episodes and play a selection. Continuous remixing remains. |
 | `LicensesAttributions` | Partial | Mobile credits and upstream source in Setup. Full attribution browser remains. |
-| `Home`, `Library`, `Search`, `Discover`, `FlickPick` | Pending | Catalogue and personal library navigation. |
-| `Detail`, `Stream`, `Player`, `PlaybackSettings` | Pending | Title detail, TVDB ordering, source selection, playback and ratings. |
+| `Home`, `Detail`, `Stream`, `Player` | Partial | Featured titles, catalogue rows, Continue Watching, episode selection, TVDB order picker, ratings, long-press download, manual source selection, local playback, seek, audio and subtitles. Trailers, cast and extended player tools remain. |
+| `Library`, `Search`, `Discover`, `PlaybackSettings` | Partial | Search installed catalogues, browse Discover, save titles, filter and sort the library, choose an engine and configure automatic source selection. Cloud files and extended settings remain. |
+| `FlickPick` | Pending | Random title discovery. |
 | `CalendarTeams`, `Multiview` | Pending | Team management and multiple live streams. |
 | `OnDemand`, `OnDemandSearch` | Pending | Provider movie and series browsing. |
-| `AddonManager`, `Plugins`, `CatalogOrder`, `CatalogSeeAll` | Pending | Extension and catalogue management. |
+| `AddonManager` | Partial | Home can install a catalogue or stream source by manifest URL. Full source management remains. |
+| `Plugins` | Partial | Install and refresh repositories and enable individual scrapers. |
+| `CatalogOrder`, `CatalogSeeAll` | Pending | Catalogue ordering and dedicated full-catalogue pages. |
 | `Collections`, `CollectionEditor`, `FolderDetail`, `CastDetail`, `TmdbEntityBrowse` | Pending | Collection, folder, cast and entity navigation. |
-| `Account`, `ManageProfiles`, `ProfileSelection`, `AuthSignIn`, `AuthQrSignIn`, `SyncCodeGenerate`, `SyncCodeClaim`, `Tracking`, `WatchParty` | Pending | Account flows, profile selection, tracking controls and shared viewing. |
-| `About`, `SupportersContributors`, `ThemeSettings` | Pending | Information and theme selection. The mobile theme reads the active profile palette. |
+| `Account`, `ManageProfiles`, `ProfileSelection`, `AuthSignIn`, `AuthQrSignIn`, `SyncCodeGenerate`, `SyncCodeClaim`, `Tracking` | Partial | Browser sign-in, custom-server email sign-in, link codes, profile creation and PIN-protected switching, Trakt and Simkl device sign-in. |
+| `WatchParty` | Pending | Shared viewing. |
+| `ThemeSettings` | Partial | Appearance selects the active profile’s ReSeq colour palette. Custom palette editing remains. |
+| `About`, `SupportersContributors` | Pending | Information and contributors. |
 | `LayoutSettings`, `LayoutSelection`, `ExperienceModeSelection` | TV only | Existing TV shell and remote layout choices. |
 
-**Embedded features.** TV Mix supports adding Discover series to existing or new mixes, unwatched-only selection and episode previews. VOD playback and continuous remixing remain pending. TVDB tags and order selection, ratings, Usenet configuration and playback, and tracking actions need mobile controls. Drive supports connection, automatic sync, backup, restore and disconnect. A credentialed build and account are required to exercise the Drive round trip.
+**Offline video.** Long-press a Home poster, the title on Details, or an episode and choose Download. Play manually lets you choose a particular source and select Download this file. Home lists completed videos under Downloads, including after an offline restart. The player looks up a completed file for the active profile and exact movie or episode before asking providers for sources. Android stores the original video container and a completion record in the app-specific Movies/ReSeq folder. Interrupted copies are excluded. Select Manage to remove a saved file. Downloads support progressive video files, including HTTP file links resolved by ReSeq. Adaptive playlists and raw torrent sources require a downloadable file alternative.
+
+**Google Drive.** In Settings, open Google Drive backup and restore and connect the same Google account as the TV. Mobile waits for you to choose Restore, Back up or Automatic sync. The apps share the Drive OAuth client and backup format. The TV release stores IPTV logins, playlists, guide settings, Sports preferences, TVDB keys and orders, mixes and shuffle choices. Profile-specific settings require matching profile IDs and names. Google sign-in is per device. A backup contains private provider credentials and should stay private.
+
+**Embedded features.** TV Mix supports adding Discover series to existing or new mixes, unwatched-only selection and episode previews. TV Mix continuous playback and extended player controls remain pending.
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

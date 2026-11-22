@@ -236,7 +236,12 @@ class LiveTvDriveSync @Inject constructor(
 
     // ------------------------------------------------------------------ sign-in
 
-    fun beginSignIn() {
+    fun beginSignIn() = beginSignIn(chooseAfterConnect = false)
+
+    /** Mobile setup lets the owner inspect the saved copy before choosing a direction. */
+    fun connectForRestore() = beginSignIn(chooseAfterConnect = true)
+
+    private fun beginSignIn(chooseAfterConnect: Boolean) {
         if (!_state.value.available) return
         signInJob?.cancel()
         signInJob = scope.launch {
@@ -285,7 +290,7 @@ class LiveTvDriveSync @Inject constructor(
                 when (token.optString("error")) {
                     "" -> {
                         store.edit().putString(KEY_MODE, mode).apply()
-                        try { onSignedIn(token) }
+                        try { onSignedIn(token, chooseAfterConnect) }
                         catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
                         catch (_: Exception) {
                             _state.value = _state.value.copy(signIn = null, busy = false,
@@ -314,7 +319,7 @@ class LiveTvDriveSync @Inject constructor(
         _state.value = _state.value.copy(signIn = null, busy = false)
     }
 
-    private suspend fun onSignedIn(token: JSONObject) {
+    private suspend fun onSignedIn(token: JSONObject, chooseAfterConnect: Boolean) {
         val requiredScope = "https://www.googleapis.com/auth/drive." + if (isAppDataMode) "appdata" else "file"
         if (requiredScope !in token.optString("scope").split(' ')) {
             _state.value = _state.value.copy(signIn = null, busy = false,
@@ -333,6 +338,13 @@ class LiveTvDriveSync @Inject constructor(
         // An explicit sign-in may be a different Google account. Never reuse its predecessor's baseline.
         clearBase()
         store.edit().remove(KEY_REFRESH).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_LAST_HASH).putString(KEY_EMAIL, email).apply()
+        if (chooseAfterConnect) {
+            store.edit().putBoolean(KEY_AUTO, false).apply()
+            _state.value = _state.value.copy(connected = true, email = email, autoSync = false, busy = false,
+                signIn = null, message = "Connected. Choose Restore to load an existing backup, or Back up to save this device.")
+            start()
+            return
+        }
         _state.value = _state.value.copy(connected = true, email = email, signIn = null, message = null)
         // First connection merges with Drive; it must not replace an existing local setup.
         push(force = true)

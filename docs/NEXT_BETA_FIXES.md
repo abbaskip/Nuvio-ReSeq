@@ -328,3 +328,26 @@ records additionally pin the exact approved, already-shipped beta 9.9 successors
 Lint task cache inputs include the checkout root to prevent stale absolute report
 locations. The immutable seed is unchanged; six allowance records were retired.
 The 19 November morning report and recovery ZIP are authoritative current evidence.
+
+
+## 23 November 2026: validated development batch held
+
+Published/dev base is RC3.1 ba3a28278328c6eef937a78dd3b326c5b54dc39c.
+The new candidate f09d75bc55870c5ad3b8a62f99d680144f459c19 is backed up on
+`automation/upstream-20261122T150304Z-295620`. It fixes saved hero-source startup
+ordering and optional Wi-Fi hardware, with three new startup/cancellation tests.
+Full exact-head validation passed: 4,464 JVM tests, two opt-in skips, zero
+failures/errors; 120 tooling tests, one Windows skip; debug APK/services,
+compiled manifest and strict lint pass. Seed and active budget unchanged.
+The ledger has 563 records; fourteen ordinary holds were reconciled with exact
+already-shipped RC3.1 patch equivalents and their full prior records retained.
+All 17 explicit declines and raw protective holds remain unchanged. Do not
+replay shipped beta.3 or Calendar/guide-theme work over current source.
+
+The maintainer explicitly deferred publication because RC3.1 was too recent.
+NO release/tag/dev push occurred. Version/code restored to RC3.1; no new release
+version assigned. Retain the committed hold and durable publication-deferral.json
+until additional work is ready for the coordinated combined release later in the
+week. A date/scheduled run alone does not clear it. Future preparation must merge
+then-current development, assign the combined version and revalidate all changes.
+See the durable 2026-11-23 report and recovery ZIP for evidence; lock released.

@@ -431,6 +431,23 @@ def beta_version_parts(version):
     return tuple(map(int, match[1].split("."))) if match else None
 
 
+def release_version_parts(version):
+    match = re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-(beta|rc)\.((?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))*)", version)
+    return ((int(match[1]), int(match[2]), int(match[3]), match[4]),
+            tuple(map(int, match[5].split(".")))) if match else None
+
+
+def require_release_version_advance(version, previous):
+    current = release_version_parts(version)
+    prior = release_version_parts(previous)
+    if current is None or prior is None:
+        raise RuntimeError("Prepare a version using the current published beta/RC convention")
+    if current[0] != prior[0]:
+        raise RuntimeError("Preserve the published release line and beta/RC channel")
+    if current[1] <= prior[1]:
+        raise RuntimeError("Release version must advance the latest published release")
+
+
 def gate(run, state):
     if run["dry_run"]:
         raise RuntimeError("Dry runs cannot publish")
@@ -472,15 +489,7 @@ def gate(run, state):
         raise RuntimeError("Release state changed or another release is running")
     contents = (worktree / "app/build.gradle.kts").read_text(encoding="utf-8-sig")
     version = re.search(r'versionName\s*=\s*"([^"]+)"', contents)[1]
-    version_parts = beta_version_parts(version)
-    if version_parts is None:
-        raise RuntimeError("Prepare a new version using ReSeq beta conventions")
-    previous_version = run["latest_tag"].removeprefix("v")
-    previous_parts = beta_version_parts(previous_version)
-    if previous_parts is None:
-        raise RuntimeError("Release version convention changed; review before publishing")
-    if version_parts <= previous_parts:
-        raise RuntimeError("Beta version must advance the latest published release")
+    require_release_version_advance(version, run["latest_tag"].removeprefix("v"))
     before = git("show", f"{run['base']}:app/build.gradle.kts", cwd=worktree)
     if int(re.search(r"versionCode\s*=\s*(\d+)", contents)[1]) <= int(re.search(r"versionCode\s*=\s*(\d+)", before)[1]):
         raise RuntimeError("versionCode must increase")

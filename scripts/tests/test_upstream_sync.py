@@ -67,6 +67,21 @@ class UpstreamSyncSafetyTest(unittest.TestCase):
         for invalid in ("0.1.0-beta.9..1", "0.1.0-beta.-1", "0.1.0-rc.9.6.1", "0.2.0-beta.9"):
             self.assertIsNone(sync.beta_version_parts(invalid))
 
+    def test_published_rc_maintenance_line_advances_numerically(self):
+        sync.require_release_version_advance("1.0.0-rc.3.2", "1.0.0-rc.3.1")
+        sync.require_release_version_advance("1.0.0-rc.3.10", "1.0.0-rc.3.9")
+        sync.require_release_version_advance("0.1.0-beta.10.2", "0.1.0-beta.10.1")
+
+    def test_schedule_cannot_change_release_family_or_channel(self):
+        for current in ("1.0.0-beta.4", "1.1.0-rc.4", "2.0.0-rc.4", "1.0.0"):
+            with self.subTest(current=current), self.assertRaises(RuntimeError):
+                sync.require_release_version_advance(current, "1.0.0-rc.3.1")
+
+    def test_rc_validation_rejects_reuse_downgrade_and_malformed_numbers(self):
+        for current in ("1.0.0-rc.3.1", "1.0.0-rc.3", "1.0.0-rc.2.9", "1.0.0-rc.3..2", "1.0.0-rc.03.2", "1.0.0-rc.-1"):
+            with self.subTest(current=current), self.assertRaises(RuntimeError):
+                sync.require_release_version_advance(current, "1.0.0-rc.3.1")
+
     def test_failed_dispatch_retry_only_accepts_own_unpublished_dev_tip(self):
         run = {"publication": {"head": "pushed"}, "branch": "review", "worktree": "."}
         job = {"head_sha": "pushed", "head_branch": "review", "status": "completed", "conclusion": "failure"}

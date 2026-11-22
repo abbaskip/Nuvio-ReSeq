@@ -4759,6 +4759,996 @@
       "reason": "Audited remerge-diff: no independent merge-resolution patch. Constituent source decisions remain authoritative; this does not integrate held parent implementations.",
       "run": "20261118T145602Z-197fcf",
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+    },
+    "826f6a0a07ff8511b7064c989daabf6c202e0d55": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Add missing Turkish translations for new settings strings.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "56f2ecd478c491f17353769daf3f70443d947994": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2cd82e7889a00c2d6e233a72a67cedd967c59a9f": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Keep configured back buffer on low-RAM devices unless DV7 conversion occurs.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "362b911407f7136f3dcd4bf856b5052f0b26f491": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Remove minBufferMs ceiling from back buffer duration in performance mode.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "48557a8940d57da17dd038f7c80fc7d35021ddc8": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "a15263778aeba28bd0546abba3574d8b42889795": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: feat(player): show the Stremio subtitle label in the subtitle list.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "12c125ef98e20675fc61d11cd5dca3df8c46c65d": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: feat(player): show the subtitle label as the title, keep the id as the description.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "67bbb3c3f3be2235e3abb7fda9c4670f97df8448": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "4ad1e8bc401df6cde8d7139dff402c3f818c2850": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: feat(home): add a hero trailer location that keeps posters collapsed.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "15286b68c48b1afc5632aa309ed3d4afc3b5a4d7": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e4afd2e3dd82176f3cd1d9306d42803928fa078f": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(profile): keep avatar picker focus overrides on the start side in RTL.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "35157436e10c9ba26680d8edd89141f39f63ad07": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(profile): link the side panel to the avatar grid on the end side in RTL.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "1391e6bdc2f27547c63dea28f92b272f8487645b": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "6852ae5509c1214aac5dab77b66cd9170cac856f": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Show subtitles on trailers.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "d8ba702fe4ea625ed138e6382adbb66125fac1ed": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Show subtitles on trailers.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "ec40aa9cf76198b8527fb153dffaa7cd52b0414d": {
+      "outcome": "equivalent",
+      "reason": "Reviewed substantive trailer/reorder merge resolution as part of the final shipped beta.3 aggregate; not a no-op merge.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "c78ba3c1f7d24678d10754f71b2fc44ad5ae5eb0": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Follow the player's Strip SDH setting for trailer subtitles.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "8fcdd11daf11d54c2efa92d06f56d70f906d2844": {
+      "outcome": "equivalent",
+      "reason": "Reviewed substantive trailer/reorder merge resolution as part of the final shipped beta.3 aggregate; not a no-op merge.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "41a528be6991b86d8c1f5ee2b1a824530ce3ec3e": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Only show trailer subtitles in the preferred or secondary language.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "6e8a1df74a438b0b6c2e9976a5f35bf04e401ee8": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Style trailer subtitles with the player's subtitle settings.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "9723270ac5c5f36bc4b97441dedebb7ae0eec3c0": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Pick any trailer caption when the preferred subtitle language is none.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "7f4e21436cff671583569f9a55897fd0ca59da94": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Keep trailer subtitles off by default.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "8ab8234fc3861ad1af2e37eabb9f4be1b990192b": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Drop YouTube from the trailer subtitles description.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e7b5cdfe81b8fe02e9c07d499d8019f2bd638d16": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "696a598197a5e812a32d81c9c76a1a19b9d19fa4": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: allow HTTP/2 for streams with proxyHeaders.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "7d0757ccf238148e3b9444afb1aaf8e0d4a294c5": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: allow HTTP/2 for streams with proxyHeaders.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2cba17e43c41d541bae126f28503c79289d6cd4e": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv): retry once over HTTP/2 after a 403.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "8305282151b6edc61ef4f1885cc1bc4d18297edc": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: test(tv): cover HTTP/1.1 default and retry.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "5b38442d7761c32c4c7a8dcf5b789d4c6f466eab": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "acb970c42e30662d4c1274a83f83d486eadb6c48": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(detail): start with the handed-off trailer state to avoid a backdrop flash.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "253eaf6d4de85932e08124ca9dc83eff060091b0": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(detail): pause the trailer while cast or network pages cover the details.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "b5ebf10dd68e0b2907cc7fa07c562d23adcee95a": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: i18n(es): shorten sidebar Settings label to \"Ajustes\".  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "033cf9fe78f34d1540e42d62391186407ff5e467": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "4a74725e06d4fc52a5a05f8e7d6c9020aeaba20d": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: update latest missing strings.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "87bbd5a8a41e48663b68dbe634b3d07fca514c7e": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: update latest missing strings.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "d27f3cdf45500f4d1c176c5762770ef12f1ccf83": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: update latest missing strings.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "ff7fbd747955a1a6108ac23c296b79ad851a14b1": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2f58e48e5827512afd39f40d10fc73ac8319034e": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: add confirmation dialog before deleting a plugin repository.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "197bfc393f46c43c68975524e2e52f45e1d92bc3": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "1ffb58f37182c445c7b14857a954f9758eaaac22": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(images): add a hardware image decoding setting.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "0845ea3b7e600d390bac55f942f06f820815946b": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(home): decode posters at card size and match prefetch cache keys.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "aac6d59420b415437f9a03336b05798a2dec5572": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "503472481ed408f38e43b25379d44114ad463dd7": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Add TV drag reorder for home catalog ordering..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2ff159065fd2865ce163ecdc44ac5c930d7a77dd": {
+      "outcome": "equivalent",
+      "reason": "Reviewed substantive trailer/reorder merge resolution as part of the final shipped beta.3 aggregate; not a no-op merge.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "51926df7f72bf8a801ad4689d4d27a701ad2d6e8": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Keep the next catalog row visible when dragging reorder up on TV..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "bba6ed0d8ac26e443f7e5761f8efb044313c5d9e": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Smooth TV catalog reorder so rows slide instead of jumping..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e3ec217cf171340b7820b9f6cf1c105ccba4b044": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Keep TV catalog reorder saves in place and scroll the header with the list..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "b6ce5a3896346a867cd681bb67dd1797fea8aa70": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Restore Follow addons order so the catalog list reorders by addon manifest..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "0d5d75c8572c81350d135ebad95cbb6ff2799ab3": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Show the catalog reorder header fully when the first row is at the top..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "c5fd3a9415ca1c8effe2fca3f1585c549d601239": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Slide follow-addons collection moves across the real slot distance instead of jumping..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2dac63cd04eb49a74ef0e014bc07500f43cc97de": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Virtualize TV catalog reorder so off-screen rows stay out of composition..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "1935efd9720826aa8f2ed102889187253e3dd8dd": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Measure catalog reorder rows in one pass without snapshot height writes..  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "c24e8ba961e5dfa429581d64f1164d225edff068": {
+      "outcome": "equivalent",
+      "reason": "Reviewed substantive trailer/reorder merge resolution as part of the final shipped beta.3 aggregate; not a no-op merge.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e06a33e5f35cbc055b274a4063f77f7afc7630a4": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): keep virtualization when moving slot is off-screen.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "3a48cde1277201aad323c3ec1a2659b3f93f9479": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): fall back to inherited bring-into-view before header is measured.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e98c824f29c1dc1b4e80b40cf8005b58384cd525": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): clear stale drag offsets whenever items change outside move mode.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "8e97933bc53332bd36f9e88574de2889854d629c": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): route back cancel solely through BackHandler.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e545c227433358dda25af702afe973cd48ee4751": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: refactor(tv-reorder): keep non-UI jobs and bookkeeping out of snapshot state.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e57f288757c1366e4ff172f2600c5941f7e7e23a": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): support variable row heights in slot layout.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "65c583377ca642f492c14d07c5458e32b691c24b": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): drive slot layout from visual order, not lagging items.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "b8942df69fdc291643023fdf7c98184caee5d342": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): polish cancel scroll, exit settle and edge cases.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "a3df4c47c3c33d4343928c5b8832635d40cca901": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(catalog-order): clear stuck pending order, optimistic disable toggle, focus ring.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "fb922ee956354fcc184c7a524d318488c03e907b": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): cancel scroll target, settle animation, pending rollback.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "6e93cef32e4c16786f2fbf856b96d683999f2b3a": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): cancel scroll job lifetime, pending expiry, addonId grouping.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "66239184ca66e9fdb2b17c1e40f0b68f6b607103": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: revert(tv-reorder): drop focus ring on follow-addons row.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "abd905449dec78d8f6002f32612d9f7b97749fcf": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(catalog-order): harden pending expiry and serialized disable writes.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "febcfae282330763a7d442da652e3e44ada802ca": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(catalog-order): run confirm push uncancellably, scope expiry revert.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "7c85ed3f50d62457eaa6b8d706fac52ee550f2dd": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: feat(tv-reorder): restyle follow-addons toggle like plugin settings.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "cab4bf231367dc1b90d0caff2b10db5eb974148d": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: feat(addon-manager): reorder installed addons with TvReorderList.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "0148a8169af04bbb280504d8b5653463ca1e4bac": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): make header-aware bring-into-view opt-in.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "08dff5d0261d3858f796f9d296544c5d57f852c9": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): keep moving card visible when reaching list top.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "383f4d28dedb9f65b8b27556249894326ce73c5b": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): make edge scroll-to-top opt-in.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "193e94ef14091559bd1183a88b323b6faa22fd4b": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(addon-manager): hide addon url to match mobile addons card.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "16cfdc642efb0e967c6622eebdb97ca8255e87f5": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: style(tv-reorder): use theme focus ring color on moving card.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "1ba9d7fc3e9d161b4ad1c19924d3ce2df509c4e5": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: style(addon-manager): match reorder card button focus ring.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "c0d7345ee571b906643a1df3e58dec211c388e4c": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: style(tv-reorder): highlight done button with secondary accent.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "454934e56d77f6e6acb75e23c944501cf0a94d02": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(addon-manager): restore focus to addon card after delete dialog.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2636f591ba50b6225b03ea2533f215306e8136d1": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: feat(collections): reorder collections with TvReorderList.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "ef97973a6a7fe144da42d5c22acfed9f428b9df1": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "4fde1f3bd4f32d6b1a23326879e5e084ee91955e": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: feat(collection-editor): reorder folders with TvReorderList.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "4a1af6fc9f970bf686b46b0da65bf211434746a8": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: feat(collection-editor): reorder folder sources with TvReorderList.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "3f666298efd2723865514a5306cc9888b697ddaa": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Invalidate TvReorderList row cache when callbacks change and keep folder source keys and indices in sync.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "7510f46430f2c5bd7b13d39dc78f7d25511af8cc": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Account for header offset in TvReorderList cancel scroll, add contentPadding support, and stop key repeat immediately.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "22b2d4d75665c7c9c51baf11e041085f1da49c12": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Restore folder editor spacing, use contentPadding to avoid focus clipping, and unify reorder guards and move state cleanup.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "ad4584bae33e0217d3256a0b3e126077d830acc1": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Harden addon and collection reorder persistence with unchanged skip, NonCancellable writes, and pending order protection.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "49a0181d4bff6762935894651142c5c8e22ec84d": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Preserve collection positions during optimistic follow-addons toggle and remove dead expiry rollback branch.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "d3a8c573b2f7c3757d7698dfc359070b1192c436": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Remove temporary reorder debug logging from catalog ordering and TvReorderList.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2e384e558aef78d1ea3cba3628717e8c10883020": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Match mobile pinned-to-top collection ordering and lock behavior in catalog order and collections screens.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e5ec2c26c0f8f9133d42d0fc0c75e329784947ea": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Guard collection editor exits with unsaved-changes dialog and harden saves.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e64ae17b16dcea172dd0324a77142eb6f4c7ed28": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Reorder MDBList rating providers with TvReorderList drag interaction.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "155446fd9d787b9bcbe72a95e0f71d858c060d9b": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Use reorder icon for move actions and tidy reorder card controls.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "d4078941ad1806907d481f12c6a3a5c4db26ea15": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Hide scroll indicators at list edges during MDBList rating reorder.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "1af923e54b646462571061ae161fd61d8d197306": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Add scroll indicators to reorder screens and collection pickers.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "aa3bd46a6c4ea18cfd0f61203c6b1bb70700f569": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Add focus and scroll regression tests for collection editor.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "0e2eb7ffdcb6f2000106606644979354a82d0141": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Restore exact focus and scroll position across collection editor overlays.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "67cbb11c3fd5e948cd457ef67938984bf68c62c6": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Steer collection editor focus with entry targets and horizontal traps.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "bbf87698dd711ca167b6ae7e71923b61b7284e99": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Reorder folder source actions and widen button spacing.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "3abb3cdde8cf9a8730198dd89a8b7e2eb0c9f1ff": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Tune reorder scroll indicators and screen padding.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "86e05a786e4087701b62a80d58afbe177c94edf7": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "3a1c327354d91ef9ab061b2a34c2b29798f71c7a": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(tv-reorder): match the disabled focus ring to the button shape.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "a23a6020196a26bc958320bd85478278c8f259da": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(mdblist): move focus from the home ratings toggle to the first move button.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "ec32284f509b3e3809c0fb48722380d2578e962d": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: style(mdblist): use the shared rounded shape for the rating move button.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "abf2deb3bec1f02b34f63ef096c41f816e1a150b": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2ea52888e70eb77a7c0463cd6bfed03f98167f86": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: i18n(pl): add missing Polish translations.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "dcdafb9cbcd5e86c267b8fc6e728944e75f51dbf": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e13bf22757039d28ae043e7f9034516aa5aa6c6a": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Add Movies/Series filter to cast filmography.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "a73bacbe9e9a568c9c42f90af854200589cf751b": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2defc5246b4541d510f37b0c7dc01b95dbba173a": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Add audio-based subtitle sync fallback from Reshaped tester.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "cecb98c54b096767447e26e00d59a4e48adb3fb8": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Address audio sync review: model integrity, sampling setting, safer decoder.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "a994a5988a8c46c565169643395450255ee8fdd2": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Port tester ORT speech model and earlier model loading.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "f7458516d120648489f09400ae41d5d64de5c9cc": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Start audio sync recognition without waiting on subtitle alternatives.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "5c42e3583ed24f621bd67cf5a2f0d4212d16012d": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Keep regional variants apart when picking audio sync alternatives.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "7ccd5a782ff3686ca003c7db76d78e5aa8553df1": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Address second audio sync review, add mpv support, speed up matching.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "ea844530c0f79e3407d4949d190d17a531cb5789": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Make audio sync locks more reliable and recognition steadier.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "a02de8b8bf75ad0f7d11e404ab21e7e3f68ab3af": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Resume interrupted spot sampling; confirm bridged syncs only when corroborated.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "dacc6b603b73d990c5f492560c5270f8294504af": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Remove audio sync result toasts.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "6cff8bdaee07149fdffcec94c3fd4fe73536cf74": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Have English references ready sooner; recognise speech while they download.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e65ca2b6dd3857cd27e2d4d60ce4bc53ef4899de": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Confirm ambiguous speech-activity matches by where lines start.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "be973f6bc13ee2e18ae6f845ec3337c03cda4c42": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Lock on the audio around the playhead when the whole-film lock fails.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "bdfaf6f5d8548312087af897a512b3143cb061dc": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Prefer the 0.1% stretched rate when overlap and line starts both clearly favour it.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "a94907606235baead6fe4076b474c9a2f98f05c7": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Withdraw a speech-activity lock that minutes of audio no longer support.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "d86b769d11fd6d778daf5eb717d88150694f120e": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Keep the sync decoder thread at background priority.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "c3762be9ffeacb351f52410a655050f6f0548085": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Only fetch English references when the speech model is downloaded.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "8183651d3a632b20a4413c16a1e6aacccb109e81": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Reuse the aligner's work buffers within a search.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "beebb2f35052713421b27802690adf827b61afa0": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Shorten the audio sync setting descriptions.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "07d2117d8c4da976da81195fd3a651ea61531044": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Add Polish translations for the audio sync settings.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "1935dc4cfa6f63bdca051960aa2f830ac9e31b42": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Discard recognition results from a forgotten audio track or stream.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "27ece104aa938bc6f7769475088b8a7d8260acf5": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Size the aligner's FFTs to the subtitle side and reuse cached frame-rate results.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "0ccfff7a1b58012b715d8d3bc8c53731ec45f66f": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Prefer the 23.976-based PAL rate unless 25/24 clearly fits better.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "181369c88dc88820f4a114fc9349ced6b58b853c": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Skip searches for a clearly unmatched subtitle until more audio arrives.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "157426e47e0314c0ddf3c3a42a00a062c788c4f5": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Wait for a frame rate that clearly beats the other rate families.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "c34a73c3f6c2d1831c6638d56e79e819ee5030d8": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Show Auto/Audio syncing with a spinning cogwheel while a sync runs, and Audio synced after an audio lock.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2bb076f1f330cc05cb7411bbd1d5968de1b7ffdd": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Revert \"Show Auto/Audio syncing with a spinning cogwheel while a sync runs, and Audio synced after an audio lock\".  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "be2f5dbdd784aa8edbfd4285604d7b48a6b6d9ec": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Show the AutoSync status in the subtitle panel.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "09223b8986be848666834b3aee28e574456034be": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Show the Auto synced chip only when AutoSync changed the timing.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "baa51c0625b1352921be34930e39292716a9952f": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Keep the selected subtitle marked after browsing another language.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "e6496fa3d5c162f53be28fcfa3d8c6a129d6519b": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Keep the Auto synced chip on one line beside a long source name.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "28928d4667670d17c6d1a08db7e762ce3ebfeda9": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Let a relock use its whole \u00b11.5 s search instead of only the centre.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "d7df9740404f744c4ad2a51c4d8565316bc0db36": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Score narrow timing searches from running sums instead of FFTs.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "51b53fd16a1934ed3d4c25e322d5fcf18088d7ed": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Describe where the speech model is actually downloaded from.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "59271dd1c0a00a8bb2c80902fa4919c1341368d6": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Prepare line starts once per search, without their unknown edge frames.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "86f3220ef4df806268acedf21b774167c2120e34": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Place speech-activity syncs 100 ms earlier.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "b207161b980529d16ab8cb09f16b9f9072ba8757": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Download the ORT speech model from the NuvioMedia speech-models mirror.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "9a823204ba8b7866a222ecae4046d589fa10bb09": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: Pick audio sampling from a dialog and reword the audio sync settings.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "c66bafc3c42996bbd8cbc6c620108bc21106959d": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "b37084be70e76e8b4ae98bbde1cd4198abfee1b9": {
+      "outcome": "equivalent",
+      "reason": "Final cumulative beta.3 implementation already shipped in current RC3/RC3.1, including this intermediate source change or its final reviewed adaptation: fix(home): order same-day upcoming episodes by release time.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "b3b4481dd1c65145fc2a785fe1ad46059a011d13": {
+      "outcome": "equivalent",
+      "reason": "No independent remerge resolution; constituent decisions remain authoritative.  Evidence: released ancestry through dbe32e250/f980a67a0/bed68e9ec to ba3a28278, docs/UPSTREAM_BETA3_INTEGRATION.md, and reviews/beta3-source-correspondence.json (91 identical of 142 main/test paths, 51 ReSeq-adapted paths). Do not replay intermediate patches or replace ReSeq adaptations. Existing historical declines remain separate and unchanged. No new validation inferred from old reports.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "552cacf5697948e4f7722019d185957a28af2bd4": {
+      "outcome": "irrelevant",
+      "reason": "Upstream version bookkeeping/merge resolution only. Preserve released ReSeq 1.0.0 RC family, independent versionCode and update channel.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "44549e9a0dbe2cf872c4eda3df942e2edda1b8f0": {
+      "outcome": "held",
+      "reason": "VC-1/tunneled decoder source fallback needs ReSeq engine-switch precedence, current-tier ordering, retries and cancellation coverage. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "43254003532e6d44a25f338374281f5dd73b228d": {
+      "outcome": "equivalent",
+      "reason": "Audited empty remerge-diff: no independent resolution patch. Held constituent changes are not incorporated by this review.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "5f5c191997ff2f8bd87b5ba9bde939eb26e30324": {
+      "outcome": "held",
+      "reason": "Folder-to-details trailer continuation must preserve the distinct ReSeq IPTV/VOD preview pool, chosen stream and transfer lifecycle. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "1981d7ff43cdde8f65940ef39b6e7cc7e98ee6a7": {
+      "outcome": "equivalent",
+      "reason": "Audited empty remerge-diff: no independent resolution patch. Held constituent changes are not incorporated by this review.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "4d8cd878e84aaf0f82cecb3111eb1a8d2f36566d": {
+      "outcome": "held",
+      "reason": "Framed hero/Details transition layering needs remote focus, Back, touch and trailer-handoff acceptance on current themed ReSeq layouts. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "640ba7eb0d3876d7720b1554cf609f7e45823272": {
+      "outcome": "equivalent",
+      "reason": "Audited empty remerge-diff: no independent resolution patch. Held constituent changes are not incorporated by this review.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "2dc535d3973095eb3cfe844fa54a6003a332156b": {
+      "outcome": "held",
+      "reason": "First-load trailer caption fix must preserve lazy YouTube/caption client startup, preferred-language settings, player ownership and cancellation. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "19d2839535bc6a5c5cf00b4d90470a3738cf674a": {
+      "outcome": "equivalent",
+      "reason": "Audited empty remerge-diff: no independent resolution patch. Held constituent changes are not incorporated by this review.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "a0ec0aeaeaa8605467ad2df61754e9cda9fb706c": {
+      "outcome": "integrated",
+      "reason": "Read persisted hero sources before first catalog-load mutation; preserve empty-selection defaults and cancellation. Three targeted JVM regressions added. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "09330465cb15b2ac728713ba4798532e3e0dcdb0": {
+      "outcome": "equivalent",
+      "reason": "Audited empty remerge-diff: no independent resolution patch. Held constituent changes are not incorporated by this review.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "1dd7a70e8eef29a3ff48ca07adcf0478415405c5": {
+      "outcome": "equivalent",
+      "reason": "Cherry-pick alias of previously reviewed upstream ABI/route-restoration/source-resume work (original SHA in commit body), already covered by shipped ReSeq adaptations. Current source retains ReSeq plugin interfaces, canonical TVDB context and HTTP/NNTP resume. No raw replacement or historical hold cleared.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "8c8028085c0b7935d4409272b4f1bfb3a3c9e144": {
+      "outcome": "equivalent",
+      "reason": "Cherry-pick alias of previously reviewed upstream ABI/route-restoration/source-resume work (original SHA in commit body), already covered by shipped ReSeq adaptations. Current source retains ReSeq plugin interfaces, canonical TVDB context and HTTP/NNTP resume. No raw replacement or historical hold cleared.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "f4ce0aa640c3c578df9a0cc5cf6d907934c2be14": {
+      "outcome": "equivalent",
+      "reason": "Cherry-pick alias of previously reviewed upstream ABI/route-restoration/source-resume work (original SHA in commit body), already covered by shipped ReSeq adaptations. Current source retains ReSeq plugin interfaces, canonical TVDB context and HTTP/NNTP resume. No raw replacement or historical hold cleared.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "92edd7f4683f4a70c79eabeb789e7ff36c5e546a": {
+      "outcome": "irrelevant",
+      "reason": "Upstream version bookkeeping/merge resolution only. Preserve released ReSeq 1.0.0 RC family, independent versionCode and update channel.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "4cb3e3492a1e17a911702e74926bedecd593edea": {
+      "outcome": "equivalent",
+      "reason": "Audited empty remerge-diff: no independent resolution patch. Held constituent changes are not incorporated by this review.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "58f15a3504443e5d9d437939021a6b99f0035893": {
+      "outcome": "irrelevant",
+      "reason": "Upstream version bookkeeping/merge resolution only. Preserve released ReSeq 1.0.0 RC family, independent versionCode and update channel.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+    },
+    "d2eeb3d0e9475e56e7beca921ad555e8d4ad9c66": {
+      "outcome": "integrated",
+      "reason": "Declare Wi-Fi hardware optional, retaining Wi-Fi/network permissions and runtime support while avoiding implied required hardware. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
     }
   }
 }

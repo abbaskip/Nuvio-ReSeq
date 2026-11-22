@@ -4497,22 +4497,46 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "9af02059a52f17b0f1a6fda5cc0d1fcdb7560817": {
-      "outcome": "held",
-      "reason": "New Plex provider requires profile-isolated auth, native server identity, playback/session tracking, backup and existing provider coexistence fixtures. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "New Plex provider requires profile-isolated auth, native server identity, playback/session tracking, backup and existing provider coexistence fixtures. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "4247d5cb18994ac9868927dbdf74abcf78a1a8b9": {
-      "outcome": "held",
-      "reason": "Plex honest probe/stop-report correction depends on pending Plex provider; retain with provider queue. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Plex honest probe/stop-report correction depends on pending Plex provider; retain with provider queue. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "bb7b85d36e447bedef85f1420c262fb6e5a984b0": {
-      "outcome": "held",
-      "reason": "Shared server sign-in refactor depends on pending provider dialogs and must preserve existing Jellyfin/Emby authentication usability. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Shared server sign-in refactor depends on pending provider dialogs and must preserve existing Jellyfin/Emby authentication usability. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "f12c35d0d7f9cbcc4d3671bf7b854aae399b78e4": {
       "outcome": "equivalent",
@@ -4521,16 +4545,32 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "f0f1ffc31be3f3747b8842a11cd234a99d27b050": {
-      "outcome": "held",
-      "reason": "New Silo API provider adds account/settings/session/playback models and refresh behavior; preserve existing media-server and NNTP/source identity, verify fixture-only auth/reporting. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "New Silo API provider adds account/settings/session/playback models and refresh behavior; preserve existing media-server and NNTP/source identity, verify fixture-only auth/reporting. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "c7e7a4338f69366a4af40935f066a16a616e44d4": {
-      "outcome": "held",
-      "reason": "Silo playback reporting and renewal fix depends on pending Silo provider and profile-specific lifecycle fixtures. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Silo playback reporting and renewal fix depends on pending Silo provider and profile-specific lifecycle fixtures. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "fc5c10c3d2d5def54bb21e452291cb7b281b07b3": {
       "outcome": "equivalent",
@@ -4539,10 +4579,18 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "87b344693340804258eece1c30391f7d059059eb": {
-      "outcome": "held",
-      "reason": "Description auto-scroll timing is user-facing; compare current home/folder scroll preferences and readability with representative remote/RTL fixtures. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Description auto-scroll timing is user-facing; compare current home/folder scroll preferences and readability with representative remote/RTL fixtures. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "07241ff06c56ed5474b9b3bca107f0d64b23b8aa": {
       "outcome": "equivalent",
@@ -4551,10 +4599,18 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "28b075d350aeda6c78b8e367be236a3af4f2718b": {
-      "outcome": "held",
-      "reason": "Classic hero RTL readability fix queued for mirrored draw bounds and current ReSeq layout/hero fixture validation; LTR gradient must remain unchanged. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Classic hero RTL readability fix queued for mirrored draw bounds and current ReSeq layout/hero fixture validation; LTR gradient must remain unchanged. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "791e24967e7fb4bc6debc89f619100c148a07b93": {
       "outcome": "equivalent",
@@ -4599,10 +4655,18 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "96d42a4d76fc3c558257ba414cdff7fa1184618c": {
-      "outcome": "held",
-      "reason": "Ambient profile-settings sync expands persisted/cloud payload; verify current profile isolation, default/settings compatibility and backup roundtrip fixtures. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Ambient profile-settings sync expands persisted/cloud payload; verify current profile isolation, default/settings compatibility and backup roundtrip fixtures. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "8675a97a0b7577ddd0794456a2805667848a7cf9": {
       "outcome": "equivalent",
@@ -4611,10 +4675,18 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "30b2aeadf95f4762347b0804cfe03d437714b980": {
-      "outcome": "held",
-      "reason": "Per-profile Jellyfin/Emby auth isolation is relevant security/stability work; compare current repository lifecycle and server ID migrations, with profile-switch/signout/concurrent request tests. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Per-profile Jellyfin/Emby auth isolation is relevant security/stability work; compare current repository lifecycle and server ID migrations, with profile-switch/signout/concurrent request tests. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "03705cdd1dcff3eeffe57593a85839b2602e4bc8": {
       "outcome": "equivalent",
@@ -4671,10 +4743,18 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "51ebccc1c86e583ca9e82b24a4416dc35563a8e6": {
-      "outcome": "held",
-      "reason": "Filmography exclusion changes content availability; compare talk-show guest classification and mixed cast credits before accepting a content-filter behavior change. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Filmography exclusion changes content availability; compare talk-show guest classification and mixed cast credits before accepting a content-filter behavior change. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "3ff5e2b41a9dba282c57e7602e401df09dabe703": {
       "outcome": "equivalent",
@@ -4683,16 +4763,32 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "4aa25bbdb6068fb46eb85217561c464c9f823832": {
-      "outcome": "held",
-      "reason": "Poster expansion with hero trailers touches established ReSeq custom defaults/focus/touch; compare current expanded-poster/navigation fixture behavior. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Poster expansion with hero trailers touches established ReSeq custom defaults/focus/touch; compare current expanded-poster/navigation fixture behavior. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "7dd9fcbfe3de703fc065b6fb3f178459be39f748": {
-      "outcome": "held",
-      "reason": "Fullscreen-trailer hero visibility depends current Modern Home layering; validate back/focus/touch and hero-media/fullscreen modes together. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Fullscreen-trailer hero visibility depends current Modern Home layering; validate back/focus/touch and hero-media/fullscreen modes together. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "bac5e95481458c0fb1d1ea1c05b8b49458f18cbf": {
       "outcome": "equivalent",
@@ -4713,10 +4809,18 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "fd140199dcd692302d772fe2cb4c0a33ab19ea7c": {
-      "outcome": "held",
-      "reason": "Locale additions depend on pending server/rating/subtitle features or touch existing ReSeq terminology. Reconcile individual keys, placeholders and supplied translations against current ReSeq; avoid bulk replacement and duplicate resource names. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Locale additions depend on pending server/rating/subtitle features or touch existing ReSeq terminology. Reconcile individual keys, placeholders and supplied translations against current ReSeq; avoid bulk replacement and duplicate resource names. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "2b02219d5e585ff976618f1ff3bb4703692b04ba": {
       "outcome": "equivalent",
@@ -4737,10 +4841,18 @@
       "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
     },
     "0042e28e70cf8c12d1ab667249737749026e531d": {
-      "outcome": "held",
-      "reason": "Continue Watching card relocation affects current ReSeq stable show identities and shuffle/focus corrections; compare current shipped behavior, do not replay declined CW implementations. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
-      "run": "20261118T145602Z-197fcf",
-      "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+      "outcome": "equivalent",
+      "reason": "Verified patch-equivalent in already published RC3.1 base ba3a28278, following the separately authorised beta.3 integration and RC release. This was a routine engineering/validation queue entry, not a protected design hold. Source is unchanged by this reconciliation; do not replay. Public release ancestry, beta.3 integration report and cross-chat release authorisation provide provenance.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Continue Watching card relocation affects current ReSeq stable show identities and shuffle/focus corrections; compare current shipped behavior, do not replay declined CW implementations. Source triage retained with full patch; compatibility adaptation and targeted tests remain queued, not established by compilation or historical evidence.",
+          "run": "20261118T145602Z-197fcf",
+          "base": "782a96e0b5759ef3864530b68101bbaa3915bc12"
+        }
+      ]
     },
     "f0df1830cf47c104de8ee425dbbd843c6f973d2f": {
       "outcome": "equivalent",

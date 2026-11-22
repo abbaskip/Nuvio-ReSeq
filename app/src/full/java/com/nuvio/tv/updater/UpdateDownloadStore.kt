@@ -35,10 +35,11 @@ class UpdateDownloadStore @Inject constructor(
 
     /** Returns the already downloaded APK for this release, or null when it is missing or incomplete. */
     suspend fun downloadedFileFor(update: AppUpdate): File? {
-        val (tag, path) = updatePreferences.downloadedUpdate.first() ?: return null
-        if (tag != update.tag) return null
-        val file = File(path)
-        val expectedSize = update.assetSizeBytes
+        val record = updatePreferences.downloadedUpdate.first() ?: return null
+        if (record.tag != update.tag || record.digest != update.assetDigest) return null
+        val file = File(record.path)
+        if (file != destinationFor(update)) return null
+        val expectedSize = record.size ?: update.assetSizeBytes
         return file.takeIf { files.contains(it) && it.exists() && it.length() > 0 &&
             System.currentTimeMillis() - it.lastModified() < UpdateFiles.PENDING_TTL_MS &&
             (expectedSize == null || it.length() == expectedSize) }
@@ -46,9 +47,10 @@ class UpdateDownloadStore @Inject constructor(
 
     /** Returns the downloaded APK when it is for a version newer than the installed one. */
     suspend fun pendingInstall(): Pair<String, File>? {
-        val (tag, path) = updatePreferences.downloadedUpdate.first() ?: return null
+        val (tag, path, size) = updatePreferences.downloadedUpdate.first() ?: return null
         val file = File(path)
         if (!files.contains(file) || !file.exists() || file.length() == 0L ||
+            (size != null && file.length() != size) ||
             System.currentTimeMillis() - file.lastModified() >= UpdateFiles.PENDING_TTL_MS ||
             !VersionUtils.isRemoteNewer(tag, BuildConfig.VERSION_NAME)) return null
         return tag to file
@@ -62,36 +64,38 @@ class UpdateDownloadStore @Inject constructor(
         files.sweep(null, keepPending = false)
         val destination = destinationFor(update)
         if (files.isPinned(destination)) return@withLock Result.failure(IllegalStateException("An update installation is still in progress"))
-        apkDownloader.download(update.assetUrl, destination, onProgress)
+        updatePreferences.setDownloadedUpdate(null)
+        apkDownloader.download(update.assetUrl, destination, update.assetDigest, onProgress)
             .mapCatching { file ->
-                if ((update.assetSizeBytes != null && file.length() != update.assetSizeBytes) ||
-                    !ApkInstaller.isCompatibleUpdate(context, file)) {
+                // The checksum identifies the exact release artifact. Android checks install compatibility.
+                // Releases cached by previous app versions may have no checksum.
+                if (update.assetDigest == null && !ApkInstaller.isCompatibleUpdate(context, file)) {
                     files.completed(file)
-                    error("Downloaded update is incomplete or incompatible")
+                    error("Could not verify the APK as an update to this app")
                 }
                 file
             }
             .onSuccess { file ->
                 files.sweep(file, keepPending = true)
-                updatePreferences.setDownloadedUpdate(update.tag, file.absolutePath)
+                updatePreferences.setDownloadedUpdate(DownloadedUpdate(update.tag, file.absolutePath, file.length(), update.assetDigest))
             }
     }
 
     /** Drops the downloaded APK once it is installed, outdated, or no longer wanted. */
     suspend fun clear() = downloadMutex.withLock {
-        if (files.sweep(null, keepPending = false)) updatePreferences.setDownloadedUpdate(null, null)
+        if (files.sweep(null, keepPending = false)) updatePreferences.setDownloadedUpdate(null)
     }
 
     suspend fun clearIfInstalled() = downloadMutex.withLock {
         val record = updatePreferences.downloadedUpdate.first()
-        val pending = record?.second?.let(::File)
-        val keep = record != null && VersionUtils.isRemoteNewer(record.first, BuildConfig.VERSION_NAME) &&
+        val pending = record?.path?.let(::File)
+        val keep = record != null && VersionUtils.isRemoteNewer(record.tag, BuildConfig.VERSION_NAME) &&
             pending != null && files.contains(pending) && pending.exists() && pending.length() > 0 &&
             System.currentTimeMillis() - pending.lastModified() < UpdateFiles.PENDING_TTL_MS
-        if (record != null && pending != null && !VersionUtils.isRemoteNewer(record.first, BuildConfig.VERSION_NAME)) {
+        if (record != null && pending != null && !VersionUtils.isRemoteNewer(record.tag, BuildConfig.VERSION_NAME)) {
             files.completed(pending)
         }
         val removed = files.sweep(pending, keepPending = keep)
-        if (!keep && removed) updatePreferences.setDownloadedUpdate(null, null)
+        if (!keep && removed) updatePreferences.setDownloadedUpdate(null)
     }
 }

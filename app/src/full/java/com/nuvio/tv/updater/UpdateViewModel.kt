@@ -128,8 +128,7 @@ class UpdateViewModel @Inject constructor(
                             isUpdateAvailable = remoteNewer,
                             isDownloading = false,
                             downloadProgress = null,
-                            downloadedApkPath = downloadedFile?.absolutePath
-                                ?: state.downloadedApkPath.takeIf { remoteNewer && state.update?.tag == update.tag },
+                            downloadedApkPath = downloadedFile?.absolutePath,
                             showBanner = shouldShow || installedUpdate != null,
                             installedUpdate = installedUpdate,
                             showUnknownSourcesDialog = false,

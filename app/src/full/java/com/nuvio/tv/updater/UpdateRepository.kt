@@ -62,7 +62,8 @@ class UpdateRepository @Inject constructor(
                 releaseUrl = dto.htmlUrl,
                 assetName = asset.name,
                 assetUrl = asset.browserDownloadUrl,
-                assetSizeBytes = asset.size
+                assetSizeBytes = asset.size,
+                assetDigest = asset.digest
             )
         }
     }

@@ -509,6 +509,7 @@ internal fun buildCatalogItem(
         logo = item.logo,
         description = item.description,
         contentTypeText = when (item.apiType.lowercase()) {
+            "tvmix" -> com.nuvio.tv.domain.model.TvMixHomeCatalog.TITLE
             "movie" -> strTypeMovie.ifBlank { item.apiType.replaceFirstChar { ch -> ch.uppercase() } }
             "series" -> strTypeSeries.ifBlank { item.apiType.replaceFirstChar { ch -> ch.uppercase() } }
             else -> item.apiType.replaceFirstChar { ch -> ch.uppercase() }

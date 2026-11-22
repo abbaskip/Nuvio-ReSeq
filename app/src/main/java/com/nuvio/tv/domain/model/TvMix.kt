@@ -27,7 +27,7 @@ data class TvMix(
         val art = "tvmix-art:" + shows.mapNotNull { it.poster?.takeIf(String::isNotBlank) }.distinct().take(4)
             .joinToString("|") { URLEncoder.encode(it, "UTF-8") }
         return MetaPreview("tvmix:$id", ContentType.UNKNOWN, "tvmix", name, art, PosterShape.POSTER,
-            art, null, null, null, null, emptyList())
+            null, null, null, null, null, emptyList())
     }
 }
 

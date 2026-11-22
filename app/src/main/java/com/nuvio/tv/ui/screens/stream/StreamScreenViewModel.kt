@@ -160,6 +160,7 @@ class StreamScreenViewModel @Inject constructor(
 
     private val videoId: String = savedStateHandle["videoId"] ?: ""
     private val contentType: String = savedStateHandle["contentType"] ?: ""
+    private val autoSelectStream = savedStateHandle.get<Boolean>("autoSelectStream") == true
     private val title: String = savedStateHandle["title"] ?: ""
     private val poster: String? = savedStateHandle.getOptionalString("poster")
     private val backdrop: String? = savedStateHandle.getOptionalString("backdrop")
@@ -495,7 +496,11 @@ class StreamScreenViewModel @Inject constructor(
             val storedSettings = playerSettingsDataStore.playerSettings.first()
             val mixContinuation = mixSession?.continuationFor(playbackProfileId, contentId, videoId)
             val nextSelection = mixContinuation?.let { StreamAutoPlayPolicy.nextEpisodeSelection(storedSettings) }
-            val playerSettings = nextSelection?.settings ?: storedSettings
+            val playerSettings = when {
+                nextSelection != null -> nextSelection.settings
+                autoSelectStream -> StreamAutoPlayPolicy.forExplicitAutoPlay(storedSettings)
+                else -> storedSettings
+            }
             val useTieredAutoPlay = !manualSelection && TieredStreamAutoPlay.isEnabled(playerSettings)
             val tieredSearchComplete = MutableStateFlow(false)
             val tieredSearchHasPayload = MutableStateFlow(false)

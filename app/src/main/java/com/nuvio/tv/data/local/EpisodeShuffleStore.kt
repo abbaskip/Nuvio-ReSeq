@@ -65,6 +65,19 @@ class EpisodeShuffleStore @Inject constructor(
         }
     }
 
+    /** Details and the player use the canonical ID returned by metadata providers. */
+    suspend fun carryToPlaybackId(profileId: Int, sourceId: String, playbackId: String) {
+        if (sourceId == playbackId) return
+        factory.get(profileId, "episode_shuffle").edit { prefs ->
+            val enabled = booleanPreferencesKey("enabled:$playbackId")
+            val watched = booleanPreferencesKey("watched:$playbackId")
+            if (prefs[enabled] == null && prefs[watched] == null) {
+                prefs[booleanPreferencesKey("enabled:$sourceId")]?.let { prefs[enabled] = it }
+                prefs[booleanPreferencesKey("watched:$sourceId")]?.let { prefs[watched] = it }
+            }
+        }
+    }
+
     suspend fun save(contentId: String, settings: EpisodeShuffleSettings, profileId: Int) {
         if (contentId.isBlank()) return
         factory.get(profileId, "episode_shuffle").edit {

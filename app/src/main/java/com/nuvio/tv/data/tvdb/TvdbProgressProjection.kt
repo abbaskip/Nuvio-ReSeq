@@ -3,9 +3,9 @@ package com.nuvio.tv.data.tvdb
 import com.nuvio.tv.domain.model.*
 
 /** A verified native tracker record measured on the playable episode's timeline. */
-internal fun projectTrackerParts(record: WatchProgress, nativeIds: List<Long>, videos: List<Video>,
-    threshold: Float): List<WatchProgress> {
+internal fun projectTrackerParts(record: WatchProgress, nativeIds: List<Long>, videos: List<Video>): List<WatchProgress> {
     if (nativeIds.isEmpty() || record.tvdbCoverageVerified == false) return emptyList()
+    val threshold = record.completionThreshold()
     val playable = videos.filter { it.hasResolvedSource }.distinctEpisodeSources()
     return playable.mapNotNull { video ->
         val context = video.tvdbPlaybackContext() ?: return@mapNotNull null

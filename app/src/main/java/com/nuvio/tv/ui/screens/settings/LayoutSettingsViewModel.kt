@@ -15,6 +15,7 @@ import com.nuvio.tv.core.streams.StreamBadgeRules
 import com.nuvio.tv.core.sync.HomeCatalogSettingsSyncService
 import com.nuvio.tv.core.streams.StreamBadgeSettings
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
+import com.nuvio.tv.data.local.TrailerSettings
 import com.nuvio.tv.data.local.StreamBadgeSettingsDataStore
 import com.nuvio.tv.data.local.TraktSettingsDataStore
 import com.nuvio.tv.data.local.TrailerSettingsDataStore
@@ -62,7 +63,7 @@ data class LayoutSettingsUiState(
     val focusedPosterBackdropExpandDelaySeconds: Int = 3,
     val focusedPosterBackdropTrailerEnabled: Boolean = false,
     val focusedPosterBackdropTrailerMuted: Boolean = true,
-    val focusedPosterTrailerContinueInDetails: Boolean = false,
+    val focusedPosterTrailerContinueInDetails: Boolean = LayoutPreferenceDataStore.DEFAULT_CONTINUE_TRAILER_IN_DETAILS,
     val focusedPosterBackdropTrailerPlaybackTarget: FocusedPosterTrailerPlaybackTarget =
         FocusedPosterTrailerPlaybackTarget.HERO_MEDIA,
     val posterCardWidthDp: Int = 126,
@@ -80,7 +81,7 @@ data class LayoutSettingsUiState(
     val detailPageTrailerButtonEnabled: Boolean = true,
     val detailPageTrailerAutoplayEnabled: Boolean = true,
     val detailPageTrailerAutoplayDelaySeconds: Int = 7,
-    val detailPageTrailerPlayInBackground: Boolean = false,
+    val detailPageTrailerPlayInBackground: Boolean = TrailerSettings.DEFAULT_PLAY_IN_BACKGROUND,
     val detailPageTrailerPauseOnScroll: Boolean = true,
     val trailer4kEnabled: Boolean = true,
     val trailerSubtitlesEnabled: Boolean = false,

@@ -53,6 +53,9 @@ import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
@@ -1122,6 +1125,7 @@ open class MainActivity : ComponentActivity() {
                     val strNavDiscover = stringResource(R.string.nav_discover)
                     val strNavSearch = stringResource(R.string.nav_search)
                     val strNavLibrary = stringResource(R.string.nav_library)
+                    val strFlickPick = stringResource(R.string.flick_pick)
                     val strNavSettings = stringResource(R.string.nav_settings)
                     val strNavCalendar = stringResource(R.string.nav_calendar)
                     val drawerItems = remember(
@@ -1129,6 +1133,7 @@ open class MainActivity : ComponentActivity() {
                         strNavDiscover,
                         strNavSearch,
                         strNavLibrary,
+                        strFlickPick,
                         strNavSettings,
                         strNavCalendar,
                         discoverLocation
@@ -1151,6 +1156,7 @@ open class MainActivity : ComponentActivity() {
                                 )
                             }
                             add(DrawerItem(Screen.Library.route, strNavLibrary, iconRes = R.raw.sidebar_library))
+                            add(DrawerItem(Screen.FlickPick.route, strFlickPick, icon = Icons.Default.Movie))
                             add(DrawerItem(Screen.Search.route, strNavSearch, iconRes = R.raw.sidebar_search))
                             add(DrawerItem(Screen.LiveTv.route, "Live TV", icon = Icons.Default.LiveTv, sectionStart = true))
                             add(DrawerItem(Screen.Sports.route, "Sports Hub", icon = Icons.Default.EmojiEvents))
@@ -1693,8 +1699,9 @@ private fun LegacySidebarScaffold(
                     Column(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
-                            .offset(y = 28.dp)
-                            .fillMaxWidth(),
+                            .padding(top = if (isExpanded) 30.dp + sidebarTokens.itemHeight + 6.dp else 0.dp)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                         horizontalAlignment = Alignment.Start
                     ) {

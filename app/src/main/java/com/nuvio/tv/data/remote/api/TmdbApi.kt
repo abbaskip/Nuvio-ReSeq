@@ -9,6 +9,9 @@ import retrofit2.http.Query
 import retrofit2.http.QueryMap
 
 interface TmdbApi {
+    @GET("certification/movie/list")
+    suspend fun getMovieCertifications(@Query("api_key") apiKey: String): Response<TmdbCertificationsResponse>
+
     @GET("search/{media_type}")
     suspend fun searchTitles(
         @Path("media_type") mediaType: String,
@@ -287,6 +290,13 @@ interface TmdbApi {
         @Query("page") page: Int = 1
     ): Response<TmdbKeywordSearchResponse>
 
+    @GET("{media_type}/{id}/keywords")
+    suspend fun getTitleKeywords(
+        @Path("media_type") mediaType: String,
+        @Path("id") id: Int,
+        @Query("api_key") apiKey: String
+    ): Response<TmdbTitleKeywords>
+
     @GET("movie/{movie_id}/alternative_titles")
     suspend fun getMovieAlternativeTitles(
         @Path("movie_id") movieId: Int,
@@ -505,6 +515,12 @@ data class TmdbMovieReleaseDatesResponse(
 )
 
 @JsonClass(generateAdapter = true)
+data class TmdbCertificationsResponse(val certifications: Map<String, List<TmdbCertification>>)
+
+@JsonClass(generateAdapter = true)
+data class TmdbCertification(val certification: String, val order: Int)
+
+@JsonClass(generateAdapter = true)
 data class TmdbMovieReleaseDateCountry(
     @Json(name = "iso_3166_1") val iso31661: String? = null,
     @Json(name = "release_dates") val releaseDates: List<TmdbMovieReleaseDateItem>? = null
@@ -649,6 +665,12 @@ data class TmdbKeywordSearchResult(
 )
 
 @JsonClass(generateAdapter = true)
+data class TmdbTitleKeywords(
+    @Json(name = "keywords") val movieKeywords: List<TmdbKeywordSearchResult>? = null,
+    @Json(name = "results") val tvKeywords: List<TmdbKeywordSearchResult>? = null
+)
+
+@JsonClass(generateAdapter = true)
 data class TmdbDiscoverResult(
     @Json(name = "id") val id: Int,
     @Json(name = "title") val title: String? = null,
@@ -662,7 +684,8 @@ data class TmdbDiscoverResult(
     @Json(name = "first_air_date") val firstAirDate: String? = null,
     @Json(name = "vote_average") val voteAverage: Double? = null,
     @Json(name = "vote_count") val voteCount: Int? = null,
-    @Json(name = "popularity") val popularity: Double? = null
+    @Json(name = "popularity") val popularity: Double? = null,
+    @Json(name = "genre_ids") val genreIds: List<Int>? = null
 )
 
 @JsonClass(generateAdapter = true)

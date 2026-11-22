@@ -8,6 +8,9 @@ import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.data.local.SavedDiscoveriesDataStore
 import com.nuvio.tv.data.local.TmdbSettingsDataStore
 import com.nuvio.tv.data.local.WatchedSeriesStateHolder
+import com.nuvio.tv.data.local.EpisodeShuffleStore
+import com.nuvio.tv.ui.screens.flickpick.FlickPickHistory
+import com.nuvio.tv.ui.screens.flickpick.randomDiscoveryMatch
 import com.nuvio.tv.data.remote.api.TmdbGenre
 import com.nuvio.tv.data.remote.api.TmdbLanguage
 import com.nuvio.tv.data.repository.DiscoveryException
@@ -57,6 +60,10 @@ data class AdvancedDiscoverUiState(
     val saved: List<SavedDiscovery> = emptyList(),
     val selectedSavedId: String? = null,
     val saving: Boolean = false,
+    val picking: Boolean = false,
+    val pickEmpty: Boolean = false,
+    val pickError: DiscoveryFailure? = null,
+    val picked: Pair<MetaPreview, Int>? = null,
     val saveFailed: Boolean = false,
     val savedSuccessfully: Boolean = false,
     val resultRevision: Int = 0,
@@ -65,15 +72,17 @@ data class AdvancedDiscoverUiState(
 )
 
 @HiltViewModel
-class AdvancedDiscoverViewModel @Inject constructor(
+class AdvancedDiscoverViewModel @Inject internal constructor(
     private val repository: DiscoveryRepository,
     private val savedDiscoveries: SavedDiscoveriesDataStore,
     private val settings: TmdbSettingsDataStore,
     private val profileManager: ProfileManager,
-    watchProgress: WatchProgressRepository,
-    watchedSeries: WatchedSeriesStateHolder,
+    private val watchProgress: WatchProgressRepository,
+    private val watchedSeries: WatchedSeriesStateHolder,
     credentials: TmdbCredentialStore,
-    layout: LayoutPreferenceDataStore
+    layout: LayoutPreferenceDataStore,
+    private val offers: FlickPickHistory,
+    private val shuffleStore: EpisodeShuffleStore
 ) : ViewModel() {
     private val _state = MutableStateFlow(AdvancedDiscoverUiState())
     val state = _state.asStateFlow()
@@ -81,6 +90,7 @@ class AdvancedDiscoverViewModel @Inject constructor(
     private val results = MutableStateFlow(Results())
     private var request: Job? = null
     private var references: Job? = null
+    private var pickRequest: Job? = null
     private val aliasPermits = Semaphore(3)
 
     init {
@@ -89,6 +99,7 @@ class AdvancedDiscoverViewModel @Inject constructor(
             combine(profileManager.activeProfileId, credentials.changes) { id, _ -> id to credentials.revision(id) }
                 .distinctUntilChanged().collectLatest { (profileId, _) ->
                     request?.cancel()
+                    pickRequest?.cancel()
                     references?.cancel()
                     val previous = _state.value
                     _state.value = if (previousProfile == profileId) AdvancedDiscoverUiState(
@@ -116,6 +127,7 @@ class AdvancedDiscoverViewModel @Inject constructor(
     }
 
     fun edit(query: DiscoveryQuery) {
+        cancelPick()
         val changedType = query.television != _state.value.draft.television
         _state.update { it.copy(draft = query, validationError = null, savedSuccessfully = false) }
         if (changedType) reloadReferences()
@@ -131,6 +143,7 @@ class AdvancedDiscoverViewModel @Inject constructor(
     }
 
     fun showResults() {
+        cancelPick()
         val query = _state.value.draft
         val error = query.validationError()
         _state.update { it.copy(validationError = error) }
@@ -140,6 +153,62 @@ class AdvancedDiscoverViewModel @Inject constructor(
         _state.update { it.copy(applied = query, items = emptyList(), page = 0, hasMore = false,
             totalResults = 0, error = null, loading = false, resultRevision = it.resultRevision + 1) }
         loadMore()
+    }
+
+    fun cancelPick() {
+        pickRequest?.cancel()
+        _state.update { it.copy(picking = false, picked = null, pickEmpty = false, pickError = null) }
+    }
+
+    fun takePick(): Pair<MetaPreview, Int>? {
+        val result = _state.value.picked ?: return null
+        _state.update { it.copy(picked = null) }
+        return result.takeIf { it.second == profileManager.activeProfileId.value }
+    }
+
+    fun sendToFlickPick() {
+        val current = _state.value
+        if (current.picking || current.picked != null) return
+        val query = current.draft
+        val error = query.validationError()
+        _state.update { it.copy(validationError = error) }
+        if (error != null) return
+        val profile = profileManager.activeProfileId.value
+        _state.update { it.copy(picking = true, pickError = null, pickEmpty = false) }
+        pickRequest = viewModelScope.launch {
+            try {
+                val language = settings.settings.first().language
+                val recent = offers.recent(profile, query.television)
+                val watched = when {
+                    !query.hideWatched -> emptySet()
+                    query.television -> watchedSeries.fullyWatchedSeriesIds.first()
+                    else -> watchProgress.observeWatchedMovieIds().first()
+                }.mapTo(hashSetOf()) { it.removePrefix("imdb:") }
+                var fallback: MetaPreview? = null
+                val fresh = randomDiscoveryMatch({ page -> repository.discover(query, language, page) }) { item ->
+                    if (item.id in watched) return@randomDiscoveryMatch null
+                    val imdb = repository.resolveImdbId(item.id.removePrefix("tmdb:").toInt(), query.television)
+                    if (imdb != null && imdb in watched) return@randomDiscoveryMatch null
+                    val resolved = item.copy(imdbId = imdb)
+                    val index = recent.indexOf(item.id)
+                    if (index < 0) return@randomDiscoveryMatch resolved
+                    if (index > (fallback?.let { recent.indexOf(it.id) } ?: -1)) fallback = resolved
+                    null
+                }
+                val chosen = fresh ?: fallback
+                val playable = if (chosen != null && query.television) {
+                    val playbackId = chosen.imdbId ?: chosen.id
+                    shuffleStore.carryToPlaybackId(profile, chosen.id, playbackId)
+                    chosen.copy(id = playbackId)
+                } else chosen
+                if (chosen != null) offers.record(profile, chosen.id, query.television)
+                currentCoroutineContext().ensureActive()
+                if (profile == profileManager.activeProfileId.value) _state.update {
+                    it.copy(picking = false, picked = playable?.let { title -> title to profile }, pickEmpty = playable == null)
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(picking = false, pickError = failure(e)) } }
+        }
     }
 
     fun loadMore() {

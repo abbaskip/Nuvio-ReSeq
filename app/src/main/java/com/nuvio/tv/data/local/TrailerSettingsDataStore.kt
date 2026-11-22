@@ -30,8 +30,6 @@ class TrailerSettingsDataStore @Inject constructor(
 
     private val enabledKey = booleanPreferencesKey("trailer_enabled")
     private val delaySecondsKey = intPreferencesKey("trailer_delay_seconds")
-    private val playInBackgroundKey = booleanPreferencesKey("trailer_play_in_background")
-    private val pauseOnScrollKey = booleanPreferencesKey("trailer_pause_on_scroll")
     private val allow4kKey = booleanPreferencesKey("trailer_allow_4k")
     private val subtitlesEnabledKey = booleanPreferencesKey("trailer_subtitles_enabled")
 
@@ -40,8 +38,8 @@ class TrailerSettingsDataStore @Inject constructor(
             TrailerSettings(
                 enabled = prefs[enabledKey] ?: true,
                 delaySeconds = prefs[delaySecondsKey] ?: 7,
-                playInBackground = prefs[playInBackgroundKey] ?: false,
-                pauseOnScroll = prefs[pauseOnScrollKey] ?: true,
+                playInBackground = prefs[trailerPlayInBackgroundKey] ?: TrailerSettings.DEFAULT_PLAY_IN_BACKGROUND,
+                pauseOnScroll = prefs[trailerPauseOnScrollKey] ?: true,
                 allow4k = prefs[allow4kKey] ?: default4kTrailers,
                 subtitlesEnabled = prefs[subtitlesEnabledKey] ?: false
             )
@@ -57,11 +55,11 @@ class TrailerSettingsDataStore @Inject constructor(
     }
 
     suspend fun setPlayInBackground(enabled: Boolean) {
-        store().edit { it[playInBackgroundKey] = enabled }
+        store().setTrailerLayoutSwitch(trailerPlayInBackgroundKey, enabled)
     }
 
     suspend fun setPauseOnScroll(enabled: Boolean) {
-        store().edit { it[pauseOnScrollKey] = enabled }
+        store().setTrailerLayoutSwitch(trailerPauseOnScrollKey, enabled)
     }
 
     suspend fun setAllow4k(enabled: Boolean) {
@@ -76,8 +74,12 @@ class TrailerSettingsDataStore @Inject constructor(
 data class TrailerSettings(
     val enabled: Boolean = true,
     val delaySeconds: Int = 7,
-    val playInBackground: Boolean = false,
+    val playInBackground: Boolean = DEFAULT_PLAY_IN_BACKGROUND,
     val pauseOnScroll: Boolean = true,
     val allow4k: Boolean = true,
     val subtitlesEnabled: Boolean = false
-)
+) {
+    companion object {
+        internal const val DEFAULT_PLAY_IN_BACKGROUND = true
+    }
+}

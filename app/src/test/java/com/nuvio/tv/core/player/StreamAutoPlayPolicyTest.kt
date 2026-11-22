@@ -9,6 +9,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StreamAutoPlayPolicyTest {
+    @Test fun explicitPlayUsesConfiguredSourcesWithoutChangingTheProfile() {
+        val manual = PlayerSettings(streamAutoPlayMode = StreamAutoPlayMode.MANUAL,
+            streamAutoPlaySelectedAddons = setOf("Selected"))
+        assertEquals(manual.copy(streamAutoPlayMode = StreamAutoPlayMode.FIRST_STREAM),
+            StreamAutoPlayPolicy.forExplicitAutoPlay(manual))
+        val regex = manual.copy(streamAutoPlayMode = StreamAutoPlayMode.REGEX_MATCH, streamAutoPlayRegex = "1080p")
+        assertSame(regex, StreamAutoPlayPolicy.forExplicitAutoPlay(regex))
+        assertEquals(StreamAutoPlayMode.MANUAL, manual.streamAutoPlayMode)
+    }
+
     private fun stream(group: String) = Stream("Fixture", null, null, "https://fixture.invalid/video.mp4",
         null, null, null, null, StreamBehaviorHints(notWebReady = null, bingeGroup = group,
             countryWhitelist = null, proxyHeaders = null), "Addon", null)

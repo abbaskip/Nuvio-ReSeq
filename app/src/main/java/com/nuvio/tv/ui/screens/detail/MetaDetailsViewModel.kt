@@ -12,6 +12,7 @@ import com.nuvio.tv.core.tmdb.TmdbMetadataService
 import com.nuvio.tv.core.tmdb.TmdbMovieCollection
 import com.nuvio.tv.core.tmdb.TmdbService
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
+import com.nuvio.tv.data.local.TrailerSettings
 import com.nuvio.tv.data.local.MDBListSettingsDataStore
 import com.nuvio.tv.data.local.PlayerSettingsDataStore
 import com.nuvio.tv.data.local.TraktAuthDataStore
@@ -166,7 +167,7 @@ class MetaDetailsViewModel @Inject constructor(
 
     private var trailerDelayMs = 7000L
     private var trailerAutoplayEnabled = false
-    private var trailerPlayInBackground = false
+    private var trailerPlayInBackground = TrailerSettings.DEFAULT_PLAY_IN_BACKGROUND
     private var trailerHasPlayed = false
     private var trailerHandoffActive = false
     private var handoffTrailerYoutubeKey: String? = null

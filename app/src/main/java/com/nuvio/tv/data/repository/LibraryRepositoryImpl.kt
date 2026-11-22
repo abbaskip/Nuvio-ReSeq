@@ -120,6 +120,22 @@ class LibraryRepositoryImpl @Inject constructor(
         mode.providerId?.let(trackingProviders::provider)?.items ?: localLibraryItems()
     }.distinctUntilChanged()
 
+    override suspend fun movieListItems(tab: LibraryListTab, profileId: Int): List<LibraryEntry> {
+        check(profileManager.activeProfileId.value == profileId)
+        val items = if (tab.key == LOCAL_LIBRARY_LIST_KEY) localLibraryItems().first() else {
+            val owner = TrackingProviderId.fromStorage(tab.trackingProviderId)?.let(trackingProviders::provider)
+                ?: trackingProviders.providers().first { it.recognizesListKey(tab.key) }
+            check(owner.isAuthenticated.first())
+            val entries = owner.cachedItems(profileId) ?: run {
+                owner.refresh(TrackingRefreshIntent.AUTOMATIC)
+                owner.cachedItems(profileId) ?: owner.items.first()
+            }
+            entries.filter { tab.key in it.listKeys }
+        }
+        check(profileManager.activeProfileId.value == profileId)
+        return items.filter { it.type.equals("movie", ignoreCase = true) }.distinctBy { it.id }
+    }
+
     override suspend fun cachedLibraryItems(profileId: Int): List<LibraryEntry>? {
         val provider = sourceMode.first().providerId?.let(trackingProviders::provider)
         return if (provider == null) localLibraryItems().first() else provider.cachedItems(profileId)

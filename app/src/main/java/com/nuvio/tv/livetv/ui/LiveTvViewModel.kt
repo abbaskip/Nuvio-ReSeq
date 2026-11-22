@@ -300,7 +300,7 @@ class LiveTvViewModel @Inject constructor(
      * The channels in the info panel's row, as set in Settings: recently watched, or your
      * favorites (in your favorites order). Never the channel playing, or a locked group's.
      */
-    fun panelRowChannels(currentKey: String?): List<LiveChannel> = when (settings.value.panelRow) {
+    fun panelRowChannels(currentKey: String?, row: String = settings.value.panelRow): List<LiveChannel> = when (row) {
         "FAVORITES" -> {
             val user = userState.value
             val s = settings.value

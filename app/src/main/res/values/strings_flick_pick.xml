@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="flick_pick">FlickPick</string>
+    <string name="flick_pick_feature">Tonight’s Feature</string>
+    <string name="flick_pick_discover_mode">Discover</string>
+    <string name="flick_pick_lists_mode">From a list</string>
+    <string name="flick_pick_selected_count">%1$d selected</string>
+    <string name="flick_pick_age_loading">Maximum age rating</string>
+    <string name="flick_pick_send">Send to FlickPick</string>
+    <string name="flick_pick_finding_title">Finding a match…</string>
+    <string name="flick_pick_age">Maximum age rating (%1$s)</string>
+    <string name="flick_pick_genres">Genres</string>
+    <string name="flick_pick_genre_help">Press a genre to cycle through any, required, excluded and clear.</string>
+    <string name="flick_pick_any">Any of</string>
+    <string name="flick_pick_must">Required</string>
+    <string name="flick_pick_exclude">Exclude</string>
+    <string name="flick_pick_era">Era</string>
+    <string name="flick_pick_all_time">All time</string>
+    <string name="flick_pick_custom">Custom dates</string>
+    <string name="flick_pick_recent">Last %1$d years</string>
+    <string name="flick_pick_library">Saved movies</string>
+    <string name="flick_pick_list">Movie list</string>
+    <string name="flick_pick_no_lists">No movie lists are available for this profile.</string>
+    <string name="flick_pick_choose_list">Choose a movie list</string>
+    <string name="flick_pick_empty">No unwatched movies matched. Try another genre, keyword or era.</string>
+    <string name="flick_pick_empty_list">This list has no unwatched movies. Try another list.</string>
+    <string name="flick_pick_working">Finding an unwatched movie…</string>
+    <string name="flick_pick_play">Play</string>
+    <string name="flick_pick_intro">Play a random unwatched movie. Start above 6 on TMDB with more than 500 votes. FlickPick lowers those minimums if it needs to.</string>
+    <string name="flick_pick_list_intro">Play a random unwatched movie from your selected list.</string>
+    <string name="flick_pick_keywords_help">Separate keywords with commas. Each must match a TMDB tag. Quote a word or phrase for an exact tag.</string>
+    <string name="flick_pick_retry_genres">Reload genres</string>
+    <string name="flick_pick_loading_lists">Loading your lists…</string>
+</resources>

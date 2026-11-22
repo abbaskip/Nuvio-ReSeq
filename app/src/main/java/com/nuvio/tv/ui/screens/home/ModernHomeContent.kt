@@ -789,8 +789,9 @@ fun ModernHomeContent(
                     // Also treat as pending when activeCarouselItem is null (row not yet resolved).
                     val heroEnrichmentEnabled = uiState.heroEnrichmentEnabled
                     val enrichmentFailed = activeItemId != null && activeItemId in failedEnrichmentIds.value
-                    val effectiveEnrichmentActive = activeCarouselItem == null || enrichmentActive ||
-                        (enrichedHero == null && activeItemId != null && heroEnrichmentEnabled && !enrichmentFailed)
+                    val canEnrich = activeCarouselItem?.metaPreview?.isTvMix != true
+                    val effectiveEnrichmentActive = activeCarouselItem == null || (canEnrich &&
+                        (enrichmentActive || (enrichedHero == null && activeItemId != null && heroEnrichmentEnabled && !enrichmentFailed)))
                     
                     val activeRowKeyVal = activeRowKey.value
                     val activeRow = activeRowKeyVal?.let { rowByKey[it] }

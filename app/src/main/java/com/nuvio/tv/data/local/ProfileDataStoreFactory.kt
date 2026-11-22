@@ -190,7 +190,7 @@ class ProfileDataStoreFactory @Inject constructor(
                 }
             },
             scope = scope,
-            migrations = installMigrations + migrations,
+            migrations = installMigrations + migrations + listOfNotNull(TrailerLayoutDefaultsMigration.forFeature(feature)),
             produceFile = { context.preferencesDataStoreFile(fileName) }
         )
 

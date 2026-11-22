@@ -7,7 +7,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class FreshInstallDefaultsTest {
-    @Test fun factorySeedsFreshInstallationButNotUpgrade() = runTest {
+    @Test fun factoryAppliesTrailerDefaultsOncePerProfileOnFreshInstallsAndUpgrades() = runTest {
         for (fresh in listOf(true, false)) {
             val directory = java.nio.file.Files.createTempDirectory("install-defaults").toFile()
             val editor = io.mockk.mockk<android.content.SharedPreferences.Editor>(relaxed = true)
@@ -30,6 +30,39 @@ class FreshInstallDefaultsTest {
             val factory = ProfileDataStoreFactory(context)
             val prefs = factory.get(1, "player_settings").data.first()
             assertEquals(if (fresh) 8 else null, prefs[intPreferencesKey("stream_auto_play_timeout_seconds")])
+            for ((feature, keys) in mapOf(
+                "layout_settings" to listOf(continueTrailerInDetailsKey),
+                "trailer_settings" to listOf(trailerPlayInBackgroundKey, trailerPauseOnScrollKey)
+            )) {
+                val untouched = booleanPreferencesKey("unrelated_choice")
+                val oldPrefs = mutablePreferencesOf(untouched to false).apply {
+                    keys.forEach { this[it] = false }
+                }
+                val dataDir = directory.resolve("datastore")
+                val buffer = okio.Buffer()
+                PreferencesSerializer.writeTo(oldPrefs, buffer)
+                dataDir.resolve("${feature}_p2.preferences_pb").writeBytes(buffer.readByteArray())
+
+                val primary = factory.get(1, feature).data.first()
+                val upgraded = factory.get(2, feature)
+                val upgradedPrefs = upgraded.data.first()
+                assertEquals(true, primary[TrailerLayoutDefaultsMigration.appliedKey])
+                assertEquals(true, upgradedPrefs[TrailerLayoutDefaultsMigration.appliedKey])
+                keys.forEach { key ->
+                    assertEquals(true, primary[key])
+                    assertEquals(true, upgradedPrefs[key])
+                    upgraded.setTrailerLayoutSwitch(key, false)
+                }
+                assertEquals(false, upgradedPrefs[untouched])
+
+                // Reopen the bytes persisted after opting out through a separate DataStore instance.
+                dataDir.resolve("${feature}_p2.preferences_pb").copyTo(dataDir.resolve("${feature}_p3.preferences_pb"))
+                val reopened = factory.get(3, feature).data.first()
+                keys.forEach { key ->
+                    assertEquals(false, reopened[key])
+                    assertEquals(true, factory.get(1, feature).data.first()[key])
+                }
+            }
         }
     }
 
@@ -65,7 +98,6 @@ class FreshInstallDefaultsTest {
         assertEquals(true, detail[booleanPreferencesKey("trailer_enabled")])
         assertEquals(false, home[booleanPreferencesKey("modern_hero_full_screen_backdrop")])
         assertEquals(5, detail[intPreferencesKey("trailer_delay_seconds")])
-        assertEquals(false, detail[booleanPreferencesKey("trailer_play_in_background")])
         val edited = home.toMutablePreferences().apply {
             this[intPreferencesKey("focused_poster_backdrop_expand_delay_seconds")] = 9
         }.toPreferences()

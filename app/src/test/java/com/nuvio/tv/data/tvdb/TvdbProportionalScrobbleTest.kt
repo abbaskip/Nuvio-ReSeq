@@ -365,15 +365,39 @@ class TvdbProportionalScrobbleTest {
         assertEquals(reference, actual)
     }
 
+    @Test fun deliveryUsesTheOrdinaryWatchedRuleOnTheSelectedPartsTimeline() = runTest {
+        val first = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719652L }
+        val second = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719653L }
+        val stops = listOf(89.99f, 90f, 97.77854f)
+        for (percent in stops) {
+            val pause = shortRewatch(first, "trakt", percent)
+            val ordinary = pause.copy(progressPercent = percent)
+            assertFalse("Part 2 has not played", pause.isCompleted())
+            val details = resolver.projectProgress(1, original.id, emptyMap(), listOf(pause))
+            assertEquals(ordinary.isCompleted(), details.getValue(6 to 17).isCompleted())
+            assertFalse(details[6 to 18]?.isCompleted() == true)
+            val card = requireNotNull(resolver.continueWatchingResume(1, pause))
+            assertEquals(if (ordinary.isCompleted()) second.id else first.id, card.videoId)
+            assertEquals(if (ordinary.isCompleted()) 0f else percent, card.progressPercent!!, .001f)
+        }
+    }
+
     @Test fun deliveryThresholdAdvancesAtTheEndOfEachSelectedPart() = runTest {
         val first = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719652L }
         val second = effective.videos.single { it.displaySeason == first.displaySeason && it.displayEpisode == first.displayEpisode!! + 1 }
         val ids = listOf(first, second).flatMap { it.tvdbPlaybackContext()!!.episodeIds }
         val pause = WatchProgress(original.id, "series", "The Office", null, null, null, "native", 6, 16,
             "The Delivery", 0, 0, 1234, source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 182129)
-        fun parts(percent: Float) = projectTrackerParts(pause.copy(progressPercent = percent), ids, effective.videos, .98f)
-        assertFalse(parts(48.9f).single().isCompleted())
-        assertTrue(parts(49f).single().isCompleted())
+        fun parts(percent: Float) = projectTrackerParts(pause.copy(progressPercent = percent), ids, effective.videos)
+        assertFalse(parts(44.99f).single().isCompleted())
+        assertTrue(parts(45f).single().isCompleted())
+        val simkl = pause.copy(source = WatchProgress.SOURCE_SIMKL_PLAYBACK)
+        val mdb = pause.copy(source = WatchProgress.SOURCE_REMOTE_PLAYBACK,
+            completionThresholdOverride = MdbListProgressProjection.COMPLETION_PERCENT / 100f)
+        for (sourcePause in listOf(simkl, mdb)) {
+            assertFalse(projectTrackerParts(sourcePause.copy(progressPercent = 39.99f), ids, effective.videos).single().isCompleted())
+            assertTrue(projectTrackerParts(sourcePause.copy(progressPercent = 40f), ids, effective.videos).single().isCompleted())
+        }
         val later = parts(55f)
         assertEquals(first.id, later.single { it.isCompleted() }.videoId)
         assertEquals(10f, later.single { !it.isCompleted() }.progressPercent!!, .001f)
@@ -382,10 +406,10 @@ class TvdbProportionalScrobbleTest {
             part.copy(episodeIdentity = part.episodeIdentity!!.copy(providerSources = emptyList(),
                 contentRuntimeMinutes = ids.zip(listOf(20, 40)).toMap()))
         }
-        fun weightedFirst(percent: Float) = projectTrackerParts(pause.copy(progressPercent = percent), ids, weighted, .98f)
+        fun weightedFirst(percent: Float) = projectTrackerParts(pause.copy(progressPercent = percent), ids, weighted)
             .single { it.videoId == first.id }
-        assertFalse(weightedFirst(32.6f).isCompleted())
-        assertTrue(weightedFirst(32.7f).isCompleted())
+        assertFalse(weightedFirst(29.99f).isCompleted())
+        assertTrue(weightedFirst(30f).isCompleted())
         val next = resolver.continueWatchingResume(1, pause.copy(progressPercent = 50f))!!
         assertEquals(second.id, next.videoId)
         assertEquals(0f, next.progressPercentage)
@@ -420,15 +444,15 @@ class TvdbProportionalScrobbleTest {
             5, 14, null, 0, 0, 1_000, source = WatchProgress.SOURCE_TRAKT_PLAYBACK)
         fun read(secondPercent: Float, includeFirst: Boolean): WatchProgress {
             val first = if (includeFirst) projectTrackerParts(raw.copy(progressPercent = 100f),
-                nativeIds.take(1), listOf(lecture), .98f) else emptyList()
+                nativeIds.take(1), listOf(lecture)) else emptyList()
             val second = projectTrackerParts(raw.copy(progressPercent = secondPercent, lastWatched = 2_000),
-                nativeIds.takeLast(1), listOf(lecture), .98f)
+                nativeIds.takeLast(1), listOf(lecture))
             return reconcileTvdbProgress(effective, emptyMap(), projected = first + second).getValue(lecture.season!! to lecture.episode!!)
         }
         assertFalse(read(100f, false).isCompleted())
         assertEquals(75f, read(50f, true).progressPercent!!, .001f)
-        assertFalse(read(95f, true).isCompleted())
-        assertTrue(read(96f, true).isCompleted())
+        assertFalse(read(79.99f, true).isCompleted())
+        assertTrue(read(80f, true).isCompleted())
         assertTrue(read(100f, true).isCompleted())
     }
 
@@ -461,10 +485,6 @@ class TvdbProportionalScrobbleTest {
             tvdbContext = first.tvdbPlaybackContext(), tvdbEpisodeId = 7931991, chooseEpisode = false,
             lastWatched = 1_794_541_740_000L)
         val directory = java.nio.file.Files.createTempDirectory("office-cw-upgrade").toFile()
-        val configuredResolver = TvdbTrackingResolver(store, dagger.Lazy { overlay }, source, profiles, trakt, auth,
-            mockk(), mockk(), playerSettings = mockk {
-                every { playerSettings } returns MutableStateFlow(mockk { every { nextEpisodeThresholdPercent } returns 98f })
-            })
         val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
                 coEvery { confirmSelectedDeviceProgress() } returns Unit
                 every { watchedItems } returns kotlinx.coroutines.flow.flowOf(emptyList())
@@ -479,7 +499,7 @@ class TvdbProportionalScrobbleTest {
         every { profiles.resolvedActiveProfileId } returns MutableStateFlow(1)
         fun owner() = ContinueWatchingRepository(mockk { every { filesDir } returns directory }, profiles,
             mockk { coEvery { getWatchProgressSource(1) } returns com.nuvio.tv.data.local.WatchProgressSource.TRAKT },
-            javax.inject.Provider { remote }, tvdbOrders = store, tvdbTracking = javax.inject.Provider { configuredResolver })
+            javax.inject.Provider { remote }, tvdbOrders = store, tvdbTracking = javax.inject.Provider { resolver })
         try {
             CwProjectionStore(java.io.File(directory, "cw_enrichment")).write(CwProjection(profileId = 1, source = "TRAKT",
                 members = mapOf(show to CwMember(progress = raw, nextUp = stale))))
@@ -503,14 +523,15 @@ class TvdbProportionalScrobbleTest {
     @Test fun splitOfficePauseSurvivesProviderReplayAndHomeRestart() = runTest {
         val show = original.id
         val raw = WatchProgress(show, "series", "The Office", null, null, null, "$show:6:11", 6, 11,
-            "Shareholder Meeting", 0, 0, 1234L, progressPercent = 47.1796f,
+            "Shareholder Meeting", 0, 0, 1234L, progressPercent = 44.1796f,
             source = WatchProgress.SOURCE_TRAKT_PLAYBACK, traktEpisodeId = 182129, tvdbEpisodeId = 1832421L)
         val directory = java.nio.file.Files.createTempDirectory("office-cw").toFile()
+        val playback = MutableStateFlow(listOf(raw))
         val remote = mockk<com.nuvio.tv.domain.repository.WatchProgressRepository> {
                 coEvery { confirmSelectedDeviceProgress() } returns Unit
                 every { watchedItems } returns kotlinx.coroutines.flow.flowOf(emptyList())
                 every { hasActiveTrackingProgressProvider() } returns true
-            every { allProgress } returns MutableStateFlow(listOf(raw))
+            every { allProgress } returns playback
             every { observeNextUpSeeds() } returns MutableStateFlow(emptyList())
             every { observeRemoteProgressLoaded() } returns MutableStateFlow(true)
             every { isDroppedShow(any()) } returns false
@@ -530,8 +551,22 @@ class TvdbProportionalScrobbleTest {
             assertFalse(card.chooseEpisode)
             assertEquals(10719652L, card.progress.tvdbContext?.episodeId)
             assertEquals("The Delivery Part 1 (Extended Cut)", card.progress.episodeTitle)
-            assertEquals(94.3592f, card.progress.progressPercent!!, 0.001f)
+            assertEquals(88.3592f, card.progress.progressPercent!!, 0.001f)
             assertFalse(card.progress.isCompleted())
+
+            // The onn. had already cached a resolved Part 1 card for this same tracker event.
+            val stopped = raw.copy(progressPercent = 48.88927f)
+            playback.value = listOf(stopped)
+            val oldCard = requireNotNull(member.inProgress).copy(progressPercent = 97.77854f)
+            CwProjectionStore(java.io.File(directory, "cw_enrichment")).write(CwProjection(profileId = 1,
+                source = "TRAKT", members = mapOf(show to CwMember(progress = stopped, inProgress = oldCard))))
+            val upgraded = owner()
+            assertEquals(oldCard, upgraded.snapshot().inProgress.single())
+            upgraded.refreshProjection()
+            val refreshed = owner().snapshot().members.getValue(show)
+            assertNull(refreshed.inProgress)
+            assertEquals(10719653L, refreshed.nextUp?.tvdbContext?.episodeId)
+            assertEquals(stopped, refreshed.progress)
             coVerify(exactly = 0) { trakt.scrobbleStart(any(), any()); trakt.scrobblePause(any(), any())
                 trakt.scrobbleStop(any(), any()); trakt.addHistory(any(), any()); trakt.removeHistory(any(), any()) }
         } finally {

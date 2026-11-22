@@ -38,7 +38,6 @@ internal class FreshInstallDefaults(private val feature: String) : DataMigration
             "trailer_settings" -> {
                 prefs[booleanPreferencesKey("trailer_enabled")] = true
                 prefs[intPreferencesKey("trailer_delay_seconds")] = 5
-                prefs[booleanPreferencesKey("trailer_play_in_background")] = false
             }
         }
         return prefs.toPreferences()

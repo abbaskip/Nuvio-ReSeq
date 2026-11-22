@@ -2,6 +2,11 @@
 <!-- Discovery uses English fallback in locales awaiting translations. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="advanced_discover_title">Advanced Discover</string>
+    <string name="advanced_discover_match_section">Find a title</string>
+    <string name="advanced_discover_release_section">Release and language</string>
+    <string name="advanced_discover_ratings_section">Ratings and runtime</string>
+    <string name="advanced_discover_preview_rating">TMDB %1$s</string>
+    <string name="advanced_discover_preview_votes">%1$s votes</string>
     <string name="advanced_discover_back">Back</string>
     <string name="advanced_discover_show_results">Show results</string>
     <string name="advanced_discover_reset">Reset</string>
@@ -20,7 +25,11 @@
     <string name="advanced_discover_movies">Movies</string>
     <string name="advanced_discover_tv">TV shows</string>
     <string name="advanced_discover_title_contains">Title contains</string>
-    <string name="advanced_discover_title_contains_hint">With the default filters and sort, TMDB searches titles by relevance. Adding a TMDB filter or changing the sort checks titles as you load each page.</string>
+    <string name="advanced_discover_title_contains_hint">Separate terms with commas. Use quotes to match a whole word or phrase within a title.</string>
+    <string name="advanced_discover_keywords">TMDB keywords</string>
+    <string name="advanced_discover_keywords_hint">Separate tags with commas. Santa matches santa claus. Use quotes to match a complete tag name.</string>
+    <string name="advanced_discover_terms_any">Match any term (OR)</string>
+    <string name="advanced_discover_terms_all">Match every term (AND)</string>
     <string name="advanced_discover_title_matches_loaded">Matching titles loaded: %1$d</string>
     <string name="advanced_discover_genres">Include genres</string>
     <string name="advanced_discover_genres_value">Included genres: %1$d</string>

@@ -9,6 +9,10 @@ import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.data.local.AmbientModeDataStore
 import com.nuvio.tv.data.local.PluginDataStore
 import com.nuvio.tv.data.local.ProfileDataStoreFactory
+import com.nuvio.tv.data.local.continueTrailerInDetailsKey
+import com.nuvio.tv.data.local.setTrailerLayoutSwitch
+import com.nuvio.tv.data.local.trailerPauseOnScrollKey
+import com.nuvio.tv.data.local.trailerPlayInBackgroundKey
 import com.nuvio.tv.domain.model.AmbientModeSettings
 import com.nuvio.tv.domain.model.UserProfile
 import com.squareup.moshi.Moshi
@@ -96,6 +100,48 @@ class ProfileSettingsPluginSyncTest {
         val restored = ambient.settings.first()
         assertEquals(1, restored.timeoutMinutes)
         assertFalse(restored.enabled)
+    }
+
+    @Test
+    fun `older snapshots keep trailer choices and updated snapshots restore explicit opt outs`() = runTest(dispatcher) {
+        val harness = harness()
+        val home = harness.store(1, "layout_settings")
+        val detail = harness.store(1, "trailer_settings")
+        val switches = listOf(
+            home to continueTrailerInDetailsKey,
+            detail to trailerPlayInBackgroundKey,
+            detail to trailerPauseOnScrollKey
+        )
+        val other = booleanPreferencesKey("trailer_enabled")
+        fun legacySnapshot(enabled: Boolean) = buildJsonObject {
+            put("features", buildJsonObject {
+                put("layout_settings", buildJsonObject { put(continueTrailerInDetailsKey.name, encodedBoolean(enabled)) })
+                put("trailer_settings", buildJsonObject {
+                    put(trailerPlayInBackgroundKey.name, encodedBoolean(enabled))
+                    put(trailerPauseOnScrollKey.name, encodedBoolean(enabled))
+                    put(other.name, encodedBoolean(enabled))
+                })
+            })
+        }
+        switches.forEach { (store, key) -> store.setTrailerLayoutSwitch(key, true) }
+        harness.remote[1] = legacySnapshot(false)
+        assertTrue(harness.service.pullCurrentProfileFromRemote().getOrThrow())
+        switches.forEach { (store, key) -> assertEquals(true, store.value[key]) }
+        assertEquals(false, detail.value[other])
+        assertFalse(harness.service.pullCurrentProfileFromRemote().getOrThrow())
+        harness.remote[1] = settings(null)
+        assertFalse(harness.service.pullCurrentProfileFromRemote().getOrThrow())
+
+        switches.forEach { (store, key) -> store.setTrailerLayoutSwitch(key, false) }
+        harness.remote[1] = legacySnapshot(true)
+        harness.service.pullCurrentProfileFromRemote().getOrThrow()
+        switches.forEach { (store, key) -> assertEquals(false, store.value[key]) }
+        assertEquals(true, detail.value[other])
+
+        harness.service.pushCurrentProfileToRemote().getOrThrow()
+        switches.forEach { (store, key) -> store.setTrailerLayoutSwitch(key, true) }
+        harness.service.pullCurrentProfileFromRemote().getOrThrow()
+        switches.forEach { (store, key) -> assertEquals(false, store.value[key]) }
     }
 
     @Test

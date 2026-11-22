@@ -1,5 +1,7 @@
 package com.nuvio.tv.ui.screens.home
 
+import com.nuvio.tv.BuildConfig
+import com.nuvio.tv.R
 import com.nuvio.tv.domain.model.CatalogRow
 import com.nuvio.tv.domain.model.ContentType
 import com.nuvio.tv.domain.model.TvMix
@@ -7,6 +9,9 @@ import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.domain.model.PosterShape
 import com.nuvio.tv.domain.model.TvMixHomeCatalog
 import com.nuvio.tv.domain.model.legacyKey
+
+internal val MetaPreview.isTvMix: Boolean
+    get() = apiType == TvMixHomeCatalog.TYPE
 
 /** Reuse catalog cards, stable item keys and all three home layouts' focus restoration. */
 internal fun List<HomeRow>.withTvMixes(
@@ -19,7 +24,9 @@ internal fun List<HomeRow>.withTvMixes(
     val mixRow = HomeRow.Catalog(CatalogRow(
         addonId = TvMixHomeCatalog.ADDON_ID, addonName = "", addonBaseUrl = "", catalogId = TvMixHomeCatalog.CATALOG_ID,
         catalogName = TvMixHomeCatalog.TITLE, type = ContentType.UNKNOWN, rawType = TvMixHomeCatalog.TYPE,
-        items = mixes.map { it.preview() }, hasMore = false
+        items = mixes.map { mix ->
+            mix.preview().copy(background = "android.resource://${BuildConfig.APPLICATION_ID}/${R.drawable.tv_mix_backdrop}")
+        }, hasMore = false
     ))
     // Anchor to the next visible row, including unloaded catalog placeholders.
     // Pinned collections retain their existing priority above ordered catalogs.

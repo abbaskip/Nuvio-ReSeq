@@ -22,12 +22,126 @@ import okhttp3.mockwebserver.MockWebServer
 import java.util.concurrent.TimeUnit
 import com.nuvio.tv.core.tmdb.TmdbCredentialAccess
 import com.nuvio.tv.data.remote.api.TmdbGenresResponse
+import com.nuvio.tv.data.remote.api.TmdbKeywordSearchResponse
+import com.nuvio.tv.data.remote.api.TmdbKeywordSearchResult
+import com.nuvio.tv.data.remote.api.TmdbTitleKeywords
 import com.nuvio.tv.data.remote.api.TmdbExternalIdsResponse
 import kotlinx.coroutines.CancellationException
 
 class DiscoveryRepositoryTest {
     private val api = mockk<TmdbApi>()
     private val movie = TmdbDiscoverResult(id = 99, title = "A Film", releaseDate = "2020-02-04", voteAverage = 7.2, voteCount = 1500)
+
+    @Test fun flickPickCombinesRequiredGenresWithLocalAlternativesAndIsolatesCachedPages() = runTest {
+        val query = DiscoveryQuery(genres = setOf(10), matchAllGenres = true, excludedGenres = setOf(40))
+        coEvery { api.advancedDiscover("movie", any(), "en", 1, query.tmdbParameters()) } returns Response.success(
+            TmdbDiscoverResponse(results = listOf(movie.copy(id = 1, genreIds = listOf(10, 20)),
+                movie.copy(id = 2, genreIds = listOf(10, 30)), movie.copy(id = 3, genreIds = listOf(10)))))
+        val repo = DiscoveryRepository(api, "test")
+        assertEquals(listOf("tmdb:1"), repo.discover(query, "en", 1, setOf(20, 21)).items.map { it.id })
+        assertEquals(listOf("tmdb:2"), repo.discover(query, "en", 1, setOf(30, 31)).items.map { it.id })
+        assertEquals(3, repo.discover(query, "en", 1).items.size)
+    }
+
+    @Test fun titleSearchAnyMergesBothStreamsAndAllChecksBothWordsInEitherOrder() = runTest {
+        val clause = movie.copy(id = 1, title = "The Santa Clause")
+        val clauseOnly = movie.copy(id = 2, title = "The Clause")
+        val santaOnly = movie.copy(id = 3, title = "Santa Buddies")
+        coEvery { api.searchTitles("movie", any(), "en", 1, "Clause", false) } returns
+            Response.success(TmdbDiscoverResponse(results = listOf(clause, clauseOnly), totalPages = 1))
+        coEvery { api.searchTitles("movie", any(), "en", 1, "Santa", false) } returns
+            Response.success(TmdbDiscoverResponse(results = listOf(santaOnly, clause), totalPages = 2))
+        coEvery { api.searchTitles("movie", any(), "en", 2, "Santa", false) } returns
+            Response.success(TmdbDiscoverResponse(results = listOf(movie.copy(title = "Santa Returns")), totalPages = 2))
+        val repo = DiscoveryRepository(api, "test")
+        val query = DiscoveryQuery(titleContains = "Clause, Santa")
+        assertEquals(listOf("The Santa Clause", "Santa Buddies", "The Clause"), repo.discover(query, "en", 1).items.map { it.name })
+        assertEquals("Santa Returns", repo.discover(query, "en", 2).items.single().name)
+        assertEquals("The Santa Clause", repo.discover(query.copy(matchAllTitles = true), "en", 1).items.single().name)
+        coVerify(exactly = 0) { api.searchTitles("movie", any(), "en", 2, "Clause", false) }
+    }
+
+    @Test fun keywordSearchResolvesPaginatedPartialNamesAndExactTagsIntoDiscoverFilters() = runTest {
+        MockWebServer().use { server ->
+            val retrofit = Retrofit.Builder().baseUrl(server.url("/3/"))
+                .addConverterFactory(MoshiConverterFactory.create(Moshi.Builder().build())).build().create(TmdbApi::class.java)
+            val repo = DiscoveryRepository(retrofit, "test")
+            fun enqueue(body: String) { server.enqueue(MockResponse().setBody(body)) }
+            enqueue("""{"total_pages":2,"results":[{"id":1,"name":"santa claus"}]}""")
+            enqueue("""{"results":[{"id":2,"name":"secret santa"}]}""")
+            enqueue("""{"results":[{"id":3,"name":"christmas"},{"id":4,"name":"christmas eve"}]}""")
+            enqueue("""{"results":[{"id":5,"name":"Secret Santa"}]}""")
+            val query = DiscoveryQuery(television = true, titleContains = "Santa", keywords = "santa, \"Christmas\"", genres = setOf(35))
+            assertEquals("Secret Santa", repo.discover(query, "en", 1).items.single().name)
+            for ((term, page) in listOf("santa" to "1", "santa" to "2", "Christmas" to "1")) {
+                val url = server.takeRequest(2, TimeUnit.SECONDS)!!.requestUrl!!
+                assertEquals("/3/search/keyword", url.encodedPath)
+                assertEquals(term, url.queryParameter("query"))
+                assertEquals(page, url.queryParameter("page"))
+            }
+            val url = server.takeRequest(2, TimeUnit.SECONDS)!!.requestUrl!!
+            assertEquals("/3/discover/tv", url.encodedPath)
+            assertEquals("1|2|3", url.queryParameter("with_keywords"))
+            assertEquals("35", url.queryParameter("with_genres"))
+            assertEquals("false", url.queryParameter("include_adult"))
+        }
+    }
+
+    @Test fun allKeywordsCanMatchDifferentTagsWithoutRequiringEveryPartialExpansion() = runTest {
+        val santa = TmdbKeywordSearchResult(1, "santa claus")
+        val secretSanta = TmdbKeywordSearchResult(2, "secret santa")
+        val christmas = TmdbKeywordSearchResult(3, "christmas")
+        coEvery { api.searchKeywords(any(), "santa", 1) } returns Response.success(TmdbKeywordSearchResponse(results = listOf(santa, secretSanta)))
+        coEvery { api.searchKeywords(any(), "christmas", 1) } returns Response.success(TmdbKeywordSearchResponse(results = listOf(christmas)))
+        for (type in listOf("tv", "movie")) {
+            val query = DiscoveryQuery(television = type == "tv", keywords = "santa, \"christmas\"", matchAllKeywords = true)
+            val params = query.tmdbParameters() + ("with_keywords" to "3")
+            coEvery { api.advancedDiscover(type, any(), "en", 1, params) } returns Response.success(
+                TmdbDiscoverResponse(results = listOf(movie.copy(id = 1, name = "One"), movie.copy(id = 2, name = "Two"))))
+            fun tags(items: List<TmdbKeywordSearchResult>) = if (query.television) TmdbTitleKeywords(tvKeywords = items)
+                else TmdbTitleKeywords(movieKeywords = items)
+            coEvery { api.getTitleKeywords(type, 1, any()) } returns Response.success(tags(listOf(christmas, secretSanta)))
+            coEvery { api.getTitleKeywords(type, 2, any()) } returns Response.success(tags(listOf(christmas)))
+            assertEquals(listOf("tmdb:1"), DiscoveryRepository(api, "test").discover(query, "en", 1).items.map { it.id })
+        }
+    }
+
+    @Test fun missingRequiredKeywordReturnsEmptyAndAnyKeepsKnownTags() = runTest {
+        val exact = TmdbKeywordSearchResult(10, "santa claus")
+        coEvery { api.searchKeywords(any(), "santa", 1) } returns Response.success(TmdbKeywordSearchResponse(results = listOf(exact)))
+        coEvery { api.searchKeywords(any(), "unknown", 1) } returns Response.success(TmdbKeywordSearchResponse(results = emptyList()))
+        val repo = DiscoveryRepository(api, "test")
+        val any = DiscoveryQuery(keywords = "santa, unknown")
+        assertFalse(repo.discover(any.copy(matchAllKeywords = true), "en", 1).hasMore)
+        assertTrue(repo.discover(any.copy(keywords = "\"santa\""), "en", 1).items.isEmpty())
+        coVerify(exactly = 0) { api.advancedDiscover(any(), any(), any(), any(), any()) }
+        coEvery { api.advancedDiscover("movie", any(), "en", 1, any.tmdbParameters() + ("with_keywords" to "10")) } returns
+            Response.success(TmdbDiscoverResponse(results = listOf(movie)))
+        assertEquals(1, repo.discover(any, "en", 1).items.size)
+    }
+
+    @Test fun broadKeywordChecksRealTagsAndRetriesFailedMovieKeywordRequests() = runTest {
+        MockWebServer().use { server ->
+            val retrofit = Retrofit.Builder().baseUrl(server.url("/3/"))
+                .addConverterFactory(MoshiConverterFactory.create(Moshi.Builder().build())).build().create(TmdbApi::class.java)
+            val repo = DiscoveryRepository(retrofit, "test")
+            val query = DiscoveryQuery(keywords = "a", minimumVotes = "100")
+            val page = """{"total_pages":2,"results":[{"id":99,"title":"Holiday"}]}"""
+            server.enqueue(MockResponse().setBody("""{"total_pages":600,"results":[]}"""))
+            server.enqueue(MockResponse().setBody(page))
+            server.enqueue(MockResponse().setResponseCode(429))
+            val failure = runCatching { repo.discover(query, "en", 1) }.exceptionOrNull() as DiscoveryException
+            assertEquals(DiscoveryFailure.RATE_LIMIT, failure.failure)
+            server.enqueue(MockResponse().setBody(page))
+            server.enqueue(MockResponse().setBody("""{"keywords":[{"id":12,"name":"santa claus"}]}"""))
+            val retried = repo.discover(query, "en", 1)
+            assertEquals("Holiday", retried.items.single().name)
+            assertTrue(retried.hasMore)
+            val paths = List(5) { server.takeRequest(2, TimeUnit.SECONDS)!!.requestUrl!!.encodedPath }
+            assertEquals(listOf("/3/search/keyword", "/3/discover/movie", "/3/movie/99/keywords",
+                "/3/discover/movie", "/3/movie/99/keywords"), paths)
+        }
+    }
 
     @Test
     fun `title filters share raw cached pages without poisoning changed or cleared filters`() = runTest {

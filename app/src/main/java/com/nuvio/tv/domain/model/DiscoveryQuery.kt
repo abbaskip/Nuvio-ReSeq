@@ -22,16 +22,22 @@ data class DiscoveryQuery(
     val seriesStatus: String = "",
     val hideWatched: Boolean = false,
     val sort: String = "popularity.desc",
-    val titleContains: String = ""
+    val titleContains: String = "",
+    val keywords: String = "",
+    val matchAllTitles: Boolean = false,
+    val matchAllKeywords: Boolean = false
 ) {
     val mediaType: String get() = if (television) "tv" else "movie"
 
-    /** Both search and discovery results must contain the literal text in the displayed title. */
-    fun matchesTitle(title: String): Boolean = title.contains(titleContains.trim(), ignoreCase = true)
+    internal val titleTerms get() = discoveryTerms(titleContains)
+    internal val keywordTerms get() = discoveryTerms(keywords)
+    internal val hasTextFilters get() = titleTerms.isNotEmpty() || keywordTerms.isNotEmpty()
+
+    fun matchesTitle(title: String): Boolean = titleTerms.matchTerms(matchAllTitles) { it.matchesTitle(title) }
 
     // TMDB Search uses its own ordering and accepts none of the extra Discover filters.
     fun offersTitleRelevance(parameters: Map<String, String>): Boolean =
-        titleContains.isNotBlank() && parameters.keys == setOf("include_adult", "sort_by")
+        titleTerms.isNotEmpty() && keywordTerms.isEmpty() && parameters.keys == setOf("include_adult", "sort_by")
 
     fun validationError(): DiscoveryValidationError? {
         fun validDate(value: String): Boolean = value.isBlank() ||

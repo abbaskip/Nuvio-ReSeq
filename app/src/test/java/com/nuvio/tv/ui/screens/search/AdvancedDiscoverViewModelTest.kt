@@ -43,6 +43,10 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AdvancedDiscoverViewModelTest {
+    private val shuffles = mockk<com.nuvio.tv.data.local.EpisodeShuffleStore>(relaxUnitFun = true)
+    private val picks = mockk<com.nuvio.tv.ui.screens.flickpick.FlickPickHistory>(relaxUnitFun = true) {
+        coEvery { recent(any(), any()) } returns emptyList()
+    }
     private val dispatcher = StandardTestDispatcher()
     private val repository = mockk<DiscoveryRepository>()
     private val saved = mockk<SavedDiscoveriesDataStore>()
@@ -72,7 +76,24 @@ class AdvancedDiscoverViewModelTest {
         mockk<TmdbSettingsDataStore> { every { settings } returns MutableStateFlow(TmdbSettings(language = "en")) },
         mockk<ProfileManager> { every { activeProfileId } returns this@AdvancedDiscoverViewModelTest.profiles },
         mockk<WatchProgressRepository> { every { observeWatchedMovieIds() } returns movies },
-        mockk<WatchedSeriesStateHolder> { every { fullyWatchedSeriesIds } returns shows }, credentials, layout)
+        mockk<WatchedSeriesStateHolder> { every { fullyWatchedSeriesIds } returns shows }, credentials, layout, picks, shuffles)
+
+    @Test fun sendUsesEditedQueryAndTheShowsSavedShuffleIdentity() = runTest(dispatcher) {
+        val query = DiscoveryQuery(television = true, titleContains = "Office", minimumRating = "7", hideWatched = true)
+        shows.value = setOf("tmdb:1")
+        val show = item(2).copy(type = ContentType.SERIES, rawType = "series")
+        coEvery { repository.discover(query, "en", 1) } returns DiscoveryPage(listOf(item(1), show), false, 2)
+        coEvery { repository.resolveImdbId(2, true) } returns "tt2"
+        val vm = viewModel()
+        runCurrent()
+        vm.edit(query)
+        vm.sendToFlickPick()
+        advanceUntilIdle()
+        assertEquals("tt2", vm.takePick()?.first?.id)
+        coVerify { shuffles.carryToPlaybackId(1, "tmdb:2", "tt2") }
+        assertNull(vm.takePick())
+        coVerify { picks.record(1, "tmdb:2", true) }
+    }
 
     @Test
     fun `title filter is explicitly applied saved restored reset and cleared across profiles`() = runTest(dispatcher) {

@@ -52,6 +52,7 @@ class LayoutPreferenceDataStore @Inject constructor(
     private val profileManager: ProfileManager
 ) {
     companion object {
+        internal const val DEFAULT_CONTINUE_TRAILER_IN_DETAILS = true
         private const val TAG = "LayoutPreferenceDS"
         private const val FEATURE = "layout_settings"
         private const val DEFAULT_POSTER_CARD_WIDTH_DP = 126
@@ -89,7 +90,6 @@ class LayoutPreferenceDataStore @Inject constructor(
     private val focusedPosterBackdropExpandDelaySecondsKey = intPreferencesKey("focused_poster_backdrop_expand_delay_seconds")
     private val focusedPosterBackdropTrailerEnabledKey = booleanPreferencesKey("focused_poster_backdrop_trailer_enabled")
     private val focusedPosterBackdropTrailerMutedKey = booleanPreferencesKey("focused_poster_backdrop_trailer_muted")
-    private val focusedPosterTrailerContinueInDetailsKey = booleanPreferencesKey("focused_poster_trailer_continue_in_details")
     private val focusedPosterBackdropTrailerPlaybackTargetKey =
         stringPreferencesKey("focused_poster_backdrop_trailer_playback_target")
     private val posterCardWidthDpKey = intPreferencesKey("poster_card_width_dp")
@@ -303,7 +303,7 @@ class LayoutPreferenceDataStore @Inject constructor(
     }
 
     val focusedPosterTrailerContinueInDetails: Flow<Boolean> = profileFlow { prefs ->
-        prefs[focusedPosterTrailerContinueInDetailsKey] ?: false
+        prefs[continueTrailerInDetailsKey] ?: DEFAULT_CONTINUE_TRAILER_IN_DETAILS
     }
 
     val focusedPosterBackdropTrailerPlaybackTarget: Flow<FocusedPosterTrailerPlaybackTarget> =
@@ -673,9 +673,7 @@ class LayoutPreferenceDataStore @Inject constructor(
     }
 
     suspend fun setFocusedPosterTrailerContinueInDetails(enabled: Boolean) {
-        store().edit { prefs ->
-            prefs[focusedPosterTrailerContinueInDetailsKey] = enabled
-        }
+        store().setTrailerLayoutSwitch(continueTrailerInDetailsKey, enabled)
     }
 
     suspend fun setFocusedPosterBackdropTrailerPlaybackTarget(

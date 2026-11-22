@@ -459,8 +459,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
                         metadataState,
                         tvdbTracking?.observeSelectedSeries(profileId) ?: flowOf(emptySet<Long>())
                     ) { items, localItems, metadata, selectedSeries ->
-                        (items + localItems.filter { it.tvdbContext == null || it.tvdbContext.seriesId in selectedSeries }
-                            .mapNotNull { retainedSelectedProgress(provider, profileId, it) })
+                        (items + localItems.filter { it.tvdbContext == null || it.tvdbContext.seriesId in selectedSeries })
                             .map { progress -> enrichWithMetadata(progress, metadata) }
                             .sortedByDescending(WatchProgress::lastWatched)
                     }.onEach { items ->
@@ -617,7 +616,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 else watchProgressPreferences.observeDeviceProgress(profileId, provider.providerId.name).map { rows -> rows.filter { it.contentId == contentId } }
             combine(remote, local, revoked) { entries, records, ignored ->
                 tvdb.projectProgress(profileId, contentId, emptyMap(),
-                    (records.mapNotNull { retainedSelectedProgress(provider, profileId, it) } + entries)
+                    (records + entries)
                         .filterNot { it.isRemovedCwPause(ignored) }, context).filterValues { part ->
                     part.tvdbContentIds.none { id ->
                         (ignored[com.nuvio.tv.data.cw.tvdbRemovalKey(contentId, id)] ?: Long.MIN_VALUE) >= part.lastWatched
@@ -669,22 +668,6 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 provider?.airedEpisodeOrder(contentId) ?: flowOf(emptyList())
             }
             .distinctUntilChanged()
-    }
-
-    private suspend fun retainedSelectedProgress(provider: TrackingProgressProvider?, profileId: Int,
-        row: WatchProgress): WatchProgress? {
-        val context = row.tvdbContext ?: return row
-        val tvdb = tvdbTracking
-        if (provider != null && tvdb != null) {
-            val media = buildTrackingMediaReference(row.contentType, row.contentId, row.videoId,
-                seasonNumber = row.season, episodeNumber = row.episode)
-            if (tvdb.isPartialTrackerEpisode(profileId, provider.providerId, media.copy(catalog = media.catalog?.copy(tvdbContext = context)))) {
-                val threshold = tvdb.partThreshold()
-                return row.copy(completionThresholdOverride = threshold,
-                    tvdbCompletedEpisodeIds = if (row.isCompleted(threshold)) context.episodeIds else emptyList())
-            }
-        }
-        return row
     }
 
     override fun observeNextUpSeeds(): Flow<List<WatchProgress>> {
@@ -752,7 +735,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 else watchProgressPreferences.observeDeviceProgress(profileId, provider.providerId.name)
             combine(existing, local,
                 tvdbTracking?.observeSelectedSeries(profileId) ?: flowOf(emptySet<Long>())) { seeds, records, selected ->
-                val parts = records.filter { (it.tvdbContext == null || it.tvdbContext.seriesId in selected) && it.isCompleted() }.mapNotNull { retainedSelectedProgress(provider, profileId, it) }.filter { it.isCompleted() }
+                val parts = records.filter { (it.tvdbContext == null || it.tvdbContext.seriesId in selected) && it.isCompleted() }
                 if (parts.isEmpty()) seeds else (seeds + parts).groupBy { it.contentId }.values.map { it.maxBy(WatchProgress::lastWatched) }
             }
             }, profileId)
@@ -911,10 +894,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
         try {
             if (!isSyncingFromRemote) watchProgressPreferences.recordDeviceProgress(profileId, updates)
             val owner = cwRepository ?: return
-            val provider = if (updates.any { it.tvdbContext != null }) profileProgressProviderFlow(profileId).first() else null
-            owner.committedProgress(profileId, updates.map { row ->
-                if (row.tvdbContext == null) row else retainedSelectedProgress(provider, profileId, row) ?: row
-            })
+            owner.committedProgress(profileId, updates)
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
         } catch (error: Exception) {

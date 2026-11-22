@@ -110,7 +110,7 @@ data class WatchProgress(
             else duration > 0 && progressPercentage > 0f && progressPercentage < .01f
     }
 
-    private fun completionThreshold(): Float =
+    internal fun completionThreshold(): Float =
         completionThresholdOverride?.takeIf { it.isFinite() && it > 0f && it <= 1f }
             ?: if (source == SOURCE_SIMKL_PLAYBACK) SIMKL_COMPLETED_THRESHOLD else COMPLETED_THRESHOLD
 

@@ -246,7 +246,7 @@ class TrailerPlayerPool @Inject constructor(
             videoUrl = videoUrl,
             audioUrl = audioUrl,
             youtubeKey = youtubeKey,
-            playInBackground = cachedTrailerSettings?.playInBackground ?: false,
+            playInBackground = playInBackgroundPreference,
             letterboxZoom = ownerLetterboxZoom,
             sourceBounds = ownerBounds
         )
@@ -279,7 +279,7 @@ class TrailerPlayerPool @Inject constructor(
     fun isHandoffPending(): Boolean = pendingHandoff != null
 
     val playInBackgroundPreference: Boolean
-        get() = cachedTrailerSettings?.playInBackground ?: false
+        get() = cachedTrailerSettings?.playInBackground ?: TrailerSettings.DEFAULT_PLAY_IN_BACKGROUND
 
     private fun clearHandoff() {
         pendingHandoff = null

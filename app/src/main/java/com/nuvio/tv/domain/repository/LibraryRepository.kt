@@ -18,6 +18,7 @@ interface LibraryRepository {
     suspend fun cachedLibraryItems(profileId: Int): List<LibraryEntry>?
     val listTabs: Flow<List<LibraryListTab>>
     val membershipListTabs: Flow<List<LibraryListTab>>
+    suspend fun movieListItems(tab: LibraryListTab, profileId: Int): List<LibraryEntry>
 
     fun isInLibrary(itemId: String, itemType: String): Flow<Boolean>
     fun isInWatchlist(itemId: String, itemType: String): Flow<Boolean>

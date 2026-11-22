@@ -17,6 +17,8 @@ class HomeTvMixTest {
         assertEquals("TV Mix", catalogRowTitle(row, true))
         assertEquals("tvmix:saved-id", row.items.single().id)
         assertEquals("tvmix", row.items.single().apiType)
+        assertTrue(row.items.single().background.orEmpty().startsWith("android.resource://"))
+        assertTrue(row.items.single().poster.orEmpty().startsWith("tvmix-art:"))
         assertFalse(row.hasMore)
         assertEquals(listOf(upstream), rows.withTvMixes(emptyList()))
     }

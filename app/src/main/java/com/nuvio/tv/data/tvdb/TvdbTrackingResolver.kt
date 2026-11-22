@@ -34,30 +34,9 @@ class TvdbTrackingResolver @Inject constructor(
     private val local: com.nuvio.tv.data.local.WatchProgressPreferences? = null,
     private val traktProgress: dagger.Lazy<com.nuvio.tv.data.repository.TraktProgressService>? = null,
     private val simkl: dagger.Lazy<com.nuvio.tv.data.simkl.SimklSyncRepository>? = null,
-    private val mdbList: dagger.Lazy<com.nuvio.tv.data.mdblist.MdbListSyncRepository>? = null,
-    private val playerSettings: com.nuvio.tv.data.local.PlayerSettingsDataStore? = null
+    private val mdbList: dagger.Lazy<com.nuvio.tv.data.mdblist.MdbListSyncRepository>? = null
 ) {
     suspend fun isSelected(profileId: Int, contentId: String) = store.selected(profileId, listOf(contentId)) != null
-
-    private data class PartLookup(val profile: Int, val provider: TrackingProviderId,
-        val contentId: String, val context: TvdbPlaybackContext)
-    private val partLookups = object : LinkedHashMap<PartLookup, Boolean>(32, .75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<PartLookup, Boolean>?) = size > 128
-    }
-
-    /** A single selected part has no independent history row on this tracker. */
-    suspend fun isPartialTrackerEpisode(profileId: Int, provider: TrackingProviderId, media: TrackingMediaReference): Boolean {
-        val catalog = media.catalog ?: return false
-        val context = catalog.tvdbContext ?: return false
-        val key = PartLookup(profileId, provider, catalog.contentId, context)
-        synchronized(partLookups) { partLookups[key]?.let { return it } }
-        val resolved = try { withContext(Dispatchers.Default) { selectedTargets(profileId, provider, media) } }
-            catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { null } ?: return false
-        val target = resolved.targets.singleOrNull()
-        val partial = target != null && target.contentIds.size > context.episodeIds.size && target.contentIds.containsAll(context.episodeIds)
-        synchronized(partLookups) { partLookups[key] = partial }
-        return partial
-    }
 
     /** A tracker pause is measured on the native episode's timeline. Only CW consumes this view. */
     internal suspend fun continueWatchingResume(profileId: Int, pause: WatchProgress, revoked: Map<String, Long> = emptyMap(),
@@ -70,7 +49,7 @@ class TvdbTrackingResolver @Inject constructor(
             }?.contentIds?.toList()
             else -> nativePauseIds(pause, meta) ?: otherPauseTargets(meta, pause).verifiedPauseIds(pause)
         } ?: return null
-        val parts = projectTrackerParts(pause, ids, meta.videos, partThreshold())
+        val parts = projectTrackerParts(pause, ids, meta.videos)
         // A longer playable episode needs completion evidence for its other native segments.
         val projected = if (parts.any { !ids.containsAll(it.tvdbContentIds) }) {
             val identities = parts.mapNotNull { it.tvdbContext?.episodeId }.toSet()
@@ -100,8 +79,6 @@ class TvdbTrackingResolver @Inject constructor(
             position = 0, duration = 0, progressPercent = 0f, tvdbContext = context,
             tvdbEpisodeId = context.episodeIds.first(), tvdbEpisodeIds = context.episodeIds, tvdbCompletedEpisodeIds = emptyList())
     }
-
-    internal suspend fun partThreshold() = (playerSettings?.playerSettings?.first()?.nextEpisodeThresholdPercent ?: 99f) / 100f
 
     /** Positive catalogue/history evidence, using the same projection as Details. */
     internal suspend fun isFullyWatched(profileId: Int, contentId: String, progress: Collection<WatchProgress>): Boolean {
@@ -153,7 +130,6 @@ class TvdbTrackingResolver @Inject constructor(
                 entries.any { it.trackingProviderId == "mdblist" && needsCatalogue(it) } -> mdbListTargets(meta, emptySet())
                 else -> emptyList()
             }
-            val threshold = partThreshold()
             val projected = mutableListOf<WatchProgress>()
             val identified = entries.mapNotNull { entry ->
                 if (entry in traktEntries) {
@@ -162,7 +138,7 @@ class TvdbTrackingResolver @Inject constructor(
                             (entry.traktEpisodeId == null && entry.season == it.episode.season && entry.episode == it.episode.number)
                     }
                     if (target != null && entry.source == WatchProgress.SOURCE_TRAKT_PLAYBACK && entry.tvdbContext == null) {
-                        projected += projectTrackerParts(entry.copy(contentId = contentId), target.contentIds.toList(), meta.videos, threshold)
+                        projected += projectTrackerParts(entry.copy(contentId = contentId), target.contentIds.toList(), meta.videos)
                         return@mapNotNull null
                     }
                     if (target == null) entry.copy(tvdbEpisodeId = null, tvdbEpisodeIds = emptyList())
@@ -172,7 +148,7 @@ class TvdbTrackingResolver @Inject constructor(
                     val candidates = if (entry.trackingProviderId == "simkl") otherTargets else mdbTargets
                     val ids = nativePauseIds(entry, meta) ?: candidates.verifiedPauseIds(entry)
                     if (ids != null) {
-                        projected += projectTrackerParts(entry.copy(contentId = contentId), ids, meta.videos, threshold)
+                        projected += projectTrackerParts(entry.copy(contentId = contentId), ids, meta.videos)
                         null
                     } else entry.takeIf { it.contentId == contentId }
                 } else if (entry.contentId != contentId) {

@@ -7,6 +7,13 @@ import com.nuvio.tv.data.local.StreamAutoPlaySource
 object StreamAutoPlayPolicy {
     data class NextEpisodeSelection(val settings: PlayerSettings, val automatic: Boolean, val bingeGroupOnly: Boolean)
 
+    fun forExplicitAutoPlay(settings: PlayerSettings): PlayerSettings = when (settings.streamAutoPlayMode) {
+        StreamAutoPlayMode.FIRST_STREAM -> settings
+        StreamAutoPlayMode.MANUAL -> settings.copy(streamAutoPlayMode = StreamAutoPlayMode.FIRST_STREAM)
+        StreamAutoPlayMode.REGEX_MATCH -> if (isRegexSelectionConfigured(settings.streamAutoPlayRegex)) settings
+            else settings.copy(streamAutoPlayMode = StreamAutoPlayMode.FIRST_STREAM)
+    }
+
     /** The same one-time manual-mode fallback is used by ordinary episodes and mixes. */
     fun nextEpisodeSelection(settings: PlayerSettings): NextEpisodeSelection {
         val manualFallback = settings.streamAutoPlayMode == StreamAutoPlayMode.MANUAL &&

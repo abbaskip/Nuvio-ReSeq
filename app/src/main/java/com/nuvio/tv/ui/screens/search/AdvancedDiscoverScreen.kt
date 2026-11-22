@@ -10,17 +10,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,15 +46,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,12 +68,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.nuvio.tv.R
+import coil3.compose.AsyncImage
 import com.nuvio.tv.data.repository.DiscoveryFailure
 import com.nuvio.tv.domain.model.DiscoveryQuery
 import com.nuvio.tv.domain.model.DiscoveryValidationError
+import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.ui.components.LoadingIndicator
 import com.nuvio.tv.ui.components.PosterCardStyle
 import com.nuvio.tv.ui.components.tvTextFieldNavigation
@@ -65,11 +87,16 @@ import java.time.LocalDate
 import java.text.NumberFormat
 import kotlinx.coroutines.launch
 
+private val DiscoveryAccent = Color(0xFF9CE9E0)
+private val DiscoverySurface = Color(0xFF1A3040)
+private val LocalDiscoveryControls = staticCompositionLocalOf { false }
+
 @Composable
 fun AdvancedDiscoverScreen(
     onBack: () -> Unit,
     onOpenTmdbSettings: () -> Unit,
     onNavigateToDetail: (String, String, String) -> Unit,
+    onPlayPick: (MetaPreview, Int) -> Unit,
     viewModel: AdvancedDiscoverViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -89,6 +116,8 @@ fun AdvancedDiscoverScreen(
     val lifecycle = LocalLifecycleOwner.current
     val filterScroll = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    DisposableEffect(viewModel) { onDispose { viewModel.cancelPick() } }
+    LaunchedEffect(state.picked) { viewModel.takePick()?.let { (title, profile) -> onPlayPick(title, profile) } }
 
     LaunchedEffect(Unit) {
         if (!pendingDetailReturn) {
@@ -133,193 +162,215 @@ fun AdvancedDiscoverScreen(
         } else onBack()
     }
 
-    Column(Modifier.fillMaxSize().background(NuvioTheme.colors.Background).padding(28.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.advanced_discover_title), style = MaterialTheme.typography.headlineMedium,
-                color = NuvioTheme.colors.TextPrimary)
-            DiscoveryButton(stringResource(R.string.advanced_discover_back), onClick = onBack)
-        }
-        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            LazyColumn(Modifier.weight(0.43f), state = filterScroll, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DiscoveryButton(stringResource(R.string.advanced_discover_show_results),
-                            Modifier.weight(1f).focusRequester(showResultsFocus), onClick = viewModel::showResults)
-                        DiscoveryButton(stringResource(R.string.advanced_discover_reset), onClick = viewModel::reset)
-                    }
-                }
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DiscoveryButton(stringResource(R.string.advanced_discover_saved), Modifier.weight(1f), onClick = { picker = "saved" })
-                        DiscoveryButton(stringResource(R.string.advanced_discover_save), Modifier.weight(1f), onClick = { showSave = true })
-                    }
-                }
-                state.validationError?.let { error -> item { DiscoveryNote(validationMessage(error)) } }
-                if (state.savedSuccessfully) item { DiscoveryNote(stringResource(R.string.advanced_discover_save_success)) }
-                if (state.saveFailed) item { DiscoveryNote(stringResource(R.string.advanced_discover_save_failure)) }
-                item {
-                    DiscoveryButton(stringResource(R.string.advanced_discover_type_value,
-                        stringResource(if (query.television) R.string.advanced_discover_tv else R.string.advanced_discover_movies)),
-                        Modifier.fillMaxWidth(), onClick = { picker = "type" })
-                }
-                item {
-                    DiscoveryField(stringResource(R.string.advanced_discover_title_contains), query.titleContains,
-                        placeholder = stringResource(R.string.advanced_discover_any)) {
-                        viewModel.edit(query.copy(titleContains = it))
-                    }
-                    DiscoveryNote(stringResource(R.string.advanced_discover_title_contains_hint))
-                }
-                item {
-                    DiscoveryButton(stringResource(R.string.advanced_discover_genres_value, query.genres.size), Modifier.fillMaxWidth(),
-                        enabled = state.genres.isNotEmpty(), onClick = { picker = "genres" })
-                }
-                item {
-                    DiscoveryButton(stringResource(if (query.matchAllGenres) R.string.advanced_discover_match_all else R.string.advanced_discover_match_any),
-                        Modifier.fillMaxWidth(), onClick = { viewModel.edit(query.copy(matchAllGenres = !query.matchAllGenres)) })
-                }
-                item {
-                    DiscoveryButton(stringResource(R.string.advanced_discover_exclude_value, query.excludedGenres.size), Modifier.fillMaxWidth(),
-                        enabled = state.genres.isNotEmpty(), onClick = { picker = "exclude" })
-                }
-                item {
-                    DiscoveryNote(stringResource(if (query.television) R.string.advanced_discover_first_aired else R.string.advanced_discover_release_date))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DiscoveryField(stringResource(R.string.advanced_discover_from), query.dateFrom, Modifier.weight(1f), placeholder = "YYYY-MM-DD") {
-                            viewModel.edit(query.copy(dateFrom = it))
-                        }
-                        DiscoveryField(stringResource(R.string.advanced_discover_to), query.dateTo, Modifier.weight(1f), placeholder = "YYYY-MM-DD") {
-                            viewModel.edit(query.copy(dateTo = it))
-                        }
-                    }
-                }
-                item {
-                    DiscoveryButton(stringResource(R.string.advanced_discover_date_shortcuts), Modifier.fillMaxWidth(), onClick = { picker = "dates" })
-                }
-                item {
-                    val language = state.languages.firstOrNull { it.code == query.originalLanguage }?.englishName
-                        ?: query.originalLanguage.ifBlank { stringResource(R.string.advanced_discover_any) }
-                    DiscoveryButton(stringResource(R.string.advanced_discover_language_value, language), Modifier.fillMaxWidth(),
-                        enabled = state.languages.isNotEmpty(), onClick = { picker = "language" })
-                }
-                if (!query.television) item {
-                    DiscoveryButton(stringResource(R.string.advanced_discover_certification_country, query.certificationCountry),
-                        Modifier.fillMaxWidth(), onClick = { picker = "certification_country" })
-                    DiscoveryButton(stringResource(R.string.advanced_discover_certification_value,
-                        query.certification.ifBlank { stringResource(R.string.advanced_discover_any) }),
-                        Modifier.fillMaxWidth(), onClick = { picker = "certification" })
-                } else item { DiscoveryNote(stringResource(R.string.advanced_discover_tv_certification_hint)) }
-                item {
-                    DiscoveryField(stringResource(R.string.advanced_discover_rating), query.minimumRating, keyboardType = KeyboardType.Decimal) {
-                        viewModel.edit(query.copy(minimumRating = it))
-                    }
-                }
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        DiscoveryField(stringResource(R.string.advanced_discover_votes), query.minimumVotes, Modifier.weight(1f), KeyboardType.Number) {
-                            viewModel.edit(query.copy(minimumVotes = it))
-                        }
-                        DiscoveryButton(stringResource(R.string.advanced_discover_presets), onClick = { picker = "votes" })
-                    }
-                }
-                item {
-                    DiscoveryNote(stringResource(R.string.advanced_discover_runtime))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DiscoveryField(stringResource(R.string.advanced_discover_from), query.runtimeFrom, Modifier.weight(1f), KeyboardType.Number) {
-                            viewModel.edit(query.copy(runtimeFrom = it))
-                        }
-                        DiscoveryField(stringResource(R.string.advanced_discover_to), query.runtimeTo, Modifier.weight(1f), KeyboardType.Number) {
-                            viewModel.edit(query.copy(runtimeTo = it))
-                        }
-                    }
-                }
-                if (query.television) item {
-                    val label = stringResource(when (query.seriesStatus) {
-                        "0" -> R.string.advanced_discover_returning
-                        "3" -> R.string.advanced_discover_ended
-                        "4" -> R.string.advanced_discover_cancelled
-                        else -> R.string.advanced_discover_any
-                    })
-                    DiscoveryButton(stringResource(R.string.advanced_discover_status_value, label), Modifier.fillMaxWidth(), onClick = { picker = "status" })
-                }
-                item {
-                    DiscoveryButton(stringResource(if (query.hideWatched) R.string.advanced_discover_hide_watched_on else R.string.advanced_discover_hide_watched_off),
-                        Modifier.fillMaxWidth(), onClick = { viewModel.edit(query.copy(hideWatched = !query.hideWatched)) })
-                    DiscoveryNote(stringResource(R.string.advanced_discover_watched_hint))
-                }
-                item {
-                    val sortLabels = discoverySortLabels(titleRelevance)
-                    DiscoveryButton(stringResource(R.string.advanced_discover_sort_value, sortLabels.getValue(query.sort)),
-                        Modifier.fillMaxWidth(), onClick = { picker = "sort" })
-                }
-                if (state.referenceLoading) item { DiscoveryNote(stringResource(R.string.advanced_discover_loading_options)) }
-                state.referenceError?.let { error -> item {
-                    DiscoveryNote(failureMessage(error))
-                    DiscoveryButton(stringResource(R.string.advanced_discover_retry_options), onClick = viewModel::reloadReferences)
-                } }
-                item { DiscoveryButton(stringResource(R.string.advanced_discover_show_results), Modifier.fillMaxWidth(), onClick = viewModel::showResults) }
+    CompositionLocalProvider(LocalDiscoveryControls provides true) {
+        Column(Modifier.fillMaxSize().background(Brush.linearGradient(
+            listOf(Color(0xFF163C43), Color(0xFF102237), Color(0xFF0A101D))
+        )).padding(horizontal = 28.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(34.dp), tint = DiscoveryAccent)
+                Text(stringResource(R.string.advanced_discover_title), Modifier.weight(1f),
+                    style = MaterialTheme.typography.headlineMedium, color = NuvioTheme.colors.TextPrimary)
+                DiscoveryButton(stringResource(R.string.advanced_discover_back), onClick = onBack)
             }
-
-            Column(Modifier.weight(0.57f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                DiscoveryNote(stringResource(R.string.advanced_discover_attribution))
-                if (state.error == DiscoveryFailure.CONFIGURATION || state.referenceError == DiscoveryFailure.CONFIGURATION) {
-                    DiscoveryButton(stringResource(R.string.advanced_discover_configure_tmdb), onClick = onOpenTmdbSettings)
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                LazyColumn(Modifier.weight(0.42f), state = filterScroll, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DiscoveryButton(stringResource(R.string.advanced_discover_show_results),
+                                Modifier.weight(1f).focusRequester(showResultsFocus), primary = true,
+                                icon = Icons.Default.Search, onClick = viewModel::showResults)
+                            DiscoveryButton(stringResource(R.string.advanced_discover_reset), icon = Icons.Default.Refresh,
+                                onClick = viewModel::reset)
+                        }
+                    }
+                    item {
+                        DiscoveryButton(stringResource(if (state.picking) R.string.action_cancel else R.string.flick_pick_send),
+                            Modifier.fillMaxWidth(), icon = Icons.Default.Shuffle,
+                            onClick = { if (state.picking) viewModel.cancelPick() else viewModel.sendToFlickPick() })
+                        if (state.picking) DiscoveryNote(stringResource(R.string.flick_pick_finding_title))
+                        if (state.pickEmpty) DiscoveryNote(stringResource(R.string.advanced_discover_empty))
+                        state.pickError?.let { DiscoveryNote(failureMessage(it)) }
+                    }
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DiscoveryButton(stringResource(R.string.advanced_discover_saved), Modifier.weight(1f),
+                                icon = Icons.Default.Bookmark, onClick = { picker = "saved" })
+                            DiscoveryButton(stringResource(R.string.advanced_discover_save), Modifier.weight(1f), onClick = { showSave = true })
+                        }
+                    }
+                    state.validationError?.let { error -> item { DiscoveryNote(validationMessage(error)) } }
+                    if (state.savedSuccessfully) item { DiscoveryNote(stringResource(R.string.advanced_discover_save_success)) }
+                    if (state.saveFailed) item { DiscoveryNote(stringResource(R.string.advanced_discover_save_failure)) }
+                    item {
+                        DiscoverySectionLabel(stringResource(R.string.advanced_discover_match_section))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DiscoveryButton(stringResource(R.string.advanced_discover_type_value,
+                                stringResource(if (query.television) R.string.advanced_discover_tv else R.string.advanced_discover_movies)),
+                                Modifier.weight(1f), onClick = { picker = "type" })
+                            DiscoveryButton(stringResource(R.string.advanced_discover_genres_value, query.genres.size),
+                                Modifier.weight(1f), enabled = state.genres.isNotEmpty(), onClick = { picker = "genres" })
+                        }
+                    }
+                    item {
+                        DiscoveryTermsField(stringResource(R.string.advanced_discover_title_contains), query.titleContains,
+                            stringResource(R.string.advanced_discover_title_contains_hint), query.matchAllTitles,
+                            onText = { viewModel.edit(query.copy(titleContains = it)) },
+                            onMatchAll = { viewModel.edit(query.copy(matchAllTitles = it)) })
+                    }
+                    item {
+                        DiscoveryTermsField(stringResource(R.string.advanced_discover_keywords), query.keywords,
+                            stringResource(R.string.advanced_discover_keywords_hint), query.matchAllKeywords,
+                            onText = { viewModel.edit(query.copy(keywords = it)) },
+                            onMatchAll = { viewModel.edit(query.copy(matchAllKeywords = it)) })
+                    }
+                    item {
+                        DiscoveryButton(stringResource(if (query.matchAllGenres) R.string.advanced_discover_match_all else R.string.advanced_discover_match_any),
+                            Modifier.fillMaxWidth(), onClick = { viewModel.edit(query.copy(matchAllGenres = !query.matchAllGenres)) })
+                    }
+                    item {
+                        DiscoveryButton(stringResource(R.string.advanced_discover_exclude_value, query.excludedGenres.size), Modifier.fillMaxWidth(),
+                            enabled = state.genres.isNotEmpty(), onClick = { picker = "exclude" })
+                    }
+                    item {
+                        DiscoverySectionLabel(stringResource(R.string.advanced_discover_release_section))
+                        DiscoveryNote(stringResource(if (query.television) R.string.advanced_discover_first_aired else R.string.advanced_discover_release_date))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DiscoveryField(stringResource(R.string.advanced_discover_from), query.dateFrom, Modifier.weight(1f), placeholder = "YYYY-MM-DD") {
+                                viewModel.edit(query.copy(dateFrom = it))
+                            }
+                            DiscoveryField(stringResource(R.string.advanced_discover_to), query.dateTo, Modifier.weight(1f), placeholder = "YYYY-MM-DD") {
+                                viewModel.edit(query.copy(dateTo = it))
+                            }
+                        }
+                    }
+                    item {
+                        DiscoveryButton(stringResource(R.string.advanced_discover_date_shortcuts), Modifier.fillMaxWidth(), onClick = { picker = "dates" })
+                    }
+                    item {
+                        val language = state.languages.firstOrNull { it.code == query.originalLanguage }?.englishName
+                            ?: query.originalLanguage.ifBlank { stringResource(R.string.advanced_discover_any) }
+                        DiscoveryButton(stringResource(R.string.advanced_discover_language_value, language), Modifier.fillMaxWidth(),
+                            enabled = state.languages.isNotEmpty(), onClick = { picker = "language" })
+                    }
+                    item { DiscoverySectionLabel(stringResource(R.string.advanced_discover_ratings_section)) }
+                    if (!query.television) item {
+                        DiscoveryButton(stringResource(R.string.advanced_discover_certification_country, query.certificationCountry),
+                            Modifier.fillMaxWidth(), onClick = { picker = "certification_country" })
+                        DiscoveryButton(stringResource(R.string.advanced_discover_certification_value,
+                            query.certification.ifBlank { stringResource(R.string.advanced_discover_any) }),
+                            Modifier.fillMaxWidth(), onClick = { picker = "certification" })
+                    } else item { DiscoveryNote(stringResource(R.string.advanced_discover_tv_certification_hint)) }
+                    item {
+                        DiscoveryField(stringResource(R.string.advanced_discover_rating), query.minimumRating, keyboardType = KeyboardType.Decimal) {
+                            viewModel.edit(query.copy(minimumRating = it))
+                        }
+                    }
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            DiscoveryField(stringResource(R.string.advanced_discover_votes), query.minimumVotes, Modifier.weight(1f), KeyboardType.Number) {
+                                viewModel.edit(query.copy(minimumVotes = it))
+                            }
+                            DiscoveryButton(stringResource(R.string.advanced_discover_presets), onClick = { picker = "votes" })
+                        }
+                    }
+                    item {
+                        DiscoveryNote(stringResource(R.string.advanced_discover_runtime))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DiscoveryField(stringResource(R.string.advanced_discover_from), query.runtimeFrom, Modifier.weight(1f), KeyboardType.Number) {
+                                viewModel.edit(query.copy(runtimeFrom = it))
+                            }
+                            DiscoveryField(stringResource(R.string.advanced_discover_to), query.runtimeTo, Modifier.weight(1f), KeyboardType.Number) {
+                                viewModel.edit(query.copy(runtimeTo = it))
+                            }
+                        }
+                    }
+                    if (query.television) item {
+                        val label = stringResource(when (query.seriesStatus) {
+                            "0" -> R.string.advanced_discover_returning
+                            "3" -> R.string.advanced_discover_ended
+                            "4" -> R.string.advanced_discover_cancelled
+                            else -> R.string.advanced_discover_any
+                        })
+                        DiscoveryButton(stringResource(R.string.advanced_discover_status_value, label), Modifier.fillMaxWidth(), onClick = { picker = "status" })
+                    }
+                    item {
+                        DiscoveryButton(stringResource(if (query.hideWatched) R.string.advanced_discover_hide_watched_on else R.string.advanced_discover_hide_watched_off),
+                            Modifier.fillMaxWidth(), onClick = { viewModel.edit(query.copy(hideWatched = !query.hideWatched)) })
+                        DiscoveryNote(stringResource(R.string.advanced_discover_watched_hint))
+                    }
+                    item {
+                        val sortLabels = discoverySortLabels(titleRelevance)
+                        DiscoveryButton(stringResource(R.string.advanced_discover_sort_value, sortLabels.getValue(query.sort)),
+                            Modifier.fillMaxWidth(), onClick = { picker = "sort" })
+                    }
+                    if (state.referenceLoading) item { DiscoveryNote(stringResource(R.string.advanced_discover_loading_options)) }
+                    state.referenceError?.let { error -> item {
+                        DiscoveryNote(failureMessage(error))
+                        DiscoveryButton(stringResource(R.string.advanced_discover_retry_options), onClick = viewModel::reloadReferences)
+                    } }
+                    item { DiscoveryButton(stringResource(R.string.advanced_discover_show_results), Modifier.fillMaxWidth(), onClick = viewModel::showResults) }
                 }
-                if (state.applied != null) {
-                    if (state.applied!!.titleContains.isNotBlank()) {
-                        if (state.items.isNotEmpty() || (state.page > 0 && !state.loading && !state.filteringWatched)) {
-                            DiscoveryNote(stringResource(R.string.advanced_discover_title_matches_loaded, state.items.size))
+
+                Column(Modifier.weight(0.58f).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (state.error == DiscoveryFailure.CONFIGURATION || state.referenceError == DiscoveryFailure.CONFIGURATION ||
+                        state.pickError == DiscoveryFailure.CONFIGURATION) {
+                        DiscoveryButton(stringResource(R.string.advanced_discover_configure_tmdb), onClick = onOpenTmdbSettings)
+                    }
+                    if (state.applied != null) {
+                        if (state.applied!!.hasTextFilters) {
+                            if (state.items.isNotEmpty() || (state.page > 0 && !state.loading && !state.filteringWatched)) {
+                                DiscoveryNote(stringResource(R.string.advanced_discover_title_matches_loaded, state.items.size))
+                            }
+                        } else {
+                            DiscoveryNote(stringResource(R.string.advanced_discover_result_count, state.items.size, state.totalResults))
+                        }
+                        if (state.applied != query) DiscoveryNote(stringResource(R.string.advanced_discover_pending_changes))
+                    }
+                    state.items.getOrNull(focusedIndex)?.let { focused ->
+                        DiscoveryTitlePreview(focused)
+                    }
+                    if (state.error != null) {
+                        DiscoveryNote(failureMessage(state.error!!))
+                        DiscoveryButton(stringResource(R.string.advanced_discover_retry), onClick = viewModel::retry)
+                    }
+                    if (state.items.isEmpty()) {
+                        when {
+                            state.loading || state.filteringWatched -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                            state.applied == null -> DiscoveryStartPanel(Modifier.weight(1f))
+                            state.error == null -> {
+                                DiscoveryNote(stringResource(R.string.advanced_discover_empty))
+                                if (state.hasMore) DiscoveryButton(stringResource(R.string.advanced_discover_load_more), onClick = viewModel::loadMore)
+                            }
                         }
                     } else {
-                        DiscoveryNote(stringResource(R.string.advanced_discover_result_count, state.items.size, state.totalResults))
-                    }
-                    if (state.applied != query) DiscoveryNote(stringResource(R.string.advanced_discover_pending_changes))
-                }
-                state.items.getOrNull(focusedIndex)?.let { focused ->
-                    val numbers = NumberFormat.getNumberInstance()
-                    DiscoveryNote(stringResource(R.string.advanced_discover_focused_title, focused.name,
-                        focused.released.orEmpty(), focused.imdbRating?.let { numbers.format(it) }.orEmpty(),
-                        focused.voteCount?.let { numbers.format(it) }.orEmpty()))
-                }
-                if (state.error != null) {
-                    DiscoveryNote(failureMessage(state.error!!))
-                    DiscoveryButton(stringResource(R.string.advanced_discover_retry), onClick = viewModel::retry)
-                }
-                if (state.items.isEmpty()) {
-                    when {
-                        state.loading || state.filteringWatched -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { LoadingIndicator() }
-                        state.applied == null -> DiscoveryNote(stringResource(R.string.advanced_discover_start))
-                        state.error == null -> {
-                            DiscoveryNote(stringResource(R.string.advanced_discover_empty))
-                            if (state.hasMore) DiscoveryButton(stringResource(R.string.advanced_discover_load_more), onClick = viewModel::loadMore)
+                        Box(Modifier.weight(1f).onFocusChanged { gridHasFocus = it.hasFocus }) {
+                            DiscoverGrid(
+                                items = state.items,
+                                posterCardStyle = PosterCardStyle(width = state.cardWidthDp.dp, height = (state.cardWidthDp * 1.5f).dp,
+                                    cornerRadius = state.cardCornerRadiusDp.dp),
+                                focusResults = false, firstItemFocusRequester = firstItemFocus, focusedItemIndex = focusedIndex,
+                                shouldRestoreFocusedItem = restoreGrid, onRestoreFocusedItemHandled = { restoreGrid = false },
+                                onItemFocused = { focusedIndex = it }, pendingCount = 0,
+                                canLoadMore = state.hasMore && state.error == null && !state.filteringWatched,
+                                isLoadingMore = state.loading || state.filteringWatched,
+                                onLoadMore = viewModel::loadMore,
+                                onItemClick = { index, item ->
+                                    focusedIndex = index
+                                    pendingDetailReturn = true
+                                    HeroBackdropState.update(item.backdropUrl)
+                                    onNavigateToDetail(item.id, item.apiType, "")
+                                }, filterKey = state.resultRevision.toString()
+                            )
                         }
                     }
-                } else {
-                    Box(Modifier.weight(1f).onFocusChanged { gridHasFocus = it.hasFocus }) {
-                        DiscoverGrid(
-                            items = state.items,
-                            posterCardStyle = PosterCardStyle(width = state.cardWidthDp.dp, height = (state.cardWidthDp * 1.5f).dp,
-                                cornerRadius = state.cardCornerRadiusDp.dp),
-                            focusResults = false, firstItemFocusRequester = firstItemFocus, focusedItemIndex = focusedIndex,
-                            shouldRestoreFocusedItem = restoreGrid, onRestoreFocusedItemHandled = { restoreGrid = false },
-                            onItemFocused = { focusedIndex = it }, pendingCount = 0,
-                            canLoadMore = state.hasMore && state.error == null && !state.filteringWatched,
-                            isLoadingMore = state.loading || state.filteringWatched,
-                            onLoadMore = viewModel::loadMore,
-                            onItemClick = { index, item ->
-                                focusedIndex = index
-                                pendingDetailReturn = true
-                                HeroBackdropState.update(item.backdropUrl)
-                                onNavigateToDetail(item.id, item.apiType, "")
-                            }, filterKey = state.resultRevision.toString()
-                        )
+                    if (state.applied?.hasTextFilters == true && state.items.isNotEmpty() &&
+                        state.hasMore && state.error == null) {
+                        DiscoveryButton(stringResource(R.string.advanced_discover_load_more),
+                            enabled = !state.loading && !state.filteringWatched, onClick = viewModel::loadMore)
                     }
-                }
-                if (state.applied?.titleContains?.isNotBlank() == true && state.items.isNotEmpty() &&
-                    state.hasMore && state.error == null) {
-                    DiscoveryButton(stringResource(R.string.advanced_discover_load_more),
-                        enabled = !state.loading && !state.filteringWatched, onClick = viewModel::loadMore)
+                    DiscoveryNote(stringResource(R.string.advanced_discover_attribution))
                 }
             }
         }
@@ -413,8 +464,70 @@ fun AdvancedDiscoverScreen(
 }
 
 @Composable
-private fun DiscoveryButton(label: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(onClick = onClick, modifier = modifier, enabled = enabled) { Text(label) }
+private fun DiscoveryButton(label: String, modifier: Modifier = Modifier, enabled: Boolean = true,
+    primary: Boolean = false, icon: ImageVector? = null, onClick: () -> Unit) {
+    if (!LocalDiscoveryControls.current) {
+        Button(onClick = onClick, modifier = modifier, enabled = enabled) { Text(label) }
+        return
+    }
+    Button(onClick = onClick, modifier = modifier, enabled = enabled,
+        shape = ButtonDefaults.shape(RoundedCornerShape(12.dp)),
+        scale = ButtonDefaults.scale(focusedScale = 1.02f),
+        colors = ButtonDefaults.colors(
+            containerColor = if (primary) DiscoveryAccent else DiscoverySurface,
+            contentColor = if (primary) Color(0xFF0F2530) else Color(0xFFE7F2F5),
+            focusedContainerColor = Color(0xFFCEFAF3), focusedContentColor = Color(0xFF0F2530)
+        )) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(7.dp))
+        }
+        Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun DiscoverySectionLabel(label: String) {
+    Text(label, Modifier.padding(start = 2.dp, top = 8.dp, bottom = 5.dp),
+        color = DiscoveryAccent, style = MaterialTheme.typography.titleSmall)
+}
+
+@Composable
+private fun DiscoveryStartPanel(modifier: Modifier) {
+    Box(modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+        .background(Brush.radialGradient(listOf(Color(0xFF255566), Color(0xFF111D2E)))), contentAlignment = Alignment.Center) {
+        Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Icon(Icons.Default.Explore, contentDescription = null,
+                modifier = Modifier.size(84.dp).background(DiscoveryAccent.copy(alpha = .09f), CircleShape).padding(16.dp),
+                tint = DiscoveryAccent)
+            DiscoveryNote(stringResource(R.string.advanced_discover_start))
+        }
+    }
+}
+
+@Composable
+private fun DiscoveryTitlePreview(item: MetaPreview) {
+    Box(Modifier.fillMaxWidth().height(86.dp).clip(RoundedCornerShape(14.dp)).background(DiscoverySurface)) {
+        AsyncImage(model = item.background, contentDescription = null,
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxSize(.76f).height(86.dp),
+            contentScale = ContentScale.Crop, alignment = Alignment.CenterEnd)
+        Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(
+            DiscoverySurface, DiscoverySurface.copy(alpha = .94f), DiscoverySurface.copy(alpha = .45f)))))
+        Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(.9f).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(item.name, color = NuvioTheme.colors.TextPrimary, style = MaterialTheme.typography.titleLarge,
+                overflow = TextOverflow.Ellipsis, maxLines = 1)
+            val numbers = NumberFormat.getNumberInstance()
+            val details = listOfNotNull(
+                (item.released ?: item.releaseInfo)?.take(4)?.takeIf(String::isNotBlank),
+                item.imdbRating?.let { stringResource(R.string.advanced_discover_preview_rating, numbers.format(it)) },
+                item.voteCount?.let { stringResource(R.string.advanced_discover_preview_votes, numbers.format(it)) }
+            )
+            if (details.isNotEmpty()) Text(details.joinToString(" · "), color = DiscoveryAccent,
+                style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
 }
 
 @Composable
@@ -423,8 +536,20 @@ private fun DiscoveryNote(message: String) {
 }
 
 @Composable
-private fun DiscoveryField(label: String, value: String, modifier: Modifier = Modifier,
-    keyboardType: KeyboardType = KeyboardType.Text, placeholder: String = "", onChange: (String) -> Unit) {
+private fun DiscoveryTermsField(label: String, value: String, hint: String, matchAll: Boolean,
+    onText: (String) -> Unit, onMatchAll: (Boolean) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        DiscoveryField(label, value, placeholder = stringResource(R.string.advanced_discover_any), onChange = onText)
+        DiscoveryButton(stringResource(if (matchAll) R.string.advanced_discover_terms_all else R.string.advanced_discover_terms_any),
+            modifier = Modifier.fillMaxWidth(), onClick = { onMatchAll(!matchAll) })
+        DiscoveryNote(hint)
+    }
+}
+
+@Composable
+internal fun DiscoveryField(label: String, value: String, modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Text, placeholder: String = "",
+    trigger: (@Composable (Modifier, () -> Unit) -> Unit)? = null, onChange: (String) -> Unit) {
     var editing by remember { mutableStateOf(false) }
     val entry = remember { FocusRequester() }
     val editor = remember { FocusRequester() }
@@ -435,8 +560,11 @@ private fun DiscoveryField(label: String, value: String, modifier: Modifier = Mo
         editing = false
         scope.launch { withFrameNanos { }; runCatching { entry.requestFocus() } }
     }
-    DiscoveryButton("$label: ${value.ifBlank { placeholder }}", modifier.fillMaxWidth().focusRequester(entry),
-        onClick = { editing = true })
+    val openEditor = { editing = true }
+    val entryModifier = modifier.fillMaxWidth().focusRequester(entry)
+    if (trigger == null) {
+        DiscoveryButton("$label: ${value.ifBlank { placeholder }}", entryModifier, onClick = openEditor)
+    } else trigger(entryModifier, openEditor)
     if (editing) {
         Dialog(onDismissRequest = { finish() }) {
             Column(Modifier.width(540.dp).background(NuvioTheme.colors.Background, RoundedCornerShape(16.dp)).padding(24.dp),
@@ -459,7 +587,7 @@ private fun DiscoveryField(label: String, value: String, modifier: Modifier = Mo
 }
 
 @Composable
-private fun DiscoveryDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
+internal fun DiscoveryDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Column(Modifier.width(540.dp).heightIn(max = 480.dp).background(NuvioTheme.colors.Background, RoundedCornerShape(16.dp)).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -473,7 +601,7 @@ private fun DiscoveryDialog(title: String, onDismiss: () -> Unit, content: @Comp
 }
 
 @Composable
-private fun DiscoveryChoices(title: String, options: List<Pair<String, String>>, selected: String, onDismiss: () -> Unit,
+internal fun DiscoveryChoices(title: String, options: List<Pair<String, String>>, selected: String, onDismiss: () -> Unit,
     multiple: Set<String>? = null, searchable: Boolean = false, dividerBefore: String? = null, onSelect: (String) -> Unit) {
     var search by rememberSaveable { mutableStateOf("") }
     val visible = options.filter { search.isBlank() || it.second.contains(search, ignoreCase = true) }
@@ -511,14 +639,14 @@ private fun discoverySortLabels(titleRelevance: Boolean): Map<String, String> = 
 )
 
 @Composable
-private fun failureMessage(error: DiscoveryFailure): String = stringResource(when (error) {
+internal fun failureMessage(error: DiscoveryFailure): String = stringResource(when (error) {
     DiscoveryFailure.RATE_LIMIT -> R.string.advanced_discover_rate_limit
     DiscoveryFailure.CONFIGURATION -> R.string.advanced_discover_configuration_error
     DiscoveryFailure.NETWORK -> R.string.advanced_discover_network_error
 })
 
 @Composable
-private fun validationMessage(error: DiscoveryValidationError): String = stringResource(when (error) {
+internal fun validationMessage(error: DiscoveryValidationError): String = stringResource(when (error) {
     DiscoveryValidationError.DATE -> R.string.advanced_discover_invalid_date
     DiscoveryValidationError.DATE_ORDER -> R.string.advanced_discover_invalid_date_order
     DiscoveryValidationError.RATING -> R.string.advanced_discover_invalid_rating

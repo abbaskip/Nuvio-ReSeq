@@ -27,6 +27,7 @@ class RootSidebarPolicyTest {
         for (fullscreen in listOf(false, true)) {
             val roots = rootSidebarRoutes(discoverInSidebar = false, livePlaybackFullscreen = fullscreen)
             assertFalse(Screen.Discover.route in roots)
+            assertTrue(Screen.FlickPick.route in roots)
             assertTrue(Screen.Home.route in roots)
             assertTrue(Screen.Settings.route in roots)
         }

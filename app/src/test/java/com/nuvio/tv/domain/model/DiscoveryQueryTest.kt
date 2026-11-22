@@ -7,6 +7,31 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DiscoveryQueryTest {
+    @Test fun commaSeparatedTitlesHandleAnyAllPhrasesAndLiteralCommas() {
+        val query = DiscoveryQuery(titleContains = "Clause, Santa, ,santa,")
+        assertTrue(query.matchesTitle("Santa Buddies"))
+        assertTrue(query.matchesTitle("The Clause"))
+        assertFalse(query.copy(matchAllTitles = true).matchesTitle("Santa Buddies"))
+        assertTrue(query.copy(matchAllTitles = true).matchesTitle("The Santa Clause 2"))
+        val quoted = query.copy(titleContains = "\"Santa Claus\", \"Paris, Texas\"")
+        assertTrue(quoted.matchesTitle("Becoming Santa Claus"))
+        assertFalse(quoted.matchesTitle("The Santa Clause"))
+        assertTrue(quoted.matchesTitle("Paris, Texas"))
+        assertFalse(quoted.matchesTitle("Paris"))
+        assertTrue(DiscoveryQuery(titleContains = "[REC]").matchesTitle("[REC] 2"))
+    }
+
+    @Test fun savedDiscoveriesWithoutKeywordFieldsOpenWithTheOriginalFilter() {
+        val query = com.google.gson.Gson().fromJson("""{"titleContains":"Santa"}""", DiscoveryQuery::class.java)
+        assertEquals("", query.keywords)
+        assertFalse(query.matchAllKeywords)
+        assertFalse(query.matchAllTitles)
+        assertNull(query.validationError())
+        assertTrue(query.matchesTitle("The Santa Clause"))
+        val edited = query.copy(keywords = "\"santa claus\", Christmas", matchAllKeywords = true, matchAllTitles = true)
+        assertEquals(edited, com.google.gson.Gson().fromJson(com.google.gson.Gson().toJson(edited), DiscoveryQuery::class.java))
+    }
+
     @Test
     fun `title contains is a trimmed literal case insensitive filter`() {
         val query = DiscoveryQuery(titleContains = "  STAR TREK  ")

@@ -45,6 +45,8 @@ import androidx.navigation.navArgument
 import com.nuvio.tv.core.build.AppFeaturePolicy
 import com.nuvio.tv.core.party.PartyMedia
 import com.nuvio.tv.domain.model.ExperienceMode
+import com.nuvio.tv.domain.model.ContentType
+import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.data.mediaserver.ServerCatalog
 import com.nuvio.tv.ui.screens.CatalogSeeAllScreen
 import com.nuvio.tv.ui.screens.ExperienceModeSelectionScreen
@@ -193,6 +195,26 @@ private fun PlaybackNavHost(
     com.nuvio.tv.livetv.sports.SportsHost(navController)
     com.nuvio.tv.livetv.reminders.LiveTvReminderHost(navController)
     val playbackAvailability = LocalPlaybackAvailability.current
+    fun playFlickPick(source: Screen, title: MetaPreview, profile: Int) {
+        if (navController.currentDestination?.route != source.route) return
+        if (title.type == ContentType.SERIES) {
+            navController.navigate(Screen.Detail.createRoute(itemId = title.id, itemType = title.apiType,
+                heroBackdropUrl = title.backdropUrl, playOnLoad = true))
+            navController.currentBackStackEntry?.savedStateHandle?.set("flickPickProfileId", profile)
+            return
+        }
+        val imdb = title.imdbId?.takeIf { title.id.startsWith("tmdb:") }
+        val videoId = when {
+            imdb == null -> title.id.removePrefix("imdb:")
+            playbackAvailability.canStream("movie", imdb) -> imdb
+            playbackAvailability.canStream("movie", title.id) -> title.id
+            else -> imdb
+        }
+        navController.navigate(Screen.Stream.createRoute(videoId = videoId, contentType = "movie", title = title.name,
+            contentId = videoId, contentName = title.name, poster = title.poster, backdrop = title.background,
+            logo = title.logo, year = title.releaseInfo, genres = title.genres.joinToString(", "),
+            profileId = profile, autoSelectStream = true)) { launchSingleTop = true }
+    }
     val context = LocalContext.current
     fun isStreamToPlayer(from: String, to: String): Boolean {
         return from.startsWith("stream/") && to.startsWith("player/")
@@ -627,6 +649,7 @@ private fun PlaybackNavHost(
                     childNav.navigateNestedDetail(itemId, itemType, addonBaseUrl)
                 },
                 onPlayClick = { videoId, contentType, contentId, title, poster, backdrop, logo, season, episode, episodeName, genres, year, runtime, contentLanguage ->
+                    val pickProfile = savedState.remove<Int>("flickPickProfileId")
                     navController.navigate(
                         Screen.Stream.createRoute(
                             videoId = videoId,
@@ -644,6 +667,8 @@ private fun PlaybackNavHost(
                             contentName = title,
                             runtime = runtime,
                             returnToDetailOnBack = contentType.equals("series", ignoreCase = true),
+                            profileId = pickProfile,
+                            autoSelectStream = pickProfile != null,
                             contentLanguage = contentLanguage
                         )
                     )
@@ -781,6 +806,10 @@ private fun PlaybackNavHost(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = "false"
+                },
+                navArgument("autoSelectStream") {
+                    type = NavType.BoolType
+                    defaultValue = false
                 },
                 navArgument("contentLanguage") {
                     type = NavType.StringType
@@ -1507,6 +1536,7 @@ private fun PlaybackNavHost(
 
         composable(Screen.AdvancedDiscover.route) {
             com.nuvio.tv.ui.screens.search.AdvancedDiscoverScreen(
+                onPlayPick = { title, profile -> playFlickPick(Screen.AdvancedDiscover, title, profile) },
                 onBack = { navController.popBackStack() },
                 onOpenTmdbSettings = { navController.navigate(Screen.TmdbSettings.route) },
                 onNavigateToDetail = { id, type, addon ->
@@ -1515,6 +1545,13 @@ private fun PlaybackNavHost(
                         heroBackdropUrl = HeroBackdropState.consumeAndClear()
                     ))
                 }
+            )
+        }
+
+        rootComposable(Screen.FlickPick.route) {
+            com.nuvio.tv.ui.screens.flickpick.FlickPickScreen(
+                onTmdbSettings = { navController.navigate(Screen.TmdbSettings.route) },
+                onPlay = { movie, profile -> playFlickPick(Screen.FlickPick, movie, profile) }
             )
         }
 

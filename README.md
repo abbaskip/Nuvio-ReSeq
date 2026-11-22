@@ -51,6 +51,8 @@ Metadata provided by [TheTVDB](https://thetvdb.com). Please consider contributin
 
 **Live TV** opens a TV guide with channel groups, playlist selection, favourites, ordering preferences, search and full-screen playback. Configure your own **Xtream Codes** account or an **M3U playlist with XMLTV guide** in Live TV settings. Supported provider on-demand content is available from **On Demand**. ReSeq supplies no IPTV playlists, subscriptions or playback streams. The guide and standalone On Demand browser use provider metadata and artwork, without automatic title searches against metadata addons. Catalogue caching and identity-aware IPTV stream matching from normal movie and series pages remain available.
 
+While watching Live TV in full screen at the live point, **tap Right** to open the full info panel with the most recent channel highlighted. Press **OK** to tune to it, or **hold Right** from the video to return directly to the previous channel. During catch-up or while rewound, Right skips forward.
+
 **Sports Hub** brings together fixtures, supported results/live scores and channels from your playlists. Choose sports and optionally exclude categories or competitions; synonyms work in the background. Rugby League and Rugby Union are separate. Matching considers guide titles/descriptions, participants, broadcasters and channel names while retaining regional, provider and quality alternatives. Catch-up depends on your provider.
 
 Confirmed live fixtures use **LIVE**. Guide-only transmissions use **ON AIR**; explicit replay evidence can show **REPLAY**. A programme airing now does not establish that the original match is live. Confirmed live events take priority over guide broadcasts and replays, ahead of upcoming events.

@@ -281,7 +281,7 @@ class HomeViewModel @Inject constructor(
     internal val trailerPreviewUrlsState = mutableStateMapOf<String, String>()
     internal val trailerPreviewAudioUrlsState = mutableStateMapOf<String, String>()
     internal val trailerPreviewYoutubeKeys = mutableMapOf<String, String>()
-    internal var continueTrailerInDetails = false
+    internal var continueTrailerInDetails = LayoutPreferenceDataStore.DEFAULT_CONTINUE_TRAILER_IN_DETAILS
     internal var activeTrailerPreviewItemId: String? = null
     internal var trailerPreviewRequestVersion: Long = 0L
     internal var trailerPreviewJob: Job? = null

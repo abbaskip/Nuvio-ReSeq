@@ -21,6 +21,7 @@ import com.nuvio.tv.data.local.PluginDataStore
 import com.nuvio.tv.data.local.ProfileDataStoreFactory
 import com.nuvio.tv.data.local.StreamBadgeSettingsDataStore
 import com.nuvio.tv.data.local.TmdbSettingsDataStore
+import com.nuvio.tv.data.local.TrailerLayoutDefaultsMigration
 import com.nuvio.tv.data.remote.supabase.SupabaseProfileSetupCopyResult
 import com.nuvio.tv.data.remote.supabase.SupabaseProfileSettingsBlob
 import com.nuvio.tv.domain.model.DiscoverLocation
@@ -262,7 +263,7 @@ class ProfileSettingsSyncService @Inject constructor(
 
                 val featuresJson = blob["features"]?.jsonObject
                     ?: return@withLock Result.success(inheritedPluginSettingsApplied)
-                val remoteSignature = buildSettingsSignature(featuresJson)
+                val remoteSignature = buildSettingsSignature(profileId, featuresJson)
                 val localSignature = buildSettingsSignature(profileId)
                 if (remoteSignature == localSignature) {
                     Log.d(TAG, "Remote profile settings already match local for profile $profileId")
@@ -351,7 +352,7 @@ class ProfileSettingsSyncService @Inject constructor(
                     applySettingsBlob(
                         profileId = targetProfileId,
                         featuresJson = targetFeatures,
-                        signature = buildSettingsSignature(targetFeatures)
+                        signature = buildSettingsSignature(targetProfileId, targetFeatures)
                     )
                     if (copyProviderCredentials) {
                         if (authManager.isAuthenticated) {
@@ -496,12 +497,13 @@ class ProfileSettingsSyncService @Inject constructor(
         applyingRemoteBlob = true
         try {
             syncedFeatures.forEach { feature ->
-                val featureJson = featuresJson[feature]?.jsonObject ?: return@forEach
+                val remote = featuresJson[feature]?.jsonObject ?: return@forEach
                 if (feature == PluginDataStore.FEATURE) {
-                    importPluginSettings(profileId, featureJson)
+                    importPluginSettings(profileId, remote)
                     return@forEach
                 }
                 profileDataStoreFactory.get(profileId, feature).edit { mutablePrefs ->
+                    val featureJson = mergeLegacyTrailerSettings(feature, remote) { mutablePrefs }
                     val preservedEntries = captureLocalOnlyPreferenceEntries(feature, mutablePrefs)
                     val priorDiscoverLocation = if (feature == "layout_settings") {
                         mutablePrefs[stringPreferencesKey("discover_location")]
@@ -607,15 +609,6 @@ class ProfileSettingsSyncService @Inject constructor(
         }
     }
 
-    private suspend fun buildSettingsSignature(profileId: Int): String {
-        val signatures = ArrayList<String>(syncedFeatures.size)
-        syncedFeatures.forEach { feature ->
-            val prefs = profileDataStoreFactory.get(profileId, feature).data.first()
-            signatures += "$feature={${buildFeatureSignature(prefs, feature)}}"
-        }
-        return signatures.joinToString(separator = "||")
-    }
-
     private fun extractDiscoverLocationString(featureJson: JsonObject): String? {
         val encoded = featureJson["discover_location"] as? JsonObject ?: return null
         val type = encoded["type"]?.jsonPrimitive?.contentOrNull
@@ -659,16 +652,43 @@ class ProfileSettingsSyncService @Inject constructor(
         }
     }
 
-    private fun buildSettingsSignature(featuresJson: JsonObject): String {
-        return syncedFeatures.joinToString(separator = "||") { feature ->
-            val featureJson = featuresJson[feature]?.jsonObject ?: JsonObject(emptyMap())
-            val normalized = if (feature == "layout_settings") {
-                normalizeLayoutSettingsForSignature(featureJson)
-            } else {
-                featureJson
+    // A pre-upgrade snapshot cannot distinguish the old default from an explicit Off.
+    // Keep the current profile's migrated choices until a snapshot with the marker arrives.
+    private inline fun mergeLegacyTrailerSettings(
+        feature: String,
+        remote: JsonObject,
+        local: () -> Preferences
+    ): JsonObject {
+        val migration = TrailerLayoutDefaultsMigration.forFeature(feature) ?: return remote
+        val marker = TrailerLayoutDefaultsMigration.appliedKey.name
+        val encodedTrue = encodeBoolean(true)
+        if (remote[marker] == encodedTrue) return remote
+        val prefs = local()
+        return buildJsonObject {
+            remote.forEach { (name, value) -> put(name, value) }
+            migration.switches.forEach { key ->
+                put(key.name, encodeBoolean(prefs[key] ?: true))
             }
-            "$feature={${buildFeatureSignature(normalized, feature)}}"
+            put(marker, encodedTrue)
         }
+    }
+
+    private suspend fun buildSettingsSignature(profileId: Int, featuresJson: JsonObject? = null): String {
+        return syncedFeatures.map { feature ->
+            val remote = featuresJson?.get(feature)?.jsonObject
+            val signature = if (remote == null) {
+                // Import skips missing features, so their effective contents are the local preferences.
+                val local = profileDataStoreFactory.get(profileId, feature).data.first()
+                buildFeatureSignature(local, feature)
+            } else {
+                val merged = mergeLegacyTrailerSettings(feature, remote) {
+                    profileDataStoreFactory.get(profileId, feature).data.first()
+                }
+                val normalized = if (feature == "layout_settings") normalizeLayoutSettingsForSignature(merged) else merged
+                buildFeatureSignature(normalized, feature)
+            }
+            "$feature={$signature}"
+        }.joinToString(separator = "||")
     }
 
     private fun buildFeatureSignature(prefs: Preferences, feature: String = ""): String {
@@ -752,16 +772,18 @@ class ProfileSettingsSyncService @Inject constructor(
         }
     }
 
+    private fun encodeBoolean(value: Boolean) = buildJsonObject {
+        put("type", "boolean")
+        put("value", value)
+    }
+
     private fun encodePreferenceValue(rawValue: Any?): JsonObject? {
         return when (rawValue) {
             is String -> buildJsonObject {
                 put("type", "string")
                 put("value", rawValue)
             }
-            is Boolean -> buildJsonObject {
-                put("type", "boolean")
-                put("value", rawValue)
-            }
+            is Boolean -> encodeBoolean(rawValue)
             is Int -> buildJsonObject {
                 put("type", "int")
                 put("value", rawValue)

@@ -144,11 +144,13 @@ fun LiveTvPlayerScreen(
     // TV Guide tile: opened when OK is let go, so the key's release doesn't land on the guide
     // (where it opened the channel full screen again, and the guide only flashed up).
     var guideOnOkUp by remember { mutableStateOf(false) }
-    // Holding Right (live): back to the channel you were watching before.
-    var rightDownAt by remember { mutableStateOf(0L) }
+    // Defer a live Right tap until release so a hold never opens the Recent row first.
+    var liveRightPressed by remember { mutableStateOf(false) }
     var rightHoldDone by remember { mutableStateOf(false) }
     // The full panel (OK): timeline, buttons and options. Changing channels shows the compact one.
     var panelFull by remember { mutableStateOf(false) }
+    var showRecentFromRight by remember { mutableStateOf(false) }
+    val panelRow = if (showRecentFromRight) "RECENT" else settings.panelRow
     // Opened with the bar hidden (a long press in full screen): the full bar comes up with the
     // panel, so changes in "Play bar layout" can be seen, and goes away again after.
     var gearShowedBar by remember { mutableStateOf(false) }
@@ -158,7 +160,12 @@ fun LiveTvPlayerScreen(
         gearStart = start
         dialog = PlayerDialog.OPTIONS
     }
-    fun closeFull() { panelFull = false; controlFocus = null; recentFocus = null }
+    fun closeFull() {
+        panelFull = false
+        controlFocus = null
+        recentFocus = null
+        showRecentFromRight = false
+    }
     LaunchedEffect(dialog) {
         if (dialog == PlayerDialog.NONE && gearShowedBar) { gearShowedBar = false; closeFull(); bannerVisible = false }
     }
@@ -166,6 +173,25 @@ fun LiveTvPlayerScreen(
     // Channel surfing (Settings → Live TV → Watching): the channel being looked at on the info
     // bar while the one playing carries on, or null when not browsing.
     var browseKey by remember { mutableStateOf<String?>(null) }
+    fun showRecentPanel() {
+        browseKey = null
+        if (current != null) {
+            showRecentFromRight = true
+            panelFull = true
+            controlFocus = PanelControl.PLAY
+            recentFocus = if (viewModel.recentForPanel(playback.channelKey).isNotEmpty()) 1 else 0
+        }
+        showBanner()
+    }
+
+    fun switchToPreviousChannel() {
+        val previous = viewModel.previousChannel()?.takeIf { it.key != playback.channelKey }
+        if (previous != null) {
+            browseKey = null
+            viewModel.preview(previous)
+        } else toast = "No previous channel yet"
+        showBanner()
+    }
     var lastBrowseStepAt by remember { mutableStateOf(0L) }
     // OK picked a channel: its release mustn't also open the full panel.
     var swallowOkUp by remember { mutableStateOf(false) }
@@ -306,7 +332,25 @@ fun LiveTvPlayerScreen(
             .background(if (embedded) Color.Transparent else Color.Black)
             .focusRequester(rootFocus)
             .onPreviewKeyEvent { e ->
-                if (listVisible || dialog != PlayerDialog.NONE) return@onPreviewKeyEvent false
+                if (listVisible || dialog != PlayerDialog.NONE) {
+                    liveRightPressed = false
+                    return@onPreviewKeyEvent false
+                }
+                if (liveRightPressed && e.key == Key.DirectionRight) {
+                    val key = e.nativeKeyEvent
+                    val released = e.type == KeyEventType.KeyUp
+                    if (!rightHoldDone && !key.isCanceled &&
+                        (key.isLongPress || key.eventTime - key.downTime >= 600)
+                    ) {
+                        rightHoldDone = true
+                        switchToPreviousChannel()
+                    }
+                    if (released) {
+                        liveRightPressed = false
+                        if (!rightHoldDone && !key.isCanceled) showRecentPanel()
+                    }
+                    return@onPreviewKeyEvent true
+                }
                 val isOk = e.key == Key.DirectionCenter || e.key == Key.Enter || e.key == Key.NumPadEnter
                 // ---- channel surfing: OK watches the channel on the bar, Back stays put
                 if (swallowOkUp && isOk) {
@@ -362,9 +406,9 @@ fun LiveTvPlayerScreen(
                         return@onPreviewKeyEvent isOk || e.key == Key.Back
                     }
                     showBanner()
-                    val recentList = viewModel.panelRowChannels(playback.channelKey)
+                    val recentList = viewModel.panelRowChannels(playback.channelKey, panelRow)
                     // Clear is only in Recent (favorites are cleared in the guide).
-                    val hasClear = settings.panelRow == "RECENT"
+                    val hasClear = panelRow == "RECENT"
                     val lastTile = recentList.size + if (hasClear) 1 else 0
                     when {
                         e.key == Key.DirectionLeft -> recentFocus = (rf - 1).coerceAtLeast(0)
@@ -436,8 +480,8 @@ fun LiveTvPlayerScreen(
                         }
                         e.key == Key.DirectionDown -> {
                             // Down from the buttons: into the Recent row (first channel, else TV Guide).
-                            if (settings.panelRow != "OFF" && panelFull) {
-                                recentFocus = if (viewModel.panelRowChannels(playback.channelKey).isNotEmpty()) 1 else 0
+                            if (panelRow != "OFF" && panelFull) {
+                                recentFocus = if (viewModel.panelRowChannels(playback.channelKey, panelRow).isNotEmpty()) 1 else 0
                             }
                             return@onPreviewKeyEvent true
                         }
@@ -529,19 +573,8 @@ fun LiveTvPlayerScreen(
                                 viewModel.playback.shiftSeekBy(10_000L * (1 + minOf(e.nativeKeyEvent.repeatCount, 11))); showBanner()
                             }
                             e.nativeKeyEvent.repeatCount == 0 -> {
-                                rightDownAt = System.currentTimeMillis()
+                                liveRightPressed = true
                                 rightHoldDone = false
-                                showBanner()
-                            }
-                            // Held for over half a second: the previous channel (once per press).
-                            !rightHoldDone && System.currentTimeMillis() - rightDownAt >= 600 -> {
-                                rightHoldDone = true
-                                val prev = viewModel.previousChannel()?.takeIf { it.key != playback.channelKey }
-                                if (prev != null) {
-                                    browseKey = null
-                                    viewModel.preview(prev)
-                                    showBanner()
-                                } else toast = "No previous channel yet"
                             }
                             else -> Unit
                         }
@@ -869,11 +902,11 @@ fun LiveTvPlayerScreen(
                     nextTitle = nextUp?.title?.let { titleMarks(it).title },
                     nextTime = nextUp?.let { formatRange(it.startMs, it.stopMs, use24h) },
                     catchupAvailable = ch.catchup != null,
-                    recentTitle = if (settings.panelRow == "FAVORITES") "FAVORITES" else "RECENT",
-                    recentClear = settings.panelRow == "RECENT",
-                    recent = if (settings.panelRow != "OFF" && (panelFull || pausedNow)) {
-                        remember(playback.channelKey, user.recent, user.favorites, settings.panelRow, programs, tick / 60_000) {
-                            viewModel.panelRowChannels(playback.channelKey).map { r ->
+                    recentTitle = if (panelRow == "FAVORITES") "FAVORITES" else "RECENT",
+                    recentClear = panelRow == "RECENT",
+                    recent = if (panelRow != "OFF" && (panelFull || pausedNow)) {
+                        remember(playback.channelKey, user.recent, user.favorites, panelRow, programs, tick / 60_000) {
+                            viewModel.panelRowChannels(playback.channelKey, panelRow).map { r ->
                                 val p = programs[r.key]?.firstOrNull { tick >= it.startMs && tick < it.stopMs }
                                 PanelRecent(
                                     channel = r,
@@ -884,7 +917,9 @@ fun LiveTvPlayerScreen(
                         }
                     } else null,
                     recentFocus = recentFocus,
-                    hidden = BarPart.parse(settings.barHidden)
+                    hidden = BarPart.parse(settings.barHidden).let { hidden ->
+                        if (showRecentFromRight) hidden - BarPart.RECENT else hidden
+                    }
                 )
             }
         }

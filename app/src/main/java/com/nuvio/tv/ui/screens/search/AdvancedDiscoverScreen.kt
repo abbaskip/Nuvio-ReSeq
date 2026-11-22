@@ -52,7 +52,6 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -87,8 +86,6 @@ import java.time.LocalDate
 import java.text.NumberFormat
 import kotlinx.coroutines.launch
 
-private val DiscoveryAccent = Color(0xFF9CE9E0)
-private val DiscoverySurface = Color(0xFF1A3040)
 private val LocalDiscoveryControls = staticCompositionLocalOf { false }
 
 @Composable
@@ -163,13 +160,11 @@ fun AdvancedDiscoverScreen(
     }
 
     CompositionLocalProvider(LocalDiscoveryControls provides true) {
-        Column(Modifier.fillMaxSize().background(Brush.linearGradient(
-            listOf(Color(0xFF163C43), Color(0xFF102237), Color(0xFF0A101D))
-        )).padding(horizontal = 28.dp, vertical = 20.dp),
+        Column(Modifier.fillMaxSize().background(NuvioTheme.colors.TintedBackground).padding(horizontal = 28.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(34.dp), tint = DiscoveryAccent)
+                Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(34.dp), tint = NuvioTheme.colors.MutedAccent)
                 Text(stringResource(R.string.advanced_discover_title), Modifier.weight(1f),
                     style = MaterialTheme.typography.headlineMedium, color = NuvioTheme.colors.TextPrimary)
                 DiscoveryButton(stringResource(R.string.advanced_discover_back), onClick = onBack)
@@ -470,13 +465,15 @@ private fun DiscoveryButton(label: String, modifier: Modifier = Modifier, enable
         Button(onClick = onClick, modifier = modifier, enabled = enabled) { Text(label) }
         return
     }
+    val colors = NuvioTheme.colors
     Button(onClick = onClick, modifier = modifier, enabled = enabled,
         shape = ButtonDefaults.shape(RoundedCornerShape(12.dp)),
         scale = ButtonDefaults.scale(focusedScale = 1.02f),
         colors = ButtonDefaults.colors(
-            containerColor = if (primary) DiscoveryAccent else DiscoverySurface,
-            contentColor = if (primary) Color(0xFF0F2530) else Color(0xFFE7F2F5),
-            focusedContainerColor = Color(0xFFCEFAF3), focusedContentColor = Color(0xFF0F2530)
+            containerColor = if (primary) colors.MutedAccent else colors.TintedControl,
+            contentColor = if (primary) colors.TextInverse else colors.TextPrimary,
+            focusedContainerColor = colors.PaleFocus,
+            focusedContentColor = colors.TextInverse
         )) {
         if (icon != null) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -489,18 +486,18 @@ private fun DiscoveryButton(label: String, modifier: Modifier = Modifier, enable
 @Composable
 private fun DiscoverySectionLabel(label: String) {
     Text(label, Modifier.padding(start = 2.dp, top = 8.dp, bottom = 5.dp),
-        color = DiscoveryAccent, style = MaterialTheme.typography.titleSmall)
+        color = NuvioTheme.colors.MutedAccent, style = MaterialTheme.typography.titleSmall)
 }
 
 @Composable
 private fun DiscoveryStartPanel(modifier: Modifier) {
     Box(modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
-        .background(Brush.radialGradient(listOf(Color(0xFF255566), Color(0xFF111D2E)))), contentAlignment = Alignment.Center) {
+        .background(NuvioTheme.colors.TintedPanel), contentAlignment = Alignment.Center) {
         Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Icon(Icons.Default.Explore, contentDescription = null,
-                modifier = Modifier.size(84.dp).background(DiscoveryAccent.copy(alpha = .09f), CircleShape).padding(16.dp),
-                tint = DiscoveryAccent)
+                modifier = Modifier.size(84.dp).background(NuvioTheme.colors.MutedAccent.copy(alpha = .09f), CircleShape).padding(16.dp),
+                tint = NuvioTheme.colors.MutedAccent)
             DiscoveryNote(stringResource(R.string.advanced_discover_start))
         }
     }
@@ -508,12 +505,13 @@ private fun DiscoveryStartPanel(modifier: Modifier) {
 
 @Composable
 private fun DiscoveryTitlePreview(item: MetaPreview) {
-    Box(Modifier.fillMaxWidth().height(86.dp).clip(RoundedCornerShape(14.dp)).background(DiscoverySurface)) {
+    val panel = NuvioTheme.colors.TintedPanel
+    Box(Modifier.fillMaxWidth().height(86.dp).clip(RoundedCornerShape(14.dp)).background(panel)) {
         AsyncImage(model = item.background, contentDescription = null,
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxSize(.76f).height(86.dp),
             contentScale = ContentScale.Crop, alignment = Alignment.CenterEnd)
         Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(
-            DiscoverySurface, DiscoverySurface.copy(alpha = .94f), DiscoverySurface.copy(alpha = .45f)))))
+            panel, panel.copy(alpha = .94f), panel.copy(alpha = .45f)))))
         Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(.9f).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(item.name, color = NuvioTheme.colors.TextPrimary, style = MaterialTheme.typography.titleLarge,
@@ -524,7 +522,7 @@ private fun DiscoveryTitlePreview(item: MetaPreview) {
                 item.imdbRating?.let { stringResource(R.string.advanced_discover_preview_rating, numbers.format(it)) },
                 item.voteCount?.let { stringResource(R.string.advanced_discover_preview_votes, numbers.format(it)) }
             )
-            if (details.isNotEmpty()) Text(details.joinToString(" · "), color = DiscoveryAccent,
+            if (details.isNotEmpty()) Text(details.joinToString(" · "), color = NuvioTheme.colors.MutedAccent,
                 style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

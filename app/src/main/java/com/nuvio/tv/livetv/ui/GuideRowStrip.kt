@@ -10,17 +10,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -45,7 +40,6 @@ internal class StripItem(
     val title: String,
     val subtitle: String?,
     val fill: Color,
-    val edge: Color,
     val text: Color,
     val progress: Float? = null,
     val liveTag: Boolean = false,
@@ -73,13 +67,12 @@ internal fun GuideRowStrip(
     iconSize: Dp
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 256)
-    val density = LocalDensity.current
     val base = androidx.compose.material3.LocalTextStyle.current
-    val corner = liveCorner()
     val bell = rememberVectorPainter(Icons.Default.Notifications)
     val replay = rememberVectorPainter(Icons.Default.History)
     val secondary = NuvioTheme.colors.Secondary
     val onSecondary = NuvioTheme.colors.OnSecondary
+    val progressColor = NuvioTheme.colors.MutedAccent
     val styles = remember(base, titleSize, smallSize) {
         StripStyles(
             title = base.copy(fontSize = titleSize, fontWeight = FontWeight.Normal),
@@ -89,54 +82,31 @@ internal fun GuideRowStrip(
         )
     }
     Canvas(Modifier.fillMaxSize()) {
-        val outer = 3.dp.toPx()
+        val outer = 1.dp.toPx()
         val pad = 10.dp.toPx()
         val gap = 6.dp.toPx()
-        val stroke = 2.dp.toPx()
-        val r = corner.toPx()
+        val inset = 2.dp.toPx()
+        val barHeight = 3.dp.toPx()
         val h = size.height
         for (item in items) {
             val left = item.x.toPx() + outer
             val w = item.width.toPx() - outer * 2
             if (w <= 0f || left > size.width || left + w < 0f) continue
-            drawTile(item, left, w, h, r, stroke)
+            drawRect(item.fill, topLeft = Offset(left, 0f), size = Size(w, h))
             val inner = (w - pad * 2).toInt()
             if (inner > 8) drawContent(
                 item, left + pad, inner, h, measurer, styles, gap,
                 dotSize.toPx(), iconSize.toPx(), bell, replay, secondary, onSecondary
             )
-            item.progress?.let { f -> drawProgress(left, w, h, r, stroke, f, secondary) }
+            item.progress?.let { fraction ->
+                drawRect(progressColor, topLeft = Offset(left + inset, h - inset - barHeight),
+                    size = Size((w - 2 * inset).coerceAtLeast(0f) * fraction.coerceIn(0f, 1f), barHeight))
+            }
         }
     }
 }
 
 private class StripStyles(val title: TextStyle, val italic: TextStyle, val small: TextStyle, val tag: TextStyle)
-
-private fun DrawScope.drawTile(item: StripItem, left: Float, w: Float, h: Float, r: Float, stroke: Float) {
-    drawRoundRect(item.fill, topLeft = Offset(left, 0f), size = Size(w, h), cornerRadius = CornerRadius(r, r))
-    // The glass edge, inside the tile (as the tiles' own outline was).
-    val ir = r
-    drawRoundRect(
-        item.edge,
-        topLeft = Offset(left + stroke / 2f, stroke / 2f),
-        size = Size((w - stroke).coerceAtLeast(1f), (h - stroke).coerceAtLeast(1f)),
-        cornerRadius = CornerRadius(ir, ir),
-        style = Stroke(stroke)
-    )
-}
-
-private fun DrawScope.drawProgress(left: Float, w: Float, h: Float, r: Float, stroke: Float, f: Float, color: Color) {
-    val barH = 3.dp.toPx()
-    val inset = stroke
-    val tile = Path().apply { addRoundRect(RoundRect(left, 0f, left + w, h, CornerRadius(r, r))) }
-    clipPath(tile) {
-        drawRect(
-            color.copy(alpha = 0.9f),
-            topLeft = Offset(left + inset, h - inset - barH),
-            size = Size(((w - inset * 2) * f.coerceIn(0f, 1f)).coerceAtLeast(0f), barH)
-        )
-    }
-}
 
 private fun DrawScope.drawContent(
     item: StripItem,
@@ -181,7 +151,7 @@ private fun DrawScope.drawContent(
     if (showReplay) fixed += gap + icon
     val titleStyle = (if (item.italic) styles.italic else styles.title).copy(color = item.text)
     val title = measure(item.title, titleStyle, (innerW - fixed).toInt())
-    val sub = item.subtitle?.let { s -> measure(s, styles.small.copy(color = item.text.copy(alpha = 0.42f)), innerW) }
+    val sub = item.subtitle?.let { s -> measure(s, styles.small.copy(color = item.text.copy(alpha = 0.68f)), innerW) }
 
     val lineH = maxOf(title.size.height.toFloat(), live?.size?.height?.plus(tagPadY * 2) ?: 0f, icon)
     val totalH = lineH + (sub?.size?.height ?: 0)

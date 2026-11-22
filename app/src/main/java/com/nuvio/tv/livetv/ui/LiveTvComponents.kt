@@ -35,7 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
@@ -266,6 +266,17 @@ internal fun resolveBackdrop(style: String): String {
     val a = androidx.compose.ui.graphics.lerp(c.Secondary, Color.Black, 0.25f)
     val b = androidx.compose.ui.graphics.lerp(c.SecondaryVariant, Color.Black, 0.25f)
     return "auto:${a.toArgb().toLong() and 0xFFFFFFFFL}:${b.toArgb().toLong() and 0xFFFFFFFFL}"
+}
+
+/** Flat canvas for the grid. Explicit guide backdrop choices retain their own hue. */
+@Composable
+internal fun guideCanvasColor(style: String): Color {
+    val key = GuideBackdrops.normalize(style)
+    return when (key) {
+        "auto" -> NuvioTheme.colors.TintedBackground
+        "onyx" -> Color.Black
+        else -> accentOf(key).first.copy(alpha = 0.12f).compositeOver(backdropBase(key))
+    }
 }
 
 /** Paints the backdrop; scales with the screen (fixed-pixel sizes looked tiny on 4K, huge at 720p). */
@@ -863,39 +874,6 @@ internal fun PlayerStatusMessage(
 
 
 /**
- * A guide tile: fill and soft edge painted in one go from a shape worked out once. Replaces
- * clip + background + border, whose rounded clip made every tile cost extra on slower boxes
- * (a guide screen has well over a hundred tiles). Children are only clipped when asked to.
- */
-@Composable
-internal fun Modifier.glassTile(
-    fill: Color,
-    edge: Color?,
-    shape: androidx.compose.ui.graphics.Shape,
-    clipChildren: Boolean = false
-): Modifier {
-    val painter = androidx.compose.runtime.remember(fill, edge, shape) {
-        Modifier.drawWithCache {
-            val stroke = 2.dp.toPx()
-            val fillOutline = shape.createOutline(size, layoutDirection, this)
-            val edgeOutline = if (edge != null) {
-                val inner = androidx.compose.ui.geometry.Size((size.width - stroke).coerceAtLeast(1f), (size.height - stroke).coerceAtLeast(1f))
-                shape.createOutline(inner, layoutDirection, this)
-            } else null
-            onDrawBehind {
-                paintOutline(fillOutline, fill, null)
-                if (edge != null && edgeOutline != null) {
-                    translate(stroke / 2f, stroke / 2f) {
-                        paintOutline(edgeOutline, edge, androidx.compose.ui.graphics.drawscope.Stroke(stroke))
-                    }
-                }
-            }
-        }
-    }
-    return this.then(if (clipChildren) Modifier.clip(shape) else Modifier).then(painter)
-}
-
-/**
  * Counts slow screen frames while a screen is open and writes the tally to the Start-Up Report,
  * so "it feels laggy" can be told apart by what the screen was doing (and compared between versions).
  */
@@ -965,24 +943,5 @@ internal fun FrameMeter(label: String) {
         }
         choreographer.postFrameCallback(cb)
         onDispose { alive.set(false); watcher.interrupt(); choreographer.removeFrameCallback(cb); flush(true) }
-    }
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.paintOutline(
-    outline: androidx.compose.ui.graphics.Outline,
-    color: Color,
-    style: androidx.compose.ui.graphics.drawscope.DrawStyle?
-) {
-    val st = style ?: androidx.compose.ui.graphics.drawscope.Fill
-    when (outline) {
-        is androidx.compose.ui.graphics.Outline.Rectangle -> drawRect(color, outline.rect.topLeft, outline.rect.size, style = st)
-        is androidx.compose.ui.graphics.Outline.Rounded -> {
-            val r = outline.roundRect
-            drawRoundRect(
-                color, Offset(r.left, r.top), androidx.compose.ui.geometry.Size(r.width, r.height),
-                androidx.compose.ui.geometry.CornerRadius(r.topLeftCornerRadius.x, r.topLeftCornerRadius.y), style = st
-            )
-        }
-        is androidx.compose.ui.graphics.Outline.Generic -> drawPath(outline.path, color, style = st)
     }
 }

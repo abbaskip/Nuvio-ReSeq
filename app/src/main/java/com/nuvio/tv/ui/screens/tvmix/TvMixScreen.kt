@@ -47,18 +47,19 @@ import com.nuvio.tv.ui.components.NuvioDialog
 import com.nuvio.tv.ui.theme.NuvioTheme
 import java.net.URLDecoder
 
-private val MixAccent = Color(0xFFA3DBFF)
-private val MixPanel = Color(0xFF161C35)
-
 @Composable
 private fun MixButton(label: String, icon: ImageVector?, modifier: Modifier = Modifier, primary: Boolean = false,
     enabled: Boolean = true, onClick: () -> Unit) {
+    val colors = NuvioTheme.colors
     Button(onClick = onClick, modifier = modifier, enabled = enabled,
         shape = ButtonDefaults.shape(RoundedCornerShape(12.dp)),
         scale = ButtonDefaults.scale(focusedScale = 1.03f),
-        colors = ButtonDefaults.colors(containerColor = if (primary) MixAccent else Color(0xFF292F50),
-            contentColor = if (primary) MixPanel else Color(0xFFEDF4FF),
-            focusedContainerColor = Color(0xFFDAEDFF), focusedContentColor = MixPanel)) {
+        colors = ButtonDefaults.colors(
+            containerColor = if (primary) colors.MutedAccent else colors.TintedControl,
+            contentColor = if (primary) colors.TextInverse else colors.TextPrimary,
+            focusedContainerColor = colors.PaleFocus,
+            focusedContentColor = colors.TextInverse
+        )) {
         if (icon != null) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(if (primary) 23.dp else 18.dp))
             Spacer(Modifier.width(8.dp))
@@ -176,16 +177,17 @@ fun TvMixScreen(id: String, manageOnOpen: Boolean, viewModel: TvMixViewModel,
     LaunchedEffect(state.autoStart, state.selection) {
         if (state.autoStart && state.selection != null) viewModel.play()?.let(onPlay)
     }
+    val colors = NuvioTheme.colors
     Column(
         Modifier.fillMaxSize().focusRequester(contentFocusRequester).focusRestorer()
-            .background(Brush.verticalGradient(listOf(Color(0xFF1A2241), Color(0xFF090E1C)))),
+            .background(colors.TintedBackground),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(Modifier.fillMaxWidth().padding(start = 32.dp, top = 20.dp, end = 32.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Tv, contentDescription = null, modifier = Modifier.size(40.dp), tint = MixAccent)
+            Icon(Icons.Default.Tv, contentDescription = null, modifier = Modifier.size(40.dp), tint = colors.MutedAccent)
             Column(Modifier.weight(1f)) {
-                if (mix != null) Text("TV Mix", style = MaterialTheme.typography.labelLarge, color = MixAccent)
-                Text(mix?.name ?: "TV Mix", style = MaterialTheme.typography.headlineMedium, color = Color.White,
+                if (mix != null) Text("TV Mix", style = MaterialTheme.typography.labelLarge, color = colors.MutedAccent)
+                Text(mix?.name ?: "TV Mix", style = MaterialTheme.typography.headlineMedium, color = colors.TextPrimary,
                     maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             MixButton("Manage mix", Icons.Default.Settings, modifier = Modifier.focusRequester(manageFocusRequester),
@@ -200,37 +202,37 @@ fun TvMixScreen(id: String, manageOnOpen: Boolean, viewModel: TvMixViewModel,
             item {
                 val selection = state.selection
                 val artwork = selection?.video?.thumbnail ?: selection?.meta?.background
-                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MixPanel).heightIn(min = 252.dp)) {
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(colors.TintedPanel).heightIn(min = 252.dp)) {
                     AsyncImage(model = artwork ?: R.drawable.tv_mix_backdrop, contentDescription = null,
                         error = painterResource(R.drawable.tv_mix_backdrop),
                         modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop,
                         alignment = Alignment.CenterEnd)
                     Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
-                        0f to MixPanel, .35f to MixPanel.copy(alpha = .94f), .73f to MixPanel.copy(alpha = .61f),
-                        1f to MixPanel.copy(alpha = .18f)
+                        0f to colors.TintedPanel, .35f to colors.TintedPanel.copy(alpha = .94f), .73f to colors.TintedPanel.copy(alpha = .61f),
+                        1f to colors.TintedPanel.copy(alpha = .18f)
                     )))
                     Box(Modifier.matchParentSize().background(Brush.verticalGradient(
-                        0f to Color.Transparent, .58f to Color.Transparent, 1f to MixPanel
+                        0f to Color.Transparent, .58f to Color.Transparent, 1f to colors.TintedPanel
                     )))
                     Column(Modifier.fillMaxWidth().padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(if (state.continuePrompt) "Continue mix?" else "Next random episode",
-                            style = MaterialTheme.typography.labelLarge, color = MixAccent)
+                            style = MaterialTheme.typography.labelLarge, color = colors.MutedAccent)
                         if (state.loading) {
-                            Text("Choosing an episode…", color = Color.White, style = MaterialTheme.typography.headlineSmall)
+                            Text("Choosing an episode…", color = colors.TextPrimary, style = MaterialTheme.typography.headlineSmall)
                         } else if (selection != null) {
-                            Text(selection.meta.name, color = Color.White, style = MaterialTheme.typography.headlineLarge,
+                            Text(selection.meta.name, color = colors.TextPrimary, style = MaterialTheme.typography.headlineLarge,
                                 maxLines = 2, overflow = TextOverflow.Ellipsis)
                             val video = selection.video
                             val season = video.displaySeason ?: video.season
                             val episode = video.displayEpisode ?: video.episode
                             val episodeTitle = if (season != null && episode != null) "S$season E$episode · ${video.title}" else video.title
-                            Text(episodeTitle, color = MixAccent, style = MaterialTheme.typography.titleMedium)
+                            Text(episodeTitle, color = colors.MutedAccent, style = MaterialTheme.typography.titleMedium)
                             video.overview?.takeIf(String::isNotBlank)?.let { overview ->
-                                Text(overview, modifier = Modifier.fillMaxWidth(.68f), color = Color(0xFFE0E7F2),
+                                Text(overview, modifier = Modifier.fillMaxWidth(.68f), color = colors.TextSecondary,
                                     style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = TextOverflow.Ellipsis)
                             }
                         }
-                        state.error?.let { Text(it, color = Color(0xFFF8C5CB), style = MaterialTheme.typography.bodySmall) }
+                        state.error?.let { Text(it, color = colors.Error, style = MaterialTheme.typography.bodySmall) }
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             MixButton(if (state.continuePrompt) "Yes" else "Play", Icons.Default.PlayArrow,
                                 modifier = Modifier.focusRequester(focus), primary = true,
@@ -243,13 +245,13 @@ fun TvMixScreen(id: String, manageOnOpen: Boolean, viewModel: TvMixViewModel,
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Included shows · ${mix?.shows?.size ?: 0}", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    Text("Included shows · ${mix?.shows?.size ?: 0}", style = MaterialTheme.typography.titleLarge, color = colors.TextPrimary)
                     if (mix != null) Text(if (mix.unwatchedOnly) "Unwatched only" else "Includes watched",
-                        color = MixAccent, style = MaterialTheme.typography.labelMedium)
+                        color = colors.MutedAccent, style = MaterialTheme.typography.labelMedium)
                 }
             }
             if (mix?.shows.isNullOrEmpty()) {
-                item { Text("Long-press a TV show anywhere in Nuvio and choose Add to mix.", color = Color(0xFFE0E7F2)) }
+                item { Text("Long-press a TV show anywhere in Nuvio and choose Add to mix.", color = colors.TextSecondary) }
             } else item {
                 LazyRow(contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -262,7 +264,7 @@ fun TvMixScreen(id: String, manageOnOpen: Boolean, viewModel: TvMixViewModel,
                                         modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                                 }
                             }
-                            Text(show.name, color = Color(0xFFE0E7F2), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(show.name, color = colors.TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }

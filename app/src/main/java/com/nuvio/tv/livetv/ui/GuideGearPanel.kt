@@ -196,7 +196,7 @@ internal fun GuideGearPanel(
 internal fun GuideGearButton(modifier: Modifier = Modifier, onOpen: () -> Unit, onDown: () -> Unit) {
     var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     val cell = liveCellColors(focused, Color.White.copy(alpha = 0.10f))
-    val shape = RoundedCornerShape(10.dp)
+    val shape = androidx.compose.ui.graphics.RectangleShape
     Box(
         modifier = modifier
             .size(34.dp)

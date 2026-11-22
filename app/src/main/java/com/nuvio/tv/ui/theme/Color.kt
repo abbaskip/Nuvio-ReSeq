@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 
 @Immutable
 data class NuvioSurfaceColors(
@@ -138,6 +139,14 @@ class NuvioColorScheme(
     val FocusBackground = palette.focusBackground
     val FocusContent = NuvioPrimitives.white
     val FocusScrim = NuvioPrimitives.black.copy(alpha = 0.32f)
+
+    // Low-chroma surfaces for the guide and media browsing screens. Keep the large
+    // areas dark even when the user chooses a very light custom accent.
+    val TintedBackground = if (amoledMode) pureBlack else Secondary.copy(alpha = 0.05f).compositeOver(NuvioPrimitives.neutral925)
+    val TintedPanel = if (pureBlackSurfaces) pureBlack else Secondary.copy(alpha = 0.08f).compositeOver(NuvioPrimitives.neutral875)
+    val TintedControl = Secondary.copy(alpha = 0.14f).compositeOver(NuvioPrimitives.neutral800)
+    val MutedAccent = Secondary.copy(alpha = 0.32f).compositeOver(NuvioPrimitives.neutral200)
+    val PaleFocus = Secondary.copy(alpha = 0.12f).compositeOver(NuvioPrimitives.neutral100)
 
     val Rating = NuvioPrimitives.rating
     val Error = NuvioPrimitives.error

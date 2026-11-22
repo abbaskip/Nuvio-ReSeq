@@ -53,6 +53,8 @@ scripts/*
 !scripts/verify_cs3_runtime.py
 !scripts/ci_app_config.py
 !scripts/ci_pipeline.py
+!scripts/mobile_parity.py
+!scripts/mobile_smoke.py
 !scripts/ci.gradle
 !scripts/ci-cache.sh
 /.gradle-user-home/
@@ -77,6 +79,7 @@ docs/*
 !docs/RIGHTS.md
 !docs/RELEASE_DOCUMENTATION.md
 !docs/BUILD_PIPELINE.md
+!docs/reseq-mobile.md
 !docs/assets/
 docs/assets/*
 !docs/assets/site.css

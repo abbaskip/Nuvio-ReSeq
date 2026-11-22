@@ -10,6 +10,8 @@ Nuvio ReSeq is an independent Android TV fork of [Nuvio](https://github.com/Nuvi
 
 [Project website](https://abbaskip.github.io/Nuvio-ReSeq/) · [Privacy Policy](https://abbaskip.github.io/Nuvio-ReSeq/privacy.html) · [Terms of Service](https://abbaskip.github.io/Nuvio-ReSeq/terms.html)
 
+The phone and tablet app is in development alongside the TV app. See [ReSeq Mobile builds and feature coverage](docs/reseq-mobile.md).
+
 ## Copyright, content sources and independence
 
 Nuvio ReSeq is an independent media player and IPTV integration application. It does not host, supply or distribute movies, series, live broadcasts, IPTV subscriptions or playlists, or bundle third-party addons that supply those playback streams. Users configure their own playback sources.

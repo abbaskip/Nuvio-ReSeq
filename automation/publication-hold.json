@@ -1,10 +1,8 @@
 {
   "schema": 1,
-  "hold": false,
-  "reason": "Maintainer authorized publishing the tested Continue Watching, guide import and Sports Hub fixes as 9.10.",
-  "clear_when": "Authorized for publication through the existing in-app update channel.",
-  "release": "v0.1.0-beta.9.10",
-  "evidence": "releases/0.1.0-beta.9.10.md",
-  "version_code": 10057,
-  "candidate_source": "fefe20929235d7f800b2d89682586bacef61ee0a"
+  "hold": true,
+  "reason": "Maintainer 23 November: RC3.1 was too recent; no separate publication of this upstream batch. Continue development/validation and combine with more work later in the week.",
+  "clear_when": "The combined release with additional work is ready and coordinated under the maintainer plan, or the maintainer explicitly changes this instruction. A scheduled date alone does not clear the hold.",
+  "scope": "2026-11-23 upstream candidate",
+  "evidence": "Maintainer instruction in the upstream-sync chat, 23 November 2026"
 }

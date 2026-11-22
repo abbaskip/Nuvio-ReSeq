@@ -308,3 +308,16 @@ their held parents. Complete patches and merge-resolution evidence are retained
 in the durable run evidence. Follow pending-integration.json and retain this review
 branch ancestry on the next run. Resume full exact-candidate validation after
 sufficient disk is available; do not reset the ledger or start from old snapshots.
+
+
+## Publication deferral: 23 November 2026
+
+Do not publish this upstream batch separately: RC3.1 was released too recently.
+Continue isolated integration, validation, commits and backups; include the fixes
+in a meaningful combined release later in the week after additional work is ready
+and coordinated. Honour the durable publication-deferral.json and tracked
+automation/publication-hold.json. Do not clear the hold merely because another
+scheduled run fires or the date changes. Keep review/testing automation active.
+The saved-hero startup and optional-Wi-Fi fixes are pending development changes,
+not a published RC. Reassess the version/code only when preparing the combined
+release; preserve the latest published source and all intervening work.

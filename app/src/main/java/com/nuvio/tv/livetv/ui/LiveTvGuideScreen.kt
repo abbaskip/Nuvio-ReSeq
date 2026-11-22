@@ -129,7 +129,7 @@ private data class MenuTarget(val channel: LiveChannel, val block: GuideBlock?)
 private fun floorSlot(ms: Long) = ms - Math.floorMod(ms, SLOT_MS)
 
 private const val HOUR_BLOCK_MS = 60L * 60L * 1000L
-const val NO_GUIDE_TITLE = "No Program Guide Available"
+const val NO_GUIDE_TITLE = com.nuvio.tv.livetv.data.NO_GUIDE_TITLE
 
 /**
  * TiviMate style: a channel that offers catch-up but has no (or patchy) guide gets hourly
@@ -305,7 +305,9 @@ fun LiveTvGuideScreen(
     var cursorMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var windowStart by remember { mutableLongStateOf(floorSlot(System.currentTimeMillis())) }
     // Load listings for the hours being looked at (scrolling ahead, or back for catch-up).
-    LaunchedEffect(windowStart) {
+    val browsingHistory = windowStart < floorSlot(now)
+    LaunchedEffect(windowStart, browsingHistory) {
+        if (browsingHistory) return@LaunchedEffect
         viewModel.ensureGuideRange(windowStart - 2 * 3_600_000L, windowStart + guideWindowMs(settings) + 6 * 3_600_000L)
     }
     // Going back in time on catch-up channels: fetch their full catch-up archive (many guide
@@ -410,6 +412,16 @@ fun LiveTvGuideScreen(
             listState.layoutInfo.visibleItemsInfo.mapNotNull { channels.getOrNull(it.index)?.key }
         }.distinctUntilChanged().collect { keys ->
             if(keys.isNotEmpty()) viewModel.loadVisibleGuideChannels(keys)
+        }
+    }
+    LaunchedEffect(browsingHistory, windowStart, channels, guideGeneration, settings.epgOffsetMinutes, guideWindowMs(settings)) {
+        if (!browsingHistory) return@LaunchedEffect
+        val offset = settings.epgOffsetMinutes * 60_000L
+        val from = windowStart - offset
+        androidx.compose.runtime.snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo.mapNotNull { channels.getOrNull(it.index)?.key }
+        }.distinctUntilChanged().collectLatest { keys ->
+            viewModel.readGuideHistory(keys, from - HOUR_BLOCK_MS, from + guideWindowMs(settings) + HOUR_BLOCK_MS)
         }
     }
     LaunchedEffect(ui.selectedGroupId, ui.channels.size, guideGeneration) {
@@ -569,8 +581,8 @@ fun LiveTvGuideScreen(
         }
     }
 
-    LaunchedEffect(windowStart < System.currentTimeMillis() - 6 * 3_600_000L, row / 6, channels.size) {
-        if (windowStart >= System.currentTimeMillis() - 6 * 3_600_000L || channels.isEmpty()) return@LaunchedEffect
+    LaunchedEffect(browsingHistory, row / 6, channels) {
+        if (!browsingHistory || channels.isEmpty()) return@LaunchedEffect
         delay(300)
         val from = (row - 6).coerceAtLeast(0)
         val to = (row + 14).coerceAtMost(channels.size)
@@ -1479,7 +1491,7 @@ fun LiveTvGuideScreen(
                                     itemsIndexed(channels, key = { _, c -> c.key }) { index, ch ->
                                         androidx.compose.runtime.CompositionLocalProvider(LocalGuideScale provides guideScale(settings)) { GuideRow(
                                             channel = ch,
-                                            programs = remember(ch.key, programs[ch.key], now / HOUR_BLOCK_MS) { withHourlyPlaceholders(ch, programs[ch.key].orEmpty(), now, settings.epgPastHours) },
+                                            programs = remember(ch.catchup, programs[ch.key], now / HOUR_BLOCK_MS, settings.epgPastHours) { withHourlyPlaceholders(ch, programs[ch.key].orEmpty(), now, settings.epgPastHours) },
                                             settings = settings,
                                             rowHeight = rowHeight,
                                             channelColWidth = channelColWidth,

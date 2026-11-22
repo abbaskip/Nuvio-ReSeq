@@ -57,6 +57,13 @@ class LiveTvGuideResidencyTest {
             withTimeout(5_000) { repo.programs.first { far in it } }
             assertEquals(600,repo.programs.value.size)
             assertEquals(listOf(programme),repo.programs.value[far])
+            // Browsing yesterday on a far-down row reads that row's history even
+            // though its current listing is already resident during playback.
+            val yesterday = now - 24 * 3_600_000L
+            val past = EpgProgram(yesterday, yesterday + 3_600_000L, "Yesterday's programme")
+            every { db.range(yesterday, now, null, true, listOf(far)) } returns mapOf(far to listOf(past))
+            repo.readGuideHistory(listOf(far), yesterday, now)
+            assertEquals(listOf(past, programme), repo.programs.value[far])
             verify(exactly=0) { db.range(any(),any(),any(),any(),isNull()) }
         } finally { (scopeField.get(repo) as CoroutineScope).cancel() }
     }

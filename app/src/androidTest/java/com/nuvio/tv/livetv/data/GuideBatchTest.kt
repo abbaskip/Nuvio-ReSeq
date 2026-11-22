@@ -149,7 +149,7 @@ class GuideBatchTest {
             db.visitCurrentPrograms(750, choices.keys) { ch, show -> if (show.title == "New 0") nowOn += ch }
             assertEquals(choices.keys, nowOn)
             assertEquals(choices.keys, db.findByWords(0, 1000, 500, listOf("New")).map { it.first }.toSet())
-            db.putChannelRange("channel", 0, 1000, listOf(EpgProgram(0, 1000, "Catch-up")))
+            db.mergeChannelArchive("channel", listOf(EpgProgram(0, 1000, "Catch-up")))
             assertEquals("Catch-up", db.program("channel", 0)?.title)
             assertEquals("New 0", db.program("variant", 0)?.title)
             assertEquals("New 1", db.program("channel", 1000)?.title)

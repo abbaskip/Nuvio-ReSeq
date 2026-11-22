@@ -621,6 +621,8 @@ class LiveTvViewModel @Inject constructor(
     suspend fun refreshPlaybackListings(keys: List<String>, at: Long) {
         repository.readPlaybackListings(keys, at - settings.value.epgOffsetMinutes * 60_000L)
     }
+    suspend fun readGuideHistory(keys: List<String>, from: Long, to: Long) = repository.readGuideHistory(keys, from, to)
+
     fun loadVisibleGuideChannels(keys: List<String>) {
         val visible=(listOfNotNull(playback.state.value.channelKey)+keys).distinct()
         repository.loadChannelsNow(visible)

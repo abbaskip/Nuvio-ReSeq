@@ -1172,6 +1172,31 @@ class LiveTvRepository @Inject constructor(
         }
     }
 
+    suspend fun readGuideHistory(keys: List<String>, from: Long, to: Long) {
+        if (!guideInDb || keys.isEmpty()) return
+        val generation = _guideGeneration.value
+        withContext(BackgroundWork.reads) {
+            val saved = try {
+                guideDb.range(from, to, light = lightPrograms, channels = keys)
+            } catch (error: android.database.sqlite.SQLiteException) {
+                Log.w(TAG, "Could not read the visible guide history", error)
+                return@withContext
+            }
+            rangeMutex.withLock {
+                if (generation != _guideGeneration.value || saved.isEmpty()) return@withLock
+                val current = HashMap(_programs.value)
+                for ((key, rows) in saved) {
+                    val existing = current[key].orEmpty()
+                    val starts = existing.mapTo(HashSet()) { it.startMs }
+                    val missing = rows.filter { it.startMs !in starts }
+                    if (missing.isNotEmpty()) current[key] = (existing + missing).sortedBy { it.startMs }
+                }
+                windowResidency.request(keys)
+                _programs.value = residentWindow(current)
+            }
+        }
+    }
+
     /** Remembers which channels to load first next time, and loads them now if needed. */
     fun rememberPriority(keys: List<String>) {
         val list = keys.distinct().take(600)
@@ -1525,24 +1550,33 @@ class LiveTvRepository @Inject constructor(
                         val now = System.currentTimeMillis()
                         // Keep what the guide file already has from about now on; the archive
                         // fills in the past.
-                        val pastEnd = minOf(now, list.last().stopMs)
-                        val past = list.filter { it.startMs < pastEnd }
-                        val existing = _programs.value[ch.key].orEmpty()
-                        // Beyond the end of the guide file's listings, the archive's later
-                        // shows are used too (some guide files only cover a day ahead).
-                        val existingEnd = existing.maxOfOrNull { it.stopMs } ?: now
-                        val later = list.filter { it.startMs >= maxOf(existingEnd, now) }
-                        if (past.isEmpty() && later.isEmpty()) return@runCatching
-                        val from = past.firstOrNull()?.startMs ?: pastEnd
-                        val keep = existing.filter { it.startMs >= pastEnd || it.startMs < from }
-                        val merged = (past + keep + later).sortedBy { it.startMs }
-                            .fold(ArrayList<EpgProgram>()) { acc, p -> if (acc.isEmpty() || p.startMs >= acc.last().stopMs - 60_000) acc += p; acc }
-                        if (guideInDb) runCatching {
-                            if (past.isNotEmpty()) guideDb.putChannelRange(ch.key, from, pastEnd, past)
-                            if (later.isNotEmpty()) guideDb.putChannelRange(ch.key, later.first().startMs, later.last().stopMs, later)
+                        val from = now - settings.epgPastHours.coerceAtLeast(1) * HOUR
+                        val to = now + settings.epgFutureDays.coerceAtLeast(1) * 24 * HOUR
+                        mutex.withLock {
+                            if (_channels.value.none { it.key == ch.key }) return@runCatching
+                            // Start with the saved channel schedule. The on-screen window may
+                            // cover only a few hours and the provider archive may have gaps.
+                            val existing = if (guideInDb) guideDb.range(from, to, onlyChannel = ch.key, light = true)[ch.key].orEmpty()
+                                else _programs.value[ch.key].orEmpty()
+                            val existingEnd = maxOf(now, existing.maxOfOrNull { it.stopMs } ?: now)
+                            val incoming = list.filter { it.stopMs > from && it.startMs < to &&
+                                (it.startMs < now || it.startMs >= existingEnd) &&
+                                !it.title.equals(NO_GUIDE_TITLE, ignoreCase = true) }
+                            if (incoming.isEmpty()) return@runCatching
+                            val replacement = resolveOverlaps(incoming)
+                            val merged = if (guideInDb) {
+                                guideDb.mergeChannelArchive(ch.key, replacement)
+                                guideDb.range(from, to, onlyChannel = ch.key, light = lightPrograms)[ch.key].orEmpty()
+                            } else {
+                                val kept = existing.filter { old ->
+                                    replacement.none { it.startMs < old.stopMs && it.stopMs > old.startMs }
+                                }
+                                (kept + replacement).sortedBy { it.startMs }
+                            }
+                            rangeMutex.withLock {
+                                _programs.value = residentWindow(_programs.value + (ch.key to merged))
+                            }
                         }
-                        _programs.value = residentWindow(_programs.value + (ch.key to merged))
-                        loadedFrom = minOf(loadedFrom, from)
                         if (missingOnly && !apiFillReported) {
                             apiFillReported = true
                             LIVE_REPORT.add("Guide: listings for channels the guide file doesn't cover are coming from the Xtream API (first: ${ch.name})")
@@ -2227,6 +2261,17 @@ class LiveTvRepository @Inject constructor(
         // The guide shown: from the staged guides, the chosen one for each channel (hand-picked
         // ones as given), all in one step.
         guideCheckpoint(settings)
+        // A feed can omit a whole channel on refresh. Keep its previous match only
+        // while that source is enabled and the database still has history to carry.
+        val eligible = channels.mapTo(HashSet()) { it.key } - unassigned
+        val activeSources = targets.mapTo(HashSet()) { it.fileId }
+        val previous = guideDb.autoMatches().filter { (ch, assignment) ->
+            ch in eligible && ch !in auto && ch !in overrides && assignment.sourceId in activeSources
+        }
+        if (previous.isNotEmpty()) {
+            val withHistory = guideDb.channelsWithListings(windowStart, now)
+            auto.putAll(previous.filterKeys { it in withHistory })
+        }
         val choice = auto + pinned
         val storeStart = System.currentTimeMillis()
         if (targets.isNotEmpty() && sourceMeta.isEmpty() && guideDb.fingerprint() != null) {
@@ -2234,7 +2279,8 @@ class LiveTvRepository @Inject constructor(
         }
         val fp = guideFingerprint(settings, targets)
         try {
-            guideDb.replaceAllFromStageBatched(fp, choice, auto, guideParts(settings, targets, fp), windowStart, windowEnd) {
+            guideDb.replaceAllFromStageBatched(fp, choice, auto, guideParts(settings, targets, fp),
+                windowStart, windowEnd, airedByMs = now, archiveOnlyChannels = eligible - overrides.keys) {
                 guideCheckpoint(settings)
             }
         } catch (e: android.database.sqlite.SQLiteException) {

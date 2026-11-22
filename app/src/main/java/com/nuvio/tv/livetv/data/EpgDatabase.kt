@@ -621,10 +621,11 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
     }
 
     /**
-     * Adds a channel's listings for a time span (Xtream catch-up archive), replacing anything
-     * stored for that channel in that span.
+     * Applies the individual intervals returned by the Xtream archive. Gaps in a sparse
+     * response keep their previously published programmes.
      */
-    fun putChannelRange(ch: String, fromMs: Long, toMs: Long, programs: List<EpgProgram>) {
+    fun mergeChannelArchive(ch: String, programs: List<EpgProgram>) {
+        if (programs.isEmpty()) return
         val db = writableDatabase
         db.beginTransaction()
         try {
@@ -633,7 +634,14 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 "SELECT a.ch,p.start,p.stop,p.title,p.descr,p.cat,p.ep,p.icon,p.year,p.people " +
                 "FROM schedule_channels a JOIN programs p ON p.ch=a.ref AND p.shared=1 WHERE a.ch=?", arrayOf(ch))
             db.delete("schedule_channels", "ch = ?", arrayOf(ch))
-            db.delete("programs", "shared = 0 AND ch = ? AND start >= ? AND start < ?", arrayOf(ch, fromMs.toString(), toMs.toString()))
+            db.compileStatement("DELETE FROM programs WHERE shared=0 AND ch=? AND start<? AND stop>?").use { remove ->
+                remove.bindString(1, ch)
+                for (p in programs) {
+                    remove.bindLong(2, p.stopMs)
+                    remove.bindLong(3, p.startMs)
+                    remove.executeUpdateDelete()
+                }
+            }
             val stmt = db.compileStatement(
                 "INSERT INTO programs (ch, start, stop, title, descr, cat, ep, icon, year, people) VALUES (?,?,?,?,?,?,?,?,?,?)"
             )
@@ -1001,10 +1009,98 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         }
     }
 
+    /** Fill gaps in the replacement from aired programmes still inside the retention window. */
+    private suspend fun carryGuideHistory(
+        db: SQLiteDatabase,
+        fromMs: Long,
+        airedByMs: Long,
+        archiveOnlyChannels: Set<String>,
+        newParts: String?,
+        checkpoint: suspend () -> Unit
+    ) {
+        // Prior releases only recorded the source and XMLTV ID for automatic assignments.
+        val hasSource = db.rawQuery("PRAGMA table_info(schedule_channels)", null).use { cursor ->
+            val name = cursor.getColumnIndexOrThrow("name")
+            generateSequence { if (cursor.moveToNext()) cursor.getString(name) else null }.any { it == "source" }
+        }
+        val oldAssignments = if (hasSource) {
+            "WHERE o.source=n.source AND o.xmltv=n.xmltv"
+        } else {
+            // For legacy hand-picked assignments there was no auto row. The fingerprint's
+            // base includes the override hash, so only reuse them when it still matches.
+            fun baseOf(parts: String?) = parts?.let { runCatching { org.json.JSONObject(it).getString("base") }.getOrNull() }
+            val sameBase = baseOf(newParts)?.let { it == baseOf(parts()) } == true
+            "LEFT JOIN auto a ON a.ch=o.ch WHERE (a.source=n.source AND a.xmltv=n.xmltv)" +
+                if (sameBase) " OR a.ch IS NULL" else ""
+        }
+        val shared = db.rawQuery(
+            "SELECT DISTINCT o.ref,n.ref FROM channels_next n JOIN schedule_channels o ON o.ch=n.ch $oldAssignments", null
+        ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0) to cursor.getString(1)) } }
+
+        // Xtream archive rows belong to an individual channel, even when multiple variants
+        // share an XMLTV schedule. Never publish one variant's archive under all its aliases.
+        val direct = db.rawQuery(
+            "SELECT DISTINCT p.ch,n.ref FROM programs p LEFT JOIN channels_next n ON n.ch=p.ch " +
+                "LEFT JOIN auto a ON a.ch=p.ch WHERE p.shared=0 AND p.stop>? AND p.stop<=? " +
+                "AND (a.source IS NULL OR (a.source=n.source AND a.xmltv=n.xmltv)) " +
+                "AND NOT EXISTS (SELECT 1 FROM guide_next f WHERE f.ch=n.ref AND f.shared=1 " +
+                "AND f.start<p.stop AND f.stop>p.start)",
+            arrayOf(fromMs.toString(), airedByMs.toString())
+        ).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    val channel = cursor.getString(0)
+                    val ref = if (cursor.isNull(1)) null else cursor.getString(1)
+                    if (ref != null || channel in archiveOnlyChannels) add(channel to ref)
+                }
+            }
+        }
+
+        val description = if (retainDescriptions) "p.descr" else "NULL"
+        val people = if (retainDescriptions) "p.people" else "NULL"
+        fun copy(old: String, destination: String, sharedRow: Int) {
+            db.execSQL(
+                "INSERT INTO guide_next(ch,start,stop,title,descr,cat,ep,icon,year,people,shared) " +
+                    "SELECT ?,p.start,p.stop,p.title,$description,p.cat,p.ep,p.icon,p.year,$people,? " +
+                    "FROM programs p WHERE p.ch=? AND p.shared=? AND p.stop>? AND p.stop<=? " +
+                    "AND NOT EXISTS (SELECT 1 FROM guide_next n WHERE n.ch=? AND n.shared=? " +
+                    "AND n.start<p.stop AND n.stop>p.start)",
+                arrayOf<Any>(destination, sharedRow, old, sharedRow, fromMs, airedByMs, destination, sharedRow)
+            )
+        }
+        suspend fun copyRoutes(routes: List<Pair<String, String?>>, isShared: Boolean) {
+            for (batch in routes.chunked(32)) {
+                checkpoint()
+                db.beginTransaction()
+                try {
+                    for ((old, ref) in batch) {
+                        if (isShared) {
+                            copy(old, requireNotNull(ref), 1)
+                        } else {
+                            // A detached channel may have different archive titles from its
+                            // aliases. Keep it private until its extra history has expired.
+                            if (ref != null) {
+                                db.execSQL("INSERT INTO guide_next SELECT ?,start,stop,title,descr,cat,ep,icon,year,people,0 " +
+                                    "FROM guide_next WHERE ch=? AND shared=1", arrayOf(old, ref))
+                                db.delete("channels_next", "ch=?", arrayOf(old))
+                            }
+                            copy(old, old, 0)
+                        }
+                    }
+                    db.setTransactionSuccessful()
+                } finally { db.endTransaction() }
+            }
+        }
+        copyRoutes(direct, isShared = false)
+        copyRoutes(shared, isShared = true)
+    }
+
     /** Build a private replacement in bounded transactions, then publish it atomically. */
     suspend fun replaceAllFromStageBatched(
         fingerprint: String, choice: Map<String, EpgAssignment>, auto: Map<String, EpgAssignment>,
-        parts: String?, fromMs: Long, toMs: Long, checkpoint: suspend () -> Unit
+        parts: String?, fromMs: Long, toMs: Long,
+        airedByMs: Long = System.currentTimeMillis(), archiveOnlyChannels: Set<String> = emptySet(),
+        checkpoint: suspend () -> Unit
     ) {
         val db = writableDatabase
         fun transaction(block: () -> Unit) {
@@ -1025,7 +1121,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         db.execSQL("CREATE TABLE guide_next ($PROGRAM_COLUMNS)")
         db.execSQL("CREATE TABLE guide_choice (src TEXT NOT NULL, xid TEXT NOT NULL, ch TEXT NOT NULL, PRIMARY KEY(src,xid))")
         db.execSQL("CREATE TABLE auto_next (ch TEXT PRIMARY KEY, source TEXT NOT NULL, xmltv TEXT NOT NULL)")
-        db.execSQL("CREATE TABLE channels_next (ch TEXT PRIMARY KEY, ref TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE channels_next (ch TEXT PRIMARY KEY, ref TEXT NOT NULL, source TEXT NOT NULL, xmltv TEXT NOT NULL)")
         // Alternate index names so building the replacement never removes the live guide's indexes.
         val prefix = db.rawQuery("SELECT 1 FROM sqlite_master WHERE type='index' AND name='programs_ch_start'", null).use {
             if (it.moveToFirst()) "next_programs" else "programs"
@@ -1038,7 +1134,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 checkpoint()
                 transaction {
                     db.compileStatement("INSERT INTO guide_choice VALUES (?,?,?)").use { schedule ->
-                        db.compileStatement("INSERT INTO channels_next VALUES (?,?)").use { channel ->
+                        db.compileStatement("INSERT INTO channels_next VALUES (?,?,?,?)").use { channel ->
                             for ((ch, assignment) in batch) {
                                 val ref = representatives.getOrPut(assignment) {
                                     schedule.bindString(1, assignment.sourceId)
@@ -1049,6 +1145,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                                 }
                                 channel.bindString(1, ch)
                                 channel.bindString(2, ref)
+                                channel.bindString(3, assignment.sourceId)
+                                channel.bindString(4, assignment.xmltvId)
                                 channel.executeInsert()
                             }
                         }
@@ -1063,11 +1161,13 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                     db.execSQL("INSERT INTO guide_next (ch,start,stop,title,descr,cat,ep,icon,year,people,shared) " +
                         "SELECT c.ch,s.start,s.stop,s.title,${if (retainDescriptions) "s.descr" else "NULL"},s.cat,s.ep,s.icon,s.year,${if (retainDescriptions) "s.people" else "NULL"},1 " +
                         "FROM stage s CROSS JOIN guide_choice c ON c.src=s.src AND c.xid=s.xid " +
-                        "WHERE s.rowid>? AND s.rowid<=? AND s.stop>? AND s.start<?",
-                        arrayOf<Any>(row,row+1024,fromMs,toMs))
+                        "WHERE s.rowid>? AND s.rowid<=? AND s.stop>? AND s.start<? " +
+                        "AND (s.stop>? OR s.title<>? COLLATE NOCASE)",
+                        arrayOf<Any>(row, row + 1024, fromMs, toMs, airedByMs, NO_GUIDE_TITLE))
                 }
                 row += 1024
             }
+            carryGuideHistory(db, fromMs, minOf(airedByMs, toMs), archiveOnlyChannels, parts, checkpoint)
             for (batch in auto.asSequence().chunked(512)) {
                 checkpoint()
                 transaction {
@@ -1130,6 +1230,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         runCatching { db.delete("stage", null, null); db.delete("stage_meta", null, null); db.delete("stage_channels", null, null); db.delete("stage_info", null, null) }
     }
 }
+
+internal const val NO_GUIDE_TITLE = "No Program Guide Available"
 
 private val STAGING_TABLES = listOf("stage", "stage_meta", "stage_channels", "stage_info")
 

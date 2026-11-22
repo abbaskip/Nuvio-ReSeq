@@ -69,6 +69,52 @@ class EpgInterruptedStageTest {
         assertEquals(0,stagedRows())
     }
 
+    @Test fun `three days of aired listings survive a rolling refresh and reopen`() = kotlinx.coroutines.runBlocking {
+        val hour = 3_600_000L
+        val now = 100 * hour
+        val assignment = com.nuvio.tv.livetv.model.EpgAssignment("provider", "station")
+        val original = linkedMapOf("main" to assignment, "alias" to assignment, "removed" to assignment)
+        fun show(start: Int, end: Int, title: String) = EpgProgram(start * hour, end * hour, title)
+        fun stage(shows: List<EpgProgram>) {
+            db.startStage("provider").apply {
+                add("station", shows) { false }
+                finish("stamp", emptyList())
+            }
+        }
+        stage(listOf(show(25, 26, "Expired"), show(27, 29, "At the cutoff"), show(60, 61, "Saved"),
+            show(90, 91, "Old title"), show(110, 111, "Withdrawn future")))
+        db.replaceAllFromStageBatched("first", original, original, null, 0, now + 24 * hour) {}
+        db.mergeChannelArchive("main", listOf(show(40, 41, "Archive A"), show(60, 61, "Archive correction"), show(70, 71, "Archive B")))
+        val current = linkedMapOf("alias" to assignment, "main" to assignment)
+        stage(listOf(show(60, 61, "No Program Guide Available"), show(89, 91, "Corrected times"), show(115, 116, "Fresh future")))
+        repeat(2) {
+            db.replaceAllFromStageBatched("refresh", current, current, null, now - 72 * hour, now + 24 * hour, now) {}
+            db.close()
+            db = EpgDatabase(context)
+            fun titles(key: String) = db.channelRange(key, 0, now + 24 * hour).map { it.title }
+            assertEquals(listOf("At the cutoff", "Saved", "Corrected times", "Fresh future"), titles("alias"))
+            assertEquals(listOf("At the cutoff", "Archive A", "Archive correction", "Archive B", "Corrected times", "Fresh future"), titles("main"))
+            assertTrue(titles("removed").isEmpty())
+        }
+    }
+
+    @Test fun `upgrade carries legacy shared history and only active archive channels`() = kotlinx.coroutines.runBlocking {
+        val assignment = com.nuvio.tv.livetv.model.EpgAssignment("provider", "station")
+        val choices = mapOf("channel" to assignment)
+        db.replaceAll("legacy", mapOf("channel" to listOf(EpgProgram(10, 20, "Legacy guide"))), choices)
+        db.writableDatabase.execSQL("UPDATE programs SET shared=1 WHERE ch='channel'")
+        db.writableDatabase.execSQL("INSERT INTO schedule_channels(ch,ref) VALUES ('channel','channel')")
+        for (key in listOf("archive", "hidden")) db.mergeChannelArchive(key, listOf(EpgProgram(15, 25, key)))
+        db.startStage("provider").apply {
+            add("station", listOf(EpgProgram(40, 50, "New guide"))) { false }
+            finish("stamp", emptyList())
+        }
+        db.replaceAllFromStageBatched("refresh", choices, choices, null, 0, 60, 30, setOf("archive")) {}
+        assertEquals(listOf("Legacy guide", "New guide"), db.channelRange("channel", 0, 60).map { it.title })
+        assertEquals("archive", db.channelRange("archive", 0, 60).single().title)
+        assertTrue(db.channelRange("hidden", 0, 60).isEmpty())
+    }
+
     @Test fun `large aborted staging returns storage close to a fresh committed guide`() {
         db.replaceAll("published",mapOf("old" to List(1000) { EpgProgram(it*1000L,it*1000L+500,"Saved $it") }),emptyMap())
         db.compact()

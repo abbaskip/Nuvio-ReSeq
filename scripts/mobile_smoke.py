@@ -57,7 +57,7 @@ class AccountFixture:
 
     def __init__(self):
         self.approved = False
-        self.interrupted = False
+        self.retry_after = None
         self.exchanges = 0
         self.nonce = None
         self.user = {"id": "280c2955-66e5-41f6-b618-30fe62cffdff", "email": "reseq@example.test",
@@ -79,9 +79,11 @@ class AccountFixture:
         if path == "/rest/v1/rpc/poll_tv_login_session":
             if body.get("p_code") != "test-device" or body.get("p_device_nonce") != self.nonce:
                 return 400, {"message": "Incorrect session"}
-            if self.approved and not self.interrupted:
-                self.interrupted = True
-                return 503, {"message": "Temporary interruption"}
+            if self.approved:
+                if self.retry_after is None:
+                    self.retry_after = time.monotonic() + 1
+                if time.monotonic() < self.retry_after:
+                    return 503, {"message": "Temporary interruption"}
             return 200, [{"status": "approved" if self.approved else "pending", "poll_interval_seconds": 2}]
         if path == "/functions/v1/tv-logins-exchange":
             if not self.approved or body != {"code": "test-device", "device_nonce": self.nonce}:
@@ -398,7 +400,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     if any(n.get("package") != MOBILE_ID and n.get("text") == "Approve test sign-in" for n in nodes()):
                         shell("input", "keyevent", "KEYCODE_BACK")
                     locate(account.user["email"])
-                    assert account.interrupted and account.exchanges == 1, "Approval did not recover in the original session"
+                    assert account.retry_after and account.exchanges == 1, "Approval did not recover in the original session"
                     choose("Home")
                     choose("Catalog sources")
                     locate("Offline fixture", seconds=120)
@@ -641,7 +643,19 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             choose("Library")
             locate("Zyntraxis ReSeq Fixture")
             choose("Home")
-            choose("Test film One")
+            # The same movie can also be the Home highlight or a catalogue poster.
+            # Select its saved-file row next to Manage, which plays the download directly.
+            scroll_to("Manage")
+            tree = nodes()
+            def center_y(node):
+                _, top, _, bottom = map(int, re.findall(r"-?\d+", node.get("bounds")))
+                return (top + bottom) // 2
+            manage_rows = [center_y(n) for n in tree if n.get("text") == "Manage"]
+            download = next((n for n in tree if n.get("text") == "Test film One"
+                             and any(abs(center_y(n) - y) < 8 for y in manage_rows)), None)
+            if download is None:
+                raise AssertionError("The completed download was missing from its Home row after restart")
+            tap(download)
             locate("Playing download")
             assert counts == (len(sources), len(files)), "Restarted offline playback requested a remote source"
             if upgrade_apk:

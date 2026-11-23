@@ -73,7 +73,8 @@ class LiveTvDriveSync @Inject constructor(
     private val profiles: com.nuvio.tv.data.local.ProfileDataStore,
     private val shuffle: com.nuvio.tv.data.local.EpisodeShuffleStore,
     private val mixes: com.nuvio.tv.data.local.TvMixStore,
-    private val addonPreferences: com.nuvio.tv.data.local.AddonPreferences
+    private val addonPreferences: com.nuvio.tv.data.local.AddonPreferences,
+    private val providerKeys: DriveProviderKeys
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val store = context.applicationContext.getSharedPreferences("livetv_drive_sync", Context.MODE_PRIVATE)
@@ -156,7 +157,7 @@ class LiveTvDriveSync @Inject constructor(
     suspend fun backupInfo(): BackupInfo? = withContext(Dispatchers.IO) {
         runCatching {
             val token = token() ?: return@runCatching null
-            val fileId = fileId(token) ?: fileId(token, TVDB_FILE_NAME, KEY_TVDB_FILE_ID) ?: return@runCatching null
+            val fileId = fileId(token) ?: fileId(token, TVDB_FILE_NAME, KEY_TVDB_FILE_ID) ?: fileId(token, PROVIDER_FILE_NAME, KEY_PROVIDER_FILE_ID) ?: return@runCatching null
             val json = JSONObject(execute(
                 Request.Builder()
                     .url("https://www.googleapis.com/drive/v2/files/$fileId?alt=media")
@@ -222,6 +223,9 @@ class LiveTvDriveSync @Inject constructor(
         prefs.changes,
         tvdbKeys.changes.map { Unit },
         profiles.profilesList.flatMapLatest { list ->
+            kotlinx.coroutines.flow.merge(*list.map { providerKeys.observe(it.id).map { Unit } }.toTypedArray())
+        },
+        profiles.profilesList.flatMapLatest { list ->
             kotlinx.coroutines.flow.merge(*list.map { mixes.observe(it.id).map { Unit } }.toTypedArray())
         },
         profiles.profilesList.map { Unit },
@@ -284,8 +288,7 @@ class LiveTvDriveSync @Inject constructor(
                 }.getOrNull() ?: continue
                 when (token.optString("error")) {
                     "" -> {
-                        store.edit().putString(KEY_MODE, mode).apply()
-                        try { onSignedIn(token) }
+                        try { finishSignIn(token, mode) }
                         catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
                         catch (_: Exception) {
                             _state.value = _state.value.copy(signIn = null, busy = false,
@@ -314,36 +317,37 @@ class LiveTvDriveSync @Inject constructor(
         _state.value = _state.value.copy(signIn = null, busy = false)
     }
 
-    private suspend fun onSignedIn(token: JSONObject) {
-        val requiredScope = "https://www.googleapis.com/auth/drive." + if (isAppDataMode) "appdata" else "file"
+    internal suspend fun finishSignIn(token: JSONObject, mode: String) = mutex.withLock {
+        val requiredScope = "https://www.googleapis.com/auth/drive." + if (mode == MODE_APPDATA) "appdata" else "file"
         if (requiredScope !in token.optString("scope").split(' ')) {
             _state.value = _state.value.copy(signIn = null, busy = false,
                 message = "Google sign-in did not grant Drive access. Connect again and allow the Drive permission.")
-            return
+            return@withLock
         }
         val refresh = token.optString("refresh_token")
         if (refresh.isBlank()) {
             _state.value = _state.value.copy(signIn = null, message = "Google didn't return a sign-in. Try again.")
-            return
+            return@withLock
         }
         accessToken = token.optString("access_token")
         accessTokenExpiresAt = System.currentTimeMillis() + token.optLong("expires_in", 3600) * 1000
         val email = emailFromIdToken(token.optString("id_token"))
-        protected.write(1, refresh)
-        // An explicit sign-in may be a different Google account. Never reuse its predecessor's baseline.
+        // A new grant may belong to another account. Disable automatic work durably before
+        // publishing the token so even a process restart between these writes cannot upload.
+        check(store.edit().putBoolean(KEY_AUTO, false).putString(KEY_MODE, mode)
+            .remove(KEY_REFRESH).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_PROVIDER_FILE_ID).remove(KEY_PROVIDER_BASE)
+            .remove(KEY_LAST_HASH).remove(KEY_APPLIED_AT).remove(KEY_LAST_SYNC).putString(KEY_EMAIL, email).commit())
         clearBase()
-        store.edit().remove(KEY_REFRESH).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_LAST_HASH).putString(KEY_EMAIL, email).apply()
-        _state.value = _state.value.copy(connected = true, email = email, signIn = null, message = null)
-        // First connection merges with Drive; it must not replace an existing local setup.
-        push(force = true)
-        start()
+        protected.write(1, refresh)
+        _state.value = _state.value.copy(connected = true, email = email, autoSync = false, busy = false, lastSyncMs = 0L,
+            signIn = null, message = "Connected. Choose Restore to load an existing backup, or Back up to save this device.")
     }
 
     fun disconnect() {
         cancelSignIn()
         scope.launch {
             mutex.withLock {
-                store.edit().remove(KEY_REFRESH).remove(KEY_EMAIL).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_LAST_HASH)
+                store.edit().remove(KEY_REFRESH).remove(KEY_EMAIL).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_PROVIDER_FILE_ID).remove(KEY_PROVIDER_BASE).remove(KEY_LAST_HASH)
                     .remove(KEY_MODE).remove(KEY_LAST_SYNC).remove(KEY_APPLIED_AT).apply()
                 clearBase()
                 protected.clear()
@@ -360,6 +364,7 @@ class LiveTvDriveSync @Inject constructor(
     fun setAutoSync(enabled: Boolean) {
         store.edit().putBoolean(KEY_AUTO, enabled).apply()
         _state.value = _state.value.copy(autoSync = enabled)
+        if (enabled) start()
     }
 
     fun backUpNow() { scope.launch { push(force = true) } }
@@ -370,12 +375,14 @@ class LiveTvDriveSync @Inject constructor(
 
     /** Uploads this TV's setup. Skips the upload when nothing changed since the last one. */
     private suspend fun push(force: Boolean) = mutex.withLock {
+        if (!force && !_state.value.autoSync) return@withLock
         val token = token() ?: return@withLock
         emptyRefused = false
         _state.value = _state.value.copy(busy = true, message = if (force) "Backing up…" else null)
         val credentials = runCatching { syncTvdbKeys(token, upload = true, restore = false, force = force) }
+        val providers = runCatching { syncProviderKeys(token, upload = true, restore = false, force = force) }
         val result = runCatching {
-            val credentialsSynced = credentials.getOrDefault(false)
+            val credentialsSynced = credentials.getOrDefault(false) || providers.getOrDefault(false)
             var data = exportSetup()
             val removedHere = prefs.removedSourceIds()
             val hash0 = sha(data.toString())
@@ -425,7 +432,8 @@ class LiveTvDriveSync @Inject constructor(
             message = when {
                 result.isFailure -> "Backup failed: ${result.exceptionOrNull()?.message ?: "network error"}"
                 credentials.isFailure -> "TVDB keys could not be backed up. Check the connection and matching profile names, then try again."
-                emptyRefused -> "Nothing backed up: add a playlist, guide, TVDB key or order preference first. Your saved copy in Google Drive was left as it was."
+                providers.isFailure -> "Provider keys could not be backed up. Check the connection and matching profiles. If two devices changed the same key, restore the saved copy first."
+                emptyRefused -> "Nothing backed up: add a playlist, guide, provider key or order preference first. Your saved copy in Google Drive was left as it was."
                 force -> "Backed up to Google Drive."
                 else -> _state.value.message
             }
@@ -437,11 +445,13 @@ class LiveTvDriveSync @Inject constructor(
      * Returns true if a copy was found and applied.
      */
     private suspend fun pull(force: Boolean, onlyIfExists: Boolean = false): Boolean = mutex.withLock {
+        if (!force && !_state.value.autoSync) return@withLock false
         val token = token() ?: return@withLock false
         _state.value = _state.value.copy(busy = true, message = if (force && !onlyIfExists) "Restoring…" else null)
         val credentials = runCatching { syncTvdbKeys(token, upload = false, restore = force, force = force) }
+        val providers = runCatching { syncProviderKeys(token, upload = false, restore = force, force = force) }
         val result = runCatching {
-            val credentialsSynced = credentials.getOrDefault(false)
+            val credentialsSynced = credentials.getOrDefault(false) || providers.getOrDefault(false)
             val fileId = fileId(token) ?: return@runCatching true.takeIf { credentialsSynced }
             val request = Request.Builder()
                 .url("https://www.googleapis.com/drive/v2/files/$fileId?alt=media")
@@ -487,6 +497,7 @@ class LiveTvDriveSync @Inject constructor(
             message = when {
                 result.isFailure -> "Restore failed: ${result.exceptionOrNull()?.message ?: "network error"}"
                 credentials.isFailure -> "TVDB keys could not be restored. Check the connection and matching profile names, then try again."
+                providers.isFailure -> "Provider keys could not be restored. Check the connection and matching profile names, then try again."
                 result.getOrNull() == null && force && !onlyIfExists -> "No backup found in Google Drive yet."
                 applied && force -> "Restored from Google Drive."
                 applied -> "Updated from your other TV."
@@ -662,6 +673,84 @@ class LiveTvDriveSync @Inject constructor(
         edit.apply()
         downloaded?.acknowledgeUnchanged()
         return if (upload || restore) merged.length() > 0 else updates.isNotEmpty()
+    }
+
+    /** Only configured keys are backed up. Empty fields on a new or partly configured device
+     * cannot erase credentials already saved by another TV. */
+    internal suspend fun syncProviderKeys(token: String, upload: Boolean, restore: Boolean, force: Boolean): Boolean {
+        val localProfiles = profiles.profilesList.first()
+        val local = localProfiles.associate { it.id to providerKeys.observe(it.id).first() }
+        val base = JSONObject(store.getString(KEY_PROVIDER_BASE, null) ?: "{}")
+        fun slot(id: Int, name: String, service: String) = "$id:${sha(name)}:$service"
+        if (upload && !force && localProfiles.all { profile ->
+            local.getValue(profile.id).all { (service, key) -> sha(key) == base.optString(slot(profile.id, profile.name, service)) }
+        }) return local.values.any { it.isNotEmpty() }
+
+        val id = fileId(token, PROVIDER_FILE_NAME, KEY_PROVIDER_FILE_ID)
+        if (id == null && (!upload || local.values.all { it.isEmpty() })) return false
+        val remote = id?.let { file ->
+            if (upload) remoteCopy(token, file) else {
+                val request = Request.Builder().url("https://www.googleapis.com/drive/v2/files/$file?alt=media")
+                    .header("Authorization", "Bearer $token").build()
+                RemoteBackup(parseDriveDocument(execute(request)), null)
+            }
+        }
+        val previous = remote?.json?.let(::providerBackupProfiles) ?: JSONObject()
+        val merged = JSONObject(previous.toString())
+        data class Update(val profileId: Int, val service: String, val expected: String, val value: String)
+        val updates = mutableListOf<Update>()
+        var hasMatchingKeys = false
+        for (profile in localProfiles) {
+            val profileId = profile.id.toString()
+            val entry = merged.optJSONObject(profileId)
+            check(entry == null || entry.getString("name") == profile.name)
+            val keys = entry?.getJSONObject("keys") ?: JSONObject()
+            val configured = local.getValue(profile.id)
+            for (service in configured.keys + keys.keys().asSequence().toSet()) {
+                val localKey = configured[service]
+                val savedKey = keys.optString(service).takeIf { it.isNotEmpty() }
+                val field = slot(profile.id, profile.name, service)
+                val changed = localKey != null && sha(localKey) != base.optString(field)
+                // A cleared local field stays empty until an explicit restore. A fresh TV
+                // (no baseline for this key) can receive the saved value on its first sync.
+                if (localKey == null && base.has(field) && !restore) continue
+                val action = chooseDriveTvdbKey(localKey, savedKey, savedKey != null, changed,
+                    upload, restore, base.has(field) && savedKey?.let(::sha) != base.optString(field))
+                when (action) {
+                    DriveKeyAction.UPLOAD -> {
+                        requireNotNull(localKey)
+                        require(localKey.length <= 8192)
+                        keys.put(service, localKey)
+                        base.put(field, sha(localKey))
+                    }
+                    DriveKeyAction.RESTORE -> {
+                        requireNotNull(savedKey)
+                        updates += Update(profile.id, service, localKey.orEmpty(), savedKey)
+                        base.put(field, sha(savedKey))
+                    }
+                    DriveKeyAction.KEEP -> if (savedKey != null && savedKey == localKey) base.put(field, sha(savedKey))
+                }
+            }
+            if (keys.length() > 0) {
+                hasMatchingKeys = true
+                if (entry == null) merged.put(profileId, JSONObject().put("name", profile.name).put("keys", keys))
+            }
+        }
+        check(localProfiles == profiles.profilesList.first())
+        val changed = previous.toString() != merged.toString()
+        if (changed) {
+            val document = JSONObject().put("format", 1).put("savedAt", System.currentTimeMillis())
+                .put("deviceId", deviceId).put("device", Build.MODEL ?: "TV").put("profiles", merged)
+            uploadFile(token, PROVIDER_FILE_NAME, KEY_PROVIDER_FILE_ID, id, remote?.etag, document.toString())
+        }
+        for (update in updates) {
+            providerKeys.restore(update.profileId, update.service, update.expected, update.value)
+        }
+        store.edit().apply {
+            putString(KEY_PROVIDER_BASE, base.toString())
+            if (changed || updates.isNotEmpty() || (force && hasMatchingKeys)) putLong(KEY_LAST_SYNC, System.currentTimeMillis())
+        }.apply()
+        return if (upload || restore) hasMatchingKeys else updates.isNotEmpty()
     }
 
     /** Drive uses different ETags for media downloads and file updates. */
@@ -933,7 +1022,7 @@ class LiveTvDriveSync @Inject constructor(
         if (response.code == 404) {
             val id = response.request.url.pathSegments.lastOrNull()
             val edit = store.edit()
-            for (key in listOf(KEY_FILE_ID, KEY_TVDB_FILE_ID)) if (id == store.getString(key, null)) edit.remove(key)
+            for (key in listOf(KEY_FILE_ID, KEY_TVDB_FILE_ID, KEY_PROVIDER_FILE_ID)) if (id == store.getString(key, null)) edit.remove(key)
             edit.apply()
         }
         if (response.code == 412) error("The backup changed on another TV. Sync again before saving.")
@@ -992,6 +1081,9 @@ class LiveTvDriveSync @Inject constructor(
         val SCOPE_ATTEMPTS = listOf(
             "https://www.googleapis.com/auth/drive.file" to MODE_FILE
         )
+        const val PROVIDER_FILE_NAME = "Nuvio ReSeq provider credentials.json"
+        const val KEY_PROVIDER_FILE_ID = "provider_file_id"
+        const val KEY_PROVIDER_BASE = "provider_fingerprints"
         const val TVDB_FILE_NAME = "Nuvio ReSeq TVDB credentials.json"
         const val KEY_TVDB_FILE_ID = "tvdb_file_id"
         const val KEY_TVDB_BASE = "tvdb_fingerprints"

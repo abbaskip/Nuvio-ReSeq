@@ -118,6 +118,8 @@ internal fun PlaybackStreamSelectionSection(
             onToggle = { onUpdate { setStreamAutoPlayImmediateEnabled(!settings.streamAutoPlayImmediateEnabled) } }
         )
         if (settings.streamAutoPlayImmediateEnabled) {
+            SettingsToggleRow(stringResource(R.string.iptv_immediate_tier), null, settings.streamAutoPlayImmediatePlaylistsEnabled,
+                { onUpdate { setStreamAutoPlayImmediatePlaylistsEnabled(!settings.streamAutoPlayImmediatePlaylistsEnabled) } })
             SettingsActionRow(
                 title = stringResource(R.string.autoplay_immediate_addons),
                 subtitle = null,
@@ -185,6 +187,8 @@ internal fun PlaybackStreamSelectionSection(
             onToggle = { onUpdate { setStreamAutoPlayAnySourceFallbackEnabled(!settings.streamAutoPlayAnySourceFallbackEnabled) } }
         )
         if (settings.streamAutoPlayAnySourceFallbackEnabled && timedWait) {
+            SettingsToggleRow(stringResource(R.string.iptv_fallback_tier), null, settings.streamAutoPlayFallbackPlaylistsEnabled,
+                { onUpdate { setStreamAutoPlayFallbackPlaylistsEnabled(!settings.streamAutoPlayFallbackPlaylistsEnabled) } })
             val fallbackSeconds = PlayerSettings.normalizeAutoPlayFallbackSeconds(timeoutSeconds, settings.streamAutoPlayAnySourceFallbackSeconds)
             SliderSettingsItem(
                 title = stringResource(R.string.autoplay_any_source_after),

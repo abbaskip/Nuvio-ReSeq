@@ -24,6 +24,27 @@ import org.robolectric.annotation.ConscryptMode
 @Config(manifest = Config.NONE, sdk = [28], application = Application::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class DriveTvdbRoundTripTest {
+    @Test fun connectingAndReconnectingDriveLeaveSyncOffUntilChosen() = runBlocking {
+        val app = RuntimeEnvironment.getApplication()
+        val local = app.getSharedPreferences("livetv_drive_sync", Context.MODE_PRIVATE)
+        val drive = LiveTvDriveSync(app, mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
+        val grants = mockk<com.nuvio.tv.core.profile.ProtectedProfilePreferences>(relaxUnitFun = true)
+        drive.javaClass.getDeclaredField("protected").apply { isAccessible = true; set(drive, grants) }
+        val calls = java.util.concurrent.atomic.AtomicInteger()
+        val client = OkHttpClient.Builder().addInterceptor { calls.incrementAndGet(); error("Unexpected Drive request") }.build()
+        drive.javaClass.getDeclaredField("http").apply { isAccessible = true; set(drive, client) }
+        repeat(2) {
+            local.edit().putBoolean("auto_sync", true).putString("file_id", "old-file").commit()
+            drive.finishSignIn(JSONObject().put("scope", "https://www.googleapis.com/auth/drive.file")
+                .put("refresh_token", "fixture-grant").put("access_token", "fixture"), "file")
+            assertTrue(drive.state.value.connected)
+            assertFalse(drive.state.value.autoSync)
+            assertFalse(local.getBoolean("auto_sync", true))
+            assertFalse(local.contains("file_id"))
+        }
+        assertEquals(0, calls.get())
+    }
+
     @Test fun freshDeviceRestoreRotationConflictAndRemoval() = runBlocking {
         val app = RuntimeEnvironment.getApplication()
         val prefs = app.getSharedPreferences("livetv_drive_sync", Context.MODE_PRIVATE)
@@ -38,7 +59,7 @@ class DriveTvdbRoundTripTest {
         every { keys.replaceIfUnchanged(1, any(), any()) } answers {
             if (local == arg<String?>(1)) local = arg(2)
         }
-        val drive = LiveTvDriveSync(app, mockk(), mockk(), keys, mockk(), profiles, mockk(), mockk(), mockk())
+        val drive = LiveTvDriveSync(app, mockk(), mockk(), keys, mockk(), profiles, mockk(), mockk(), mockk(), mockk())
         var saved: JSONObject? = null
         var rejectWrite = false
         val transport = OkHttpClient.Builder().addInterceptor { chain ->

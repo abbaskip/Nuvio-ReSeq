@@ -39,6 +39,23 @@ class TieredStreamAutoPlayTest {
         behaviorHints = null, addonName = addon, addonLogo = null,
     )
 
+    @Test fun playlistCanBeSelectedIndependentlyAtEachTier() {
+        val iptv = stream("Playlist", "2160p").copy(iptvPlaylistId = "fixture")
+        val other = stream("Backup")
+        val batch = StreamAutoPlaySnapshot(listOf(iptv, other))
+        fun select(immediate: Boolean, approved: Boolean, fallback: Boolean, elapsed: Long): Stream? {
+            val session = TieredStreamAutoPlay(settings.copy(streamAutoPlayImmediatePlaylistsEnabled = immediate,
+                streamAutoPlayPlaylistsEnabled = approved, streamAutoPlayFallbackPlaylistsEnabled = fallback), addons)
+            session.evaluate(batch, 0)
+            return session.evaluate(batch, elapsed).stream
+        }
+        assertEquals(iptv, select(true, false, false, 500))
+        assertNull(select(false, true, false, 500))
+        assertEquals(iptv, select(false, true, false, 10_000))
+        assertEquals(iptv, select(false, false, true, 30_000))
+        assertEquals(other, select(false, false, false, 30_000))
+    }
+
     @Test fun `immediate addons bypass normal source and regex filters after the full settling window`() {
         val session = TieredStreamAutoPlay(settings.copy(streamAutoPlayAddonsEnabled = false), addons)
         val chosen = stream("AIOLists")

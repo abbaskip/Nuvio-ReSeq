@@ -30,6 +30,7 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
     var add by remember { mutableStateOf<String?>(null) }
     var confirmation by remember { mutableStateOf<String?>(null) }
     var keyTransfer by remember { mutableStateOf<Boolean?>(null) }
+    var playbackRestore by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val keyVm: com.nuvio.tv.livetv.sync.ProviderKeyTransferViewModel = hiltViewModel()
     val keyState by keyVm.state.collectAsStateWithLifecycle()
     var removal by remember { mutableStateOf<SourceRemoval?>(null) }
@@ -39,7 +40,7 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
     val uri = LocalUriHandler.current
     LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (!driveOnly) {
-        item { SectionTitle("Playlists and guides") }
+        item { SectionTitle("Playlists") }
         itemsIndexed(lists, key = { _, s -> "playlist-" + s.id }) { index, source ->
             SourceRow(source.name, source.enabled, remove = {
                 removal = SourceRemoval(source.name) { vm.removePlaylist(source.id) }
@@ -54,6 +55,7 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
         item { Action("Add M3U playlist") { add = "M3U playlist" } }
         item { Action("Add Xtream account") { add = "Xtream account" } }
         item { Action("Add Stalker portal") { add = "Stalker portal" } }
+        item { SectionTitle("Programme guides") }
         items(guides, key = { "guide-" + it.id }) { source ->
             SourceRow(source.name, source.enabled, remove = {
                 removal = SourceRemoval(source.name) { vm.removeEpg(source.id) }
@@ -65,15 +67,18 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
         item { Action("Guide and recordings") { options = true } }
         (status.error ?: status.message)?.let { item { Label(it) } }
         } else {
-        item { Label("Connect the same Google account you use on ReSeq TV, phones and tablets. Choose Restore to load your saved setup.", Modifier.padding(8.dp)) }
+        item { Label("Connect the same Google account as your other device. Choose Restore for a standard backup, including IPTV and TVDB. Your standard backup opens without a passphrase.", Modifier.padding(8.dp)) }
         if (!backup.available) item { Label("Google Drive sign-in is unavailable in this build.") }
         else if (!backup.connected) item { Action("Connect Google Drive", onClick = drive::beginSignIn) }
         else {
             backup.email?.let { item { Label(it) } }
-            item { SourceRow("Automatic sync", backup.autoSync, change = drive::setAutoSync) }
+            item { SectionTitle("Device backup") }
+            item { TogglePreference("Automatic sync", backup.autoSync, drive::setAutoSync) }
             if (!backup.busy) items(listOf("Back up", "Restore", "Disconnect")) { action ->
                 Action(action) { confirmation = action }
             }
+            item { SectionTitle("TV Mix and Shuffle") }
+            item { SettingsLink("Restore TV Mix and Shuffle") { playbackRestore = true } }
             item { SectionTitle("Provider API keys"); Label("Transfer this profile’s TMDB, Gemini, debrid, MDBList and AnimeSkip keys in a separate passphrase-encrypted backup.", small = true) }
             if (!keyState.busy) item { Row {
                 Action("Back up keys") { keyTransfer = true }; Action("Restore keys") { keyTransfer = false }
@@ -200,10 +205,11 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
                     else -> "Stop syncing this device with Google Drive."
                 })
             }, confirmButton = { Action(action) {
-                when (action) { "Restore" -> drive.restoreNow(); "Back up" -> drive.backUpNow(); else -> drive.disconnect() }
+                when (action) { "Restore" -> drive.restoreOnMobile(); "Back up" -> drive.backUpNow(); else -> drive.disconnect() }
                 confirmation = null
             } }, dismissButton = { Action("Cancel") { confirmation = null } })
     }
+    if (playbackRestore && backup.connected) MobilePlaybackRestore(drive) { playbackRestore = false }
     keyTransfer?.let { upload ->
         var phrase by remember { mutableStateOf("") }
         var repeat by remember { mutableStateOf("") }
@@ -211,7 +217,7 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
             Column(Modifier.verticalScroll(rememberScrollState()).imePadding().padding(16.dp)) {
                 SectionTitle(if (upload) "Back up provider keys" else "Restore provider keys")
                 Label(if (upload) "Choose a passphrase of at least 10 characters and keep it to unlock your keys on other devices."
-                    else "Use the passphrase from the device that backed up this profile.", small = true)
+                    else "Enter the passphrase you chose in Back up keys. If you used the regular Back up action on TV, close this and choose Restore instead.", small = true)
                 OutlinedTextField(phrase, { phrase = it }, singleLine = true, label = { Label("Backup passphrase") }, visualTransformation = PasswordVisualTransformation())
                 if (upload) OutlinedTextField(repeat, { repeat = it }, singleLine = true,
                     label = { Label("Confirm passphrase") }, visualTransformation = PasswordVisualTransformation())

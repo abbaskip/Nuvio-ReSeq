@@ -59,6 +59,7 @@ class AccountFixture:
         self.approved = False
         self.retry_after = None
         self.exchanges = 0
+        self.watch_time = int(time.time() * 1000)
         self.nonce = None
         self.user = {"id": "280c2955-66e5-41f6-b618-30fe62cffdff", "email": "reseq@example.test",
                      "aud": "authenticated", "role": "authenticated", "app_metadata": {"provider": "email"},
@@ -99,6 +100,12 @@ class AccountFixture:
             return 200, self.user
         if path == "/rest/v1/rpc/get_sync_owner":
             return 200, self.user["id"]
+        if path == "/rest/v1/rpc/sync_get_watch_progress_delta_cursor":
+            return 200, 1
+        if path == "/rest/v1/rpc/sync_pull_watch_progress":
+            return 200, [{"user_id": self.user["id"], "profile_id": 1, "content_id": "qafilmOne", "content_type": "movie",
+                          "video_id": "qafilmOne", "position": 45000, "duration": 130000, "last_watched": self.watch_time,
+                          "progress_key": "qafilmOne"}]
         if path == "/rest/v1/addons":
             return 200, [{"user_id": self.user["id"], "profile_id": 1, "name": "Offline fixture",
                           "url": address + "/addon/manifest.json", "enabled": True, "sort_order": 0}]
@@ -135,8 +142,8 @@ def fixture(account=None):
         sources = []
         files = []
         offline = Event()
-        movies = [{"id": "qafilm" + name, "type": "movie", "name": "Test film " + name} for name in channels]
-        series = {"id": "qaseries", "type": "series", "name": "Zyntraxis ReSeq Fixture", "videos": [
+        movies = [{"id": "qafilm" + name, "type": "movie", "name": "Test film " + name, "releaseInfo": "2018"} for name in channels]
+        series = {"id": "qaseries", "type": "series", "name": "Zyntraxis ReSeq Fixture", "releaseInfo": "2019-2024", "videos": [
             {"id": f"qaseries:1:{n}", "season": 1, "episode": n, "title": title, "released": "2020-01-01T00:00:00.000Z"}
             for n, title in enumerate(("Pilot", "Second episode"), start=1)]}
         manifest = {"id": "org.reseq.touchtest", "version": "1.0.0", "name": "Offline fixture",
@@ -413,8 +420,11 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     choose("Home")
                     choose("Catalog sources")
                     locate("Offline fixture", seconds=120)
-                    print("Verified MDBList under Tracking and TVDB, browser-return approval after interrupted polling, "
-                          "and automatic restoration of the account's catalogue.")
+                    shell("input", "keyevent", "KEYCODE_BACK")
+                    scroll_to("Continue watching")
+                    locate("Watch progress for Test film One", seconds=120)
+                    print("Verified MDBList, browser approval after interrupted polling, restored account catalogues "
+                          "and the partially watched film on Home.")
                     return
                 choose("Home")
             if providers_only:
@@ -646,7 +656,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             if upgrade_apk:
                 command("install", "-r", str(upgrade_apk), timeout=180)
             shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
-            locate("Downloads")
+            scroll_to("Downloads")
             choose("Library")
             locate("Zyntraxis ReSeq Fixture")
             choose("Home")

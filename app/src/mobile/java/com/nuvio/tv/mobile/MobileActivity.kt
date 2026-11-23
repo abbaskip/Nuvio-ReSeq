@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -31,6 +32,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
+import com.nuvio.tv.core.tracking.TrackingRefreshIntent
 import com.nuvio.tv.core.runtime.PluginRuntimeHooks
 import com.nuvio.tv.core.storage.DatabaseVersions
 import com.nuvio.tv.core.sync.StartupSyncService
@@ -59,6 +62,7 @@ class MobileActivity : ComponentActivity() {
     }
     @Inject lateinit var sports: dagger.Lazy<com.nuvio.tv.livetv.sports.SportsRepository>
     private var ready = false
+    private var firstResume = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,6 +71,17 @@ class MobileActivity : ComponentActivity() {
             return
         }
         ready = true
+        lifecycleScope.launch {
+            var hadPlayer = false
+            com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen.collectLatest { open ->
+                if (open) hadPlayer = true
+                else if (hadPlayer) {
+                    hadPlayer = false
+                    kotlinx.coroutines.delay(750)
+                    projection.refreshConnected(TrackingRefreshIntent.INVALIDATED)
+                }
+            }
+        }
         externalPlayer.activityLauncher = externalLauncher
         val bars = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
@@ -95,6 +110,14 @@ class MobileActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!ready) return
+        val intent = if (firstResume) TrackingRefreshIntent.INVALIDATED else TrackingRefreshIntent.AUTOMATIC
+        firstResume = false
+        lifecycleScope.launch { projection.refreshConnected(intent) }
     }
 
     override fun onStart() {
@@ -203,26 +226,33 @@ private fun NavItem(item: Tab, selected: Tab, modifier: Modifier, select: (Tab) 
     val c = MaterialTheme.colorScheme
     Column(modifier.heightIn(min = 56.dp).selectable(active, role = Role.Tab) { select(item) },
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Icon(item.icon, null, tint = if (active) c.primary else c.onSurfaceVariant)
-        Label(item.label, small = true, strong = active)
+        Icon(item.icon, null, Modifier.size(21.dp), tint = if (active) c.primary else c.onSurfaceVariant)
+        Text(item.label, Modifier.padding(top = 2.dp), color = if (active) c.onSurface else c.onSurfaceVariant,
+            fontFamily = condensed, fontSize = 12.sp, lineHeight = 15.sp, letterSpacing = 0.sp,
+            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
     }
 }
 
-private val condensed = FontFamily(Typeface.create("sans-serif-condensed", Typeface.NORMAL))
+internal val condensed = FontFamily(Typeface.create("sans-serif-condensed", Typeface.NORMAL))
 
 @Composable
 internal fun Label(text: String, modifier: Modifier = Modifier, small: Boolean = false, strong: Boolean = false,
     lines: Int = Int.MAX_VALUE) {
     Text(text, modifier, fontFamily = condensed, color = MaterialTheme.colorScheme.onSurface,
         fontWeight = if (strong) FontWeight.Bold else FontWeight.Normal, maxLines = lines,
-        overflow = TextOverflow.Ellipsis, fontSize = if (small) 14.sp else 17.sp,
-        lineHeight = if (small) 18.sp else 22.sp)
+        overflow = TextOverflow.Ellipsis, fontSize = if (small) 12.sp else 15.sp,
+        lineHeight = if (small) 16.sp else 20.sp, letterSpacing = 0.sp)
 }
 
 @Composable
 internal fun SectionTitle(text: String) {
+    if (LocalSettingsMenu.current) {
+        SettingsHeading(text)
+        return
+    }
     Text(text, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontFamily = condensed,
-        color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 18.sp,
+        lineHeight = 22.sp, letterSpacing = 0.sp)
 }
 
 @Composable
@@ -230,9 +260,11 @@ internal fun Action(text: String, modifier: Modifier = Modifier, selected: Boole
     val c = MaterialTheme.colorScheme
     val action = if (selected == null) Modifier.clickable(role = Role.Button, onClick = onClick)
         else Modifier.selectable(selected, role = Role.Tab, onClick = onClick)
-    Box(modifier.background(if (selected == true) c.surfaceVariant else c.surface).then(action)
+    val settings = LocalSettingsMenu.current
+    val frame = if (settings && selected == true) Modifier.border(1.dp, c.primary) else Modifier
+    Box(modifier.background(if (selected == true) c.surfaceVariant else c.surface).then(frame).then(action)
         .heightIn(min = 48.dp).widthIn(min = 48.dp).padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center) { Label(text, strong = selected == true) }
+        contentAlignment = if (settings) Alignment.CenterStart else Alignment.Center) { Label(text, strong = selected == true) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -47,25 +47,28 @@ internal fun MobileTmdbSettings(vm: TmdbSettingsViewModel = hiltViewModel()) {
     var key by remember { mutableStateOf(false) }
     var remove by remember { mutableStateOf(false) }
     val language = remember(s.language) { mutableStateOf(s.language) }
+    SectionTitle("TMDB account")
     Action(if (s.hasApiKey) "Replace API key" else "Add API key") { key = true }
     if (s.hasApiKey) Action(if (remove) "Confirm remove API key" else "Remove API key") {
         if (remove) vm.clearApiKey(s.profileId) { remove = false } else remove = true
     }
     if (key) MobileTmdbKey(vm) { key = false }
+    SectionTitle("Metadata and language")
     MobileTextInput("Metadata language", language.value) { language.value = it }
     Action("Save language") { if (language.value.isNotBlank()) vm.onEvent(TmdbSettingsEvent.SetLanguage(language.value.trim())) }
-    Action("Use TMDB metadata", selected = s.enabled) { vm.onEvent(TmdbSettingsEvent.ToggleEnabled(!s.enabled)) }
-    Action("Home highlights", selected = s.modernHomeEnabled) { vm.onEvent(TmdbSettingsEvent.ToggleModernHomeEnabled(!s.modernHomeEnabled)) }
-    Action("Enrich Continue Watching", selected = s.enrichContinueWatching) { vm.onEvent(TmdbSettingsEvent.ToggleEnrichContinueWatching(!s.enrichContinueWatching)) }
-    Action("Artwork", selected = s.useArtwork) { vm.onEvent(TmdbSettingsEvent.ToggleArtwork(!s.useArtwork)) }
-    Action("Basic information", selected = s.useBasicInfo) { vm.onEvent(TmdbSettingsEvent.ToggleBasicInfo(!s.useBasicInfo)) }
-    Action("Detailed information", selected = s.useDetails) { vm.onEvent(TmdbSettingsEvent.ToggleDetails(!s.useDetails)) }
-    Action("Cast and crew", selected = s.useCredits) { vm.onEvent(TmdbSettingsEvent.ToggleCredits(!s.useCredits)) }
-    Action("Production companies", selected = s.useProductions) { vm.onEvent(TmdbSettingsEvent.ToggleProductions(!s.useProductions)) }
-    Action("Networks", selected = s.useNetworks) { vm.onEvent(TmdbSettingsEvent.ToggleNetworks(!s.useNetworks)) }
-    Action("Episodes", selected = s.useEpisodes) { vm.onEvent(TmdbSettingsEvent.ToggleEpisodes(!s.useEpisodes)) }
-    Action("Season posters", selected = s.useSeasonPosters) { vm.onEvent(TmdbSettingsEvent.ToggleSeasonPosters(!s.useSeasonPosters)) }
-    Action("Trailers", selected = s.useTrailers) { vm.onEvent(TmdbSettingsEvent.ToggleTrailers(!s.useTrailers)) }
-    Action("More like this", selected = s.useMoreLikeThis) { vm.onEvent(TmdbSettingsEvent.ToggleMoreLikeThis(!s.useMoreLikeThis)) }
-    Action("Collections", selected = s.useCollections) { vm.onEvent(TmdbSettingsEvent.ToggleCollections(!s.useCollections)) }
+    TogglePreference("Use TMDB metadata", s.enabled) { vm.onEvent(TmdbSettingsEvent.ToggleEnabled(it)) }
+    TogglePreference("Home highlights", s.modernHomeEnabled) { vm.onEvent(TmdbSettingsEvent.ToggleModernHomeEnabled(it)) }
+    TogglePreference("Enrich Continue Watching", s.enrichContinueWatching) { vm.onEvent(TmdbSettingsEvent.ToggleEnrichContinueWatching(it)) }
+    SectionTitle("Title details")
+    TogglePreference("Artwork", s.useArtwork) { vm.onEvent(TmdbSettingsEvent.ToggleArtwork(it)) }
+    TogglePreference("Basic information", s.useBasicInfo) { vm.onEvent(TmdbSettingsEvent.ToggleBasicInfo(it)) }
+    TogglePreference("Detailed information", s.useDetails) { vm.onEvent(TmdbSettingsEvent.ToggleDetails(it)) }
+    TogglePreference("Cast and crew", s.useCredits) { vm.onEvent(TmdbSettingsEvent.ToggleCredits(it)) }
+    TogglePreference("Production companies", s.useProductions) { vm.onEvent(TmdbSettingsEvent.ToggleProductions(it)) }
+    TogglePreference("Networks", s.useNetworks) { vm.onEvent(TmdbSettingsEvent.ToggleNetworks(it)) }
+    TogglePreference("Episodes", s.useEpisodes) { vm.onEvent(TmdbSettingsEvent.ToggleEpisodes(it)) }
+    TogglePreference("Season posters", s.useSeasonPosters) { vm.onEvent(TmdbSettingsEvent.ToggleSeasonPosters(it)) }
+    TogglePreference("Trailers", s.useTrailers) { vm.onEvent(TmdbSettingsEvent.ToggleTrailers(it)) }
+    TogglePreference("More like this", s.useMoreLikeThis) { vm.onEvent(TmdbSettingsEvent.ToggleMoreLikeThis(it)) }
+    TogglePreference("Collections", s.useCollections) { vm.onEvent(TmdbSettingsEvent.ToggleCollections(it)) }
 }

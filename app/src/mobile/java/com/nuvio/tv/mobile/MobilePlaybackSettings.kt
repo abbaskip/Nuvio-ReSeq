@@ -1,6 +1,10 @@
 package com.nuvio.tv.mobile
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,7 +18,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun TogglePreference(label: String, enabled: Boolean, set: (Boolean) -> Unit) {
-    Action(label, Modifier.fillMaxWidth(), selected = enabled) { set(!enabled) }
+    Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
+        .toggleable(enabled, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = set)
+        .heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 2.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Label(label, Modifier.weight(1f))
+        Switch(checked = enabled, onCheckedChange = null)
+    }
 }
 
 @Composable

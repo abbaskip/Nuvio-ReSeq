@@ -216,8 +216,8 @@ android {
         create("mobile") {
             initWith(full)
             applicationId = "io.github.abbaskip.nuvioreseq.mobile"
-            versionCode = 4
-            versionName = "0.1.0-alpha.4"
+            versionCode = 5
+            versionName = "0.1.0-alpha.5"
             buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "false")
         }
     }

@@ -50,9 +50,9 @@ internal fun MobileMediaServers(vm: MediaServersViewModel = hiltViewModel()) {
     state.connections.forEach { server ->
         SectionTitle(server.name)
         Label(server.userName)
-        Action("Enabled", selected = server.enabled) { vm.setEnabled(server.id, !server.enabled) }
-        Action("Use server metadata", selected = server.useCatalogMetadata) { vm.setCatalogMetadata(server.id, !server.useCatalogMetadata) }
-        Action("Import watch state", selected = server.importWatchState) { vm.setImportWatchState(server.id, !server.importWatchState) }
+        TogglePreference("Enabled", server.enabled) { vm.setEnabled(server.id, it) }
+        TogglePreference("Use server metadata", server.useCatalogMetadata) { vm.setCatalogMetadata(server.id, it) }
+        TogglePreference("Import watch state", server.importWatchState) { vm.setImportWatchState(server.id, it) }
         server.libraries.forEach { library -> Action(library.name, selected = library.selected) { vm.setLibrarySelected(server.id, library.id, !library.selected) } }
         Action(if (refreshing == server.id) "Refreshing…" else "Refresh libraries") { vm.refreshLibraries(server.id) { failure = it } }
         Action(if (removing == server.id) "Confirm disconnect" else "Disconnect") {
@@ -60,6 +60,7 @@ internal fun MobileMediaServers(vm: MediaServersViewModel = hiltViewModel()) {
         }
         state.failures[server.id]?.let { Label(stringResource(it.messageRes())) }
     }
+    SectionTitle("Add a server")
     vm.providers.forEach { provider -> Action("Connect " + provider.displayName) { vm.resetSignIn(); adding = provider.id } }
     failure?.let { Label(stringResource(it.messageRes())) }
     vm.providers.find { it.id == adding }?.let { provider -> ServerSignIn(provider, vm) { adding = null } }

@@ -6,13 +6,18 @@ import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -24,7 +29,9 @@ import androidx.navigation.compose.*
 import coil3.compose.AsyncImage
 import com.nuvio.tv.core.network.NetworkResult
 import com.nuvio.tv.core.profile.ProfileManager
+import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.domain.model.*
+import com.nuvio.tv.ui.components.BrandWordmark
 import com.nuvio.tv.domain.repository.AddonRepository
 import com.nuvio.tv.ui.navigation.Screen
 import com.nuvio.tv.ui.screens.detail.*
@@ -34,13 +41,20 @@ import com.nuvio.tv.ui.screens.tvmix.streamRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 internal class MobileCatalogViewModel @Inject constructor(
     val downloads: MobileOfflineMedia, val profiles: ProfileManager, val external: com.nuvio.tv.core.player.ExternalPlaybackTracker,
-    val themes: com.nuvio.tv.data.local.ThemeDataStore, val debrid: com.nuvio.tv.data.local.DebridSettingsDataStore
+    val themes: com.nuvio.tv.data.local.ThemeDataStore, val debrid: com.nuvio.tv.data.local.DebridSettingsDataStore,
+    val layout: LayoutPreferenceDataStore, val tracking: com.nuvio.tv.core.tracking.TrackingSourceController,
+    val progress: com.nuvio.tv.data.cw.ContinueWatchingRepository, val sync: com.nuvio.tv.core.sync.StartupSyncService,
+    val watchProgress: com.nuvio.tv.domain.repository.WatchProgressRepository,
+    val refresh: com.nuvio.tv.core.tracking.TrackingProgressRefreshCoordinator
 ) : ViewModel()
 
 internal enum class VideoAction { Play, Download, Manual, Details }
@@ -88,7 +102,10 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
     }
     DisposableEffect(profile, tab) { onDispose { if ((context as? android.app.Activity)?.isChangingConfigurations != true) mix.end() } }
     val openTitle: (MetaPreview, String?, VideoAction) -> Unit = { item, addon, action ->
-        if (action == VideoAction.Play && item.apiType == "movie") {
+        if (item.isTvMix) {
+            mix.open(item.id.removePrefix("tvmix:"))
+            nav.navigate("mobile-mix") { launchSingleTop = true }
+        } else if (action == VideoAction.Play && item.apiType == "movie") {
             scope.launch {
                 val video = MobileVideo(profile, item.apiType, item.id, item.id, item.name, poster = item.poster)
                 val local = withContext(Dispatchers.IO) { catalog.downloads.localRoute(video) }
@@ -211,11 +228,25 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     val state by vm.uiState.collectAsStateWithLifecycle()
     LifecycleStartEffect(vm) {
         vm.setHomeContentActive(true)
+        vm.beginShuffleHomeVisit()
         vm.refreshHomeCatalogsIfStale()
         onStopOrDispose { vm.setHomeContentActive(false) }
     }
+    val resolved by vm.initialCwResolved.collectAsStateWithLifecycle()
+    val source by catalog.tracking.watchProgressSource.collectAsStateWithLifecycle(com.nuvio.tv.data.local.WatchProgressSource.NUVIO_SYNC)
+    LaunchedEffect(source, profile) {
+        if (source == com.nuvio.tv.data.local.WatchProgressSource.NUVIO_SYNC) {
+            catalog.watchProgress.allProgress.distinctUntilChanged().collect {
+                catalog.refresh.refreshProjection()
+            }
+        }
+    }
+    var refreshing by remember(source) { mutableStateOf(false) }
+    var refreshError by remember(source) { mutableStateOf<String?>(null) }
     val revision by catalog.downloads.changes.collectAsStateWithLifecycle()
     val transfers by catalog.downloads.transfers.collectAsStateWithLifecycle()
+    // The TV presentation suppresses captions in its Modern layout. Mobile uses the profile's actual preference.
+    val showCaptions by catalog.layout.posterLabelsEnabled.collectAsStateWithLifecycle(initialValue = true)
     val saved by produceState(emptyList<OfflineFile>(), profile, revision) {
         value = withContext(Dispatchers.IO) { catalog.downloads.saved(profile) }
     }
@@ -225,17 +256,54 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     var providers by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    LazyColumn(contentPadding = PaddingValues(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        item { Row { Box(Modifier.weight(1f)) { SectionTitle("Home") }; Action("Catalog sources") { providers = true } } }
+    val width = LocalConfiguration.current.screenWidthDp.dp
+    val gutter = if (width >= 600.dp) 24.dp else 16.dp
+    val posterWidth = ((width - gutter - 30.dp) / 3.2f).coerceIn(88.dp, 146.dp)
+    val insets = PaddingValues(horizontal = gutter)
+    val colors = MaterialTheme.colorScheme
+    LazyColumn(Modifier.fillMaxSize().background(Brush.verticalGradient(
+        0f to colors.surface, .5f to colors.background, 1f to colors.background)),
+        contentPadding = PaddingValues(bottom = 20.dp)) {
+        item {
+            Row(Modifier.fillMaxWidth().padding(horizontal = gutter).heightIn(min = 52.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                BrandWordmark(Modifier.size(96.dp, 32.dp), contentDescription = "Nuvio ReSeq")
+                IconButton(onClick = { providers = true }) {
+                    Icon(Icons.Default.Tune, contentDescription = "Catalog sources", modifier = Modifier.size(20.dp))
+                }
+            }
+        }
         val hero = state.heroItems.ifEmpty { state.catalogRows.firstOrNull()?.items.orEmpty() }
         if (state.heroSectionEnabled && hero.isNotEmpty()) item {
-            HomeHighlights(hero.take(8), open = { open(it, null, VideoAction.Details) }, more = { menu = it to null })
+            HomeHighlights(hero.take(8), gutter, open = { open(it, null, VideoAction.Details) }, more = { menu = it to null })
+        }
+        if (state.continueWatchingEnabled && state.continueWatchingItems.isEmpty()) item {
+            ShelfHeading("Continue watching", gutter, trackerName(source))
+            Row(Modifier.fillMaxWidth().padding(horizontal = gutter), verticalAlignment = Alignment.CenterVertically) {
+                Label(refreshError ?: if (!resolved || refreshing) "Checking watch progress…" else "No unfinished titles from this source.",
+                    Modifier.weight(1f), small = true)
+                TextButton(enabled = !refreshing, onClick = {
+                    refreshing = true
+                    refreshError = null
+                    scope.launch {
+                        try {
+                            if (source == com.nuvio.tv.data.local.WatchProgressSource.NUVIO_SYNC) catalog.sync.requestSyncNow()
+                            val failures = catalog.progress.refreshSelected(com.nuvio.tv.core.tracking.TrackingRefreshIntent.USER_INITIATED)
+                            if (failures.isNotEmpty()) refreshError = "Couldn’t refresh " + trackerName(source) + ". Try again."
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            refreshError = "Couldn’t read watch progress. Try again."
+                        } finally { refreshing = false }
+                    }
+                }) { Label("Refresh", small = true) }
+            }
         }
         if (state.continueWatchingEnabled) listOf(
             "Continue watching" to state.continueWatchingItems, "Upcoming" to state.upcomingItems
         ).forEach { (heading, entries) -> if (entries.isNotEmpty()) item {
-            SectionTitle(heading)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ShelfHeading(heading, gutter)
+            LazyRow(contentPadding = insets, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(entries) { entry ->
                     val video = when (entry) {
                         is ContinueWatchingItem.InProgress -> entry.progress.let { MobileVideo(profile, it.contentType,
@@ -251,34 +319,38 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                             is ContinueWatchingItem.NextUp -> entry.info.thumbnail.takeUnless { state.blurUnwatchedEpisodes }
                         }
                         val artwork = thumbnail.takeIf { state.useEpisodeThumbnailsInCw } ?: video.poster
-                        AsyncImage(artwork, null, Modifier.fillMaxWidth().height(96.dp), contentScale = ContentScale.Crop)
+                        AsyncImage(artwork, null, Modifier.fillMaxWidth().height(96.dp).clip(posterCorners),
+                            contentScale = ContentScale.Crop)
                         if (entry is ContinueWatchingItem.InProgress) LinearProgressIndicator(
-                            progress = { entry.progress.progressPercentage }, modifier = Modifier.fillMaxWidth()
+                            progress = { entry.progress.progressPercentage }, modifier = Modifier.fillMaxWidth().semantics {
+                                contentDescription = "Watch progress for " + video.label
+                            }
                         )
-                        Label(video.label, small = true, lines = 2)
+                        Label(video.label, Modifier.padding(top = 4.dp), lines = 2)
+                        if (entry.shufflePlayback) Label("Episode shuffle", small = true)
                         if (entry is ContinueWatchingItem.NextUp && !entry.info.hasAired) entry.info.airDateLabel?.let { Label(it, small = true) }
                     }
                 }
             }
         } }
         if (saved.isNotEmpty()) {
-            item { SectionTitle("Downloads") }
+            item { ShelfHeading("Downloads", gutter) }
             items(saved, key = { "offline-" + it.video.key }) { entry ->
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Row(Modifier.padding(horizontal = gutter), verticalAlignment = Alignment.CenterVertically) {
                     Action(entry.video.label, Modifier.weight(1f)) { openVideo(entry.video, VideoAction.Play) }
                     Action("Manage") { manage = entry }
                 }
             }
         }
         items(transfers.values.filter { it.video.profile == profile && (it.active || it.text != "Downloaded") }) {
-            Label(it.video.label + " · " + it.text)
+            Label(it.video.label + " · " + it.text, Modifier.padding(horizontal = gutter))
         }
-        if (state.catalogRows.isEmpty()) item { Label(state.error ?: if (state.isLoading) "Loading catalogues…" else "Add a catalogue source to browse titles.") }
+        if (state.catalogRows.isEmpty()) item { Label(state.error ?: if (state.isLoading) "Loading catalogues…" else "Add a catalogue source to browse titles.", Modifier.padding(gutter)) }
         val rows = state.homeRows.ifEmpty { state.catalogRows.map { HomeRow.Catalog(it) } }
         items(rows) { entry ->
             if (entry is HomeRow.CollectionRow) {
-                SectionTitle(entry.collection.title)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ShelfHeading(entry.collection.title, gutter)
+                LazyRow(contentPadding = insets, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(entry.collection.folders) { folder ->
                         Action(folder.title) { navigate(Screen.FolderDetail.createRoute(entry.collection.id, folder.id)) }
                     }
@@ -287,31 +359,26 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             }
             if (entry is HomeRow.PlaceholderCatalog) {
                 LaunchedEffect(entry.catalogKey) { vm.requestLazyCatalogLoad(entry.catalogKey) }
-                SectionTitle(entry.displayTitle)
+                ShelfHeading(entry.displayTitle, gutter)
                 Spacer(Modifier.height(120.dp))
                 return@items
             }
             val row = (entry as HomeRow.Catalog).row
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    SectionTitle(row.catalogName)
-                    if (state.catalogAddonNameEnabled) Label(row.addonName, small = true)
-                }
-                Action("See all") { navigate(Screen.CatalogSeeAll.createRoute(row.catalogId, row.addonId, row.apiType)) }
+            val typeLabel = when (row.apiType) { "series" -> "Series"; "movie" -> "Movies"; else -> null }
+            val subtitle = listOfNotNull(typeLabel, row.addonName.takeIf { state.catalogAddonNameEnabled && it.isNotBlank() }).joinToString(" · ")
+            ShelfHeading(row.catalogName, gutter, subtitle) {
+                navigate(if (row.apiType == TvMixHomeCatalog.TYPE) "mobile-mix" else Screen.CatalogSeeAll.createRoute(row.catalogId, row.addonId, row.apiType))
             }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(contentPadding = insets, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(row.items) { item ->
-                    Column(Modifier.width(110.dp).combinedClickable(onClick = { open(item, row.addonBaseUrl, VideoAction.Details) },
-                        onLongClickLabel = "Title actions", onLongClick = { menu = item to row.addonBaseUrl })) {
-                        AsyncImage(item.poster, if (state.posterLabelsEnabled) null else item.name,
-                            Modifier.fillMaxWidth().aspectRatio(2f / 3), contentScale = ContentScale.Crop)
-                        if (state.posterLabelsEnabled) Label(item.name, small = true, lines = 2)
-                    }
+                    Poster(item, Modifier.width(posterWidth), open = { open(item, row.addonBaseUrl, VideoAction.Details) },
+                        more = { if (item.isTvMix) open(item, null, VideoAction.Details) else menu = item to row.addonBaseUrl }, showCaption = showCaptions)
                 }
                 if (row.hasMore && row.supportsSkip) item {
                     Action("More titles") { vm.onEvent(HomeEvent.OnLoadMoreCatalog(row.catalogId, row.addonId, row.apiType)) }
                 }
             }
+            Spacer(Modifier.height(6.dp))
         }
     }
     menu?.let { (item, addon) -> VideoActions(item.name, { menu = null }) { action -> menu = null; open(item, addon, action) } }

@@ -367,6 +367,8 @@ class LiveTvDriveSync @Inject constructor(
     @Volatile private var emptyRefused = false
     fun restoreNow() { scope.launch { pull(force = true) } }
 
+    internal fun restoreOnMobile() { scope.launch { pull(force = true, showSavedShuffle = true) } }
+
     // ------------------------------------------------------------------ backup / restore
 
     /** Uploads this TV's setup. Skips the upload when nothing changed since the last one. */
@@ -438,7 +440,7 @@ class LiveTvDriveSync @Inject constructor(
      * Applies the Drive copy if it's newer than what this TV has (or always, when [force]).
      * Returns true if a copy was found and applied.
      */
-    private suspend fun pull(force: Boolean, onlyIfExists: Boolean = false): Boolean = mutex.withLock {
+    private suspend fun pull(force: Boolean, onlyIfExists: Boolean = false, showSavedShuffle: Boolean = false): Boolean = mutex.withLock {
         if (!force && (!_state.value.connected || !_state.value.autoSync)) return@withLock false
         val token = token() ?: return@withLock false
         _state.value = _state.value.copy(busy = true, message = if (force && !onlyIfExists) "Restoring…" else null)
@@ -472,7 +474,10 @@ class LiveTvDriveSync @Inject constructor(
             // since the last sync and takes everything else from the other TV.
             val data = if (force) remoteData
             else merge(base, local = exportSetup(), remote = remoteData, localWinsWithoutBase = false, removedHere = prefs.removedSourceIds())
+            val playback = if (showSavedShuffle) playbackProfilesFromBackup(json) else emptyList()
             applyLocally(data)
+            playback.filter { profile -> profile.shuffle.values.any { it.enabled } }
+                .forEach { shuffle.showRestoredShuffleIfUnset(it.id) }
             store.edit()
                 .putLong(KEY_APPLIED_AT, savedAt)
                 .putLong(KEY_LAST_SYNC, System.currentTimeMillis())
@@ -563,6 +568,31 @@ class LiveTvDriveSync @Inject constructor(
             appliedAtMs = System.currentTimeMillis()
         }
     }
+
+    /** Read-only preview of the local playback preferences in the standard backup. */
+    internal suspend fun previewPlaybackProfiles(): List<DrivePlaybackProfile> = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val access = token() ?: error("Connect Google Drive first.")
+            val remote = remoteCopy(access) ?: error("No standard ReSeq backup found in this Drive account.")
+            playbackProfilesFromBackup(remote.json)
+        }
+    }
+
+    internal suspend fun restorePlaybackProfile(source: DrivePlaybackProfile, destinationId: Int, destinationName: String) =
+        mutex.withLock {
+            check(_state.value.connected) { "Connect Google Drive first." }
+            check(profiles.activeProfileId.first() == destinationId &&
+                profiles.profilesList.first().any { it.id == destinationId && it.name == destinationName }) {
+                "The active profile changed. Open Restore again."
+            }
+            applying = true
+            try {
+                source.copyTo(destinationId, mixes, shuffle)
+            } finally {
+                applying = false
+                appliedAtMs = System.currentTimeMillis()
+            }
+        }
 
     /** Manual transfer has its own encrypted document. Ordinary sync never searches for it. */
     internal suspend fun transferProviderKeys(profileId: Int, transform: suspend (JSONObject?) -> JSONObject?) = mutex.withLock {

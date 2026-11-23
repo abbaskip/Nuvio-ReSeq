@@ -59,35 +59,49 @@ internal fun MobileSettings(openIptv: Boolean, consumed: () -> Unit, catalog: Mo
     var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     LaunchedEffect(openIptv) { if (openIptv) { page = SettingsPage.IPTV; consumed() } }
     BackHandler(page != null) { page = null }
-    Column(Modifier.fillMaxSize()) {
-        if (page == null || page == SettingsPage.ADDONS) {
-            SectionTitle("Settings")
-            Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SettingsPage.entries.forEach { option -> Action(option.title, Modifier.fillMaxWidth()) { page = option } }
-            }
-            if (page == SettingsPage.ADDONS) CatalogSources { page = null }
-        } else {
-            Row { Action("Back") { page = null }; SectionTitle(page!!.title) }
-            when (page) {
-                SettingsPage.IPTV -> MobileSetup()
-                SettingsPage.DRIVE -> MobileSetup(driveOnly = true)
-                SettingsPage.ABOUT -> MobileAbout()
-                else -> Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    when (page) {
-                        SettingsPage.ACCOUNT -> AccountSettings()
-                        SettingsPage.PROFILES -> ProfilesSettings()
-                        SettingsPage.PLUGINS -> ExtensionSettings()
-                        SettingsPage.PLAYBACK -> PlaybackSettings()
-                        SettingsPage.HOME -> MobileHomeSettings()
-                        SettingsPage.TRACKING -> TrackerSettings()
-                        SettingsPage.DEBRID -> DebridSettings(catalog.debrid)
-                        SettingsPage.THEME -> AppearanceSettings(catalog.themes)
-                        SettingsPage.TMDB -> MobileTmdbSettings()
-                        SettingsPage.PROVIDERS -> MobileAnimeSkipSettings()
-                        SettingsPage.SERVERS -> MobileMediaServers()
-                        else -> Unit
+    CompositionLocalProvider(LocalSettingsMenu provides true) {
+        Column(Modifier.fillMaxSize()) {
+            if (page == null || page == SettingsPage.ADDONS) {
+                Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    val groups = listOf(
+                        "Accounts and backup" to listOf(SettingsPage.ACCOUNT, SettingsPage.PROFILES, SettingsPage.TRACKING, SettingsPage.DRIVE),
+                        "Content sources" to listOf(SettingsPage.IPTV, SettingsPage.ADDONS, SettingsPage.PLUGINS, SettingsPage.DEBRID, SettingsPage.SERVERS),
+                        "Home and playback" to listOf(SettingsPage.HOME, SettingsPage.PLAYBACK, SettingsPage.THEME),
+                        "Metadata and extras" to listOf(SettingsPage.TMDB, SettingsPage.PROVIDERS, SettingsPage.ABOUT)
+                    )
+                    groups.forEach { (title, destinations) ->
+                        SettingsHeading(title)
+                        destinations.forEach { option -> SettingsLink(option.title) { page = option } }
+                    }
+                }
+                if (page == SettingsPage.ADDONS) CatalogSources { page = null }
+            } else {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Action("Back") { page = null }
+                    Label(page!!.title, Modifier.padding(start = 12.dp), strong = true)
+                }
+                HorizontalDivider()
+                when (page) {
+                    SettingsPage.IPTV -> MobileSetup()
+                    SettingsPage.DRIVE -> MobileSetup(driveOnly = true)
+                    SettingsPage.ABOUT -> MobileAbout()
+                    else -> Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        key(page) { when (page) {
+                            SettingsPage.ACCOUNT -> AccountSettings()
+                            SettingsPage.PROFILES -> ProfilesSettings()
+                            SettingsPage.PLUGINS -> ExtensionSettings()
+                            SettingsPage.PLAYBACK -> PlaybackSettings()
+                            SettingsPage.HOME -> MobileHomeSettings()
+                            SettingsPage.TRACKING -> TrackerSettings()
+                            SettingsPage.DEBRID -> DebridSettings(catalog.debrid)
+                            SettingsPage.THEME -> AppearanceSettings(catalog.themes)
+                            SettingsPage.TMDB -> MobileTmdbSettings()
+                            SettingsPage.PROVIDERS -> MobileAnimeSkipSettings()
+                            SettingsPage.SERVERS -> MobileMediaServers()
+                            else -> Unit
+                        } }
                     }
                 }
             }
@@ -118,6 +132,7 @@ private fun AccountSettings(vm: AccountViewModel = hiltViewModel(), link: Mobile
     var code by remember { mutableStateOf("") }
     var pin by remember { mutableStateOf("") }
     val signed = state.authState as? AuthState.FullAccount
+    SectionTitle("Account")
     if (signed != null) {
         Label(signed.email)
         var requested by remember(signed.userId) { mutableStateOf(false) }
@@ -170,6 +185,7 @@ private fun ProfilesSettings(vm: ProfileSelectionViewModel = hiltViewModel()) {
     LaunchedEffect(vm) { vm.refreshProfilePinStates() }
     val selected = LocalSelectedProfile.current
     fun switch(id: Int, verified: Boolean = false) = vm.selectProfile(id, { selected(if (verified) id else -1); target = null; pin = ""; message = "" }, { message = "Could not switch profile." })
+    SectionTitle("Switch profile")
     profiles.forEach { profile -> Action(profile.name, Modifier.fillMaxWidth(), profile.id == active) {
         if (profile.id != active) {
             if (locks[profile.id] == true || vm.isProfilePinEnabled(profile.id)) { target = profile.id; pin = "" } else switch(profile.id)
@@ -180,10 +196,12 @@ private fun ProfilesSettings(vm: ProfileSelectionViewModel = hiltViewModel()) {
         Action("Unlock profile") { vm.verifyProfilePin(id, pin) { if (it.getOrNull()?.unlocked == true) switch(id, verified = true) else message = "Profile could not be unlocked." } }
     }
     if (vm.canAddProfile) {
+        SectionTitle("New profile")
         Field("New profile name", name) { name = it }
         Action("Create profile") { if (name.isNotBlank()) vm.createProfile(name.trim(), "#455A64") { name = "" } }
     }
     var editing by remember { mutableStateOf<Int?>(null) }
+    SectionTitle("Manage profiles")
     profiles.filter { it.id == active || active == 1 }.forEach { profile ->
         Action("Manage " + profile.name) { editing = profile.id }
     }
@@ -203,6 +221,7 @@ private fun ExtensionSettings(vm: PluginViewModel = hiltViewModel()) {
     if (vm.isReadOnly) {
         Label("This profile uses the primary profile’s extensions.")
     } else {
+        SectionTitle("Extensions")
         TogglePreference("Use extensions", state.pluginsEnabled) { vm.onEvent(PluginUiEvent.SetPluginsEnabled(it)) }
         TogglePreference("Group streams by repository", state.groupStreamsByRepository) { vm.onEvent(PluginUiEvent.SetGroupStreamsByRepository(it)) }
         Action("Extension DNS · " + state.extensionDns) { vm.onEvent(PluginUiEvent.CycleExtensionDns) }
@@ -299,23 +318,19 @@ private fun PlaybackSettings(vm: PlaybackSettingsViewModel = hiltViewModel()) {
 
 @Composable
 private fun TrackerSettings(trakt: TraktViewModel = hiltViewModel(), simkl: SimklSettingsViewModel = hiltViewModel(),
-    tvdb: TvdbSettingsViewModel = hiltViewModel(), tracking: TrackingSettingsViewModel = hiltViewModel()) {
+    tvdb: TvdbSettingsViewModel = hiltViewModel(), tracking: TrackingSettingsViewModel = hiltViewModel(),
+    choices: MobileTrackerChoices = hiltViewModel()) {
     val t by trakt.uiState.collectAsStateWithLifecycle()
     val s by simkl.uiState.collectAsStateWithLifecycle()
     val db by tvdb.state.collectAsStateWithLifecycle()
     val uri = LocalUriHandler.current
     val sources by tracking.uiState.collectAsStateWithLifecycle()
     if (sources.connectedProviderIds.isNotEmpty()) {
-        SectionTitle("Watch progress")
-        sources.availableWatchProgressSources.forEach { source -> Action(trackerName(source),
-            selected = source == sources.watchProgressSource) { tracking.selectWatchProgressSource(source) } }
-        SectionTitle("Library source")
-        sources.availableLibrarySourceModes.forEach { source -> Action(trackerName(source),
-            selected = source == sources.librarySourceMode) { tracking.selectLibrarySourceMode(source) } }
-        SectionTitle("Ratings")
-        Action("All connected trackers", selected = sources.ratingSource == null) { tracking.selectRatingSource(null) }
-        sources.availableRatingSources.forEach { source -> Action(trackerName(source),
-            selected = source == sources.ratingSource) { tracking.selectRatingSource(source) } }
+        TrackerSourceGroup("Continue Watching source", sources.availableWatchProgressSources, choices.progress, ::trackerName)
+        TrackerSourceGroup("Library source", sources.availableLibrarySourceModes, choices.library, ::trackerName)
+        TrackerSourceGroup("Personal ratings source", listOf(null) + sources.availableRatingSources, choices.rating) {
+            it?.let(::trackerName) ?: "All connected trackers"
+        }
     }
     SectionTitle("Trakt")
     if (t.mode == TraktConnectionMode.CONNECTED) { Label(t.username ?: "Connected"); Action("Sync Trakt", onClick = trakt::onSyncNow) }
@@ -336,7 +351,7 @@ private fun TrackerSettings(trakt: TraktViewModel = hiltViewModel(), simkl: Simk
     db.message?.let { Label(it) }
 }
 
-private fun trackerName(source: Enum<*>): String = when (source.name) {
+internal fun trackerName(source: Enum<*>): String = when (source.name) {
     "MDBLIST" -> "MDBList"
     "LOCAL" -> "Nuvio library"
     "NUVIO_SYNC" -> "Nuvio sync"
@@ -365,13 +380,15 @@ private fun DebridSettings(store: DebridSettingsDataStore) {
 private fun AppearanceSettings(store: ThemeDataStore) {
     val selected by store.themeSelection.collectAsStateWithLifecycle(com.nuvio.tv.domain.model.ThemeSelection())
     val scope = rememberCoroutineScope()
+    SectionTitle("Theme")
     com.nuvio.tv.domain.model.AppTheme.entries.filter { it != com.nuvio.tv.domain.model.AppTheme.CUSTOM }.forEach { theme ->
         Action(theme.displayName, selected = selected.theme == theme) { scope.launch { store.setTheme(theme) } }
     }
+    SectionTitle("Display")
     val amoled by store.amoledMode.collectAsStateWithLifecycle(false)
     val darkSurfaces by store.amoledSurfacesMode.collectAsStateWithLifecycle(false)
-    Action("AMOLED background", selected = amoled) { scope.launch { store.setAmoledMode(!amoled) } }
-    Action("AMOLED panels", selected = darkSurfaces) { scope.launch { store.setAmoledSurfacesMode(!darkSurfaces) } }
+    TogglePreference("AMOLED background", amoled) { scope.launch { store.setAmoledMode(it) } }
+    TogglePreference("AMOLED panels", darkSurfaces) { scope.launch { store.setAmoledSurfacesMode(it) } }
     var edit by rememberSaveable { mutableStateOf(false) }
     Action("Custom theme", selected = selected.theme == com.nuvio.tv.domain.model.AppTheme.CUSTOM) { edit = true }
     if (edit) MobileThemeEditor(selected.customColors, { edit = false }) { colors ->

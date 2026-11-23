@@ -5,56 +5,23 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
-import androidx.compose.foundation.pager.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.nuvio.tv.domain.model.*
 import com.nuvio.tv.ui.screens.detail.TvdbOrderControlViewModel
 import com.nuvio.tv.ui.screens.library.*
 import com.nuvio.tv.ui.screens.search.*
-
-@Composable
-internal fun HomeHighlights(titles: List<MetaPreview>, open: (MetaPreview) -> Unit, more: (MetaPreview) -> Unit) {
-    val pager = rememberPagerState { titles.size }
-    HorizontalPager(pager) { index ->
-        val title = titles[index]
-        Box(Modifier.fillMaxWidth().heightIn(max = 310.dp).aspectRatio(1.9f)
-            .background(MaterialTheme.colorScheme.surface)
-            .combinedClickable(onClick = { open(title) }, onLongClick = { more(title) })) {
-            AsyncImage(title.background ?: title.landscapePoster ?: title.poster, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            Column(Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .9f))))
-                .padding(start = 12.dp, end = 12.dp, top = 28.dp, bottom = 10.dp)) {
-                Text(title.name, color = Color.White, style = MaterialTheme.typography.headlineSmall, maxLines = 2)
-                Text(listOfNotNull(title.releaseInfo, title.genres.firstOrNull()).joinToString(" · "), color = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-internal fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, more: () -> Unit) {
-    Column(modifier.combinedClickable(onClick = open, onLongClickLabel = "Title actions", onLongClick = more)) {
-        AsyncImage(item.poster, null, Modifier.fillMaxWidth().aspectRatio(2f / 3)
-            .background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
-        Label(item.name, Modifier.padding(vertical = 4.dp), small = true, lines = 2)
-    }
-}
 
 @Composable
 internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, advanced: () -> Unit, flickPick: () -> Unit, vm: SearchViewModel = hiltViewModel()) {

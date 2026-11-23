@@ -549,7 +549,7 @@ internal fun MobileCatalogOrder(vm: com.nuvio.tv.ui.screens.addon.CatalogOrderVi
     val state by vm.uiState.collectAsStateWithLifecycle()
     val list = rememberLazyListState()
     DisposableEffect(vm) { onDispose { vm.cancelMove() } }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         BrowseHeading("Reorder Home rows", back)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Action("Custom order", Modifier.weight(1f), !state.followAddonsOrder) { if (state.followAddonsOrder) vm.toggleFollowAddonsOrder(false) }

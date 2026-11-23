@@ -320,10 +320,12 @@ internal fun Action(text: String, modifier: Modifier = Modifier, selected: Boole
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun TouchSheet(onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    // The activity and the sheet use different windows. In three-button mode the dialog
-    // can report a zero inset even while Android's navigation bar intercepts its last row.
-    val hostNavigation = WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+    // A modal owns a new window, but can inherit already-consumed padding from the
+    // activity. Apply the host's navigation-bar space to the sheet's own content once.
+    val hostNavigation = WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom).asPaddingValues()
     ModalBottomSheet(onDismissRequest = onClose, shape = RectangleShape, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        contentWindowInsets = { BottomSheetDefaults.windowInsets.union(hostNavigation) }, content = content)
+        contentWindowInsets = { BottomSheetDefaults.windowInsets.only(WindowInsetsSides.Top) }) {
+        Column(Modifier.fillMaxWidth().padding(hostNavigation).consumeWindowInsets(hostNavigation), content = content)
+    }
 }

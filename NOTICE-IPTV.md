@@ -7,3 +7,5 @@ Both projects derive from [NuvioMedia/NuvioTV](https://github.com/NuvioMedia/Nuv
 ReSeq modifications (2026) include navigation and theme integration, playlist settings, sports taxonomy and opt-outs, independent shared catalogue generation, channel matching, replay presentation, caching and performance improvements, alongside its TVDB episode-ordering and identity-aware tracking implementation. The complete corresponding source and build scripts accompany each release tag in this repository. Private signing keys and personal credentials are not part of the source distribution.
 
 Nuvio ReSeq is independent and is not endorsed by either project. Nuvio + IPTV is credited as incorporated code, not merely inspiration.
+
+The on-device seek thumbnail reader, cache, settings and preview controls are adapted from Nuvio + IPTV release 1.2.0-beta.3.1. ReSeq adapts extraction scheduling to its playback engines and builds the native reader against its bundled FFmpeg version. The FFmpeg public headers retain their LGPL notices under app/src/main/cpp/seekthumb/ffmpeg.

@@ -64,6 +64,7 @@ internal fun PlayerRuntimeController.initializeCloudPlaybackSequence() {
 }
 
 internal fun PlayerRuntimeController.applyMetaDetails(meta: Meta) {
+    playbackMeta.value = meta
     metaVideos = meta.videos
     metaGenres = meta.genres
     metaCountry = meta.country

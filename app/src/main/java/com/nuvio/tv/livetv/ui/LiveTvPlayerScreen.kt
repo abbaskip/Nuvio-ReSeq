@@ -90,6 +90,7 @@ fun LiveTvPlayerScreen(
     viewModel: LiveTvViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    com.nuvio.tv.livetv.thumbs.LiveTvSeekThumbsHook(viewModel)
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
     val user by viewModel.userState.collectAsStateWithLifecycle()
     val pictureShapes by viewModel.pictureShapes.collectAsStateWithLifecycle()
@@ -883,6 +884,7 @@ fun LiveTvPlayerScreen(
                     poster = poster,
                     showPosters = settings.showPosters,
                     timeline = timeline,
+                    scrubPreview = scrubTargetMs != null,
                     paused = paused,
                     controls = panelControls(mode, paused, canSkip = archive || viewModel.playback.shiftCanSeek()),
                     focused = controlFocus,

@@ -3907,14 +3907,15 @@ internal fun TextInputDialog(
     confirmLabel: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
-    numeric: Boolean = false
+    numeric: Boolean = false,
+    password: Boolean = false
 ) {
     var text by remember { mutableStateOf(initial) }
     val fieldFocus = remember { FocusRequester() }
     LiveDialog(onDismiss = onDismiss) {
         LiveText(title, size = 20.sp, weight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
-        LiveTextField(value = text, onValueChange = { text = it }, hint = hint, focusRequester = fieldFocus, numeric = numeric, onDone = { onConfirm(text) })
+        LiveTextField(value = text, onValueChange = { text = it }, hint = hint, focusRequester = fieldFocus, numeric = numeric, password = password, onDone = { onConfirm(text) })
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             LiveFocusRow(onClick = { onConfirm(text) }) { f -> LiveText(confirmLabel, color = focusedTextColor(f)) }

@@ -28,6 +28,7 @@ internal enum class PlaybackSection(
     STREAM_SELECTION(R.string.playback_section_stream_selection, R.string.playback_section_stream_selection_desc, Icons.AutoMirrored.Filled.PlaylistPlay),
     UP_NEXT(R.string.playback_section_up_next, R.string.playback_section_up_next_desc, Icons.Default.QueuePlayNext),
     SKIP_SEGMENTS(R.string.playback_section_skip, R.string.playback_section_skip_desc, Icons.Default.FastForward),
+    SEEK_THUMBNAILS(R.string.playback_section_seek_thumbnails, R.string.playback_section_seek_thumbnails_desc, Icons.Default.FastForward),
     PLAYER_INTERFACE(R.string.playback_section_interface, R.string.playback_section_interface_desc, Icons.Default.Layers),
     AUDIO(R.string.audio_section, R.string.playback_section_audio_only_desc, Icons.AutoMirrored.Filled.VolumeUp),
     SUBTITLES(R.string.playback_section_subtitles, R.string.playback_section_subtitles_desc, Icons.Default.Subtitles),

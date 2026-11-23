@@ -352,6 +352,7 @@ android {
 
     sourceSets {
         getByName("mobile") {
+            baselineProfiles.srcDir("src/mobile/baselineProfiles")
             java.srcDir("src/full/java")
             res.srcDir("src/full/res")
             assets.srcDir("src/full/assets")

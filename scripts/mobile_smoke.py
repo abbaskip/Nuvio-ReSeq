@@ -889,8 +889,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             confirm_video_playback()
             screenshot("phone-offline-playback", landscape=False)
             assert counts == (len(sources), len(files)), "Playback contacted a remote source despite the local download"
-            shell("input", "keyevent", "KEYCODE_BACK")
-            shell("input", "keyevent", "KEYCODE_BACK")
+            # Kill the background process while the downloaded file is still the active session.
+            shell("input", "keyevent", "KEYCODE_HOME")
             shell("am", "force-stop", MOBILE_ID)
             if upgrade_apk:
                 command("install", "-r", str(upgrade_apk), timeout=180)

@@ -68,6 +68,7 @@ class MobileActivity : androidx.fragment.app.FragmentActivity() {
     private var firstResume = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        MobileCrashTrace.install(applicationContext)
         super.onCreate(savedInstanceState)
         DatabaseVersions.blockingIssue(this)?.let {
             DatabaseCompatibilityNotice.show(this, it)

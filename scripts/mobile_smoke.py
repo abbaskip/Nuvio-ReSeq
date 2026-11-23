@@ -309,7 +309,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     reveal_controls(tree)
             time.sleep(.25)
         raise AssertionError(f"Missing {text or 'text field'} on {serial}. Visible labels: " +
-                             str([n.get("text") for n in tree if n.get("text")]))
+                             str([n.get("text") or n.get("content-desc") for n in tree if n.get("text") or n.get("content-desc")]))
 
     def tap(node):
         x1, y1, x2, y2 = map(int, re.findall(r"-?\d+", node.get("bounds")))
@@ -317,14 +317,30 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
 
     def choose(text): tap(locate(text))
 
+    def set_player_paused(paused):
+        # A hierarchy dump can outlive the transport's auto-hide delay on a slow emulator.
+        # Confirm the resulting state and retry the tap if it only revealed the controls.
+        action, expected = ("Pause", "Play") if paused else ("Play", "Pause")
+        deadline = time.monotonic() + 35
+        while time.monotonic() < deadline:
+            tree = nodes()
+            buttons = {node.get("content-desc") or node.get("text"): node for node in tree}
+            if expected in buttons:
+                return
+            if action in buttons:
+                tap(buttons[action])
+            else:
+                reveal_controls(tree)
+            time.sleep(.25)
+        raise AssertionError(f"The video player did not switch to {expected}")
+
     def confirm_video_playback():
         # The generated H.264 fixture is navy. Check Android's composed display as well as its playback clock.
         deadline = time.monotonic() + 45
         first = None
         while time.monotonic() < deadline:
             tree = nodes()
-            position = next((n.get("text") for n in tree if re.fullmatch(r"\d+:\d\d", n.get("text", ""))
-                             and n.get("text") != "2:10"), None)
+            position = next((n.get("text") for n in tree if re.fullmatch(r"\d+:\d\d", n.get("text", ""))), None)
             if position is None:
                 reveal_controls(tree)
                 continue
@@ -677,9 +693,10 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     time.sleep(.25)
             assert any("qaseries:1:2/Alternate" in path for path in files), "Selected series episode did not play"
             confirm_video_playback()
-            choose("Pause")
-            choose("Play")
+            set_player_paused(True)
+            set_player_paused(False)
             confirm_video_playback()
+            set_player_paused(True)
             if extended:
                 choose("Speed")
                 choose("1.25×")

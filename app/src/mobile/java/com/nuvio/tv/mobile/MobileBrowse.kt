@@ -61,6 +61,7 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
     val state by vm.uiState.collectAsStateWithLifecycle()
     val keyboard = LocalSoftwareKeyboardController.current
     var menu by remember { mutableStateOf<Pair<MetaPreview, String?>?>(null) }
+    var removeRecent by remember { mutableStateOf<String?>(null) }
     val submit = { vm.onEvent(SearchEvent.SubmitSearch); keyboard?.hide(); Unit }
     LaunchedEffect(vm) { vm.ensureDiscoverLoaded() }
     Column(Modifier.fillMaxSize().padding(horizontal = 10.dp)) {
@@ -79,7 +80,13 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
             horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
             if (state.query.isBlank()) {
                 if (state.recentSearches.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
-                    LazyRow { items(state.recentSearches) { term -> Action(term) { vm.onEvent(SearchEvent.QueryChanged(term)); submit() } } }
+                    LazyRow {
+                        items(state.recentSearches) { term -> Box(Modifier.combinedClickable(
+                            onClick = { vm.onEvent(SearchEvent.QueryChanged(term)); submit() },
+                            onLongClickLabel = "Remove search", onLongClick = { removeRecent = term }
+                        ).heightIn(min = 48.dp).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Label(term) } }
+                        item { Action("Clear history") { removeRecent = "" } }
+                    }
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionTitle("Discover")
@@ -107,10 +114,16 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
                     Action("More titles") { vm.onEvent(SearchEvent.LoadNextDiscoverResults) }
                 }
             } else {
+                if (state.suggestions.isNotEmpty() && state.query != state.submittedQuery) item(span = { GridItemSpan(maxLineSpan) }) {
+                    LazyRow { items(state.suggestions) { suggestion -> Action(suggestion) { vm.onEvent(SearchEvent.QueryChanged(suggestion)); submit() } } }
+                }
                 state.catalogRows.forEach { row ->
                     item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle(row.catalogName) }
                     items(row.items) { item -> Poster(item, Modifier.fillMaxWidth(),
                         { open(item, row.addonBaseUrl, VideoAction.Details) }, { menu = item to row.addonBaseUrl }) }
+                    if (row.hasMore && row.supportsSkip) item(span = { GridItemSpan(maxLineSpan) }) {
+                        Action("More from " + row.catalogName) { vm.onEvent(SearchEvent.LoadMoreCatalog(row.catalogId, row.addonId, row.apiType)) }
+                    }
                 }
                 if (state.catalogRows.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
                     Label(state.error ?: if (state.isSearching) "Searching…" else if (state.submittedQuery.isBlank()) "Enter a title to search." else "No matching titles.")
@@ -119,11 +132,15 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
         }
     }
     menu?.let { (title, url) -> VideoActions(title.name, { menu = null }) { menu = null; open(title, url, it) } }
+    removeRecent?.let { term -> ConfirmAction(if (term.isBlank()) "Clear search history?" else "Remove " + term + "?", "Remove", { removeRecent = null }) {
+        vm.onEvent(if (term.isBlank()) SearchEvent.ClearRecentSearches else SearchEvent.RemoveRecentSearch(term))
+        removeRecent = null
+    } }
 }
 
 @Composable
 internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, collections: () -> Unit,
-    iptv: () -> Unit, recordings: () -> Unit, party: () -> Unit, cloud: () -> Unit, servers: () -> Unit,
+    iptv: () -> Unit, recordings: () -> Unit, party: () -> Unit, cloud: () -> Unit, servers: () -> Unit, mix: () -> Unit,
     vm: LibraryViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     var filters by remember { mutableStateOf(false) }
@@ -131,10 +148,12 @@ internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, co
     Column(Modifier.fillMaxSize().padding(horizontal = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { SectionTitle("Library") }
+            if (state.listManagement != null && state.isTrackingAuthenticated) Action("Manage lists", onClick = vm::onOpenManageLists)
             Action("Filter and sort") { filters = true }
         }
         LazyRow {
             item { Action("Collections", onClick = collections) }
+            item { Action("TV Mix", onClick = mix) }
             item { Action("IPTV library", onClick = iptv) }
             item { Action("Recordings", onClick = recordings) }
             item { Action("Watch Party", onClick = party) }
@@ -161,10 +180,21 @@ internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, co
             LibraryWatchedFilter.entries.forEach { option -> Action(stringResource(option.labelResId), selected = state.selectedWatchedFilter == option) {
                 vm.onSelectWatchedFilter(option); filters = false
             } }
+            if (state.availableGenres.isNotEmpty()) {
+                SectionTitle("Genre")
+                LazyRow { item { Action("All genres", selected = state.selectedGenre == null) { vm.onSelectGenre(null) } }
+                    items(state.availableGenres) { genre -> Action(genre.label, selected = state.selectedGenre == genre.key) { vm.onSelectGenre(genre.key) } } }
+            }
+            if (state.availableYears.isNotEmpty()) {
+                SectionTitle("Year")
+                LazyRow { item { Action("All years", selected = state.selectedYear == null) { vm.onSelectYear(null) } }
+                    items(state.availableYears) { year -> Action(year.label, selected = state.selectedYear == year.key) { vm.onSelectYear(year.key) } } }
+            }
             Action("Refresh library") { vm.onRefresh(); filters = false }
         }
     }
     menu?.let { entry -> VideoActions(entry.name, { menu = null }) { menu = null; open(entry.toMetaPreview(), entry.addonBaseUrl, it) } }
+    if (state.showManageDialog) MobileLibraryLists(state, vm)
 }
 
 @Composable

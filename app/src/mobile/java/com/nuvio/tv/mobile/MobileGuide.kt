@@ -34,13 +34,18 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val list = rememberLazyListState()
     val scroll = rememberScrollState()
-    var page by rememberSaveable { mutableIntStateOf(0) }
-    val start = (now / HALF_HOUR + page * 12L) * HALF_HOUR
+    val currentSlot = now / HALF_HOUR * HALF_HOUR
+    val earliest = currentSlot - settings.epgPastHours.coerceAtLeast(0) * 2L * HALF_HOUR
+    val latest = currentSlot + (settings.epgFutureDays.coerceAtLeast(1) * 48L - 1) * HALF_HOUR
+    var anchor by rememberSaveable { mutableStateOf<Long?>(null) }
+    var dates by rememberSaveable { mutableStateOf(false) }
+    val start = (anchor ?: currentSlot).coerceIn(earliest, latest)
     val end = start + 12 * HALF_HOUR
     var selected by remember { mutableStateOf<Pair<LiveChannel, EpgProgram>?>(null) }
     var locked by remember { mutableStateOf<ChannelGroup?>(null) }
     var searching by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf<LiveChannel?>(null) }
+    var groupOptions by remember { mutableStateOf(false) }
     LaunchedEffect(vm, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.maintainVisibleGuide() }
     }
@@ -52,8 +57,8 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
     }
     LaunchedEffect(vm, start, end) { vm.ensureGuideRange(start, end) }
     val scope = rememberCoroutineScope()
-    fun movePage(target: Int) {
-        page = target
+    fun movePage(target: Long?) {
+        anchor = target?.coerceIn(earliest, latest)
         scope.launch { scroll.scrollTo(0) }
     }
     Column(Modifier.fillMaxSize()) {
@@ -78,11 +83,12 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if ((page - 1) * 6 >= -settings.epgPastHours) Action("Earlier") { movePage(page - 1) }
-            Action("Now") { movePage(0) }
-            if (page < 3) Action("Later") { movePage(page + 1) }
-            Label(java.text.DateFormat.getDateInstance().format(java.util.Date(start)), Modifier.padding(start = 8.dp), small = true)
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
+            if (start > earliest) Action("Earlier") { movePage(start - 12 * HALF_HOUR) }
+            Action("Now") { movePage(null) }
+            if (end <= latest) Action("Later") { movePage(end) }
+            Action(java.text.DateFormat.getDateInstance().format(java.util.Date(start))) { dates = true }
+            Action("Groups") { groupOptions = true }
         }
         if (ui.channels.isEmpty()) Label("No channels in this group.", Modifier.padding(8.dp))
         else ChannelTimeline(ui.channels, programs, now, start, 12, settings.use24HourClock, list, scroll,
@@ -92,6 +98,24 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
         vm.unlockGroup(group, pin).also { if (it) { locked = null; searching = false; vm.selectGroup(group.id) } }
     } }
     editing?.let { channel -> MobileChannelEditor(channel, vm, { editing = null }) }
+    if (groupOptions) MobileGuideGroups(vm) { groupOptions = false }
+    if (dates) TouchSheet({ dates = false }) {
+        val zone = java.time.ZoneId.systemDefault()
+        fun localDate(time: Long) = java.time.Instant.ofEpochMilli(time).atZone(zone).toLocalDate()
+        val first = localDate(earliest)
+        val count = (localDate(latest).toEpochDay() - first.toEpochDay() + 1).toInt()
+        val formatter = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.FULL)
+        SectionTitle("Guide date")
+        LazyColumn {
+            items(count) { offset ->
+                val date = first.plusDays(offset.toLong())
+                Action(formatter.format(date), Modifier.fillMaxWidth(), selected = date == localDate(start)) {
+                    movePage(date.atStartOfDay(zone).toInstant().toEpochMilli())
+                    dates = false
+                }
+            }
+        }
+    }
     selected?.let { (channel, program) ->
         val full by produceState(program, channel.key, program) { value = vm.details(channel.key, program) }
         TouchSheet({ selected = null }) {

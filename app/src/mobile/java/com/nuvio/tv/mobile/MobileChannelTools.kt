@@ -34,6 +34,7 @@ internal fun MobileChannelEditor(channel: LiveChannel, vm: LiveTvViewModel, clos
     var name by remember(channel.key) { mutableStateOf(channel.name) }
     var number by remember(channel.key) { mutableStateOf(channel.number.toString()) }
     var group by remember { mutableStateOf("") }
+    var copies by remember { mutableStateOf(false) }
     TouchSheet(close) {
         LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             item { SectionTitle(channel.name)
@@ -42,6 +43,25 @@ internal fun MobileChannelEditor(channel: LiveChannel, vm: LiveTvViewModel, clos
                 Action("Save channel") { vm.renameChannel(channel, name.trim().ifEmpty { null }); vm.setChannelNumber(channel, number.toIntOrNull()); close() }
                 Action(if (channel.key in user.favorites) "Remove from favourites" else "Add to favourites") { vm.toggleFavorite(channel) }
                 Action("Hide channel") { vm.hideChannel(channel); close() }
+                val position = ui.channels.indexOfFirst { it.key == channel.key }
+                if (position >= 0 && vm.canReorder(ui.selectedGroupId)) {
+                    fun move(step: Int) {
+                        val order = ui.channels.map { it.key }.toMutableList()
+                        order.add(position + step, order.removeAt(position))
+                        vm.saveOrder(ui.selectedGroupId, order)
+                    }
+                    Row {
+                        if (position > 0) Action("Move up") { move(-1) }
+                        if (position < ui.channels.lastIndex) Action("Move down") { move(1) }
+                    }
+                }
+                Action("Copy to a group") { copies = !copies }
+                if (vm.isCopyIn(ui.selectedGroupId, channel)) Action("Remove copy from this group") { vm.removeCopy(ui.selectedGroupId, channel); close() }
+            }
+            if (copies) items(vm.copyTargets(channel).filterNot { it.locked }) { to ->
+                Action("Copy to " + to.title) { vm.copyToGroup(to.id, channel); close() }
+            }
+            item {
                 SectionTitle("Custom groups")
             }
             items(ui.customGroups) { g ->

@@ -89,7 +89,7 @@ class MobileActivity : ComponentActivity() {
                         when {
                             locks == null -> CircularProgressIndicator()
                             locked && unlockedProfile != active -> ProfileUnlock(active, unlocked = { unlockedProfile = active })
-                            else -> CompositionLocalProvider(LocalSelectedProfile provides { id -> unlockedProfile = id }) { MobileShell() }
+                            else -> CompositionLocalProvider(LocalSelectedProfile provides { id -> unlockedProfile = id }) { MobileShell(active, sports.get()) }
                         }
                     }
                 }
@@ -130,7 +130,7 @@ internal enum class Tab(val label: String, val icon: ImageVector) {
 }
 
 @Composable
-private fun MobileShell(live: LiveTvViewModel = hiltViewModel()) {
+private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsRepository, live: LiveTvViewModel = hiltViewModel()) {
     var tab by rememberSaveable { mutableStateOf(Tab.HOME) }
     var inVodPlayer by remember { mutableStateOf(false) }
     var liveSetup by rememberSaveable { mutableStateOf(false) }
@@ -180,8 +180,19 @@ private fun MobileShell(live: LiveTvViewModel = hiltViewModel()) {
                 }
             }
             if (tablet && !inVodPlayer) tabs()
-            Box(Modifier.fillMaxWidth().weight(1f)) { content() }
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                CompositionLocalProvider(LocalMobileReplay provides { replay ->
+                    val channel = live.channelByKey(replay.channelKey)
+                    (channel != null && live.playCatchup(channel, replay.program)).also { if (it) playing = true }
+                }) { content() }
+            }
             if (!tablet && !inVodPlayer) tabs()
+        }
+        MobileReminders(profile, sports) { channel ->
+            tab = Tab.GUIDE
+            multiview = false
+            live.preview(channel)
+            playing = true
         }
     }
 }

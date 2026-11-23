@@ -43,6 +43,9 @@ backups/
 .supabase_db.env
 scripts/*
 !scripts/generate-release-notes.sh
+!scripts/fixtures/
+scripts/fixtures/*
+!scripts/fixtures/mobile-player.mp4
 !scripts/generate_release_notes.py
 !scripts/release_notes/
 !scripts/release_notes/*.py

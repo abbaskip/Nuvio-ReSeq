@@ -27,6 +27,7 @@ internal fun MobileIptvLibrary(back: () -> Unit, play: (String) -> Unit, vm: OnD
     var selected by remember { mutableStateOf<VodItem?>(null) }
     var locked by remember { mutableStateOf<OnDemandSection?>(null) }
     var global by rememberSaveable { mutableStateOf(false) }
+    var categories by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     val matches by produceState<List<VodItem>>(emptyList(), global, query) {
         value = emptyList()
@@ -39,6 +40,7 @@ internal fun MobileIptvLibrary(back: () -> Unit, play: (String) -> Unit, vm: OnD
                 global = false; vm.selectKind(kind)
             } }
             item { Action("Search all", selected = global) { global = true } }
+            if (!global) item { Action("Manage categories") { categories = true } }
             if (!global && state.hasGenres) item { Action("Genres", selected = state.byGenre, onClick = vm::toggleGenres) }
         }
         MobileTextInput(if (global) "Search all IPTV libraries" else "Search this library", if (global) query else state.query) { if (global) query = it else vm.search(it) }
@@ -69,6 +71,7 @@ internal fun MobileIptvLibrary(back: () -> Unit, play: (String) -> Unit, vm: OnD
     locked?.let { section -> MobilePinPrompt("Unlock category", { locked = null }) { pin ->
         vm.unlock(section, pin).also { if (it) { locked = null; vm.select(section) } }
     } }
+    if (categories) MobileVodCategories(vm, state.kind) { categories = false }
     selected?.let { item ->
         val info by produceState<VodInfo?>(null, item.uid) { value = vm.info(item) }
         val versions by produceState<List<OnDemandRepository.Version>>(emptyList(), item.uid) {

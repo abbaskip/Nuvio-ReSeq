@@ -30,7 +30,8 @@ import kotlinx.coroutines.launch
 private enum class SettingsPage(val title: String) {
     ACCOUNT("Nuvio account"), PROFILES("Profiles"), ADDONS("Catalog sources"), PLUGINS("Extensions"),
     PLAYBACK("Playback and source selection"), TRACKING("Tracking and TVDB"), DRIVE("Google Drive backup and restore"),
-    DEBRID("Debrid providers"), THEME("Appearance"), IPTV("IPTV sources"), TMDB("TMDB metadata"), SERVERS("Media servers"), ABOUT("About and credits")
+    DEBRID("Debrid providers"), THEME("Appearance"), IPTV("IPTV sources"), TMDB("TMDB metadata"), PROVIDERS("MDBList and AnimeSkip"),
+    SERVERS("Media servers"), HOME("Home and title details"), ABOUT("About and credits")
 }
 
 internal val LocalSelectedProfile = staticCompositionLocalOf<(Int) -> Unit> { {} }
@@ -79,10 +80,12 @@ internal fun MobileSettings(openIptv: Boolean, consumed: () -> Unit, catalog: Mo
                         SettingsPage.PROFILES -> ProfilesSettings()
                         SettingsPage.PLUGINS -> ExtensionSettings()
                         SettingsPage.PLAYBACK -> PlaybackSettings()
+                        SettingsPage.HOME -> MobileHomeSettings()
                         SettingsPage.TRACKING -> TrackerSettings()
                         SettingsPage.DEBRID -> DebridSettings(catalog.debrid)
                         SettingsPage.THEME -> AppearanceSettings(catalog.themes)
                         SettingsPage.TMDB -> MobileTmdbSettings()
+                        SettingsPage.PROVIDERS -> MobileProviderSettings()
                         SettingsPage.SERVERS -> MobileMediaServers()
                         else -> Unit
                     }
@@ -97,6 +100,9 @@ private fun Field(label: String, value: String, secret: Boolean = false, update:
     OutlinedTextField(value, update, Modifier.fillMaxWidth(), label = { Label(label) }, shape = RectangleShape,
         singleLine = true, visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None)
 }
+
+@Composable
+internal fun MobileSecretField(label: String, value: String, update: (String) -> Unit) = Field(label, value, true, update)
 
 @Composable
 private fun AccountSettings(vm: AccountViewModel = hiltViewModel()) {
@@ -157,22 +163,83 @@ private fun ProfilesSettings(vm: ProfileSelectionViewModel = hiltViewModel()) {
         Field("New profile name", name) { name = it }
         Action("Create profile") { if (name.isNotBlank()) vm.createProfile(name.trim(), "#455A64") { name = "" } }
     }
+    var editing by remember { mutableStateOf<Int?>(null) }
+    profiles.filter { it.id == active || active == 1 }.forEach { profile ->
+        Action("Manage " + profile.name) { editing = profile.id }
+    }
+    profiles.firstOrNull { it.id == editing }?.let { profile ->
+        MobileProfileEditor(profile, locks[profile.id] == true || vm.isProfilePinEnabled(profile.id), vm) { editing = null }
+    }
     if (message.isNotBlank()) Label(message)
 }
 
 @Composable
 private fun ExtensionSettings(vm: PluginViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
-    var url by remember { mutableStateOf("") }
-    Field("Repository URL", url) { url = it }
-    Action("Add repository") { if (!state.isAddingRepo && url.isNotBlank()) vm.onEvent(PluginUiEvent.AddRepository(url.trim())) }
+    var url by rememberSaveable { mutableStateOf("") }
+    var remove by rememberSaveable { mutableStateOf<String?>(null) }
+    var selected by rememberSaveable { mutableStateOf<String?>(null) }
+    val activity = androidx.activity.compose.LocalActivity.current
+    if (vm.isReadOnly) {
+        Label("This profile uses the primary profile’s extensions.")
+    } else {
+        TogglePreference("Use extensions", state.pluginsEnabled) { vm.onEvent(PluginUiEvent.SetPluginsEnabled(it)) }
+        TogglePreference("Group streams by repository", state.groupStreamsByRepository) { vm.onEvent(PluginUiEvent.SetGroupStreamsByRepository(it)) }
+        Action("Extension DNS · " + state.extensionDns) { vm.onEvent(PluginUiEvent.CycleExtensionDns) }
+        SectionTitle("Source languages")
+        Action("All languages", selected = state.sourceLanguages.isEmpty()) { vm.onEvent(PluginUiEvent.ToggleSourceLanguage(null)) }
+        (state.installedLanguages.keys + state.sourceLanguages).sorted().forEach { code ->
+            val language = java.util.Locale.forLanguageTag(code).displayLanguage.ifBlank { code }
+            Action(language, selected = code in state.sourceLanguages) { vm.onEvent(PluginUiEvent.ToggleSourceLanguage(code)) }
+        }
+        Field("Repository URL", url) { url = it }
+        Action(if (state.isAddingRepo) "Adding repository…" else "Add repository") {
+            if (!state.isAddingRepo && url.isNotBlank()) vm.onEvent(PluginUiEvent.AddRepository(url.trim()))
+        }
+    }
     state.repositories.forEach { repo ->
         SectionTitle(repo.name)
-        Action("Refresh repository") { vm.onEvent(PluginUiEvent.RefreshRepository(repo.id)) }
-        state.scrapers.filter { it.repositoryId == repo.id }.forEach { scraper -> Row {
-            Label(scraper.name, Modifier.weight(1f))
-            Switch(scraper.enabled, { vm.onEvent(PluginUiEvent.ToggleScraper(scraper.id, it)) })
-        } }
+        if (!vm.isReadOnly) {
+            Row {
+                Action("Refresh") { vm.onEvent(PluginUiEvent.RefreshRepository(repo.id)) }
+                Action("Remove") { remove = repo.id }
+            }
+        }
+        state.scrapers.filter { it.repositoryId == repo.id }.forEach { scraper ->
+            Action(scraper.name, selected = scraper.enabled) { selected = if (selected == scraper.id) null else scraper.id }
+            if (selected == scraper.id) {
+                if (scraper.description.isNotBlank()) Label(scraper.description)
+                if (!vm.isReadOnly) TogglePreference("Enable extension", scraper.enabled) {
+                    vm.onEvent(PluginUiEvent.ToggleScraper(scraper.id, it))
+                }
+                val configurable = !vm.isReadOnly && state.pluginsEnabled && scraper.enabled && repo.enabled &&
+                    scraper.type == com.nuvio.tv.domain.model.RepositoryType.EXTERNAL_DEX
+                val hasSettings by produceState(false, scraper, repo.lastUpdated, configurable) {
+                    value = configurable && vm.hasExtensionSettings(scraper.id)
+                }
+                if (hasSettings && activity != null) Action("Extension settings") { vm.openExtensionSettings(activity, scraper.id) }
+                if (scraper.enabled && state.pluginsEnabled && !vm.isReadOnly) {
+                    Action(if (state.isTesting && state.testScraperId == scraper.id) "Testing…" else "Test extension") {
+                        if (!state.isTesting) vm.onEvent(PluginUiEvent.TestScraper(scraper.id))
+                    }
+                }
+                if (state.testScraperId == scraper.id) {
+                    state.testDiagnostics?.steps?.forEach { Label(it) }
+                    state.testResults?.let { results ->
+                        Label("Sources found · " + results.size)
+                        results.forEach { Label(it.title) }
+                        Action("Clear results") { vm.onEvent(PluginUiEvent.ClearTestResults) }
+                    }
+                }
+            }
+        }
+    }
+    state.repositories.firstOrNull { it.id == remove }?.let { repo ->
+        AlertDialog(onDismissRequest = { remove = null }, shape = RectangleShape,
+            title = { Label("Remove " + repo.name + "?") },
+            text = { Label("This removes its extensions from this profile.") },
+            confirmButton = { Action("Remove repository") { vm.onEvent(PluginUiEvent.RemoveRepository(repo.id)); remove = null } },
+            dismissButton = { Action("Cancel") { remove = null } })
     }
     state.pendingScraperEnable?.let { pending -> AlertDialog(onDismissRequest = { vm.onEvent(PluginUiEvent.DismissPendingScraperEnable) },
         title = { Label("Enable " + pending.scraperName + "?") }, text = { Label("Enable this extension only if you trust its repository.") },
@@ -207,6 +274,7 @@ private fun PlaybackSettings(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     }
     val torrent by vm.torrentSettingsFlow.collectAsStateWithLifecycle(null)
     torrent?.let { config -> Row { Label("Peer-to-peer playback", Modifier.weight(1f)); Switch(config.p2pEnabled, vm::setP2pEnabled) } }
+    MobilePlaybackPreferences(state, vm)
 }
 
 @Composable

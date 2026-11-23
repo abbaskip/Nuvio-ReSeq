@@ -20,6 +20,7 @@ class MobileOfflineMediaTest {
     @Test fun verifiedEpisodesUseContentIdentityAndStayIsolatedByProfile() {
         val order = TvdbPlaybackContext(42, "official", 501, 2, 4, listOf(501), "tt2:2:4")
         val ep = MobileVideo(1, "series", "tt2", order.requestVideoId, "Series", 2, 4, tvdb = order.encode())
+        assertEquals("Series S2E4", ep.copy(season = 1, episode = 3).label)
         assertEquals(ep.key, ep.copy(videoId = "tt2:1:3", tvdb = order.copy(orderType = "dvd", season = 1,
             episode = 3, requestVideoId = "tt2:1:3").encode()).key)
         assertNotEquals(ep.key, ep.copy(profile = 2).key)

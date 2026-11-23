@@ -159,17 +159,22 @@ internal fun MobileDiscover(openTitle: (MetaPreview, VideoAction) -> Unit,
             item.releaseInfo?.let { Label(it) }
             item.description?.let { Label(it) }
             if (item.apiType == "series" || item.apiType == "tv") {
-                val mixes by mix.mixes.collectAsStateWithLifecycle()
-                val result by mix.state.collectAsStateWithLifecycle()
-                var name by remember(item.id) { mutableStateOf("") }
-                SectionTitle("Add to TV Mix")
-                mixes.forEach { existing -> Action(existing.name) { mix.add(item, existing.id, existing.name) { detail = null } } }
-                Field("New mix name", name) { name = it }
-                Action("Create mix with this show") { if (name.isNotBlank()) mix.add(item, null, name) { detail = null } }
-                result.error?.let { Label(it) }
+                MobileAddToMix(item, mix) { detail = null }
             }
         }
     } }
+}
+
+@Composable
+internal fun MobileAddToMix(item: MetaPreview, mix: TvMixViewModel, saved: () -> Unit) {
+    val mixes by mix.mixes.collectAsStateWithLifecycle()
+    val result by mix.state.collectAsStateWithLifecycle()
+    var name by remember(item.id) { mutableStateOf("") }
+    SectionTitle("Add to TV Mix")
+    mixes.forEach { existing -> Action(existing.name) { mix.add(item, existing.id, existing.name, saved) } }
+    Field("New mix name", name) { name = it }
+    Action("Create mix with this show") { if (name.isNotBlank()) mix.add(item, null, name, saved) }
+    result.error?.let { Label(it) }
 }
 
 @Composable

@@ -133,22 +133,52 @@ internal fun MobileSources(video: MobileVideo, download: Boolean, fromBeginning:
 
 @Composable
 internal fun MobileVodPlayer(back: () -> Unit, openParty: (com.nuvio.tv.core.party.PartyMedia) -> Unit,
+    onMovieCompleted: (com.nuvio.tv.core.tracking.MovieRatingRequest) -> Unit,
+    recommendation: (PostPlayRecommendation, VideoAction) -> Unit,
     mixCompleted: ((Boolean, String?) -> Unit)? = null, vm: PlayerViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val timeline by vm.playbackTimeline.collectAsStateWithLifecycle()
+    val postPlay by vm.postPlayRecommendationUiState.collectAsStateWithLifecycle()
+    val rateMovies by vm.promptToRateAfterWatching.collectAsStateWithLifecycle(false)
     val context = LocalContext.current
     var controls by remember { mutableStateOf(true) }
     var tracks by remember { mutableStateOf<String?>(null) }
     var scrub by remember { mutableStateOf<Float?>(null) }
     val engine = vm.exoPlayer
     val complete by rememberUpdatedState(mixCompleted)
-    var handledEnd by remember(vm) { mutableStateOf(false) }
-    LaunchedEffect(state.playbackEnded, state.error) {
-        if (state.playbackEnded && state.error == null && !handledEnd) complete?.let { finished ->
-            handledEnd = true
-            val group = vm.controller.currentStreamBingeGroup
-            vm.stopAndRelease()
-            finished(state.streamAutoPlayNextEpisodeEnabled, group)
+    var handledEnd by remember(vm, state.currentVideoId) { mutableStateOf(false) }
+    var reported by androidx.compose.runtime.saveable.rememberSaveable(state.currentVideoId) { mutableStateOf(false) }
+    LaunchedEffect(state.playbackEnded, state.error, rateMovies, state.currentVideoId) {
+        if (!reported && state.currentVideoId != null && com.nuvio.tv.core.tracking.shouldRequestMovieRating(
+                rateMovies, state.contentType, state.playbackEnded, state.error != null)) {
+            vm.completedMovieRatingRequest()?.let(onMovieCompleted)
+            reported = true
+        }
+    }
+    val autoNext = state.shouldAutoPlayNextEpisodeOnEnd()
+    LaunchedEffect(state.playbackEnded, state.pendingExitReason, state.error, state.postPlayMode, autoNext,
+        state.showEpisodesPanel, state.showSourcesPanel, postPlay.blocksNaturalCompletion) {
+        if (handledEnd) return@LaunchedEffect
+        val finished = complete
+        when {
+            state.pendingExitReason == PlayerExitReason.StillWatchingPrompt -> {
+                handledEnd = true
+                vm.consumePendingExitReason()
+                back()
+            }
+            !state.playbackEnded || state.error != null -> Unit
+            finished != null -> {
+                handledEnd = true
+                val group = vm.controller.currentStreamBingeGroup
+                vm.stopAndRelease()
+                finished(state.streamAutoPlayNextEpisodeEnabled, group)
+            }
+            postPlay.blocksNaturalCompletion || state.showEpisodesPanel || state.showSourcesPanel -> Unit
+            autoNext -> vm.onEvent(PlayerEvent.OnPlayNextEpisode)
+            state.nextEpisode == null && state.postPlayMode?.blocksNaturalCompletion() != true -> {
+                handledEnd = true
+                back()
+            }
         }
     }
     DisposableEffect(vm) {
@@ -163,7 +193,9 @@ internal fun MobileVodPlayer(back: () -> Unit, openParty: (com.nuvio.tv.core.par
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (state.internalPlayerEngine == InternalPlayerEngine.MVP_PLAYER) {
             val view = remember { NuvioMpvSurfaceView(context) }
-            AndroidView({ view }, Modifier.fillMaxSize(), update = { it.applyAspectMode(state.aspectMode); it.applySubtitleStyle(state.effectiveSubtitleStyle) })
+            AndroidView({ view }, Modifier.fillMaxSize())
+            LaunchedEffect(view, state.aspectMode) { view.applyAspectMode(state.aspectMode) }
+            LaunchedEffect(view, state.effectiveSubtitleStyle) { view.applySubtitleStyle(state.effectiveSubtitleStyle) }
             DisposableEffect(view) { vm.attachMpvView(view); onDispose { vm.attachMpvView(null) } }
         } else AndroidView(factory = { PlayerView(it).apply { useController = false; keepScreenOn = true } },
             modifier = Modifier.fillMaxSize(), update = { view ->
@@ -206,7 +238,7 @@ internal fun MobileVodPlayer(back: () -> Unit, openParty: (com.nuvio.tv.core.par
         state.activeSkipInterval?.takeUnless { state.skipIntervalDismissed }?.let { skip ->
             Box(Modifier.align(Alignment.CenterEnd)) { Action("Skip " + skip.type) { vm.onEvent(PlayerEvent.OnSkipIntro) } }
         }
-        if (mixCompleted == null && state.nextEpisode != null && (state.playbackEnded || state.postPlayMode != null)) {
+        if (mixCompleted == null && !postPlay.isVisible && (state.shouldConfirmNextEpisodeOnEnd() || state.postPlayMode != null)) {
             Column(Modifier.align(Alignment.CenterEnd).background(Color.Black)) {
                 if (state.postPlayMode is PostPlayMode.StillWatching) Action("Continue watching") { vm.onEvent(PlayerEvent.OnStillWatchingContinue) }
                 else Action("Next episode") { vm.onEvent(PlayerEvent.OnPlayNextEpisode) }
@@ -222,7 +254,9 @@ internal fun MobileVodPlayer(back: () -> Unit, openParty: (com.nuvio.tv.core.par
         }
     }
     if (tracks == "Watch Party") TouchSheet({ tracks = null }) {
-        MobileWatchParty(vm.party, vm.partyMedia, openParty) { tracks = null }
+        MobileWatchParty(vm.party, vm.partyMedia, openParty, vm.currentPartyStream() != null,
+            { vm.switchParty() }, vm::catchUpParty) { tracks = null }
     } else tracks?.let { section -> MobilePlayerOptions(section, state, vm::onEvent) { tracks = null } }
     if (state.showSourcesPanel || state.showEpisodesPanel) MobilePlayerSources(state, vm::onEvent)
+    if (mixCompleted == null && postPlay.isVisible) MobileRecommendations(postPlay, vm, back, recommendation)
 }

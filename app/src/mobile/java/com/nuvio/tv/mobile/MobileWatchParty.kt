@@ -18,7 +18,8 @@ import com.nuvio.tv.ui.screens.party.statusRes
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun MobileWatchParty(repository: PartyRepository, current: PartyMedia?, open: (PartyMedia) -> Unit, back: () -> Unit) {
+internal fun MobileWatchParty(repository: PartyRepository, current: PartyMedia?, open: (PartyMedia) -> Unit,
+    canShare: Boolean = false, switchMedia: (() -> Unit)? = null, catchUp: (() -> Unit)? = null, back: () -> Unit) {
     val state by repository.state.collectAsStateWithLifecycle()
     val available by repository.available.collectAsStateWithLifecycle()
     val canUse by repository.canUse.collectAsStateWithLifecycle()
@@ -58,10 +59,12 @@ internal fun MobileWatchParty(repository: PartyRepository, current: PartyMedia?,
                 Label(if (party.connected) "Connected" else "Reconnecting…")
                 Action("Copy invite code · " + formatPartyCode(party.code)) { clipboard.setText(AnnotatedString(party.code)) }
                 if (current?.key != party.media.key) Action("Play party title") { open(party.media) }
+                if (current?.key == party.media.key && !party.isHost && catchUp != null) Action("Catch up with party", onClick = catchUp)
                 if (party.isHost) {
+                    if (current != null && current.key != party.media.key && switchMedia != null) Action("Switch party to " + current.displayTitle(), onClick = switchMedia)
                     Action("Host-only playback controls", selected = party.hostOnly) { repository.setHostOnly(!party.hostOnly) }
                     if (party.sharing) Action("Stop sharing playback link") { repository.setSharing(false) }
-                    else Action(if (confirm == "share") "Confirm sharing link with party members" else "Share playback link") {
+                    else if (canShare && current?.key == party.media.key) Action(if (confirm == "share") "Confirm sharing link with party members" else "Share playback link") {
                         if (confirm == "share") { repository.setSharing(true); confirm = null } else confirm = "share"
                     }
                 }

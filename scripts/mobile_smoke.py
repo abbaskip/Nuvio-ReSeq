@@ -56,7 +56,10 @@ def fixture():
                     "resources": ["catalog", "meta", "stream"], "types": ["movie", "series"], "idPrefixes": ["qafilm", "qaseries"],
                     "catalogs": [{"type": kind, "id": "offline-" + kind, "name": "Offline fixture " + kind,
                                   "extra": [{"name": "search", "isRequired": False}]} for kind in ("movie", "series")]}
-        clip = (root / "live" / "One").read_bytes()
+        # Ninety seconds of generated H.264 and silent AAC leaves time to operate controls before natural completion.
+        clip = (ROOT / "scripts/fixtures/mobile-player.mp4").read_bytes()
+        short_clip = (root / "live" / "One").read_bytes()
+        playing_mix = Event()
 
         class Handler(SimpleHTTPRequestHandler):
             def do_GET(self):
@@ -96,9 +99,10 @@ def fixture():
                         return self.send_error(403)
                     self.send_response(200)
                     self.send_header("Content-Type", "video/mp4")
-                    self.send_header("Content-Length", str(len(clip)))
+                    video = short_clip if playing_mix.is_set() and "/qaseries:" in path else clip
+                    self.send_header("Content-Length", str(len(video)))
                     self.end_headers()
-                    self.wfile.write(clip)
+                    self.wfile.write(video)
                     return
                 channel = self.path.removeprefix("/live/")
                 if self.path.startswith("/live/") and channel in played:
@@ -112,13 +116,13 @@ def fixture():
             thread = Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
-                yield address, server.server_port, played, sources, files, offline
+                yield address, server.server_port, played, sources, files, offline, playing_mix
             finally:
                 server.shutdown()
                 thread.join()
 
 
-def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
+def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=False, upgrade_apk=None):
     if not re.fullmatch("emulator-[0-9]+", serial):
         raise ValueError("Use an isolated emulator serial for the touch smoke test")
 
@@ -153,6 +157,11 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
         shell("input", "tap", str((x1+x2)//2), str((y1+y2)//2))
 
     def choose(text): tap(locate(text))
+
+    def enter_first_field(value):
+        tap(locate(editable=0))
+        shell("input", "text", value)
+        shell("input", "keyevent", "KEYCODE_BACK")
 
     def scroll_to(label):
         for attempt in range(30):
@@ -217,7 +226,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
     density = shell("wm", "density")
     rotation = shell("settings", "get", "system", "user_rotation")
     auto = shell("settings", "get", "system", "accelerometer_rotation")
-    with fixture() as (address, port, played, sources, files, offline):
+    with fixture() as (address, port, played, sources, files, offline, playing_mix):
         command("reverse", "tcp:38792", f"tcp:{port}")
         try:
             shell("wm", "size", "1080x2160")
@@ -281,6 +290,13 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
                 choose("Sports")
                 locate("On TV now")
                 screenshot("tablet-sports", landscape=True)
+                if extended:
+                    choose("Alerts")
+                    choose("Hide scores")
+                    shell("input", "keyevent", "KEYCODE_BACK")
+                    choose("Alerts")
+                    choose("Hide scores")
+                    shell("input", "keyevent", "KEYCODE_BACK")
                 choose("Calendar")
                 locate("Month")
                 screenshot("tablet-calendar", landscape=True)
@@ -300,6 +316,25 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
                 shell("input", "keyevent", "KEYCODE_BACK")
                 choose("Install source")
             # Search through the installed catalogue, save a series, and play a chosen episode.
+            if extended:
+                choose("Library")
+                choose("Collections")
+                choose("New collection")
+                enter_first_field("TouchCollection")
+                tap(scroll_to("Add folder"))
+                enter_first_field("FixtureFolder")
+                tap(scroll_to("Catalogues"))
+                choose("Offline fixture movie · Offline fixture")
+                tap(scroll_to("Done"))
+                tap(scroll_to("Save folder"))
+                tap(scroll_to("Save collection"))
+                locate("TouchCollection")
+                choose("FixtureFolder")
+                tap(scroll_to("Test film One"))
+                locate("Play manually")
+                shell("input", "keyevent", "KEYCODE_BACK")
+                shell("input", "keyevent", "KEYCODE_BACK")
+                choose("Back")
             choose("Search")
             if any(n.get("text") == "Filters" for n in nodes()):
                 shell("input", "keyevent", "KEYCODE_BACK")
@@ -321,7 +356,44 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
                 while not any("qaseries:1:2/Alternate" in path for path in files) and time.monotonic() < deadline:
                     time.sleep(.25)
             assert any("qaseries:1:2/Alternate" in path for path in files), "Selected series episode did not play"
+            if extended:
+                choose("Speed")
+                choose("1.25×")
+                choose("Subtitles")
+                locate("Reset delay")
+                shell("input", "keyevent", "KEYCODE_BACK")
             choose("Back")
+            if extended:
+                tap(scroll_to("Add to TV Mix"))
+                enter_first_field("FixtureMix")
+                choose("Create mix with this show")
+                deadline = time.monotonic() + 20
+                while any(n.get("text") == "Create mix with this show" for n in nodes()):
+                    if time.monotonic() >= deadline:
+                        raise AssertionError("Saving the new TV mix did not close the sheet")
+                shell("input", "keyevent", "KEYCODE_BACK")
+                choose("TV Mix")
+                choose("FixtureMix")
+                locate("Play episode")
+                playing_mix.set()
+                episode_start = len(files)
+                for step in ("Play episode", "Continue mix"):
+                    before_play = len(files)
+                    choose(step)
+                    deadline = time.monotonic() + 70
+                    while time.monotonic() < deadline:
+                        labels = {n.get("text") for n in nodes()}
+                        if "Continue mix" in labels and any("/qaseries:" in path for path in files[before_play:]):
+                            break
+                        if "Play this file" in labels:
+                            choose("Play this file")
+                        elif "Primary" in labels:
+                            choose("Primary")
+                    else:
+                        raise AssertionError("The mix did not return to its continuation prompt")
+                played_episodes = {path.split("/")[-2] for path in files[episode_start:] if "/qaseries:" in path}
+                assert len(played_episodes) == 2, f"Expected two distinct mix episodes, saw {played_episodes}"
+                playing_mix.clear()
             choose("Home")
             long_press(scroll_to("Test film One"))
             choose("Download")
@@ -348,6 +420,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
             shell("input", "keyevent", "KEYCODE_BACK")
             shell("input", "keyevent", "KEYCODE_BACK")
             shell("am", "force-stop", MOBILE_ID)
+            if upgrade_apk:
+                command("install", "-r", str(upgrade_apk), timeout=180)
             shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
             locate("Downloads")
             choose("Library")
@@ -356,6 +430,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
             choose("Test film One")
             locate("Playing download")
             assert counts == (len(sources), len(files)), "Restarted offline playback requested a remote source"
+            if upgrade_apk:
+                print(f"Verified in-place update to {upgrade_apk.name} with the saved library and offline file.")
         finally:
             command("reverse", "--remove", "tcp:38792")
             for setting, original in (("size", size), ("density", density)):
@@ -379,6 +455,8 @@ if __name__ == "__main__":
     parser.add_argument("--serial", default=os.environ.get("ANDROID_SERIAL", "emulator-5554"))
     parser.add_argument("--apk", type=Path, default=ROOT / "app/build/outputs/apk/mobile/debug/app-mobile-x86_64-debug.apk")
     parser.add_argument("--catalog-only", action="store_true", help="Run only the on-demand journeys during development")
+    parser.add_argument("--upgrade-apk", type=Path, help="Install an update over the seeded APK and verify the saved library and offline playback")
     parser.add_argument("--drive-sign-in", action="store_true", help="Check the real Google sign-in prompt without authorizing an account")
+    parser.add_argument("--extended", action="store_true", help="Exercise collection editing, TV Mix playback, Sports alerts and VOD controls")
     options = parser.parse_args()
-    run(options.adb, options.serial, options.apk, options.catalog_only, options.drive_sign_in)
+    run(options.adb, options.serial, options.apk, options.catalog_only, options.drive_sign_in, options.extended, options.upgrade_apk)

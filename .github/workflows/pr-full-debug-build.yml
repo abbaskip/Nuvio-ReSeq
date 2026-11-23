@@ -60,7 +60,7 @@ jobs:
           arch: x86_64
           profile: pixel_5
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
-          script: python3 scripts/mobile_smoke.py
+          script: python3 scripts/mobile_smoke.py --extended
 
   full-debug-build:
     name: Development regression checks

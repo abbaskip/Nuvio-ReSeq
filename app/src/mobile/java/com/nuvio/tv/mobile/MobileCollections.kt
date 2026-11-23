@@ -110,6 +110,8 @@ internal fun MobileCollectionEditor(back: () -> Unit, vm: CollectionEditorViewMo
     }
     BackHandler(onBack = leave)
     val folder = s.editingFolder
+    var filters by remember { mutableStateOf(false) }
+    if (filters) MobileCollectionFilters(s.tmdbFilters, vm::setTmdbFilters) { filters = false }
     LazyColumn(contentPadding = PaddingValues(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         item { BrowseHeading(when {
             s.showCatalogPicker -> "Choose catalogues"
@@ -134,14 +136,36 @@ internal fun MobileCollectionEditor(back: () -> Unit, vm: CollectionEditorViewMo
                     Action("Both", selected = s.tmdbMediaBoth) { vm.setTmdbMediaBoth(true) } }
                 LazyRow { items(TmdbCollectionSort.entries.toList()) { sort -> Action(sort.name.lowercase().replace('_', ' '), selected = s.tmdbSortBy == sort.value) { vm.setTmdbSortBy(sort.value) } } }
                 s.tmdbSearchError?.let { Label(it) }
-                Action("Add TMDB source", onClick = vm::addTmdbSourceFromInput)
-                Action("Add Discover source", onClick = vm::addDiscoverSource)
+                if (s.tmdbBuilderMode != TmdbBuilderMode.PRESETS) Action("Catalogue filters") { filters = true }
+                when (s.tmdbBuilderMode) {
+                    TmdbBuilderMode.PRODUCTION -> Action("Search companies", onClick = vm::searchTmdbCompanies)
+                    TmdbBuilderMode.COLLECTION -> Action("Search collections", onClick = vm::searchTmdbCollections)
+                    else -> Unit
+                }
+                if (s.tmdbBuilderMode == TmdbBuilderMode.DISCOVER) Action("Add Discover source", onClick = vm::addDiscoverSource)
+                else if (s.tmdbBuilderMode != TmdbBuilderMode.PRESETS) Action("Add TMDB source", onClick = vm::addTmdbSourceFromInput)
+            }
+            if (s.tmdbBuilderMode == TmdbBuilderMode.PRODUCTION) items(s.tmdbCompanyResults) { result ->
+                Action(result.name ?: result.id.toString()) { vm.setTmdbInput(result.id.toString()); vm.setTmdbTitleInput(result.name.orEmpty()); vm.addTmdbSourceFromInput() }
+            }
+            if (s.tmdbBuilderMode == TmdbBuilderMode.COLLECTION) items(s.tmdbCollectionResults) { result ->
+                Action(result.name ?: result.id.toString()) { vm.setTmdbInput(result.id.toString()); vm.setTmdbTitleInput(result.name.orEmpty()); vm.addTmdbSourceFromInput() }
+            }
+            item {
                 SectionTitle("Presets")
             }
             items(vm.tmdbPresets()) { preset -> Action(preset.title) { vm.addTmdbSource(preset.source) } }
         } else if (s.showTraktSourcePicker) {
             item { MobileTextInput("List name, URL or ID", s.traktInput, vm::setTraktInput)
                 MobileTextInput("Display title", s.traktTitleInput, vm::setTraktTitleInput)
+                LazyRow {
+                    items(TmdbCollectionMediaType.entries.toList()) { type -> Action(type.value, selected = !s.traktMediaBoth && type == s.traktMediaType) {
+                        vm.setTraktMediaBoth(false); vm.setTraktMediaType(type)
+                    } }
+                    item { Action("Both", selected = s.traktMediaBoth) { vm.setTraktMediaBoth(true) } }
+                }
+                LazyRow { items(TraktListSort.entries.toList()) { sort -> Action(sort.value, selected = s.traktSortBy == sort.value) { vm.setTraktSortBy(sort.value) } } }
+                LazyRow { items(TraktSortHow.entries.toList()) { order -> Action(order.value, selected = s.traktSortHow == order.value) { vm.setTraktSortHow(order.value) } } }
                 Row { Action("Search", onClick = vm::searchTraktLists); Action("Add list", onClick = vm::addTraktSourceFromInput) }
                 s.traktSearchError?.let { Label(it) }
             }
@@ -154,6 +178,10 @@ internal fun MobileCollectionEditor(back: () -> Unit, vm: CollectionEditorViewMo
                 MobileTextInput("Cover image URL", folder.coverImageUrl.orEmpty(), vm::updateFolderCoverImage)
                 MobileTextInput("Cover emoji", folder.coverEmoji.orEmpty(), vm::updateFolderCoverEmoji)
                 MobileTextInput("Backdrop URL", folder.heroBackdropUrl.orEmpty(), vm::updateFolderHeroBackdropUrl)
+                MobileTextInput("Hero video URL", folder.heroVideoUrl.orEmpty(), vm::updateFolderHeroVideoUrl)
+                MobileTextInput("Title logo URL", folder.titleLogoUrl.orEmpty(), vm::updateFolderTitleLogoUrl)
+                TogglePreference("Hide folder title", folder.hideTitle, vm::updateFolderHideTitle)
+                LazyRow { items(PosterShape.entries.toList()) { shape -> Action(shape.name.lowercase(), selected = shape == folder.tileShape) { vm.updateFolderTileShape(shape) } } }
                 SectionTitle("Sources")
                 LazyRow { item { Action("Catalogues", onClick = vm::showCatalogPicker) }; item { Action("TMDB", onClick = vm::showTmdbSourcePicker) }
                     item { Action("Trakt", onClick = vm::showTraktSourcePicker) } }

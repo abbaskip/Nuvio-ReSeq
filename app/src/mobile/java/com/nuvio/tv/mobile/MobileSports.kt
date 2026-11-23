@@ -20,6 +20,8 @@ import com.nuvio.tv.livetv.ui.formatClock
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+internal val LocalMobileReplay = staticCompositionLocalOf<(SportsLaunch.Catchup) -> Boolean> { { false } }
+
 @Composable
 internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = hiltViewModel()) {
     var chip by rememberSaveable { mutableStateOf<String?>(null) }
@@ -49,6 +51,7 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { SectionTitle("Sports Hub") }
             Action("Refresh") { vm.repo.refreshNow() }
+            Action("Options") { tool = "Options" }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             items(listOf("Teams", "Tables", "Alerts")) { pageName -> Action(pageName) { tool = pageName } }
@@ -90,7 +93,7 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
         }
     }
     val event = page?.opened?.takeIf { it.id == eventId }
-    tool?.let { MobileSportsTools(it, { tool = null }, vm = vm) }
+    tool?.let { if (it == "Options") MobileSportsPreferences(vm) { tool = null } else MobileSportsTools(it, { tool = null }, vm = vm) }
     if (event != null) {
         FixtureSheet(event, page.matches[event.id].orEmpty(), onWatch, { eventId = null }, vm)
     }
@@ -121,7 +124,9 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
     }
     LaunchedEffect(event.id, allowed) { if (allowed) vm.repo.loadEventChannels(event) }
     val extras = rememberGameExtras(event, vm)
+    val replay = LocalMobileReplay.current
     var table by rememberSaveable(event.id) { mutableStateOf(false) }
+    var tool by rememberSaveable(event.id) { mutableStateOf<String?>(null) }
     var recording by rememberSaveable(event.id) { mutableStateOf<String?>(null) }
     var message by remember(event.id) { mutableStateOf("") }
     TouchSheet(onClose) {
@@ -144,10 +149,16 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
                 }
             }
             if (channels.isEmpty()) Label("No matching channels", Modifier.padding(8.dp))
+            Action("Match channels") { tool = "channels" }
+            Action("Gemini coverage lookup") { tool = "lookup" }
             channels.forEach { match -> Action(match.channel.name, Modifier.fillMaxWidth()) {
                 onClose()
                 onWatch(match.channel)
             }
+                if (match.catchup && event.startMs <= System.currentTimeMillis()) Action("Replay from start · " + match.channel.name) {
+                    val request = if (vm.watchFromStart(event, match)) SportsLaunch.takeCatchup() else null
+                    if (request != null && replay(request)) onClose() else message = "Replay is unavailable on this channel."
+                }
                 if (event.state != GameState.POST) Action("Record on " + match.channel.name) { recording = match.channel.key }
                 if (recording == match.channel.key) LazyRow { items(listOf(60, 90, 120, 180, 240)) { mins ->
                     Action("$mins min") { message = vm.record(event, match, mins); recording = null }
@@ -168,6 +179,8 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
         }
     }
     if (table) MobileSportsTools("Tables", { table = false }, event.leagueId, vm)
+    if (tool == "channels") MobileFixtureChannels(event, channels, vm) { tool = null }
+    if (tool == "lookup") MobileSportsLookup(event, vm) { tool = null }
 }
 
 @Composable

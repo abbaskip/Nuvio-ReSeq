@@ -10,13 +10,14 @@ MOBILE_ID = "io.github.abbaskip.nuvioreseq.mobile"
 MOBILE_ACTIVITY = "com.nuvio.tv.mobile.MobileActivity"
 
 
-def check_inventory(show_gaps=False):
+def check_inventory(show_gaps=False, missing_screens=False):
     screen = ROOT / "app/src/main/java/com/nuvio/tv/ui/navigation/Screen.kt"
     routes = set(re.findall(r"\bobject\s+(\w+)\s*:\s*Screen\s*\(", screen.read_text(encoding="utf-8")))
     for source in (ROOT / "app/src/main/java/com/nuvio/tv/ui").rglob("*.kt"):
         routes.update(re.findall(r"\bconst val ([A-Z_]+_ROUTE)\s*=", source.read_text(encoding="utf-8")))
     documented = set()
     rows = (ROOT / "docs/reseq-mobile.md").read_text(encoding="utf-8").splitlines()
+    pending = set()
     for row in rows:
         if not row.startswith("| "):
             continue
@@ -27,10 +28,14 @@ def check_inventory(show_gaps=False):
         if documented & ids or not note:
             raise ValueError(f"Duplicate or incomplete inventory row: {group}")
         documented.update(ids)
+        if status == "Pending":
+            pending.update(ids)
         if show_gaps and status in {"Partial", "Pending"}:
             print(f"{status} | {', '.join(sorted(ids))} | {note}")
     if not routes or routes != documented:
         raise ValueError(f"Update docs/reseq-mobile.md. Missing {sorted(routes - documented)}, stale {sorted(documented - routes)}")
+    if missing_screens:
+        print("TV destinations awaiting a mobile entry point: " + (", ".join(sorted(pending)) or "none"))
 
 
 def check_mobile_manifest(path):
@@ -81,8 +86,9 @@ if __name__ == "__main__":
     parser.add_argument("--merged", action="store_true", help="also inspect the built mobile debug manifest")
     parser.add_argument("--tv", action="store_true", help="also inspect the built TV debug launcher")
     parser.add_argument("--gaps", action="store_true", help="list outstanding touch features and verification by TV screen")
+    parser.add_argument("--missing-screens", action="store_true", help="list supported destinations with no touch entry point")
     args = parser.parse_args()
-    check_inventory(show_gaps=args.gaps)
+    check_inventory(show_gaps=args.gaps, missing_screens=args.missing_screens)
     for name in ("LICENSE", "NOTICE-MOBILE.md"):
         packaged = ROOT / "app/src/mobile/assets/notices" / name
         if packaged.read_text(encoding="utf-8") != (ROOT / name).read_text(encoding="utf-8"):

@@ -25,7 +25,12 @@ internal data class MobileVideo(
     val season: Int? = null, val episode: Int? = null, val episodeName: String? = null,
     val tvdb: String? = null, val poster: String? = null
 ) {
-    val label: String get() = if (episode == null) title else "$title S${season ?: 0}E$episode · ${episodeName.orEmpty()}"
+    val label: String get() {
+        val displayed = TvdbPlaybackContext.decode(tvdb)
+        val number = displayed?.episode ?: episode ?: return title
+        val name = episodeName?.takeIf(String::isNotBlank)?.let { " · $it" }.orEmpty()
+        return "$title S${displayed?.season ?: season ?: 0}E$number$name"
+    }
     val key: String get() {
         val episodeContext = TvdbPlaybackContext.decode(tvdb)
         val selection = streamLinkCacheKeys(type, videoId, episodeContext).firstOrNull()
@@ -84,6 +89,7 @@ internal class MobileOfflineMedia @Inject constructor(@ApplicationContext privat
         root(profile).listFiles().orEmpty().mapNotNull(::record).sortedBy { it.video.label.lowercase() }
     }.getOrDefault(emptyList())
 
+    @Synchronized
     fun publish(video: MobileVideo, partial: File, extension: String) {
         val dir = folder(video)
         val base = video.label.replace(Regex("[^\\p{L}\\p{N} ._-]"), "_").trim(' ', '.').take(42).ifEmpty { "Video" }
@@ -106,9 +112,11 @@ internal class MobileOfflineMedia @Inject constructor(@ApplicationContext privat
         video.player(Uri.fromFile(it).toString(), localName = it.name, fromBeginning = fromBeginning)
     }
 
+    @Synchronized
     fun remove(entry: OfflineFile) {
         val dir = folder(entry.video)
         val current = record(dir) ?: return
+        if (current.filename != entry.filename) throw IOException("The saved file changed. Reopen Downloads to remove it.")
         if (!File(dir, current.filename).delete()) throw IOException("Could not remove this download.")
         File(dir, "entry.json").delete()
         dir.delete()

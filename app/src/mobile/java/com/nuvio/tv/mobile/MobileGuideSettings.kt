@@ -71,9 +71,12 @@ internal fun MobileGuideSettings(vm: LiveTvSettingsViewModel, close: () -> Unit)
     val storage by vm.storage.collectAsStateWithLifecycle()
     val busy by vm.storageBusy.collectAsStateWithLifecycle()
     val message by vm.storageMessage.collectAsStateWithLifecycle()
+    var parental by remember { mutableStateOf(false) }
+    if (parental) { MobileParentalSettings(vm) { parental = false }; return }
     TouchSheet(close) {
         LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             item { BrowseHeading("Guide and recordings", close) }
+            item { Action("Parental controls") { parental = true } }
             item { Action("24-hour clock", selected = s.use24HourClock) { vm.update { it.copy(use24HourClock = !it.use24HourClock) } } }
             item { Action("Download guide descriptions", selected = s.epgDescriptions) { vm.updateAndReloadEpg { it.copy(epgDescriptions = !it.epgDescriptions) } } }
             item { ChoiceRow("Past guide (hours)", s.epgPastHours, listOf(0, 12, 24, 48, 72, 168)) { v -> vm.updateAndReloadEpg { it.copy(epgPastHours = v) } } }

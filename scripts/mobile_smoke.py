@@ -294,6 +294,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             shell("input", "tap", str(left + (right - left) // 7), str(top + (bottom - top) // 3))
 
     def locate(text=None, editable=None, seconds=60):
+        labels = text if isinstance(text, tuple) else (text,)
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
             tree = nodes()
@@ -303,7 +304,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     return fields[editable]
             else:
                 for node in tree:
-                    if node.get("class") != "android.widget.EditText" and (node.get("text") == text or node.get("content-desc") == text):
+                    if node.get("class") != "android.widget.EditText" and (node.get("text") in labels or node.get("content-desc") in labels):
                         return node
                 if text in {"Back", "Audio", "Speed", "Sources", "Subtitles", "Playing download", "Pause", "Play"}:
                     reveal_controls(tree)
@@ -781,7 +782,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 locate("Play manually")
             offline.set()
             counts = len(sources), len(files)
-            choose("Play")
+            # A saved position changes the primary movie action as soon as progress is loaded.
+            tap(locate(("Play", "Resume")))
             locate("Playing download")
             rotate(0)
             locate("Playing download")

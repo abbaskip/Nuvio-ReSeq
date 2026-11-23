@@ -16,7 +16,7 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 | --- | --- | --- |
 | `LiveTv` | Partial | Touch timeline, search, programme sheets, channel and group editing, PINs, catch-up, reminders and recordings. Live tuning and channel switching have emulator coverage. Timed reminders and provider replays need qualification. |
 | `LiveTvPlayer` | Partial | Tap controls, swipe channels, browse the channel panel or mini-guide, change audio and captions, seek replays and reconnect. Device playback qualification continues. |
-| `LiveTvSettings`, `Settings` | Partial | M3U, Xtream, Stalker, XMLTV, Drive, guide retention, recording storage and timing, parental controls and category visibility. M3U and XMLTV are covered by the touch test. Xtream and Stalker still need provider fixtures. |
+| `LiveTvSettings`, `Settings` | Partial | M3U, Xtream, Stalker, XMLTV, Drive, guide retention, recording storage and timing, parental controls and category visibility. The touch tests import M3U, XMLTV, Xtream and Stalker fixtures. Cross-device restore with real accounts remains a separate check. |
 | `Calendar`, `CalendarGame` | Partial | Day, week and month, filters, sport shortcuts, fixture channels, linked movie and series details and team management. Cross-screen verification is in progress. |
 | `Sports` | Partial | My Sports, All Events, On TV Now, teams, standings, alerts, fixture statistics, replay, recording, manual channel matches and optional Gemini lookup. The touch test covers alerts settings. Score delivery and real broadcaster matching need device verification. |
 | `AdvancedDiscover`, `TmdbSettings` | Partial | Includes and excludes, text matching, language, certification, date, runtime, votes, sorting, saved-search updates, random matches and TMDB metadata preferences. Device verification is in progress. |
@@ -26,7 +26,7 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 | `Library`, `Search`, `Discover`, `PlaybackSettings` | Partial | Library filters, search history and suggestions, Discover, cloud files, media server sign-in and shelves. Playback settings include audio, subtitles, codecs, caching, source fallback, next episode and post-play. External server integration needs provider qualification. |
 | `FlickPick` | Partial | Search opens the mobile picker for library and discovery recommendations, filtering and playback. Device verification is in progress. |
 | `CalendarTeams`, `Multiview` | Partial | Teams are reachable from Calendar and Sports. Multiview has touch panes, focus, fullscreen and channel selection. Multi-decoder hardware qualification remains. |
-| `OnDemand`, `OnDemandSearch` | Partial | Library opens provider movies and series with categories, parental PINs, search, season and version selection, and recording playback. Provider device qualification remains. |
+| `OnDemand`, `OnDemandSearch` | Partial | Library opens provider movies and series with categories, parental PINs, search, season and version selection. The provider test checks Stalker film import, Xtream film details and playback of a selected Xtream episode. Category and version-selection checks remain. |
 | `AddonManager` | Partial | Install, sync, enable, disable, reorder and remove sources using the shared manager. Protected profile and device verification is in progress. |
 | `Plugins` | Partial | Settings → Extensions opens repositories, source languages, grouping, DNS, per-extension settings and test diagnostics. External extension integration needs device verification. |
 | `CatalogOrder`, `CatalogSeeAll` | Partial | See all pages, source ordering and individual catalogue visibility. Device pagination and ordering verification are in progress. |
@@ -44,6 +44,6 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 
 **Provider keys.** Back up keys saves the active profile’s TMDB, Gemini, debrid, MDBList and AnimeSkip keys in a separate passphrase-encrypted Drive file. On another device choose Restore keys and enter the same passphrase. Automatic sync never transfers this file. Both builds need the provider-key controls. TV RC 3.1 can supply the standard backup, including IPTV and TVDB, and retains its previous sign-in behaviour.
 
-**Build availability.** This ledger describes the mobile development branch. The signed Alpha 2 release predates the collections, expanded player, Sports tables, media server and Multiview work. Each GitHub release lists its included changes.
+**Build availability.** Signed Alpha 3 includes collections, player gestures, Sports tables, media servers and Multiview. The development branch also contains profile editing, post-play settings, home preferences, group management and sports reminder changes. [Alpha 3 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.3)
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

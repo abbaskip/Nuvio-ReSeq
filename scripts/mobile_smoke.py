@@ -13,11 +13,42 @@ import struct
 import subprocess
 import tempfile
 from threading import Event, Thread
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 import time
 import xml.etree.ElementTree as ET
 
 from mobile_parity import MOBILE_ACTIVITY, MOBILE_ID, ROOT
+
+
+def provider_response(path, query):
+    action = query.get("action", [""])[0]
+    if path == "/player_api.php":
+        return {
+            "": {"user_info": {"auth": 1, "status": "Active"}},
+            "get_vod_categories": [{"category_id": "2", "category_name": "Fixture films"}],
+            "get_series_categories": [{"category_id": "3", "category_name": "Fixture shows"}],
+            "get_vod_streams": [{"stream_id": 21, "name": "Xtream Fixture Film", "category_id": "2", "container_extension": "mp4"}],
+            "get_series": [{"series_id": 31, "name": "Xtream Fixture Show", "category_id": "3"}],
+            "get_vod_info": {"info": {"plot": "Xtream film description"}},
+            "get_series_info": {"info": {"plot": "Xtream episode selection"}, "episodes": {
+                "1": [{"id": "311", "episode_num": 1, "title": "Fixture pilot", "container_extension": "mp4"}]}},
+            "get_live_categories": [], "get_live_streams": [],
+        }.get(action, [])
+    if path.endswith(("/load.php", "/portal.php")):
+        if action == "handshake":
+            value = {"token": "synthetic-portal-session"}
+        elif action == "get_profile":
+            value = {"status": 0}
+        elif action == "get_categories":
+            value = [{"id": "fixture", "title": "Portal selections"}]
+        elif action == "get_ordered_list":
+            rows = ([{"id": "41", "name": "Stalker Fixture Film", "category_id": "fixture", "cmd": "movie 41"}]
+                    if query.get("type") == ["vod"] and query.get("p", ["1"]) == ["1"] else [])
+            value = {"total_items": len(rows), "max_page_items": 12, "data": rows}
+        else:
+            value = []
+        return {"js": value}
+    return None
 
 
 @contextmanager
@@ -56,14 +87,29 @@ def fixture():
                     "resources": ["catalog", "meta", "stream"], "types": ["movie", "series"], "idPrefixes": ["qafilm", "qaseries"],
                     "catalogs": [{"type": kind, "id": "offline-" + kind, "name": "Offline fixture " + kind,
                                   "extra": [{"name": "search", "isRequired": False}]} for kind in ("movie", "series")]}
-        # Ninety seconds of generated H.264 and silent AAC leaves time to operate controls before natural completion.
+        # 130 seconds of generated H.264 and silent AAC exceeds the shared player's short-placeholder guard.
         clip = (ROOT / "scripts/fixtures/mobile-player.mp4").read_bytes()
-        short_clip = (root / "live" / "One").read_bytes()
-        playing_mix = Event()
 
         class Handler(SimpleHTTPRequestHandler):
             def do_GET(self):
                 path = unquote(urlsplit(self.path).path)
+                provider = provider_response(path, parse_qs(urlsplit(self.path).query))
+                if provider is not None:
+                    payload = json.dumps(provider).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(payload)))
+                    self.end_headers()
+                    self.wfile.write(payload)
+                    return
+                if path == "/series/testuser/testpass/311.mp4":
+                    files.append(path)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "video/mp4")
+                    self.send_header("Content-Length", str(len(clip)))
+                    self.end_headers()
+                    self.wfile.write(clip)
+                    return
                 if path.startswith("/addon/"):
                     if path.endswith("/manifest.json"):
                         data = manifest
@@ -99,7 +145,7 @@ def fixture():
                         return self.send_error(403)
                     self.send_response(200)
                     self.send_header("Content-Type", "video/mp4")
-                    video = short_clip if playing_mix.is_set() and "/qaseries:" in path else clip
+                    video = clip
                     self.send_header("Content-Length", str(len(video)))
                     self.end_headers()
                     self.wfile.write(video)
@@ -116,13 +162,13 @@ def fixture():
             thread = Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
-                yield address, server.server_port, played, sources, files, offline, playing_mix
+                yield address, server.server_port, played, sources, files, offline
             finally:
                 server.shutdown()
                 thread.join()
 
 
-def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=False, upgrade_apk=None):
+def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=False, upgrade_apk=None, providers_only=False):
     if not re.fullmatch("emulator-[0-9]+", serial):
         raise ValueError("Use an isolated emulator serial for the touch smoke test")
 
@@ -226,7 +272,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
     density = shell("wm", "density")
     rotation = shell("settings", "get", "system", "user_rotation")
     auto = shell("settings", "get", "system", "accelerometer_rotation")
-    with fixture() as (address, port, played, sources, files, offline, playing_mix):
+    with fixture() as (address, port, played, sources, files, offline):
         command("reverse", "tcp:38792", f"tcp:{port}")
         try:
             shell("wm", "size", "1080x2160")
@@ -236,6 +282,39 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             shell("wm", "dismiss-keyguard")
             shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
             locate("Catalog sources")
+            if providers_only:
+                shell("wm", "size", "1600x2560")
+                shell("wm", "density", "240")
+                rotate(0)
+                choose("Settings")
+                tap(scroll_to("IPTV sources"))
+                for button, name, fields in (
+                    ("Add Xtream account", "FixtureXtream", [address, "testuser", "testpass"]),
+                    ("Add Stalker portal", "FixtureStalker", [address + "/c/", "00:1A:79:00:00:02"]),
+                ):
+                    tap(scroll_to(button))
+                    for index, value in enumerate([name, *fields]):
+                        tap(locate(editable=index))
+                        shell("input", "text", value)
+                        shell("input", "keyevent", "KEYCODE_BACK")
+                    choose("Add")
+                    locate(name)
+                choose("Library")
+                choose("IPTV library")
+                locate("Stalker Fixture Film", seconds=100)
+                choose("Xtream Fixture Film")
+                locate("Xtream film description")
+                shell("input", "keyevent", "KEYCODE_BACK")
+                choose("Series")
+                choose("Xtream Fixture Show")
+                choose("S1E1 · Fixture pilot")
+                locate("Audio")
+                deadline = time.monotonic() + 20
+                while "/series/testuser/testpass/311.mp4" not in files and time.monotonic() < deadline:
+                    time.sleep(.25)
+                assert "/series/testuser/testpass/311.mp4" in files, "Xtream did not request the selected episode"
+                print("Verified Xtream account and Stalker portal imports, provider details and selected Xtream episode playback.")
+                return
             if not catalog_only:
                 choose("Settings")
                 choose("Google Drive backup and restore")
@@ -375,12 +454,11 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 choose("TV Mix")
                 choose("FixtureMix")
                 locate("Play episode")
-                playing_mix.set()
                 episode_start = len(files)
                 for step in ("Play episode", "Continue mix"):
                     before_play = len(files)
                     choose(step)
-                    deadline = time.monotonic() + 70
+                    deadline = time.monotonic() + 185
                     while time.monotonic() < deadline:
                         labels = {n.get("text") for n in nodes()}
                         if "Continue mix" in labels and any("/qaseries:" in path for path in files[before_play:]):
@@ -393,7 +471,6 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                         raise AssertionError("The mix did not return to its continuation prompt")
                 played_episodes = {path.split("/")[-2] for path in files[episode_start:] if "/qaseries:" in path}
                 assert len(played_episodes) == 2, f"Expected two distinct mix episodes, saw {played_episodes}"
-                playing_mix.clear()
             choose("Home")
             long_press(scroll_to("Test film One"))
             choose("Download")
@@ -414,6 +491,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             offline.set()
             counts = len(sources), len(files)
             choose("Play")
+            locate("Playing download")
+            rotate(0)
             locate("Playing download")
             screenshot("phone-offline-playback", landscape=False)
             assert counts == (len(sources), len(files)), "Playback contacted a remote source despite the local download"
@@ -446,7 +525,11 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     shell("settings", "delete", "system", setting)
                 else:
                     shell("settings", "put", "system", setting, original)
-    print("Passed Home, Search, Library, episode playback, live TV, phone/tablet layouts, both download paths and offline restart.")
+    print("Passed Home, Search, Library, episode playback, both download paths and offline restart.")
+    if not catalog_only:
+        print("Passed live TV and phone portrait, landscape and tablet layouts.")
+    if extended:
+        print("Passed collection editing, Sports alerts, player controls and multi-episode TV Mix.")
 
 
 if __name__ == "__main__":
@@ -456,7 +539,8 @@ if __name__ == "__main__":
     parser.add_argument("--apk", type=Path, default=ROOT / "app/build/outputs/apk/mobile/debug/app-mobile-x86_64-debug.apk")
     parser.add_argument("--catalog-only", action="store_true", help="Run only the on-demand journeys during development")
     parser.add_argument("--upgrade-apk", type=Path, help="Install an update over the seeded APK and verify the saved library and offline playback")
+    parser.add_argument("--providers-only", action="store_true", help="Exercise Xtream and Stalker with local synthetic providers on a fresh emulator install")
     parser.add_argument("--drive-sign-in", action="store_true", help="Check the real Google sign-in prompt without authorizing an account")
     parser.add_argument("--extended", action="store_true", help="Exercise collection editing, TV Mix playback, Sports alerts and VOD controls")
     options = parser.parse_args()
-    run(options.adb, options.serial, options.apk, options.catalog_only, options.drive_sign_in, options.extended, options.upgrade_apk)
+    run(options.adb, options.serial, options.apk, options.catalog_only, options.drive_sign_in, options.extended, options.upgrade_apk, options.providers_only)

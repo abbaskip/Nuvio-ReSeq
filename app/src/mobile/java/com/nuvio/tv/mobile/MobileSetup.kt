@@ -1,6 +1,7 @@
 package com.nuvio.tv.mobile
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -98,6 +99,7 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
         var live by remember { mutableStateOf(true) }
         var vod by remember { mutableStateOf(true) }
         var invalid by remember { mutableStateOf(false) }
+        var sourceError by remember { mutableStateOf<String?>(null) }
         TouchSheet({ add = null }) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,6 +108,7 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
                 OutlinedTextField(address, { address = it; invalid = false }, label = { Label("URL") }, singleLine = true,
                     isError = invalid, shape = RectangleShape)
                 if (invalid) Label("Enter an HTTP or HTTPS URL.")
+                sourceError?.let { Label(it) }
                 if (kind == "Stalker portal") {
                     MobileTextInput("MAC address", mac) { mac = it }
                     MobileTextInput("Serial number (optional)", serial) { serial = it }
@@ -122,14 +125,26 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
                     if (url == null) invalid = true
                     else {
                         val label = name.trim().ifBlank { url.host }
+                        if (kind in setOf("Xtream account", "Stalker portal") && !live && !vod) {
+                            sourceError = "Select live channels, movies and series, or both."
+                            return@Action
+                        }
                         when (kind) {
                             "M3U playlist" -> vm.addPlaylist(label, address.trim(), "")
                             "Xtream account" -> {
-                                if (username.isBlank() || password.isEmpty() || !live && !vod) return@Action
+                                val login = com.nuvio.tv.livetv.model.PlaylistSource.credentialsFromLink(address.trim())
+                                if (username.ifBlank { login?.first.orEmpty() }.isBlank() || password.ifBlank { login?.second.orEmpty() }.isBlank()) {
+                                    sourceError = "Enter a username and password or paste the provider’s full playlist link."
+                                    return@Action
+                                }
                                 vm.addXtream(label, address.trim(), username.trim(), password, importVod = vod, importLive = live)
                             }
                             "Stalker portal" -> {
-                                if (mac.isBlank() || !live && !vod) return@Action
+                                if (mac.isBlank()) { sourceError = "Enter the MAC address for this portal."; return@Action }
+                                if (runCatching { com.nuvio.tv.livetv.data.StalkerPortalClient.endpoint(address.trim()) }.isFailure) {
+                                    sourceError = "Enter the portal address without a login, query or fragment."
+                                    return@Action
+                                }
                                 vm.addStalker(label, address.trim(), mac.trim(), username.trim(), password, serial.trim(), vod, live)
                             }
                             else -> vm.addEpg(label, address.trim())
@@ -213,8 +228,11 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
 @Composable
 private fun SourceRow(name: String, enabled: Boolean, remove: (() -> Unit)? = null, change: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Label(name, Modifier.weight(1f))
+        Row(Modifier.weight(1f).heightIn(min = 48.dp).toggleable(enabled, role = androidx.compose.ui.semantics.Role.Switch,
+            onValueChange = change), verticalAlignment = Alignment.CenterVertically) {
+            Label(name, Modifier.weight(1f))
+            Switch(checked = enabled, onCheckedChange = null)
+        }
         if (remove != null) Action("Remove", onClick = remove)
-        Switch(checked = enabled, onCheckedChange = change)
     }
 }

@@ -7,6 +7,9 @@ allprojects {
         maxParallelForks = 1
         forkEvery = 100
         testLogging.exceptionFormat = 'full'
+        if (providers.environmentVariable('GITHUB_ACTIONS').getOrElse('') == 'true') {
+            systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+        }
         // A requested live/profile run must never reuse cached skipped results.
         outputs.cacheIf('Only deterministic fixture checks are cached') { !optInChecks }
         outputs.upToDateWhen { !optInChecks }

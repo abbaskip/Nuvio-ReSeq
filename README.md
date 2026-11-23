@@ -10,7 +10,7 @@ Nuvio ReSeq is an independent Android TV fork of [Nuvio](https://github.com/Nuvi
 
 [Project website](https://abbaskip.github.io/Nuvio-ReSeq/) · [Privacy Policy](https://abbaskip.github.io/Nuvio-ReSeq/privacy.html) · [Terms of Service](https://abbaskip.github.io/Nuvio-ReSeq/terms.html)
 
-The phone and tablet app is in development alongside the TV app. See [ReSeq Mobile builds and feature coverage](docs/reseq-mobile.md).
+For Android phones and tablets, install the [signed ReSeq Mobile Alpha 3 universal APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/download/mobile-v0.1.0-alpha.3/Nuvio-ReSeq-Mobile-v0.1.0-alpha.3-universal.apk). The [mobile release page](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.3) also offers a smaller ARM64 APK and checksums. Both install alongside TV. [Mobile features and build instructions](docs/reseq-mobile.md)
 
 ## Copyright, content sources and independence
 

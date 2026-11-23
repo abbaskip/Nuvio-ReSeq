@@ -11,8 +11,12 @@ internal data class RecentDeviceProgress(
 
 internal const val DEVICE_PROGRESS_GRACE_MS = 10 * 60_000L
 
+// A package upgrade can interrupt playback before the tracker receives a pause.
+internal fun RecentDeviceProgress.retainedAt(now: Long): Boolean = now >= recordedAt &&
+    (now - recordedAt < DEVICE_PROGRESS_GRACE_MS || progress.hasRemovableEpisodePause() && !progress.isBelowCwMinimum())
+
 internal fun RecentDeviceProgress.pendingFor(source: String, now: Long): Boolean =
-    source !in confirmedSources && now - recordedAt in 0 until DEVICE_PROGRESS_GRACE_MS
+    source !in confirmedSources && retainedAt(now)
 
 internal fun WatchProgress.confirmsDeviceProgress(local: WatchProgress): Boolean {
     if (contentId != local.contentId || lastWatched < local.lastWatched) return false

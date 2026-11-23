@@ -82,7 +82,7 @@ class WatchProgressPreferences @Inject constructor(
         if (own.isEmpty()) return
         metadataStore(profileId).edit { prefs ->
             val receipts = deviceReceipts(prefs[deviceProgressKey]).filterValues {
-                now - it.recordedAt in 0 until DEVICE_PROGRESS_GRACE_MS
+                it.retainedAt(now)
             }.toMutableMap()
             own.forEach { receipts[it.storageKey] = RecentDeviceProgress(it, now) }
             prefs[deviceProgressKey] = gson.toJson(receipts)

@@ -23,6 +23,20 @@ class RecentDeviceProgressTest {
     private val p = WatchProgress("office", "series", "Office", null, null, null, "office:6:17", 6, 17,
         "The Delivery Part 1", 1_000, 1_000_000, 9000, tvdbEpisodeIds = listOf(46))
 
+    @Test fun `unconfirmed interrupted episode survives another device play and app restart`() = runTest {
+        val preferences = WatchProgressPreferences(factory, profiles)
+        val episode = p.copy(position = 350_000)
+        val now = System.currentTimeMillis()
+        preferences.saveProgress(episode, 1)
+        preferences.recordDeviceProgress(1, listOf(episode), now - 2 * DEVICE_PROGRESS_GRACE_MS)
+        preferences.recordDeviceProgress(1, listOf(p.copy(contentId = "other")), now)
+        preferences.confirmDeviceProgress(1, "TRAKT", emptyList())
+        val restarted = WatchProgressPreferences(factory, profiles)
+        assertTrue(episode in restarted.observeDeviceProgress(1, "TRAKT").first())
+        preferences.confirmDeviceProgress(1, "TRAKT", listOf(episode.copy(position = episode.duration)))
+        assertTrue(restarted.observeDeviceProgress(1, "TRAKT").first().isEmpty())
+    }
+
     @Test fun `cloud imports and mirrored tracker rows never acquire a device receipt`() = runTest {
         val preferences = WatchProgressPreferences(factory, profiles)
         preferences.saveProgress(p, 1) // Same storage API used by imports: no repository device receipt.

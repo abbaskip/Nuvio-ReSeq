@@ -63,7 +63,10 @@ class MDBListSettingsDataStore @Inject constructor(
 
     internal suspend fun profileApiKey(profileId: Int) = store(profileId).data.first()[apiKeyKey]
 
-    suspend fun setApiKey(apiKey: String, profileId: Int = profileManager.activeProfileId.value) {
+    suspend fun setApiKey(apiKey: String) =
+        setApiKey(apiKey, profileManager.activeProfileId.value)
+
+    internal suspend fun setApiKey(apiKey: String, profileId: Int) {
         store(profileId).edit { it[apiKeyKey] = apiKey.trim() }
     }
 

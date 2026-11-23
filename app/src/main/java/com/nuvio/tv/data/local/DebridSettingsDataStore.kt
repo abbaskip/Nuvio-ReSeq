@@ -138,7 +138,10 @@ class DebridSettingsDataStore @Inject constructor(
         }.toMap()
     }
 
-    suspend fun setProviderApiKey(providerId: String, apiKey: String, profileId: Int = profileManager.activeProfileId.value) {
+    suspend fun setProviderApiKey(providerId: String, apiKey: String) =
+        setProviderApiKey(providerId, apiKey, profileManager.activeProfileId.value)
+
+    internal suspend fun setProviderApiKey(providerId: String, apiKey: String, profileId: Int) {
         val provider = DebridProviders.byId(providerId) ?: return
         val normalized = apiKey.trim()
         store(profileId).edit { prefs ->

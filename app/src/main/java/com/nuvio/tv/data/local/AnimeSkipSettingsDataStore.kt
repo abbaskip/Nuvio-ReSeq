@@ -39,7 +39,10 @@ class AnimeSkipSettingsDataStore @Inject constructor(
 
     internal suspend fun profileClientId(profileId: Int) = factory.get(profileId, FEATURE).data.first()[clientIdKey]
 
-    suspend fun setClientId(clientId: String, profileId: Int = profileManager.activeProfileId.value) {
+    suspend fun setClientId(clientId: String) =
+        setClientId(clientId, profileManager.activeProfileId.value)
+
+    internal suspend fun setClientId(clientId: String, profileId: Int) {
         factory.get(profileId, FEATURE).edit { it[clientIdKey] = clientId.trim() }
     }
 }

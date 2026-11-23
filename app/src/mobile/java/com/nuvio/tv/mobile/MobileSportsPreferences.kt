@@ -69,6 +69,16 @@ internal fun MobileSportsPreferences(vm: SportsViewModel, close: () -> Unit) {
 internal val LiveChannel.sportsChannelLabel: String
     get() = listOf(name, sourceName).filter(String::isNotBlank).distinct().joinToString(" · ")
 
+internal fun LazyListScope.fixtureChannelChoices(matched: List<LiveChannel>, found: List<LiveChannel>, query: String,
+    setQuery: (String) -> Unit, exclude: (LiveChannel) -> Unit, pick: (LiveChannel) -> Unit) {
+    items(matched.distinctBy { it.key }, key = { "matched:" + it.key }) { channel ->
+        Action("Exclude " + channel.sportsChannelLabel) { exclude(channel) }
+    }
+    item { MobileTextInput("Find channel", query, setQuery) }
+    items(found, key = { "candidate:" + it.key }) { channel -> Action(channel.sportsChannelLabel) { pick(channel) } }
+    if (query.length >= 2 && found.isEmpty()) item { Label("No matching channels.") }
+}
+
 @Composable
 internal fun MobileFixtureChannels(event: SportsEvent, matches: List<ChannelMatch>, vm: SportsViewModel, close: () -> Unit) {
     val all by vm.repo.channelsForPicker.collectAsStateWithLifecycle()
@@ -83,10 +93,8 @@ internal fun MobileFixtureChannels(event: SportsEvent, matches: List<ChannelMatc
             item { BrowseHeading("Match channels", close); Label(event.title) }
             val channel = picked
             if (channel == null) {
-                items(matches, key = { it.channel.key }) { m -> Action("Exclude " + m.channel.sportsChannelLabel) { vm.repo.blockChannel(event, m.channel.key) } }
-                item { MobileTextInput("Find channel", query) { query = it } }
-                items(found, key = { it.key }) { ch -> Action(ch.sportsChannelLabel) { picked = ch } }
-                if (query.length >= 2 && found.isEmpty()) item { Label("No matching channels.") }
+                fixtureChannelChoices(matches.map { it.channel }, found, query, { query = it },
+                    exclude = { vm.repo.blockChannel(event, it.key) }, pick = { picked = it })
             } else item {
                 SectionTitle(channel.sportsChannelLabel)
                 Action("Use for this game") { vm.repo.pickChannel(event, channel.key, false); close() }

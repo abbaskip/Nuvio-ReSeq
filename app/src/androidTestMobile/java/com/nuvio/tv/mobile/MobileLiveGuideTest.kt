@@ -3,6 +3,7 @@ package com.nuvio.tv.mobile
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -51,6 +52,21 @@ class MobileLiveGuideTest {
         assertEquals("tune", action)
         replay.performClick()
         assertEquals("replay", action)
+    }
+
+    @Test fun matchingAnotherChannelCanIncludeAnExistingMatchInSearchResults() {
+        val one = LiveChannel("one", "p", "Provider", "Sports 1", null, null, null, "g", "Sport", 1, "local")
+        val two = one.copy(key = "two", name = "Sports 2")
+        var selected: LiveChannel? = null
+        compose.setContent {
+            LazyColumn {
+                fixtureChannelChoices(listOf(one), listOf(one, two), "Sports", {}, {}, { selected = it })
+            }
+        }
+        compose.onNodeWithText("Exclude Sports 1 · Provider").assertIsDisplayed()
+        compose.onNodeWithText("Sports 1 · Provider").assertIsDisplayed()
+        compose.onNodeWithText("Sports 2 · Provider").performClick()
+        assertEquals(two, selected)
     }
 
     @Test fun guideActionsUseTwoRowsOfEqualHeightTiles() {

@@ -46,6 +46,6 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 
 **Tracking and account sync.** Open Settings → Tracking and TVDB → MDBList to connect an account, choose its library lists or configure ratings. Open Settings → Nuvio account to link the app. After you approve in the browser, return to ReSeq. It checks the existing code immediately and starts the account sync when signed in. Check approval repeats the status check if needed.
 
-**Build availability.** Alpha 5 updates Home, tracker selection and settings navigation, and adds profile-specific TV Mix and Shuffle recovery. [Alpha 5 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.5)
+**Build availability.** Alpha 5.1 includes the redesigned shelves and settings, profile-specific Drive recovery and first-run Continue Watching with Nuvio. [Alpha 5.1 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.5.1)
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

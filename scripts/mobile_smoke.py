@@ -418,13 +418,16 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             locate("Catalog sources")
             if account or extended:
                 choose("Settings")
-                tap(scroll_to("Tracking and TVDB"))
-                scroll_to("MDBList")
-                if account is None and ("release" in apk.name or "universal" in apk.name):
-                    scroll_to("Connect MDBList")
-                tap(scroll_to("MDBList ratings and API key"))
-                scroll_to("MDBList API key")
-                choose("Back")
+                def check_tracker_settings():
+                    tap(scroll_to("Tracking and TVDB"))
+                    scroll_to("MDBList")
+                    if account is None and ("release" in apk.name or "universal" in apk.name):
+                        scroll_to("Connect MDBList")
+                    tap(scroll_to("MDBList ratings and API key"))
+                    scroll_to("MDBList API key")
+                    choose("Back")
+                if not account:
+                    check_tracker_settings()
                 if account:
                     tap(scroll_to("Nuvio account"))
                     choose("Sign in to Nuvio")
@@ -457,7 +460,11 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     tap(row)
                     locate("Zyntraxis ReSeq Fixture")
                     shell("input", "keyevent", "KEYCODE_BACK")
-                    print("Verified MDBList, browser approval after interrupted polling, restored account catalogues "
+                    choose("Settings")
+                    if any(n.get("text") == "Sync account now" for n in nodes()):
+                        choose("Back")
+                    check_tracker_settings()
+                    print("Verified direct Nuvio linking before visiting Tracking settings, MDBList, restored account catalogues "
                           "and the partially watched film on Home. Verified the full recommendation heading on one "
                           "line at 320dp and 360dp and navigation into its shelf.")
                     return

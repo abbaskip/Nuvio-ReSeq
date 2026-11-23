@@ -37,6 +37,7 @@ import com.nuvio.tv.domain.repository.AddonRepository
 import com.nuvio.tv.ui.navigation.Screen
 import com.nuvio.tv.ui.screens.detail.*
 import com.nuvio.tv.ui.screens.home.*
+import com.nuvio.tv.ui.screens.settings.TrackingSettingsViewModel
 import com.nuvio.tv.ui.screens.tvmix.TvMixViewModel
 import com.nuvio.tv.ui.screens.tvmix.streamRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,7 +53,7 @@ import javax.inject.Inject
 internal class MobileCatalogViewModel @Inject constructor(
     val downloads: MobileOfflineMedia, val profiles: ProfileManager, val external: com.nuvio.tv.core.player.ExternalPlaybackTracker,
     val themes: com.nuvio.tv.data.local.ThemeDataStore, val debrid: com.nuvio.tv.data.local.DebridSettingsDataStore,
-    val layout: LayoutPreferenceDataStore, val tracking: com.nuvio.tv.core.tracking.TrackingSourceController,
+    val layout: LayoutPreferenceDataStore,
     val progress: com.nuvio.tv.data.cw.ContinueWatchingRepository, val sync: com.nuvio.tv.core.sync.StartupSyncService,
     val watchProgress: com.nuvio.tv.domain.repository.WatchProgressRepository,
     val refresh: com.nuvio.tv.core.tracking.TrackingProgressRefreshCoordinator
@@ -65,14 +66,14 @@ internal fun mobileDetailRoute(item: MetaPreview, addon: String?, action: VideoA
 
 @Composable
 internal fun MobileCatalog(tab: Tab, playerVisible: (Boolean) -> Unit, onWatch: (com.nuvio.tv.livetv.model.LiveChannel) -> Unit = {},
-    catalog: MobileCatalogViewModel = hiltViewModel()) {
+    catalog: MobileCatalogViewModel = hiltViewModel(), tracking: TrackingSettingsViewModel = hiltViewModel()) {
     val profile by catalog.profiles.activeProfileId.collectAsStateWithLifecycle()
-    key(profile, tab) { CatalogNavigation(profile, catalog, tab, playerVisible, onWatch) }
+    key(profile, tab) { CatalogNavigation(profile, catalog, tab, playerVisible, onWatch, tracking) }
 }
 
 @Composable
 private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab: Tab, playerVisible: (Boolean) -> Unit,
-    onWatch: (com.nuvio.tv.livetv.model.LiveChannel) -> Unit,
+    onWatch: (com.nuvio.tv.livetv.model.LiveChannel) -> Unit, tracking: TrackingSettingsViewModel,
     mix: TvMixViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val scope = rememberCoroutineScope()
@@ -154,7 +155,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                 Tab.LIBRARY -> MobileLibrary(openTitle, { nav.navigate(Screen.Collections.route) },
                     { nav.navigate(Screen.OnDemand.route) }, { nav.navigate("mobile-recordings") }, { nav.navigate("mobile-party") },
                     { nav.navigate("mobile-cloud") }, { nav.navigate("mobile-servers") }, { nav.navigate("mobile-mix") })
-                else -> CatalogHome(profile, catalog, openVideo, openTitle, { nav.navigate(it) })
+                else -> CatalogHome(profile, catalog, openVideo, openTitle, { nav.navigate(it) }, tracking)
             }
         }
         mobileBrowseDestinations(nav, openTitle)
@@ -225,7 +226,8 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
 
 @Composable
 private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo: (MobileVideo, VideoAction) -> Unit,
-    open: (MetaPreview, String?, VideoAction) -> Unit, navigate: (String) -> Unit, vm: HomeViewModel = hiltViewModel()) {
+    open: (MetaPreview, String?, VideoAction) -> Unit, navigate: (String) -> Unit,
+    tracking: TrackingSettingsViewModel, vm: HomeViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     LifecycleStartEffect(vm) {
         vm.setHomeContentActive(true)
@@ -234,9 +236,10 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
         onStopOrDispose { vm.setHomeContentActive(false) }
     }
     val resolved by vm.initialCwResolved.collectAsStateWithLifecycle()
-    val source by catalog.tracking.watchProgressSource.collectAsStateWithLifecycle(com.nuvio.tv.data.local.WatchProgressSource.NUVIO_SYNC)
-    LaunchedEffect(source, profile) {
-        if (source == com.nuvio.tv.data.local.WatchProgressSource.NUVIO_SYNC) {
+    val trackingState by tracking.uiState.collectAsStateWithLifecycle()
+    val source = trackingState.watchProgressSource
+    LaunchedEffect(source, profile, trackingState.isReady) {
+        if (trackingState.isReady && source == com.nuvio.tv.data.local.WatchProgressSource.NUVIO_SYNC) {
             catalog.watchProgress.allProgress.distinctUntilChanged().collect {
                 catalog.refresh.refreshProjection()
             }

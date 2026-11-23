@@ -158,6 +158,19 @@ class TraktProgressServiceRefreshTest {
         return service
     }
 
+    @Test fun `mobile cold start needs watched shows as well as playback before rebuilding saved cards`() = runBlocking {
+        org.junit.Assume.assumeTrue(com.nuvio.tv.BuildConfig.FLAVOR == "mobile")
+        val service = createService()
+        coEvery { traktApi.getWatchedShows(any(), any(), any(), any()) } returns Response.error(503, "".toResponseBody())
+        val error = runCatching { service.refreshForContinueWatching() }.exceptionOrNull()
+        org.junit.Assert.assertTrue(error is java.io.IOException)
+        assertEquals(false, service.observeRemoteProgressLoaded().first())
+        coEvery { traktApi.getWatchedShows(any(), any(), any(), any()) } returns Response.success(emptyList())
+        lastActivitiesFails = true
+        service.refreshForContinueWatching()
+        assertEquals(true, service.observeRemoteProgressLoaded().first())
+    }
+
     private fun resetCounters() {
         listOf(lastActivitiesCalls, playbackCalls, watchedMoviesCalls, watchedShowsCalls).forEach { it.set(0) }
     }
@@ -186,6 +199,9 @@ class TraktProgressServiceRefreshTest {
         delay(SETTLE_MS)
         org.junit.Assert.assertTrue(service.observeAllProgress().first().any { it.traktPlaybackId == 77L })
         assertEquals(setOf(1 to 2, 1 to 8), service.getWatchedShowEpisodes()["tt1000001"])
+        val completed = service.completedNextUpHistory("tt1000001")
+        assertEquals(setOf(1 to 2, 1 to 8), completed.map { it.season to it.episode }.toSet())
+        org.junit.Assert.assertTrue(completed.all { it.isCompleted() && it.traktHistoryEpisode != null })
     }
 
     private fun createService(watchedMovies: List<TraktWatchedMovieItemDto> = emptyList(),

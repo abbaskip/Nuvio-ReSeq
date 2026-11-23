@@ -77,4 +77,29 @@ class MobileOfflineMediaTest {
         assertNull(videoContainer("#EXTM3U".toByteArray()))
         assertNull(videoContainer("<html>login</html>".toByteArray()))
     }
+
+    @Test fun offlineDetailsArtworkAndLocalPlaybackSurviveRestartAndAnOlderDownloadCanBeEnriched() {
+        val source = com.nuvio.tv.data.tvdb.tvdbFixtureSource()
+        val meta = com.nuvio.tv.data.tvdb.tvdbFixtureMeta(source)
+        val video = MobileVideo(1, "series", meta.id, source.first().id, meta.name, 1, 1, source.first().title)
+        val dir = media.folder(video).apply { mkdirs() }
+        val partial = File(dir, "media.part").apply { writeText("saved") }
+        media.publish(video, partial, "mp4") // Original index without offline metadata
+        media.updateDetails(media.saved(1).single(), meta)
+        val richer = media.saved(1).single()
+        assertEquals("provider episode", richer.details?.episodeSynopsis)
+        media.updateDetails(richer, meta.copy(videos = emptyList(), description = null))
+        assertEquals(richer.details, media.saved(1).single().details)
+        partial.writeText("new media")
+        media.publish(video, partial, "mp4", cover = byteArrayOf(1, 2, 3))
+        val fresh = MobileOfflineMedia(RuntimeEnvironment.getApplication())
+        val saved = fresh.saved(1).single()
+        assertEquals("provider description", saved.details?.synopsis)
+        assertEquals("2002-09-20", saved.details?.episodeAirDate)
+        assertNotNull(saved.artwork)
+        assertNotNull(fresh.localRoute(video))
+        assertTrue(fresh.saved(2).isEmpty())
+        fresh.remove(saved)
+        assertFalse(dir.exists())
+    }
 }

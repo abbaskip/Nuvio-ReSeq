@@ -149,7 +149,8 @@ def fixture(account=None):
         sources = []
         files = []
         offline = Event()
-        movies = [{"id": "qafilm" + name, "type": "movie", "name": "Test film " + name, "releaseInfo": "2018"} for name in channels]
+        movies = [{"id": "qafilm" + name, "type": "movie", "name": "Test film " + name,
+                   "description": "Two friends catch the last ferry.", "releaseInfo": "2018"} for name in channels]
         series = {"id": "qaseries", "type": "series", "name": "Zyntraxis ReSeq Fixture", "releaseInfo": "2019-2024", "videos": [
             {"id": f"qaseries:1:{n}", "season": 1, "episode": n, "title": title, "released": "2020-01-01T00:00:00.000Z",
              "overview": "A missing page leads the crew back to the archive. As the last ferry prepares to leave, two accounts of that evening finally come together."}
@@ -227,6 +228,8 @@ def fixture(account=None):
                         data = {"metas": [] if "/search=" in path and "film" not in path.casefold() else movies}
                     elif "/catalog/series/" in path:
                         data = {"metas": [series] if "/search=" not in path or "zyntraxis" in path.casefold() else []}
+                    elif "/meta/" in path and offline.is_set():
+                        return self.send_error(503)
                     elif "/meta/series/" in path:
                         data = {"meta": series}
                     elif "/meta/movie/" in path:
@@ -465,6 +468,9 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
     density = shell("wm", "density")
     rotation = shell("settings", "get", "system", "user_rotation")
     auto = shell("settings", "get", "system", "accelerometer_rotation")
+    airplane = shell("settings", "get", "global", "airplane_mode_on")
+    wifi = shell("settings", "get", "global", "wifi_on")
+    changed_network = False
     account = AccountFixture() if account_link else None
     if account:
         config = ROOT / "app/build/generated/source/buildConfig/mobile/debug/com/nuvio/tv/BuildConfig.java"
@@ -761,7 +767,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             shell("input", "text", "Zyntraxis")
             choose("Find")
             tap(scroll_to("Zyntraxis ReSeq Fixture"))
-            choose("Add to library")
+            if not any(n.get("text") == "Remove from library" for n in nodes()):
+                choose("Add to library")
             locate("Remove from library")
             choose("Library")
             choose("Zyntraxis ReSeq Fixture")
@@ -802,6 +809,13 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 locate("Reset delay")
                 shell("input", "keyevent", "KEYCODE_BACK")
             choose("Back")
+            if not upgrade_apk:
+                long_press(scroll_to("Second episode"))
+                choose("Download")
+                deadline = time.monotonic() + 55
+                while not any("qaseries:1:2/Primary" in path for path in files) and time.monotonic() < deadline:
+                    time.sleep(.5)
+                assert any("qaseries:1:2/Primary" in path for path in files), "Episode download selected the wrong source"
             if extended:
                 tap(scroll_to("Add to TV Mix"))
                 enter_first_field("FixtureMix")
@@ -880,7 +894,11 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             shell("am", "force-stop", MOBILE_ID)
             if upgrade_apk:
                 command("install", "-r", str(upgrade_apk), timeout=180)
+            changed_network = True
+            shell("cmd", "connectivity", "airplane-mode", "enable")
+            shell("svc", "wifi", "disable")
             shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
+            locate("Offline · Saved on this device")
             scroll_to("Downloads")
             choose("Library")
             locate("Zyntraxis ReSeq Fixture")
@@ -905,6 +923,18 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             choose("Downloads")
             locate("Delete Test film One")
             locate("Delete Test film Two")
+            choose("Details for Test film One")
+            locate("On this device")
+            if not upgrade_apk:
+                locate("Two friends catch the last ferry.")
+                locate("2018")
+            choose("Play download")
+            locate("Playing download")
+            confirm_video_playback()
+            assert counts == (len(sources), len(files)), "Airplane-mode Details playback requested a source"
+            shell("input", "keyevent", "KEYCODE_BACK")
+            locate("On this device")
+            choose("Back")
             screenshot("phone-library-downloads", landscape=False)
             choose("Delete Test film One")
             choose("Keep")
@@ -916,11 +946,28 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             shell("input", "keyevent", "KEYCODE_BACK")
             choose("Delete Test film Two")
             choose("Delete download")
+            if not upgrade_apk:
+                episode = "Zyntraxis ReSeq Fixture S1E2 · Second episode"
+                choose("Details for " + episode)
+                locate("On this device")
+                locate("S1E2 · Second episode")
+                locate("A missing page leads the crew back to the archive. As the last ferry prepares to leave, two accounts of that evening finally come together.")
+                choose("Play download")
+                locate("Playing download")
+                confirm_video_playback()
+                assert counts == (len(sources), len(files)), "Saved episode requested a remote source"
+                shell("input", "keyevent", "KEYCODE_BACK")
+                choose("Back")
+                choose("Delete " + episode)
+                choose("Delete download")
             locate("No saved downloads in this profile.")
             print("Verified Library downloads, cancel and confirm deletion, playback of the remaining file and the empty list.")
             if upgrade_apk:
                 print(f"Verified in-place update to {upgrade_apk.name} with the saved library and offline file.")
         finally:
+            if changed_network:
+                shell("cmd", "connectivity", "airplane-mode", "enable" if airplane == "1" else "disable")
+                shell("svc", "wifi", "enable" if wifi in ("1", "2") else "disable")
             if account:
                 command("reverse", "--remove", "tcp:38791")
             command("reverse", "--remove", "tcp:38792")

@@ -26,6 +26,8 @@ internal class MobileTrailerNetwork @Inject constructor(@ApplicationContext cont
     private val preference = MutableStateFlow(prefs.getBoolean("trailers_on_mobile_data", true))
     val allowMobileData = preference.asStateFlow()
     private var defaultNetwork: Network? = null
+    private val available = MutableStateFlow(false)
+    val hasNetwork = available.asStateFlow()
     private var onFixedNetwork = false
     private val allowed = MutableStateFlow(preference.value)
     override val playbackAllowed = allowed.asStateFlow()
@@ -74,6 +76,7 @@ internal class MobileTrailerNetwork @Inject constructor(@ApplicationContext cont
 
     private fun updateRoute(network: Network?, fixed: Boolean) {
         defaultNetwork = network
+        available.value = network != null
         onFixedNetwork = fixed
         allowed.value = preference.value || fixed
     }

@@ -60,6 +60,9 @@ class SimklTrackingProgressProvider @Inject constructor(
         }.onStart { syncRepository.refresh(TrackingRefreshIntent.AUTOMATIC) }
             .distinctUntilChanged()
 
+    override suspend fun completedNextUpHistory(contentId: String) =
+        syncRepository.projection.value.completedNextUpHistory(contentId)
+
     override fun airedEpisodeOrder(contentId: String): Flow<List<Pair<Int, Int>>> = flowOf(emptyList())
 
     override fun isWatched(

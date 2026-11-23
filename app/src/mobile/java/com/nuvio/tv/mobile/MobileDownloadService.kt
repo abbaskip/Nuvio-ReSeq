@@ -16,6 +16,8 @@ import com.nuvio.tv.ui.screens.stream.StreamPlaybackInfo
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
+import com.nuvio.tv.core.network.NetworkResult
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -28,6 +30,8 @@ import javax.inject.Inject
 @AndroidEntryPoint
 internal class MobileDownloadService : Service() {
     @Inject lateinit var media: MobileOfflineMedia
+    @Inject lateinit var metadata: com.nuvio.tv.domain.repository.MetaRepository
+    @Inject lateinit var profiles: com.nuvio.tv.core.profile.ProfileManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val running = mutableMapOf<String, String>()
     private val client = OkHttpClient.Builder().readTimeout(90, TimeUnit.SECONDS).followRedirects(false).build()
@@ -128,13 +132,30 @@ internal class MobileDownloadService : Service() {
                         } }
                         if (written == 0L || total >= 0 && total != written) throw DownloadFailure("Incomplete file. Download again to retry.")
                         job.ensureActive()
-                        media.publish(video, partial, extension)
+                        val meta = media.viewedTitle(video) ?: downloadMetadata(video)
+                        val cover = media.fetchCover(meta?.poster ?: video.poster)
+                        job.ensureActive()
+                        media.publish(video, partial, extension, meta?.offlineDetails(video), cover)
                         return
                     }
                 } finally { abort.dispose() }
             }
             throw DownloadFailure("Too many source redirects.")
         } finally { partial.delete() }
+    }
+
+    private suspend fun downloadMetadata(video: MobileVideo): com.nuvio.tv.domain.model.Meta? {
+        if (profiles.activeProfileId.value != video.profile) return null
+        return try {
+            withTimeoutOrNull(3_000) {
+                val order = com.nuvio.tv.domain.model.TvdbPlaybackContext.decode(video.tvdb)
+                val meta = order?.let { metadata.getPlaybackMeta(video.profile, video.type, video.contentId, it) }
+                    ?: metadata.getCachedMeta(video.type, video.contentId)
+                    ?: (metadata.getMetaFromAllAddons(video.type, video.contentId).first { it !is NetworkResult.Loading } as? NetworkResult.Success)?.data
+                meta?.takeIf { profiles.activeProfileId.value == video.profile }
+            }
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) { null }
     }
 
     private fun notification(title: String, message: String): Notification = NotificationCompat.Builder(this, CHANNEL)

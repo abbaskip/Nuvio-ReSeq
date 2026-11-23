@@ -24,6 +24,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.*
@@ -47,6 +50,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.catch
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import kotlinx.coroutines.withContext
@@ -58,8 +63,7 @@ internal class MobileCatalogViewModel @Inject constructor(
     val themes: com.nuvio.tv.data.local.ThemeDataStore, val debrid: com.nuvio.tv.data.local.DebridSettingsDataStore,
     val layout: LayoutPreferenceDataStore, val playback: com.nuvio.tv.data.local.PlayerSettingsDataStore,
     val progress: com.nuvio.tv.data.cw.ContinueWatchingRepository, val sync: com.nuvio.tv.core.sync.StartupSyncService,
-    val watchProgress: com.nuvio.tv.domain.repository.WatchProgressRepository,
-    val refresh: com.nuvio.tv.core.tracking.TrackingProgressRefreshCoordinator
+    val watchProgress: com.nuvio.tv.domain.repository.WatchProgressRepository
 ) : ViewModel()
 
 internal enum class VideoAction { Play, Download, Manual, Details, Restart }
@@ -186,7 +190,8 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                 guide = listing, back = { nav.popBackStack() }, onGuideMatch = { item, addon -> details(item, addon, true) })
         }
         mobileBrowseDestinations(nav, openTitle)
-        composable("downloads") { MobileDownloads(profile, catalog.downloads, back = { nav.popBackStack() }, play = { nav.navigate(it) }) }
+        composable("downloads") { MobileDownloads(profile, catalog.downloads, back = { nav.popBackStack() },
+            details = { openVideo(it, VideoAction.Details) }, play = { nav.navigate(it) }) }
         composable("mobile-cloud") { MobileCloudLibrary({ nav.popBackStack() }, { nav.navigate(it) }) }
         composable("mobile-servers") { MobileServerShelves(openTitle, { nav.popBackStack() }) }
         composable("mobile-party") {
@@ -214,7 +219,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             CatalogDetail(profile, args.getString("operation"), args.getString("previewTitle").orEmpty(),
                 args.getString("itemId").orEmpty(), args.getString("itemType").orEmpty(), openVideo,
                 { nav.popBackStack() }, { nav.navigate(it) }, openTitle, mix, catalog.layout, args.getString("addonBaseUrl")?.takeUnless { it == "{addonBaseUrl}" },
-                args.getString("guideNumber").orEmpty(), args.getString("guideSubtitle").orEmpty())
+                args.getString("guideNumber").orEmpty(), args.getString("guideSubtitle").orEmpty(), catalog.downloads)
         }
         composable(Screen.Stream.route + "&operation={operation}",
             arguments = listOf(navArgument("autoSelectStream") { type = NavType.BoolType; defaultValue = false })) { entry ->
@@ -277,10 +282,16 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     val resolved by vm.initialCwResolved.collectAsStateWithLifecycle()
     val trackingState by tracking.uiState.collectAsStateWithLifecycle()
     val source = trackingState.watchProgressSource
-    LaunchedEffect(source, profile, trackingState.isReady) {
-        if (trackingState.isReady && source == com.nuvio.tv.data.local.WatchProgressSource.NUVIO_SYNC) {
-            catalog.watchProgress.allProgress.distinctUntilChanged().collect {
-                catalog.refresh.refreshProjection()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle, source, profile, trackingState.isReady) {
+        if (trackingState.isReady) lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            kotlinx.coroutines.flow.combine(catalog.watchProgress.allProgress, catalog.watchProgress.observeNextUpSeeds(),
+                catalog.watchProgress.observeRemoteProgressLoaded()) { playback, history, loaded ->
+                Triple(playback, history, loaded)
+            }.distinctUntilChanged().conflate().catch { error ->
+                android.util.Log.e("MobileHome", "Could not observe Continue Watching", error)
+            }.collect { (_, _, loaded) ->
+                if (loaded) catalog.progress.refreshFromStoredProgress(profile, source.name)
             }
         }
     }
@@ -293,6 +304,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     val saved by produceState(emptyList<OfflineFile>(), profile, revision) {
         value = withContext(Dispatchers.IO) { catalog.downloads.saved(profile) }
     }
+    val connected by LocalTrailerNetwork.current.hasNetwork.collectAsStateWithLifecycle()
     var menu by remember { mutableStateOf<Pair<MetaPreview,String?>?>(null) }
     var resumeMenu by remember { mutableStateOf<Pair<MobileVideo, ContinueWatchingItem>?>(null) }
     var manage by remember { mutableStateOf<OfflineFile?>(null) }
@@ -331,12 +343,13 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                 }
             }
         }
+        if (!connected) item { Label("Offline · Saved on this device", Modifier.padding(horizontal = gutter), small = true) }
         val hero = state.heroItems.ifEmpty { state.catalogRows.firstOrNull()?.items.orEmpty() }
         if (state.heroSectionEnabled && hero.isNotEmpty()) item {
             HomeHighlights(hero.take(8), gutter, state.homeImdbRatingsVisibility.showRatings, open = { open(it, null, VideoAction.Details) },
                 more = { if (it.isTvMix) open(it, null, VideoAction.Details) else menu = it to null })
         }
-        if (state.continueWatchingEnabled && state.continueWatchingItems.isEmpty()) item {
+        if (connected && state.continueWatchingEnabled && state.continueWatchingItems.isEmpty()) item {
             ShelfHeading("Continue watching", gutter, trackerName(source))
             Row(Modifier.fillMaxWidth().padding(horizontal = gutter), verticalAlignment = Alignment.CenterVertically) {
                 Label(refreshError ?: if (!resolved || refreshing) "Checking watch progress…" else "No unfinished titles from this source.",
@@ -411,7 +424,9 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             item { ShelfHeading("Downloads", gutter, seeAll = { navigate("downloads") }) }
             items(saved, key = { "offline-" + it.video.key }) { entry ->
                 Row(Modifier.padding(horizontal = gutter), verticalAlignment = Alignment.CenterVertically) {
+                    MediaArt(entry.artwork ?: entry.video.poster, Icons.Default.Download, Modifier.size(38.dp, 56.dp))
                     Action(entry.video.label, Modifier.weight(1f)) { openVideo(entry.video, VideoAction.Play) }
+                    IconButton(onClick = { openVideo(entry.video, VideoAction.Details) }) { Icon(Icons.Default.Info, "Details for " + entry.video.label) }
                     Action("Manage") { manage = entry }
                 }
             }
@@ -419,7 +434,8 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
         items(transfers.values.filter { it.video.profile == profile && (it.active || it.text != "Downloaded") }) {
             Label(it.video.label + " · " + it.text, Modifier.padding(horizontal = gutter))
         }
-        if (state.catalogRows.isEmpty()) item { Label(state.error ?: if (state.isLoading) "Loading catalogues…" else "Add a catalogue source to browse titles.", Modifier.padding(gutter)) }
+        if (state.catalogRows.isEmpty()) item { Label(if (!connected) "Connect to browse more titles."
+            else state.error ?: if (state.isLoading) "Loading catalogues…" else "Add a catalogue source to browse titles.", Modifier.padding(gutter)) }
         val rows = state.homeRows.ifEmpty { state.catalogRows.map { HomeRow.Catalog(it) } }
         items(rows) { entry ->
             if (entry is HomeRow.CollectionRow) {
@@ -617,9 +633,41 @@ internal fun VideoActions(label: String, close: () -> Unit, playable: Boolean = 
 private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: String, type: String,
     open: (MobileVideo, VideoAction) -> Unit, back: () -> Unit, navigate: (String) -> Unit,
     openTitle: (MetaPreview, String?, VideoAction) -> Unit, mix: TvMixViewModel, layout: LayoutPreferenceDataStore, sourceAddon: String?,
-    guideNumber: String, guideSubtitle: String, vm: MetaDetailsViewModel = hiltViewModel(), ratings: RatingViewModel = hiltViewModel()) {
+    guideNumber: String, guideSubtitle: String, downloads: MobileOfflineMedia) {
+    val downloadRevision by downloads.changes.collectAsStateWithLifecycle()
+    val matches by produceState<List<OfflineFile>?>(null, profile, id, type, downloadRevision) {
+        value = withContext(Dispatchers.IO) { downloads.saved(profile).filter { it.video.contentId == id && it.video.type == type } }
+    }
+    val saved = matches.orEmpty()
+    val connected by LocalTrailerNetwork.current.hasNetwork.collectAsStateWithLifecycle()
+    if (!connected) {
+        if (saved.isNotEmpty()) SavedTitleDetails(saved, back) { open(it, VideoAction.Play) }
+        else Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            BrowseHeading(preview.ifBlank { "Details" }, back)
+            Label(if (matches == null) "Checking downloads…" else "This title hasn’t been downloaded on this device.")
+        }
+        return
+    }
+    val vm: MetaDetailsViewModel = hiltViewModel()
+    val ratings: RatingViewModel = hiltViewModel()
     val state by vm.uiState.collectAsStateWithLifecycle()
     val meta = state.meta
+    LaunchedEffect(meta, saved.map { it.filename }) {
+        if (meta != null) {
+            downloads.rememberTitle(profile, type, id, meta)
+            withContext(Dispatchers.IO) {
+                val cover = if (saved.any { it.artwork == null }) downloads.fetchCover(meta.poster) else null
+                saved.forEach { entry ->
+                    try { downloads.updateDetails(entry, meta, cover) } catch (_: java.io.IOException) { }
+                }
+            }
+        }
+    }
+    val wantsDetails = initial == null || initial == VideoAction.Details.name
+    if (saved.isNotEmpty() && meta == null && wantsDetails) {
+        SavedTitleDetails(saved, back) { open(it, VideoAction.Play) }
+        return
+    }
     val movie = type == "movie"
     val detailScope = rememberCoroutineScope()
     val trailerNetwork = LocalTrailerNetwork.current

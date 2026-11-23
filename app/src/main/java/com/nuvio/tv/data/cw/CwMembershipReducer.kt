@@ -118,12 +118,7 @@ object CwMembershipReducer {
         val completed = state.completed.toMutableMap()
         updates.sortedBy { it.lastWatched }.forEach { p ->
             if (p.isBelowCwMinimum()) return@forEach
-            if (p.watchEventKeys().any(state.ignoredProgress::containsKey)) return@forEach
-            // Read old episode-specific replay markers too. A legacy series-only videoId
-            // is ambiguous and must never suppress every episode in that show's history.
-            val legacyIgnored = if (p.videoId != p.contentId) state.ignoredProgress[p.legacyHistoryKey()] else null
-            if (p.lastWatched <= maxOf(state.ignoredProgress[p.historyKey()] ?: Long.MIN_VALUE, legacyIgnored ?: Long.MIN_VALUE) ||
-                p.tvdbContentIds.any { p.lastWatched <= (state.ignoredProgress[tvdbRemovalKey(p.contentId, it)] ?: Long.MIN_VALUE) }) return@forEach
+            if (p.isRevokedHistory(state.ignoredProgress)) return@forEach
             if (p.lastWatched <= (removals[p.contentId] ?: Long.MIN_VALUE)) return@forEach
             if (p.isCompleted()) {
                 val records = completed[p.contentId].orEmpty()
@@ -475,6 +470,14 @@ private fun WatchProgress.historyKey() = if (tvdbContentIds.isEmpty() && season 
     episodeHistoryKey(contentId, season, episode)
 else legacyHistoryKey()
 private fun WatchProgress.legacyHistoryKey() = "$contentId|$videoId|${tvdbContentIds.sorted().joinToString(",")}"
+
+internal fun WatchProgress.isRevokedHistory(ignored: Map<String, Long>): Boolean {
+    if (watchEventKeys().any(ignored::containsKey)) return true
+    // Some legacy providers used the series ID for every episode's video ID.
+    val legacy = if (videoId != contentId) ignored[legacyHistoryKey()] else null
+    return lastWatched <= maxOf(ignored[historyKey()] ?: Long.MIN_VALUE, legacy ?: Long.MIN_VALUE) ||
+        tvdbContentIds.any { lastWatched <= (ignored[tvdbRemovalKey(contentId, it)] ?: Long.MIN_VALUE) }
+}
 
 internal fun WatchProgress.cached(old: CachedInProgressItem? = null) = CachedInProgressItem(
     contentId, contentType, name, poster ?: old?.poster, backdrop ?: old?.backdrop, logo ?: old?.logo,

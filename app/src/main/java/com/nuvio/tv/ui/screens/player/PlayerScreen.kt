@@ -2227,7 +2227,7 @@ fun PlayerScreen(
 }
 
 @Composable
-private fun MpvPlayerSurface(
+internal fun MpvPlayerSurface(
     viewModel: PlayerViewModel,
     isPlaying: Boolean,
     isBuffering: Boolean,
@@ -2299,7 +2299,7 @@ private fun MpvPlayerSurface(
 }
 
 @Composable
-private fun ExoPlayerSurface(
+internal fun ExoPlayerSurface(
     player: ExoPlayer,
     controller: PlayerRuntimeController,
     isPlaying: Boolean,
@@ -2604,7 +2604,7 @@ private fun PlayerView.isAssOrSsaSubtitleSelected(): Boolean =
         sidecarKey = subtitleView?.getTag(R.id.player_view_sidecar_generation_tag) as? String
     )
 
-private fun PlayerView.applySubtitleStyleIfNeeded(
+internal fun PlayerView.applySubtitleStyleIfNeeded(
     subtitleStyle: SubtitleStyleSettings,
     liftPx: Float,
     force: Boolean = false

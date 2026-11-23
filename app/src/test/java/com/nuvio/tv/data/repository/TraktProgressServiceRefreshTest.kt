@@ -51,6 +51,9 @@ class TraktProgressServiceRefreshTest {
     private var lastActivitiesFails = false
 
     @Volatile
+    private var watchedShowsReply: Response<List<TraktWatchedShowItemDto>>? = null
+
+    @Volatile
     private var playbackHangs = false
 
     @Test
@@ -158,6 +161,20 @@ class TraktProgressServiceRefreshTest {
         return service
     }
 
+    @Test fun `mobile cold start needs watched shows as well as playback before rebuilding saved cards`() = runBlocking {
+        org.junit.Assume.assumeTrue(com.nuvio.tv.BuildConfig.FLAVOR == "mobile")
+        // The service starts its first sync in its constructor.
+        watchedShowsReply = Response.error(503, "".toResponseBody())
+        val service = createService()
+        val error = runCatching { service.refreshForContinueWatching() }.exceptionOrNull()
+        org.junit.Assert.assertTrue("Unexpected refresh result: $error", error is java.io.IOException)
+        assertEquals(false, service.observeRemoteProgressLoaded().first())
+        watchedShowsReply = Response.success(emptyList())
+        lastActivitiesFails = true
+        service.refreshForContinueWatching()
+        assertEquals(true, service.observeRemoteProgressLoaded().first())
+    }
+
     private fun resetCounters() {
         listOf(lastActivitiesCalls, playbackCalls, watchedMoviesCalls, watchedShowsCalls).forEach { it.set(0) }
     }
@@ -186,6 +203,9 @@ class TraktProgressServiceRefreshTest {
         delay(SETTLE_MS)
         org.junit.Assert.assertTrue(service.observeAllProgress().first().any { it.traktPlaybackId == 77L })
         assertEquals(setOf(1 to 2, 1 to 8), service.getWatchedShowEpisodes()["tt1000001"])
+        val completed = service.completedNextUpHistory("tt1000001")
+        assertEquals(setOf(1 to 2, 1 to 8), completed.map { it.season to it.episode }.toSet())
+        org.junit.Assert.assertTrue(completed.all { it.isCompleted() && it.traktHistoryEpisode != null })
     }
 
     private fun createService(watchedMovies: List<TraktWatchedMovieItemDto> = emptyList(),
@@ -230,7 +250,7 @@ class TraktProgressServiceRefreshTest {
         }
         coEvery { traktApi.getWatchedShows(any(), any(), any(), any()) } answers {
             watchedShowsCalls.incrementAndGet()
-            Response.success(listOf(TraktWatchedShowItemDto(show = TraktShowDto(title = "Fixture", ids = TraktIdsDto(imdb = "tt1000001")),
+            watchedShowsReply ?: Response.success(listOf(TraktWatchedShowItemDto(show = TraktShowDto(title = "Fixture", ids = TraktIdsDto(imdb = "tt1000001")),
                 seasons = listOf(TraktWatchedShowSeasonDto(1, listOf(TraktWatchedShowEpisodeDto(2, 2, "2026-06-01T00:00:00Z"),
                     TraktWatchedShowEpisodeDto(8, 1, "2026-02-01T00:00:00Z")))))), okhttp3.Headers.headersOf("X-Pagination-Page-Count", "1"))
         }

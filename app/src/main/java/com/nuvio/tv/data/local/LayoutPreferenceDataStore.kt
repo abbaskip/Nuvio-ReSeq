@@ -765,6 +765,12 @@ class LayoutPreferenceDataStore @Inject constructor(
         }
     }
 
+    internal suspend fun showRestoredShuffleIfUnset(profileId: Int) {
+        factory.get(profileId, FEATURE).edit { prefs ->
+            if (randomEpisodeEnabledKey !in prefs) prefs[randomEpisodeEnabledKey] = true
+        }
+    }
+
     suspend fun setRandomEpisodeEnabled(enabled: Boolean) {
         store().edit { prefs ->
             prefs[randomEpisodeEnabledKey] = enabled

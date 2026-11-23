@@ -362,7 +362,10 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 val recentNextUpSeeds = nextUpSeeds
                     .asSequence()
                     .filter { progress -> inWindow(progress.contentId, progress.lastWatched) }
-                    .sortedByDescending { it.lastWatched }
+                    .sortedByDescending {
+                        if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") latestActivity[it.contentId] ?: it.lastWatched
+                        else it.lastWatched
+                    }
                     .take(CW_MAX_RECENT_PROGRESS_ITEMS)
                     .toList()
                 // All series that still have at least one watched-episode seed.

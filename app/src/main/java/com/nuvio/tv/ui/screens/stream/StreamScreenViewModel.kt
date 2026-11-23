@@ -1737,6 +1737,9 @@ class StreamScreenViewModel @Inject constructor(
 
     fun releasePendingUsenetPlayback() = pendingUsenetPlayback.release()
 
+    /** The mobile transfer service owns the prepared local session until its file copy finishes. */
+    fun handoffToDownload(url: String?) = pendingUsenetPlayback.handoff(url)
+
     fun onInternalPlayerLaunching(url: String?) {
         pendingUsenetPlayback.handoff(url)
         streamRepository.setLocalPluginSearchPaused(true)

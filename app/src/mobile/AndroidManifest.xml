@@ -1,0 +1,38 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="video/*" />
+        </intent>
+    </queries>
+    <uses-feature android:name="android.software.leanback" tools:node="remove" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="true" tools:replace="android:required" />
+    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" tools:node="remove" />
+    <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" tools:node="remove" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
+    <application android:label="@string/mobile_app_name" tools:replace="android:label" tools:remove="android:banner">
+        <meta-data android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.nuvio.tv.mobile.MobileCastOptions" />
+        <service android:name=".mobile.MobileDownloadService" android:foregroundServiceType="dataSync" android:exported="false" />
+        <activity android:name=".MainActivity" tools:node="remove" />
+        <activity android:name=".launcher.AppIconDefault" tools:node="remove" />
+        <activity android:name=".launcher.AppIconArcticBlue" tools:node="remove" />
+        <activity android:name=".launcher.AppIconEmerald" tools:node="remove" />
+        <activity android:name=".launcher.AppIconRoseGold" tools:node="remove" />
+        <activity android:name=".launcher.AppIconCopper" tools:node="remove" />
+        <activity android:name=".launcher.AppIconGraphite" tools:node="remove" />
+        <receiver android:name=".core.sync.androidtv.TvChannelBootReceiver" tools:node="remove" />
+        <service android:name=".core.sync.androidtv.TvChannelRefreshJobService" tools:node="remove" />
+        <activity android:name=".mobile.MobileActivity" android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".core.plugin.cloudstream.ExtensionSettingsActivity"
+            android:exported="false" android:theme="@style/Theme.ReSeq.ExtensionSettings" />
+    </application>
+</manifest>

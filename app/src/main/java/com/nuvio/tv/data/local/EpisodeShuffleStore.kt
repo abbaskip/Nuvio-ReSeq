@@ -47,6 +47,8 @@ class EpisodeShuffleStore @Inject constructor(
             JSONObject().put("enabled", settings.enabled).put("includeWatched", settings.includeWatched).toString()
         }
 
+    internal suspend fun showRestoredShuffleIfUnset(profileId: Int) = layoutPreferences.showRestoredShuffleIfUnset(profileId)
+
     fun selectionChanges(profileId: Int) = factory.get(profileId, "episode_shuffle").data
         .map(::readShuffleSettings).distinctUntilChanged().map { Unit }
 

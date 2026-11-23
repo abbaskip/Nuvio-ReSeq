@@ -11,6 +11,7 @@ import com.nuvio.tv.domain.model.LibrarySourceMode
 import com.nuvio.tv.domain.model.ListMembershipChanges
 import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.domain.model.WatchProgress
+import com.nuvio.tv.domain.model.tvdbPlaybackContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -331,7 +332,7 @@ fun HomeViewModel.togglePosterMovieWatched(item: MetaPreview, watchedAt: Long?) 
             if (currentlyWatched && watchedAt == null) {
                 watchProgressRepository.removeFromHistory(item.id, videoId = item.imdbId)
             } else if (!currentlyWatched && watchedAt != null) {
-                watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(item, watchedAt))
+                watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(item, watchedAt), watchedAt = watchedAt.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" })
             }
         }.onFailure { error ->
             Log.w(HomeViewModel.TAG, "Failed to toggle poster watched status for ${item.id}: ${error.message}")
@@ -368,7 +369,6 @@ fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview, watchedAt: Long?)
     if (statusKey in _uiState.value.movieWatchedPending) return
 
     val currentlyWatched = _uiState.value.movieWatchedStatus[statusKey] == true
-
     if (currentlyWatched != (watchedAt == null)) return
 
     // Optimistically update the UI immediately
@@ -408,6 +408,7 @@ private suspend fun HomeViewModel.markSeriesWatched(item: MetaPreview, watchedAt
     check(episodes.isNotEmpty()) { "No episodes found for ${item.id}" }
 
     val progressList = episodes.map { video ->
+        val context = if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") video.tvdbPlaybackContext() else null
         WatchProgress(
             contentId = item.id,
             contentType = item.apiType,
@@ -419,13 +420,17 @@ private suspend fun HomeViewModel.markSeriesWatched(item: MetaPreview, watchedAt
             season = video.season,
             episode = video.episode,
             episodeTitle = video.title,
+            tvdbContext = context,
+            tvdbEpisodeIds = context?.episodeIds,
+            tvdbEpisodeId = context?.episodeIds?.firstOrNull(),
             position = 1L,
             duration = 1L,
             lastWatched = watchedAt,
             progressPercent = 100f
         )
     }
-    watchProgressRepository.markAsCompletedBatch(progressList)
+    if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") watchProgressRepository.markAsCompletedBatch(progressList, watchedAt)
+    else watchProgressRepository.markAsCompletedBatch(progressList)
     fullyWatchedSeriesIds.updateWithValidation(
         fullyWatchedSeriesIds.fullyWatchedSeriesIds.value + item.id,
         setOf(item.id)

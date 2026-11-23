@@ -81,6 +81,8 @@ internal class MdbListProgressProjection private constructor(
     fun nextUp(preferFurthest: Boolean): List<WatchProgress> =
         selectPreferredTrackingNextUpSeeds(seeds, preferFurthest)
 
+    fun nextUpHistory(contentId: String) = seeds.filter { it.contentId == contentId }
+
     fun isHidden(contentId: String, season: Int? = null): Boolean =
         droppedById[contentId]?.any { it == null || (season != null && it == season) } == true
 

@@ -217,7 +217,10 @@ class TraktProgressService @Inject constructor(
             showId != null && histories.value.history("trakt:$showId")?.watched?.containsKey(season to episode) == true
     private data class PlaybackWindow(val profile: Int, val since: Long, val until: Long, val sessions: Set<Long>)
     @Volatile private var confirmedPlayback: PlaybackWindow? = null
-    @Volatile private var confirmedHistoryProfile: Int? = null
+    private val confirmedHistory = MutableStateFlow<Int?>(null)
+    private var confirmedHistoryProfile: Int?
+        get() = confirmedHistory.value
+        set(value) { confirmedHistory.value = value }
 
     fun confirmsRemovedWatch(profileId: Int, event: WatchProgress): Boolean {
         if (profileManager.activeProfileId.value != profileId || event.lastWatched <= 0) return false
@@ -595,6 +598,9 @@ class TraktProgressService @Inject constructor(
     }
 
     fun observeRemoteProgressLoaded(): Flow<Boolean> {
+        if (BuildConfig.FLAVOR == "mobile") return combine(hasLoadedRemoteProgress, confirmedHistory,
+            profileManager.activeProfileId) { playback, historyProfile, active -> playback && historyProfile == active }
+            .distinctUntilChanged()
         return hasLoadedRemoteProgress
     }
 
@@ -610,6 +616,11 @@ class TraktProgressService @Inject constructor(
         }.onStart {
             scope.launch { getWatchedShowSeedsSnapshot(forceRefresh = false) }
         }.distinctUntilChanged()
+    }
+
+    internal fun completedNextUpHistory(contentId: String): List<WatchProgress> {
+        val show = histories.value.history(contentId) ?: return emptyList()
+        return show.watched.map { (episode, at) -> show.completion(episode, at) }
     }
 
     /**
@@ -1171,6 +1182,12 @@ class TraktProgressService @Inject constructor(
     internal suspend fun refreshForContinueWatching() {
         forceRefreshUntilMs = System.currentTimeMillis() + 30_000L
         refreshRemoteSnapshot()
+        // A successful playback response alone cannot confirm that a saved series
+        // has disappeared. This also leaves the next refresh free to retry history.
+        if (BuildConfig.FLAVOR == "mobile" &&
+            (confirmedHistoryProfile != profileManager.activeProfileId.value || watchedShowSeedsStale)) {
+            throw IOException("Trakt watched shows have not finished loading")
+        }
     }
 
     @VisibleForTesting
@@ -2303,7 +2320,8 @@ class TraktProgressService @Inject constructor(
      * Mark multiple episodes as watched on Trakt in a single API call.
      * Groups episodes by show and sends one POST /sync/history request.
      */
-    suspend fun markSeasonWatchedBatch(progressList: List<WatchProgress>) {
+    suspend fun markSeasonWatchedBatch(progressList: List<WatchProgress>, watchedAtMillis: Long? = null) {
+        val progressList = if (watchedAtMillis == null) progressList else progressList.map { it.copy(lastWatched = watchedAtMillis) }
         if (progressList.isEmpty()) return
         val first = progressList.first()
         val ids = resolveHistoryIds(first)

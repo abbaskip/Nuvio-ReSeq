@@ -1,0 +1,168 @@
+package com.nuvio.tv.mobile
+
+import android.content.Context
+import com.nuvio.tv.livetv.player.LiveTvTimeshift
+import com.nuvio.tv.ui.screens.player.PlayerMediaSourceFactory
+import fi.iki.elonen.NanoHTTPD
+import kotlinx.coroutines.*
+import okhttp3.*
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import java.io.Closeable
+import java.io.File
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.util.UUID
+
+internal data class CastEndpoint(val url: String, val mime: String, val relay: CastRelay? = null)
+
+/** The receiver can request only the selected media and resources named by its playlist. */
+internal class CastRelay private constructor(private val source: CastSource, bind: String,
+    private val receiver: InetAddress, private val shift: LiveTvTimeshift?, private val engineFile: Closeable?) : NanoHTTPD(bind, 0), Closeable {
+    private val token = "/" + UUID.randomUUID().toString() + "/"
+    private val root = source.url.toHttpUrl()
+    private val paths = object : LinkedHashMap<String, HttpUrl>(128, .75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, HttpUrl>?) = size > 2048
+    }
+    private data class Segment(val base: HttpUrl, val pattern: String)
+    private val segments = object : LinkedHashMap<String, Segment>(32, .75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Segment>?) = size > 512
+    }
+    private fun segmentTemplate(base: HttpUrl, pattern: String): String {
+        val slots = DASH_NUMBER.findAll(pattern).map { it.value }.toList()
+        if (slots.isEmpty()) return resource(requireNotNull(base.resolve(pattern.replace("\$\$", "\$"))))
+        val id = UUID.nameUUIDFromBytes((token + base + pattern).toByteArray()).toString()
+        synchronized(segments) { segments[id] = Segment(base, pattern) }
+        return token + id + "/" + slots.joinToString("/")
+    }
+    private fun lookup(path: String): HttpUrl? {
+        if ('/' !in path) return synchronized(paths) { paths[path] }
+        val parts = path.split('/')
+        val entry = synchronized(segments) { segments[parts.first()] } ?: return null
+        val values = parts.drop(1)
+        if (values.any { it.length !in 1..22 || it.any { ch -> ch !in '0'..'9' } } ||
+            DASH_NUMBER.findAll(entry.pattern).count() != values.size) return null
+        val replacements = values.iterator()
+        return entry.base.resolve(DASH_NUMBER.replace(entry.pattern) { replacements.next() }.replace("\$\$", "\$"))
+    }
+    private val client = OkHttpClient.Builder().followRedirects(false).dns { host ->
+        Dns.SYSTEM.lookup(host).filter { address ->
+            !address.isAnyLocalAddress && (!address.isLoopbackAddress || engineFile != null && host == root.host) && !address.isLinkLocalAddress && !address.isMulticastAddress &&
+                (host == root.host || !address.isSiteLocalAddress && (address.address.size != 16 || address.address[0].toInt() and 0xfe != 0xfc))
+        }.ifEmpty { throw java.net.UnknownHostException("Unreachable Cast media host") }
+    }.build()
+    private val localBase get() = HttpUrl.Builder().scheme("http").host(hostname).port(listeningPort).build()
+    private fun resource(url: HttpUrl): String {
+        val path = UUID.nameUUIDFromBytes((token + url).toByteArray()).toString()
+        synchronized(paths) { paths[path] = url }
+        return token + path
+    }
+    private fun providerHeaders(url: HttpUrl) = source.headers.filterKeys { key ->
+        key.lowercase() !in setOf("host", "connection", "content-length", "range", "accept-encoding") &&
+            (root.scheme == url.scheme && root.host == url.host && root.port == url.port || key.equals("User-Agent", true))
+    }
+    override fun serve(session: IHTTPSession): Response {
+        if (!session.uri.startsWith(token) || session.remoteIpAddress.substringBefore('%') != receiver.hostAddress?.substringBefore('%'))
+            return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "")
+        return try {
+            val path = session.uri.removePrefix(token)
+            when {
+                session.method == Method.OPTIONS -> newFixedLengthResponse("")
+                session.method !in setOf(Method.GET, Method.HEAD) -> newFixedLengthResponse(Response.Status.METHOD_NOT_ALLOWED, "text/plain", "")
+                shift != null -> localSegment(path)
+                else -> lookup(path)?.let { upstream(it, session) }
+                    ?: newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "")
+            }
+        } catch (_: Exception) {
+            newFixedLengthResponse(Response.Status.SERVICE_UNAVAILABLE, "text/plain", "")
+        }.apply {
+            addHeader("Access-Control-Allow-Origin", "*")
+            addHeader("Access-Control-Allow-Headers", "Range, Content-Type")
+            addHeader("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges")
+            addHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+            addHeader("Access-Control-Allow-Private-Network", "true")
+        }
+    }
+    private fun localSegment(path: String): Response {
+        require(path == "index.m3u8" || Regex("seg[0-9]+\\.ts").matches(path))
+        val file = File(requireNotNull(shift?.session).dir, path)
+        return newFixedLengthResponse(Response.Status.OK, if (path == "index.m3u8") HLS else "video/mp2t",
+            file.inputStream(), file.length())
+    }
+    private fun upstream(start: HttpUrl, session: IHTTPSession): Response {
+        var url = start
+        repeat(6) {
+            require(receiverUrl(url.toString()) || engineFile != null && url == root)
+            val req = Request.Builder().url(url).method(session.method.name, null)
+            providerHeaders(url).forEach { (k,v) -> req.header(k,v) }
+            session.headers["range"]?.let { req.header("Range", it) }
+            val response = client.newCall(req.build()).execute()
+            if (response.isRedirect) {
+                url = response.use { url.resolve(it.header("Location").orEmpty()) } ?: error("Invalid redirect")
+                return@repeat
+            }
+            try {
+                val body = requireNotNull(response.body)
+                val mime = response.header("Content-Type")?.substringBefore(';') ?: "application/octet-stream"
+                val status = Response.Status.lookup(response.code) ?: Response.Status.SERVICE_UNAVAILABLE
+                if (session.method == Method.GET && response.isSuccessful && (mime.contains("dash+xml", true) || url.encodedPath.endsWith(".mpd", true))) {
+                    response.use {
+                        require(!body.source().request(4L * 1024 * 1024 + 1))
+                        val manifest = rewriteCastDash(body.string(), url, ::resource, ::segmentTemplate)
+                        return newFixedLengthResponse(status, "application/dash+xml", manifest)
+                    }
+                }
+                if (session.method == Method.GET && response.isSuccessful && (mime.contains("mpegurl", true) || url.encodedPath.endsWith(".m3u8", true))) {
+                    response.use {
+                        require(!body.source().request(4L * 1024 * 1024 + 1))
+                        fun child(path: String) = resource(requireNotNull(url.resolve(path)).also { require(receiverUrl(it.toString())) })
+                        val lines = body.string().lineSequence().map { line ->
+                            when {
+                                line.startsWith("#") -> URI_ATTRIBUTE.replace(line) { "URI=\"" + child(it.groupValues[1]) + "\"" }
+                                line.isBlank() -> line
+                                else -> child(line.trim())
+                            }
+                        }.joinToString("\n")
+                        return newFixedLengthResponse(status, HLS, lines)
+                    }
+                }
+                val length = body.contentLength()
+                val outgoing = if (length >= 0) newFixedLengthResponse(status, mime, body.byteStream(), length)
+                    else newChunkedResponse(status, mime, body.byteStream())
+                for (key in listOf("Accept-Ranges", "Content-Range")) response.header(key)?.let { outgoing.addHeader(key, it) }
+                return outgoing
+            } catch (e: Exception) { response.close(); throw e }
+        }
+        error("Too many redirects")
+    }
+    override fun close() { client.dispatcher.cancelAll(); stop(); shift?.stop(); engineFile?.close(); client.connectionPool.evictAll() }
+    companion object {
+        private const val HLS = "application/x-mpegURL"
+        private val URI_ATTRIBUTE = Regex("URI=\"([^\"]+)\"")
+        private val DASH_NUMBER = Regex("""\$(?:Number|Time|SubNumber)(?:%0?[0-9]+d)?\$""")
+        suspend fun prepare(context: Context, source: CastSource, receiver: InetAddress?, engineFile: Closeable? = null): CastEndpoint {
+            val mime = source.mime ?: PlayerMediaSourceFactory.inferMimeType(source.url, null)
+                ?: if (source.live) HLS else "video/mp4"
+            val ts = source.live && mime.equals("video/mp2t", true)
+            if (source.headers.isEmpty() && !ts && engineFile == null) return CastEndpoint(source.url, mime)
+            val bind = try { withContext(Dispatchers.IO) {
+                requireNotNull(receiver)
+                DatagramSocket().use { socket -> socket.connect(receiver, 8009); requireNotNull(socket.localAddress.hostAddress) }
+            } } catch (e: Exception) { engineFile?.close(); throw e }
+            val shift = if (ts) LiveTvTimeshift(context) else null
+            val server = CastRelay(source, bind, requireNotNull(receiver), shift, engineFile)
+            try {
+                val path = withContext(Dispatchers.IO) {
+                    server.start(SOCKET_READ_TIMEOUT, true)
+                    if (shift == null) return@withContext server.resource(server.root)
+                    val buffer = requireNotNull(shift.start(source.url, source.headers, keepMinutes = 1, label = "Chromecast"))
+                    withTimeout(25_000) {
+                        val playlist = File(buffer.dir, "index.m3u8")
+                        while (!playlist.isFile || !playlist.readText().contains("#EXTINF:")) delay(250)
+                    }
+                    server.token + "index.m3u8"
+                }
+                return CastEndpoint(requireNotNull(server.localBase.resolve(path)).toString(), if (ts) HLS else mime, server)
+            } catch (e: Exception) { server.close(); throw e }
+        }
+    }
+}

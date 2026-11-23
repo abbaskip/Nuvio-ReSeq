@@ -27,6 +27,9 @@ interface TrackingProgressProvider {
     val allProgress: Flow<List<WatchProgress>>
     val remoteProgressLoaded: Flow<Boolean>
     val nextUpSeeds: Flow<List<WatchProgress>>
+    /** Completed episodes in the same numbering as nextUpSeeds, before selecting one per series. */
+    suspend fun completedNextUpHistory(contentId: String): List<WatchProgress> =
+        episodeProgress(contentId).first().values.filter { it.isCompleted() }
     val watchedMovieIds: Flow<Set<String>>
     /** Actual watch times, in epoch milliseconds, indexed by movie identity for this profile. */
     fun movieCompletionTimes(profileId: Int): Flow<Map<String, Long?>>
@@ -39,6 +42,8 @@ interface TrackingProgressProvider {
         get() = flowOf(emptyList())
 
     fun episodeProgress(contentId: String): Flow<Map<Pair<Int, Int>, WatchProgress>>
+    /** Native records for a selected TVDB order, before any addon renumbering or slot merging. */
+    fun nativeEpisodeRecords(contentId: String): Flow<List<WatchProgress>>? = null
     fun airedEpisodeOrder(contentId: String): Flow<List<Pair<Int, Int>>>
     fun isWatched(
         contentId: String,

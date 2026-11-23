@@ -102,7 +102,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         SentryInitializer.start(this, sentrySettingsDataStore, sentrySetting)
         PluginRuntimeHooks.onApplicationCreate(this)
         continueWatching.start()
-        androidTvChannelSyncService.start()
+        if (BuildConfig.FLAVOR == "full") androidTvChannelSyncService.start()
         serverUserStateProjection.start()
         // Load locale synchronously so it's available before Activity.attachBaseContext.
         // SharedPreferences reads are fast (cached in memory after first access).

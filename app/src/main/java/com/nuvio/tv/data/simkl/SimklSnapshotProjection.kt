@@ -57,6 +57,13 @@ internal class SimklSnapshotProjection private constructor(
     fun nextUp(preferFurthestEpisode: Boolean): List<WatchProgress> =
         if (preferFurthestEpisode) furthestNextUp else recentNextUp
 
+    fun completedNextUpHistory(contentId: String): List<WatchProgress> {
+        val key = contentId.simklLookupKey()
+        val resolved = canonicalIdByAlias[key]?.simklLookupKey()
+        return setOfNotNull(key, resolved).filterNot { it in hiddenContentIds }.flatMap { watchedItemsByContent[it].orEmpty() }
+            .filter { (it.season ?: 0) > 0 && (it.episode ?: 0) > 0 }.distinct().map { it.toSimklCompletedProgress() }
+    }
+
     fun episodeProgress(contentId: String): Map<Pair<Int, Int>, WatchProgress> {
         val key = contentId.simklLookupKey()
         val resolvedKey = canonicalIdByAlias[key]?.simklLookupKey()

@@ -46,6 +46,12 @@ runs:
       env:
         NUVIO_CACHE_KEY: ${{ inputs.encryption-key }}
       run: bash scripts/ci-cache.sh restore
+    - name: Cache public Android test runtimes
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository/org/robolectric/android-all-instrumented
+        key: robolectric-android-instrumented-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'app/build.gradle.kts') }}
+        restore-keys: robolectric-android-instrumented-${{ runner.os }}-
     - name: Record runner capacity
       shell: bash
       run: |

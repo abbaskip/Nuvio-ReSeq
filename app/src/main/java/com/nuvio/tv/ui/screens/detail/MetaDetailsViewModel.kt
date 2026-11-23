@@ -2263,7 +2263,7 @@ class MetaDetailsViewModel @Inject constructor(
                     watchProgressRepository.removeFromHistory(_effectiveContentId.value, videoId = resolveFallbackVideoId())
                     showMessage(localizedContext.getString(R.string.detail_movie_marked_unwatched))
                 } else if (!_uiState.value.isMovieWatched && watchedAt != null) {
-                    watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(meta, watchedAt))
+                    watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(meta, watchedAt), watchedAt = watchedAt.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" })
                     showMessage(localizedContext.getString(R.string.detail_movie_marked_watched))
                 }
             }.onFailure { error ->
@@ -2277,6 +2277,10 @@ class MetaDetailsViewModel @Inject constructor(
     }
 
     fun removeEpisodeWatch(video: Video, resume: WatchProgress, lastWatchOnly: Boolean) {
+        removeEpisodeWatch(video, resume, lastWatchOnly, localizedContext.getString(R.string.episodes_last_watch_removed))
+    }
+
+    fun removeEpisodeWatch(video: Video, resume: WatchProgress, lastWatchOnly: Boolean, lastWatchRemovedMessage: String) {
         if (!video.hasResolvedSource) return
         val season = video.season ?: return
         val episode = video.episode ?: return
@@ -2289,7 +2293,7 @@ class MetaDetailsViewModel @Inject constructor(
             try {
                 if (lastWatchOnly) {
                     watchProgressRepository.removeLastTraktWatch(contentId, video.forEpisodeSource(), resume)
-                    showMessage(localizedContext.getString(R.string.episodes_last_watch_removed))
+                    showMessage(lastWatchRemovedMessage)
                 } else {
                     watchProgressRepository.removeEpisodePartialWatch(contentId, video.forEpisodeSource(), resume)
                     showMessage(localizedContext.getString(R.string.episodes_partial_watch_removed))
@@ -2330,7 +2334,7 @@ class MetaDetailsViewModel @Inject constructor(
                 } else if (!isWatched && watchedAt != null) {
                     _optimisticUnmarks -= season to episode
                     _optimisticMarks += season to episode
-                    watchProgressRepository.markAsCompleted(buildCompletedEpisodeProgress(meta, video, watchedAt))
+                    watchProgressRepository.markAsCompleted(buildCompletedEpisodeProgress(meta, video, watchedAt), watchedAt = watchedAt.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" })
                     showMessage(localizedContext.getString(R.string.detail_episode_marked_watched))
                 }
             }.onFailure { error ->
@@ -2397,7 +2401,7 @@ class MetaDetailsViewModel @Inject constructor(
 
             runCatching {
                 val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it, watchedAt) }
-                watchProgressRepository.markAsCompletedBatch(progressList)
+                watchProgressRepository.markAsCompletedBatch(progressList, watchedAt.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" })
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark season $season as watched: ${error.message}")
             }
@@ -2498,7 +2502,7 @@ class MetaDetailsViewModel @Inject constructor(
 
             runCatching {
                 val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it, watchedAt) }
-                watchProgressRepository.markAsCompletedBatch(progressList)
+                watchProgressRepository.markAsCompletedBatch(progressList, watchedAt.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" })
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark previous episodes as watched: ${error.message}")
             }
@@ -2543,7 +2547,7 @@ class MetaDetailsViewModel @Inject constructor(
 
             runCatching {
                 val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it, watchedAt) }
-                watchProgressRepository.markAsCompletedBatch(progressList)
+                watchProgressRepository.markAsCompletedBatch(progressList, watchedAt.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" })
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark previous seasons as watched: ${error.message}")
             }
@@ -2707,7 +2711,12 @@ class MetaDetailsViewModel @Inject constructor(
         return meta.copy(trailers = listOf(MetaTrailer(type = "Trailer", ytId = key)) + meta.trailers)
     }
 
+    internal fun retryMissingTrailer() {
+        if (_uiState.value.trailerUrl == null && !_uiState.value.isTrailerLoading) fetchTrailerUrl()
+    }
+
     private fun fetchTrailerUrl() {
+        if (trailerService.isNetworkBlocked()) return
         if (isServerItem) return
         if (trailerHandoffActive) return
         val meta = _uiState.value.meta ?: return

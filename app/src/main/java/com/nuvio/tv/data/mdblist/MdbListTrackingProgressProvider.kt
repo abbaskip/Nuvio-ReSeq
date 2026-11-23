@@ -58,6 +58,8 @@ class MdbListTrackingProgressProvider @Inject constructor(
     override val nextUpSeeds = combine(projection, layout.nextUpFromFurthestEpisode) { projection, furthest ->
         projection.nextUp(furthest)
     }.loadOnStart()
+    override suspend fun completedNextUpHistory(contentId: String) =
+        currentProjection().nextUpHistory(contentId)
     override val remoteProgressLoaded = combine(sync.state, auth.state, profiles.activeProfileId) { state, authorization, profileId ->
         state.hasLoaded && !state.isLoading && state.error == null && state.scope == authorization.scope &&
             authorization.scope.profileId == profileId && authorization.isAuthenticated
@@ -74,6 +76,10 @@ class MdbListTrackingProgressProvider @Inject constructor(
             emit(if (mapping == null) projection.episodeHistoryAndProgress(contentId)
                 else projection.episodeProgressInAddonNumbering(contentId, mapping))
         }.loadOnStart()
+
+    override fun nativeEpisodeRecords(contentId: String) = projection.map { current ->
+        current.watchedEpisodeProgress(contentId) + current.episodeProgress(contentId).values
+    }.loadOnStart()
 
     override fun airedEpisodeOrder(contentId: String): Flow<List<Pair<Int, Int>>> = flowOf(emptyList())
 

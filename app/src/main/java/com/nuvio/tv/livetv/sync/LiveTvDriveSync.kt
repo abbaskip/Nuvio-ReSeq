@@ -380,6 +380,8 @@ class LiveTvDriveSync @Inject constructor(
     @Volatile private var emptyRefused = false
     fun restoreNow() { scope.launch { pull(force = true) } }
 
+    internal fun restoreOnMobile() { scope.launch { pull(force = true, showSavedShuffle = true) } }
+
     // ------------------------------------------------------------------ backup / restore
 
     /** Uploads this TV's setup. Skips the upload when nothing changed since the last one. */
@@ -455,7 +457,7 @@ class LiveTvDriveSync @Inject constructor(
      * Applies the Drive copy if it's newer than what this TV has (or always, when [force]).
      * Returns true if a copy was found and applied.
      */
-    private suspend fun pull(force: Boolean, onlyIfExists: Boolean = false): Boolean = mutex.withLock {
+    private suspend fun pull(force: Boolean, onlyIfExists: Boolean = false, showSavedShuffle: Boolean = false): Boolean = mutex.withLock {
         if (!force && !_state.value.autoSync) return@withLock false
         val token = token() ?: return@withLock false
         _state.value = _state.value.copy(busy = true, message = if (force && !onlyIfExists) "Restoring…" else null)
@@ -491,7 +493,10 @@ class LiveTvDriveSync @Inject constructor(
             // since the last sync and takes everything else from the other TV.
             val data = if (force) remoteData
             else merge(base, local = exportSetup(), remote = remoteData, localWinsWithoutBase = false, removedHere = prefs.removedSourceIds())
+            val playback = if (showSavedShuffle) playbackProfilesFromBackup(json) else emptyList()
             applyLocally(data)
+            playback.filter { profile -> profile.shuffle.values.any { it.enabled } }
+                .forEach { shuffle.showRestoredShuffleIfUnset(it.id) }
             store.edit()
                 .putLong(KEY_APPLIED_AT, savedAt)
                 .putLong(KEY_LAST_SYNC, System.currentTimeMillis())
@@ -585,7 +590,45 @@ class LiveTvDriveSync @Inject constructor(
         }
     }
 
-    private suspend fun uploadFile(token: String, name: String, idKey: String, fileId: String?, expectedEtag: String?, body: String) {
+    /** Read-only preview of the local playback preferences in the standard backup. */
+    internal suspend fun previewPlaybackProfiles(): List<DrivePlaybackProfile> = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val access = token() ?: error("Connect Google Drive first.")
+            val remote = remoteCopy(access) ?: error("No standard ReSeq backup found in this Drive account.")
+            playbackProfilesFromBackup(remote.json)
+        }
+    }
+
+    internal suspend fun restorePlaybackProfile(source: DrivePlaybackProfile, destinationId: Int, destinationName: String) =
+        mutex.withLock {
+            check(_state.value.connected) { "Connect Google Drive first." }
+            check(profiles.activeProfileId.first() == destinationId &&
+                profiles.profilesList.first().any { it.id == destinationId && it.name == destinationName }) {
+                "The active profile changed. Open Restore again."
+            }
+            applying = true
+            try {
+                source.copyTo(destinationId, mixes, shuffle)
+            } finally {
+                applying = false
+                appliedAtMs = System.currentTimeMillis()
+            }
+        }
+
+    /** Manual transfer has its own encrypted document. Ordinary sync never searches for it. */
+    internal suspend fun transferProviderKeys(profileId: Int, transform: suspend (JSONObject?) -> JSONObject?) = mutex.withLock {
+        check(_state.value.connected) { "Connect Google Drive first." }
+        val access = token() ?: error("Reconnect Google Drive and try again.")
+        val name = "Nuvio ReSeq provider keys - profile $profileId.json"
+        val id = fileId(access, name, null)
+        val current = id?.let { remoteCopy(access, it) }
+        transform(current?.json)?.let { updated ->
+            uploadFile(access, name, null, id, current?.etag, updated.toString())
+        }
+        Unit
+    }
+
+    private suspend fun uploadFile(token: String, name: String, idKey: String?, fileId: String?, expectedEtag: String?, body: String) {
         if (fileId == null) {
             val meta = JSONObject().put("name", name)
             if (isAppDataMode) meta.put("parents", org.json.JSONArray().put("appDataFolder"))
@@ -600,7 +643,7 @@ class LiveTvDriveSync @Inject constructor(
                     .post(multipart)
                     .build()
             )
-            store.edit().putString(idKey, JSONObject(created).optString("id")).apply()
+            if (idKey != null) store.edit().putString(idKey, JSONObject(created).optString("id")).apply()
         } else {
             execute(
                 Request.Builder()
@@ -1049,8 +1092,8 @@ class LiveTvDriveSync @Inject constructor(
     }
 
     /** The backup file's id in the app data folder, or null if there isn't one yet. */
-    private suspend fun fileId(token: String, name: String = FILE_NAME, idKey: String = KEY_FILE_ID): String? {
-        store.getString(idKey, null)?.let { return it }
+    private suspend fun fileId(token: String, name: String = FILE_NAME, idKey: String? = KEY_FILE_ID): String? {
+        if (idKey != null) store.getString(idKey, null)?.let { return it }
         val text = execute(
             Request.Builder()
                 .url(
@@ -1065,7 +1108,7 @@ class LiveTvDriveSync @Inject constructor(
         val files = JSONObject(text).optJSONArray("files")
         check((files?.length() ?: 0) <= 1) { "Multiple backups found. Nothing was overwritten." }
         val id = files?.optJSONObject(0)?.optString("id")?.takeIf { it.isNotBlank() } ?: return null
-        store.edit().putString(idKey, id).apply()
+        if (idKey != null) store.edit().putString(idKey, id).apply()
         return id
     }
 

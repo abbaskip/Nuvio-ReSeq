@@ -7,6 +7,10 @@ allprojects {
         maxParallelForks = 1
         forkEvery = 100
         testLogging.exceptionFormat = 'full'
+        if (providers.environmentVariable('GITHUB_ACTIONS').getOrElse('') == 'true') {
+            // Shared hosted-runner IPs can hit Central's rate limit on a cold SDK cache.
+            systemProperty 'robolectric.dependency.repo.url', 'https://maven-central.storage-download.googleapis.com/maven2'
+        }
         // A requested live/profile run must never reuse cached skipped results.
         outputs.cacheIf('Only deterministic fixture checks are cached') { !optInChecks }
         outputs.upToDateWhen { !optInChecks }

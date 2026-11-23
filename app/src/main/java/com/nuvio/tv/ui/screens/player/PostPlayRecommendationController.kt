@@ -788,6 +788,10 @@ internal class PostPlayRecommendationController(
 
     private fun startTrailer() {
         val state = _uiState.value
+        if (trailerService.isNetworkBlocked()) {
+            _uiState.update { it.copy(countdownSeconds = null, hasAutoPlayedTrailer = true) }
+            return
+        }
         if (!postPlayTrailerPlaybackEnabled ||
             state.isTrailerPlaying ||
             state.recommendation?.hasTrailer != true

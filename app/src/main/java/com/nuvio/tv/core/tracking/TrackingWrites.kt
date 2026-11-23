@@ -26,7 +26,8 @@ enum class TrackingListStatus(val wireValue: String) {
 
 data class TrackingHistoryItem(
     val media: TrackingMediaReference,
-    val watchedAtEpochMs: Long? = null
+    val watchedAtEpochMs: Long? = null,
+    val userSelectedWatchTime: Boolean = false
 ) {
     /**
      * Whether this mark describes a whole series rather than something that was watched.

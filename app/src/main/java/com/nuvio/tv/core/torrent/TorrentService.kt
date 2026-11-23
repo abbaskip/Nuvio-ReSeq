@@ -65,6 +65,25 @@ class TorrentService @Inject constructor(
     private var cleanupJob: Job? = null
     private var engineEventsJob: Job? = null
     private var streamGeneration = 0L
+    private var retainedStream: Any? = null
+    private var deferredShutdown: Boolean? = null
+
+    /** Transfer an already prepared engine URL to a remote player through its host. */
+    fun retainStream(url: String): java.io.Closeable? = synchronized(lifecycleLock) {
+        if ((_state.value as? TorrentState.Streaming)?.localUrl != url || retainedStream != null) return null
+        val owner = Any()
+        retainedStream = owner
+        java.io.Closeable {
+            synchronized(lifecycleLock) {
+                if (retainedStream === owner) {
+                    retainedStream = null
+                    val shutdown = deferredShutdown
+                    deferredShutdown = null
+                    if (shutdown != null) scheduleStop(shutdown)
+                }
+            }
+        }
+    }
     @Volatile
     private var currentTorrentId: String? = null
     @Volatile
@@ -223,7 +242,13 @@ class TorrentService @Inject constructor(
     }
 
     private fun scheduleStop(shutdownEngine: Boolean) {
-        val detached = detachActiveStream()
+        val detached = synchronized(lifecycleLock) {
+            if (retainedStream != null) {
+                deferredShutdown = deferredShutdown == true || shutdownEngine
+                return
+            }
+            detachActiveStream()
+        }
         val previousCleanup = cleanupJob
         cleanupJob = scope.launch {
             previousCleanup?.join()
@@ -238,6 +263,8 @@ class TorrentService @Inject constructor(
 
     private fun detachActiveStream(): DetachedStream {
         val detached: Pair<DetachedStream, Job?> = synchronized(lifecycleLock) {
+            retainedStream = null
+            deferredShutdown = null
             streamGeneration += 1
             val value = DetachedStream(engine = engine, streamId = currentStreamId)
             val job = statsJob

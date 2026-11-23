@@ -292,9 +292,18 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
     def choose(text): tap(locate(text))
 
     def enter_first_field(value):
-        tap(locate(editable=0))
+        for _ in range(4):
+            field = locate(editable=0)
+            if field.get("focused") == "true":
+                break
+            tap(field)
+        else:
+            raise AssertionError("The first text field did not gain focus")
         shell("input", "text", value)
-        shell("input", "keyevent", "KEYCODE_BACK")
+        if value not in locate(editable=0).get("text", ""):
+            raise AssertionError("The emulator did not enter the expected field value")
+        if "mInputShown=true" in shell("dumpsys", "input_method"):
+            shell("input", "keyevent", "KEYCODE_BACK")
 
     def scroll_to(label):
         for attempt in range(30):
@@ -527,10 +536,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             if any(n.get("text") == "Offline fixture" for n in nodes()):
                 shell("input", "keyevent", "KEYCODE_BACK")
             else:
-                tap(locate(editable=0))
-                shell("input", "text", address + "/addon/manifest.json")
-                shell("input", "keyevent", "KEYCODE_BACK")
-                choose("Install source")
+                enter_first_field(address + "/addon/manifest.json")
+                tap(scroll_to("Install source"))
             # Search through the installed catalogue, save a series, and play a chosen episode.
             if extended:
                 choose("Library")

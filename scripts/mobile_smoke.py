@@ -680,18 +680,27 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             if extended and not catalog_only:
                 choose("Reorder")
                 locate("Reorder Home rows")
-                choose("Custom order")
+                choose_after_sheet_opens("Custom order")
                 film, show = "Offline fixture movie", "Offline fixture series"
-                def home_list_order():
-                    labels = [n.get("text") for n in nodes()]
-                    return labels.index(film) < labels.index(show)
+                def home_list_order(expected=None):
+                    deadline = time.monotonic() + 18
+                    while time.monotonic() < deadline:
+                        tree = nodes()
+                        labels = [n.get("text") for n in tree]
+                        if film in labels and show in labels:
+                            order = labels.index(film) < labels.index(show)
+                            if expected is None or order == expected:
+                                return order
+                        time.sleep(.3)
+                    screenshot("home-order-failure", landscape=False)
+                    raise AssertionError(f"Expected film before series: {expected}. Visible labels: {labels}")
                 original = home_list_order()
                 lower = show if original else film
-                choose("Move " + lower + " up")
-                assert home_list_order() != original, "Home row did not move"
+                choose_after_sheet_opens("Move " + lower + " up")
+                home_list_order(expected=not original)
                 shell("input", "keyevent", "KEYCODE_BACK")
                 choose("Reorder")
-                assert home_list_order() != original, "Home row order was lost after reopening"
+                home_list_order(expected=not original)
                 screenshot("phone-home-order", landscape=False)
                 shell("input", "keyevent", "KEYCODE_BACK")
                 choose("Live TV")

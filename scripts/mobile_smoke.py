@@ -275,8 +275,17 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
         return command("shell", *args).decode().strip()
 
     def nodes():
-        shell("uiautomator", "dump", "/sdcard/reseq-smoke.xml")
-        return ET.fromstring(command("exec-out", "cat", "/sdcard/reseq-smoke.xml")).findall(".//node")
+        # Android can return exit code zero with no hierarchy while an Activity is attaching.
+        dump = "/sdcard/reseq-smoke.xml"
+        for _ in range(4):
+            report = shell("uiautomator", "dump", dump)
+            if "dumped to" in report.lower():
+                try:
+                    return ET.fromstring(command("exec-out", "cat", dump)).findall(".//node")
+                except ET.ParseError:
+                    pass
+            time.sleep(.35)
+        raise AssertionError(f"Could not read a fresh Android UI hierarchy on {serial}: {report}")
 
     def locate(text=None, editable=None, seconds=60):
         deadline = time.monotonic() + seconds
@@ -299,6 +308,18 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
         shell("input", "tap", str((x1+x2)//2), str((y1+y2)//2))
 
     def choose(text): tap(locate(text))
+
+    def choose_after_sheet_opens(text):
+        # Nodes become visible while the bottom sheet is still moving; wait for their tap coordinates.
+        previous = None
+        for _ in range(5):
+            node = locate(text)
+            bounds = node.get("bounds")
+            if bounds == previous and bounds:
+                tap(node)
+                return
+            previous = bounds
+        raise AssertionError(f"The bottom sheet did not settle on {text}")
 
     def enter_first_field(value):
         for _ in range(4):
@@ -466,7 +487,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 shell("input", "keyevent", "KEYCODE_BACK")
                 choose("Series")
                 choose("Xtream Fixture Show")
-                choose("S1E1 · Fixture pilot")
+                choose_after_sheet_opens("S1E1 · Fixture pilot")
                 locate("Audio")
                 deadline = time.monotonic() + 20
                 while "/series/testuser/testpass/311.mp4" not in files and time.monotonic() < deadline:

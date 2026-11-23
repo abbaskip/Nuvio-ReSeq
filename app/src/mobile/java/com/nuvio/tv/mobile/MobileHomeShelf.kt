@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -68,19 +70,23 @@ internal fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, mor
 @Composable
 internal fun ShelfHeading(title: String, gutter: Dp, source: String? = null, seeAll: (() -> Unit)? = null) {
     val colors = MaterialTheme.colorScheme
+    val normal = TextStyle(fontFamily = condensed, fontSize = 15.sp, lineHeight = 18.sp,
+        fontWeight = FontWeight.Medium, letterSpacing = 0.sp)
+    val compact = normal.copy(fontSize = 14.sp, lineHeight = 17.sp)
+    val measure = rememberTextMeasurer()
     val action = if (seeAll == null) Modifier else Modifier.clickable(role = Role.Button, onClickLabel = "See all $title", onClick = seeAll)
     Row(Modifier.fillMaxWidth().then(action).heightIn(min = 48.dp).padding(horizontal = gutter, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.weight(1f)) {
-            Text(title, color = colors.onSurface, fontFamily = condensed, fontSize = 18.sp, lineHeight = 21.sp,
-                fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (!source.isNullOrBlank()) Text(source, color = colors.onSurfaceVariant, fontFamily = condensed,
-                fontSize = 12.sp, lineHeight = 15.sp, letterSpacing = 0.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        BoxWithConstraints(Modifier.weight(1f)) {
+            fun fits(style: TextStyle) = measure.measure(title, style, softWrap = false, maxLines = 1).size.width <= constraints.maxWidth
+            val style = if (fits(normal) || !fits(compact)) normal else compact
+            Column {
+                Text(title, color = colors.onSurface, style = style, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (!source.isNullOrBlank()) Text(source, color = colors.onSurfaceVariant, fontFamily = condensed,
+                    fontSize = 12.sp, lineHeight = 15.sp, letterSpacing = 0.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
-        if (seeAll != null) Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("See all", color = colors.onSurfaceVariant, fontFamily = condensed, fontSize = 14.sp, letterSpacing = 0.sp)
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(20.dp), tint = colors.onSurfaceVariant)
-        }
+        if (seeAll != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(19.dp), tint = colors.onSurfaceVariant)
     }
 }
 

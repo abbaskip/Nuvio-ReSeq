@@ -148,7 +148,9 @@ def fixture(account=None):
             for n, title in enumerate(("Pilot", "Second episode"), start=1)]}
         manifest = {"id": "org.reseq.touchtest", "version": "1.0.0", "name": "Offline fixture",
                     "resources": ["catalog", "meta", "stream"], "types": ["movie", "series"], "idPrefixes": ["qafilm", "qaseries"],
-                    "catalogs": [{"type": kind, "id": "offline-" + kind, "name": "Offline fixture " + kind,
+                    "catalogs": [{"type": kind, "id": "offline-" + kind,
+                                  "name": ({"movie": "Because you watched The Office", "series": "Because you watched Only Murders in the Building"}[kind]
+                                           if account else "Offline fixture " + kind),
                                   "extra": [{"name": "search", "isRequired": False}]} for kind in ("movie", "series")]}
         # 130 seconds of generated H.264 and silent AAC exceeds the shared player's short-placeholder guard.
         clip = (ROOT / "scripts/fixtures/mobile-player.mp4").read_bytes()
@@ -423,8 +425,20 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     shell("input", "keyevent", "KEYCODE_BACK")
                     scroll_to("Continue watching")
                     locate("Watch progress for Test film One", seconds=120)
+                    heading = "Because you watched The Office"
+                    for width in (840, 945):  # 320dp and 360dp at the configured 420dpi
+                        shell("wm", "size", f"{width}x2000")
+                        shell("input", "swipe", "400", "480", "400", "1660", "250")
+                        for title in (heading, "Because you watched Only Murders in the Building"):
+                            row = scroll_to(title)
+                            _, top, _, bottom = map(int, re.findall(r"-?\d+", row.get("bounds")))
+                            assert bottom - top <= 24 * 420 / 160, f"{title} wrapped at {width}px: {row.get('bounds')}"
+                    tap(row)
+                    locate("Zyntraxis ReSeq Fixture")
+                    shell("input", "keyevent", "KEYCODE_BACK")
                     print("Verified MDBList, browser approval after interrupted polling, restored account catalogues "
-                          "and the partially watched film on Home.")
+                          "and the partially watched film on Home. Verified the full recommendation heading on one "
+                          "line at 320dp and 360dp and navigation into its shelf.")
                     return
                 choose("Home")
             if providers_only:

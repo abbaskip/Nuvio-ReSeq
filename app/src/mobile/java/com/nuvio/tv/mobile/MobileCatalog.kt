@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -269,13 +270,14 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 BrandWordmark(Modifier.size(96.dp, 32.dp), contentDescription = "Nuvio ReSeq")
                 IconButton(onClick = { providers = true }) {
-                    Icon(Icons.Default.Tune, contentDescription = "Catalog sources", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Tune, contentDescription = "Catalog sources", modifier = Modifier.size(20.dp), tint = colors.onSurface)
                 }
             }
         }
         val hero = state.heroItems.ifEmpty { state.catalogRows.firstOrNull()?.items.orEmpty() }
         if (state.heroSectionEnabled && hero.isNotEmpty()) item {
-            HomeHighlights(hero.take(8), gutter, open = { open(it, null, VideoAction.Details) }, more = { menu = it to null })
+            HomeHighlights(hero.take(8), gutter, open = { open(it, null, VideoAction.Details) },
+                more = { if (it.isTvMix) open(it, null, VideoAction.Details) else menu = it to null })
         }
         if (state.continueWatchingEnabled && state.continueWatchingItems.isEmpty()) item {
             ShelfHeading("Continue watching", gutter, trackerName(source))
@@ -319,8 +321,11 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                             is ContinueWatchingItem.NextUp -> entry.info.thumbnail.takeUnless { state.blurUnwatchedEpisodes }
                         }
                         val artwork = thumbnail.takeIf { state.useEpisodeThumbnailsInCw } ?: video.poster
-                        AsyncImage(artwork, null, Modifier.fillMaxWidth().height(96.dp).clip(posterCorners),
-                            contentScale = ContentScale.Crop)
+                        Box(Modifier.fillMaxWidth().height(96.dp).clip(posterCorners).background(colors.surfaceVariant),
+                            contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.PlayArrow, null, Modifier.size(28.dp), tint = colors.onSurfaceVariant)
+                            if (!artwork.isNullOrBlank()) AsyncImage(artwork, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        }
                         if (entry is ContinueWatchingItem.InProgress) LinearProgressIndicator(
                             progress = { entry.progress.progressPercentage }, modifier = Modifier.fillMaxWidth().semantics {
                                 contentDescription = "Watch progress for " + video.label

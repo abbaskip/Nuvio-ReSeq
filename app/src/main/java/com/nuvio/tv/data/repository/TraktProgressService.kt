@@ -2401,7 +2401,7 @@ class TraktProgressService @Inject constructor(
             }
         }
         if (committed.isNotEmpty()) commitHistory(first.contentId, committed.associate {
-            (it.season!! to it.episode!!) to parseIsoToMillis(watchedAt)
+            (it.season!! to it.episode!!) to it.lastWatched
         }, title = first.name)
         watchedShowSeedsStale = true
         refreshNow()

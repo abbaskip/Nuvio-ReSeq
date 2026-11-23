@@ -22,6 +22,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -31,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.nuvio.tv.domain.model.MetaPreview
+import com.nuvio.tv.ui.screens.home.isTvMix
+import com.nuvio.tv.ui.screens.tvmix.TvMixArtwork
 
 private val yearToken = Regex("""\b\d{4}\b""")
 private val yearRange = Regex("""(\d{4})\s*[-–—]\s*(\d{4})?""")
@@ -48,8 +52,9 @@ internal fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, mor
     Column(modifier.combinedClickable(onClick = open, onLongClickLabel = "Title actions", onLongClick = more)) {
         Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(posterCorners).background(colors.surfaceVariant),
             contentAlignment = Alignment.Center) {
-            if (item.apiType == com.nuvio.tv.domain.model.TvMixHomeCatalog.TYPE) {
-                com.nuvio.tv.ui.screens.tvmix.TvMixArtwork(item.poster.orEmpty(), item.name, Modifier.fillMaxSize())
+            if (item.isTvMix) {
+                val artwork = if (showCaption) Modifier else Modifier.semantics { contentDescription = item.name }
+                TvMixArtwork(item.poster.orEmpty(), modifier = artwork.fillMaxSize())
             } else if (item.poster.isNullOrBlank()) {
                 Icon(Icons.Default.Theaters, if (showCaption) null else item.name, tint = colors.onSurfaceVariant)
             } else {

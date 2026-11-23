@@ -24,7 +24,7 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 | `LicensesAttributions` | Partial | A touch attribution browser displays source links, GPL attribution and the shared playback, data and UI notices. Device verification is in progress. |
 | `Home`, `Detail`, `Stream`, `Player` | Partial | Home highlights, Continue Watching, folders, downloads, manual sources, TVDB identity, personal ratings, cast, related titles and collections. The touch test exercises episode playback, speed and subtitle controls, both download paths and offline restart. Trailers, external players, recommendations and tracker rating submission need separate verification. |
 | `Library`, `Search`, `Discover`, `PlaybackSettings` | Partial | Library filters, search history and suggestions, Discover, cloud files, media server sign-in and shelves. Playback settings include audio, subtitles, codecs, caching, source fallback, next episode and post-play. External server integration needs provider qualification. |
-| `FlickPick` | Partial | Search opens the mobile picker for library and discovery recommendations, filtering and playback. Device verification is in progress. |
+| `FlickPick` | Partial | Home and Search open the mobile picker for library and discovery recommendations. Both filter modes and the pinned play action have emulator coverage on phone and tablet. Signed-in list recommendations need provider verification. |
 | `CalendarTeams`, `Multiview` | Partial | Teams are reachable from Calendar and Sports. Multiview has touch panes, focus, fullscreen and channel selection. Multi-decoder hardware qualification remains. |
 | `OnDemand`, `OnDemandSearch` | Partial | Library opens provider movies and series with categories, parental PINs, search, season and version selection. The provider test checks Stalker film import, Xtream film details and playback of a selected Xtream episode. Category and version-selection checks remain. |
 | `AddonManager` | Partial | Install, sync, enable, disable, reorder and remove sources using the shared manager. Protected profile and device verification is in progress. |
@@ -46,6 +46,6 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 
 **Tracking and account sync.** Open Settings → Tracking and TVDB → MDBList to connect an account, choose its library lists or configure ratings. Open Settings → Nuvio account to link the app. After you approve in the browser, return to ReSeq. It checks the existing code immediately and starts the account sync when signed in. Check approval repeats the status check if needed.
 
-**Build availability.** Alpha 9 adds artwork-led Details, episode and source cards, a pinned Calendar and Flick Pick on Home and Search. [Alpha 9 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.9)
+**Build availability.** Alpha 10 displays each TV Mix name beneath its cover, following the Home poster caption preference. It includes the artwork-led Details, episode and source cards, pinned Calendar and Flick Pick on Home and Search. [Alpha 10 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.10)
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

@@ -62,7 +62,7 @@ internal fun FixtureTile(event: SportsEvent, hideScores: Boolean, use24h: Boolea
     val league = SportsCatalog.league(event.leagueId)
     val sides = event.ordered(league?.sport ?: Sport.OTHER)
     val clock = if (event.hasTime) formatClock(event.startMs, use24h) else null
-    val status = event.status?.takeIf { !hideScores && !event.awaitingUpdate && it.isNotBlank() }
+    val status = event.status?.takeIf { !hideScores && it.isNotBlank() }
     val interaction = if (open == null) Modifier else Modifier.clickable(role = Role.Button) { open(event) }
     Column(modifier.clip(cardShape).background(fill).border(1.dp, edge, cardShape).then(interaction).heightIn(min = 64.dp)) {
         if (league != null || clock != null || status != null) {
@@ -74,7 +74,7 @@ internal fun FixtureTile(event: SportsEvent, hideScores: Boolean, use24h: Boolea
                     clock?.let { Text(it, fontFamily = condensed, fontSize = 12.sp, lineHeight = 15.sp, color = c.onSurfaceVariant) }
                 }
                 status?.let {
-                    val live = event.state == GameState.LIVE
+                    val live = event.state == GameState.LIVE && !event.awaitingUpdate
                     Text(it, Modifier.widthIn(max = 104.dp).background(if (live) lerp(fill, c.primary, .23f) else fill, cardShape)
                         .padding(horizontal = 7.dp, vertical = 3.dp), fontFamily = condensed, fontSize = 12.sp,
                         lineHeight = 15.sp, fontWeight = FontWeight.Medium, color = c.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)

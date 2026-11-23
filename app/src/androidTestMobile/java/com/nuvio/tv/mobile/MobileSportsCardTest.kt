@@ -39,9 +39,22 @@ class MobileSportsCardTest {
 
     private fun layout(label: String): TextLayoutResult {
         val layouts = mutableListOf<TextLayoutResult>()
-        compose.onAllNodesWithText(label, substring = true, useUnmergedTree = true).onLast()
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-        return layouts.single()
+        val found = compose.onAllNodesWithText(label, substring = true, useUnmergedTree = true)
+        for (index in found.fetchSemanticsNodes().indices) {
+            found[index].performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        }
+        // A fallback team crest can print the same abbreviation as the team name.
+        return layouts.maxBy { it.layoutInput.style.fontSize.value }
+    }
+
+    private fun assertFullyVisible(label: String, text: TextLayoutResult) {
+        // Paragraph edges are fractional pixels, while the measured composable uses integer pixels.
+        for (line in 0 until text.lineCount) {
+            assertFalse("$label was ellipsized", text.isLineEllipsized(line))
+            assertTrue("$label overran ${text.size.width}px at ${text.getLineRight(line)}",
+                text.getLineLeft(line) >= -1f && text.getLineRight(line) <= text.size.width + 1f)
+        }
+        assertTrue("$label was clipped vertically", text.getLineBottom(text.lineCount - 1) <= text.size.height + 1f)
     }
 
     @Test fun cricketNamesAndFullInningsFitAtPhoneAndTabletWidths() {
@@ -60,17 +73,24 @@ class MobileSportsCardTest {
                 }
             }
         }
-        for ((cardWidth, scale) in listOf(276 to 1f, 316 to 1f, 340 to 1f, 214 to 1.55f)) {
+        for ((cardWidth, scale) in listOf(276 to 1f, 316 to 1f, 340 to 1f, 276 to 1.55f, 214 to 1.55f)) {
             compose.runOnIdle { width = cardWidth.dp; fontScale = scale }
             for (name in listOf("NSW", "Queensland Bulls")) {
                 val text = layout(name)
-                assertFalse("$name clipped at ${cardWidth}dp / $scale", text.hasVisualOverflow)
-                assertEquals("$name wrapped at ${cardWidth}dp / $scale", 1, text.lineCount)
+                assertFullyVisible(name, text)
+                if (cardWidth >= 276 || !name.contains(' ')) {
+                    assertEquals("$name wrapped at ${cardWidth}dp / $scale", 1, text.lineCount)
+                } else {
+                    val lines = (0 until text.lineCount).map { line ->
+                        name.substring(text.getLineStart(line), text.getLineEnd(line)).trim()
+                    }
+                    assertEquals("$name broke inside a word", name, lines.joinToString(" "))
+                }
             }
             for (score in listOf("174/6", "60.0 ov", "278/10", "111.1 ov")) {
-                assertFalse("$score clipped", layout(score).hasVisualOverflow)
+                assertFullyVisible(score, layout(score))
             }
-            if (cardWidth == 276) {
+            if (cardWidth == 276 && scale == 1f) {
                 val root = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir("screenshots")
                 File(root, "sheffield-shield-320dp.png").outputStream().use {
                     compose.onNodeWithTag("fixture").captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)

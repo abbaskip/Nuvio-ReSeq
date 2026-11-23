@@ -63,8 +63,8 @@ jobs:
           script: |
             adb -s emulator-5554 install -r app/build/outputs/apk/mobile/debug/app-mobile-x86_64-debug.apk
             adb -s emulator-5554 install -r app/build/outputs/apk/androidTest/mobile/debug/*-androidTest.apk
-            adb -s emulator-5554 shell am instrument -w -e class com.nuvio.tv.mobile.MobileSportsCardTest io.github.abbaskip.nuvioreseq.mobile.test/androidx.test.runner.AndroidJUnitRunner | tee build/sports-card-test.txt
-            grep -Fq 'OK (1 test)' build/sports-card-test.txt
+            adb -s emulator-5554 shell am instrument -w -e package com.nuvio.tv.mobile io.github.abbaskip.nuvioreseq.mobile.test/androidx.test.runner.AndroidJUnitRunner | tee build/mobile-instrumentation.txt
+            grep -Eq '^OK \([1-9][0-9]* tests?\)' build/mobile-instrumentation.txt
             mkdir -p build/mobile-smoke
             adb -s emulator-5554 pull /sdcard/Android/data/io.github.abbaskip.nuvioreseq.mobile/files/screenshots/sheffield-shield-320dp.png build/mobile-smoke/sheffield-shield-320dp.png
             python3 scripts/mobile_smoke.py --extended

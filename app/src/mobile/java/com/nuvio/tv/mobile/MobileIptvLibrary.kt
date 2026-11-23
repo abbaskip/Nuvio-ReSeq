@@ -60,7 +60,7 @@ internal fun MobileIptvLibrary(back: () -> Unit, play: (String) -> Unit, vm: OnD
         LazyVerticalGrid(GridCells.Adaptive(108.dp), verticalArrangement = Arrangement.spacedBy(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(items.size) { index ->
                 val item = items[index]
-                Column(Modifier.fillMaxWidth().clickable { selected = item }) {
+                Column(Modifier.fillMaxWidth().mediaPanel().clickable { selected = item }) {
                     AsyncImage(vm.posterFor(item), null, Modifier.fillMaxWidth().aspectRatio(2f / 3f), contentScale = ContentScale.Crop)
                     Label(vm.nameFor(item), small = true, lines = 2)
                 }

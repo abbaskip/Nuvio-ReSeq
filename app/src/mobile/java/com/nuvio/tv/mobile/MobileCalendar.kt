@@ -4,7 +4,13 @@ package com.nuvio.tv.mobile
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -81,70 +87,103 @@ private fun CalendarAgenda(vm: CalendarViewModel, profile: Int, onWatch: (LiveCh
             CalendarMode.DAY -> date.plusDays(step)
         }.toEpochDay()
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item { Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { SectionTitle(stringResource(R.string.nav_calendar)) }
-            Action("Teams") { teams = true }
-            Action(stringResource(R.string.calendar_refresh)) { vm.refresh() }
-        } }
-        item { Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            CalendarMode.entries.forEach {
-                Action(stringResource(it.label), Modifier.weight(1f), it == pref.mode) { vm.preferences.setMode(profile, it) }
+    var options by rememberSaveable { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
+    val controls: @Composable () -> Unit = {
+        Column(Modifier.fillMaxWidth().mediaPanel().padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { SectionTitle(stringResource(R.string.nav_calendar)) }
+                IconButton(onClick = { options = true }) { Icon(Icons.Default.Tune, "Calendar filters", tint = colors.primary) }
+                IconButton(onClick = vm::refresh) { Icon(Icons.Default.Refresh, stringResource(R.string.calendar_refresh)) }
             }
-        } }
-        item { LazyRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            items(CalendarFilter.entries) { Action(stringResource(it.label), selected = filter == it && sport == null) { vm.preferences.setFilter(profile, it) } }
-            items(shortcuts.orEmpty().toList()) { Action(stringResource(it.labelRes), selected = sport == it) { vm.preferences.toggleSport(profile, it) } }
-        } }
-        if (filter == CalendarFilter.SPORTS) item {
-            Action(stringResource(if (pref.allSports) R.string.calendar_all_enabled else R.string.calendar_my_sports)) {
-                vm.preferences.setAllSports(profile, !pref.allSports)
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                CalendarMode.entries.forEach { mode -> Action(stringResource(mode.label), Modifier.weight(1f), mode == pref.mode) { vm.preferences.setMode(profile, mode) } }
             }
-        }
-        item { Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            Action("Previous", Modifier.weight(1f)) { move(-1) }
-            Action(stringResource(R.string.calendar_today), Modifier.weight(1f)) { chosen = null }
-            Action("Next", Modifier.weight(1f)) { move(1) }
-        } }
-        item { Label(heading.format(date), Modifier.padding(6.dp), strong = true) }
-        if (pref.mode != CalendarMode.DAY) item {
-            val first = CalendarWindow.week(LocalDate.ofEpochDay(window.first), locale).first
-            val weeks = ((window.last - first) / 7 + 1).toInt()
-            Column {
-                Row {
-                    repeat(7) { i ->
-                        Label(LocalDate.ofEpochDay(first + i).dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale),
-                            Modifier.weight(1f), small = true)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { move(-1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous") }
+                TextButton(onClick = { chosen = null }) { Label(stringResource(R.string.calendar_today), strong = true) }
+                Label(date.format(DateTimeFormatter.ofPattern("MMM yyyy", locale)), strong = true)
+                IconButton(onClick = { move(1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next") }
+            }
+            if (pref.mode != CalendarMode.DAY) {
+                val first = CalendarWindow.week(LocalDate.ofEpochDay(window.first), locale).first
+                Row { repeat(7) { i ->
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Label(LocalDate.ofEpochDay(first + i).dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale), small = true)
                     }
-                }
-                repeat(weeks) { week ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+                } }
+                repeat(((window.last - first) / 7 + 1).toInt()) { week ->
+                    Row {
                         repeat(7) { i ->
                             val d = first + week * 7 + i
-                            if (d !in window) Spacer(Modifier.weight(1f))
-                            else {
-                                val number = LocalDate.ofEpochDay(d).dayOfMonth.toString()
-                                Action(if (grouped[d].isNullOrEmpty()) number else "$number·", Modifier.weight(1f),
-                                    d == day) { chosen = d }
+                            val cell = Modifier.weight(1f).heightIn(min = 40.dp)
+                            if (d !in window) Spacer(cell) else {
+                                val hasEvents = !grouped[d].isNullOrEmpty()
+                                Box(cell.clip(mediaCorners).background(if (d == day) colors.primary else androidx.compose.ui.graphics.Color.Transparent)
+                                    .clickable { chosen = d }.semantics { contentDescription = heading.format(LocalDate.ofEpochDay(d)); selected = d == day },
+                                    contentAlignment = Alignment.Center) {
+                                    Text(LocalDate.ofEpochDay(d).dayOfMonth.toString(), fontFamily = condensed,
+                                        color = if (d == day) colors.onPrimary else colors.onSurface)
+                                    if (hasEvents) Spacer(Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).size(4.dp)
+                                        .background(if (d == day) colors.onPrimary else colors.primary, androidx.compose.foundation.shape.CircleShape))
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        if (CalendarStatus.RETRY in status) item { Label(stringResource(R.string.calendar_retry)) }
-        if (CalendarStatus.OPENING in status || CalendarStatus.UPDATING in status) item { Label(stringResource(R.string.calendar_loading)) }
-        else if (rows.isEmpty()) item { Label(stringResource(R.string.calendar_empty), Modifier.padding(8.dp)) }
-        items(rows, key = { it.key }) { entry ->
-            Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).clickable {
-                if (entry.fixture != null) vm.selectFixture(entry)
-                detail = entry
+    }
+    val agenda: @Composable () -> Unit = {
+        Column {
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { SectionTitle(heading.format(date)) }
+                TextButton(onClick = { options = true }) { Label(sport?.let { stringResource(it.labelRes) } ?: stringResource(filter.label), small = true) }
             }
-                .heightIn(min = 56.dp).padding(10.dp)) {
-                Label(entry.title, strong = true)
-                Label(listOfNotNull(entry.time?.let { time.format(Date(it)) }, entry.leagueName, entry.detail.takeIf(String::isNotBlank))
-                    .joinToString(" · "), small = true)
+            key(profile, day, filter, sport) {
+                LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(7.dp), contentPadding = PaddingValues(bottom = 10.dp)) {
+                    if (CalendarStatus.RETRY in status) item { Action(stringResource(R.string.calendar_retry)) { vm.refresh() } }
+                    if (CalendarStatus.OPENING in status || CalendarStatus.UPDATING in status) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    else if (rows.isEmpty()) item { Label(stringResource(R.string.calendar_empty), Modifier.fillMaxWidth().mediaPanel().padding(16.dp)) }
+                    items(rows, key = { it.key }) { entry ->
+                        val image = entry.artwork ?: entry.fixture?.sides?.firstNotNullOfOrNull { it.team.logo } ?: entry.guideSides.firstNotNullOfOrNull { it.team.logo }
+                        Row(Modifier.fillMaxWidth().mediaPanel().clickable {
+                            if (entry.fixture != null) vm.selectFixture(entry)
+                            detail = entry
+                        }.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            MediaArt(image, when (entry.kind) {
+                                CalendarKind.SPORT -> Icons.Default.EmojiEvents
+                                CalendarKind.EPISODE, CalendarKind.GUIDE -> Icons.Default.LiveTv
+                                else -> Icons.Default.Movie
+                            }, Modifier.size(54.dp, 62.dp).clip(mediaCorners),
+                                if (entry.fixture != null) androidx.compose.ui.layout.ContentScale.Fit else androidx.compose.ui.layout.ContentScale.Crop)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                entry.time?.let { Text(time.format(Date(it)), fontFamily = condensed, color = colors.primary) }
+                                Label(entry.title, strong = true, lines = 2)
+                                val notes = listOfNotNull(entry.leagueName, entry.detail.takeIf(String::isNotBlank)).joinToString(" · ")
+                                if (notes.isNotBlank()) Label(notes, small = true, lines = 2)
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+    CalendarPanes(controls, agenda)
+    if (options) TouchSheet({ options = false }) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            BrowseHeading("Calendar filters") { options = false }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                CalendarFilter.entries.forEach { Action(stringResource(it.label), selected = filter == it && sport == null) { vm.preferences.setFilter(profile, it) } }
+            }
+            if (shortcuts.orEmpty().isNotEmpty()) SectionTitle("Sport shortcuts")
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                shortcuts.orEmpty().forEach { Action(stringResource(it.labelRes), selected = sport == it) { vm.preferences.toggleSport(profile, it) } }
+            }
+            if (filter == CalendarFilter.SPORTS) Action(stringResource(if (pref.allSports) R.string.calendar_all_enabled else R.string.calendar_my_sports)) {
+                vm.preferences.setAllSports(profile, !pref.allSports)
+            }
+            Action("Teams") { options = false; teams = true }
         }
     }
     val fixture = detail?.fixture
@@ -165,4 +204,17 @@ private fun CalendarAgenda(vm: CalendarViewModel, profile: Int, onWatch: (LiveCh
             if (entry.channelCount > 0) Label(stringResource(R.string.calendar_channel_count, entry.channelCount))
         }
     } }
+}
+
+@Composable
+internal fun CalendarPanes(controls: @Composable () -> Unit, agenda: @Composable () -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
+        if (maxWidth > maxHeight && maxWidth >= 520.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(.43f).fillMaxHeight().verticalScroll(rememberScrollState())) { controls() }
+            Box(Modifier.weight(.57f)) { agenda() }
+        } else Column {
+            Column(Modifier.heightIn(max = this@BoxWithConstraints.maxHeight * .64f).verticalScroll(rememberScrollState())) { controls() }
+            Box(Modifier.weight(1f)) { agenda() }
+        }
+    }
 }

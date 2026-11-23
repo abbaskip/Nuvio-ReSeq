@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -53,7 +54,7 @@ internal fun MobileDiscover(openTitle: (MetaPreview, VideoAction) -> Unit,
         LazyVerticalGrid(GridCells.Adaptive(116.dp), contentPadding = PaddingValues(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(state.items, key = { it.apiType + "/" + it.id }) { item ->
-                Column(Modifier.background(MaterialTheme.colorScheme.surface).combinedClickable(
+                Column(Modifier.mediaPanel().combinedClickable(
                     onClick = { detail = item }, onLongClickLabel = "Title actions", onLongClick = { detail = item })) {
                     AsyncImage(item.poster, null, Modifier.fillMaxWidth().aspectRatio(2f / 3), contentScale = ContentScale.Crop)
                     Label(item.name, Modifier.padding(6.dp), small = true, lines = 2)
@@ -188,7 +189,11 @@ internal fun MixList(vm: TvMixViewModel, back: () -> Unit, play: (com.nuvio.tv.d
         if (state.autoStart && state.selection != null) vm.play()?.let(currentPlay)
     }
     LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item { BrowseHeading("TV Mix", back) }
+        item {
+            BrowseHeading("TV Mix", back)
+            androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.tv_mix_backdrop), null,
+                Modifier.fillMaxWidth().height(112.dp), contentScale = ContentScale.Crop)
+        }
         if (mixes.isEmpty()) item { Label("Choose a show in Discover to create a mix.") }
         items(mixes, key = { it.id }) { mix ->
             Action(mix.name, selected = state.mixId == mix.id) { vm.open(mix.id) }
@@ -199,7 +204,10 @@ internal fun MixList(vm: TvMixViewModel, back: () -> Unit, play: (com.nuvio.tv.d
                     vm.save(mix.copy(unwatchedOnly = !mix.unwatchedOnly)) { vm.remix() }
                 }
                 state.selection?.let { pick ->
-                    Label(pick.meta.name + " · " + pick.video.title, strong = true)
+                    Row(Modifier.fillMaxWidth().mediaPanel().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        MediaArt(pick.video.thumbnail ?: pick.meta.backdropUrl, androidx.compose.material.icons.Icons.Default.Movie, Modifier.size(82.dp, 52.dp))
+                        Label(pick.meta.name + " · " + pick.video.title, Modifier.weight(1f), strong = true)
+                    }
                     Action(if (state.continuePrompt) "Continue mix" else "Play episode") { vm.play()?.let(play) }
                 }
                 state.error?.let { Label(it) }

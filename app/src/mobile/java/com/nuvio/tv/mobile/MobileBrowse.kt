@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,7 +36,7 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
     Column(Modifier.fillMaxSize().padding(horizontal = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { SectionTitle("Search") }
-            Action("FlickPick", onClick = flickPick)
+            Action("Flick Pick", onClick = flickPick)
             Action("Advanced Discover", onClick = advanced)
         }
         OutlinedTextField(state.query, { vm.onEvent(SearchEvent.QueryChanged(it)) }, Modifier.fillMaxWidth(),
@@ -119,17 +121,17 @@ internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, co
             Action("Filter and sort") { filters = true }
         }
         DownloadsLink(downloads)
-        LazyRow {
-            item { Action("Collections", onClick = collections) }
-            item { Action("TV Mix", onClick = mix) }
-            item { Action("IPTV library", onClick = iptv) }
-            item { Action("Recordings", onClick = recordings) }
-            item { Action("Watch Party", onClick = party) }
-            item { Action("Cloud files", onClick = cloud) }
-            item { Action("Server libraries", onClick = servers) }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
+            item { LibraryShortcut("Collections", Icons.Default.Collections, collections) }
+            item { LibraryShortcut("TV Mix", Icons.Default.Shuffle, mix) }
+            item { LibraryShortcut("IPTV library", Icons.Default.LiveTv, iptv) }
+            item { LibraryShortcut("Recordings", Icons.Default.FiberManualRecord, recordings) }
+            item { LibraryShortcut("Watch Party", Icons.Default.Groups, party) }
+            item { LibraryShortcut("Cloud files", Icons.Default.Cloud, cloud) }
+            item { LibraryShortcut("Server libraries", Icons.Default.Storage, servers) }
         }
-        LazyRow { items(state.listTabs) { tab -> Action(tab.title, selected = tab.key == state.selectedListKey) { vm.onSelectListTab(tab.key) } } }
-        LazyRow { items(state.availableTypeTabs) { tab -> Action(tab.label, selected = tab == state.selectedTypeTab) { vm.onSelectTypeTab(tab) } } }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) { items(state.listTabs) { tab -> Action(tab.title, selected = tab.key == state.selectedListKey) { vm.onSelectListTab(tab.key) } } }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp), contentPadding = PaddingValues(vertical = 4.dp)) { items(state.availableTypeTabs) { tab -> Action(tab.label, selected = tab == state.selectedTypeTab) { vm.onSelectTypeTab(tab) } } }
         if (state.visibleItems.isEmpty()) Label(state.errorMessage ?: if (state.isLoading) "Loading library…" else
             if (state.allItems.isEmpty()) "Save a movie or series from its details to find it here." else "No titles match these filters.",
             Modifier.padding(12.dp))
@@ -180,5 +182,14 @@ internal fun MobileEpisodeOrder(meta: Meta, changed: () -> Unit, vm: TvdbOrderCo
             state.error?.let { item { Label(it); Action("Retry") { vm.open(meta) } } }
             item { Label("Metadata provided by TheTVDB", Modifier.padding(12.dp), small = true) }
         }
+    }
+}
+
+@Composable
+private fun LibraryShortcut(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, open: () -> Unit) {
+    Row(Modifier.mediaPanel().clickable(onClick = open).heightIn(min = 52.dp).padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+        Label(label, strong = true)
     }
 }

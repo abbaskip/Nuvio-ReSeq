@@ -247,9 +247,13 @@ internal fun SectionTitle(text: String) {
         SettingsHeading(text)
         return
     }
-    Text(text, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontFamily = condensed,
-        color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 18.sp,
-        lineHeight = 22.sp, letterSpacing = 0.sp)
+    val colors = MaterialTheme.colorScheme
+    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        Spacer(Modifier.size(3.dp, 14.dp).background(colors.primary))
+        Text(text, Modifier.weight(1f), fontFamily = condensed, color = colors.onSurface, fontWeight = FontWeight.SemiBold,
+            fontSize = 17.sp, lineHeight = 21.sp, letterSpacing = 0.sp)
+    }
 }
 
 @Composable
@@ -258,8 +262,11 @@ internal fun Action(text: String, modifier: Modifier = Modifier, selected: Boole
     val action = if (selected == null) Modifier.clickable(role = Role.Button, onClick = onClick)
         else Modifier.selectable(selected, role = Role.Tab, onClick = onClick)
     val settings = LocalSettingsMenu.current
-    val frame = if (settings && selected == true) Modifier.border(1.dp, c.primary) else Modifier
-    Box(modifier.background(if (selected == true) c.surfaceVariant else c.surface).then(frame).then(action)
+    val face = if (settings) {
+        Modifier.background(if (selected == true) c.surfaceVariant else c.surface)
+            .then(if (selected == true) Modifier.border(1.dp, c.primary) else Modifier)
+    } else Modifier.mediaPanel(selected == true)
+    Box(modifier.then(face).then(action)
         .heightIn(min = 48.dp).widthIn(min = 48.dp).padding(horizontal = 10.dp),
         contentAlignment = if (settings) Alignment.CenterStart else Alignment.Center) { Label(text, strong = selected == true) }
 }
@@ -267,6 +274,6 @@ internal fun Action(text: String, modifier: Modifier = Modifier, selected: Boole
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TouchSheet(onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    ModalBottomSheet(onDismissRequest = onClose, shape = RectangleShape, containerColor = MaterialTheme.colorScheme.surface,
+    ModalBottomSheet(onDismissRequest = onClose, shape = RectangleShape, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), content = content)
 }

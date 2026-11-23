@@ -5,6 +5,8 @@ import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 
@@ -116,18 +118,23 @@ private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean
             resolve(state.autoPlayStream, state.autoPlayPlaybackInfo, true, download)
     }
     LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        item { Action("Back", onClick = back); SectionTitle(if (download) "Download" else "Sources"); Label(video.label) }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                PlayerIcon("Back", androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack, onClick = back)
+                Column(Modifier.weight(1f)) {
+                    SectionTitle(if (download) "Download" else "Sources")
+                    Label(video.label, small = true, lines = 2)
+                }
+                if (!video.poster.isNullOrBlank()) MediaArt(video.poster, androidx.compose.material.icons.Icons.Default.Movie,
+                    Modifier.size(38.dp, 54.dp))
+            }
+        }
         if (local != null && !download) item { Action("Play downloaded file", Modifier.fillMaxWidth()) { play(local) } }
         if (busy || state.isLoading) item { Label(state.directAutoPlayMessage ?: "Finding sources…") }
         (message ?: state.playbackErrorMessage ?: state.error)?.let { item { Label(it) } }
         shared?.let { item { Action("Play party’s shared source") { resolve(it.stream, null, false, false) } } }
         items(state.filteredStreams) { stream ->
-            Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
-                .combinedClickable(enabled = !busy, onClick = { selected = stream }, onLongClick = { selected = stream })
-                .heightIn(min = 56.dp).padding(8.dp)) {
-                Label(stream.getDisplayName(), strong = true)
-                Label(stream.description ?: stream.title ?: stream.addonName, small = true, lines = 3)
-            }
+            SourceTile(stream, !busy) { selected = stream }
         }
         if (state.filteredStreams.size < state.allStreams.size) item { Action("More sources") { vm.expandFilteredStreamsIfNeeded() } }
         if (!state.isLoading && !busy && state.filteredStreams.isEmpty()) item { Action("Retry") { vm.onEvent(StreamScreenEvent.OnRetry) } }

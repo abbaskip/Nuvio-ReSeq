@@ -1,7 +1,17 @@
 // Touch filmography, company rows and folder grids adapted from NuvioPlusIPTV-Mobile (GPLv3).
 package com.nuvio.tv.mobile
 
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
+import com.nuvio.tv.R
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.material3.*
@@ -57,7 +67,7 @@ internal fun NavGraphBuilder.mobileBrowseDestinations(nav: NavHostController, op
 @Composable
 internal fun BrowseHeading(title: String, back: () -> Unit) {
     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-        Action("Back", onClick = back)
+        PlayerIcon("Back", Icons.AutoMirrored.Filled.ArrowBack, onClick = back)
         SectionTitle(title)
     }
 }
@@ -103,10 +113,12 @@ internal fun LazyListScope.titleConnections(meta: Meta, state: MetaDetailsUiStat
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             items(cast) { member ->
                 val id = member.tmdbId
-                Column(Modifier.width(116.dp)) {
-                    member.photo?.let { AsyncImage(it, null, Modifier.fillMaxWidth().height(120.dp)) }
-                    if (id == null) Label(member.name) else Action(member.name) { navigate(Screen.CastDetail.createRoute(id, member.name)) }
-                    member.character?.let { Label(it, small = true, lines = 2) }
+                Column(Modifier.width(108.dp).mediaPanel().then(if (id != null) Modifier.clickable { navigate(Screen.CastDetail.createRoute(id, member.name)) } else Modifier)) {
+                    MediaArt(member.photo, Icons.Default.Person, Modifier.fillMaxWidth().height(118.dp))
+                    Column(Modifier.padding(6.dp)) {
+                        Label(member.name, strong = true, lines = 2)
+                        member.character?.let { Label(it, small = true, lines = 2) }
+                    }
                 }
             }
         }
@@ -188,31 +200,70 @@ private fun MobileFlickPick(back: () -> Unit, open: OpenMobileTitle, vm: FlickPi
     LaunchedEffect(region) { vm.configureRatings(region) }
     DisposableEffect(vm) { onDispose(vm::cancelPick) }
     LaunchedEffect(state.pick) { vm.takePick()?.first?.let { open(it, it.sourceAddonBaseUrl, VideoAction.Play) } }
-    LazyColumn(contentPadding = PaddingValues(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        item { BrowseHeading("FlickPick", back)
-            Row { Action("Discover", selected = !state.fromList) { vm.mode(false) }; Action("From a list", selected = state.fromList) { vm.mode(true) } }
-        }
-        if (state.fromList) items(state.lists) { list -> Action(list.tab.title, selected = state.selectedList == list.key) { vm.list(list.key) } }
-        else {
-            item { MobileTextInput("Keywords", filters.keywords) { vm.filters(filters.copy(keywords = it)) }
-                SectionTitle("Genres")
-                LazyRow { items(state.genres) { genre -> Action(listOfNotNull(genre.name, filters.genres[genre.id]?.name?.lowercase()).joinToString(" · "),
-                    selected = genre.id in filters.genres) { vm.filters(filters.cycle(genre.id)) } } }
-                SectionTitle("Release dates")
-                LazyRow { items(FlickPickEra.entries.toList()) { era -> Action(era.name.lowercase().replace('_', ' '), selected = filters.era == era) {
-                    vm.filters(filters.withEra(era, LocalDate.now()))
-                } } }
-                MobileTextInput("From (YYYY-MM-DD)", filters.from) { vm.filters(filters.copy(era = null, from = it)) }
-                MobileTextInput("Through (YYYY-MM-DD)", filters.to) { vm.filters(filters.copy(era = null, to = it)) }
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item {
+                Box(Modifier.fillMaxWidth().mediaPanel()) {
+                    Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            PlayerIcon("Back", Icons.AutoMirrored.Filled.ArrowBack, onClick = back)
+                            Label("Pick an unwatched movie from Discover or one of your lists.", Modifier.padding(top = 8.dp), lines = 3)
+                        }
+                        Image(painterResource(R.drawable.flick_pick_artwork), "Flick Pick", Modifier.widthIn(max = 195.dp)
+                            .fillMaxWidth(.49f).aspectRatio(4f / 3f), contentScale = ContentScale.Fit)
+                    }
+                }
             }
+            item { Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                Action("Discover", Modifier.weight(1f), selected = !state.fromList) { vm.mode(false) }
+                Action("From a list", Modifier.weight(1f), selected = state.fromList) { vm.mode(true) }
+            } }
+            if (state.fromList) {
+                if (state.lists.isEmpty()) item { Label(if (state.libraryLoaded) "No movie lists available." else "Loading movie lists…", Modifier.mediaPanel().padding(14.dp)) }
+                items(state.lists) { list -> Action(list.tab.title, Modifier.fillMaxWidth(), state.selectedList == list.key) { vm.list(list.key) } }
+            } else {
+                item { FlickFilterGroup("Movie preferences") {
+                    MobileTextInput("Keywords", filters.keywords) { vm.filters(filters.copy(keywords = it)) }
+                    if (state.genres.isNotEmpty()) {
+                        Label("Genres", strong = true)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) { items(state.genres) { genre ->
+                            Action(listOfNotNull(genre.name, filters.genres[genre.id]?.name?.lowercase()).joinToString(" · "),
+                                selected = genre.id in filters.genres) { vm.filters(filters.cycle(genre.id)) }
+                        } }
+                    }
+                } }
+                item { FlickFilterGroup("Release dates") {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) { items(FlickPickEra.entries.toList()) { era ->
+                        Action(era.name.lowercase().replace('_', ' '), selected = filters.era == era) { vm.filters(filters.withEra(era, LocalDate.now())) }
+                    } }
+                    MobileTextInput("From (YYYY-MM-DD)", filters.from) { vm.filters(filters.copy(era = null, from = it)) }
+                    MobileTextInput("Through (YYYY-MM-DD)", filters.to) { vm.filters(filters.copy(era = null, to = it)) }
+                } }
+            }
+            state.ratingSystem?.let { system -> item { FlickFilterGroup("Maximum rating · " + system.country) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) { items(listOf("") + system.ranks.keys) { rating ->
+                    Action(rating.ifBlank { "Any" }, selected = state.maximumRating.orEmpty() == rating) { vm.maximumRating(rating) }
+                } }
+            } } }
+            state.failure?.let { item { Label(it.name.lowercase().replace('_', ' ')) } }
+            if (state.empty) item { Label("No unwatched movies matched.") }
         }
-        state.ratingSystem?.let { system -> item {
-            SectionTitle("Maximum rating · " + system.country)
-            LazyRow { items(listOf("") + system.ranks.keys) { rating -> Action(rating.ifBlank { "Any" }, selected = state.maximumRating.orEmpty() == rating) { vm.maximumRating(rating) } } }
-        } }
-        state.failure?.let { item { Label(it.name.lowercase().replace('_', ' ')) } }
-        if (state.empty) item { Label("No unwatched movies matched.") }
-        if (state.busy) item { LinearProgressIndicator(); Action("Cancel", onClick = vm::cancelPick) }
-        else item { Row { Action("Pick and play", onClick = vm::play); Action("Reset", onClick = vm::reset) } }
+        HorizontalDivider(color = colors.outlineVariant)
+        if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+        Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (state.busy) Action("Cancel", Modifier.weight(1f), onClick = vm::cancelPick)
+            else PrimaryMediaAction("Pick and play", Modifier.weight(1f), onClick = vm::play)
+            Action("Reset", onClick = vm::reset)
+        }
+    }
+}
+
+@Composable
+private fun FlickFilterGroup(title: String, body: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth().mediaPanel().padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        SectionTitle(title)
+        body()
     }
 }

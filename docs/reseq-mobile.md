@@ -46,6 +46,6 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 
 **Tracking and account sync.** Open Settings → Tracking and TVDB → MDBList to connect an account, choose its library lists or configure ratings. Open Settings → Nuvio account to link the app. After you approve in the browser, return to ReSeq. It checks the existing code immediately and starts the account sync when signed in. Check approval repeats the status check if needed.
 
-**Build availability.** Alpha 8 adds player choice for saved downloads, icon-based playback controls, autoplay priorities and playlist names in Sports Hub. [Alpha 8 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.8)
+**Build availability.** Alpha 9 adds artwork-led Details, episode and source cards, a pinned Calendar and Flick Pick on Home and Search. [Alpha 9 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.9)
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

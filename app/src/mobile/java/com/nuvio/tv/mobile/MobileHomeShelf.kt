@@ -96,32 +96,27 @@ internal fun ShelfHeading(title: String, gutter: Dp, source: String? = null, see
 internal fun HomeHighlights(titles: List<MetaPreview>, gutter: Dp, open: (MetaPreview) -> Unit, more: (MetaPreview) -> Unit) {
     val pager = rememberPagerState { titles.size }
     val colors = MaterialTheme.colorScheme
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val pageWidth = if (maxWidth >= 600.dp && titles.size > 1) (maxWidth * .68f).coerceAtMost(640.dp) else maxWidth - gutter * 2
-        HorizontalPager(pager, pageSize = PageSize.Fixed(pageWidth), contentPadding = PaddingValues(horizontal = gutter),
-            pageSpacing = 10.dp, verticalAlignment = Alignment.Top) { index ->
-            val title = titles[index]
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(colors.surface)
-                .combinedClickable(onClick = { open(title) }, onLongClickLabel = "Title actions", onLongClick = { more(title) })) {
-                Box(Modifier.fillMaxWidth().heightIn(max = 260.dp).aspectRatio(2.12f)) {
-                    AsyncImage(title.backdropUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(32.dp)
-                        .background(Brush.verticalGradient(listOf(colors.surface.copy(alpha = 0f), colors.surface))))
-                }
-                Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Column(Modifier.weight(1f)) {
-                        Text(title.name, color = colors.onSurface, fontFamily = condensed, fontWeight = FontWeight.SemiBold,
-                            fontSize = 21.sp, lineHeight = 24.sp, letterSpacing = 0.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        val metadata = listOfNotNull(title.posterYears(), title.genres.firstOrNull()).joinToString(" · ")
-                        if (metadata.isNotEmpty()) Text(metadata, color = colors.onSurfaceVariant, fontFamily = condensed,
-                            fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    HorizontalPager(pager, modifier = Modifier.fillMaxWidth()) { index ->
+        val title = titles[index]
+        BoxWithConstraints(Modifier.fillMaxWidth().combinedClickable(onClick = { open(title) },
+            onLongClickLabel = "Title actions", onLongClick = { more(title) })) {
+            val height = (maxWidth * .68f).coerceIn(180.dp, 325.dp)
+            Box(Modifier.fillMaxWidth().height(height)) {
+                MediaArt(title.backdropUrl, Icons.Default.Theaters, Modifier.fillMaxSize())
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to colors.background.copy(alpha = .48f),
+                    .18f to colors.background.copy(alpha = 0f), .43f to colors.background.copy(alpha = .06f),
+                    .76f to colors.background.copy(alpha = .71f), 1f to colors.background)))
+                Row(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = gutter, end = gutter, bottom = 12.dp),
+                    verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        TitleBrand(title.name, title.logo)
+                        val facts = listOfNotNull(title.posterYears(), title.genres.firstOrNull()).joinToString("  ·  ")
+                        if (facts.isNotBlank()) Label(facts, small = true)
                     }
-                    if (titles.size > 1) Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    if (titles.size > 1) Row(Modifier.padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         repeat(titles.size) { dot ->
-                            val active = dot == index
-                            Spacer(Modifier.size(if (active) 11.dp else 4.dp, 4.dp)
-                                .background(if (active) colors.primary else colors.onSurfaceVariant.copy(alpha = .4f), CircleShape))
+                            Spacer(Modifier.size(if (dot == index) 15.dp else 4.dp, 4.dp)
+                                .background(if (dot == index) colors.primary else colors.onSurfaceVariant.copy(alpha = .5f), CircleShape))
                         }
                     }
                 }

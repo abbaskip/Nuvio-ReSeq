@@ -70,7 +70,8 @@ internal fun MobileDownloads(profile: Int, media: MobileOfflineMedia, back: () -
                     Label("${saved.size} ${if (saved.size == 1) "download" else "downloads"} · $size on this device", small = true)
                 }
                 items(saved, key = { it.video.key }) { entry ->
-                    Row(Modifier.fillMaxWidth().background(colors.surface), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().mediaPanel(), verticalAlignment = Alignment.CenterVertically) {
+                        MediaArt(entry.video.poster, Icons.Default.Download, Modifier.padding(start = 6.dp).size(42.dp, 58.dp))
                         Column(Modifier.weight(1f).clickable(role = Role.Button, onClickLabel = "Play download") {
                             scope.launch {
                                 val route = withContext(Dispatchers.IO) { media.localRoute(entry.video) }

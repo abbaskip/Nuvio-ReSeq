@@ -7,6 +7,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -284,6 +285,12 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             Row(Modifier.fillMaxWidth().padding(horizontal = gutter).heightIn(min = 52.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 BrandWordmark(Modifier.size(96.dp, 32.dp), contentDescription = "Nuvio ReSeq")
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { navigate(Screen.FlickPick.route) }) {
+                    Icon(Icons.Default.Shuffle, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(5.dp))
+                    Label("Flick Pick", strong = true)
+                }
                 IconButton(onClick = { providers = true }) {
                     Icon(Icons.Default.Tune, contentDescription = "Catalog sources", modifier = Modifier.size(20.dp), tint = colors.onSurface)
                 }
@@ -532,6 +539,7 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
         }
     }
     var menu by remember { mutableStateOf<MobileVideo?>(null) }
+    var showExtras by rememberSaveable(id, type) { mutableStateOf(false) }
     val detailTitle = meta?.name ?: preview
     if (addToMix && meta != null) TouchSheet({ addToMix = false }) {
         Column(Modifier.verticalScroll(rememberScrollState()).imePadding().padding(12.dp)) {
@@ -547,7 +555,7 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val split = maxWidth >= 720.dp && maxWidth > maxHeight
-        val padding = if (minOf(maxWidth, maxHeight) >= 600.dp || maxWidth >= 720.dp) 32.dp else 18.dp
+        val padding = if (minOf(maxWidth, maxHeight) >= 600.dp || maxWidth >= 720.dp) 20.dp else 8.dp
         Row(Modifier.fillMaxSize()) {
             if (split) Column(Modifier.weight(.38f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(start = padding, end = 12.dp)) { header(true) }
             LazyColumn(Modifier.weight(if (split) .62f else 1f), contentPadding = PaddingValues(horizontal = padding, vertical = 10.dp),
@@ -555,11 +563,31 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
         if (!split) item { header(false) }
         if (state.shufflePoolEmpty) item { Label("No episodes match this show's shuffle settings.") }
         if (target != null) item { Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Box(Modifier.weight(1f).combinedClickable(onClick = { open(target, VideoAction.Play) }, onLongClick = { menu = target })
-                .heightIn(min = 48.dp), contentAlignment = androidx.compose.ui.Alignment.Center) { Label("Play", strong = true) }
+            val prefix = if (state.nextToWatch?.isResume == true) "Resume" else "Play"
+            val label = if (!movie && hero?.displaySeason != null && hero.displayEpisode != null)
+                "$prefix S${hero.displaySeason} E${hero.displayEpisode}" else prefix
+            PrimaryMediaAction(label, Modifier.weight(1f), onLongClick = { menu = target }) { open(target, VideoAction.Play) }
             Action("Play manually") { open(target, VideoAction.Manual) }
             Action("Download") { open(target, VideoAction.Download) }
         } }
+        if (!movie && hero != null && target != null) item {
+            Row(Modifier.fillMaxWidth().mediaPanel().clickable { menu = target }.padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                MediaArt(hero.thumbnail ?: meta?.backdropUrl, Icons.Default.PlayArrow, Modifier.size(80.dp, 48.dp).clip(mediaCorners))
+                Column(Modifier.weight(1f)) {
+                    Label(if (state.nextToWatch?.isResume == true) "Continue watching" else "Up next", small = true)
+                    Label("S${hero.displaySeason} E${hero.displayEpisode}  ·  ${hero.title}", strong = true, lines = 2)
+                }
+            }
+        }
+        if (!meta?.description.isNullOrBlank()) item { Label(meta?.description.orEmpty(), Modifier.padding(horizontal = 5.dp), small = true, lines = 5) }
+        if (meta != null) item {
+            if (state.isMdbListRatingsActive && state.mdbListRatings != null)
+                com.nuvio.tv.ui.components.MDBListRatingsRow(state.mdbListRatings!!, Modifier.horizontalScroll(rememberScrollState()).padding(5.dp),
+                    order = state.mdbListRatingOrder, iconSize = 17.dp)
+            else if (state.overallRatingsVisibility.showStandardDetailRatings(state.isMdbListRatingsActive))
+                listOfNotNull(meta.imdbRating?.let { "IMDb  $it" }, state.tmdbRating?.let { "TMDB  $it" }).joinToString("     ").takeIf(String::isNotBlank)?.let { Label(it, Modifier.padding(5.dp), small = true) }
+        }
         if (meta != null) item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 item { Action(if (state.isInLibrary || state.isInWatchlist) "Remove from library" else "Add to library") {
@@ -581,29 +609,32 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                 if (state.trailerButtonEnabled && state.trailerUrl != null) item { Action("Play trailer") { vm.onEvent(MetaDetailsEvent.OnTrailerButtonClick) } }
                 if (state.shouldShowCommentsSection) item { Action("Reviews and comments") { comments = true } }
             }
-            if (state.trailerButtonEnabled && meta.trailers.isNotEmpty()) LazyRow { itemsIndexed(meta.trailers) { i, trailer ->
-                Action(trailer.name ?: "Trailer ${i + 1}") { vm.onEvent(MetaDetailsEvent.OnSharedTrailerSelected(trailer)) }
-            } }
-            Label(listOfNotNull(meta.releaseInfo, meta.imdbRating?.let { "IMDb $it" },
-                meta.genres.takeIf { it.isNotEmpty() }?.joinToString(" · ")).joinToString("   "), small = true)
         }
-        if (meta != null) titleConnections(meta, state, navigate, openTitle)
         if (meta?.apiType in setOf("series", "tv", "anime")) item { Action("Add to TV Mix") { addToMix = true } }
-        if (state.seasons.isNotEmpty()) item { LazyRow { items(state.seasons) { season ->
-            Action("Season $season", selected = season == state.selectedSeason) { vm.onEvent(MetaDetailsEvent.OnSeasonSelected(season)) }
-        } } }
-        items(state.episodesForSeason) { episode ->
-            val video = selection(episode)
-            Column(Modifier.fillMaxWidth().combinedClickable(enabled = video != null, onClick = { menu = video },
-                onLongClick = { menu = video }).heightIn(min = 54.dp).padding(6.dp)) {
-                Label("S${episode.displaySeason}E${episode.displayEpisode} · ${episode.title}", strong = true)
-                Row {
-                    Action(if ((episode.season to episode.episode) in state.watchedEpisodes) "Mark unwatched" else "Mark watched") {
-                        vm.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(episode))
-                    }
-                    meta?.episodeRatingReference(episode)?.let { MobileRating(it) }
+        if (state.seasons.isNotEmpty()) item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Action("Episodes", Modifier.weight(1f), !showExtras) { showExtras = false }
+                Action("Cast and extras", Modifier.weight(1f), showExtras) { showExtras = true }
+            }
+        }
+        if (!showExtras && state.seasons.isNotEmpty() && meta != null) {
+            item { SeasonRail(meta, state.seasons, state.selectedSeason, state.seasonPostersEnabled) { vm.onEvent(MetaDetailsEvent.OnSeasonSelected(it)) } }
+            items(state.episodesForSeason) { episode ->
+                val video = selection(episode)
+                val episodeKey = (episode.season ?: 0) to (episode.episode ?: 0)
+                val progress = state.episodeProgressMap[episodeKey]
+                val watched = episodeKey in state.watchedEpisodes || progress?.isCompleted() == true
+                val rating = (state.episodeImdbRatings[episodeKey] ?: episode.rating).takeIf { state.detailImdbRatingsVisibility.showEpisodeRating(watched) }
+                EpisodeTile(episode, watched, progress?.progressPercentage ?: 0f, rating, video != null, { menu = video }) {
+                    Action(if (watched) "Mark unwatched" else "Mark watched") { vm.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(episode)) }
+                    meta.episodeRatingReference(episode)?.let { MobileRating(it) }
                 }
             }
+        } else if (meta != null) {
+            if (state.trailerButtonEnabled && meta.trailers.isNotEmpty()) item {
+                TrailerRail(meta) { vm.onEvent(MetaDetailsEvent.OnSharedTrailerSelected(it)) }
+            }
+            titleConnections(meta, state, navigate, openTitle)
         }
         state.error?.let { item { Label(it) } }
             }

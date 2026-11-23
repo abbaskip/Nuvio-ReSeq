@@ -75,8 +75,10 @@ internal fun ShelfHeading(title: String, gutter: Dp, source: String? = null, see
     val compact = normal.copy(fontSize = 14.sp, lineHeight = 17.sp)
     val measure = rememberTextMeasurer()
     val action = if (seeAll == null) Modifier else Modifier.clickable(role = Role.Button, onClickLabel = "See all $title", onClick = seeAll)
-    Row(Modifier.fillMaxWidth().then(action).heightIn(min = 48.dp).padding(horizontal = gutter, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    val endGutter = if (seeAll == null) gutter else (gutter - 6.dp).coerceAtLeast(8.dp)
+    Row(Modifier.fillMaxWidth().then(action).heightIn(min = 48.dp)
+        .padding(start = gutter, end = endGutter, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         BoxWithConstraints(Modifier.weight(1f)) {
             fun fits(style: TextStyle) = measure.measure(title, style, softWrap = false, maxLines = 1).size.width <= constraints.maxWidth
             val style = if (fits(normal) || !fits(compact)) normal else compact
@@ -86,7 +88,7 @@ internal fun ShelfHeading(title: String, gutter: Dp, source: String? = null, see
                     fontSize = 12.sp, lineHeight = 15.sp, letterSpacing = 0.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        if (seeAll != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(19.dp), tint = colors.onSurfaceVariant)
+        if (seeAll != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(17.dp), tint = colors.onSurfaceVariant)
     }
 }
 

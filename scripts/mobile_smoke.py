@@ -470,8 +470,9 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     return
                 choose("Home")
             if providers_only:
-                shell("wm", "size", "1600x2560")
-                shell("wm", "density", "240")
+                # Keep the tablet's 1067dp layout within the Pixel 5 emulator's touch surface.
+                shell("wm", "size", "1000x1600")
+                shell("wm", "density", "150")
                 rotate(0)
                 choose("Settings")
                 tap(scroll_to("IPTV sources"))

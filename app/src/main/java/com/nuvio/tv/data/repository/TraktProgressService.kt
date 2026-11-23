@@ -2623,11 +2623,10 @@ class TraktProgressService @Inject constructor(
     }
 
     private fun toTraktUtcDateTime(lastWatchedMs: Long): String {
-        val safeMs = if (lastWatchedMs > 0L) lastWatchedMs else System.currentTimeMillis()
         val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
-        return formatter.format(Date(safeMs))
+        return formatter.format(Date(lastWatchedMs))
     }
 
     private fun enrichWithMetadata(

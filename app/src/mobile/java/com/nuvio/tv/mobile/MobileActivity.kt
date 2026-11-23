@@ -50,6 +50,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MobileActivity : ComponentActivity() {
     @Inject lateinit var themes: ThemeDataStore
+    @Inject internal lateinit var trailerNetwork: MobileTrailerNetwork
     @Inject lateinit var profileLocks: com.nuvio.tv.data.local.ProfileLockStateDataStore
     @Inject lateinit var profileManager: com.nuvio.tv.core.profile.ProfileManager
     @Inject lateinit var sync: StartupSyncService
@@ -103,6 +104,7 @@ class MobileActivity : ComponentActivity() {
                             locks == null -> CircularProgressIndicator()
                             locked && unlockedProfile != active -> ProfileUnlock(active, unlocked = { unlockedProfile = active })
                             else -> CompositionLocalProvider(LocalSelectedProfile provides { id -> unlockedProfile = id },
+                                LocalTrailerNetwork provides trailerNetwork,
                                 LocalContentColor provides MaterialTheme.colorScheme.onSurface) { MobileShell(active, sports.get()) }
                         }
                     }

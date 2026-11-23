@@ -48,6 +48,8 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 
 **Tracking and account sync.** Open Settings → Tracking and TVDB → MDBList to connect an account, choose its library lists or configure ratings. Open Settings → Nuvio account to link the app. After you approve in the browser, return to ReSeq. It checks the existing code immediately and starts the account sync when signed in. Check approval repeats the status check if needed.
 
-**Build availability.** Home → Reorder and Settings → Home and title details → Reorder Home rows open the shared catalogue order editor. Guide programme sheets have an icon grid with Find in Nuvio. Sports and Calendar share compact channel recording and tuning controls. [Alpha 12 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.12)
+**Trailer data use.** In **Settings → Home and title details**, turn off **Allow trailers on mobile data** to limit trailers to Wi-Fi or Ethernet on this device. The switch starts on to preserve existing playback. It covers title details, the trailer gallery, and manual or automatic Watch next previews. A change from Wi-Fi to cellular stops an active trailer.
+
+**Build availability.** Home → Reorder and Settings → Home and title details → Reorder Home rows open the shared catalogue order editor. Guide programme sheets have an icon grid with Find in Nuvio. Sports and Calendar share compact channel recording and tuning controls. [Alpha 13 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.13)
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

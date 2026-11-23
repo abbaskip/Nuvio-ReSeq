@@ -2707,7 +2707,12 @@ class MetaDetailsViewModel @Inject constructor(
         return meta.copy(trailers = listOf(MetaTrailer(type = "Trailer", ytId = key)) + meta.trailers)
     }
 
+    internal fun retryMissingTrailer() {
+        if (_uiState.value.trailerUrl == null && !_uiState.value.isTrailerLoading) fetchTrailerUrl()
+    }
+
     private fun fetchTrailerUrl() {
+        if (trailerService.isNetworkBlocked()) return
         if (isServerItem) return
         if (trailerHandoffActive) return
         val meta = _uiState.value.meta ?: return

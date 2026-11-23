@@ -48,5 +48,8 @@ internal fun MobileHomeSettings(vm: LayoutSettingsViewModel = hiltViewModel()) {
     TogglePreference("Hide unwatched episode artwork", settings.blurUnwatchedEpisodes) { vm.onEvent(LayoutSettingsEvent.SetBlurUnwatchedEpisodes(it)) }
     TogglePreference("Show episode shuffle", settings.randomEpisodeEnabled) { vm.onEvent(LayoutSettingsEvent.SetRandomEpisodeEnabled(it)) }
     TogglePreference("Show trailers", settings.detailPageTrailerButtonEnabled) { vm.onEvent(LayoutSettingsEvent.SetDetailPageTrailerButtonEnabled(it)) }
+    val trailerNetwork = LocalTrailerNetwork.current
+    val allowMobileData by trailerNetwork.allowMobileData.collectAsStateWithLifecycle()
+    TogglePreference("Allow trailers on mobile data", allowMobileData, trailerNetwork::setAllowMobileData)
     TogglePreference("Prefer catalogue source metadata", settings.preferExternalMetaAddonDetail) { vm.onEvent(LayoutSettingsEvent.SetPreferExternalMetaAddonDetail(it)) }
 }

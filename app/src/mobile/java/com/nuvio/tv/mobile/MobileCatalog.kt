@@ -513,6 +513,7 @@ internal fun CatalogSources(vm: com.nuvio.tv.ui.screens.addon.AddonManagerViewMo
 @Composable
 internal fun MobileCatalogOrder(vm: com.nuvio.tv.ui.screens.addon.CatalogOrderViewModel = hiltViewModel(), back: () -> Unit) {
     val state by vm.uiState.collectAsStateWithLifecycle()
+    val list = rememberLazyListState()
     DisposableEffect(vm) { onDispose { vm.cancelMove() } }
     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
         BrowseHeading("Reorder Home rows", back)
@@ -522,9 +523,23 @@ internal fun MobileCatalogOrder(vm: com.nuvio.tv.ui.screens.addon.CatalogOrderVi
         }
         if (state.followAddonsOrder) Label("Choose Custom order to move individual lists.", Modifier.padding(vertical = 4.dp), small = true)
         if (state.isLoading) Label("Loading lists…") else if (state.items.isEmpty()) Label("Your catalogue lists and collections will appear here.")
-        LazyColumn(contentPadding = PaddingValues(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(state.items, key = { it.key }) { item ->
-                fun move(by: Int) { vm.enterMoveMode(item.key); vm.moveDuringDrag(item.key, by); vm.confirmMove() }
+        LazyColumn(state = list, contentPadding = PaddingValues(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            itemsIndexed(state.items, key = { _, item -> item.key }) { index, item ->
+                fun move(by: Int) {
+                    val destination = index + by
+                    val first = list.firstVisibleItemIndex
+                    val last = list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: first
+                    // Keep the moved row in view instead of anchoring to the previous first row's key.
+                    val newFirst = when {
+                        destination < first -> destination
+                        destination > last -> first + 1
+                        else -> first
+                    }
+                    list.requestScrollToItem(newFirst, if (newFirst == first && destination != first) list.firstVisibleItemScrollOffset else 0)
+                    vm.enterMoveMode(item.key)
+                    vm.moveDuringDrag(item.key, by)
+                    vm.confirmMove()
+                }
                 Row(Modifier.fillMaxWidth().mediaPanel().padding(start = 9.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Label(item.catalogName, strong = true, lines = 2)
@@ -570,6 +585,18 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
     val meta = state.meta
     val movie = type == "movie"
     val detailScope = rememberCoroutineScope()
+    val trailerNetwork = LocalTrailerNetwork.current
+    val trailersAllowed by trailerNetwork.playbackAllowed.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var previouslyBlocked by remember(vm) { mutableStateOf(!trailersAllowed) }
+    LaunchedEffect(trailersAllowed) {
+        if (trailersAllowed && previouslyBlocked) vm.retryMissingTrailer()
+        previouslyBlocked = !trailersAllowed
+    }
+    fun trailerAction(event: MetaDetailsEvent) {
+        if (trailerNetwork.allowsPlaybackNow()) vm.onEvent(event)
+        else Toast.makeText(context, TRAILER_DATA_MESSAGE, Toast.LENGTH_SHORT).show()
+    }
     var comments by rememberSaveable { mutableStateOf(false) }
     var shuffle by rememberSaveable { mutableStateOf(false) }
     var addToMix by rememberSaveable { mutableStateOf(false) }
@@ -672,7 +699,7 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                         vm.onEvent(if (watched) MetaDetailsEvent.OnMarkSeasonUnwatched(season) else MetaDetailsEvent.OnMarkSeasonWatched(season))
                     }
                 } }
-                if (state.trailerButtonEnabled && state.trailerUrl != null) item { Action("Play trailer") { vm.onEvent(MetaDetailsEvent.OnTrailerButtonClick) } }
+                if (state.trailerButtonEnabled && state.trailerUrl != null) item { Action("Play trailer") { trailerAction(MetaDetailsEvent.OnTrailerButtonClick) } }
                 if (state.shouldShowCommentsSection) item { Action("Reviews and comments") { comments = true } }
             }
         }
@@ -701,7 +728,11 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
             }
         } else if (meta != null) {
             if (state.trailerButtonEnabled && meta.trailers.isNotEmpty()) item {
-                TrailerRail(meta) { vm.onEvent(MetaDetailsEvent.OnSharedTrailerSelected(it)) }
+                if (trailersAllowed) TrailerRail(meta) { trailerAction(MetaDetailsEvent.OnSharedTrailerSelected(it)) }
+                else {
+                    SectionTitle("Trailers")
+                    Label(TRAILER_DATA_MESSAGE, small = true)
+                }
             }
             titleConnections(meta, state, navigate, openTitle)
         }
@@ -709,7 +740,13 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
             }
         }
     }
-    if (state.isSharedTrailerOverlayVisible || state.isTrailerPlaying) MobileTrailer(state, vm::onEvent)
+    if (state.isSharedTrailerOverlayVisible || state.isTrailerPlaying) {
+        if (trailersAllowed) MobileTrailer(state, vm::onEvent)
+        else LaunchedEffect(state.isSharedTrailerOverlayVisible) {
+            vm.onEvent(if (state.isSharedTrailerOverlayVisible) MetaDetailsEvent.OnDismissSharedTrailer else MetaDetailsEvent.OnTrailerEnded)
+            Toast.makeText(context, TRAILER_DATA_MESSAGE, Toast.LENGTH_SHORT).show()
+        }
+    }
     if (comments) MobileComments(state, vm::onEvent) { comments = false }
     if (shuffle) TouchSheet({ shuffle = false }) {
         SectionTitle("Episode shuffle")

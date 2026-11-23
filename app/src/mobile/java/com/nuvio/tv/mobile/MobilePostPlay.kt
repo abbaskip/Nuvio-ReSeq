@@ -66,6 +66,11 @@ internal fun MobileMovieRating(request: MovieRatingRequest, close: () -> Unit,
 internal fun MobileRecommendations(state: PostPlayRecommendationUiState, vm: PlayerViewModel, exit: () -> Unit,
     open: (PostPlayRecommendation, VideoAction) -> Unit) {
     val item = state.recommendation ?: return
+    val trailerNetwork = LocalTrailerNetwork.current
+    val trailersAllowed by trailerNetwork.playbackAllowed.collectAsStateWithLifecycle()
+    LaunchedEffect(trailersAllowed, state.isTrailerPlaying) {
+        if (!trailersAllowed && state.isTrailerPlaying) vm.onPostPlayTrailerEnded()
+    }
     fun dismiss() {
         if (state.canReturnToPlayer && !vm.uiState.value.playbackEnded) vm.returnToPlayerFromPostPlay() else exit()
     }
@@ -74,7 +79,8 @@ internal fun MobileRecommendations(state: PostPlayRecommendationUiState, vm: Pla
             BrowseHeading("Watch next", ::dismiss)
             SectionTitle(item.title)
             item.description?.let { Label(it, lines = 4) }
-            if (state.isTrailerPlaying && item.hasTrailer) {
+            if (!trailersAllowed && item.hasTrailer) Label(TRAILER_DATA_MESSAGE, small = true)
+            else if (state.isTrailerPlaying && item.hasTrailer) {
                 TrailerPlayer(trailerUrl = item.trailerVideoUrl, trailerAudioUrl = item.trailerAudioUrl,
                     isPlaying = true, onEnded = vm::onPostPlayTrailerEnded, onError = vm::onPostPlayTrailerEnded,
                     modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9))

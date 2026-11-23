@@ -30,15 +30,17 @@ class MobileCastingTest {
     private val session = mockk<CastSession>(relaxed = true)
     private val cast = MobileCasting(context, tracking, profiles, mockk(relaxed = true))
 
-    private fun reconnect(iptv: Boolean, live: Boolean, profile: Int = 2) {
+    private fun reconnect(iptv: Boolean, live: Boolean, profile: Int = 2, tracks: List<MediaTrack> = emptyList()) {
         val saved = CastItem("owned-media", profile, "Fixture", video, live, iptv)
         context.getSharedPreferences("cast_session", 0).edit().putString("item", Gson().toJson(saved)).commit()
         every { session.remoteMediaClient } returns client
         every { client.registerCallback(capture(callback)) } just Runs
         every { client.mediaStatus } returns status
-        every { status.mediaInfo } returns mockk(relaxed = true) {
-            every { customData } returns JSONObject().put("reseqCastId", saved.token)
-        }
+        val media = MediaInfo.Builder("https://video.example/media")
+            .setStreamType(if (live) MediaInfo.STREAM_TYPE_LIVE else MediaInfo.STREAM_TYPE_BUFFERED)
+            .setContentType("video/mp4").setMediaTracks(tracks)
+            .setCustomData(JSONObject().put("reseqCastId", saved.token)).build()
+        every { status.mediaInfo } returns media
         every { status.playerState } returns MediaStatus.PLAYER_STATE_PLAYING
         every { client.isPlaying } returns true
         every { client.streamDuration } returns 50_000L
@@ -83,12 +85,13 @@ class MobileCastingTest {
     }
 
     @Test fun liveNeverTracksOrSeeksAndAudioKeepsTheActiveSubtitles() {
-        reconnect(true, true)
         val audio = MediaTrack.Builder(101, MediaTrack.TYPE_AUDIO).setName("English").build()
         val subtitles = MediaTrack.Builder(201, MediaTrack.TYPE_TEXT).setName("Captions").build()
-        every { status.mediaInfo!!.mediaTracks } returns listOf(audio, subtitles)
+        reconnect(true, true, tracks = listOf(audio, subtitles))
         every { status.activeTrackIds } returns longArrayOf(201)
         callback.captured.onStatusUpdated()
+        assertEquals(listOf(audio, subtitles), cast.state.value.tracks)
+        assertEquals(setOf(201L), cast.state.value.selected)
         cast.track(MediaTrack.TYPE_AUDIO, 101)
         verify { client.setActiveMediaTracks(match { it.toSet() == setOf(101L, 201L) }) }
         cast.seek(5000)

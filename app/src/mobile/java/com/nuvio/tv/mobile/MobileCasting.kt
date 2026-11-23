@@ -235,7 +235,8 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
     fun speed(rate: Double) { if (controls.value.item?.live == false) remote?.setPlaybackRate(rate) }
     fun track(type: Int, id: Long?) {
         val state = controls.value
-        val keep = state.tracks.filter { it.type != type && it.id in state.selected }.map { it.id }
+        if (state.item == null) return
+        val keep = state.selected - state.tracks.filter { it.type == type }.map { it.id }.toSet()
         remote?.setActiveMediaTracks((keep + listOfNotNull(id)).toLongArray())?.setResultCallback {
             if (!it.status.isSuccess) controls.update { old -> old.copy(error = "The receiver couldn't change tracks.") }
         }

@@ -200,6 +200,18 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
             raise AssertionError(f"{name} rendered at unexpected dimensions: {width}x{height}")
         (output / (name + ".png")).write_bytes(png)
 
+    def rotate(quarter_turns):
+        # Use WindowManager's per-display rotation lock. A settings write can be overwritten
+        # by a delayed display reconfiguration after changing the emulator size or density.
+        for _ in range(16):
+            shell("wm", "user-rotation", "lock", str(quarter_turns))
+            png = command("exec-out", "screencap", "-p")
+            width, height = struct.unpack(">II", png[16:24])
+            if (width > height) == bool(quarter_turns % 2):
+                return
+            time.sleep(.5)
+        raise AssertionError(f"Display rotation did not settle: {width}x{height}")
+
     command("install", "-r", str(apk), timeout=180)
     size = shell("wm", "size")
     density = shell("wm", "density")
@@ -210,8 +222,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
         try:
             shell("wm", "size", "1080x2160")
             shell("wm", "density", "420")
-            shell("settings", "put", "system", "accelerometer_rotation", "0")
-            shell("settings", "put", "system", "user_rotation", "0")
+            rotate(0)
             shell("input", "keyevent", "KEYCODE_WAKEUP")
             shell("wm", "dismiss-keyguard")
             shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
@@ -257,7 +268,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
                 choose("Month")
                 choose("Next")
                 screenshot("phone-calendar", landscape=False)
-                shell("settings", "put", "system", "user_rotation", "1")
+                rotate(1)
                 choose("Search")
                 choose("Advanced Discover")
                 choose("Filters")
@@ -275,7 +286,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
                 screenshot("tablet-calendar", landscape=True)
                 shell("wm", "size", "1080x2160")
                 shell("wm", "density", "420")
-                shell("settings", "put", "system", "user_rotation", "0")
+                rotate(0)
                 # Start the catalogue journey on Home after the separate tablet navigation journey.
                 # A fresh Activity reads the final display configuration on the hosted emulator.
                 shell("am", "force-stop", MOBILE_ID)
@@ -350,6 +361,10 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
             for setting, original in (("size", size), ("density", density)):
                 override = re.search(r"Override (?:size|density): (\S+)", original)
                 shell("wm", setting, override.group(1) if override else "reset")
+            if auto == "0" and rotation in ("0", "1", "2", "3"):
+                shell("wm", "user-rotation", "lock", rotation)
+            else:
+                shell("wm", "user-rotation", "free")
             for setting, original in (("user_rotation", rotation), ("accelerometer_rotation", auto)):
                 if original == "null":
                     shell("settings", "delete", "system", setting)

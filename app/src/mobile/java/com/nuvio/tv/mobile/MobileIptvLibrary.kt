@@ -87,7 +87,7 @@ internal fun MobileIptvLibrary(back: () -> Unit, play: (String) -> Unit, vm: OnD
                 poster = item.icon, addonName = OnDemandStreams.GROUP_NAME))
         }
         TouchSheet({ selected = null }) {
-            LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            LazyColumn(Modifier.navigationBarsPadding(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 item { SectionTitle(vm.nameFor(item))
                     Label(listOfNotNull(item.year?.toString(), info?.genre, info?.durationText, item.rating).joinToString(" · "))
                     info?.plot?.let { Text(it) }
@@ -101,7 +101,11 @@ internal fun MobileIptvLibrary(back: () -> Unit, play: (String) -> Unit, vm: OnD
                     val seasons = eps.map { it.season }.distinct()
                     val active = season ?: seasons.firstOrNull()
                     item { LazyRow { items(seasons) { s -> Action("Season " + s, selected = active == s) { season = s } } } }
-                    items(eps.filter { it.season == active }) { e -> Action("S${e.season}E${e.episode} · ${e.title}") { playUrl(e.url, "${item.name} · S${e.season}E${e.episode}") } }
+                    items(eps.filter { it.season == active }) { e ->
+                        Action("S${e.season}E${e.episode} · ${e.title}", Modifier.fillMaxWidth()) {
+                            playUrl(e.url, "${item.name} · S${e.season}E${e.episode}")
+                        }
+                    }
                     if (eps.isEmpty()) item { Label(if (info == null) "Loading episodes…" else "The provider has no episodes for this series.") }
                 }
             }

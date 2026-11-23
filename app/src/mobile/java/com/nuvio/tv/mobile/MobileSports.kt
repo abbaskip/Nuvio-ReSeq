@@ -4,6 +4,7 @@ package com.nuvio.tv.mobile
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -16,7 +17,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.tv.livetv.model.LiveChannel
 import com.nuvio.tv.livetv.sports.*
-import com.nuvio.tv.livetv.ui.formatClock
+
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -47,48 +48,61 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
     }
     val fmt = DateTimeFormatter.ofPattern("EEE d", LocalConfiguration.current.locales[0])
     val open: (SportsEvent) -> Unit = { eventId = it.id }
-    Column(Modifier.fillMaxSize()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { SectionTitle("Sports Hub") }
-            Action("Refresh") { vm.repo.refreshNow() }
-            Action("Options") { tool = "Options" }
-        }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            items(listOf("Teams", "Tables", "Alerts")) { pageName -> Action(pageName) { tool = pageName } }
-            items(listOf(CHIP_MINE to "My Sports", CHIP_ALL to "All events", CHIP_TV_NOW to "On TV now")) { (id, name) ->
-                Action(name, selected = active == id) { chip = id }
+    val colors = MaterialTheme.colorScheme
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val tileWidth = if (maxWidth < 520.dp) (maxWidth - 44.dp).coerceAtLeast(160.dp)
+            else ((maxWidth - 44.dp) / 2).coerceIn(236.dp, 340.dp)
+        Column(Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxWidth().padding(end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { SectionTitle("Sports Hub") }
+                Action("Refresh") { vm.repo.refreshNow() }
+                Action("Options") { tool = "Options" }
             }
-            items(page?.filters?.followedSports.orEmpty()) { sport ->
-                Action(sport.label, selected = active == CHIP_SPORT + sport.name) { chip = CHIP_SPORT + sport.name }
-            }
-        }
-        if (active == CHIP_ALL) {
-            val dates = rememberLazyListState(initialFirstVisibleItemIndex = SportsRepository.DAYS_BACK + day)
-            LazyRow(state = dates, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                items(((-SportsRepository.DAYS_BACK)..SportsRepository.DAYS_AHEAD).toList()) { i ->
-                    Action(if (i == 0) "Today" else fmt.format(LocalDate.now().plusDays(i.toLong())), selected = day == i) { day = i }
+            LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                items(listOf(CHIP_MINE to "My Sports", CHIP_ALL to "All events", CHIP_TV_NOW to "On TV now")) { (id, name) ->
+                    SportFilter(name, selected = active == id) { chip = id }
                 }
+                items(page?.filters?.followedSports.orEmpty()) { sport ->
+                    SportFilter(sport.label, selected = active == CHIP_SPORT + sport.name) { chip = CHIP_SPORT + sport.name }
+                }
+                item { Spacer(Modifier.padding(horizontal = 3.dp).size(1.dp, 20.dp).background(sportBorderColor())) }
+                items(listOf("Teams", "Tables", "Alerts")) { pageName -> Action(pageName) { tool = pageName } }
             }
-        }
-        LazyColumn(contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            (dayError ?: problem)?.let { item { Label(it) } }
-            val teams = page?.teams
-            if (teams != null) {
-                items(teams.rows, key = { it.key }) { row ->
-                    Label(row.title, Modifier.padding(6.dp), strong = true)
-                    LazyRow(state = rememberLazyListState(initialFirstVisibleItemIndex = row.startIndex.coerceAtLeast(0)),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(row.events, key = { it.id }) { ev ->
-                            FixtureTile(ev, settings.hideScores, use24h, Modifier.width(198.dp), open)
-                        }
+            if (active == CHIP_ALL) {
+                val dates = rememberLazyListState(initialFirstVisibleItemIndex = SportsRepository.DAYS_BACK + day)
+                LazyRow(state = dates, contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(((-SportsRepository.DAYS_BACK)..SportsRepository.DAYS_AHEAD).toList()) { i ->
+                        SportFilter(if (i == 0) "Today" else fmt.format(LocalDate.now().plusDays(i.toLong())), selected = day == i) { day = i }
                     }
                 }
-                if (teams.rows.isEmpty()) item { Label("Follow a team from an event to see its games here.") }
-            } else {
-                items(page?.shown.orEmpty(), key = { it.id }) { ev ->
-                    FixtureTile(ev, settings.hideScores, use24h, Modifier.fillMaxWidth(), open)
+            }
+            HorizontalDivider(color = sportBorderColor())
+            LazyColumn(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                (dayError ?: problem)?.let { item { Label(it) } }
+                val teams = page?.teams
+                if (teams != null) {
+                    items(teams.rows, key = { it.key }) { row ->
+                        Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(Modifier.size(3.dp, 15.dp).background(colors.primary))
+                            Label(row.title, strong = true, lines = 2)
+                            HorizontalDivider(Modifier.weight(1f), color = sportBorderColor())
+                        }
+                        LazyRow(state = rememberLazyListState(initialFirstVisibleItemIndex = row.startIndex.coerceAtLeast(0)),
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            items(row.events, key = { it.id }) { ev ->
+                                FixtureTile(ev, settings.hideScores, use24h, Modifier.width(tileWidth), open)
+                            }
+                        }
+                    }
+                    if (teams.rows.isEmpty()) item { Label("Follow a team from an event to see its games here.") }
+                } else {
+                    items(page?.shown.orEmpty(), key = { it.id }) { ev ->
+                        FixtureTile(ev, settings.hideScores, use24h, Modifier.fillMaxWidth(), open)
+                    }
+                    if (page?.shown.isNullOrEmpty()) item { Label(if (loading || page == null) "Loading fixtures…" else "No fixtures for this selection.") }
                 }
-                if (page?.shown.isNullOrEmpty()) item { Label(if (loading || page == null) "Loading fixtures…" else "No fixtures for this selection.") }
             }
         }
     }
@@ -117,6 +131,7 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
     onClose: () -> Unit, vm: SportsViewModel) {
     val follows by vm.follows.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val use24h by vm.use24h.collectAsStateWithLifecycle()
     val allowed by vm.repo.channelLookupAllowed.collectAsStateWithLifecycle()
     DisposableEffect(vm, event.id) {
         vm.repo.focusEvent(event.id)
@@ -131,7 +146,8 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
     var message by remember(event.id) { mutableStateOf("") }
     TouchSheet(onClose) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
-            SectionTitle(event.title)
+            if (event.sides.size == 2) SectionTitle(event.title)
+            FixtureTile(event, settings.hideScores, use24h, Modifier.fillMaxWidth())
             val reminded = follows.reminders.firstOrNull { it.eventId == event.id }
             if (event.startMs > System.currentTimeMillis()) {
                 Action(if (reminded == null) "Remind me" else "Remove reminder", selected = reminded != null) { vm.repo.toggleReminder(event) }
@@ -139,14 +155,9 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
                     vm.repo.setAutoSwitch(event, !(reminded.autoSwitch ?: settings.autoSwitch))
                 }
             }
-            if (!settings.hideScores) event.status?.let { Label(it) }
             event.sides.forEach { side ->
                 val team = side.team
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Label(team.name + (if (!settings.hideScores) side.score?.let { "  $it" }.orEmpty() else ""),
-                        Modifier.weight(1f), strong = true)
-                    Action(if (follows.followsTeam(team)) "Unfollow" else "Follow") { vm.repo.toggleTeam(team) }
-                }
+                Action((if (follows.followsTeam(team)) "Unfollow " else "Follow ") + team.name) { vm.repo.toggleTeam(team) }
             }
             if (channels.isEmpty()) Label("No matching channels", Modifier.padding(8.dp))
             Action("Match channels") { tool = "channels" }
@@ -181,26 +192,4 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
     if (table) MobileSportsTools("Tables", { table = false }, event.leagueId, vm)
     if (tool == "channels") MobileFixtureChannels(event, channels, vm) { tool = null }
     if (tool == "lookup") MobileSportsLookup(event, vm) { tool = null }
-}
-
-@Composable
-private fun FixtureTile(event: SportsEvent, hideScores: Boolean, use24h: Boolean, modifier: Modifier, open: (SportsEvent) -> Unit) {
-    Column(modifier.background(MaterialTheme.colorScheme.surface).clickable { open(event) }
-        .heightIn(min = 64.dp).padding(10.dp)) {
-        val league = SportsCatalog.league(event.leagueId)
-        val sides = event.ordered(league?.sport ?: Sport.OTHER)
-        val detail = listOfNotNull(league?.name,
-            if (event.hasTime) formatClock(event.startMs, use24h) else null,
-            event.status?.takeUnless { hideScores }).joinToString(" · ")
-        if (detail.isNotBlank()) Label(detail, small = true)
-        if (sides.size == 2) {
-            sides.forEach { side ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    TeamLogo(side.team, 26.dp)
-                    Label(side.team.name, Modifier.weight(1f), strong = true)
-                    if (!hideScores && event.hasScore) side.score?.let { Label(it, strong = true) }
-                }
-            }
-        } else Label(event.title, strong = true, lines = 2)
-    }
 }

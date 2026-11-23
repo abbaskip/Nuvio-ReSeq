@@ -495,8 +495,17 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 shell("input", "keyevent", "KEYCODE_BACK")
                 choose("Series")
                 choose("Xtream Fixture Show")
-                choose_after_sheet_opens("S1E1 · Fixture pilot")
-                locate("Audio")
+                pilot = "S1E1 · Fixture pilot"
+                choose_after_sheet_opens(pilot)
+                for attempt in range(2):
+                    try:
+                        locate("Audio", seconds=10)
+                        break
+                    except AssertionError:
+                        if attempt or not any(n.get("text") == pilot for n in nodes()):
+                            screenshot("provider-episode-tap", landscape=False)
+                            raise
+                        choose_after_sheet_opens(pilot)
                 deadline = time.monotonic() + 20
                 while "/series/testuser/testpass/311.mp4" not in files and time.monotonic() < deadline:
                     time.sleep(.25)

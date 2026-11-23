@@ -150,8 +150,8 @@ android {
         minSdk = 24
         targetSdk = 36
         buildConfigField("boolean", "STABILITY_FIXTURES", stabilityFixtures.toString())
-        versionCode = 10065
-        versionName = "1.0.0-rc.3.1" + (localBetaNumber?.let { ".local.$it" } ?: "")
+        versionCode = 10066
+        versionName = "1.0.0-rc.4" + (localBetaNumber?.let { ".local.$it" } ?: "")
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")
@@ -173,6 +173,7 @@ android {
         buildConfigField("String", "DEVICE_LOGIN_WEB_BASE_URL", "\"${localProperties.getProperty("DEVICE_LOGIN_WEB_BASE_URL", "https://nuvio.tv/link")}\"")
         buildConfigField("boolean", "DOVI_NATIVE_ENABLED", enableDoviNative.toString())
         buildConfigField("boolean", "DOVI_EXTRACTOR_HOOK_READY", doviExtractorHookReady.toString())
+        externalNativeBuild.cmake.arguments("-DNUVIO_BUILD_DOVI=" + if (enableDoviNative) "ON" else "OFF")
         if (enableDoviNative) {
             externalNativeBuild {
                 cmake {
@@ -216,18 +217,14 @@ android {
         create("mobile") {
             initWith(full)
             applicationId = "io.github.abbaskip.nuvioreseq.mobile"
-            versionCode = 15
-            versionName = "0.1.0-beta.1"
+            versionCode = 16
+            versionName = "0.1.0-beta.1.1"
             buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "false")
         }
     }
 
-    if (enableDoviNative) {
-        externalNativeBuild {
-            cmake {
-                path = file("src/main/cpp/CMakeLists.txt")
-            }
-        }
+    externalNativeBuild {
+        cmake { path = file("src/main/cpp/CMakeLists.txt") }
     }
 
     signingConfigs {
@@ -626,7 +623,8 @@ dependencies {
     implementation(files("libs/nuvio-libass-release.aar"))
     // Local nextlib-mediainfo fork (static FFmpeg; no libav*.so in final AAR)
     implementation(files("libs/nextlib-mediainfo-local.aar"))
-    implementation("io.github.abdallahmehiz:mpv-android-lib:0.1.12")
+    implementation("tv.seekr:seekr-core:0.2.0")
+    implementation("io.github.abdallahmehiz:mpv-android-lib:0.2.2")
     implementation("dev.chrisbanes.haze:haze-android:1.7.2") {
         exclude(group = "org.jetbrains.compose.ui")
         exclude(group = "org.jetbrains.compose.foundation")

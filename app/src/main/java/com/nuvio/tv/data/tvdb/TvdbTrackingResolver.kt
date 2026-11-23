@@ -295,8 +295,16 @@ class TvdbTrackingResolver @Inject constructor(
             }
         }.orEmpty()
         if (known.flatMap { it.contentIds }.containsAll(sourceIds)) return known
-        if (tmdbService.apiKey().isBlank()) return known
-        val found = status.content.filter { it.officialCoordinates != null && it.episodeIds.any(sourceIds::contains) }.mapNotNull { row ->
+        val found = tmdbEpisodeTargets(meta, sourceIds, content)
+        return (known + found).distinctBy { Triple(it.parentIds?.tmdb, it.episode.season, it.episode.number) }
+    }
+
+    /** Read-only episode translation shared by tracking and Seekr preview lookup. */
+    internal suspend fun tmdbEpisodeTargets(meta: Meta, sourceIds: Set<Long>,
+        content: TvdbTrackerContentIndex = TvdbTrackerContentIndex(meta)): List<TvdbTrackingTarget> {
+        val status = meta.episodeOrder ?: return emptyList()
+        if (tmdbService.apiKey().isBlank()) return emptyList()
+        return status.content.filter { it.officialCoordinates != null && it.episodeIds.any(sourceIds::contains) }.mapNotNull { row ->
             val result = tmdb.findByExternalId(row.tvdbId.toString(), tmdbService.apiKey(), "tvdb_id").body()?.tvEpisodeResults?.singleOrNull()
                 ?: return@mapNotNull null
             val showId = result.showId ?: return@mapNotNull null
@@ -315,7 +323,6 @@ class TvdbTrackingResolver @Inject constructor(
                 tmdbId = result.id.toLong(), numberingProvider = "mdblist"), coverage,
                 TrackingExternalIds(imdb = parent.imdbId, tmdb = showId.toLong(), tvdb = parent.tvdbId?.toString()))
         }
-        return (known + found).distinctBy { Triple(it.parentIds?.tmdb, it.episode.season, it.episode.number) }
     }
 
     /** No selection means the original provider path, including its fallbacks. */

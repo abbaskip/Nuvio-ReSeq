@@ -2333,4 +2333,12 @@
     <string name="autosync_status_no_fit">Stimmt möglicherweise nicht überein</string>
     <string name="autosync_status_no_reference">Keine eingebetteten Untertitel</string>
     <string name="autosync_status_failed">Fehlgeschlagen</string>
+    <string name="iptv_immediate_tier">IPTV-VOD für die Sofortwiedergabe einbeziehen</string>
+    <string name="iptv_fallback_tier">IPTV-VOD als Ausweichquelle einbeziehen</string>
+    <string name="when_watched">Wann hast du es gesehen?</string>
+    <string name="watched_now">Jetzt als gesehen markieren</string>
+    <string name="choose_watch_date">Datum wählen</string>
+    <string name="choose_watch_date_time">Datum und Uhrzeit wählen</string>
+    <string name="choose_watch_time">Uhrzeit wählen</string>
+    <string name="choose_past_watch_time">Wähle einen gültigen Zeitpunkt in der Vergangenheit.</string>
 </resources>

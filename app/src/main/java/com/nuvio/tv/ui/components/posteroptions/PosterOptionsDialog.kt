@@ -235,6 +235,7 @@ fun PosterOptionsHost(
     controller: PosterOptionsController,
     onNavigateToDetail: (id: String, type: String, addonBaseUrl: String) -> Unit
 ) {
+    val chooseWatchedDate = com.nuvio.tv.ui.components.rememberWatchedDatePicker()
     val target = state.target
     if (target != null) {
         val isMovie = target.apiType.equals("movie", ignoreCase = true)
@@ -265,12 +266,11 @@ fun PosterOptionsHost(
                 }
             },
             onToggleWatched = {
-                if (isMovie) {
-                    controller.toggleMovieWatched()
-                } else {
-                    controller.toggleSeriesWatched()
+                fun apply(watchedAt: Long?) {
+                    if (isMovie) controller.toggleMovieWatched(watchedAt) else controller.toggleSeriesWatched(watchedAt)
+                    controller.dismiss()
                 }
-                controller.dismiss()
+                if (state.isWatched) apply(null) else chooseWatchedDate(::apply)
             }
         )
     }

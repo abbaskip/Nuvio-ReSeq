@@ -101,6 +101,7 @@ class PlayerViewModel @Inject constructor(
     private val tvRecommendationManager: com.nuvio.tv.core.recommendations.TvRecommendationManager,
     private val serverPlayback: com.nuvio.tv.data.mediaserver.ServerPlayback,
     private val serverStreams: com.nuvio.tv.data.mediaserver.ServerStreams,
+    internal val previewEpisodeResolver: dagger.Lazy<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>,
     partyRepository: com.nuvio.tv.core.party.PartyRepository,
     profileManager: com.nuvio.tv.core.profile.ProfileManager,
     savedStateHandle: SavedStateHandle,
@@ -112,6 +113,8 @@ class PlayerViewModel @Inject constructor(
         // claim hardware decoders without contention (prevents black screen).
         trailerPlayerPool.yield()
     }
+
+    internal val seekrPreview = SeekrPreviewState()
 
     internal val controller = PlayerRuntimeController(
         context = context,

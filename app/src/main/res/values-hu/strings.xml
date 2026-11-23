@@ -3475,4 +3475,12 @@ Próbálj meg egy másik forrást. [%1$s]</string>
     <string name="autosync_status_no_fit">Lehet, hogy nem egyezik</string>
     <string name="autosync_status_no_reference">Nincs beágyazott felirat</string>
     <string name="autosync_status_failed">Sikertelen</string>
+    <string name="iptv_immediate_tier">IPTV VOD az azonnali lejátszási források között</string>
+    <string name="iptv_fallback_tier">IPTV VOD a tartalék források között</string>
+    <string name="when_watched">Mikor nézted meg?</string>
+    <string name="watched_now">Megjelölés most megtekintettként</string>
+    <string name="choose_watch_date">Dátum kiválasztása</string>
+    <string name="choose_watch_date_time">Dátum és idő kiválasztása</string>
+    <string name="choose_watch_time">Idő kiválasztása</string>
+    <string name="choose_past_watch_time">Válassz érvényes múltbeli időpontot.</string>
 </resources>

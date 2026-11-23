@@ -551,6 +551,7 @@ class PlayerRuntimeController(
     internal var currentParallelChunkOverheadMb: Int = 0
     /** Back buffer (ms) the user configured, captured at build to restore once DV7 status is known. */
     internal var configuredBackBufferMs: Int = 0
+    internal val playbackMeta = kotlinx.coroutines.flow.MutableStateFlow<com.nuvio.tv.domain.model.Meta?>(null)
     internal var metaVideos: List<Video> = emptyList()
     internal var playbackShuffleState: com.nuvio.tv.core.player.PlaybackShuffleState? = null
     internal var cloudPlaybackContext: CloudLibraryPlaybackContext? =

@@ -3398,4 +3398,12 @@
     <string name="autosync_status_no_fit">Μπορεί να μην ταιριάζει</string>
     <string name="autosync_status_no_reference">Δεν υπάρχουν ενσωματωμένοι υπότιτλοι</string>
     <string name="autosync_status_failed">Απέτυχε</string>
+    <string name="iptv_immediate_tier">Συμπερίληψη IPTV VOD στις άμεσες πηγές</string>
+    <string name="iptv_fallback_tier">Συμπερίληψη IPTV VOD στις εφεδρικές πηγές</string>
+    <string name="when_watched">Πότε το είδατε;</string>
+    <string name="watched_now">Σήμανση ως προβληθέν τώρα</string>
+    <string name="choose_watch_date">Επιλογή ημερομηνίας</string>
+    <string name="choose_watch_date_time">Επιλογή ημερομηνίας και ώρας</string>
+    <string name="choose_watch_time">Επιλογή ώρας</string>
+    <string name="choose_past_watch_time">Επιλέξτε έγκυρη ώρα στο παρελθόν.</string>
 </resources>

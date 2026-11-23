@@ -370,6 +370,7 @@ data class PlayerSettings(
     val streamAutoPlayPluginsEnabled: Boolean? = null,
     val streamAutoPlayPlaylistsEnabled: Boolean = false,
     val streamAutoPlayFallbackPlaylistsEnabled: Boolean = true,
+    val streamAutoPlayImmediatePlaylistsEnabled: Boolean = false,
     val streamAutoPlaySelectedAddons: Set<String> = emptySet(),
     val streamAutoPlaySelectedPlugins: Set<String> = emptySet(),
     val streamAutoPlayRegex: String = "",
@@ -734,7 +735,8 @@ class PlayerSettingsDataStore @Inject constructor(
     private val streamAutoPlayAddonsEnabledKey = booleanPreferencesKey("stream_auto_play_addons_enabled")
     private val streamAutoPlayPluginsEnabledKey = booleanPreferencesKey("stream_auto_play_plugins_enabled")
     private val streamAutoPlayPlaylistsEnabledKey = booleanPreferencesKey("stream_auto_play_playlists_enabled")
-    private val fallbackPlaylistsKey = booleanPreferencesKey("stream_auto_play_fallback_playlists_enabled")
+    private val streamAutoPlayFallbackPlaylistsEnabledKey = booleanPreferencesKey("stream_auto_play_fallback_playlists_enabled")
+    private val streamAutoPlayImmediatePlaylistsEnabledKey = booleanPreferencesKey("stream_auto_play_immediate_playlists_enabled")
     private val streamAutoPlaySourceKey = stringPreferencesKey("stream_auto_play_source")
     private val streamAutoPlaySelectedAddonsKey = stringSetPreferencesKey("stream_auto_play_selected_addons")
     private val streamAutoPlaySelectedPluginsKey = stringSetPreferencesKey("stream_auto_play_selected_plugins")
@@ -1156,7 +1158,8 @@ class PlayerSettingsDataStore @Inject constructor(
                 streamAutoPlayAddonsEnabled = prefs[streamAutoPlayAddonsEnabledKey],
                 streamAutoPlayPluginsEnabled = prefs[streamAutoPlayPluginsEnabledKey],
                 streamAutoPlayPlaylistsEnabled = prefs[streamAutoPlayPlaylistsEnabledKey] ?: false,
-                streamAutoPlayFallbackPlaylistsEnabled = com.nuvio.tv.BuildConfig.FLAVOR != "mobile" || prefs[fallbackPlaylistsKey] != false,
+                streamAutoPlayFallbackPlaylistsEnabled = prefs[streamAutoPlayFallbackPlaylistsEnabledKey] ?: true,
+                streamAutoPlayImmediatePlaylistsEnabled = prefs[streamAutoPlayImmediatePlaylistsEnabledKey] ?: false,
                 streamAutoPlaySelectedAddons = prefs[streamAutoPlaySelectedAddonsKey] ?: emptySet(),
                 streamAutoPlaySelectedPlugins = prefs[streamAutoPlaySelectedPluginsKey] ?: emptySet(),
                 streamAutoPlayImmediateEnabled = prefs[streamAutoPlayImmediateEnabledKey] ?: false,
@@ -1555,7 +1558,8 @@ class PlayerSettingsDataStore @Inject constructor(
     suspend fun setStreamAutoPlayAddonsEnabled(enabled: Boolean) { store().edit { it[streamAutoPlayAddonsEnabledKey] = enabled } }
     suspend fun setStreamAutoPlayPluginsEnabled(enabled: Boolean) { store().edit { it[streamAutoPlayPluginsEnabledKey] = enabled } }
     suspend fun setStreamAutoPlayPlaylistsEnabled(enabled: Boolean) { store().edit { it[streamAutoPlayPlaylistsEnabledKey] = enabled } }
-    suspend fun setFallbackPlaylistsEnabled(enabled: Boolean) { store().edit { it[fallbackPlaylistsKey] = enabled } }
+    suspend fun setStreamAutoPlayFallbackPlaylistsEnabled(enabled: Boolean) { store().edit { it[streamAutoPlayFallbackPlaylistsEnabledKey] = enabled } }
+    suspend fun setStreamAutoPlayImmediatePlaylistsEnabled(enabled: Boolean) { store().edit { it[streamAutoPlayImmediatePlaylistsEnabledKey] = enabled } }
 
     suspend fun setStreamAutoPlaySource(source: StreamAutoPlaySource) {
         store().edit { prefs ->

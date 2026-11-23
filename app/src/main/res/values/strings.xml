@@ -1008,12 +1008,12 @@
     <string name="autoplay_mode_first">Auto-play first source</string>
     <string name="autoplay_mode_regex">Auto-play regex match</string>
     <string name="autoplay_stream_selection">Auto Stream Selection</string>
-    <string name="autoplay_immediate_title">Immediate addon autoplay</string>
-    <string name="autoplay_immediate_sub">Start a selected addon\'s first playable result after a 0.5-second pause. Uses the addon\'s source order and ignores normal autoplay filters.</string>
+    <string name="autoplay_immediate_title">Immediate autoplay</string>
+    <string name="autoplay_immediate_sub">Play the first eligible result after a 0.5-second pause. Select immediate addons or include IPTV VOD below.</string>
     <string name="autoplay_immediate_addons">Immediate addons</string>
     <string name="autoplay_immediate_none">No addons selected</string>
     <string name="autoplay_any_source_fallback">Any-source fallback</string>
-    <string name="autoplay_any_source_fallback_sub">If approved sources do not start playback, try any playable source after a longer wait. Ignores normal autoplay filters.</string>
+    <string name="autoplay_any_source_fallback_sub">If approved sources do not start playback, try a playable source after a longer wait. You can exclude IPTV VOD from this tier. Ignores normal autoplay filters.</string>
     <string name="autoplay_fallback_needs_timed_wait">Choose a timed autoplay wait before enabling a later fallback.</string>
     <string name="autoplay_any_source_after">Fallback after</string>
     <string name="autoplay_any_source_after_sub">Total time from the start of the search. Must be longer than the approved-source wait.</string>
@@ -3559,4 +3559,12 @@
     <string name="episodes_last_watch_failed">Couldn’t remove that watch. Refresh the episode and try again.</string>
     <string name="episodes_partial_watch_removed">Partial watch removed</string>
     <string name="episodes_partial_watch_failed">Couldn’t finish removing this partial watch</string>
+    <string name="iptv_immediate_tier">Include IPTV VOD in immediate sources</string>
+    <string name="iptv_fallback_tier">Include IPTV VOD in any-source fallback</string>
+    <string name="when_watched">When did you watch it?</string>
+    <string name="watched_now">Mark watched now</string>
+    <string name="choose_watch_date">Choose date</string>
+    <string name="choose_watch_date_time">Choose date and time</string>
+    <string name="choose_watch_time">Choose time</string>
+    <string name="choose_past_watch_time">Choose a valid time in the past.</string>
 </resources>

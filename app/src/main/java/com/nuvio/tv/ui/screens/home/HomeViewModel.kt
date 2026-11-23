@@ -789,10 +789,10 @@ class HomeViewModel @Inject constructor(
         isNextUp = isNextUp
     )
 
-    private fun markContinueWatchingWatched(item: ContinueWatchingItem, watchedAt: Long?) {
+    private fun markContinueWatchingWatched(item: ContinueWatchingItem, watchedAt: Long) {
         if (!item.canMarkWatched()) return
         viewModelScope.launch {
-            runCatching { watchProgressRepository.markAsCompleted(item.toCompletedProgress(), watchedAt = watchedAt) }
+            runCatching { watchProgressRepository.markAsCompleted(item.toCompletedProgress(watchedAt), watchedAt = watchedAt.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" }) }
                 .onFailure { error -> Log.w(TAG, "Failed to mark continue watching item as watched", error) }
         }
     }

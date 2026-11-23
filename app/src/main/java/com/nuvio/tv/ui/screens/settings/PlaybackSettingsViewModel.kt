@@ -544,7 +544,8 @@ class PlaybackSettingsViewModel @Inject constructor(
     suspend fun setStreamAutoPlayAddonsEnabled(enabled: Boolean) = playerSettingsDataStore.setStreamAutoPlayAddonsEnabled(enabled)
     suspend fun setStreamAutoPlayPluginsEnabled(enabled: Boolean) = playerSettingsDataStore.setStreamAutoPlayPluginsEnabled(enabled)
     suspend fun setStreamAutoPlayPlaylistsEnabled(enabled: Boolean) = playerSettingsDataStore.setStreamAutoPlayPlaylistsEnabled(enabled)
-    suspend fun setFallbackPlaylistsEnabled(enabled: Boolean) = playerSettingsDataStore.setFallbackPlaylistsEnabled(enabled)
+    suspend fun setStreamAutoPlayFallbackPlaylistsEnabled(enabled: Boolean) = playerSettingsDataStore.setStreamAutoPlayFallbackPlaylistsEnabled(enabled)
+    suspend fun setStreamAutoPlayImmediatePlaylistsEnabled(enabled: Boolean) = playerSettingsDataStore.setStreamAutoPlayImmediatePlaylistsEnabled(enabled)
 
     suspend fun setStreamAutoPlaySource(source: StreamAutoPlaySource) {
         playerSettingsDataStore.setStreamAutoPlaySource(source)

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Μικρογραφίες αναζήτησης</string>
+    <string name="playback_section_seek_thumbnails_desc">Προεπισκόπηση πάνω από τη γραμμή χρόνου</string>
+    <string name="iptv_thumbs_subtitle">Εμφανίζει εικόνες από το Seekr ή από το βίντεο στη συσκευή.</string>
+    <string name="iptv_thumbs_works_on">Για ταινίες, σειρές, HLS, εγγραφές, αθλητικές επαναλήψεις, ετεροχρονισμένη προβολή και προσωρινά αποθηκευμένη ζωντανή TV. Χρησιμοποιεί το αποθηκευμένο τμήμα ή το HLS του παρόχου. Εξαιρούνται torrent, DASH και προστατευμένες ροές.</string>
+    <string name="iptv_thumbs_low_memory_note">Περιορισμένη μνήμη. Αν κολλάει η αναπαραγωγή, η δημιουργία εικόνων σταματά αυτόματα.</string>
+    <string name="iptv_thumbs_include_4k">Συμπερίληψη 4K και HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Απαιτεί περισσότερα δεδομένα. Οι αδύναμες συσκευές ενδέχεται να κολλάνε και τα χρώματα HDR να φαίνονται ξεθωριασμένα. Οι ροές χρησιμοποιούν τη μικρότερη έκδοση.</string>
+    <string name="iptv_thumbs_when_to_make">Πότε δημιουργούνται μικρογραφίες</string>
+    <string name="iptv_thumbs_when_seeking">Μόνο σε παύση ή αναζήτηση</string>
+    <string name="iptv_thumbs_when_seeking_desc">Δεν δημιουργούνται εικόνες κατά την κανονική αναπαραγωγή.</string>
+    <string name="iptv_thumbs_when_watching">Κατά την προβολή</string>
+    <string name="iptv_thumbs_when_watching_desc">Δημιουργούνται στο παρασκήνιο όταν έχει φορτωθεί αρκετό βίντεο.</string>
+    <string name="iptv_thumbs_when_right_away">Αμέσως</string>
+    <string name="iptv_thumbs_when_right_away_desc">Επεξεργάζεται ολόκληρο το βίντεο από την αρχή και καταναλώνει τα περισσότερα δεδομένα.</string>
+    <string name="iptv_thumbs_storage_limit">Όριο αποθήκευσης</string>
+    <string name="iptv_thumbs_storage_limit_desc">Διαγράφονται πρώτα οι εικόνες από τα παλαιότερα προβληθέντα βίντεο.</string>
+    <string name="iptv_thumbs_clear">Εκκαθάριση μικρογραφιών</string>
+    <string name="iptv_thumbs_clear_desc">Διαγράφονται όλες οι εικόνες και δημιουργούνται ξανά όταν χρειαστούν.</string>
+    <string name="iptv_thumbs_last_paused">Τελευταία παύση λόγω μνήμης: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Δημιουργία μικρογραφιών…</string>
+    <string name="iptv_thumbs_msg_low_memory">Παύση μικρογραφιών λόγω χαμηλής μνήμης</string>
+    <string name="iptv_thumbs_msg_live">Δεν υπάρχουν μικρογραφίες για ζωντανή TV</string>
+    <string name="iptv_thumbs_msg_dash">Δεν υπάρχουν μικρογραφίες για DASH</string>
+    <string name="iptv_thumbs_msg_catchup_save">Ενεργοποιήστε τη γρήγορη παράλειψη στην ετεροχρονισμένη προβολή</string>
+    <string name="iptv_thumbs_msg_protected">Η ροή είναι προστατευμένη</string>
+    <string name="iptv_thumbs_msg_torrent">Δεν υπάρχουν μικρογραφίες για torrent</string>
+    <string name="iptv_thumbs_msg_link_kind">Δεν υπάρχουν μικρογραφίες για αυτόν τον τύπο συνδέσμου</string>
+    <string name="iptv_thumbs_msg_unreadable">Αδυναμία ανάγνωσης της ροής</string>
+    <string name="iptv_thumbs_msg_pieces_large">Τα τμήματα της ροής είναι πολύ μεγάλα</string>
+    <string name="iptv_thumbs_msg_stopped">Η δημιουργία εικόνων για το βίντεο σταμάτησε</string>
+    <string name="iptv_thumbs_msg_no_pictures">Ο διακομιστής δεν έστειλε εικόνες</string>
+    <string name="iptv_thumbs_msg_format">Η συσκευή δεν υποστηρίζει προεπισκόπηση αυτής της μορφής</string>
+    <string name="iptv_thumbs_msg_open_failed">Αδυναμία ανοίγματος του βίντεο για προεπισκόπηση</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Δεν υπάρχουν μικρογραφίες για αυτή την επανάληψη</string>
+    <string name="iptv_thumbs_msg_one_decoder">Ο μόνος αποκωδικοποιητής χρειάζεται για την αναπαραγωγή</string>
+    <string name="iptv_thumbs_title">Μικρογραφίες αναζήτησης</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Δεν ήταν δυνατή η αποθήκευση του κλειδιού Seekr στη συσκευή.</string>
+    <string name="seekr_api_key">Κλειδί API Seekr</string>
+    <string name="seekr_key_description">Το προσωπικό κλειδί από το seekr.tv χρησιμοποιείται για προεπισκοπήσεις ταινιών και επεισοδίων. Περιλαμβάνεται στο αντίγραφο ασφαλείας στο Google Drive. Αδειάστε το πεδίο για αφαίρεση.</string>
+    <string name="seekr_only">Μόνο Seekr</string>
+    <string name="seekr_only_description">Εμφάνιση προεπισκοπήσεων μόνο από το Seekr. Απενεργοποιήστε για τοπική δημιουργία όσων λείπουν.</string>
+</resources>

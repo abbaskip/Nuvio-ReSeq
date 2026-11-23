@@ -3468,4 +3468,12 @@
     <string name="autosync_status_no_fit">Komt mogelijk niet overeen</string>
     <string name="autosync_status_no_reference">Geen ingebouwde ondertitels</string>
     <string name="autosync_status_failed">Mislukt</string>
+    <string name="iptv_immediate_tier">IPTV VOD opnemen in bronnen voor direct afspelen</string>
+    <string name="iptv_fallback_tier">IPTV VOD opnemen in reservebronnen</string>
+    <string name="when_watched">Wanneer heb je dit bekeken?</string>
+    <string name="watched_now">Nu als bekeken markeren</string>
+    <string name="choose_watch_date">Datum kiezen</string>
+    <string name="choose_watch_date_time">Datum en tijd kiezen</string>
+    <string name="choose_watch_time">Tijd kiezen</string>
+    <string name="choose_past_watch_time">Kies een geldig tijdstip in het verleden.</string>
 </resources>

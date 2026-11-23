@@ -2320,4 +2320,12 @@
     <string name="autosync_status_no_fit">பொருந்தாமல் இருக்கலாம்</string>
     <string name="autosync_status_no_reference">உட்பொதிக்கப்பட்ட வசனங்கள் இல்லை</string>
     <string name="autosync_status_failed">தோல்வியடைந்தது</string>
+    <string name="iptv_immediate_tier">உடனடி இயக்கத்திற்கான மூலங்களில் IPTV VOD சேர்</string>
+    <string name="iptv_fallback_tier">மாற்று மூலங்களில் IPTV VOD சேர்</string>
+    <string name="when_watched">இதை எப்போது பார்த்தீர்கள்?</string>
+    <string name="watched_now">இப்போது பார்த்ததாகக் குறி</string>
+    <string name="choose_watch_date">தேதியைத் தேர்ந்தெடு</string>
+    <string name="choose_watch_date_time">தேதி மற்றும் நேரத்தைத் தேர்ந்தெடு</string>
+    <string name="choose_watch_time">நேரத்தைத் தேர்ந்தெடு</string>
+    <string name="choose_past_watch_time">கடந்த காலத்தில் சரியான நேரத்தைத் தேர்ந்தெடுக்கவும்.</string>
 </resources>

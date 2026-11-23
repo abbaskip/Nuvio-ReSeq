@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">এগোনো-পেছানোর থাম্বনেইল</string>
+    <string name="playback_section_seek_thumbnails_desc">সময়রেখা সরালে তার ওপরে প্রিভিউ দেখায়</string>
+    <string name="iptv_thumbs_subtitle">Seekr থেকে বা এই ডিভাইসে ভিডিওর ফ্রেম থেকে প্রিভিউ দেখায়।</string>
+    <string name="iptv_thumbs_works_on">সিনেমা, সিরিজ, HLS, রেকর্ডিং, খেলার রিপ্লে, ক্যাচ-আপ এবং বাফারে থাকা লাইভ টিভিতে কাজ করে। ক্যাচ-আপের সংরক্ষিত অংশ বা সরবরাহকারীর HLS লাগে। টরেন্ট, DASH ও সুরক্ষিত স্ট্রিমে কাজ করে না।</string>
+    <string name="iptv_thumbs_low_memory_note">মেমরি কম। ভিডিও আটকে গেলে থাম্বনেইল তৈরি নিজে থেকে থামে।</string>
+    <string name="iptv_thumbs_include_4k">4K ও HDR অন্তর্ভুক্ত করুন</string>
+    <string name="iptv_thumbs_include_4k_desc">বেশি ডেটা লাগে। কম শক্তিশালী ডিভাইসে আটকে যেতে পারে। HDR-এর রং ফিকে হতে পারে। স্ট্রিমে সবচেয়ে ছোট সংস্করণ ব্যবহার হয়।</string>
+    <string name="iptv_thumbs_when_to_make">কখন থাম্বনেইল তৈরি হবে</string>
+    <string name="iptv_thumbs_when_seeking">শুধু বিরতিতে বা সময়রেখা সরালে</string>
+    <string name="iptv_thumbs_when_seeking_desc">স্বাভাবিকভাবে চলার সময় তৈরি হয় না।</string>
+    <string name="iptv_thumbs_when_watching">দেখার সময়</string>
+    <string name="iptv_thumbs_when_watching_desc">যথেষ্ট বাফার থাকলে পটভূমিতে তৈরি হয়।</string>
+    <string name="iptv_thumbs_when_right_away">এখনই</string>
+    <string name="iptv_thumbs_when_right_away_desc">শুরু থেকেই পুরো ভিডিও প্রক্রিয়া করে। সবচেয়ে বেশি ডেটা লাগে।</string>
+    <string name="iptv_thumbs_storage_limit">স্টোরেজ সীমা</string>
+    <string name="iptv_thumbs_storage_limit_desc">সবচেয়ে আগে দেখা ভিডিওর থাম্বনেইল আগে সরানো হয়।</string>
+    <string name="iptv_thumbs_clear">সংরক্ষিত থাম্বনেইল মুছুন</string>
+    <string name="iptv_thumbs_clear_desc">সব থাম্বনেইল মুছবে। প্রয়োজনে আবার তৈরি হবে।</string>
+    <string name="iptv_thumbs_last_paused">মেমরি কম থাকায় শেষ বিরতি: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">থাম্বনেইল তৈরি হচ্ছে…</string>
+    <string name="iptv_thumbs_msg_low_memory">মেমরি কম থাকায় থাম্বনেইল স্থগিত</string>
+    <string name="iptv_thumbs_msg_live">লাইভ টিভির থাম্বনেইল নেই</string>
+    <string name="iptv_thumbs_msg_dash">DASH-এর থাম্বনেইল নেই</string>
+    <string name="iptv_thumbs_msg_catchup_save">থাম্বনেইলের জন্য দ্রুত ক্যাচ-আপ স্কিপ চালু করুন</string>
+    <string name="iptv_thumbs_msg_protected">সুরক্ষিত স্ট্রিমে থাম্বনেইল নেই</string>
+    <string name="iptv_thumbs_msg_torrent">টরেন্টের থাম্বনেইল নেই</string>
+    <string name="iptv_thumbs_msg_link_kind">এ ধরনের লিঙ্কের থাম্বনেইল নেই</string>
+    <string name="iptv_thumbs_msg_unreadable">প্রিভিউয়ের জন্য স্ট্রিম পড়া যায়নি</string>
+    <string name="iptv_thumbs_msg_pieces_large">স্ট্রিমের অংশগুলো খুব বড়</string>
+    <string name="iptv_thumbs_msg_stopped">এই ভিডিওর থাম্বনেইল তৈরি থেমেছে</string>
+    <string name="iptv_thumbs_msg_no_pictures">সার্ভার কোনো প্রিভিউ পাঠায়নি</string>
+    <string name="iptv_thumbs_msg_format">এই ডিভাইসে ফরম্যাটটির প্রিভিউ সম্ভব নয়</string>
+    <string name="iptv_thumbs_msg_open_failed">প্রিভিউয়ের জন্য ভিডিও খোলা যায়নি</string>
+    <string name="iptv_thumbs_msg_catchup_stream">এই ক্যাচ-আপ স্ট্রিমের থাম্বনেইল নেই</string>
+    <string name="iptv_thumbs_msg_one_decoder">ভিডিও চালাতে একমাত্র ডিকোডারটি প্রয়োজন</string>
+    <string name="iptv_thumbs_title">এগোনো-পেছানোর থাম্বনেইল</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">এই ডিভাইসে Seekr কী সংরক্ষণ করা যায়নি।</string>
+    <string name="seekr_api_key">Seekr API কী</string>
+    <string name="seekr_key_description">সিনেমা ও পর্বের প্রিভিউ দেখতে seekr.tv-এর ব্যক্তিগত কী দিন। Google Drive ব্যাকআপে কীটি থাকবে। মুছতে ঘরটি খালি করুন।</string>
+    <string name="seekr_only">শুধু Seekr</string>
+    <string name="seekr_only_description">শুধু Seekr-এর প্রিভিউ দেখান। অনুপস্থিত প্রিভিউ ডিভাইসে তৈরি করতে এটি বন্ধ করুন।</string>
+</resources>

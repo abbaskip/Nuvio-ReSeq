@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Náhľady pri pretáčaní</string>
+    <string name="playback_section_seek_thumbnails_desc">Náhľady nad časovou osou pri pretáčaní</string>
+    <string name="iptv_thumbs_subtitle">Zobrazí obrázky zo Seekr alebo ich vytvorí z videa v zariadení.</string>
+    <string name="iptv_thumbs_works_on">Pre filmy, seriály, HLS, nahrávky, športové záznamy, archív a pretáčanie živého vysielania. V archíve používa uloženú časť alebo HLS od poskytovateľa. Nepodporuje torrenty, DASH ani chránené streamy.</string>
+    <string name="iptv_thumbs_low_memory_note">Málo pamäte. Ak prehrávanie seká, tvorba náhľadov sa automaticky pozastaví.</string>
+    <string name="iptv_thumbs_include_4k">Zahrnúť 4K a HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Spotrebuje viac dát. Slabšie zariadenia môžu sekať a farby HDR môžu byť vyblednuté. Pri streamoch sa používa najmenší variant.</string>
+    <string name="iptv_thumbs_when_to_make">Kedy vytvárať náhľady</string>
+    <string name="iptv_thumbs_when_seeking">Iba pri pozastavení alebo pretáčaní</string>
+    <string name="iptv_thumbs_when_seeking_desc">Pri bežnom prehrávaní sa obrázky nevytvárajú.</string>
+    <string name="iptv_thumbs_when_watching">Počas sledovania</string>
+    <string name="iptv_thumbs_when_watching_desc">Vytvára obrázky na pozadí, keď je vopred načítané dostatočné množstvo videa.</string>
+    <string name="iptv_thumbs_when_right_away">Ihneď</string>
+    <string name="iptv_thumbs_when_right_away_desc">Spracuje celé video hneď po otvorení. Spotrebuje najviac dát.</string>
+    <string name="iptv_thumbs_storage_limit">Limit úložiska</string>
+    <string name="iptv_thumbs_storage_limit_desc">Najskôr odstráni náhľady najdávnejšie sledovaných videí.</string>
+    <string name="iptv_thumbs_clear">Vymazať uložené náhľady</string>
+    <string name="iptv_thumbs_clear_desc">Vymaže všetky obrázky. V prípade potreby sa znova vytvoria.</string>
+    <string name="iptv_thumbs_last_paused">Posledná pauza pre nedostatok pamäte: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Vytvárajú sa náhľady…</string>
+    <string name="iptv_thumbs_msg_low_memory">Náhľady pozastavené pre nedostatok pamäte</string>
+    <string name="iptv_thumbs_msg_live">Živé vysielanie nemá náhľady</string>
+    <string name="iptv_thumbs_msg_dash">Pre DASH nie sú náhľady</string>
+    <string name="iptv_thumbs_msg_catchup_save">Zapnite rýchle pretáčanie v archíve pre zobrazenie náhľadov</string>
+    <string name="iptv_thumbs_msg_protected">Stream je chránený</string>
+    <string name="iptv_thumbs_msg_torrent">Pre torrenty nie sú náhľady</string>
+    <string name="iptv_thumbs_msg_link_kind">Tento typ odkazu nemá náhľady</string>
+    <string name="iptv_thumbs_msg_unreadable">Stream sa nepodarilo prečítať</string>
+    <string name="iptv_thumbs_msg_pieces_large">Segmenty streamu sú príliš veľké</string>
+    <string name="iptv_thumbs_msg_stopped">Vytváranie náhľadov tohto videa sa zastavilo</string>
+    <string name="iptv_thumbs_msg_no_pictures">Server neposlal obrázky</string>
+    <string name="iptv_thumbs_msg_format">Zariadenie nepodporuje náhľady tohto formátu</string>
+    <string name="iptv_thumbs_msg_open_failed">Video sa nepodarilo otvoriť na vytvorenie náhľadu</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Tento archívny stream nemá náhľady</string>
+    <string name="iptv_thumbs_msg_one_decoder">Jediný dekodér je potrebný na prehrávanie</string>
+    <string name="iptv_thumbs_title">Náhľady pri pretáčaní</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Kľúč Seekr sa nepodarilo uložiť do zariadenia.</string>
+    <string name="seekr_api_key">Kľúč API Seekr</string>
+    <string name="seekr_key_description">Osobný kľúč zo seekr.tv slúži na náhľady filmov a epizód. Záloha na Disku Google obsahuje aj kľúč. Odstránite ho vymazaním poľa.</string>
+    <string name="seekr_only">Iba Seekr</string>
+    <string name="seekr_only_description">Zobraziť iba náhľady zo Seekr. Po vypnutí sa chýbajúce náhľady vytvoria v zariadení.</string>
+</resources>

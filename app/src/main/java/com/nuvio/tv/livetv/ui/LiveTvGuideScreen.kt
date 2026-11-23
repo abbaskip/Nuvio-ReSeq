@@ -182,7 +182,7 @@ fun LiveTvGuideScreen(
     onOpenFullscreen: () -> Unit,
     onOpenSettings: () -> Unit,
     onMultiview: (String?) -> Unit = {},
-    onFindInNuvio: () -> Unit = {},
+    onFindInNuvio: (com.nuvio.tv.livetv.ui.GuideLookup) -> Unit = {},
     /** Full screen was opened from the Sports page: Back goes back there. */
     onReturnToSports: () -> Unit = {},
     viewModel: LiveTvViewModel = hiltViewModel()
@@ -729,12 +729,6 @@ fun LiveTvGuideScreen(
             !groupsOpen -> focusGroups()
             else -> openSidebar()
         }
-    }
-
-    fun findInNuvio(program: EpgProgram) {
-        // For a series with a "Show - Episode" title, search for the show.
-        LiveTvSearchBridge.request(com.nuvio.tv.livetv.data.LiveTvPosterResolver.searchTitleFor(program, null))
-        onFindInNuvio()
     }
 
     val focusedChannel = channels.getOrNull(row)
@@ -1815,7 +1809,7 @@ fun LiveTvGuideScreen(
                 },
                 onProgramInfo = { menuTarget = null; infoTarget = target },
                 streamProgram = target.block?.program ?: viewModel.currentProgram(target.channel.key),
-                onFindInNuvio = { p -> menuTarget = null; findInNuvio(p) },
+                onFindInNuvio = { p -> menuTarget = null; onFindInNuvio(GuideLookup.from(p, target.channel)) },
                 onSearch = { menuTarget = null; LiveTvSearchBridge.origin.value = LiveTvSearchBridge.GUIDE; run { searchOpen = true } },
                 onRefresh = { menuTarget = null; viewModel.refresh() },
                 onGuideDisplay = { menuTarget = null; guideGearOpen = true },
@@ -1851,7 +1845,7 @@ fun LiveTvGuideScreen(
                 use24h = settings.use24HourClock,
                 showEpisode = settings.showEpisodeNumbers,
                 onDismiss = { infoTarget = null },
-                onFind = { p -> infoTarget = null; findInNuvio(p) },
+                onFind = { p -> infoTarget = null; onFindInNuvio(GuideLookup.from(p, target.channel)) },
                 onWatch = { infoTarget = null; playChannel(target.channel) },
                 onCatchup = { p ->
                     infoTarget = null
@@ -2074,7 +2068,7 @@ fun LiveTvGuideScreen(
                         fullscreen = false; exitFullscreenTick++
                     }
                 },
-                onFindInNuvio = { com.nuvio.tv.livetv.sports.SportsLaunch.clearReturn(); fullscreenComing = false; fullscreen = false; exitFullscreenTick++; onFindInNuvio() },
+                onFindInNuvio = { com.nuvio.tv.livetv.sports.SportsLaunch.clearReturn(); fullscreenComing = false; fullscreen = false; exitFullscreenTick++; onFindInNuvio(it) },
                 onBackToGroups = { com.nuvio.tv.livetv.sports.SportsLaunch.clearReturn(); fullscreenComing = false; fullscreen = false; savedSpot = null; exitFullscreenTick++; focusGroups() },
                 embedded = true,
                 onOpenSettings = onOpenSettings,
@@ -3907,14 +3901,15 @@ internal fun TextInputDialog(
     confirmLabel: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
-    numeric: Boolean = false
+    numeric: Boolean = false,
+    password: Boolean = false
 ) {
     var text by remember { mutableStateOf(initial) }
     val fieldFocus = remember { FocusRequester() }
     LiveDialog(onDismiss = onDismiss) {
         LiveText(title, size = 20.sp, weight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
-        LiveTextField(value = text, onValueChange = { text = it }, hint = hint, focusRequester = fieldFocus, numeric = numeric, onDone = { onConfirm(text) })
+        LiveTextField(value = text, onValueChange = { text = it }, hint = hint, focusRequester = fieldFocus, numeric = numeric, password = password, onDone = { onConfirm(text) })
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             LiveFocusRow(onClick = { onConfirm(text) }) { f -> LiveText(confirmLabel, color = focusedTextColor(f)) }

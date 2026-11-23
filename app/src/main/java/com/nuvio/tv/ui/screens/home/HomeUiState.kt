@@ -232,7 +232,7 @@ sealed class HomeEvent {
         val episode: Int? = null,
         val isNextUp: Boolean = false
     ) : HomeEvent()
-    data class OnMarkContinueWatchingWatched(val item: ContinueWatchingItem, val watchedAt: Long? = null) : HomeEvent()
+    data class OnMarkContinueWatchingWatched(val item: ContinueWatchingItem, val watchedAt: Long) : HomeEvent()
     data object OnRetry : HomeEvent()
 }
 

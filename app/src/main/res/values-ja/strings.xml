@@ -3491,4 +3491,12 @@
     <string name="autosync_status_no_fit">一致しない可能性があります</string>
     <string name="autosync_status_no_reference">埋め込み字幕なし</string>
     <string name="autosync_status_failed">失敗しました</string>
+    <string name="iptv_immediate_tier">即時再生のソースに IPTV VOD を含める</string>
+    <string name="iptv_fallback_tier">代替ソースに IPTV VOD を含める</string>
+    <string name="when_watched">いつ視聴しましたか？</string>
+    <string name="watched_now">今の日時で視聴済みにする</string>
+    <string name="choose_watch_date">日付を選ぶ</string>
+    <string name="choose_watch_date_time">日付と時刻を選ぶ</string>
+    <string name="choose_watch_time">時刻を選ぶ</string>
+    <string name="choose_past_watch_time">過去の有効な日時を選んでください。</string>
 </resources>

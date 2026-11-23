@@ -77,6 +77,9 @@ jobs:
           outputs = {abi: Path(f'app/build/outputs/apk/mobile/release/app-mobile-{abi}-release.apk') for abi in (*ABIS, 'universal')}
           check_mobile_manifest(Path('app/build/intermediates/merged_manifests/mobileRelease/processMobileReleaseManifest/universal/AndroidManifest.xml'))
           validate_native_outputs(outputs)
+          merged_profiles = list(Path('app/build/intermediates/merged_art_profile/mobileRelease').rglob('baseline-prof.txt'))
+          if not any('Lcom/nuvio/tv/mobile/MobileActivity;->onCreate' in path.read_text() for path in merged_profiles):
+              raise ValueError('Mobile startup methods missing from the merged release profile')
           reference, = Path('build/signer-reference').glob('*.apk')
           # A different OAuth project could sign in successfully but fail to see the TV's drive.file backups.
           drive_client = properties(Path('local.properties'))['GOOGLE_DRIVE_CLIENT_ID']
@@ -93,6 +96,9 @@ jobs:
               if package != MOBILE_ID or code < 1 or label != version or certificate(str(sdk / 'apksigner'), apk) != signer:
                   raise ValueError(f'Unexpected package, version or signer for {apk}')
               with ZipFile(apk) as archive:
+                  for name in ('assets/dexopt/baseline.prof', 'assets/dexopt/baseline.profm'):
+                      if archive.getinfo(name).file_size == 0:
+                          raise ValueError(f'Empty Android runtime profile in {apk}')
                   for name in ('LICENSE', 'NOTICE-MOBILE.md'):
                       if archive.read('assets/notices/' + name) != Path('app/src/mobile/assets/notices', name).read_bytes():
                           raise ValueError(f'Missing or incorrect packaged {name}')
@@ -135,6 +141,8 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           script: |
             python3 scripts/mobile_smoke.py --extended --apk build/mobile-downloads/*-universal.apk
+            adb shell am broadcast -a androidx.profileinstaller.action.INSTALL_PROFILE -n io.github.abbaskip.nuvioreseq.mobile/androidx.profileinstaller.ProfileInstallReceiver | grep -E 'result=(1|2)(,|$)'
+            adb shell cmd package compile -f -m speed-profile io.github.abbaskip.nuvioreseq.mobile | grep Success
             adb -s emulator-5554 shell pm clear io.github.abbaskip.nuvioreseq.mobile
             python3 scripts/mobile_smoke.py --providers-only --apk build/mobile-downloads/*-universal.apk
       - name: Save signed build screenshots

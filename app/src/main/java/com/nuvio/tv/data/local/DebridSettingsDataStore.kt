@@ -24,7 +24,7 @@ import com.nuvio.tv.domain.model.normalizeDebridInstantPlaybackPreparationLimit
 import com.nuvio.tv.domain.model.normalizeDebridStreamMaxResults
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -131,21 +131,22 @@ class DebridSettingsDataStore @Inject constructor(
         store().edit { it[preferredResolverProviderIdKey] = normalized }
     }
 
-    internal suspend fun providerKeysForProfile(profileId: Int): Map<String, String> {
-        val prefs = store(profileId).data.first()
-        return DebridProviders.all().mapNotNull { provider ->
+    internal fun providerKeysForProfile(profileId: Int) = store(profileId).data.map { prefs ->
+        DebridProviders.all().mapNotNull { provider ->
             providerKey(provider.id)?.let { prefs[it] }?.takeIf { it.isNotBlank() }?.let { provider.id to it }
         }.toMap()
-    }
+    }.distinctUntilChanged()
 
     suspend fun setProviderApiKey(providerId: String, apiKey: String) =
         setProviderApiKey(providerId, apiKey, profileManager.activeProfileId.value)
 
-    internal suspend fun setProviderApiKey(providerId: String, apiKey: String, profileId: Int) {
+    internal suspend fun setProviderApiKey(providerId: String, apiKey: String, profileId: Int, expected: String? = null) {
         val provider = DebridProviders.byId(providerId) ?: return
         val normalized = apiKey.trim()
         store(profileId).edit { prefs ->
-            providerKey(provider.id)?.let { key -> prefs[key] = normalized }
+            val key = providerKey(provider.id) ?: return@edit
+            if (expected != null && prefs[key].orEmpty() != expected) return@edit
+            prefs[key] = normalized
             if (normalized.isBlank() && !hasAnyVisibleApiKeyAfter(prefs, provider.id)) {
                 prefs[enabledKey] = false
             }

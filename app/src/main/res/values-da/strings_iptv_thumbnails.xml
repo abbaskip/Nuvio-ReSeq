@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Miniaturer ved spoling</string>
+    <string name="playback_section_seek_thumbnails_desc">Vis billeder over tidslinjen, når du spoler</string>
+    <string name="iptv_thumbs_subtitle">Viser billeder fra Seekr eller fra videoen på enheden.</string>
+    <string name="iptv_thumbs_works_on">Virker med film, serier, HLS, optagelser, sportsgenudsendelser, arkiv-tv og tilbagespoling af live-tv. Arkiv-tv bruger det gemte udsnit eller udbyderens HLS. Understøtter ikke torrents, DASH eller beskyttede streams.</string>
+    <string name="iptv_thumbs_low_memory_note">Enheden har begrænset hukommelse. Billeder sættes automatisk på pause ved hakken.</string>
+    <string name="iptv_thumbs_include_4k">Medtag 4K og HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Bruger flere data. Svagere enheder kan hakke, og HDR-farver kan virke blege. Streams bruger den mindste variant.</string>
+    <string name="iptv_thumbs_when_to_make">Hvornår skal miniaturer oprettes?</string>
+    <string name="iptv_thumbs_when_seeking">Kun ved pause eller spoling</string>
+    <string name="iptv_thumbs_when_seeking_desc">Der oprettes ingen billeder under almindelig afspilning.</string>
+    <string name="iptv_thumbs_when_watching">Under afspilning</string>
+    <string name="iptv_thumbs_when_watching_desc">Opretter billeder i baggrunden, når der er indlæst nok video.</string>
+    <string name="iptv_thumbs_when_right_away">Med det samme</string>
+    <string name="iptv_thumbs_when_right_away_desc">Behandler hele videoen fra starten og bruger flest data.</string>
+    <string name="iptv_thumbs_storage_limit">Pladsgrænse</string>
+    <string name="iptv_thumbs_storage_limit_desc">Billeder fra de videoer, der blev set for længst, slettes først.</string>
+    <string name="iptv_thumbs_clear">Ryd gemte miniaturer</string>
+    <string name="iptv_thumbs_clear_desc">Sletter alle billeder. De oprettes igen efter behov.</string>
+    <string name="iptv_thumbs_last_paused">Seneste pause på grund af lav hukommelse: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Opretter miniaturer…</string>
+    <string name="iptv_thumbs_msg_low_memory">Miniaturer sat på pause på grund af lav hukommelse</string>
+    <string name="iptv_thumbs_msg_live">Ingen miniaturer til live-tv</string>
+    <string name="iptv_thumbs_msg_dash">Ingen miniaturer til DASH</string>
+    <string name="iptv_thumbs_msg_catchup_save">Slå hurtigere spoling i arkiv-tv til for at få miniaturer</string>
+    <string name="iptv_thumbs_msg_protected">Streamen er beskyttet</string>
+    <string name="iptv_thumbs_msg_torrent">Ingen miniaturer til torrents</string>
+    <string name="iptv_thumbs_msg_link_kind">Ingen miniaturer til denne linktype</string>
+    <string name="iptv_thumbs_msg_unreadable">Streamen kunne ikke læses</string>
+    <string name="iptv_thumbs_msg_pieces_large">Streamens segmenter er for store</string>
+    <string name="iptv_thumbs_msg_stopped">Miniaturerne stoppede for denne video</string>
+    <string name="iptv_thumbs_msg_no_pictures">Serveren sendte ingen billeder</string>
+    <string name="iptv_thumbs_msg_format">Formatet understøtter ikke miniaturer på enheden</string>
+    <string name="iptv_thumbs_msg_open_failed">Videoen kunne ikke åbnes for forhåndsvisning</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Ingen miniaturer til denne arkivstream</string>
+    <string name="iptv_thumbs_msg_one_decoder">Tv’ets eneste dekoder bruges til afspilning</string>
+    <string name="iptv_thumbs_title">Miniaturer ved spoling</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Seekr-nøglen kunne ikke gemmes på enheden.</string>
+    <string name="seekr_api_key">Seekr API-nøgle</string>
+    <string name="seekr_key_description">Brug din nøgle fra seekr.tv til forhåndsvisninger af film og afsnit. Sikkerhedskopien på Google Drev indeholder nøglen. Ryd feltet for at fjerne den.</string>
+    <string name="seekr_only">Kun Seekr</string>
+    <string name="seekr_only_description">Vis kun forhåndsvisninger fra Seekr. Slå fra for at generere manglende billeder på enheden.</string>
+</resources>

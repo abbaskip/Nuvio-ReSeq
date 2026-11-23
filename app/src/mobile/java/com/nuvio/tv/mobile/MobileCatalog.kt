@@ -813,9 +813,9 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                 } }
                 if (movie) item {
                     if (state.isMovieWatched) MediaIconAction("Mark unwatched", Icons.Default.RemoveDone, showLabel = true,
-                        enabled = !state.isMovieWatchedPending) { vm.onEvent(MetaDetailsEvent.OnToggleMovieWatched) }
+                        enabled = !state.isMovieWatchedPending) { vm.onEvent(MetaDetailsEvent.OnToggleMovieWatched(null)) }
                     else MarkWatchedAction("Mark watched", meta.name, enabled = !state.isMovieWatchedPending) {
-                        vm.onEvent(MetaDetailsEvent.OnMarkMovieWatched(it))
+                        vm.onEvent(MetaDetailsEvent.OnToggleMovieWatched(it))
                     }
                 }
                 if (state.libraryListTabs.isNotEmpty()) item { MediaIconAction("Choose lists", Icons.Default.PlaylistAdd) { vm.onEvent(MetaDetailsEvent.OnLibraryLongPress) } }

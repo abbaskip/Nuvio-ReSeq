@@ -66,7 +66,7 @@ internal fun EpisodeSheetActions(episode: Video, tracking: MobileEpisodeTracking
                 send(MetaDetailsEvent.OnToggleEpisodeWatched(episode, it))
             }
             MediaIconAction("Mark as unwatched", Icons.Default.RemoveDone, Modifier.weight(1f), showLabel = true,
-                enabled = tracking.watched && !tracking.pending) { send(MetaDetailsEvent.OnToggleEpisodeWatched(episode)) }
+                enabled = tracking.watched && !tracking.pending) { send(MetaDetailsEvent.OnToggleEpisodeWatched(episode, null)) }
         }
         val lastWatch = progress?.takeIf { it.hasRemovableWatchEvent() }
         val date = lastWatch?.let { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it.lastWatched)) }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="iptv_immediate_tier">Incluir IPTV VOD nas fontes de reprodução imediata</string>
+    <string name="iptv_fallback_tier">Incluir IPTV VOD nas fontes alternativas</string>
+    <string name="when_watched">Quando assistiu?</string>
+    <string name="watched_now">Marcar como visto agora</string>
+    <string name="choose_watch_date">Escolher data</string>
+    <string name="choose_watch_date_time">Escolher data e hora</string>
+    <string name="choose_watch_time">Escolher hora</string>
+    <string name="choose_past_watch_time">Escolha uma data e hora válidas no passado.</string>
+</resources>

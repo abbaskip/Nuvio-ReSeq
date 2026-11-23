@@ -52,10 +52,14 @@ internal fun MobileSourcePriorities(state: PlayerSettings, vm: PlaybackSettingsV
                 TogglePreference("Play immediately from selected add-ons", state.streamAutoPlayImmediateEnabled) {
                     scope.launch { vm.setStreamAutoPlayImmediateEnabled(it) }
                 }
-                if (state.streamAutoPlayImmediateEnabled)
+                if (state.streamAutoPlayImmediateEnabled) {
                     ProviderSelection("Immediate add-ons", addons, state.streamAutoPlayImmediateAddons, "None") {
                         scope.launch { vm.setStreamAutoPlayImmediateAddons(it) }
                     }
+                    TogglePreference("Include IPTV VOD in first results", state.streamAutoPlayImmediatePlaylistsEnabled) {
+                        scope.launch { vm.setStreamAutoPlayImmediatePlaylistsEnabled(it) }
+                    }
+                }
                 SettingsHeading("Approved sources")
                 TimerSetting("Approved-source wait", wait, PlayerSettings.STREAM_AUTOPLAY_TIMEOUT_VALUES) {
                     scope.launch { vm.setStreamAutoPlayTimeoutSeconds(it) }
@@ -89,7 +93,7 @@ internal fun MobileSourcePriorities(state: PlayerSettings, vm: PlaybackSettingsV
                             scope.launch { vm.setStreamAutoPlayAnySourceFallbackSeconds(it) }
                         }
                         TogglePreference("Include IPTV VOD in fallback", state.streamAutoPlayFallbackPlaylistsEnabled) {
-                            scope.launch { vm.setFallbackPlaylistsEnabled(it) }
+                            scope.launch { vm.setStreamAutoPlayFallbackPlaylistsEnabled(it) }
                         }
                     }
                 }

@@ -29,14 +29,25 @@ import javax.inject.Singleton
 class SportsGeminiCredentials @Inject constructor(@ApplicationContext context: Context) : ProfileScopedCredentialStore {
     private val storage = ProtectedProfilePreferences(context, "sports_gemini_credentials", "com.nuvio.tv.sports.gemini.v1")
     fun read(profile: Int): String? = storage.read(profile)
-    fun save(profile: Int, key: String?) = storage.write(profile, key?.trim()?.takeIf(String::isNotEmpty))
+    private val revisions = kotlinx.coroutines.flow.MutableStateFlow(0L)
+    internal val changes: kotlinx.coroutines.flow.StateFlow<Long> = revisions
+
+    @Synchronized fun save(profile: Int, key: String?) {
+        storage.write(profile, key?.trim()?.takeIf(String::isNotEmpty))
+        revisions.value += 1
+    }
+
+    @Synchronized internal fun restoreIfUnchanged(profile: Int, expected: String, key: String) {
+        if (read(profile).orEmpty() == expected) save(profile, key)
+    }
     private val matches = SportsDiskCache.directory(context.filesDir, context.cacheDir)
     override fun removeProfile(profileId: Int) {
-        storage.write(profileId, null)
+        save(profileId, null)
         File(matches, "gemini-guide-$profileId.json").delete()
     }
-    override fun clearAllProfiles() {
+    @Synchronized override fun clearAllProfiles() {
         storage.clear()
+        revisions.value += 1
         matches.listFiles().orEmpty().filter { it.name.matches(Regex("gemini-guide-[-0-9]+\\.json")) }.forEach { it.delete() }
     }
 }

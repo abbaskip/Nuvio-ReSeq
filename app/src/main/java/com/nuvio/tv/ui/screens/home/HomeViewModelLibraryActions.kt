@@ -317,7 +317,7 @@ private fun HomeViewModel.closePosterListPickerAfterSave(changes: ListMembership
     }
 }
 
-fun HomeViewModel.togglePosterMovieWatched(item: MetaPreview, watchedAt: Long? = null) {
+fun HomeViewModel.togglePosterMovieWatched(item: MetaPreview, watchedAt: Long?) {
     if (!item.apiType.equals("movie", ignoreCase = true)) return
     val statusKey = homeItemStatusKey(item.id, item.apiType)
     if (statusKey in _uiState.value.movieWatchedPending) return
@@ -329,11 +329,10 @@ fun HomeViewModel.togglePosterMovieWatched(item: MetaPreview, watchedAt: Long? =
     viewModelScope.launch {
         val currentlyWatched = _uiState.value.movieWatchedStatus[statusKey] == true
         runCatching {
-            if (currentlyWatched) {
-                if (watchedAt != null) return@runCatching
+            if (currentlyWatched && watchedAt == null) {
                 watchProgressRepository.removeFromHistory(item.id, videoId = item.imdbId)
-            } else {
-                watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(item), watchedAt = watchedAt)
+            } else if (!currentlyWatched && watchedAt != null) {
+                watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(item, watchedAt), watchedAt = watchedAt.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" })
             }
         }.onFailure { error ->
             Log.w(HomeViewModel.TAG, "Failed to toggle poster watched status for ${item.id}: ${error.message}")
@@ -344,7 +343,7 @@ fun HomeViewModel.togglePosterMovieWatched(item: MetaPreview, watchedAt: Long? =
     }
 }
 
-private fun buildCompletedMovieProgress(item: MetaPreview): WatchProgress {
+private fun buildCompletedMovieProgress(item: MetaPreview, watchedAt: Long): WatchProgress {
     return WatchProgress(
         contentId = item.id,
         contentType = item.apiType,
@@ -358,20 +357,19 @@ private fun buildCompletedMovieProgress(item: MetaPreview): WatchProgress {
         episodeTitle = null,
         position = 1L,
         duration = 1L,
-        lastWatched = System.currentTimeMillis(),
+        lastWatched = watchedAt,
         progressPercent = 100f
     )
 }
 
-fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview, watchedAt: Long? = null) {
-    val isSeries = item.apiType.equals("series", ignoreCase = true) ||
-        item.apiType.equals("tv", ignoreCase = true)
+fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview, watchedAt: Long?) {
+    val isSeries = item.apiType.lowercase() in setOf("series", "tv", "anime")
     if (!isSeries) return
     val statusKey = homeItemStatusKey(item.id, item.apiType)
     if (statusKey in _uiState.value.movieWatchedPending) return
 
     val currentlyWatched = _uiState.value.movieWatchedStatus[statusKey] == true
-    if (currentlyWatched && watchedAt != null) return
+    if (currentlyWatched != (watchedAt == null)) return
 
     // Optimistically update the UI immediately
     _uiState.update { state ->
@@ -386,7 +384,7 @@ fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview, watchedAt: Long? 
             if (currentlyWatched) {
                 unmarkSeriesWatched(item)
             } else {
-                markSeriesWatched(item, watchedAt)
+                markSeriesWatched(item, requireNotNull(watchedAt))
             }
         }.onFailure { error ->
             Log.w(HomeViewModel.TAG, "Failed to toggle series watched for ${item.id}: ${error.message}")
@@ -403,14 +401,14 @@ fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview, watchedAt: Long? 
     }
 }
 
-private suspend fun HomeViewModel.markSeriesWatched(item: MetaPreview, watchedAt: Long?) {
+private suspend fun HomeViewModel.markSeriesWatched(item: MetaPreview, watchedAt: Long) {
     val episodes = fetchSeriesEpisodes(item)
     // Without episodes the only mark left is a show-level one, which trackers answer by marking
     // every episode watched. Fail instead so the optimistic badge is reverted.
     check(episodes.isNotEmpty()) { "No episodes found for ${item.id}" }
 
     val progressList = episodes.map { video ->
-        val context = if (watchedAt != null) video.tvdbPlaybackContext() else null
+        val context = if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") video.tvdbPlaybackContext() else null
         WatchProgress(
             contentId = item.id,
             contentType = item.apiType,
@@ -427,11 +425,12 @@ private suspend fun HomeViewModel.markSeriesWatched(item: MetaPreview, watchedAt
             tvdbEpisodeId = context?.episodeIds?.firstOrNull(),
             position = 1L,
             duration = 1L,
-            lastWatched = System.currentTimeMillis(),
+            lastWatched = watchedAt,
             progressPercent = 100f
         )
     }
-    watchProgressRepository.markAsCompletedBatch(progressList, watchedAt)
+    if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") watchProgressRepository.markAsCompletedBatch(progressList, watchedAt)
+    else watchProgressRepository.markAsCompletedBatch(progressList)
     fullyWatchedSeriesIds.updateWithValidation(
         fullyWatchedSeriesIds.fullyWatchedSeriesIds.value + item.id,
         setOf(item.id)
@@ -457,7 +456,7 @@ private suspend fun HomeViewModel.unmarkSeriesWatched(item: MetaPreview) {
 }
 
 private suspend fun HomeViewModel.fetchSeriesEpisodes(item: MetaPreview): List<com.nuvio.tv.domain.model.Video> {
-    val type = if (item.apiType.equals("tv", ignoreCase = true)) "series" else item.apiType
+    val type = if (item.apiType.lowercase() in setOf("tv", "anime")) "series" else item.apiType
     var episodes: List<com.nuvio.tv.domain.model.Video> = emptyList()
     metaRepository.getMetaFromPrimaryAddon(type, item.id)
         .collect { networkResult ->

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Miniatiūros persukant</string>
+    <string name="playback_section_seek_thumbnails_desc">Peržiūra virš laiko juostos persukant</string>
+    <string name="iptv_thumbs_subtitle">Rodomi „Seekr“ arba šiame įrenginyje iš vaizdo įrašo sukurti kadrai.</string>
+    <string name="iptv_thumbs_works_on">Filmams, serialams, HLS, įrašams, sporto kartojimams, TV archyvui ir tiesioginės TV buferiui. Archyvui naudojama išsaugota dalis arba tiekėjo HLS srautas. Netinka torrentams, DASH ir apsaugotiems srautams.</string>
+    <string name="iptv_thumbs_low_memory_note">Mažai atminties. Jei vaizdas stringa, miniatiūrų kūrimas automatiškai pristabdomas.</string>
+    <string name="iptv_thumbs_include_4k">Įtraukti 4K ir HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Naudoja daugiau duomenų. Silpnesni įrenginiai gali strigti, HDR spalvos gali būti blankios. Srautams naudojama mažiausia versija.</string>
+    <string name="iptv_thumbs_when_to_make">Kada kurti miniatiūras</string>
+    <string name="iptv_thumbs_when_seeking">Tik pristabdžius ar persukant</string>
+    <string name="iptv_thumbs_when_seeking_desc">Įprastai leidžiant vaizdą kadrai nekuriami.</string>
+    <string name="iptv_thumbs_when_watching">Žiūrint</string>
+    <string name="iptv_thumbs_when_watching_desc">Kuriama fone, kai pakankamai vaizdo įkelta iš anksto.</string>
+    <string name="iptv_thumbs_when_right_away">Iškart</string>
+    <string name="iptv_thumbs_when_right_away_desc">Atidarius apdorojamas visas įrašas. Naudoja daugiausia duomenų.</string>
+    <string name="iptv_thumbs_storage_limit">Vietos riba</string>
+    <string name="iptv_thumbs_storage_limit_desc">Pirmiausia šalinami seniausiai žiūrėtų įrašų kadrai.</string>
+    <string name="iptv_thumbs_clear">Išvalyti miniatiūras</string>
+    <string name="iptv_thumbs_clear_desc">Pašalinami visi kadrai. Prireikus bus sukurti iš naujo.</string>
+    <string name="iptv_thumbs_last_paused">Paskutinė pauzė dėl atminties: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Kuriamos miniatiūros…</string>
+    <string name="iptv_thumbs_msg_low_memory">Miniatiūros pristabdytos dėl atminties</string>
+    <string name="iptv_thumbs_msg_live">Tiesioginei TV miniatiūrų nėra</string>
+    <string name="iptv_thumbs_msg_dash">DASH miniatiūrų nėra</string>
+    <string name="iptv_thumbs_msg_catchup_save">Įjunkite greitesnį TV archyvo persukimą</string>
+    <string name="iptv_thumbs_msg_protected">Srautas apsaugotas</string>
+    <string name="iptv_thumbs_msg_torrent">Torrentams miniatiūrų nėra</string>
+    <string name="iptv_thumbs_msg_link_kind">Šio tipo nuorodai miniatiūrų nėra</string>
+    <string name="iptv_thumbs_msg_unreadable">Nepavyko perskaityti srauto</string>
+    <string name="iptv_thumbs_msg_pieces_large">Srauto dalys per didelės</string>
+    <string name="iptv_thumbs_msg_stopped">Šio įrašo miniatiūrų kūrimas sustojo</string>
+    <string name="iptv_thumbs_msg_no_pictures">Serveris neatsiuntė vaizdų</string>
+    <string name="iptv_thumbs_msg_format">Šio formato peržiūra įrenginyje nepalaikoma</string>
+    <string name="iptv_thumbs_msg_open_failed">Nepavyko atidaryti įrašo peržiūrai</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Šiam archyvo srautui miniatiūrų nėra</string>
+    <string name="iptv_thumbs_msg_one_decoder">Vienintelis dekoderis reikalingas vaizdui leisti</string>
+    <string name="iptv_thumbs_title">Miniatiūros persukant</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Nepavyko išsaugoti „Seekr“ rakto šiame įrenginyje.</string>
+    <string name="seekr_api_key">„Seekr“ API raktas</string>
+    <string name="seekr_key_description">Asmeninis seekr.tv raktas naudojamas filmų ir serijų peržiūroms. Jis įtraukiamas į „Google“ disko atsarginę kopiją. Norėdami jį pašalinti, išvalykite lauką.</string>
+    <string name="seekr_only">Tik „Seekr“</string>
+    <string name="seekr_only_description">Rodyti tik „Seekr“ turimas peržiūras. Išjunkite, kad trūkstamos būtų kuriamos įrenginyje.</string>
+</resources>

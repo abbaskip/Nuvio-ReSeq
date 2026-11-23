@@ -2321,6 +2321,7 @@ class TraktProgressService @Inject constructor(
      * Groups episodes by show and sends one POST /sync/history request.
      */
     suspend fun markSeasonWatchedBatch(progressList: List<WatchProgress>, watchedAtMillis: Long? = null) {
+        val progressList = if (watchedAtMillis == null) progressList else progressList.map { it.copy(lastWatched = watchedAtMillis) }
         if (progressList.isEmpty()) return
         val first = progressList.first()
         val ids = resolveHistoryIds(first)
@@ -2328,7 +2329,6 @@ class TraktProgressService @Inject constructor(
             Log.w(TAG, "markSeasonWatchedBatch: no valid Trakt IDs for ${first.contentId}")
             return
         }
-        val watchedAt = toTraktUtcDateTime(watchedAtMillis ?: System.currentTimeMillis())
         val episodesBySeason = progressList
             .filter { it.season != null && it.episode != null }
             .groupBy { it.season!! }
@@ -2336,7 +2336,7 @@ class TraktProgressService @Inject constructor(
                 episodes.map { ep ->
                     TraktHistoryEpisodeAddDto(
                         number = ep.episode,
-                        watchedAt = watchedAt
+                        watchedAt = toTraktUtcDateTime(ep.lastWatched)
                     )
                 }
             }
@@ -2393,7 +2393,7 @@ class TraktProgressService @Inject constructor(
                         episodes.map { ep ->
                             TraktHistoryEpisodeAddDto(
                                 number = ep.episode,
-                                watchedAt = watchedAt
+                                watchedAt = toTraktUtcDateTime(ep.lastWatched)
                             )
                         }
                     }
@@ -2419,7 +2419,7 @@ class TraktProgressService @Inject constructor(
             }
         }
         if (committed.isNotEmpty()) commitHistory(first.contentId, committed.associate {
-            (it.season!! to it.episode!!) to parseIsoToMillis(watchedAt)
+            (it.season!! to it.episode!!) to it.lastWatched
         }, title = first.name)
         watchedShowSeedsStale = true
         refreshNow()
@@ -2641,11 +2641,10 @@ class TraktProgressService @Inject constructor(
     }
 
     private fun toTraktUtcDateTime(lastWatchedMs: Long): String {
-        val safeMs = if (lastWatchedMs > 0L) lastWatchedMs else System.currentTimeMillis()
         val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
-        return formatter.format(Date(safeMs))
+        return formatter.format(Date(lastWatchedMs))
     }
 
     private fun enrichWithMetadata(

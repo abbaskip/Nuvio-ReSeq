@@ -7,7 +7,7 @@ import com.nuvio.tv.core.profile.ProfileManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,12 +37,14 @@ class AnimeSkipSettingsDataStore @Inject constructor(
         store().edit { it[enabledKey] = enabled }
     }
 
-    internal suspend fun profileClientId(profileId: Int) = factory.get(profileId, FEATURE).data.first()[clientIdKey]
+    internal fun clientIdForProfile(profileId: Int) = factory.get(profileId, FEATURE).data.map { it[clientIdKey].orEmpty() }.distinctUntilChanged()
 
     suspend fun setClientId(clientId: String) =
         setClientId(clientId, profileManager.activeProfileId.value)
 
-    internal suspend fun setClientId(clientId: String, profileId: Int) {
-        factory.get(profileId, FEATURE).edit { it[clientIdKey] = clientId.trim() }
+    internal suspend fun setClientId(clientId: String, profileId: Int, expected: String? = null) {
+        factory.get(profileId, FEATURE).edit { prefs ->
+            if (expected == null || prefs[clientIdKey].orEmpty() == expected) prefs[clientIdKey] = clientId.trim()
+        }
     }
 }

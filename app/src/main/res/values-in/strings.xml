@@ -2563,4 +2563,12 @@
     <string name="autosync_status_no_fit">Mungkin tidak cocok</string>
     <string name="autosync_status_no_reference">Tidak ada subtitle yang disematkan</string>
     <string name="autosync_status_failed">Gagal</string>
+    <string name="iptv_immediate_tier">Sertakan IPTV VOD dalam sumber putar langsung</string>
+    <string name="iptv_fallback_tier">Sertakan IPTV VOD dalam sumber cadangan</string>
+    <string name="when_watched">Kapan Anda menontonnya?</string>
+    <string name="watched_now">Tandai sudah ditonton sekarang</string>
+    <string name="choose_watch_date">Pilih tanggal</string>
+    <string name="choose_watch_date_time">Pilih tanggal dan waktu</string>
+    <string name="choose_watch_time">Pilih waktu</string>
+    <string name="choose_past_watch_time">Pilih waktu yang valid di masa lalu.</string>
 </resources>

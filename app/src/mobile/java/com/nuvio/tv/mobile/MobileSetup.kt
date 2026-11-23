@@ -67,7 +67,7 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
         item { Action("Guide and recordings") { options = true } }
         (status.error ?: status.message)?.let { item { Label(it) } }
         } else {
-        item { Label("Connect the same Google account as your other device. Choose Restore for a standard backup, including IPTV and TVDB. Your standard backup opens without a passphrase.", Modifier.padding(8.dp)) }
+        item { Label("Connect the same Google account as your other device. Choose Restore for a standard backup, including IPTV, TVDB and supported provider keys saved by recent builds. Standard Restore opens without a passphrase.", Modifier.padding(8.dp)) }
         if (!backup.available) item { Label("Google Drive sign-in is unavailable in this build.") }
         else if (!backup.connected) item { Action("Connect Google Drive", onClick = drive::beginSignIn) }
         else {
@@ -79,7 +79,7 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
             }
             item { SectionTitle("TV Mix and Shuffle") }
             item { SettingsLink("Restore TV Mix and Shuffle") { playbackRestore = true } }
-            item { SectionTitle("Provider API keys"); Label("Transfer this profile’s TMDB, Gemini, debrid, MDBList and AnimeSkip keys in a separate passphrase-encrypted backup.", small = true) }
+            item { SectionTitle("Provider API keys"); Label("Standard backup includes supported provider keys. Use these controls for a separate passphrase-encrypted copy of this profile’s keys.", small = true) }
             if (!keyState.busy) item { Row {
                 Action("Back up keys") { keyTransfer = true }; Action("Restore keys") { keyTransfer = false }
             } } else item { LinearProgressIndicator() }

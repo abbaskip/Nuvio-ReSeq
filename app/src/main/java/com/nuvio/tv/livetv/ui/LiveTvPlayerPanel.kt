@@ -178,6 +178,7 @@ internal fun LiveTvPlayerPanel(
     recentClear: Boolean = true,
     /** Channel surfing: this is a channel you're looking at, not the one playing. */
     browsing: Boolean = false,
+    scrubPreview: Boolean = false,
     modifier: Modifier = Modifier,
     /** The sound of what's playing, next to the picture size ("5.1", "DD+ 5.1", "STEREO"). */
     audioBadge: String? = null,
@@ -204,6 +205,12 @@ internal fun LiveTvPlayerPanel(
             .fillMaxWidth()
             .padding(start = 36.dp, end = 36.dp, bottom = 14.dp, top = 8.dp)
     ) {
+        if (!browsing && showProgress && mode != PanelMode.LIVE && timeline != null) {
+            com.nuvio.tv.livetv.thumbs.LiveTvTimelineThumb(
+                timeline.startMs, timeline.endMs, timeline.positionMs, scrubbing = scrubPreview,
+                modifier = Modifier.align(Alignment.TopStart)
+            )
+        }
         Column(
             Modifier
                 .fillMaxWidth()

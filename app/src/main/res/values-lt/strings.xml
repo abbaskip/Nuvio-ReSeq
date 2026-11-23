@@ -3392,4 +3392,12 @@
     <string name="autosync_status_no_fit">Gali nesutapti</string>
     <string name="autosync_status_no_reference">Nėra įterptų subtitrų</string>
     <string name="autosync_status_failed">Nepavyko</string>
+    <string name="iptv_immediate_tier">Įtraukti IPTV VOD į greitojo paleidimo šaltinius</string>
+    <string name="iptv_fallback_tier">Įtraukti IPTV VOD į atsarginius šaltinius</string>
+    <string name="when_watched">Kada žiūrėjote?</string>
+    <string name="watched_now">Pažymėti kaip žiūrėtą dabar</string>
+    <string name="choose_watch_date">Pasirinkti datą</string>
+    <string name="choose_watch_date_time">Pasirinkti datą ir laiką</string>
+    <string name="choose_watch_time">Pasirinkti laiką</string>
+    <string name="choose_past_watch_time">Pasirinkite tinkamą laiką praeityje.</string>
 </resources>

@@ -2793,4 +2793,12 @@
     <string name="autosync_status_no_fit">Може не збігатися</string>
     <string name="autosync_status_no_reference">Без вбудованих субтитрів</string>
     <string name="autosync_status_failed">Не вдалося</string>
+    <string name="iptv_immediate_tier">Додати IPTV VOD до джерел для миттєвого відтворення</string>
+    <string name="iptv_fallback_tier">Додати IPTV VOD до запасних джерел</string>
+    <string name="when_watched">Коли ви це дивилися?</string>
+    <string name="watched_now">Позначити як переглянуте зараз</string>
+    <string name="choose_watch_date">Вибрати дату</string>
+    <string name="choose_watch_date_time">Вибрати дату й час</string>
+    <string name="choose_watch_time">Вибрати час</string>
+    <string name="choose_past_watch_time">Виберіть коректний час у минулому.</string>
 </resources>

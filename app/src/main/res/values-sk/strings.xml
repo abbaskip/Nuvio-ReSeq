@@ -3551,4 +3551,12 @@
     <string name="autosync_status_no_fit">Nemusí sa zhodovať</string>
     <string name="autosync_status_no_reference">Žiadne vložené titulky</string>
     <string name="autosync_status_failed">Nepodarilo sa</string>
+    <string name="iptv_immediate_tier">Zahrnúť IPTV VOD medzi zdroje okamžitého prehrávania</string>
+    <string name="iptv_fallback_tier">Zahrnúť IPTV VOD medzi záložné zdroje</string>
+    <string name="when_watched">Kedy ste to pozerali?</string>
+    <string name="watched_now">Označiť ako pozreté teraz</string>
+    <string name="choose_watch_date">Vybrať dátum</string>
+    <string name="choose_watch_date_time">Vybrať dátum a čas</string>
+    <string name="choose_watch_time">Vybrať čas</string>
+    <string name="choose_past_watch_time">Vyberte platný čas v minulosti.</string>
 </resources>

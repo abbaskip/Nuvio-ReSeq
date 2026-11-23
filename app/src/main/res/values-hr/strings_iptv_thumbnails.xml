@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Sličice pri premotavanju</string>
+    <string name="playback_section_seek_thumbnails_desc">Pregled iznad trake pri premotavanju</string>
+    <string name="iptv_thumbs_subtitle">Prikazuje slike sa Seekra ili ih izrađuje iz videa na uređaju.</string>
+    <string name="iptv_thumbs_works_on">Za filmove, serije, HLS, snimke, sportske reprize, gledanje unatrag i međuspremnik TV-a uživo. Za gledanje unatrag koristi snimljeni dio ili HLS operatera. Ne podržava torrente, DASH i zaštićene prijenose.</string>
+    <string name="iptv_thumbs_low_memory_note">Malo memorije. Ako reprodukcija zastajkuje, izrada slika automatski se pauzira.</string>
+    <string name="iptv_thumbs_include_4k">Uključi 4K i HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Troši više podataka. Slabiji uređaji mogu zastajkivati, a HDR boje mogu biti blijede. Za prijenose koristi najmanju verziju.</string>
+    <string name="iptv_thumbs_when_to_make">Kada izrađujeti sličice</string>
+    <string name="iptv_thumbs_when_seeking">Samo tijekom pauze ili premotavanja</string>
+    <string name="iptv_thumbs_when_seeking_desc">Ne izrađuje slike tijekom obične reprodukcije.</string>
+    <string name="iptv_thumbs_when_watching">Tijekom gledanja</string>
+    <string name="iptv_thumbs_when_watching_desc">Izrađuje slike u pozadini kada je dovoljno videa učitano unaprijed.</string>
+    <string name="iptv_thumbs_when_right_away">Odmah</string>
+    <string name="iptv_thumbs_when_right_away_desc">Obrađuje cijeli video od otvaranja i troši najviše podataka.</string>
+    <string name="iptv_thumbs_storage_limit">Ograničenje prostora</string>
+    <string name="iptv_thumbs_storage_limit_desc">Prvo se brišu slike najranije gledanih videa.</string>
+    <string name="iptv_thumbs_clear">Obriši spremljene sličice</string>
+    <string name="iptv_thumbs_clear_desc">Briše sve slike i ponovo ih izrađuje po potrebi.</string>
+    <string name="iptv_thumbs_last_paused">Posljednja pauza zbog memorije: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Izrada sličica…</string>
+    <string name="iptv_thumbs_msg_low_memory">Sličice su pauzirane zbog memorije</string>
+    <string name="iptv_thumbs_msg_live">Nema sličica za TV uživo</string>
+    <string name="iptv_thumbs_msg_dash">Nema sličica za DASH</string>
+    <string name="iptv_thumbs_msg_catchup_save">Uključite brže preskakanje za gledanje unatrag</string>
+    <string name="iptv_thumbs_msg_protected">Prijenos je zaštićen</string>
+    <string name="iptv_thumbs_msg_torrent">Nema sličica za torrente</string>
+    <string name="iptv_thumbs_msg_link_kind">Nema sličica za ovu vrstu veze</string>
+    <string name="iptv_thumbs_msg_unreadable">Prijenos nije moguće pročitati</string>
+    <string name="iptv_thumbs_msg_pieces_large">Dijelovi prijenosa su preveliki</string>
+    <string name="iptv_thumbs_msg_stopped">Izrada slika za ovaj video je stala</string>
+    <string name="iptv_thumbs_msg_no_pictures">Poslužitelj nije poslao slike</string>
+    <string name="iptv_thumbs_msg_format">Format ne podržava sličice na uređaju</string>
+    <string name="iptv_thumbs_msg_open_failed">Video nije moguće otvoriti za pregled</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Nema sličica za ovaj naknadni prijenos</string>
+    <string name="iptv_thumbs_msg_one_decoder">Jedini dekoder potreban je za reprodukciju</string>
+    <string name="iptv_thumbs_title">Sličice pri premotavanju</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Ključ za Seekr nije moguće spremiti na uređaj.</string>
+    <string name="seekr_api_key">API ključ za Seekr</string>
+    <string name="seekr_key_description">Osobni ključ sa seekr.tv služi za pretpreglede filmova i epizoda. Sigurnosna kopija na Google disku uključuje ključ. Ispraznite polje za uklanjanje.</string>
+    <string name="seekr_only">Samo Seekr</string>
+    <string name="seekr_only_description">Prikazuje samo pretpreglede sa Seekra. Isključite za izradu preostalih pretpregleda na uređaju.</string>
+</resources>

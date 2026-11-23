@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Miniatura gjatë lëvizjes në video</string>
+    <string name="playback_section_seek_thumbnails_desc">Pamje paraprake mbi shiritin e kohës</string>
+    <string name="iptv_thumbs_subtitle">Shfaq pamje nga Seekr ose i krijon nga videoja në pajisje.</string>
+    <string name="iptv_thumbs_works_on">Për filma, seriale, HLS, regjistrime, përsëritje sportive, arkiv dhe kthim prapa në TV drejtpërdrejt. Arkivi përdor pjesën e ruajtur ose HLS të ofruesit. Nuk mbështet torrent, DASH ose transmetime të mbrojtura.</string>
+    <string name="iptv_thumbs_low_memory_note">Kujtesa është e kufizuar. Nëse videoja ngec, krijimi i miniaturave ndalet automatikisht.</string>
+    <string name="iptv_thumbs_include_4k">Përfshi 4K dhe HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Përdor më shumë të dhëna. Pajisjet më të dobëta mund të ngecin dhe ngjyrat HDR mund të duken të zbehta. Transmetimet përdorin variantin më të vogël.</string>
+    <string name="iptv_thumbs_when_to_make">Kur të krijohen miniaturat</string>
+    <string name="iptv_thumbs_when_seeking">Vetëm në pauzë ose gjatë lëvizjes në video</string>
+    <string name="iptv_thumbs_when_seeking_desc">Nuk krijon pamje gjatë luajtjes normale.</string>
+    <string name="iptv_thumbs_when_watching">Gjatë shikimit</string>
+    <string name="iptv_thumbs_when_watching_desc">Krijon pamje në sfond kur është ngarkuar mjaftueshëm video paraprakisht.</string>
+    <string name="iptv_thumbs_when_right_away">Menjëherë</string>
+    <string name="iptv_thumbs_when_right_away_desc">Përpunon të gjithë videon sapo hapet. Përdor më shumë të dhëna.</string>
+    <string name="iptv_thumbs_storage_limit">Kufiri i hapësirës</string>
+    <string name="iptv_thumbs_storage_limit_desc">Fshihen së pari pamjet e videove që kanë më shumë kohë pa u parë.</string>
+    <string name="iptv_thumbs_clear">Fshi miniaturat e ruajtura</string>
+    <string name="iptv_thumbs_clear_desc">Fshin të gjitha pamjet. Ato rikrijohen kur duhen.</string>
+    <string name="iptv_thumbs_last_paused">Pauza e fundit për mungesë kujtese: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Po krijohen miniaturat…</string>
+    <string name="iptv_thumbs_msg_low_memory">Miniaturat u pezulluan për mungesë kujtese</string>
+    <string name="iptv_thumbs_msg_live">Nuk ka miniatura për TV drejtpërdrejt</string>
+    <string name="iptv_thumbs_msg_dash">Nuk ka miniatura për DASH</string>
+    <string name="iptv_thumbs_msg_catchup_save">Aktivizo kapërcimin e shpejtë në arkiv për miniatura</string>
+    <string name="iptv_thumbs_msg_protected">Transmetimi është i mbrojtur</string>
+    <string name="iptv_thumbs_msg_torrent">Nuk ka miniatura për torrent</string>
+    <string name="iptv_thumbs_msg_link_kind">Nuk ka miniatura për këtë lloj lidhjeje</string>
+    <string name="iptv_thumbs_msg_unreadable">Transmetimi nuk u lexua</string>
+    <string name="iptv_thumbs_msg_pieces_large">Pjesët e transmetimit janë tepër të mëdha</string>
+    <string name="iptv_thumbs_msg_stopped">Krijimi i miniaturave për këtë video u ndal</string>
+    <string name="iptv_thumbs_msg_no_pictures">Serveri nuk dërgoi pamje</string>
+    <string name="iptv_thumbs_msg_format">Pajisja nuk mbështet pamje paraprake për këtë format</string>
+    <string name="iptv_thumbs_msg_open_failed">Videoja nuk u hap për pamje paraprake</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Nuk ka miniatura për këtë transmetim arkivor</string>
+    <string name="iptv_thumbs_msg_one_decoder">Dekoduesi i vetëm nevojitet për luajtjen</string>
+    <string name="iptv_thumbs_title">Miniatura gjatë lëvizjes në video</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Çelësi Seekr nuk u ruajt në këtë pajisje.</string>
+    <string name="seekr_api_key">Çelësi API i Seekr</string>
+    <string name="seekr_key_description">Përdor çelësin personal nga seekr.tv për pamje paraprake të filmave dhe episodeve. Kopja rezervë në Google Drive e përfshin çelësin. Zbraz fushën për ta hequr.</string>
+    <string name="seekr_only">Vetëm Seekr</string>
+    <string name="seekr_only_description">Shfaq vetëm pamjet paraprake të Seekr. Çaktivizoje për të krijuar pamjet që mungojnë në pajisje.</string>
+</resources>

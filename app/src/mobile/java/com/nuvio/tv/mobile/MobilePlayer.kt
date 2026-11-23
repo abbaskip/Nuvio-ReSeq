@@ -36,7 +36,7 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
     val cast = LocalCasting.current
     val castState by cast.state.collectAsStateWithLifecycle()
     val channel = vm.playback.playingChannel
-    val streamUrl = vm.playback.playingStreamUrl
+    val streamUrl = vm.playback.playingUrl
     val leaveAfterCast by rememberUpdatedState(onClose)
     LaunchedEffect(castState.error) {
         if (castState.error != null && channel != null && !state.isPlaying) vm.playback.retry()

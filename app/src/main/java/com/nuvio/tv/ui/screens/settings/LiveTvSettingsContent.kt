@@ -62,6 +62,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.nuvio.tv.R
+import com.nuvio.tv.livetv.data.StalkerPortalClient
 import com.nuvio.tv.livetv.model.ChannelSort
 import com.nuvio.tv.livetv.model.effectiveStartPage
 import com.nuvio.tv.livetv.model.EpgSource
@@ -1543,18 +1544,10 @@ internal fun LiveTvSettingsContent(
             onDismiss = close,
             onSave = { v, _ -> if (v[1].isNotBlank()) viewModel.addPlaylist(v[0], v[1], v[2]); close() }
         )
-        LiveDialog.AddStalker -> SourceFormDialog(
-            title = "Add Stalker / Ministra portal",
-            validate = { com.nuvio.tv.livetv.data.StalkerPortalClient.validate(it[1], it[2]) },
-            fields = listOf(FormField("Name", "My provider"), FormField("Portal URL", "http://host/stalker_portal/c/"),
-                FormField("MAC address", "00:1A:79:00:00:00"), FormField("Username (if required)", ""),
-                FormField("Password (if required)", ""), FormField("Serial number (if required)", "")),
-            onDismiss = close,
-            toggleLive = "Include TV channels" to true,
-            toggle2 = "Include movies & series (On Demand)" to false,
-            onSaveAll = { v, _, vod, live -> viewModel.addStalker(v[0], v[1], v[2], v[3], v[4], v[5], vod, live); close() },
-            onSave = { v, _ -> if (v[1].isNotBlank() && v[2].isNotBlank()) viewModel.addStalker(v[0], v[1], v[2], v[3], v[4], v[5]); close() }
-        )
+        LiveDialog.AddStalker -> StalkerSourceDialog(onDismiss = close) { source ->
+            viewModel.addStalker(source)
+            close()
+        }
         LiveDialog.AddXtream -> SourceFormDialog(
             title = "Add Xtream Codes login",
             fields = listOf(
@@ -1616,25 +1609,10 @@ internal fun LiveTvSettingsContent(
         is LiveDialog.EditPlaylist -> {
             val src = d.source
             if (src.isStalker) {
-                SourceFormDialog(
-                    title = "Edit Stalker / Ministra portal",
-                    validate = { com.nuvio.tv.livetv.data.StalkerPortalClient.validate(it[1], it[2]) },
-                    fields = listOf(FormField("Name", "", src.name), FormField("Portal URL", "", src.stalkerPortal),
-                        FormField("MAC address", "", src.stalkerMac), FormField("Username (if required)", "", src.stalkerUsername),
-                        FormField("Password (if required)", "", src.stalkerPassword), FormField("Serial number (if required)", "", src.stalkerSerial)),
-                    toggle = "Load built-in guide" to src.useEmbeddedEpg,
-                    onDismiss = close,
-                    toggleLive = "Include TV channels" to src.importLive,
-                    toggle2 = "Include movies & series (On Demand)" to src.importVod,
-                    onSaveAll = { v, t, vod, live ->
-                        viewModel.savePlaylist(src.copy(name = v[0], stalkerPortal = v[1].trim(),
-                            stalkerMac = v[2].trim().uppercase(), stalkerUsername = v[3], stalkerPassword = v[4],
-                            stalkerSerial = v[5], useEmbeddedEpg = t, importVod = vod, importLive = live))
-                        close()
-                    },
-                    onSave = { v, t -> viewModel.savePlaylist(src.copy(name = v[0], stalkerPortal = v[1].trim(),
-                        stalkerMac = v[2].trim().uppercase(), stalkerUsername = v[3], stalkerPassword = v[4], stalkerSerial = v[5], useEmbeddedEpg = t)); close() }
-                )
+                StalkerSourceDialog(src, onDismiss = close) { source ->
+                    viewModel.savePlaylist(source)
+                    close()
+                }
             } else if (src.isXtream) {
                 SourceFormDialog(
                     title = "Edit Xtream login",
@@ -1999,6 +1977,44 @@ private fun LoadingLine(message: String) {
 // ==================================================================== dialogs
 
 private data class FormField(val label: String, val hint: String, val initial: String = "")
+
+@Composable
+internal fun StalkerSourceDialog(
+    source: PlaylistSource? = null,
+    onDismiss: () -> Unit,
+    onSave: (PlaylistSource) -> Unit
+) {
+    val draft = source ?: remember { PlaylistSource(java.util.UUID.randomUUID().toString(), "", "") }
+    val save: (List<String>, Boolean, Boolean, Boolean) -> Unit = { values, guide, vod, live ->
+        onSave(draft.copy(
+            name = if (source == null) values[0].ifBlank { "Stalker" } else values[0],
+            stalkerPortal = values[1], stalkerMac = values[2].uppercase(),
+            stalkerUsername = values[3], stalkerPassword = values[4], stalkerSerial = values[5],
+            stalkerDeviceId = values[6], stalkerDeviceId2 = values[7],
+            useEmbeddedEpg = guide, importVod = vod, importLive = live
+        ))
+    }
+    SourceFormDialog(
+        title = if (source == null) "Add Stalker / Ministra portal" else "Edit Stalker / Ministra portal",
+        fields = listOf(
+            FormField("Name", "My provider", draft.name),
+            FormField("Portal URL", "http://host/stalker_portal/c/", draft.stalkerPortal),
+            FormField("MAC address", "00:1A:79:00:00:00", draft.stalkerMac),
+            FormField("Username (if required)", "", draft.stalkerUsername),
+            FormField("Password (if required)", "", draft.stalkerPassword),
+            FormField("Serial number (if required)", "", draft.stalkerSerial),
+            FormField("Device ID (if required)", "", draft.stalkerDeviceId),
+            FormField("Device ID 2 (if required)", "", draft.stalkerDeviceId2)
+        ),
+        validate = { StalkerPortalClient.validate(it[1], it[2]) },
+        toggle = source?.let { "Load built-in guide" to it.useEmbeddedEpg },
+        toggleLive = "Include TV channels" to draft.importLive,
+        toggle2 = "Include movies & series (On Demand)" to draft.importVod,
+        onDismiss = onDismiss,
+        onSaveAll = save,
+        onSave = { values, guide -> save(values, guide, draft.importVod, draft.importLive) }
+    )
+}
 
 private const val M3U_CATALOGUE_STORAGE = "About 85 MiB of device storage per 100,000 playlist-listed movies. Series and provider catalogues vary."
 

@@ -32,7 +32,12 @@ class IptvVodStreams @Inject constructor(
     suspend fun revision(): String = MessageDigest.getInstance("SHA-256").digest(
         (preferences.playlists.first().filter { it.enabled && it.importVod && it.supportsVod }
             .map { listOf(it.id, it.xtreamServer, it.xtreamUsername, it.xtreamPassword, it.stalkerPortal, it.stalkerMac, it.stalkerUsername, it.stalkerPassword, it.stalkerSerial, it.userAgent).let { existing ->
-                if (it.isM3u) existing + listOf(it.url, it.vodImportPolicy()) else existing
+                when {
+                    it.isM3u -> existing + listOf(it.url, it.vodImportPolicy())
+                    it.stalkerDeviceId.isNotBlank() || it.stalkerDeviceId2.isNotBlank() ->
+                        existing + listOf(it.stalkerDeviceId, it.stalkerDeviceId2)
+                    else -> existing
+                }
             } }.toString() + repository.version.value + OnDemandRepository.systemLanguage().toLanguageTag())
             .toByteArray()).joinToString("") { "%02x".format(it) }
 

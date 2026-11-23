@@ -3,7 +3,7 @@
 These rules define how Continue Watching (CW) must behave in Nuvio ReSeq. Every CW change is measured against them. If the existing code does something different, the code is wrong, not the rules. Any case where following a rule changes today's behaviour must be listed for the maintainer to decide; never silently keep an old special case.
 
 ## 1. Where progress comes from
-- CW reads only the user's selected watch-progress source (one tracker), plus this device's own very recent plays until that tracker confirms them.
+- CW reads only the user's selected watch-progress source (one tracker), plus this device's own recent plays. A saved episode pause of at least 1% remains available when the selected tracker omits it, until the episode is completed or the pause is removed.
 - Other connected trackers are never read or merged for CW or for Details' next/resume offer.
 - Scrobbling still goes to every connected tracker, so they stay in sync. "Remove partial watch" still clears every connected tracker. Tracker output never changes because of CW work.
 

@@ -470,8 +470,9 @@ class WatchProgressRepositoryImpl @Inject constructor(
     override suspend fun confirmSelectedDeviceProgress() {
         val provider = activeProgressProvider() ?: return
         val profile = profileManager.activeProfileId.value
-        watchProgressPreferences.confirmDeviceProgress(profile, provider.providerId.name,
-            provider.confirmedContinueWatchingProgress().filter { it.source != WatchProgress.SOURCE_LOCAL })
+        val confirmed = provider.confirmedContinueWatchingProgress().filter { it.source != WatchProgress.SOURCE_LOCAL }
+        watchProgressPreferences.confirmDeviceProgress(profile, provider.providerId.name, confirmed,
+            deviceEvents?.get()?.events(profile).orEmpty())
     }
 
     override val allProgress: Flow<List<WatchProgress>>

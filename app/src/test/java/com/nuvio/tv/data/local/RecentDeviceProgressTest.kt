@@ -37,6 +37,49 @@ class RecentDeviceProgressTest {
         assertTrue(restarted.observeDeviceProgress(1, "TRAKT").first().isEmpty())
     }
 
+    @Test fun `extended cut pause survives metadata enrichment and tracker refresh until matched completion`() = runTest {
+        val preferences = WatchProgressPreferences(factory, profiles)
+        val now = System.currentTimeMillis()
+        val context = TvdbPlaybackContext(1, "extended", 99, 6, 19, listOf(51, 52), "office:6:19")
+        val play = p.copy(episode = 19, videoId = context.requestVideoId, tvdbEpisodeIds = context.episodeIds,
+            episodeTitle = "St. Patrick’s Day", position = 350_000, deviceWatchEventId = "device-play",
+            lastWatched = now, tvdbContext = context)
+        preferences.saveProgress(play.copy(poster = "art"), 1)
+        preferences.saveProgress(play, 1)
+        preferences.recordDeviceProgress(1, listOf(play), now - 2 * DEVICE_PROGRESS_GRACE_MS)
+        val restarted = WatchProgressPreferences(factory, profiles)
+        val stored = play.copy(poster = "art")
+        assertEquals(listOf(stored), restarted.observeDeviceProgress(1, "TRAKT").first())
+        val tracker = play.copy(source = WatchProgress.SOURCE_TRAKT_PLAYBACK, deviceWatchEventId = null)
+        restarted.confirmDeviceProgress(1, "TRAKT", listOf(tracker))
+        assertTrue(restarted.observeDeviceProgress(1, "TRAKT").first().isEmpty())
+        restarted.confirmDeviceProgress(1, "TRAKT", emptyList())
+        assertEquals(listOf(stored), restarted.observeDeviceProgress(1, "TRAKT").first())
+        val complete = tracker.copy(position = play.duration)
+        restarted.confirmDeviceProgress(1, "TRAKT", listOf(complete.copy(tvdbCompletedEpisodeIds = listOf(51))))
+        assertEquals(listOf(stored), restarted.observeDeviceProgress(1, "TRAKT").first())
+        restarted.confirmDeviceProgress(1, "TRAKT", listOf(complete))
+        restarted.confirmDeviceProgress(1, "TRAKT", emptyList())
+        assertTrue(restarted.observeDeviceProgress(1, "TRAKT").first().isEmpty())
+    }
+
+    @Test fun `pruned receipt requires a matching surviving device play and current raw position`() = runTest {
+        val prefs = WatchProgressPreferences(factory, profiles)
+        val play = p.copy(position = 450_000, deviceWatchEventId = "own")
+        val event = DeviceWatchEvent("own", play, 8000, 9000)
+        prefs.saveProgress(play, 1)
+        prefs.confirmDeviceProgress(1, "TRAKT", emptyList(), listOf(event.copy(removed = true)))
+        assertTrue(prefs.observeDeviceProgress(1, "TRAKT").first().isEmpty())
+        prefs.confirmDeviceProgress(1, "TRAKT", emptyList(), listOf(event.copy(progress = play.copy(position = 12_000))))
+        assertTrue(prefs.observeDeviceProgress(1, "TRAKT").first().isEmpty())
+        prefs.confirmDeviceProgress(1, "TRAKT", emptyList(), listOf(event))
+        assertEquals(listOf(play), prefs.observeDeviceProgress(1, "TRAKT").first())
+        prefs.removeProgressKeys(listOf(play.storageKey), 1)
+        prefs.revokeDeviceProgress(1, event.id, listOf(play))
+        prefs.confirmDeviceProgress(1, "TRAKT", emptyList(), listOf(event))
+        assertTrue(prefs.observeDeviceProgress(1, "TRAKT").first().isEmpty())
+    }
+
     @Test fun `cloud imports and mirrored tracker rows never acquire a device receipt`() = runTest {
         val preferences = WatchProgressPreferences(factory, profiles)
         preferences.saveProgress(p, 1) // Same storage API used by imports: no repository device receipt.

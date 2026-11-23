@@ -2311,7 +2311,6 @@ class TraktProgressService @Inject constructor(
             Log.w(TAG, "markSeasonWatchedBatch: no valid Trakt IDs for ${first.contentId}")
             return
         }
-        val watchedAt = toTraktUtcDateTime(System.currentTimeMillis())
         val episodesBySeason = progressList
             .filter { it.season != null && it.episode != null }
             .groupBy { it.season!! }
@@ -2319,7 +2318,7 @@ class TraktProgressService @Inject constructor(
                 episodes.map { ep ->
                     TraktHistoryEpisodeAddDto(
                         number = ep.episode,
-                        watchedAt = watchedAt
+                        watchedAt = toTraktUtcDateTime(ep.lastWatched)
                     )
                 }
             }
@@ -2376,7 +2375,7 @@ class TraktProgressService @Inject constructor(
                         episodes.map { ep ->
                             TraktHistoryEpisodeAddDto(
                                 number = ep.episode,
-                                watchedAt = watchedAt
+                                watchedAt = toTraktUtcDateTime(ep.lastWatched)
                             )
                         }
                     }

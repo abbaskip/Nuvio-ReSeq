@@ -399,7 +399,7 @@ class PosterOptionsController @Inject constructor(
         }
     }
 
-    fun toggleMovieWatched() {
+    fun toggleMovieWatched(watchedAt: Long?) {
         val state = _state.value
         val item = state.target ?: return
         if (!item.apiType.equals("movie", ignoreCase = true)) return
@@ -407,6 +407,7 @@ class PosterOptionsController @Inject constructor(
         val scope = this.scope ?: return
 
         val currentlyWatched = state.isWatched
+        if (currentlyWatched != (watchedAt == null)) return
         // Collect all known ID variants: original UI id (e.g. "tmdb:123"),
         // canonical id (e.g. "tt1979376"), and imdbId field if available.
         val optimisticIds = buildSet {
@@ -424,7 +425,7 @@ class PosterOptionsController @Inject constructor(
                 if (currentlyWatched) {
                     watchProgressRepository.removeFromHistory(canonical.id, videoId = canonical.imdbId)
                 } else {
-                    watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(canonical))
+                    watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(canonical, requireNotNull(watchedAt)))
                 }
             }.onFailure { error ->
                 Log.w(TAG, "Failed to toggle watched for ${canonical.id}: ${error.message}")
@@ -435,7 +436,7 @@ class PosterOptionsController @Inject constructor(
         }
     }
 
-    fun toggleSeriesWatched() {
+    fun toggleSeriesWatched(watchedAt: Long?) {
         val state = _state.value
         val item = state.target ?: return
         val isSeries = item.apiType.equals("series", ignoreCase = true) ||
@@ -446,6 +447,7 @@ class PosterOptionsController @Inject constructor(
         val scope = this.scope ?: return
 
         val currentlyWatched = state.isWatched
+        if (currentlyWatched != (watchedAt == null)) return
 
         // Optimistic UI update — badge changes immediately
         val currentIds = watchedSeriesStateHolder.fullyWatchedSeriesIds.value
@@ -459,7 +461,7 @@ class PosterOptionsController @Inject constructor(
                 if (currentlyWatched) {
                     unmarkSeriesWatched(canonical)
                 } else {
-                    markSeriesWatched(canonical)
+                    markSeriesWatched(canonical, requireNotNull(watchedAt))
                 }
             }.onFailure { error ->
                 Log.w(TAG, "Failed to toggle series watched for ${canonical.id}: ${error.message}")
@@ -470,7 +472,7 @@ class PosterOptionsController @Inject constructor(
         }
     }
 
-    private suspend fun markSeriesWatched(item: MetaPreview) {
+    private suspend fun markSeriesWatched(item: MetaPreview, watchedAt: Long) {
         val episodes = fetchSeriesEpisodes(item).filter { it.season != null && it.episode != null && it.season != 0 }
         // Without episodes the only mark left is a show-level one, which trackers answer by marking
         // every episode watched. Fail instead so the optimistic badge is reverted.
@@ -490,7 +492,7 @@ class PosterOptionsController @Inject constructor(
                 episodeTitle = video.title,
                 position = 1L,
                 duration = 1L,
-                lastWatched = System.currentTimeMillis(),
+                lastWatched = watchedAt,
                 progressPercent = 100f
             )
         }
@@ -532,7 +534,7 @@ class PosterOptionsController @Inject constructor(
     }
 }
 
-private fun buildCompletedMovieProgress(item: MetaPreview): WatchProgress {
+private fun buildCompletedMovieProgress(item: MetaPreview, watchedAt: Long): WatchProgress {
     return WatchProgress(
         contentId = item.id,
         contentType = item.apiType,
@@ -546,7 +548,7 @@ private fun buildCompletedMovieProgress(item: MetaPreview): WatchProgress {
         episodeTitle = null,
         position = 1L,
         duration = 1L,
-        lastWatched = System.currentTimeMillis(),
+        lastWatched = watchedAt,
         progressPercent = 100f
     )
 }

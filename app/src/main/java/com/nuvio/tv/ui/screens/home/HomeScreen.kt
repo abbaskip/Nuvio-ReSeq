@@ -101,6 +101,7 @@ fun HomeScreen(
     onNavigateToMix: (String, Boolean) -> Unit = { _, _ -> },
     onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> }
 ) {
+    val chooseWatchedDate = com.nuvio.tv.ui.components.rememberWatchedDatePicker()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Home was the only major screen without a lifecycle observer, so nothing ever told it to
@@ -508,12 +509,12 @@ fun HomeScreen(
                 posterOptionsTarget = null
             },
             onToggleWatched = {
-                if (isMovie) {
-                    viewModel.togglePosterMovieWatched(item)
-                } else {
-                    viewModel.togglePosterSeriesWatched(item)
+                fun apply(watchedAt: Long?) {
+                    if (isMovie) viewModel.togglePosterMovieWatched(item, watchedAt)
+                    else viewModel.togglePosterSeriesWatched(item, watchedAt)
+                    posterOptionsTarget = null
                 }
-                posterOptionsTarget = null
+                if (movieWatchedStatus[statusKey] == true) apply(null) else chooseWatchedDate(::apply)
             }
         )
     }
@@ -552,6 +553,14 @@ fun HomeScreen(
 }
 
 @Composable
+private fun rememberMarkContinueWatching(viewModel: HomeViewModel): (ContinueWatchingItem) -> Unit {
+    val chooseWatchedDate = com.nuvio.tv.ui.components.rememberWatchedDatePicker()
+    return remember(viewModel, chooseWatchedDate) {
+        { item -> chooseWatchedDate { viewModel.onEvent(HomeEvent.OnMarkContinueWatchingWatched(item, it)) } }
+    }
+}
+
+@Composable
 private fun ClassicHomeRoute(
     viewModel: HomeViewModel,
     uiState: HomeUiState,
@@ -582,9 +591,7 @@ private fun ClassicHomeRoute(
         showContinueWatchingManualPlayOption = showContinueWatchingManualPlayOption,
         onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAll,
         onNavigateToFolderDetail = onNavigateToFolderDetail,
-        onMarkContinueWatchingWatched = remember(viewModel) {
-            { item -> viewModel.onEvent(HomeEvent.OnMarkContinueWatchingWatched(item)) }
-        },
+        onMarkContinueWatchingWatched = rememberMarkContinueWatching(viewModel),
         onRemoveContinueWatching = { contentId, season, episode, isNextUp ->
             viewModel.onEvent(HomeEvent.OnRemoveContinueWatching(contentId, season, episode, isNextUp))
         },
@@ -642,9 +649,7 @@ private fun GridHomeRoute(
         showContinueWatchingManualPlayOption = showContinueWatchingManualPlayOption,
         onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAll,
         onNavigateToFolderDetail = onNavigateToFolderDetail,
-        onMarkContinueWatchingWatched = remember(viewModel) {
-            { item -> viewModel.onEvent(HomeEvent.OnMarkContinueWatchingWatched(item)) }
-        },
+        onMarkContinueWatchingWatched = rememberMarkContinueWatching(viewModel),
         onRemoveContinueWatching = remember(viewModel) {
             { contentId, season, episode, isNextUp ->
                 viewModel.onEvent(HomeEvent.OnRemoveContinueWatching(contentId, season, episode, isNextUp))
@@ -730,9 +735,7 @@ private fun ModernHomeRoute(
         showContinueWatchingManualPlayOption = showContinueWatchingManualPlayOption,
         onRequestTrailerPreview = requestTrailerPreview,
         onLoadMoreCatalog = loadMoreCatalog,
-        onMarkContinueWatchingWatched = remember(viewModel) {
-            { item -> viewModel.onEvent(HomeEvent.OnMarkContinueWatchingWatched(item)) }
-        },
+        onMarkContinueWatchingWatched = rememberMarkContinueWatching(viewModel),
         onRemoveContinueWatching = removeContinueWatching,
         isCatalogItemWatched = isCatalogItemWatched,
         onCatalogItemLongPress = onCatalogItemLongPress,

@@ -125,7 +125,7 @@ class WatchProgressRepositoryProfileIsolationTest {
     @Test
     fun `completion queues progress and watched mutations for one profile`() = runTest {
         val harness = harness(activeProfileId = 2)
-        val progress = progress("item", position = 2_000L, duration = 10_000L)
+        val progress = progress("item", position = 2_000L, duration = 10_000L).copy(lastWatched = 946_684_800_000L)
 
         harness.repository.markAsCompleted(
             progress = progress,
@@ -138,20 +138,21 @@ class WatchProgressRepositoryProfileIsolationTest {
                 match { entries ->
                     entries.keys == setOf("item") &&
                         entries.getValue("item").position == 10_000L &&
-                        entries.getValue("item").duration == 10_000L
+                        entries.getValue("item").duration == 10_000L &&
+                        entries.getValue("item").lastWatched == progress.lastWatched
                 },
                 1
             )
         }
         coVerify(exactly = 1) {
             harness.mutationStore.queueWatchedUpserts(
-                match { items -> items.single().contentId == "item" },
+                match { items -> items.single().contentId == "item" && items.single().watchedAt == progress.lastWatched },
                 1
             )
         }
         coVerify(exactly = 1) {
             harness.watchedPreferences.markAsWatched(
-                match { it.contentId == "item" },
+                match { it.contentId == "item" && it.watchedAt == progress.lastWatched },
                 profileId = 1
             )
         }

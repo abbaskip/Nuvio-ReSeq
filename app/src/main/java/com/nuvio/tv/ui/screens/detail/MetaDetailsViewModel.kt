@@ -394,12 +394,12 @@ class MetaDetailsViewModel @Inject constructor(
             is MetaDetailsEvent.OnSharedTrailerSelected -> handleSharedTrailerSelected(event.trailer)
             MetaDetailsEvent.OnDismissSharedTrailer -> dismissSharedTrailerOverlay()
             MetaDetailsEvent.OnRetrySharedTrailer -> retrySharedTrailer()
-            MetaDetailsEvent.OnToggleMovieWatched -> toggleMovieWatched()
-            is MetaDetailsEvent.OnToggleEpisodeWatched -> toggleEpisodeWatched(event.video)
-            is MetaDetailsEvent.OnMarkSeasonWatched -> markSeasonWatched(event.season)
+            is MetaDetailsEvent.OnToggleMovieWatched -> toggleMovieWatched(event.watchedAt)
+            is MetaDetailsEvent.OnToggleEpisodeWatched -> toggleEpisodeWatched(event.video, event.watchedAt)
+            is MetaDetailsEvent.OnMarkSeasonWatched -> markSeasonWatched(event.season, event.watchedAt)
             is MetaDetailsEvent.OnMarkSeasonUnwatched -> markSeasonUnwatched(event.season)
-            is MetaDetailsEvent.OnMarkPreviousEpisodesWatched -> markPreviousEpisodesWatched(event.video)
-            is MetaDetailsEvent.OnMarkPreviousSeasonsWatched -> markPreviousSeasonsWatched(event.season)
+            is MetaDetailsEvent.OnMarkPreviousEpisodesWatched -> markPreviousEpisodesWatched(event.video, event.watchedAt)
+            is MetaDetailsEvent.OnMarkPreviousSeasonsWatched -> markPreviousSeasonsWatched(event.season, event.watchedAt)
             MetaDetailsEvent.OnLibraryLongPress -> openListPicker()
             is MetaDetailsEvent.OnPickerMembershipToggled -> togglePickerMembership(event.listKey)
             MetaDetailsEvent.OnPickerSave -> savePickerMembership()
@@ -2251,7 +2251,7 @@ class MetaDetailsViewModel @Inject constructor(
         showMessage(localizedContext.getString(R.string.detail_lists_updated))
     }
 
-    private fun toggleMovieWatched() {
+    private fun toggleMovieWatched(watchedAt: Long?) {
         val meta = _uiState.value.meta ?: return
         if (meta.apiType != "movie") return
         if (_uiState.value.isMovieWatchedPending) return
@@ -2259,11 +2259,11 @@ class MetaDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isMovieWatchedPending = true) }
             runCatching {
-                if (_uiState.value.isMovieWatched) {
+                if (_uiState.value.isMovieWatched && watchedAt == null) {
                     watchProgressRepository.removeFromHistory(_effectiveContentId.value, videoId = resolveFallbackVideoId())
                     showMessage(localizedContext.getString(R.string.detail_movie_marked_unwatched))
-                } else {
-                    watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(meta))
+                } else if (!_uiState.value.isMovieWatched && watchedAt != null) {
+                    watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(meta, watchedAt))
                     showMessage(localizedContext.getString(R.string.detail_movie_marked_watched))
                 }
             }.onFailure { error ->
@@ -2305,7 +2305,7 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun toggleEpisodeWatched(displayVideo: Video) {
+    private fun toggleEpisodeWatched(displayVideo: Video, watchedAt: Long?) {
         if (!displayVideo.hasResolvedSource) return
         val video = displayVideo.forEpisodeSource()
         val meta = _uiState.value.meta ?: return
@@ -2322,15 +2322,15 @@ class MetaDetailsViewModel @Inject constructor(
             val isWatched = _uiState.value.episodeProgressMap[season to episode]?.isCompleted() == true
                 || _uiState.value.watchedEpisodes.contains(season to episode)
             runCatching {
-                if (isWatched) {
+                if (isWatched && watchedAt == null) {
                     _optimisticMarks -= season to episode
                     _optimisticUnmarks += season to episode
                     watchProgressRepository.removeFromHistory(_effectiveContentId.value, videoId = video.id, season = season, episode = episode)
                     showMessage(localizedContext.getString(R.string.detail_episode_marked_unwatched))
-                } else {
+                } else if (!isWatched && watchedAt != null) {
                     _optimisticUnmarks -= season to episode
                     _optimisticMarks += season to episode
-                    watchProgressRepository.markAsCompleted(buildCompletedEpisodeProgress(meta, video))
+                    watchProgressRepository.markAsCompleted(buildCompletedEpisodeProgress(meta, video, watchedAt))
                     showMessage(localizedContext.getString(R.string.detail_episode_marked_watched))
                 }
             }.onFailure { error ->
@@ -2365,7 +2365,7 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun markSeasonWatched(season: Int) {
+    private fun markSeasonWatched(season: Int, watchedAt: Long) {
         val meta = _uiState.value.meta ?: return
         suppressSeasonAutoSwitch = true
         viewModelScope.launch {
@@ -2396,7 +2396,7 @@ class MetaDetailsViewModel @Inject constructor(
             }
 
             runCatching {
-                val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it) }
+                val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it, watchedAt) }
                 watchProgressRepository.markAsCompletedBatch(progressList)
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark season $season as watched: ${error.message}")
@@ -2458,7 +2458,7 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun markPreviousEpisodesWatched(displayVideo: Video) {
+    private fun markPreviousEpisodesWatched(displayVideo: Video, watchedAt: Long) {
         if (!displayVideo.hasResolvedSource) return
         val video = displayVideo.forEpisodeSource()
         val meta = _uiState.value.meta ?: return
@@ -2497,7 +2497,7 @@ class MetaDetailsViewModel @Inject constructor(
             }
 
             runCatching {
-                val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it) }
+                val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it, watchedAt) }
                 watchProgressRepository.markAsCompletedBatch(progressList)
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark previous episodes as watched: ${error.message}")
@@ -2511,7 +2511,7 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun markPreviousSeasonsWatched(targetSeason: Int) {
+    private fun markPreviousSeasonsWatched(targetSeason: Int, watchedAt: Long) {
         val meta = _uiState.value.meta ?: return
         suppressSeasonAutoSwitch = true
         viewModelScope.launch {
@@ -2542,7 +2542,7 @@ class MetaDetailsViewModel @Inject constructor(
             }
 
             runCatching {
-                val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it) }
+                val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it, watchedAt) }
                 watchProgressRepository.markAsCompletedBatch(progressList)
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark previous seasons as watched: ${error.message}")
@@ -2561,7 +2561,7 @@ class MetaDetailsViewModel @Inject constructor(
         return meta.imdbId?.takeIf { it != itemId && it.isNotBlank() }
     }
 
-    private fun buildCompletedMovieProgress(meta: Meta): WatchProgress {
+    private fun buildCompletedMovieProgress(meta: Meta, watchedAt: Long): WatchProgress {
         return WatchProgress(
             contentId = _effectiveContentId.value,
             contentType = meta.apiType,
@@ -2575,12 +2575,12 @@ class MetaDetailsViewModel @Inject constructor(
             episodeTitle = null,
             position = 1L,
             duration = 1L,
-            lastWatched = System.currentTimeMillis(),
+            lastWatched = watchedAt,
             progressPercent = 100f
         )
     }
 
-    private fun buildCompletedEpisodeProgress(meta: Meta, video: Video): WatchProgress {
+    private fun buildCompletedEpisodeProgress(meta: Meta, video: Video, watchedAt: Long): WatchProgress {
         val runtimeMs = video.runtime?.toLong()?.times(60_000L) ?: 1L
         return WatchProgress(
             contentId = _effectiveContentId.value,
@@ -2595,7 +2595,7 @@ class MetaDetailsViewModel @Inject constructor(
             episodeTitle = video.title,
             position = runtimeMs,
             duration = runtimeMs,
-            lastWatched = System.currentTimeMillis(),
+            lastWatched = watchedAt,
             progressPercent = 100f,
             tvdbContext = video.tvdbPlaybackContext(),
             tvdbEpisodeIds = video.episodeIdentity?.trackingEpisodeIds,

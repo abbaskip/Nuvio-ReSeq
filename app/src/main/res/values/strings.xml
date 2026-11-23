@@ -3561,4 +3561,10 @@
     <string name="episodes_partial_watch_failed">Couldn’t finish removing this partial watch</string>
     <string name="iptv_immediate_tier">Include IPTV VOD in immediate sources</string>
     <string name="iptv_fallback_tier">Include IPTV VOD in any-source fallback</string>
+    <string name="when_watched">When did you watch it?</string>
+    <string name="watched_now">Mark watched now</string>
+    <string name="choose_watch_date">Choose date</string>
+    <string name="choose_watch_date_time">Choose date and time</string>
+    <string name="choose_watch_time">Choose time</string>
+    <string name="choose_past_watch_time">Choose a valid time in the past.</string>
 </resources>

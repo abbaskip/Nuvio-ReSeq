@@ -474,6 +474,7 @@ fun MetaDetailsScreen(
     ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _, _, _ -> }
 ) {
     val playbackAvailability = LocalPlaybackAvailability.current
+    val chooseWatchedDate = com.nuvio.tv.ui.components.rememberWatchedDatePicker()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val posterCardCornerRadiusDp by viewModel.posterCardCornerRadiusDp.collectAsStateWithLifecycle()
     val effectiveAutoplayEnabled by viewModel.effectiveAutoplayEnabled.collectAsStateWithLifecycle(
@@ -1055,22 +1056,26 @@ fun MetaDetailsScreen(
                     onPlayButtonFocused = { viewModel.onEvent(MetaDetailsEvent.OnPlayButtonFocused) },
                     onToggleLibrary = { viewModel.onEvent(MetaDetailsEvent.OnToggleLibrary) },
                     onLibraryLongPress = { viewModel.onEvent(MetaDetailsEvent.OnLibraryLongPress) },
-                    onToggleMovieWatched = { viewModel.onEvent(MetaDetailsEvent.OnToggleMovieWatched) },
+                    onToggleMovieWatched = {
+                        if (uiState.isMovieWatched) viewModel.onEvent(MetaDetailsEvent.OnToggleMovieWatched(null))
+                        else chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnToggleMovieWatched(it)) }
+                    },
                     onRemoveWatch = viewModel::removeEpisodeWatch,
-                    onToggleEpisodeWatched = { video ->
-                        viewModel.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(video))
+                    onToggleEpisodeWatched = { video, watched ->
+                        if (watched) viewModel.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(video, null))
+                        else chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(video, it)) }
                     },
                     onMarkSeasonWatched = { season ->
-                        viewModel.onEvent(MetaDetailsEvent.OnMarkSeasonWatched(season))
+                        chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnMarkSeasonWatched(season, it)) }
                     },
                     onMarkSeasonUnwatched = { season ->
                         viewModel.onEvent(MetaDetailsEvent.OnMarkSeasonUnwatched(season))
                     },
                     onMarkPreviousEpisodesWatched = { video ->
-                        viewModel.onEvent(MetaDetailsEvent.OnMarkPreviousEpisodesWatched(video))
+                        chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnMarkPreviousEpisodesWatched(video, it)) }
                     },
                     onMarkPreviousSeasonsWatched = { season ->
-                        viewModel.onEvent(MetaDetailsEvent.OnMarkPreviousSeasonsWatched(season))
+                        chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnMarkPreviousSeasonsWatched(season, it)) }
                     },
                     isSeasonFullyWatched = { season ->
                         viewModel.isSeasonFullyWatched(season)
@@ -1362,7 +1367,7 @@ private fun MetaDetailsContent(
     onLibraryLongPress: () -> Unit,
     onToggleMovieWatched: () -> Unit,
     onRemoveWatch: (Video, WatchProgress, Boolean) -> Unit,
-    onToggleEpisodeWatched: (Video) -> Unit,
+    onToggleEpisodeWatched: (Video, Boolean) -> Unit,
     onMarkSeasonWatched: (Int) -> Unit,
     onMarkSeasonUnwatched: (Int) -> Unit,
     onMarkPreviousEpisodesWatched: (Video) -> Unit,

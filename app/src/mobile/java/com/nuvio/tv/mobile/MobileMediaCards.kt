@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.nuvio.tv.domain.model.*
+import com.nuvio.tv.ui.screens.detail.formatReleaseDate
 
 internal val mediaCorners = RoundedCornerShape(5.dp)
 
@@ -68,24 +69,31 @@ internal fun PrimaryMediaAction(label: String, modifier: Modifier = Modifier, on
 
 @Composable
 internal fun EpisodeTile(episode: Video, watched: Boolean, progress: Float, rating: Double?, enabled: Boolean,
-    open: () -> Unit, actions: @Composable RowScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().mediaPanel().combinedClickable(enabled = enabled, onClick = open, onLongClick = open)) {
-        Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(98.dp).aspectRatio(1.42f).clip(mediaCorners)) {
-                MediaArt(episode.thumbnail, Icons.Default.Movie, Modifier.fillMaxSize())
-                if (watched) Icon(Icons.Default.CheckCircle, "Watched", Modifier.align(Alignment.TopEnd).padding(3.dp).size(19.dp)
-                    .background(Color.Black.copy(alpha = .72f), mediaCorners), tint = Color.White)
-                if (progress > 0f && !watched) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter))
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Label("S${episode.displaySeason}E${episode.displayEpisode} · ${episode.title}", strong = true, lines = 2)
-                val facts = listOfNotNull(episode.released?.take(10), episode.runtime?.let { "$it min" }, rating?.let { "★ $it" }).joinToString("  ·  ")
-                if (facts.isNotBlank()) Label(facts, small = true, lines = 2)
-                episode.overview?.takeIf(String::isNotBlank)?.let { Label(it, small = true, lines = 2) }
-            }
+    open: () -> Unit, actions: @Composable () -> Unit) {
+    var options by remember(episode.id) { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth().mediaPanel().combinedClickable(enabled = enabled, onClick = open, onLongClickLabel = "Episode actions", onLongClick = open)
+        .padding(8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(98.dp).aspectRatio(1.42f).clip(mediaCorners)) {
+            MediaArt(episode.thumbnail, Icons.Default.Movie, Modifier.fillMaxSize())
+            if (watched) Icon(Icons.Default.CheckCircle, "Watched", Modifier.align(Alignment.TopEnd).padding(3.dp).size(19.dp)
+                .background(Color.Black.copy(alpha = .72f), mediaCorners), tint = Color.White)
+            if (progress > 0f && !watched) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter))
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Row(Modifier.padding(horizontal = 6.dp, vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), content = actions)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Label("S${episode.displaySeason}E${episode.displayEpisode} · ${episode.title}", strong = true, lines = 2)
+            val date = remember(episode.released) { episode.released?.let(::formatReleaseDate) }
+            val facts = listOfNotNull(date?.takeIf(String::isNotBlank), episode.runtime?.let { "$it min" }, rating?.let { "★ $it" }).joinToString("  ·  ")
+            if (facts.isNotBlank()) Label(facts, small = true, lines = 2)
+            episode.overview?.takeIf(String::isNotBlank)?.let { Label(it, small = true, lines = 2) }
+        }
+        IconButton(onClick = { options = true }) { Icon(Icons.Default.MoreVert, "Options for ${episode.title}", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+    }
+    if (options) TouchSheet({ options = false }) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            BrowseHeading(episode.title) { options = false }
+            if (enabled) Action("Playback options", Modifier.fillMaxWidth()) { options = false; open() }
+            actions()
+        }
     }
 }
 
@@ -107,9 +115,13 @@ internal fun SourceTile(stream: Stream, enabled: Boolean, select: () -> Unit) {
 }
 
 @Composable
-internal fun SeasonRail(meta: Meta, seasons: List<Int>, current: Int, postersEnabled: Boolean, select: (Int) -> Unit) {
+internal fun SeasonRail(meta: Meta, seasons: List<Int>, current: Int, postersEnabled: Boolean, togglePosters: () -> Unit, select: (Int) -> Unit) {
     val images = remember(meta, seasons, postersEnabled) {
         if (postersEnabled) com.nuvio.tv.ui.screens.detail.resolveSeasonPosters(meta, seasons) else null
+    }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) { SectionTitle("Seasons") }
+        Action("Posters", selected = postersEnabled, onClick = togglePosters)
     }
     val scroll = rememberLazyListState()
     LaunchedEffect(current, seasons) {
@@ -120,9 +132,9 @@ internal fun SeasonRail(meta: Meta, seasons: List<Int>, current: Int, postersEna
         items(seasons) { season ->
             val selected = season == current
             val label = if (season == 0) "Specials" else "Season $season"
-            if (images == null) Action(label, selected = selected) { select(season) }
+            if (!postersEnabled) Action(label, selected = selected) { select(season) }
             else Column(Modifier.width(92.dp).mediaPanel(selected).clickable { select(season) }) {
-                MediaArt(images[season] ?: meta.poster, Icons.Default.Movie, Modifier.fillMaxWidth().aspectRatio(.74f))
+                MediaArt(images?.get(season) ?: meta.videos.firstOrNull { it.displaySeason == season && !it.thumbnail.isNullOrBlank() }?.thumbnail ?: meta.poster, Icons.Default.Movie, Modifier.fillMaxWidth().aspectRatio(.74f))
                 Label(label, Modifier.padding(6.dp), strong = selected, lines = 1)
             }
         }

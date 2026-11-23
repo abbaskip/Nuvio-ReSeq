@@ -101,7 +101,8 @@ class MobileActivity : ComponentActivity() {
                         when {
                             locks == null -> CircularProgressIndicator()
                             locked && unlockedProfile != active -> ProfileUnlock(active, unlocked = { unlockedProfile = active })
-                            else -> CompositionLocalProvider(LocalSelectedProfile provides { id -> unlockedProfile = id }) { MobileShell(active, sports.get()) }
+                            else -> CompositionLocalProvider(LocalSelectedProfile provides { id -> unlockedProfile = id },
+                                LocalContentColor provides MaterialTheme.colorScheme.onSurface) { MobileShell(active, sports.get()) }
                         }
                     }
                 }

@@ -467,6 +467,11 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             shell("wm", "dismiss-keyguard")
             shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
             locate("Catalog sources")
+            if extended:
+                choose("Flick Pick")
+                locate("Pick and play")
+                screenshot("phone-flick-pick", landscape=False)
+                choose("Back")
             if account or extended:
                 choose("Settings")
                 def check_tracker_settings():
@@ -682,8 +687,15 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             locate("Remove from library")
             choose("Library")
             choose("Zyntraxis ReSeq Fixture")
+            if extended:
+                locate("Play S1 E1")
+                locate("Up next")
+                screenshot("phone-series-details", landscape=False)
             tap(scroll_to("S1E2 · Second episode"))
             choose("Play manually")
+            if extended:
+                locate("Alternate")
+                screenshot("phone-manual-sources", landscape=False)
             choose("Alternate")
             choose("Play this file")
             locate("Audio")

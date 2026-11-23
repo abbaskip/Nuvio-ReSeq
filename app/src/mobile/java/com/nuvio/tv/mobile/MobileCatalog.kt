@@ -187,7 +187,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             val args = requireNotNull(entry.arguments)
             CatalogDetail(profile, args.getString("operation"), args.getString("previewTitle").orEmpty(),
                 args.getString("itemId").orEmpty(), args.getString("itemType").orEmpty(), openVideo,
-                { nav.popBackStack() }, { nav.navigate(it) }, openTitle, mix, args.getString("addonBaseUrl")?.takeUnless { it == "{addonBaseUrl}" })
+                { nav.popBackStack() }, { nav.navigate(it) }, openTitle, mix, catalog.layout, args.getString("addonBaseUrl")?.takeUnless { it == "{addonBaseUrl}" })
         }
         composable(Screen.Stream.route + "&operation={operation}",
             arguments = listOf(navArgument("autoSelectStream") { type = NavType.BoolType; defaultValue = false })) { entry ->
@@ -512,7 +512,7 @@ internal fun VideoActions(label: String, close: () -> Unit, playable: Boolean = 
 @Composable
 private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: String, type: String,
     open: (MobileVideo, VideoAction) -> Unit, back: () -> Unit, navigate: (String) -> Unit,
-    openTitle: (MetaPreview, String?, VideoAction) -> Unit, mix: TvMixViewModel, sourceAddon: String?, vm: MetaDetailsViewModel = hiltViewModel()) {
+    openTitle: (MetaPreview, String?, VideoAction) -> Unit, mix: TvMixViewModel, layout: LayoutPreferenceDataStore, sourceAddon: String?, vm: MetaDetailsViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val meta = state.meta
     val movie = type == "movie"
@@ -618,7 +618,10 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
             }
         }
         if (!showExtras && state.seasons.isNotEmpty() && meta != null) {
-            item { SeasonRail(meta, state.seasons, state.selectedSeason, state.seasonPostersEnabled) { vm.onEvent(MetaDetailsEvent.OnSeasonSelected(it)) } }
+            item { SeasonRail(meta, state.seasons, state.selectedSeason, state.seasonPostersEnabled,
+                togglePosters = { detailScope.launch { layout.setDetailSeasonPostersEnabled(!state.seasonPostersEnabled) } }) {
+                vm.onEvent(MetaDetailsEvent.OnSeasonSelected(it))
+            } }
             items(state.episodesForSeason) { episode ->
                 val video = selection(episode)
                 val episodeKey = (episode.season ?: 0) to (episode.episode ?: 0)

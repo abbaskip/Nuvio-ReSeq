@@ -211,8 +211,7 @@ private fun MobileFlickPick(back: () -> Unit, open: OpenMobileTitle, vm: FlickPi
                             PlayerIcon("Back", Icons.AutoMirrored.Filled.ArrowBack, onClick = back)
                             Label("Pick an unwatched movie from Discover or one of your lists.", Modifier.padding(top = 8.dp), lines = 3)
                         }
-                        Image(painterResource(R.drawable.flick_pick_artwork), "Flick Pick", Modifier.widthIn(max = 195.dp)
-                            .fillMaxWidth(.49f).aspectRatio(4f / 3f), contentScale = ContentScale.Fit)
+                        Image(painterResource(R.drawable.flick_pick_artwork), "Flick Pick", Modifier.weight(1.25f).heightIn(min = 112.dp, max = 166.dp).aspectRatio(4f / 3f), contentScale = ContentScale.Fit)
                     }
                 }
             }

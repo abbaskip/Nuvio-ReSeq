@@ -6,6 +6,8 @@ import android.os.Environment
 import androidx.annotation.Keep
 import com.google.gson.Gson
 import com.nuvio.tv.domain.model.TvdbPlaybackContext
+import com.nuvio.tv.domain.model.Stream
+import com.nuvio.tv.domain.model.StreamBehaviorHints
 import com.nuvio.tv.domain.model.streamLinkCacheKeys
 import com.nuvio.tv.ui.navigation.Screen
 import com.nuvio.tv.ui.screens.stream.StreamPlaybackInfo
@@ -110,6 +112,12 @@ internal class MobileOfflineMedia @Inject constructor(@ApplicationContext privat
 
     fun localRoute(video: MobileVideo, fromBeginning: Boolean = false): String? = find(video)?.let {
         video.player(Uri.fromFile(it).toString(), localName = it.name, fromBeginning = fromBeginning)
+    }
+
+    fun localStream(video: MobileVideo): Stream? = find(video)?.let { file ->
+        Stream(name = "Downloaded", title = video.label, description = null, url = Uri.fromFile(file).toString(),
+            ytId = null, infoHash = null, fileIdx = null, externalUrl = null, addonName = "Downloads", addonLogo = null,
+            behaviorHints = StreamBehaviorHints(null, null, null, null, videoSize = file.length(), filename = file.name))
     }
 
     @Synchronized

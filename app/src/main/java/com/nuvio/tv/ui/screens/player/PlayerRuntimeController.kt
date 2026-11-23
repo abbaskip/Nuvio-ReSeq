@@ -185,6 +185,8 @@ class PlayerRuntimeController(
     internal val streamName: String? = navigationArgs.streamName
     internal val year: String? = navigationArgs.year
     internal val headersJson: String? = navigationArgs.headersJson
+    /** Set by hosts that can play episodes from their own download library. */
+    internal var downloadedEpisodeSource: (suspend (com.nuvio.tv.domain.model.Video) -> com.nuvio.tv.domain.model.Stream?)? = null
     internal val contentId: String? = navigationArgs.contentId
     internal val contentType: String? = navigationArgs.contentType
     internal val contentName: String? = navigationArgs.contentName

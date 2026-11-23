@@ -684,6 +684,19 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             locate("Play manually")
             if not any("qafilmTwo/Alternate" in f for f in files):
                 raise AssertionError(f"Manual download did not use the selected file: {files}")
+            if not upgrade_apk:
+                choose("Play manually")
+                local_choice = locate("Play downloaded file")
+                primary = locate("Primary")
+                def top(node):
+                    return int(re.findall(r"-?\d+", node.get("bounds"))[1])
+                assert top(local_choice) < top(primary), "Manual sources should put the saved file first"
+                files_before = len(files)
+                tap(local_choice)
+                locate("Playing download")
+                assert len(files) == files_before, "Manual local playback downloaded the file again"
+                shell("input", "keyevent", "KEYCODE_BACK")
+                locate("Play manually")
             offline.set()
             counts = len(sources), len(files)
             choose("Play")
@@ -717,6 +730,24 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             tap(download)
             locate("Playing download")
             assert counts == (len(sources), len(files)), "Restarted offline playback requested a remote source"
+            shell("input", "keyevent", "KEYCODE_BACK")
+            choose("Library")
+            choose("Downloads")
+            locate("Delete Test film One")
+            locate("Delete Test film Two")
+            screenshot("phone-library-downloads", landscape=False)
+            choose("Delete Test film One")
+            choose("Keep")
+            choose("Delete Test film One")
+            choose("Delete download")
+            choose("Test film Two")
+            locate("Playing download")
+            assert counts == (len(sources), len(files)), "Downloads playback requested remote sources"
+            shell("input", "keyevent", "KEYCODE_BACK")
+            choose("Delete Test film Two")
+            choose("Delete download")
+            locate("No saved downloads in this profile.")
+            print("Verified Library downloads, cancel and confirm deletion, playback of the remaining file and the empty list.")
             if upgrade_apk:
                 print(f"Verified in-place update to {upgrade_apk.name} with the saved library and offline file.")
         finally:

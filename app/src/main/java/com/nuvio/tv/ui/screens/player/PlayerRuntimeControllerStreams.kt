@@ -2047,6 +2047,7 @@ internal fun PlayerRuntimeController.preloadNextEpisodeSources() {
     nextEpisodePreloadTriggered = true
     nextEpisodePreloadJob?.cancel()
     nextEpisodePreloadJob = scope.launch {
+        if (downloadedEpisodeSource?.invoke(nextVideo) != null) return@launch
         Log.d(PlayerRuntimeController.TAG, "Preloading sources for next episode: S${nextVideo.season}E${nextVideo.episode}")
         streamRepository.getStreamsFromAllAddons(
             type = type,
@@ -2103,6 +2104,10 @@ internal fun PlayerRuntimeController.playNextEpisode(userInitiated: Boolean) {
     nextEpisodeAutoPlayJob?.cancel()
     nextEpisodeAutoPlayJob = scope.launch {
         try {
+            downloadedEpisodeSource?.invoke(nextVideo)?.let { saved ->
+                switchToEpisodeStream(saved, forcedTargetVideo = nextVideo, isAutoPlay = true)
+                return@launch
+            }
             streamRepository.setLocalPluginSearchPaused(false)
             val playerSettings = if (hasObservedPlayerSettings) {
                 currentPlayerSettingsForReport

@@ -107,7 +107,7 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
 
 @Composable
 internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, collections: () -> Unit,
-    iptv: () -> Unit, recordings: () -> Unit, party: () -> Unit, cloud: () -> Unit, servers: () -> Unit, mix: () -> Unit,
+    iptv: () -> Unit, recordings: () -> Unit, party: () -> Unit, cloud: () -> Unit, servers: () -> Unit, mix: () -> Unit, downloads: () -> Unit,
     vm: LibraryViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     var filters by remember { mutableStateOf(false) }
@@ -118,6 +118,7 @@ internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, co
             if (state.listManagement != null && state.isTrackingAuthenticated) Action("Manage lists", onClick = vm::onOpenManageLists)
             Action("Filter and sort") { filters = true }
         }
+        DownloadsLink(downloads)
         LazyRow {
             item { Action("Collections", onClick = collections) }
             item { Action("TV Mix", onClick = mix) }

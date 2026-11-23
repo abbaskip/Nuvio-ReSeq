@@ -48,6 +48,29 @@ class MobileOfflineMediaTest {
         assertTrue(restarted.saved(movie.profile).isEmpty())
     }
 
+    @Test fun removingOneSavedFileUpdatesPlaybackAndPreservesOtherProfiles() {
+        fun save(video: MobileVideo): OfflineFile {
+            val dir = media.folder(video).apply { mkdirs() }
+            val partial = File(dir, "media.part").apply { writeText("saved video") }
+            media.publish(video, partial, "mp4")
+            return media.saved(video.profile).single { it.video.key == video.key }
+        }
+        val first = save(movie)
+        val replaced = save(movie)
+        val other = save(movie.copy(profile = 2))
+        assertTrue(runCatching { media.remove(first) }.isFailure)
+        assertEquals(media.find(movie)?.name, media.localStream(movie)?.behaviorHints?.filename)
+        assertNotNull(media.localRoute(movie))
+        val revision = media.changes.value
+        media.remove(replaced)
+        assertTrue(media.changes.value > revision)
+        assertFalse(File(media.folder(movie), replaced.filename).exists())
+        assertNull(media.localStream(movie))
+        assertNull(media.localRoute(movie))
+        assertTrue(media.saved(movie.profile).isEmpty())
+        assertNotNull(media.localRoute(other.video))
+    }
+
     @Test fun transferSniffsTheContainerAndRejectsManifestsAndErrorPages() {
         assertEquals("mp4", videoContainer(byteArrayOf(0, 0, 0, 24) + "ftypisom".toByteArray()))
         assertEquals("mkv", videoContainer(byteArrayOf(0x1a, 0x45, 0xdf.toByte(), 0xa3.toByte())))

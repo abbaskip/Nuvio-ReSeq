@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.*
@@ -21,13 +22,35 @@ import androidx.media3.ui.PlayerView
 import com.nuvio.tv.data.local.InternalPlayerEngine
 import com.nuvio.tv.data.local.PlayerPreference
 import com.nuvio.tv.domain.model.Stream
+import com.nuvio.tv.domain.model.sourceEpisode
+import com.nuvio.tv.domain.model.sourceSeason
+import com.nuvio.tv.domain.model.tvdbPlaybackContext
 import com.nuvio.tv.ui.screens.player.*
 import com.nuvio.tv.ui.screens.stream.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun MobileSources(video: MobileVideo, download: Boolean, fromBeginning: Boolean, back: () -> Unit, play: (String) -> Unit,
+internal fun MobileSourceDestination(video: MobileVideo, media: MobileOfflineMedia, download: Boolean, manual: Boolean,
+    fromBeginning: Boolean, back: () -> Unit, play: (String) -> Unit) {
+    val revision by media.changes.collectAsStateWithLifecycle()
+    var checked by remember(video.key, revision, fromBeginning) { mutableStateOf(false) }
+    var local by remember(video.key, revision, fromBeginning) { mutableStateOf<String?>(null) }
+    LaunchedEffect(video.key, revision, fromBeginning) {
+        local = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { media.localRoute(video, fromBeginning) }
+        checked = true
+    }
+    val route = local
+    when {
+        !checked -> LinearProgressIndicator()
+        route != null && !manual && !download -> LaunchedEffect(route) { play(route) }
+        else -> MobileSources(video, download, manual, route, fromBeginning, back, play)
+    }
+}
+
+@Composable
+private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean, local: String?, fromBeginning: Boolean,
+    back: () -> Unit, play: (String) -> Unit,
     vm: StreamScreenViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val p2p by vm.p2pEnabled.collectAsStateWithLifecycle(initialValue = false)
@@ -88,11 +111,12 @@ internal fun MobileSources(video: MobileVideo, download: Boolean, fromBeginning:
         }
     }
     LaunchedEffect(state.autoPlayStream, state.autoPlayPlaybackInfo, preference) {
-        if (preference != null && (state.autoPlayStream != null || state.autoPlayPlaybackInfo != null))
+        if (!manual && preference != null && (state.autoPlayStream != null || state.autoPlayPlaybackInfo != null))
             resolve(state.autoPlayStream, state.autoPlayPlaybackInfo, true, download)
     }
     LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         item { Action("Back", onClick = back); SectionTitle(if (download) "Download" else "Sources"); Label(video.label) }
+        if (local != null && !download) item { Action("Play downloaded file", Modifier.fillMaxWidth()) { play(local) } }
         if (busy || state.isLoading) item { Label(state.directAutoPlayMessage ?: "Finding sources…") }
         (message ?: state.playbackErrorMessage ?: state.error)?.let { item { Label(it) } }
         shared?.let { item { Action("Play party’s shared source") { resolve(it.stream, null, false, false) } } }
@@ -132,7 +156,7 @@ internal fun MobileSources(video: MobileVideo, download: Boolean, fromBeginning:
 }
 
 @Composable
-internal fun MobileVodPlayer(back: () -> Unit, openParty: (com.nuvio.tv.core.party.PartyMedia) -> Unit,
+internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openParty: (com.nuvio.tv.core.party.PartyMedia) -> Unit,
     onMovieCompleted: (com.nuvio.tv.core.tracking.MovieRatingRequest) -> Unit,
     recommendation: (PostPlayRecommendation, VideoAction) -> Unit,
     mixCompleted: ((Boolean, String?) -> Unit)? = null, vm: PlayerViewModel = hiltViewModel()) {
@@ -181,10 +205,23 @@ internal fun MobileVodPlayer(back: () -> Unit, openParty: (com.nuvio.tv.core.par
             }
         }
     }
-    DisposableEffect(vm) {
+    DisposableEffect(vm, media) {
+        val controller = vm.controller
+        controller.downloadedEpisodeSource = { episode ->
+            val id = controller.contentId
+            val type = controller.contentType
+            if (id == null || type == null) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                media.localStream(MobileVideo(controller.profileId, type, id, episode.id, controller.contentName.orEmpty(),
+                    episode.sourceSeason, episode.sourceEpisode, episode.title, episode.tvdbPlaybackContext()?.encode()))
+            }
+        }
         vm.attachHostActivity(context as? Activity)
         vm.startInitialPlaybackIfNeeded()
-        onDispose { vm.stopAndRelease(); vm.attachHostActivity(null) }
+        onDispose {
+            controller.downloadedEpisodeSource = null
+            vm.stopAndRelease()
+            vm.attachHostActivity(null)
+        }
     }
     LifecycleStartEffect(vm) {
         vm.resumeForLifecycle()

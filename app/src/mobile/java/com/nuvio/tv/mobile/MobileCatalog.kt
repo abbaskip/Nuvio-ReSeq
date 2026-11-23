@@ -154,11 +154,12 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                 Tab.SEARCH -> MobileSearch(openTitle, { nav.navigate("advanced") }, { nav.navigate(Screen.FlickPick.route) })
                 Tab.LIBRARY -> MobileLibrary(openTitle, { nav.navigate(Screen.Collections.route) },
                     { nav.navigate(Screen.OnDemand.route) }, { nav.navigate("mobile-recordings") }, { nav.navigate("mobile-party") },
-                    { nav.navigate("mobile-cloud") }, { nav.navigate("mobile-servers") }, { nav.navigate("mobile-mix") })
+                    { nav.navigate("mobile-cloud") }, { nav.navigate("mobile-servers") }, { nav.navigate("mobile-mix") }, { nav.navigate("downloads") })
                 else -> CatalogHome(profile, catalog, openVideo, openTitle, { nav.navigate(it) }, tracking)
             }
         }
         mobileBrowseDestinations(nav, openTitle)
+        composable("downloads") { MobileDownloads(profile, catalog.downloads, back = { nav.popBackStack() }, play = { nav.navigate(it) }) }
         composable("mobile-cloud") { MobileCloudLibrary({ nav.popBackStack() }, { nav.navigate(it) }) }
         composable("mobile-servers") { MobileServerShelves(openTitle, { nav.popBackStack() }) }
         composable("mobile-party") {
@@ -196,7 +197,9 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                 optional("episode")?.toIntOrNull(), optional("episodeName"), optional("tvdbContext"), optional("poster"))
             val leave = { mix.session.end(); nav.popBackStack(); Unit }
             androidx.activity.compose.BackHandler(onBack = leave)
-            MobileSources(video, optional("operation") == VideoAction.Download.name, optional("startFromBeginning") == "true", leave, { route ->
+            MobileSourceDestination(video, catalog.downloads, download = optional("operation") == VideoAction.Download.name,
+                manual = optional("operation") == VideoAction.Manual.name || optional("manualSelection").toBoolean(),
+                fromBeginning = optional("startFromBeginning") == "true", back = leave, play = { route ->
                 nav.navigate(route) { popUpTo(entry.destination.id) { inclusive = true } }
             })
         }
@@ -205,7 +208,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             val args = entry.arguments
             val leave = { mix.session.end(); nav.popBackStack(); Unit }
             androidx.activity.compose.BackHandler(onBack = leave)
-            MobileVodPlayer(back = leave, openParty = openPartyTitle, onMovieCompleted = { pendingRating = it },
+            MobileVodPlayer(media = catalog.downloads, back = leave, openParty = openPartyTitle, onMovieCompleted = { pendingRating = it },
                 recommendation = { rec, action ->
                     nav.navigate(Screen.Detail.createRoute(rec.id, rec.contentType, rec.sourceAddonBaseUrl) +
                         "&operation=" + action.name + "&previewTitle=" + Uri.encode(rec.title)) {
@@ -257,6 +260,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     var menu by remember { mutableStateOf<Pair<MetaPreview,String?>?>(null) }
     var resumeMenu by remember { mutableStateOf<Pair<MobileVideo, ContinueWatchingItem>?>(null) }
     var manage by remember { mutableStateOf<OfflineFile?>(null) }
+    var removeDownload by remember { mutableStateOf<OfflineFile?>(null) }
     var providers by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -342,7 +346,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             }
         } }
         if (saved.isNotEmpty()) {
-            item { ShelfHeading("Downloads", gutter) }
+            item { ShelfHeading("Downloads", gutter, seeAll = { navigate("downloads") }) }
             items(saved, key = { "offline-" + it.video.key }) { entry ->
                 Row(Modifier.padding(horizontal = gutter), verticalAlignment = Alignment.CenterVertically) {
                     Action(entry.video.label, Modifier.weight(1f)) { openVideo(entry.video, VideoAction.Play) }
@@ -393,12 +397,13 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     manage?.let { entry -> TouchSheet({ manage = null }) {
         SectionTitle(entry.video.label)
         Action("Play downloaded file") { manage = null; openVideo(entry.video, VideoAction.Play) }
-        Action("Remove download") {
-            manage = null
-            scope.launch {
-                val result = withContext(Dispatchers.IO) { runCatching { catalog.downloads.remove(entry) } }
-                result.onFailure { Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show() }
-            }
+        Action("Remove download") { manage = null; removeDownload = entry }
+    } }
+    removeDownload?.let { entry -> DeleteDownloadDialog(entry, cancel = { removeDownload = null }) {
+        removeDownload = null
+        scope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { catalog.downloads.remove(entry) } }
+            result.onFailure { Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show() }
         }
     } }
     if (providers) CatalogSources { providers = false }

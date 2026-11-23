@@ -25,7 +25,7 @@ jobs:
       - name: Run shared Drive tests and offline download tests on mobile
         if: matrix.app == 'Mobile'
         run: |
-          ./gradlew :app:testMobileDebugUnitTest --tests 'com.nuvio.tv.mobile.*' --tests 'com.nuvio.tv.livetv.sync.*' --tests '*LiveTvGroupPreferencesTest' --init-script scripts/ci.gradle -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --console=plain
+          ./gradlew :app:testMobileDebugUnitTest --tests 'com.nuvio.tv.mobile.*' --tests 'com.nuvio.tv.livetv.sync.*' --tests '*LiveTvGroupPreferencesTest' --tests '*TieredStreamAutoPlayTest' --init-script scripts/ci.gradle -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --console=plain
 
   build:
     runs-on: ubuntu-latest

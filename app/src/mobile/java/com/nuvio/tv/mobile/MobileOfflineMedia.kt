@@ -110,6 +110,10 @@ internal class MobileOfflineMedia @Inject constructor(@ApplicationContext privat
         changes.update { it + 1 }
     }
 
+    fun shareUri(video: MobileVideo): Uri? = find(video)?.let {
+        androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", it)
+    }
+
     fun localRoute(video: MobileVideo, fromBeginning: Boolean = false): String? = find(video)?.let {
         video.player(Uri.fromFile(it).toString(), localName = it.name, fromBeginning = fromBeginning)
     }

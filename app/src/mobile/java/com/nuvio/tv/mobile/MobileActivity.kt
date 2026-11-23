@@ -92,10 +92,7 @@ class MobileActivity : ComponentActivity() {
             val surfaces by themes.amoledSurfacesMode.collectAsStateWithLifecycle(false)
             NuvioTheme(appTheme = selection.theme ?: AppTheme.WHITE, customThemeColors = selection.customColors,
                 amoledMode = amoled, amoledSurfacesMode = surfaces) {
-                val c = NuvioTheme.colors
-                MaterialTheme(colorScheme = darkColorScheme(primary = c.Secondary, onPrimary = c.OnSecondary,
-                    background = c.TintedBackground, surface = c.TintedPanel, surfaceVariant = c.TintedControl,
-                    onSurface = c.TextPrimary, onSurfaceVariant = c.TextSecondary, onBackground = c.TextPrimary)) {
+                MaterialTheme(colorScheme = mobileColorScheme(NuvioTheme.colors)) {
                     val active by profileManager.activeProfileId.collectAsStateWithLifecycle()
                     val locks by profileLocks.pinEnabled.collectAsStateWithLifecycle(initialValue = null)
                     var unlockedProfile by remember { mutableStateOf<Int?>(null) }

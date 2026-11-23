@@ -7,6 +7,10 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -74,13 +78,13 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
             })
         if (controls && !panel) {
             Row(Modifier.align(Alignment.TopStart), verticalAlignment = Alignment.CenterVertically) {
-                Action("Back", onClick = onClose)
+                PlayerIcon("Back", Icons.AutoMirrored.Filled.ArrowBack, onClick = onClose)
                 Label(vm.playback.playingChannel?.name.orEmpty(), Modifier.background(Color.Black.copy(alpha = .7f)).padding(6.dp))
             }
             Row(Modifier.align(Alignment.BottomEnd)) {
-                Action(if (state.userPaused) "Resume" else "Pause") { vm.playback.togglePause() }
-                Action("Options") { tools = true }
-                Action("Channels") { panel = true }
+                PlayerIcon(if (state.userPaused) "Resume" else "Pause", if (state.userPaused) Icons.Default.PlayArrow else Icons.Default.Pause) { vm.playback.togglePause() }
+                PlayerIcon("Options", Icons.Default.Tune) { tools = true }
+                PlayerIcon("Channels", Icons.AutoMirrored.Filled.ViewList) { panel = true }
             }
         }
         state.error?.let { Label(it, Modifier.align(Alignment.Center).background(Color.Black).padding(8.dp)) }
@@ -133,8 +137,8 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
             item { BrowseHeading(state.catchupTitle ?: "Live player", { tools = false }) }
             if (state.catchupTitle != null || vm.playback.shiftCanSeek()) item {
                 Row {
-                    Action("−30 s") { vm.playback.seekBy(-30_000) }
-                    Action("+30 s") { vm.playback.seekBy(30_000) }
+                    PlayerIcon("Rewind 30 seconds", Icons.Default.Replay30) { vm.playback.seekBy(-30_000) }
+                    PlayerIcon("Forward 30 seconds", Icons.Default.Forward30) { vm.playback.seekBy(30_000) }
                     vm.playback.playingChannel?.let { channel -> Action("Live") { vm.preview(channel); tools = false } }
                 }
             }

@@ -92,14 +92,14 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
                         LazyRow(state = rememberLazyListState(initialFirstVisibleItemIndex = row.startIndex.coerceAtLeast(0)),
                             horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                             items(row.events, key = { it.id }) { ev ->
-                                FixtureTile(ev, settings.hideScores, use24h, Modifier.width(tileWidth), open)
+                                FixtureTile(ev, settings.hideScores, use24h, Modifier.width(tileWidth), page?.matches?.get(ev.id)?.firstOrNull()?.channel, open)
                             }
                         }
                     }
                     if (teams.rows.isEmpty()) item { Label("Follow a team from an event to see its games here.") }
                 } else {
                     items(page?.shown.orEmpty(), key = { it.id }) { ev ->
-                        FixtureTile(ev, settings.hideScores, use24h, Modifier.fillMaxWidth(), open)
+                        FixtureTile(ev, settings.hideScores, use24h, Modifier.fillMaxWidth(), page?.matches?.get(ev.id)?.firstOrNull()?.channel, open)
                     }
                     if (page?.shown.isNullOrEmpty()) item { Label(if (loading || page == null) "Loading fixtures…" else "No fixtures for this selection.") }
                 }
@@ -162,15 +162,15 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
             if (channels.isEmpty()) Label("No matching channels", Modifier.padding(8.dp))
             Action("Match channels") { tool = "channels" }
             Action("Gemini coverage lookup") { tool = "lookup" }
-            channels.forEach { match -> Action(match.channel.name, Modifier.fillMaxWidth()) {
+            channels.forEach { match -> Action(match.channel.sportsChannelLabel, Modifier.fillMaxWidth()) {
                 onClose()
                 onWatch(match.channel)
             }
-                if (match.catchup && event.startMs <= System.currentTimeMillis()) Action("Replay from start · " + match.channel.name) {
+                if (match.catchup && event.startMs <= System.currentTimeMillis()) Action("Replay from start · " + match.channel.sportsChannelLabel) {
                     val request = if (vm.watchFromStart(event, match)) SportsLaunch.takeCatchup() else null
                     if (request != null && replay(request)) onClose() else message = "Replay is unavailable on this channel."
                 }
-                if (event.state != GameState.POST) Action("Record on " + match.channel.name) { recording = match.channel.key }
+                if (event.state != GameState.POST) Action("Record on " + match.channel.sportsChannelLabel) { recording = match.channel.key }
                 if (recording == match.channel.key) LazyRow { items(listOf(60, 90, 120, 180, 240)) { mins ->
                     Action("$mins min") { message = vm.record(event, match, mins); recording = null }
                 } }

@@ -57,6 +57,25 @@ class MobileSportsCardTest {
         assertTrue("$label was clipped vertically", text.getLineBottom(text.lineCount - 1) <= text.size.height + 1f)
     }
 
+    @Test fun changingThemeRetintsTheFixtureAndKeepsItsPlaylistLabel() {
+        var accent by mutableIntStateOf(0xB53060)
+        val channel = com.nuvio.tv.livetv.model.LiveChannel("test:1", "test", "Sydney playlist", "Cricket HD",
+            null, null, null, "sports", "Sports", 1, "https://example.test/tv")
+        compose.setContent {
+            val palette = com.nuvio.tv.ui.theme.ThemeColors.getColorPalette(com.nuvio.tv.domain.model.AppTheme.CUSTOM,
+                com.nuvio.tv.domain.model.CustomThemeColors.solid(accent))
+            MaterialTheme(colorScheme = mobileColorScheme(com.nuvio.tv.ui.theme.NuvioColorScheme(palette))) {
+                FixtureTile(fixture, false, false, Modifier.width(276.dp).testTag("card"), channel = channel)
+            }
+        }
+        fun headerPixel() = compose.onNodeWithTag("card").captureToImage().asAndroidBitmap().let { it.getPixel(it.width / 2, 5) }
+        compose.onNodeWithText("Cricket HD · Sydney playlist").assertIsDisplayed()
+        val rose = headerPixel()
+        compose.runOnIdle { accent = 0x259D76 }
+        assertNotEquals(rose, headerPixel())
+        compose.onNodeWithText("Cricket HD · Sydney playlist").assertIsDisplayed()
+    }
+
     @Test fun cricketNamesAndFullInningsFitAtPhoneAndTabletWidths() {
         var width by mutableStateOf(276.dp)
         var fontScale by mutableFloatStateOf(1f)

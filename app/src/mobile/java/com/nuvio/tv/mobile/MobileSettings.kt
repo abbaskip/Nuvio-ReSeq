@@ -301,26 +301,29 @@ private fun ExtensionSettings(vm: PluginViewModel = hiltViewModel()) {
 private fun PlaybackSettings(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val state by vm.playerSettings.collectAsStateWithLifecycle(PlayerSettings())
     val scope = rememberCoroutineScope()
-    SectionTitle("Player")
-    PlayerPreference.entries.forEach { option ->
-        Action(when (option) {
-            PlayerPreference.EXTERNAL -> "External player"; PlayerPreference.INTERNAL -> "ReSeq player"; PlayerPreference.ASK_EVERY_TIME -> "Ask each time"
-        }, selected = option == state.playerPreference) { scope.launch { vm.setPlayerPreference(option) } }
+    SectionTitle("Open videos with")
+    Label("Applies to streams and downloaded files.", small = true)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        listOf(PlayerPreference.INTERNAL to "ReSeq player", PlayerPreference.EXTERNAL to "External player",
+            PlayerPreference.ASK_EVERY_TIME to "Ask each time").forEach { (option, label) ->
+            Action(label, selected = option == state.playerPreference) { scope.launch { vm.setPlayerPreference(option) } }
+        }
     }
-    InternalPlayerEngine.entries.forEach { engine ->
-        Action(when (engine) { InternalPlayerEngine.MVP_PLAYER -> "MPV"; InternalPlayerEngine.EXOPLAYER -> "ExoPlayer"; else -> "Automatic" },
-            selected = state.internalPlayerEngine == engine) { scope.launch { vm.setInternalPlayerEngine(engine) } }
+    if (state.playerPreference != PlayerPreference.EXTERNAL) {
+        SectionTitle("ReSeq playback engine")
+        Label("Used when a video opens inside ReSeq.", small = true)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            InternalPlayerEngine.entries.forEach { engine ->
+                Action(when (engine) {
+                    InternalPlayerEngine.MVP_PLAYER -> "MPV"
+                    InternalPlayerEngine.EXOPLAYER -> "ExoPlayer"
+                    else -> "Automatic"
+                }, selected = state.internalPlayerEngine == engine) { scope.launch { vm.setInternalPlayerEngine(engine) } }
+            }
+        }
     }
-    SectionTitle("Source selection")
-    StreamAutoPlayMode.entries.forEach { mode ->
-        Action(when (mode) { StreamAutoPlayMode.MANUAL -> "Choose manually"; StreamAutoPlayMode.FIRST_STREAM -> "First matching stream"
-            else -> "Match by expression" }, selected = state.streamAutoPlayMode == mode) { scope.launch { vm.setStreamAutoPlayMode(mode) } }
-    }
-    if (state.streamAutoPlayMode == StreamAutoPlayMode.REGEX_MATCH) {
-        var pattern by remember(state.streamAutoPlayRegex) { mutableStateOf(state.streamAutoPlayRegex) }
-        Field("Source expression", pattern) { pattern = it }
-        Action("Save expression") { scope.launch { vm.setStreamAutoPlayRegex(pattern) } }
-    }
+    SectionTitle("Sources")
+    MobileSourcePriorities(state, vm)
     val torrent by vm.torrentSettingsFlow.collectAsStateWithLifecycle(null)
     torrent?.let { config -> Row { Label("Peer-to-peer playback", Modifier.weight(1f)); Switch(config.p2pEnabled, vm::setP2pEnabled) } }
     MobilePlaybackPreferences(state, vm)

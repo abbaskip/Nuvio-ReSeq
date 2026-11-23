@@ -287,6 +287,12 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             time.sleep(.35)
         raise AssertionError(f"Could not read a fresh Android UI hierarchy on {serial}: {report}")
 
+    def reveal_controls(tree):
+        surface = next((n for n in tree if n.get("content-desc") == "Video player"), None)
+        if surface is not None and not any(n.get("content-desc") == "Back" for n in tree):
+            left, top, right, bottom = map(int, re.findall(r"-?\d+", surface.get("bounds")))
+            shell("input", "tap", str(left + (right - left) // 7), str(top + (bottom - top) // 3))
+
     def locate(text=None, editable=None, seconds=60):
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
@@ -299,6 +305,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 for node in tree:
                     if node.get("class") != "android.widget.EditText" and (node.get("text") == text or node.get("content-desc") == text):
                         return node
+                if text in {"Back", "Audio", "Speed", "Sources", "Subtitles", "Playing download", "Pause", "Play"}:
+                    reveal_controls(tree)
             time.sleep(.25)
         raise AssertionError(f"Missing {text or 'text field'} on {serial}. Visible labels: " +
                              str([n.get("text") for n in tree if n.get("text")]))
@@ -308,6 +316,33 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
         shell("input", "tap", str((x1+x2)//2), str((y1+y2)//2))
 
     def choose(text): tap(locate(text))
+
+    def confirm_video_playback():
+        # The generated H.264 fixture is navy. Check Android's composed display as well as its playback clock.
+        deadline = time.monotonic() + 45
+        first = None
+        while time.monotonic() < deadline:
+            tree = nodes()
+            position = next((n.get("text") for n in tree if re.fullmatch(r"\d+:\d\d", n.get("text", ""))
+                             and n.get("text") != "2:10"), None)
+            if position is None:
+                reveal_controls(tree)
+                continue
+            if first is None:
+                first = position
+            if position == first:
+                continue
+            frame = command("exec-out", "screencap")
+            width, height, fmt = struct.unpack_from("<III", frame)
+            assert fmt in (1, 2), f"Unexpected emulator screenshot format {fmt}"
+            header = len(frame) - 4 * width * height
+            assert header in (12, 16), f"Unexpected screenshot header {header}"
+            pixel = header + 4 * ((height // 2) * width + width // 8)
+            red, green, blue = frame[pixel:pixel+3]
+            if blue > 80 and red < 40 and green < 40:
+                return
+        raise AssertionError("The VOD player did not present decoded fixture frames with an advancing clock")
+
 
     def choose_after_sheet_opens(text):
         # Nodes become visible while the bottom sheet is still moving; wait for their tap coordinates.
@@ -641,6 +676,10 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 while not any("qaseries:1:2/Alternate" in path for path in files) and time.monotonic() < deadline:
                     time.sleep(.25)
             assert any("qaseries:1:2/Alternate" in path for path in files), "Selected series episode did not play"
+            confirm_video_playback()
+            choose("Pause")
+            choose("Play")
+            confirm_video_playback()
             if extended:
                 choose("Speed")
                 choose("1.25×")
@@ -717,6 +756,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             locate("Playing download")
             rotate(0)
             locate("Playing download")
+            confirm_video_playback()
             screenshot("phone-offline-playback", landscape=False)
             assert counts == (len(sources), len(files)), "Playback contacted a remote source despite the local download"
             shell("input", "keyevent", "KEYCODE_BACK")

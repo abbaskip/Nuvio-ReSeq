@@ -55,7 +55,7 @@ private fun fixtureScore(value: String, cricket: Boolean): FixtureScore {
 
 @Composable
 internal fun FixtureTile(event: SportsEvent, hideScores: Boolean, use24h: Boolean, modifier: Modifier = Modifier,
-    open: ((SportsEvent) -> Unit)? = null) {
+    channel: com.nuvio.tv.livetv.model.LiveChannel? = null, open: ((SportsEvent) -> Unit)? = null) {
     val c = MaterialTheme.colorScheme
     val fill = lerp(c.surface, c.onSurface, .065f)
     val edge = sportBorderColor()
@@ -92,6 +92,12 @@ internal fun FixtureTile(event: SportsEvent, hideScores: Boolean, use24h: Boolea
             Text(event.title, Modifier.fillMaxWidth().padding(12.dp), color = c.onSurface, fontFamily = condensed,
                 fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold,
                 maxLines = if (open == null) Int.MAX_VALUE else 3, overflow = TextOverflow.Ellipsis)
+        }
+        channel?.let {
+            HorizontalDivider(color = edge.copy(alpha = .65f))
+            Text(it.sportsChannelLabel, Modifier.fillMaxWidth().padding(horizontal = 11.dp, vertical = 6.dp),
+                fontFamily = condensed, fontSize = 13.sp, lineHeight = 16.sp, color = c.onSurface, maxLines = 2,
+                overflow = TextOverflow.Ellipsis)
         }
     }
 }

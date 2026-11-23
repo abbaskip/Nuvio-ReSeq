@@ -2223,7 +2223,7 @@ fun PlayerScreen(
 }
 
 @Composable
-private fun MpvPlayerSurface(
+internal fun MpvPlayerSurface(
     viewModel: PlayerViewModel,
     isPlaying: Boolean,
     isBuffering: Boolean,
@@ -2295,7 +2295,7 @@ private fun MpvPlayerSurface(
 }
 
 @Composable
-private fun ExoPlayerSurface(
+internal fun ExoPlayerSurface(
     player: ExoPlayer,
     controller: PlayerRuntimeController,
     isPlaying: Boolean,

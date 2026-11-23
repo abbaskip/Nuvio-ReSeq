@@ -61,7 +61,7 @@ private fun LanguagePreference(label: String, current: String?, audio: Boolean =
 internal fun MobilePlaybackPreferences(state: PlayerSettings, vm: PlaybackSettingsViewModel) {
     val scope = rememberCoroutineScope()
     var page by rememberSaveable { mutableStateOf<String?>(null) }
-    listOf("Sources and fallback", "Next episode and recommendations", "Audio and decoder", "Subtitles", "Network and cache").forEach { title ->
+    listOf("Playback failure and recovery", "Next episode and recommendations", "Audio and decoder", "Subtitles", "Network and cache").forEach { title ->
         Action(title, Modifier.fillMaxWidth()) { page = title }
     }
     page?.let { group ->
@@ -69,14 +69,14 @@ internal fun MobilePlaybackPreferences(state: PlayerSettings, vm: PlaybackSettin
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 BrowseHeading(group) { page = null }
                 when (group) {
-                    "Sources and fallback" -> {
+                    "Playback failure and recovery" -> {
                         TogglePreference("Reuse last working link", state.streamReuseLastLinkEnabled) { scope.launch { vm.setStreamReuseLastLinkEnabled(it) } }
                         ChoiceRow("Remember link (hours)", state.streamReuseLastLinkCacheHours, listOf(1, 3, 6, 12, 24)) { scope.launch { vm.setStreamReuseLastLinkCacheHours(it) } }
                         TogglePreference("Try another source on failure", state.streamAutoPlayFallbackOnFailure) { scope.launch { vm.setStreamAutoPlayFallbackOnFailure(it) } }
                         ChoiceRow("Maximum fallback attempts", state.streamAutoPlayFallbackMaxSources, (1..10).toList()) { scope.launch { vm.setStreamAutoPlayFallbackMaxSources(it) } }
                         ChoiceRow("Startup timeout (seconds)", state.streamAutoPlayFallbackStartupTimeoutSeconds, (5..45 step 5).toList()) { scope.launch { vm.setStreamAutoPlayFallbackStartupTimeoutSeconds(it) } }
-                        TogglePreference("Include playlist sources", state.streamAutoPlayPlaylistsEnabled) { scope.launch { vm.setStreamAutoPlayPlaylistsEnabled(it) } }
-                        TogglePreference("Allow any source after timeout", state.streamAutoPlayAnySourceFallbackEnabled) { scope.launch { vm.setStreamAutoPlayAnySourceFallbackEnabled(it) } }
+
+
                         TogglePreference("Prefer the same release group for the next episode", state.streamAutoPlayPreferBingeGroupForNextEpisode) { scope.launch { vm.setStreamAutoPlayPreferBingeGroupForNextEpisode(it) } }
                         TogglePreference("Remember the release group", state.streamAutoPlayReuseBingeGroup) { scope.launch { vm.setStreamAutoPlayReuseBingeGroup(it) } }
                         TogglePreference("Preload next episode sources", state.preloadNextEpisodeSources) { scope.launch { vm.setPreloadNextEpisodeSources(it) } }

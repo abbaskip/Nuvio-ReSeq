@@ -39,6 +39,19 @@ class TieredStreamAutoPlayTest {
         behaviorHints = null, addonName = addon, addonLogo = null,
     )
 
+    @Test fun `IPTV VOD can join either timed tier independently`() {
+        val vod = stream("Playlist", "2160p").copy(iptvPlaylistId = "fixture")
+        val alternate = stream("Backup")
+        val snapshot = StreamAutoPlaySnapshot(listOf(vod, alternate))
+        for (approved in listOf(false, true)) for (fallback in listOf(false, true)) {
+            val session = TieredStreamAutoPlay(settings.copy(streamAutoPlayPlaylistsEnabled = approved,
+                streamAutoPlayFallbackPlaylistsEnabled = fallback), addons)
+            assertNull(session.evaluate(snapshot, 500).stream)
+            assertEquals(if (approved) vod else null, session.evaluate(snapshot, 10_000).stream)
+            if (!approved) assertEquals(if (fallback) vod else alternate, session.evaluate(snapshot, 30_000).stream)
+        }
+    }
+
     @Test fun `immediate addons bypass normal source and regex filters after the full settling window`() {
         val session = TieredStreamAutoPlay(settings.copy(streamAutoPlayAddonsEnabled = false), addons)
         val chosen = stream("AIOLists")

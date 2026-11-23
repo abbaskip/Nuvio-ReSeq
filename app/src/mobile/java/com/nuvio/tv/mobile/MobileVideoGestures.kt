@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -37,7 +38,7 @@ internal fun MobileVideoGestures(position: Long, duration: Long, speed: Float, o
         val initial = window?.attributes?.screenBrightness
         onDispose { if (initial != null) window.attributes = window.attributes.apply { screenBrightness = initial } }
     }
-    Box(Modifier.fillMaxSize().semantics { onClick(label = "Show or hide controls") { tap(); true } }
+    Box(Modifier.fillMaxSize().semantics { contentDescription = "Video player"; onClick(label = "Show or hide controls") { tap(); true } }
         .pointerInput(Unit) {
             var restoreSpeed: Float? = null
             detectTapGestures(onTap = { tap() }, onDoubleTap = { point ->

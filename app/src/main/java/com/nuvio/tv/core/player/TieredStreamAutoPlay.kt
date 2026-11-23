@@ -56,7 +56,9 @@ class TieredStreamAutoPlay(
         val elapsed = elapsedMs.coerceAtLeast(0L)
         if (snapshot.streams !== previousStreams) {
             previousStreams = snapshot.streams
-            anySource = snapshot.streams.firstOrNull(StreamAutoPlaySelector::isPlayable)
+            anySource = snapshot.streams.firstOrNull { stream ->
+                (stream.iptvPlaylistId == null || settings.streamAutoPlayFallbackPlaylistsEnabled) && StreamAutoPlaySelector.isPlayable(stream)
+            }
             val immediateStreams = if (settings.streamAutoPlayImmediateEnabled) snapshot.streams.filter {
                 it.addonName in installedAddonNames && it.addonName in settings.streamAutoPlayImmediateAddons &&
                     it.iptvPlaylistId == null && it.serverTarget == null && StreamAutoPlaySelector.isPlayable(it)

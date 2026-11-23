@@ -53,7 +53,7 @@ import javax.inject.Inject
 internal class MobileCatalogViewModel @Inject constructor(
     val downloads: MobileOfflineMedia, val profiles: ProfileManager, val external: com.nuvio.tv.core.player.ExternalPlaybackTracker,
     val themes: com.nuvio.tv.data.local.ThemeDataStore, val debrid: com.nuvio.tv.data.local.DebridSettingsDataStore,
-    val layout: LayoutPreferenceDataStore,
+    val layout: LayoutPreferenceDataStore, val playback: com.nuvio.tv.data.local.PlayerSettingsDataStore,
     val progress: com.nuvio.tv.data.cw.ContinueWatchingRepository, val sync: com.nuvio.tv.core.sync.StartupSyncService,
     val watchProgress: com.nuvio.tv.domain.repository.WatchProgressRepository,
     val refresh: com.nuvio.tv.core.tracking.TrackingProgressRefreshCoordinator
@@ -208,6 +208,14 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             val args = entry.arguments
             val leave = { mix.session.end(); nav.popBackStack(); Unit }
             androidx.activity.compose.BackHandler(onBack = leave)
+            if (args?.getString("streamName") == "Downloaded" && args.getString("streamUrl")?.startsWith("file:") == true) {
+                val video = remember(entry) { MobileVideo(profile, args.getString("contentType").orEmpty(),
+                    args.getString("contentId").orEmpty(), args.getString("videoId").orEmpty(), args.getString("contentName").orEmpty(),
+                    args.getString("season")?.toIntOrNull(), args.getString("episode")?.toIntOrNull(), args.getString("episodeTitle"),
+                    args.getString("tvdbContext"), args.getString("poster")) }
+                if (!downloadUsesInternalPlayer(video, args.getString("startFromBeginning").toBoolean(), catalog,
+                        cancel = leave, externalOpened = { if (nav.currentBackStackEntry == entry) nav.popBackStack() })) return@composable
+            }
             MobileVodPlayer(media = catalog.downloads, back = leave, openParty = openPartyTitle, onMovieCompleted = { pendingRating = it },
                 recommendation = { rec, action ->
                     nav.navigate(Screen.Detail.createRoute(rec.id, rec.contentType, rec.sourceAddonBaseUrl) +

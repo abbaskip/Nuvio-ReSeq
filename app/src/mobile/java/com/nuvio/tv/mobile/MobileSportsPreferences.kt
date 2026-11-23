@@ -66,6 +66,9 @@ internal fun MobileSportsPreferences(vm: SportsViewModel, close: () -> Unit) {
     }
 }
 
+internal val LiveChannel.sportsChannelLabel: String
+    get() = listOf(name, sourceName).filter(String::isNotBlank).distinct().joinToString(" · ")
+
 @Composable
 internal fun MobileFixtureChannels(event: SportsEvent, matches: List<ChannelMatch>, vm: SportsViewModel, close: () -> Unit) {
     val all by vm.repo.channelsForPicker.collectAsStateWithLifecycle()
@@ -73,19 +76,19 @@ internal fun MobileFixtureChannels(event: SportsEvent, matches: List<ChannelMatc
     var picked by remember { mutableStateOf<LiveChannel?>(null) }
     val found = remember(query, all) {
         val word = SportsCatalog.norm(query).trim()
-        if (word.length < 2) emptyList() else all.asSequence().filter { SportsCatalog.norm(it.name).contains(word) }.take(80).toList()
+        if (word.length < 2) emptyList() else all.asSequence().filter { SportsCatalog.norm(it.sportsChannelLabel).contains(word) }.take(80).toList()
     }
     TouchSheet(close) {
         LazyColumn(contentPadding = PaddingValues(12.dp)) {
             item { BrowseHeading("Match channels", close); Label(event.title) }
             val channel = picked
             if (channel == null) {
-                items(matches, key = { it.channel.key }) { m -> Action("Exclude " + m.channel.name) { vm.repo.blockChannel(event, m.channel.key) } }
+                items(matches, key = { it.channel.key }) { m -> Action("Exclude " + m.channel.sportsChannelLabel) { vm.repo.blockChannel(event, m.channel.key) } }
                 item { MobileTextInput("Find channel", query) { query = it } }
-                items(found, key = { it.key }) { ch -> Action(ch.name + " · " + ch.sourceName) { picked = ch } }
+                items(found, key = { it.key }) { ch -> Action(ch.sportsChannelLabel) { picked = ch } }
                 if (query.length >= 2 && found.isEmpty()) item { Label("No matching channels.") }
             } else item {
-                SectionTitle(channel.name)
+                SectionTitle(channel.sportsChannelLabel)
                 Action("Use for this game") { vm.repo.pickChannel(event, channel.key, false); close() }
                 if (event.broadcasts.isNotEmpty()) Action("Use for " + event.broadcasts.joinToString()) { vm.repo.pickChannel(event, channel.key, true); close() }
                 if (SportsCatalog.league(event.leagueId)?.kind == LeagueKind.EVENT) Action("Use for this competition") { vm.repo.pickChannel(event, channel.key, false, forLeague = true); close() }

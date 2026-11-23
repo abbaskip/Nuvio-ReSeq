@@ -58,6 +58,7 @@ class ExternalPlayerResultContract : ActivityResultContract<ExternalPlayerInput,
     override fun createIntent(context: Context, input: ExternalPlayerInput): Intent {
         return Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(Uri.parse(input.url), "video/*")
+            if (data?.scheme == "content") addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
             input.title?.let {
                 putExtra("title", it)

@@ -7,18 +7,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
+
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.ui.PlayerView
+
 import com.nuvio.tv.data.local.InternalPlayerEngine
 import com.nuvio.tv.data.local.PlayerPreference
 import com.nuvio.tv.domain.model.Stream
@@ -177,8 +177,16 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
     val rateMovies by vm.promptToRateAfterWatching.collectAsStateWithLifecycle(false)
     val context = LocalContext.current
     var controls by remember { mutableStateOf(true) }
+    var lastInteraction by remember { mutableLongStateOf(0L) }
     var tracks by remember { mutableStateOf<String?>(null) }
     var scrub by remember { mutableStateOf<Float?>(null) }
+    val accessibility = androidx.compose.ui.platform.LocalAccessibilityManager.current
+    LaunchedEffect(controls, lastInteraction, state.isPlaying, tracks, scrub != null, state.showSourcesPanel, state.showEpisodesPanel) {
+        if (controls && state.isPlaying && tracks == null && scrub == null && !state.showSourcesPanel && !state.showEpisodesPanel) {
+            kotlinx.coroutines.delay(accessibility?.calculateRecommendedTimeoutMillis(8000L, containsIcons = true, containsControls = true) ?: 8000L)
+            controls = false
+        }
+    }
     val engine = vm.exoPlayer
     val complete by rememberUpdatedState(mixCompleted)
     var handledEnd by remember(vm, state.currentVideoId) { mutableStateOf(false) }
@@ -237,48 +245,21 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
     }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (state.internalPlayerEngine == InternalPlayerEngine.MVP_PLAYER) {
-            val view = remember { NuvioMpvSurfaceView(context) }
-            AndroidView({ view }, Modifier.fillMaxSize())
-            LaunchedEffect(view, state.aspectMode) { view.applyAspectMode(state.aspectMode) }
-            LaunchedEffect(view, state.effectiveSubtitleStyle) { view.applySubtitleStyle(state.effectiveSubtitleStyle) }
-            DisposableEffect(view) { vm.attachMpvView(view); onDispose { vm.attachMpvView(null) } }
-        } else AndroidView(factory = { PlayerView(it).apply { useController = false; keepScreenOn = true } },
-            modifier = Modifier.fillMaxSize(), update = { view ->
-                view.player = engine
-                view.resizeMode = state.resizeMode
-                view.applySubtitleStyleIfNeeded(state.effectiveSubtitleStyle, 0f)
-            }, onRelease = { it.player = null })
+            MpvPlayerSurface(vm, state.isPlaying, state.isBuffering, state.aspectMode, state.effectiveSubtitleStyle,
+                subtitleLiftPx = 0f, subtitleTrackKey = state.currentVideoId, onSubtitleTextMetricsChanged = {}, modifier = Modifier.fillMaxSize())
+        } else if (engine != null) {
+            ExoPlayerSurface(engine, vm.controller, state.isPlaying, state.isBuffering, state.aspectMode, state.tunnelingEnabled,
+                state.tunneledSurfaceFill, state.useLibass, state.libassRenderMode, letterboxMaskEnabled = true,
+                subtitleStyle = state.effectiveSubtitleStyle, subtitleLiftPx = 0f, onBindSubtitleView = vm::bindExoSubtitleView,
+                modifier = Modifier.fillMaxSize())
+        }
         MobileVideoGestures(timeline.currentPosition, timeline.duration, state.playbackSpeed, vm::onEvent) { controls = !controls }
+        if (state.isBuffering && state.error == null) androidx.compose.material3.CircularProgressIndicator(Modifier.align(Alignment.Center))
         if (controls) {
-            Row(Modifier.align(Alignment.TopStart)) {
-                Action("Back", onClick = back)
-                if (vm.getCurrentStreamUrl().startsWith("file:") && (state.isPlaying || timeline.duration > 0))
-                    Label("Playing download", Modifier.background(Color.Black).padding(8.dp))
-            }
-            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.Black.copy(alpha = .8f)).padding(horizontal = 8.dp)) {
-            if (timeline.duration > 0) Slider(scrub ?: (timeline.currentPosition.toFloat() / timeline.duration).coerceIn(0f, 1f),
-                { scrub = it }, onValueChangeFinished = {
-                    scrub?.let { vm.onEvent(PlayerEvent.OnSeekTo((it * timeline.duration).toLong())) }; scrub = null
-                })
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Action("−10 s") { vm.onEvent(PlayerEvent.OnSeekBy(-10_000)) }
-                Action(if (state.isPlaying) "Pause" else "Play") { vm.onEvent(PlayerEvent.OnPlayPause) }
-                Action("+10 s") { vm.onEvent(PlayerEvent.OnSeekBy(10_000)) }
-                Label("${timeline.currentPosition / 60000}:${(timeline.currentPosition / 1000 % 60).toString().padStart(2, '0')}")
-            }
-            LazyRow {
-                items(listOf("Audio", "Subtitles", "Speed", "Sources", "Chapters", "Episodes", "Aspect", "Watch Party")) { tool ->
-                    Action(tool) {
-                        when (tool) {
-                            "Aspect" -> vm.onEvent(PlayerEvent.OnToggleAspectRatio)
-                            "Episodes" -> vm.onEvent(PlayerEvent.OnShowEpisodesPanel)
-                            "Sources" -> vm.onEvent(PlayerEvent.OnShowSourcesPanel)
-                            else -> tracks = tool
-                        }
-                    }
-                }
-            }
-            }
+            MobileTransport(state, timeline, scrub, { scrub = it }, {
+                scrub?.let { vm.onEvent(PlayerEvent.OnSeekTo((it * timeline.duration).toLong())) }; scrub = null
+            }, downloaded = vm.getCurrentStreamUrl().startsWith("file:") && (state.isPlaying || timeline.duration > 0),
+                back = back, event = { lastInteraction++; vm.onEvent(it) }, tool = { tracks = it })
         }
         state.activeSkipInterval?.takeUnless { state.skipIntervalDismissed }?.let { skip ->
             Box(Modifier.align(Alignment.CenterEnd)) { Action("Skip " + skip.type) { vm.onEvent(PlayerEvent.OnSkipIntro) } }

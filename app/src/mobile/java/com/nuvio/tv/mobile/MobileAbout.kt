@@ -30,6 +30,7 @@ internal fun MobileAbout(vm: SupportersContributorsViewModel = hiltViewModel()) 
             "About" -> item {
                 SectionTitle("Nuvio ReSeq Mobile")
                 Label("Version " + BuildConfig.VERSION_NAME)
+                MobileCrashReport()
                 Action("Source code and releases") { uri.openUri("https://github.com/abbaskip/Nuvio-ReSeq") }
                 Action("Report an issue") { uri.openUri("https://github.com/abbaskip/Nuvio-ReSeq/issues") }
             }

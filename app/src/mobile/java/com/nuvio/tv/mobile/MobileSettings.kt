@@ -327,6 +327,8 @@ private fun PlaybackSettings(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val torrent by vm.torrentSettingsFlow.collectAsStateWithLifecycle(null)
     torrent?.let { config -> Row { Label("Peer-to-peer playback", Modifier.weight(1f)); Switch(config.p2pEnabled, vm::setP2pEnabled) } }
     MobilePlaybackPreferences(state, vm)
+    SectionTitle("Diagnostics")
+    MobileCrashReport()
 }
 
 @Composable

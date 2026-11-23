@@ -54,7 +54,7 @@ class MobileActivity : ComponentActivity() {
     @Inject lateinit var sync: StartupSyncService
     @Inject lateinit var externalPlayer: com.nuvio.tv.core.player.ExternalPlaybackTracker
     @Inject lateinit var projection: com.nuvio.tv.core.tracking.TrackingProgressRefreshCoordinator
-    private val externalLauncher = registerForActivityResult(com.nuvio.tv.core.player.ExternalPlayerResultContract()) { result ->
+    private val externalLauncher = registerForActivityResult(MobileExternalPlayerContract()) { result ->
         if (ready) {
             externalPlayer.onActivityResult(result)
             lifecycleScope.launch { projection.refreshProjection() }

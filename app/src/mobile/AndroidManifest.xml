@@ -3,7 +3,7 @@
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="content" android:mimeType="video/*" />
+            <data android:mimeType="video/*" />
         </intent>
     </queries>
     <uses-feature android:name="android.software.leanback" tools:node="remove" />

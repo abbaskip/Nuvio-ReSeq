@@ -5,6 +5,8 @@
 - **Autoplay source priorities** includes immediate add-ons, approved add-ons and extensions, their wait time, and the later any-source fallback. IPTV VOD can be included independently at each timed level. Saved downloads still take priority.
 - Sports Hub shows the playlist alongside the channel for matched broadcasts, including watch, replay and recording choices. The interface uses the active ReSeq theme for controls and panels.
 
+If playback closes the app, open **Settings → About and credits → Last crash report** to view and copy the available Android exit reason or exception stack.
+
 Install the universal APK over your current mobile alpha. ARM64 is a smaller download for compatible devices.
 
 [Mobile GPL attribution](https://github.com/abbaskip/Nuvio-ReSeq/blob/mobile-v0.1.0-alpha.8/NOTICE-MOBILE.md) · [Mobile features and coverage](https://github.com/abbaskip/Nuvio-ReSeq/blob/mobile-v0.1.0-alpha.8/docs/reseq-mobile.md)

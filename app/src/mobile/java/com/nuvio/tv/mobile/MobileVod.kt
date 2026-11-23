@@ -248,10 +248,12 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
             MpvPlayerSurface(vm, state.isPlaying, state.isBuffering, state.aspectMode, state.effectiveSubtitleStyle,
                 subtitleLiftPx = 0f, subtitleTrackKey = state.currentVideoId, onSubtitleTextMetricsChanged = {}, modifier = Modifier.fillMaxSize())
         } else if (engine != null) {
-            ExoPlayerSurface(engine, vm.controller, state.isPlaying, state.isBuffering, state.aspectMode, state.tunnelingEnabled,
-                state.tunneledSurfaceFill, state.useLibass, state.libassRenderMode, letterboxMaskEnabled = true,
-                subtitleStyle = state.effectiveSubtitleStyle, subtitleLiftPx = 0f, onBindSubtitleView = vm::bindExoSubtitleView,
-                modifier = Modifier.fillMaxSize())
+            key(engine) {
+                ExoPlayerSurface(engine, vm.controller, state.isPlaying, state.isBuffering, state.aspectMode, state.tunnelingEnabled,
+                    state.tunneledSurfaceFill, state.useLibass, state.libassRenderMode, letterboxMaskEnabled = true,
+                    subtitleStyle = state.effectiveSubtitleStyle, subtitleLiftPx = 0f, onBindSubtitleView = vm::bindExoSubtitleView,
+                    modifier = Modifier.fillMaxSize())
+            }
         }
         MobileVideoGestures(timeline.currentPosition, timeline.duration, state.playbackSpeed, vm::onEvent) { controls = !controls }
         if (state.isBuffering && state.error == null) androidx.compose.material3.CircularProgressIndicator(Modifier.align(Alignment.Center))

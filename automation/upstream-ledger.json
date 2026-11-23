@@ -5761,10 +5761,19 @@
       "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
     },
     "44549e9a0dbe2cf872c4eda3df942e2edda1b8f0": {
-      "outcome": "held",
-      "reason": "VC-1/tunneled decoder source fallback needs ReSeq engine-switch precedence, current-tier ordering, retries and cancellation coverage. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
-      "run": "20261122T150304Z-295620",
-      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+      "outcome": "integrated",
+      "reason": "Adapted VC-1 startup recovery for auto-selected sources using ReSeq tier and ownership checks. Confirmed playback and the configured engine-switch path retain existing behaviour.",
+      "run": "20261123T042809Z-0acd0b",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "VC-1/tunneled decoder source fallback needs ReSeq engine-switch precedence, current-tier ordering, retries and cancellation coverage. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
+          "run": "20261122T150304Z-295620",
+          "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+        }
+      ],
+      "integration_status": "unpublished review branch; full validation pending"
     },
     "43254003532e6d44a25f338374281f5dd73b228d": {
       "outcome": "equivalent",

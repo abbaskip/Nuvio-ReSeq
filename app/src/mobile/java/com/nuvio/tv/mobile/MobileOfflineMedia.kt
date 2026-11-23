@@ -38,14 +38,16 @@ internal data class MobileVideo(
         contentId = contentId, contentName = title, season = season, episode = episode, episodeName = episodeName,
         profileId = profile, manualSelection = manual, autoSelectStream = explicitAuto, tvdbContext = tvdb ?: "provider")
 
-    fun player(url: String, info: StreamPlaybackInfo? = null, localName: String? = null) =
+    fun player(url: String, info: StreamPlaybackInfo? = null, localName: String? = null, fromBeginning: Boolean = false) =
         Screen.Player.createRoute(streamUrl = url, title = label, contentId = contentId, contentType = type,
             contentName = title, videoId = videoId, season = season, episode = episode, episodeTitle = episodeName,
             profileId = profile, tvdbContext = tvdb ?: "provider", poster = poster, headers = info?.headers,
             streamName = if (localName != null) "Downloaded" else info?.streamName, filename = localName ?: info?.filename,
             bingeGroup = info?.bingeGroup, infoHash = info?.infoHash, fileIdx = info?.fileIdx,
             sources = info?.sources, videoHash = info?.videoHash, videoSize = info?.videoSize,
-            contentLanguage = info?.contentLanguage, addonName = info?.addonName)
+            contentLanguage = info?.contentLanguage, addonName = info?.addonName, addonLogo = info?.addonLogo,
+            streamDescription = info?.streamDescription, startFromBeginning = fromBeginning,
+            year = info?.year, logo = info?.logo, backdrop = info?.backdrop, audioDelayMs = info?.audioDelayMs, audioDelayLanguage = info?.audioDelayLanguage)
 }
 
 @Keep
@@ -100,7 +102,9 @@ internal class MobileOfflineMedia @Inject constructor(@ApplicationContext privat
         changes.update { it + 1 }
     }
 
-    fun localRoute(video: MobileVideo): String? = find(video)?.let { video.player(Uri.fromFile(it).toString(), localName = it.name) }
+    fun localRoute(video: MobileVideo, fromBeginning: Boolean = false): String? = find(video)?.let {
+        video.player(Uri.fromFile(it).toString(), localName = it.name, fromBeginning = fromBeginning)
+    }
 
     fun remove(entry: OfflineFile) {
         val dir = folder(entry.video)

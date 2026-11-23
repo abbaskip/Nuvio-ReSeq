@@ -25,7 +25,7 @@ private const val HALF_HOUR = 1_800_000L
 private val slotWidth = 112.dp
 
 @Composable
-internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onSetup: () -> Unit) {
+internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onReplay: () -> Unit, onSetup: () -> Unit) {
     val ui by vm.uiState.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
@@ -38,6 +38,9 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onS
     val start = (now / HALF_HOUR + page * 12L) * HALF_HOUR
     val end = start + 12 * HALF_HOUR
     var selected by remember { mutableStateOf<Pair<LiveChannel, EpgProgram>?>(null) }
+    var locked by remember { mutableStateOf<ChannelGroup?>(null) }
+    var searching by rememberSaveable { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<LiveChannel?>(null) }
     LaunchedEffect(vm, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.maintainVisibleGuide() }
     }
@@ -56,6 +59,10 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onS
     Column(Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { SectionTitle("Live guide") }
+            Action("Search channels") {
+                searching = !searching
+                if (searching) vm.setSearchQuery("") else vm.selectGroup(ChannelGroup.ALL)
+            }
             Action("Sources", onClick = onSetup)
         }
         if (!ui.hasSources || ui.channels.isEmpty() && ui.groups.isEmpty()) {
@@ -63,9 +70,12 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onS
                 Modifier.padding(12.dp))
             return@Column
         }
+        if (searching) MobileTextInput("Channel or programme", ui.searchQuery, vm::setSearchQuery)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            items(ui.groups.filterNot { it.locked || it.id == ChannelGroup.SEARCH }, key = { it.id }) { group ->
-                Action(group.title, selected = ui.selectedGroupId == group.id) { vm.selectGroup(group.id) }
+            items(ui.groups.filterNot { it.id == ChannelGroup.SEARCH }, key = { it.id }) { group ->
+                Action(group.title, selected = ui.selectedGroupId == group.id) {
+                    if (group.locked) locked = group else { searching = false; vm.selectGroup(group.id) }
+                }
             }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -76,8 +86,12 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onS
         }
         if (ui.channels.isEmpty()) Label("No channels in this group.", Modifier.padding(8.dp))
         else ChannelTimeline(ui.channels, programs, now, start, 12, settings.use24HourClock, list, scroll,
-            onTune = onTune, onProgram = { channel, program -> selected = channel to program })
+            onTune = onTune, onProgram = { channel, program -> selected = channel to program }, onChannelHold = { editing = it })
     }
+    locked?.let { group -> MobilePinPrompt(group.title, { locked = null }) { pin ->
+        vm.unlockGroup(group, pin).also { if (it) { locked = null; searching = false; vm.selectGroup(group.id) } }
+    } }
+    editing?.let { channel -> MobileChannelEditor(channel, vm, { editing = null }) }
     selected?.let { (channel, program) ->
         val full by produceState(program, channel.key, program) { value = vm.details(channel.key, program) }
         TouchSheet({ selected = null }) {
@@ -88,6 +102,16 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onS
                 full.description?.let { Label(it, Modifier.padding(vertical = 8.dp)) }
                 Action("Watch channel") { selected = null; onTune(channel) }
                 val user by vm.userState.collectAsStateWithLifecycle()
+                var result by remember { mutableStateOf<String?>(null) }
+                if (channel.catchup != null && full.startMs <= now) Action("Watch from start") {
+                    if (vm.playCatchup(channel, full)) { selected = null; onReplay() } else result = "This programme is outside the catch-up window."
+                }
+                if (full.startMs > now) Action(if (user.reminders.any { it.channelKey == channel.key && it.startMs == full.startMs }) "Cancel reminder" else "Remind me") {
+                    vm.toggleReminder(channel, full)
+                }
+                Action(if (vm.scheduler.isScheduled(channel.key, full)) "Cancel recording" else "Record programme") { result = vm.toggleScheduled(channel, full) }
+                Action(if (vm.isSeries(channel, full)) "Cancel series recording" else "Record series") { result = vm.toggleSeries(channel, full) }
+                result?.let { Label(it) }
                 Action(if (channel.key in user.favorites) "Remove from favourites" else "Add to favourites") {
                     vm.toggleFavorite(channel)
                 }
@@ -99,7 +123,7 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onS
 @Composable
 internal fun ChannelTimeline(channels: List<LiveChannel>, programs: Map<String, List<EpgProgram>>,
     now: Long, start: Long, slots: Int, use24h: Boolean, list: LazyListState, scroll: ScrollState,
-    onTune: (LiveChannel) -> Unit, onProgram: (LiveChannel, EpgProgram) -> Unit) {
+    onTune: (LiveChannel) -> Unit, onProgram: (LiveChannel, EpgProgram) -> Unit, onChannelHold: ((LiveChannel) -> Unit)? = null) {
     val end = start + HALF_HOUR * slots
     Column {
         val channelWidth = 108.dp
@@ -114,7 +138,8 @@ internal fun ChannelTimeline(channels: List<LiveChannel>, programs: Map<String, 
             items(channels, key = { it.key }) { channel ->
                 Row(Modifier.fillMaxWidth().height(58.dp)) {
                     Box(Modifier.width(channelWidth).fillMaxHeight().background(MaterialTheme.colorScheme.surface)
-                        .clickable { onTune(channel) }.padding(6.dp), contentAlignment = Alignment.CenterStart) {
+                        .combinedClickable(onClick = { onTune(channel) }, onLongClick = onChannelHold?.let { hold -> { hold(channel) } })
+                        .padding(6.dp), contentAlignment = Alignment.CenterStart) {
                         Label(channel.name, small = true, strong = true, lines = 2)
                     }
                     val rows = programs[channel.key].orEmpty()

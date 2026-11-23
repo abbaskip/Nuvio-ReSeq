@@ -10,7 +10,7 @@ MOBILE_ID = "io.github.abbaskip.nuvioreseq.mobile"
 MOBILE_ACTIVITY = "com.nuvio.tv.mobile.MobileActivity"
 
 
-def check_inventory():
+def check_inventory(show_gaps=False):
     screen = ROOT / "app/src/main/java/com/nuvio/tv/ui/navigation/Screen.kt"
     routes = set(re.findall(r"\bobject\s+(\w+)\s*:\s*Screen\s*\(", screen.read_text(encoding="utf-8")))
     for source in (ROOT / "app/src/main/java/com/nuvio/tv/ui").rglob("*.kt"):
@@ -27,6 +27,8 @@ def check_inventory():
         if documented & ids or not note:
             raise ValueError(f"Duplicate or incomplete inventory row: {group}")
         documented.update(ids)
+        if show_gaps and status in {"Partial", "Pending"}:
+            print(f"{status} | {', '.join(sorted(ids))} | {note}")
     if not routes or routes != documented:
         raise ValueError(f"Update docs/reseq-mobile.md. Missing {sorted(routes - documented)}, stale {sorted(documented - routes)}")
 
@@ -78,8 +80,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--merged", action="store_true", help="also inspect the built mobile debug manifest")
     parser.add_argument("--tv", action="store_true", help="also inspect the built TV debug launcher")
+    parser.add_argument("--gaps", action="store_true", help="list outstanding touch features and verification by TV screen")
     args = parser.parse_args()
-    check_inventory()
+    check_inventory(show_gaps=args.gaps)
     for name in ("LICENSE", "NOTICE-MOBILE.md"):
         packaged = ROOT / "app/src/mobile/assets/notices" / name
         if packaged.read_text(encoding="utf-8") != (ROOT / name).read_text(encoding="utf-8"):

@@ -2600,7 +2600,7 @@ private fun PlayerView.isAssOrSsaSubtitleSelected(): Boolean =
         sidecarKey = subtitleView?.getTag(R.id.player_view_sidecar_generation_tag) as? String
     )
 
-private fun PlayerView.applySubtitleStyleIfNeeded(
+internal fun PlayerView.applySubtitleStyleIfNeeded(
     subtitleStyle: SubtitleStyleSettings,
     liftPx: Float,
     force: Boolean = false

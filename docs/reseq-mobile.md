@@ -17,27 +17,27 @@ The table tracks every named TV navigation destination. The rows following it co
 
 | TV destinations | Mobile status | Touch path or outstanding work |
 | --- | --- | --- |
-| `LiveTv` | Partial | Guide with group selection, synchronized time scrolling, visible-channel EPG loading and programme details. Search, locked-group PIN entry, catch-up and editing remain. |
-| `LiveTvPlayer` | Partial | Shared player surface, tap controls, swipe channel switching, channel list and in-player mini-guide. Tracks and advanced controls remain. |
-| `LiveTvSettings`, `Settings` | Partial | Settings opens account, profiles, sources, extensions, playback, tracking, Drive and IPTV. Stalker and recording setup remain. |
-| `Calendar`, `CalendarGame` | Partial | Day, week, month, profile filters, followed-sport shortcuts, fixture details, channel tuning and release sheets. Full title navigation and extended fixture statistics remain. |
-| `Sports` | Partial | My Sports, All Events and On TV Now, team follows and matched-channel tuning. Tables, extended game details and alerts remain. |
-| `AdvancedDiscover`, `TmdbSettings` | Partial | Discover filters, saved searches, results, TMDB key entry and TV Mix creation. Additional filters and full TMDB settings remain. |
-| `TV_MIX_ROUTE` | Partial | Add shows, create mixes, pick unwatched episodes and play a selection. Continuous remixing remains. |
-| `LicensesAttributions` | Partial | Mobile credits and upstream source in Setup. Full attribution browser remains. |
-| `Home`, `Detail`, `Stream`, `Player` | Partial | Featured titles, catalogue rows, Continue Watching, episode selection, TVDB order picker, ratings, long-press download, manual source selection, local playback, seek, audio and subtitles. Trailers, cast and extended player tools remain. |
-| `Library`, `Search`, `Discover`, `PlaybackSettings` | Partial | Search installed catalogues, browse Discover, save titles, filter and sort the library, choose an engine and configure automatic source selection. Cloud files and extended settings remain. |
-| `FlickPick` | Pending | Random title discovery. |
-| `CalendarTeams`, `Multiview` | Pending | Team management and multiple live streams. |
-| `OnDemand`, `OnDemandSearch` | Pending | Provider movie and series browsing. |
-| `AddonManager` | Partial | Home can install a catalogue or stream source by manifest URL. Full source management remains. |
+| `LiveTv` | Partial | Guide, channel search, profile PIN unlock, catch-up, reminders, recordings and long-press channel editing. Group management is in progress. |
+| `LiveTvPlayer` | Partial | Tap controls, swipe channels, browse the channel panel or mini-guide, change audio and captions, seek replays and reconnect. Device playback qualification continues. |
+| `LiveTvSettings`, `Settings` | Partial | M3U, Xtream, Stalker, XMLTV, Drive, guide retention, recording storage and timing. Per-provider VOD category selection and more playback settings remain. |
+| `Calendar`, `CalendarGame` | Partial | Day, week and month, filters, sport shortcuts, fixture channels, linked movie and series details and team management. Cross-screen verification is in progress. |
+| `Sports` | Partial | My Sports, All Events, On TV Now, teams, standings, alerts, fixture statistics, related channels and recording. Detailed channel matching overrides remain. |
+| `AdvancedDiscover`, `TmdbSettings` | Partial | Includes and excludes, text matching, language, certification, date, runtime, votes, sorting, saved-search updates, random matches and TMDB metadata preferences. Device verification is in progress. |
+| `TV_MIX_ROUTE` | Partial | Create and manage mixes, change unwatched-only selection, choose episodes, continue or automatically advance through the shared session. Multi-episode device verification is in progress. |
+| `LicensesAttributions` | Partial | A touch attribution browser displays source links, GPL attribution and the shared playback, data and UI notices. Device verification is in progress. |
+| `Home`, `Detail`, `Stream`, `Player` | Partial | Home highlights and rows, Continue Watching, folders, offline-first play, long-press downloads, manual sources, TVDB identity, ratings, cast, related titles and collections. Player gestures, chapters, episode switching, subtitle controls and external player support are in development. Trailer and post-play validation remain. |
+| `Library`, `Search`, `Discover`, `PlaybackSettings` | Partial | Library filters, catalog search, Discover and cloud files. Media server sign-in, library shelves and expanded player settings are in development. |
+| `FlickPick` | Partial | Search opens the mobile picker for library and discovery recommendations, filtering and playback. Device verification is in progress. |
+| `CalendarTeams`, `Multiview` | Partial | Teams are reachable from Calendar and Sports. Multiview has touch panes, focus, fullscreen and channel selection. Multi-decoder hardware qualification remains. |
+| `OnDemand`, `OnDemandSearch` | Partial | Library opens provider movies and series with categories, parental PINs, search, season and version selection, and recording playback. Provider device qualification remains. |
+| `AddonManager` | Partial | Install, sync, enable, disable, reorder and remove sources using the shared manager. Protected profile and device verification is in progress. |
 | `Plugins` | Partial | Install and refresh repositories and enable individual scrapers. |
-| `CatalogOrder`, `CatalogSeeAll` | Pending | Catalogue ordering and dedicated full-catalogue pages. |
-| `Collections`, `CollectionEditor`, `FolderDetail`, `CastDetail`, `TmdbEntityBrowse` | Pending | Collection, folder, cast and entity navigation. |
+| `CatalogOrder`, `CatalogSeeAll` | Partial | See all pages, source ordering and individual catalogue visibility. Device pagination and ordering verification are in progress. |
+| `Collections`, `CollectionEditor`, `FolderDetail`, `CastDetail`, `TmdbEntityBrowse` | Partial | Collection management, import and export, editing, folder browsing, cast filmographies and company or network catalogs. Collection builder and device verification are in progress. |
 | `Account`, `ManageProfiles`, `ProfileSelection`, `AuthSignIn`, `AuthQrSignIn`, `SyncCodeGenerate`, `SyncCodeClaim`, `Tracking` | Partial | Browser sign-in, custom-server email sign-in, link codes, profile creation and PIN-protected switching, Trakt and Simkl device sign-in. |
-| `WatchParty` | Pending | Shared viewing. |
-| `ThemeSettings` | Partial | Appearance selects the active profile’s ReSeq colour palette. Custom palette editing remains. |
-| `About`, `SupportersContributors` | Pending | Information and contributors. |
+| `WatchParty` | Partial | Join or host, manage members, open the shared title and play a shared source. Two-device playback and reconnection verification remain. |
+| `ThemeSettings` | Partial | Profile palettes, AMOLED and a touch solid or gradient editor. Device verification is in progress. |
+| `About`, `SupportersContributors` | Partial | Version, source and issues, supporters, sponsors, contributors and licenses. Device verification is in progress. |
 | `LayoutSettings`, `LayoutSelection`, `ExperienceModeSelection` | TV only | Existing TV shell and remote layout choices. |
 
 **Offline video.** Long-press a Home poster, the title on Details, or an episode and choose Download. Play manually lets you choose a particular source and select Download this file. Home lists completed videos under Downloads, including after an offline restart. The player looks up a completed file for the active profile and exact movie or episode before asking providers for sources. Android stores the original video container and a completion record in the app-specific Movies/ReSeq folder. Interrupted copies are excluded. Select Manage to remove a saved file. Downloads support progressive video files, including HTTP file links resolved by ReSeq. Adaptive playlists and raw torrent sources require a downloadable file alternative.
@@ -46,6 +46,6 @@ The table tracks every named TV navigation destination. The rows following it co
 
 **Provider keys.** Back up keys saves the active profile’s TMDB, Gemini, debrid, MDBList and AnimeSkip keys in a separate passphrase-encrypted Drive file. On another device choose Restore keys and enter the same passphrase. Automatic sync never transfers this file. Both builds need the provider-key controls. TV RC 3.1 can supply the standard backup, including IPTV and TVDB, and retains its previous sign-in behaviour.
 
-**Embedded features.** TV Mix supports adding Discover series to existing or new mixes, unwatched-only selection and episode previews. TV Mix continuous playback and extended player controls remain pending.
+**Build availability.** This ledger describes the mobile development branch. The signed Alpha 2 release predates the collections, expanded player, Sports tables, media server and Multiview work. Each GitHub release lists its included changes.
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

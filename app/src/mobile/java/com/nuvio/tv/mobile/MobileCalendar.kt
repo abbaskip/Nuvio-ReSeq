@@ -27,13 +27,13 @@ import java.time.format.FormatStyle
 import java.util.Date
 
 @Composable
-internal fun MobileCalendar(onWatch: (LiveChannel) -> Unit, vm: CalendarViewModel = hiltViewModel()) {
+internal fun MobileCalendar(onWatch: (LiveChannel) -> Unit, onTitle: (String, String, String) -> Unit, vm: CalendarViewModel = hiltViewModel()) {
     val profile = vm.profile.collectAsStateWithLifecycle(initialValue = null).value ?: return
-    key(profile) { CalendarAgenda(vm, profile, onWatch) }
+    key(profile) { CalendarAgenda(vm, profile, onWatch, onTitle) }
 }
 
 @Composable
-private fun CalendarAgenda(vm: CalendarViewModel, profile: Int, onWatch: (LiveChannel) -> Unit) {
+private fun CalendarAgenda(vm: CalendarViewModel, profile: Int, onWatch: (LiveChannel) -> Unit, onTitle: (String, String, String) -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     val region = locale.country.ifBlank { CalendarRepository.region() }
     val zone = ZoneId.systemDefault()
@@ -72,6 +72,7 @@ private fun CalendarAgenda(vm: CalendarViewModel, profile: Int, onWatch: (LiveCh
     val heading = remember(locale) { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale) }
     val time = android.text.format.DateFormat.getTimeFormat(LocalContext.current)
     var detail by remember { mutableStateOf<CalendarItem?>(null) }
+    var teams by rememberSaveable { mutableStateOf(false) }
     val status = listOf(releases.status, games.status)
     val move: (Long) -> Unit = { step ->
         chosen = when (pref.mode) {
@@ -83,6 +84,7 @@ private fun CalendarAgenda(vm: CalendarViewModel, profile: Int, onWatch: (LiveCh
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { SectionTitle(stringResource(R.string.nav_calendar)) }
+            Action("Teams") { teams = true }
             Action(stringResource(R.string.calendar_refresh)) { vm.refresh() }
         } }
         item { Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -146,10 +148,15 @@ private fun CalendarAgenda(vm: CalendarViewModel, profile: Int, onWatch: (LiveCh
         }
     }
     val fixture = detail?.fixture
+    if (teams) MobileSportsTools("Teams", { teams = false })
     if (fixture != null) CalendarFixtureSheet(fixture, onWatch, { detail = null })
     else detail?.let { entry -> TouchSheet({ detail = null }) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
             SectionTitle(entry.title)
+            entry.contentId?.let { id -> Action("Title details") {
+                detail = null
+                onTitle(id, if (entry.kind == CalendarKind.EPISODE) "series" else "movie", entry.title)
+            } }
             Label(heading.format(LocalDate.ofEpochDay(entry.day)))
             entry.time?.let { Label(time.format(Date(it))) }
             entry.leagueName?.let { Label(it) }

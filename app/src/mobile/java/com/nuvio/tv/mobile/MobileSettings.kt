@@ -2,6 +2,9 @@ package com.nuvio.tv.mobile
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -27,7 +30,7 @@ import kotlinx.coroutines.launch
 private enum class SettingsPage(val title: String) {
     ACCOUNT("Nuvio account"), PROFILES("Profiles"), ADDONS("Catalog sources"), PLUGINS("Extensions"),
     PLAYBACK("Playback and source selection"), TRACKING("Tracking and TVDB"), DRIVE("Google Drive backup and restore"),
-    DEBRID("Debrid providers"), THEME("Appearance"), IPTV("IPTV sources")
+    DEBRID("Debrid providers"), THEME("Appearance"), IPTV("IPTV sources"), TMDB("TMDB metadata"), SERVERS("Media servers"), ABOUT("About and credits")
 }
 
 internal val LocalSelectedProfile = staticCompositionLocalOf<(Int) -> Unit> { {} }
@@ -62,12 +65,13 @@ internal fun MobileSettings(openIptv: Boolean, consumed: () -> Unit, catalog: Mo
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 SettingsPage.entries.forEach { option -> Action(option.title, Modifier.fillMaxWidth()) { page = option } }
             }
-            if (page == SettingsPage.ADDONS) CatalogSources(catalog.addons) { page = null }
+            if (page == SettingsPage.ADDONS) CatalogSources { page = null }
         } else {
             Row { Action("Back") { page = null }; SectionTitle(page!!.title) }
             when (page) {
                 SettingsPage.IPTV -> MobileSetup()
                 SettingsPage.DRIVE -> MobileSetup(driveOnly = true)
+                SettingsPage.ABOUT -> MobileAbout()
                 else -> Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (page) {
@@ -78,6 +82,8 @@ internal fun MobileSettings(openIptv: Boolean, consumed: () -> Unit, catalog: Mo
                         SettingsPage.TRACKING -> TrackerSettings()
                         SettingsPage.DEBRID -> DebridSettings(catalog.debrid)
                         SettingsPage.THEME -> AppearanceSettings(catalog.themes)
+                        SettingsPage.TMDB -> MobileTmdbSettings()
+                        SettingsPage.SERVERS -> MobileMediaServers()
                         else -> Unit
                     }
                 }
@@ -180,6 +186,11 @@ private fun PlaybackSettings(vm: PlaybackSettingsViewModel = hiltViewModel()) {
     val state by vm.playerSettings.collectAsStateWithLifecycle(PlayerSettings())
     val scope = rememberCoroutineScope()
     SectionTitle("Player")
+    PlayerPreference.entries.forEach { option ->
+        Action(when (option) {
+            PlayerPreference.EXTERNAL -> "External player"; PlayerPreference.INTERNAL -> "ReSeq player"; PlayerPreference.ASK_EVERY_TIME -> "Ask each time"
+        }, selected = option == state.playerPreference) { scope.launch { vm.setPlayerPreference(option) } }
+    }
     InternalPlayerEngine.entries.forEach { engine ->
         Action(when (engine) { InternalPlayerEngine.MVP_PLAYER -> "MPV"; InternalPlayerEngine.EXOPLAYER -> "ExoPlayer"; else -> "Automatic" },
             selected = state.internalPlayerEngine == engine) { scope.launch { vm.setInternalPlayerEngine(engine) } }
@@ -240,6 +251,7 @@ private fun DebridSettings(store: DebridSettingsDataStore) {
     val state by store.settings.collectAsStateWithLifecycle(com.nuvio.tv.domain.model.DebridSettings())
     val scope = rememberCoroutineScope()
     Row { Label("Use debrid providers", Modifier.weight(1f)); Switch(state.enabled, { scope.launch { store.setEnabled(it) } }) }
+    Row { Label("Cloud library", Modifier.weight(1f)); Switch(state.cloudLibraryEnabled, { scope.launch { store.setCloudLibraryEnabled(it) } }) }
     com.nuvio.tv.core.debrid.DebridProviders.all().filter { it.visibleInUi }.forEach { provider ->
         var value by remember { mutableStateOf("") }
         SectionTitle(provider.displayName)
@@ -258,5 +270,14 @@ private fun AppearanceSettings(store: ThemeDataStore) {
     val scope = rememberCoroutineScope()
     com.nuvio.tv.domain.model.AppTheme.entries.filter { it != com.nuvio.tv.domain.model.AppTheme.CUSTOM }.forEach { theme ->
         Action(theme.displayName, selected = selected.theme == theme) { scope.launch { store.setTheme(theme) } }
+    }
+    val amoled by store.amoledMode.collectAsStateWithLifecycle(false)
+    val darkSurfaces by store.amoledSurfacesMode.collectAsStateWithLifecycle(false)
+    Action("AMOLED background", selected = amoled) { scope.launch { store.setAmoledMode(!amoled) } }
+    Action("AMOLED panels", selected = darkSurfaces) { scope.launch { store.setAmoledSurfacesMode(!darkSurfaces) } }
+    var edit by rememberSaveable { mutableStateOf(false) }
+    Action("Custom theme", selected = selected.theme == com.nuvio.tv.domain.model.AppTheme.CUSTOM) { edit = true }
+    if (edit) MobileThemeEditor(selected.customColors, { edit = false }) { colors ->
+        scope.launch { store.setCustomTheme(colors); edit = false }
     }
 }

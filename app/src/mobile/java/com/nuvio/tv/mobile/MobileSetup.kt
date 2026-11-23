@@ -32,24 +32,36 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
     val keyVm: com.nuvio.tv.livetv.sync.ProviderKeyTransferViewModel = hiltViewModel()
     val keyState by keyVm.state.collectAsStateWithLifecycle()
     var removal by remember { mutableStateOf<SourceRemoval?>(null) }
+    var playlist by remember { mutableStateOf<com.nuvio.tv.livetv.model.PlaylistSource?>(null) }
+    var epg by remember { mutableStateOf<com.nuvio.tv.livetv.model.EpgSource?>(null) }
+    var options by remember { mutableStateOf(false) }
     val uri = LocalUriHandler.current
     LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (!driveOnly) {
         item { SectionTitle("Playlists and guides") }
-        items(lists, key = { "playlist-" + it.id }) { source ->
+        itemsIndexed(lists, key = { _, s -> "playlist-" + s.id }) { index, source ->
             SourceRow(source.name, source.enabled, remove = {
                 removal = SourceRemoval(source.name) { vm.removePlaylist(source.id) }
             }) { vm.setPlaylistEnabled(source.id, it) }
+            LazyRow {
+                item { Action("Edit playlist") { playlist = source } }
+                item { Action("Update now") { vm.updatePlaylistNow(source) } }
+                if (index > 0) item { Action("Move up") { vm.movePlaylist(source.id, -1) } }
+                if (index < lists.lastIndex) item { Action("Move down") { vm.movePlaylist(source.id, 1) } }
+            }
         }
         item { Action("Add M3U playlist") { add = "M3U playlist" } }
         item { Action("Add Xtream account") { add = "Xtream account" } }
+        item { Action("Add Stalker portal") { add = "Stalker portal" } }
         items(guides, key = { "guide-" + it.id }) { source ->
             SourceRow(source.name, source.enabled, remove = {
                 removal = SourceRemoval(source.name) { vm.removeEpg(source.id) }
             }) { vm.setEpgEnabled(source.id, it) }
+            Action("Edit guide") { epg = source }
         }
         item { Action("Add XMLTV guide") { add = "XMLTV guide" } }
         if (lists.isNotEmpty() || guides.isNotEmpty()) item { Action("Refresh sources") { vm.refreshAll() } }
+        item { Action("Guide and recordings") { options = true } }
         (status.error ?: status.message)?.let { item { Label(it) } }
         } else {
         item { Label("Connect the same Google account you use on ReSeq TV, phones and tablets. Choose Restore to load your saved setup.", Modifier.padding(8.dp)) }
@@ -81,6 +93,10 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
         var address by remember { mutableStateOf("") }
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
+        var mac by remember { mutableStateOf("") }
+        var serial by remember { mutableStateOf("") }
+        var live by remember { mutableStateOf(true) }
+        var vod by remember { mutableStateOf(true) }
         var invalid by remember { mutableStateOf(false) }
         TouchSheet({ add = null }) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
@@ -90,10 +106,16 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
                 OutlinedTextField(address, { address = it; invalid = false }, label = { Label("URL") }, singleLine = true,
                     isError = invalid, shape = RectangleShape)
                 if (invalid) Label("Enter an HTTP or HTTPS URL.")
-                if (kind == "Xtream account") {
+                if (kind == "Stalker portal") {
+                    MobileTextInput("MAC address", mac) { mac = it }
+                    MobileTextInput("Serial number (optional)", serial) { serial = it }
+                }
+                if (kind == "Xtream account" || kind == "Stalker portal") {
                     OutlinedTextField(username, { username = it }, label = { Label("Username") }, singleLine = true, shape = RectangleShape)
                     OutlinedTextField(password, { password = it }, label = { Label("Password") }, singleLine = true,
                         visualTransformation = PasswordVisualTransformation(), shape = RectangleShape)
+                    SourceRow("Import live channels", live) { live = it }
+                    SourceRow("Import movies and series", vod) { vod = it }
                 }
                 Action("Add") {
                     val url = address.trim().toHttpUrlOrNull()
@@ -103,8 +125,12 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
                         when (kind) {
                             "M3U playlist" -> vm.addPlaylist(label, address.trim(), "")
                             "Xtream account" -> {
-                                if (username.isBlank() || password.isEmpty()) return@Action
-                                vm.addXtream(label, address.trim(), username.trim(), password, importVod = false)
+                                if (username.isBlank() || password.isEmpty() || !live && !vod) return@Action
+                                vm.addXtream(label, address.trim(), username.trim(), password, importVod = vod, importLive = live)
+                            }
+                            "Stalker portal" -> {
+                                if (mac.isBlank() || !live && !vod) return@Action
+                                vm.addStalker(label, address.trim(), mac.trim(), username.trim(), password, serial.trim(), vod, live)
                             }
                             else -> vm.addEpg(label, address.trim())
                         }
@@ -113,6 +139,22 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
                 }
             }
         }
+    }
+    playlist?.let { MobilePlaylistEditor(it, vm) { playlist = null } }
+    if (options) MobileGuideSettings(vm) { options = false }
+    epg?.let { guide ->
+        var name by remember(guide.id) { mutableStateOf(guide.name) }
+        var url by remember(guide.id) { mutableStateOf(guide.url) }
+        var invalid by remember { mutableStateOf(false) }
+        TouchSheet({ epg = null }) { Column(Modifier.imePadding().padding(12.dp)) {
+            SectionTitle("Edit guide")
+            MobileTextInput("Name", name) { name = it }; MobileTextInput("XMLTV address", url) { url = it }
+            if (invalid) Label("Enter an HTTP or HTTPS address.")
+            Action("Save guide") {
+                if (url.trim().toHttpUrlOrNull() == null) invalid = true
+                else { vm.saveEpg(guide.copy(name = name.trim(), url = url.trim())); epg = null }
+            }
+        } }
     }
     removal?.let { source ->
         AlertDialog(onDismissRequest = { removal = null }, shape = RectangleShape, title = { Label("Remove " + source.name + "?") },

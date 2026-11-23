@@ -48,7 +48,7 @@ internal fun HomeHighlights(titles: List<MetaPreview>, open: (MetaPreview) -> Un
 }
 
 @Composable
-private fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, more: () -> Unit) {
+internal fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, more: () -> Unit) {
     Column(modifier.combinedClickable(onClick = open, onLongClickLabel = "Title actions", onLongClick = more)) {
         AsyncImage(item.poster, null, Modifier.fillMaxWidth().aspectRatio(2f / 3)
             .background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
@@ -57,7 +57,7 @@ private fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, more
 }
 
 @Composable
-internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, advanced: () -> Unit, vm: SearchViewModel = hiltViewModel()) {
+internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, advanced: () -> Unit, flickPick: () -> Unit, vm: SearchViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val keyboard = LocalSoftwareKeyboardController.current
     var menu by remember { mutableStateOf<Pair<MetaPreview, String?>?>(null) }
@@ -66,6 +66,7 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
     Column(Modifier.fillMaxSize().padding(horizontal = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { SectionTitle("Search") }
+            Action("FlickPick", onClick = flickPick)
             Action("Advanced Discover", onClick = advanced)
         }
         OutlinedTextField(state.query, { vm.onEvent(SearchEvent.QueryChanged(it)) }, Modifier.fillMaxWidth(),
@@ -121,7 +122,9 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
 }
 
 @Composable
-internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, vm: LibraryViewModel = hiltViewModel()) {
+internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, collections: () -> Unit,
+    iptv: () -> Unit, recordings: () -> Unit, party: () -> Unit, cloud: () -> Unit, servers: () -> Unit,
+    vm: LibraryViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     var filters by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf<LibraryEntry?>(null) }
@@ -129,6 +132,14 @@ internal fun MobileLibrary(open: (MetaPreview, String?, VideoAction) -> Unit, vm
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { SectionTitle("Library") }
             Action("Filter and sort") { filters = true }
+        }
+        LazyRow {
+            item { Action("Collections", onClick = collections) }
+            item { Action("IPTV library", onClick = iptv) }
+            item { Action("Recordings", onClick = recordings) }
+            item { Action("Watch Party", onClick = party) }
+            item { Action("Cloud files", onClick = cloud) }
+            item { Action("Server libraries", onClick = servers) }
         }
         LazyRow { items(state.listTabs) { tab -> Action(tab.title, selected = tab.key == state.selectedListKey) { vm.onSelectListTab(tab.key) } } }
         LazyRow { items(state.availableTypeTabs) { tab -> Action(tab.label, selected = tab == state.selectedTypeTab) { vm.onSelectTypeTab(tab) } } }

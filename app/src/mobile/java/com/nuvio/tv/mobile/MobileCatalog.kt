@@ -29,6 +29,8 @@ import com.nuvio.tv.domain.repository.AddonRepository
 import com.nuvio.tv.ui.navigation.Screen
 import com.nuvio.tv.ui.screens.detail.*
 import com.nuvio.tv.ui.screens.home.*
+import com.nuvio.tv.ui.screens.tvmix.TvMixViewModel
+import com.nuvio.tv.ui.screens.tvmix.streamRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,7 +39,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 internal class MobileCatalogViewModel @Inject constructor(
-    val downloads: MobileOfflineMedia, val profiles: ProfileManager, val addons: AddonRepository,
+    val downloads: MobileOfflineMedia, val profiles: ProfileManager, val external: com.nuvio.tv.core.player.ExternalPlaybackTracker,
     val themes: com.nuvio.tv.data.local.ThemeDataStore, val debrid: com.nuvio.tv.data.local.DebridSettingsDataStore
 ) : ViewModel()
 
@@ -47,16 +49,43 @@ internal fun mobileDetailRoute(item: MetaPreview, addon: String?, action: VideoA
     Screen.Detail.createRoute(item.id, item.apiType, addon) + "&operation=" + action.name + "&previewTitle=" + Uri.encode(item.name)
 
 @Composable
-internal fun MobileCatalog(tab: Tab, playerVisible: (Boolean) -> Unit, catalog: MobileCatalogViewModel = hiltViewModel()) {
+internal fun MobileCatalog(tab: Tab, playerVisible: (Boolean) -> Unit, onWatch: (com.nuvio.tv.livetv.model.LiveChannel) -> Unit = {},
+    catalog: MobileCatalogViewModel = hiltViewModel()) {
     val profile by catalog.profiles.activeProfileId.collectAsStateWithLifecycle()
-    key(profile, tab) { CatalogNavigation(profile, catalog, tab, playerVisible) }
+    key(profile, tab) { CatalogNavigation(profile, catalog, tab, playerVisible, onWatch) }
 }
 
 @Composable
-private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab: Tab, playerVisible: (Boolean) -> Unit) {
+private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab: Tab, playerVisible: (Boolean) -> Unit,
+    onWatch: (com.nuvio.tv.livetv.model.LiveChannel) -> Unit,
+    mix: TvMixViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val current by nav.currentBackStackEntryAsState()
+    val route = current?.destination?.route
+    val failed by mix.session.sourceFailures.collectAsStateWithLifecycle()
+    val returned by mix.session.externalReturn.collectAsStateWithLifecycle()
+    fun returnToMix() {
+        if (nav.currentDestination?.route != "mobile-mix" && !nav.popBackStack("mobile-mix", false)) {
+            nav.navigate("mobile-mix") { launchSingleTop = true }
+        }
+    }
+    LaunchedEffect(failed) {
+        failed?.let { if (mix.session.sourceFailures.compareAndSet(it, null) && mix.sourceUnavailable(it)) returnToMix() }
+    }
+    LaunchedEffect(returned) {
+        returned?.let { result ->
+            if (mix.session.externalReturn.compareAndSet(result, null) && mix.session.playing.value === result.playing) {
+                if (result.completed) mix.completed(result.autoplay) else mix.session.end()
+                returnToMix()
+            }
+        }
+    }
+    LaunchedEffect(route) {
+        if (route != null && route != "mobile-mix" && !route.startsWith("player/") && !route.startsWith("stream/")) mix.end()
+    }
+    DisposableEffect(profile, tab) { onDispose { if ((context as? android.app.Activity)?.isChangingConfigurations != true) mix.end() } }
     val openTitle: (MetaPreview, String?, VideoAction) -> Unit = { item, addon, action ->
         nav.navigate(mobileDetailRoute(item, addon, action))
     }
@@ -70,26 +99,62 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             }
         }
     }
+    val openPartyTitle: (com.nuvio.tv.core.party.PartyMedia) -> Unit = { media ->
+        if (nav.currentDestination?.route == Screen.Player.route) nav.popBackStack()
+        openVideo(MobileVideo(profile, media.type, media.metaId, media.videoId ?: media.metaId, media.title, media.season,
+            media.episode, media.episodeTitle, poster = media.poster), VideoAction.Play)
+    }
+    LaunchedEffect(catalog.external, profile) {
+        catalog.external.autoPlayNext.collect { next ->
+            if (next.profileId == profile && catalog.external.claimAutoPlayNextNavigation(next)) {
+                val video = MobileVideo(profile, next.contentType, next.contentId, next.nextVideoId, next.contentName,
+                    next.nextSeason, next.nextEpisode, tvdb = next.tvdbContextJson, poster = next.poster)
+                if (nav.currentDestination?.route?.startsWith("stream/") == true) nav.popBackStack()
+                openVideo(video, VideoAction.Play)
+            }
+        }
+    }
     NavHost(nav, startDestination = "catalog") {
         composable("catalog") {
             when (tab) {
-                Tab.SEARCH -> MobileSearch(openTitle, { nav.navigate("advanced") })
-                Tab.LIBRARY -> MobileLibrary(openTitle)
-                else -> CatalogHome(profile, catalog, openVideo, openTitle)
+                Tab.CALENDAR -> MobileCalendar(onWatch, onTitle = { id, type, title ->
+                    nav.navigate(Screen.Detail.createRoute(id, type) + "&operation=Details&previewTitle=" + Uri.encode(title))
+                })
+                Tab.SEARCH -> MobileSearch(openTitle, { nav.navigate("advanced") }, { nav.navigate(Screen.FlickPick.route) })
+                Tab.LIBRARY -> MobileLibrary(openTitle, { nav.navigate(Screen.Collections.route) },
+                    { nav.navigate(Screen.OnDemand.route) }, { nav.navigate("mobile-recordings") }, { nav.navigate("mobile-party") },
+                    { nav.navigate("mobile-cloud") }, { nav.navigate("mobile-servers") })
+                else -> CatalogHome(profile, catalog, openVideo, openTitle, { nav.navigate(it) })
             }
         }
+        mobileBrowseDestinations(nav, openTitle)
+        composable("mobile-cloud") { MobileCloudLibrary({ nav.popBackStack() }, { nav.navigate(it) }) }
+        composable("mobile-servers") { MobileServerShelves(openTitle, { nav.popBackStack() }) }
+        composable("mobile-party") {
+            val parties: com.nuvio.tv.ui.screens.party.PartyViewModel = hiltViewModel()
+            MobileWatchParty(parties.party, null, openPartyTitle) { nav.popBackStack() }
+        }
         composable("advanced") {
-            MobileDiscover(openTitle = { item, action -> openTitle(item, null, action) }, playMixEpisode = { pick ->
-                val episode = pick.video
-                openVideo(MobileVideo(profile, pick.meta.apiType, pick.meta.id, episode.id, pick.meta.name,
-                    episode.sourceSeason, episode.sourceEpisode, episode.title, episode.tvdbPlaybackContext()?.encode(),
-                    pick.meta.poster), VideoAction.Play)
-            })
+            MobileDiscover(openTitle = { item, action -> openTitle(item, null, action) }, openMix = { nav.navigate("mobile-mix") }, mix = mix)
+        }
+        composable("mobile-mix") {
+            MixList(mix, back = { nav.popBackStack() }) { pick ->
+                val expected = mix.session.playing.value
+                scope.launch {
+                    val episode = pick.video
+                    val video = MobileVideo(profile, pick.meta.apiType, pick.meta.id, episode.id, pick.meta.name,
+                        episode.sourceSeason, episode.sourceEpisode, episode.title, episode.tvdbPlaybackContext()?.encode(), pick.meta.poster)
+                    val local = withContext(Dispatchers.IO) { catalog.downloads.localRoute(video, fromBeginning = true) }
+                    if (mix.session.playing.value === expected && nav.currentDestination?.route == "mobile-mix")
+                        nav.navigate(local ?: (pick.streamRoute(profile) + "&operation=Play"))
+                }
+            }
         }
         composable(Screen.Detail.route + "&operation={operation}&previewTitle={previewTitle}") { entry ->
             val args = requireNotNull(entry.arguments)
             CatalogDetail(profile, args.getString("operation"), args.getString("previewTitle").orEmpty(),
-                args.getString("itemId").orEmpty(), args.getString("itemType").orEmpty(), openVideo, { nav.popBackStack() })
+                args.getString("itemId").orEmpty(), args.getString("itemType").orEmpty(), openVideo,
+                { nav.popBackStack() }, { nav.navigate(it) }, openTitle)
         }
         composable(Screen.Stream.route + "&operation={operation}",
             arguments = listOf(navArgument("autoSelectStream") { type = NavType.BoolType; defaultValue = false })) { entry ->
@@ -98,20 +163,31 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             val video = MobileVideo(profile, optional("contentType").orEmpty(), optional("contentId").orEmpty(),
                 optional("videoId").orEmpty(), optional("title").orEmpty(), optional("season")?.toIntOrNull(),
                 optional("episode")?.toIntOrNull(), optional("episodeName"), optional("tvdbContext"), optional("poster"))
-            MobileSources(video, optional("operation") == VideoAction.Download.name, { nav.popBackStack() }, { route ->
+            val leave = { mix.session.end(); nav.popBackStack(); Unit }
+            androidx.activity.compose.BackHandler(onBack = leave)
+            MobileSources(video, optional("operation") == VideoAction.Download.name, optional("startFromBeginning") == "true", leave, { route ->
                 nav.navigate(route) { popUpTo(entry.destination.id) { inclusive = true } }
             })
         }
-        composable(Screen.Player.route) {
+        composable(Screen.Player.route) { entry ->
             DisposableEffect(Unit) { playerVisible(true); onDispose { playerVisible(false) } }
-            MobileVodPlayer(back = { nav.popBackStack() })
+            val args = entry.arguments
+            val leave = { mix.session.end(); nav.popBackStack(); Unit }
+            androidx.activity.compose.BackHandler(onBack = leave)
+            MobileVodPlayer(back = leave, openParty = openPartyTitle, mixCompleted = if (mix.session.matches(profile, args?.getString("contentId"), args?.getString("videoId"))) {
+                { autoplay, group ->
+                    if (mix.session.matches(profile, args?.getString("contentId"), args?.getString("videoId"))) {
+                        mix.completed(autoplay, group); returnToMix()
+                    }
+                }
+            } else null)
         }
     }
 }
 
 @Composable
 private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo: (MobileVideo, VideoAction) -> Unit,
-    open: (MetaPreview, String?, VideoAction) -> Unit, vm: HomeViewModel = hiltViewModel()) {
+    open: (MetaPreview, String?, VideoAction) -> Unit, navigate: (String) -> Unit, vm: HomeViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     LifecycleStartEffect(vm) {
         vm.setHomeContentActive(true)
@@ -167,7 +243,16 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
         }
         if (state.catalogRows.isEmpty()) item { Label(state.error ?: if (state.isLoading) "Loading catalogues…" else "Add a catalogue source to browse titles.") }
         val rows = state.homeRows.ifEmpty { state.catalogRows.map { HomeRow.Catalog(it) } }
-        items(rows.filter { it is HomeRow.Catalog || it is HomeRow.PlaceholderCatalog }) { entry ->
+        items(rows) { entry ->
+            if (entry is HomeRow.CollectionRow) {
+                SectionTitle(entry.collection.title)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(entry.collection.folders) { folder ->
+                        Action(folder.title) { navigate(Screen.FolderDetail.createRoute(entry.collection.id, folder.id)) }
+                    }
+                }
+                return@items
+            }
             if (entry is HomeRow.PlaceholderCatalog) {
                 LaunchedEffect(entry.catalogKey) { vm.requestLazyCatalogLoad(entry.catalogKey) }
                 SectionTitle(entry.displayTitle)
@@ -175,7 +260,10 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                 return@items
             }
             val row = (entry as HomeRow.Catalog).row
-            SectionTitle(row.catalogName)
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { SectionTitle(row.catalogName) }
+                Action("See all") { navigate(Screen.CatalogSeeAll.createRoute(row.catalogId, row.addonId, row.apiType)) }
+            }
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(row.items) { item ->
                     Column(Modifier.width(110.dp).combinedClickable(onClick = { open(item, row.addonBaseUrl, VideoAction.Details) },
@@ -202,51 +290,71 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             }
         }
     } }
-    if (providers) CatalogSources(catalog.addons) { providers = false }
+    if (providers) CatalogSources { providers = false }
     resumeMenu?.let { v -> VideoActions(v.label, { resumeMenu = null }) { resumeMenu = null; openVideo(v, it) } }
 }
 
 @Composable
-internal fun CatalogSources(addons: AddonRepository, close: () -> Unit) {
-    var url by rememberSaveable { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf(false) }
-    val installed by addons.getInstalledAddons().collectAsStateWithLifecycle(initialValue = emptyList())
-    val scope = rememberCoroutineScope()
+internal fun CatalogSources(vm: com.nuvio.tv.ui.screens.addon.AddonManagerViewModel = hiltViewModel(), close: () -> Unit) {
+    val state by vm.uiState.collectAsStateWithLifecycle()
+    var remove by remember { mutableStateOf<String?>(null) }
+    var ordering by rememberSaveable { mutableStateOf(false) }
+    DisposableEffect(vm) { onDispose { vm.cancelAddonMove() } }
+    LaunchedEffect(state.transientMessage) {
+        if (state.transientMessage != null && !state.transientMessageIsError && state.installUrl.isBlank()) {
+            vm.clearTransientMessage()
+            close()
+        }
+    }
     TouchSheet(close) {
-        Column(Modifier.verticalScroll(rememberScrollState()).imePadding().padding(12.dp)) {
-            SectionTitle("Catalog sources")
-            installed.forEachIndexed { index, addon ->
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Label(addon.name, Modifier.weight(1f))
-                    if (index > 0) TextButton(onClick = {
-                        val order = installed.map { it.baseUrl }.toMutableList()
-                        order.add(index - 1, order.removeAt(index))
-                        scope.launch { addons.setAddonOrder(order) }
-                    }) { Label("Move up", small = true) }
-                    Switch(addon.enabled, { enabled -> scope.launch { addons.setAddonEnabled(addon.baseUrl, enabled) } })
+        if (ordering) MobileCatalogOrder { ordering = false } else LazyColumn(contentPadding = PaddingValues(12.dp), modifier = Modifier.imePadding()) {
+            item { BrowseHeading("Catalog sources", close) }
+            item { Action("Catalog order and visibility") { ordering = true } }
+            itemsIndexed(state.installedAddons, key = { _, addon -> addon.baseUrl }) { index, addon ->
+                Label(addon.name, strong = true)
+                if (!vm.isReadOnly) LazyRow {
+                    item { Action(if (addon.enabled) "Enabled" else "Disabled", selected = addon.enabled) { vm.setAddonEnabled(addon.baseUrl, !addon.enabled) } }
+                    fun move(by: Int) {
+                        vm.enterAddonMoveMode(addon.baseUrl)
+                        vm.moveAddonDuringDrag(addon.baseUrl, by)
+                        vm.confirmAddonMove()
+                    }
+                    if (index > 0) item { Action("Move up") { move(-1) } }
+                    if (index < state.installedAddons.lastIndex) item { Action("Move down") { move(1) } }
+                    item { Action(if (remove == addon.baseUrl) "Confirm removal" else "Remove") {
+                        if (remove == addon.baseUrl) { vm.removeAddon(addon.baseUrl); remove = null } else remove = addon.baseUrl
+                    } }
                 }
             }
-            OutlinedTextField(url, { url = it }, singleLine = true, shape = RectangleShape, label = { Label("Manifest URL") })
-            Action(if (busy) "Checking…" else "Install source") {
-                if (!busy) scope.launch {
-                    busy = true
-                    try {
-                        val address = url.trim().removeSuffix("/manifest.json").trimEnd('/')
-                        when (val result = addons.fetchAddon(address)) {
-                            is NetworkResult.Success -> { addons.addAddon(address); close() }
-                            is NetworkResult.Error -> message = result.message
-                            else -> message = "Could not load the source."
-                        }
-                    } catch (e: java.io.IOException) { message = "Could not reach the source." }
-                    finally { busy = false }
-                }
+            if (!vm.isReadOnly) {
+                item { MobileTextInput("Manifest URL", state.installUrl, vm::onInstallUrlChange) }
+                item { Action(if (state.isInstalling) "Checking…" else "Install source") { if (!state.isInstalling) vm.installAddon() } }
+                item { Action("Sync sources now", onClick = vm::requestAddonSyncNow) }
             }
-            if (message.isNotBlank()) Label(message)
+            (state.error ?: state.transientMessage)?.let { item { Label(it) } }
         }
     }
 }
 
+@Composable
+private fun MobileCatalogOrder(vm: com.nuvio.tv.ui.screens.addon.CatalogOrderViewModel = hiltViewModel(), back: () -> Unit) {
+    val state by vm.uiState.collectAsStateWithLifecycle()
+    DisposableEffect(vm) { onDispose { vm.cancelMove() } }
+    LazyColumn(contentPadding = PaddingValues(12.dp)) {
+        item { BrowseHeading("Catalog order", back) }
+        item { Action("Follow source order", selected = state.followAddonsOrder) { vm.toggleFollowAddonsOrder(!state.followAddonsOrder) } }
+        if (state.isLoading) item { Label("Loading catalogs…") }
+        items(state.items, key = { it.key }) { item ->
+            Label(item.catalogName + " · " + item.addonName, strong = true)
+            Row {
+                Action(if (item.isDisabled) "Hidden" else "Visible", selected = !item.isDisabled) { vm.toggleCatalogEnabled(item.disableKey) }
+                fun move(by: Int) { vm.enterMoveMode(item.key); vm.moveDuringDrag(item.key, by); vm.confirmMove() }
+                if (item.canMoveUp) Action("Up") { move(-1) }
+                if (item.canMoveDown) Action("Down") { move(1) }
+            }
+        }
+    }
+}
 @Composable
 internal fun VideoActions(label: String, close: () -> Unit, choose: (VideoAction) -> Unit) {
     TouchSheet(close) {
@@ -259,10 +367,14 @@ internal fun VideoActions(label: String, close: () -> Unit, choose: (VideoAction
 
 @Composable
 private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: String, type: String,
-    open: (MobileVideo, VideoAction) -> Unit, back: () -> Unit, vm: MetaDetailsViewModel = hiltViewModel()) {
+    open: (MobileVideo, VideoAction) -> Unit, back: () -> Unit, navigate: (String) -> Unit,
+    openTitle: (MetaPreview, String?, VideoAction) -> Unit, vm: MetaDetailsViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val meta = state.meta
     val movie = type == "movie"
+    val detailScope = rememberCoroutineScope()
+    var comments by rememberSaveable { mutableStateOf(false) }
+    var shuffle by rememberSaveable { mutableStateOf(false) }
     val hero = meta?.let { resolveHeroPlaybackVideo(it, state.nextToWatch, state.episodesForSeason) }
     fun selection(selected: Video?): MobileVideo? {
         val title = meta?.name ?: preview
@@ -310,10 +422,17 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                 if (state.libraryListTabs.isNotEmpty()) item { Action("Choose lists") { vm.onEvent(MetaDetailsEvent.OnLibraryLongPress) } }
                 item { MobileRating(meta.ratingReference()) }
                 if (!movie) item { MobileEpisodeOrder(meta, vm::reloadEpisodeOrder) }
+                if (!movie) item { Action("Episode shuffle", selected = state.episodeShuffle.enabled) { shuffle = true } }
+                if (state.trailerButtonEnabled && state.trailerUrl != null) item { Action("Play trailer") { vm.onEvent(MetaDetailsEvent.OnTrailerButtonClick) } }
+                if (state.shouldShowCommentsSection) item { Action("Reviews and comments") { comments = true } }
             }
+            if (meta.trailers.isNotEmpty()) LazyRow { itemsIndexed(meta.trailers) { i, trailer ->
+                Action(trailer.name ?: "Trailer ${i + 1}") { vm.onEvent(MetaDetailsEvent.OnSharedTrailerSelected(trailer)) }
+            } }
             Label(listOfNotNull(meta.releaseInfo, meta.imdbRating?.let { "IMDb $it" },
                 meta.genres.takeIf { it.isNotEmpty() }?.joinToString(" · ")).joinToString("   "), small = true)
         }
+        if (meta != null) titleConnections(meta, state, navigate, openTitle)
         if (state.seasons.isNotEmpty()) item { LazyRow { items(state.seasons) { season ->
             Action("Season $season", selected = season == state.selectedSeason) { vm.onEvent(MetaDetailsEvent.OnSeasonSelected(season)) }
         } } }
@@ -331,6 +450,23 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
             }
         }
         state.error?.let { item { Label(it) } }
+    }
+    if (state.isSharedTrailerOverlayVisible || state.isTrailerPlaying) MobileTrailer(state, vm::onEvent)
+    if (comments) MobileComments(state, vm::onEvent) { comments = false }
+    if (shuffle) TouchSheet({ shuffle = false }) {
+        SectionTitle("Episode shuffle")
+        Action("Shuffle episodes", selected = state.episodeShuffle.enabled) { detailScope.launch {
+            vm.setEpisodeShuffle(state.episodeShuffle.copy(enabled = !state.episodeShuffle.enabled))
+        } }
+        Action("Include watched episodes", selected = state.episodeShuffle.includeWatched) { detailScope.launch {
+            vm.setEpisodeShuffle(state.episodeShuffle.copy(includeWatched = !state.episodeShuffle.includeWatched))
+        } }
+        state.selectedSeason?.let { season ->
+            Action(if (vm.isSeasonFullyWatched(season)) "Mark season unwatched" else "Mark season watched") {
+                vm.onEvent(if (vm.isSeasonFullyWatched(season)) MetaDetailsEvent.OnMarkSeasonUnwatched(season) else MetaDetailsEvent.OnMarkSeasonWatched(season))
+                shuffle = false
+            }
+        }
     }
     menu?.let { video -> VideoActions(video.label, { menu = null }) { action -> menu = null; open(video, action) } }
     if (state.showListPicker) TouchSheet({ vm.onEvent(MetaDetailsEvent.OnPickerDismiss) }) {

@@ -9,6 +9,10 @@ The reference files under `composeApp/src/commonMain/kotlin/com/nuvio/app` are:
 - `features/home/HomeScreen.kt`, `features/details/MetaDetailsScreen.kt` and `features/downloads/DownloadActionSheet.kt` for poster rows, title actions and the download sheet.
 - `features/livetv/ui/LiveTvGuideScreen.kt` for the scrolling timeline, channel column, group strip and programme actions.
 - `features/livetv/ui/LiveTvPlayerOverlay.kt` for channel swipes and the portrait, tablet and landscape channel panel.
+- `features/player/PlayerSurfaceGestures.kt` and `PlayerGestureOverlay.kt` for tap, hold-to-speed, horizontal seek and side brightness and volume gestures.
+- `features/collection/CollectionManagementScreen.kt`, `CollectionEditorScreen.kt` and `FolderDetailScreen.kt` for the collection list, editing and folder browsing.
+- `features/livetv/ui/OnDemandScreen.kt`, `OnDemandTitleSheet.kt` and `features/livetv/multiview/MultiviewScreen.kt` for provider libraries, title actions and pane controls.
+- `features/settings/CustomThemeEditor.kt` for solid and gradient colour editing.
 - `features/livetv/ui/CalendarScreen.kt` for the week strip, month grid, selected-day agenda and entry sheet.
 - `features/livetv/ui/sports/SportsScreen.kt` and `SportsUi.kt` for the My Sports rows, dated All Events list and fixture cards.
 

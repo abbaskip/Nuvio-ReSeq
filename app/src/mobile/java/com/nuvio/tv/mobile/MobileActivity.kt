@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.nuvio.tv.core.runtime.PluginRuntimeHooks
 import com.nuvio.tv.core.storage.DatabaseVersions
 import com.nuvio.tv.core.sync.StartupSyncService
@@ -47,6 +49,14 @@ class MobileActivity : ComponentActivity() {
     @Inject lateinit var profileLocks: com.nuvio.tv.data.local.ProfileLockStateDataStore
     @Inject lateinit var profileManager: com.nuvio.tv.core.profile.ProfileManager
     @Inject lateinit var sync: StartupSyncService
+    @Inject lateinit var externalPlayer: com.nuvio.tv.core.player.ExternalPlaybackTracker
+    @Inject lateinit var projection: com.nuvio.tv.core.tracking.TrackingProgressRefreshCoordinator
+    private val externalLauncher = registerForActivityResult(com.nuvio.tv.core.player.ExternalPlayerResultContract()) { result ->
+        if (ready) {
+            externalPlayer.onActivityResult(result)
+            lifecycleScope.launch { projection.refreshProjection() }
+        }
+    }
     @Inject lateinit var sports: dagger.Lazy<com.nuvio.tv.livetv.sports.SportsRepository>
     private var ready = false
 
@@ -57,6 +67,7 @@ class MobileActivity : ComponentActivity() {
             return
         }
         ready = true
+        externalPlayer.activityLauncher = externalLauncher
         val bars = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
         PluginRuntimeHooks.onActivityCreate(this)
@@ -89,6 +100,7 @@ class MobileActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         if (!ready) return
+        externalPlayer.raiseAutoNextOverlayOnReturn()
         sports.get().setForeground(true)
         sync.requestForegroundSync()
         sync.startPeriodicSurfacePulls()
@@ -96,6 +108,7 @@ class MobileActivity : ComponentActivity() {
 
     override fun onStop() {
         if (ready) {
+            externalPlayer.onExternalPlayerCoveredApp()
             sports.get().setForeground(false)
             sync.stopPeriodicSurfacePulls()
         }
@@ -103,6 +116,7 @@ class MobileActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (ready && externalPlayer.activityLauncher === externalLauncher) externalPlayer.activityLauncher = null
         if (ready) PluginRuntimeHooks.onActivityDestroy()
         super.onDestroy()
     }
@@ -122,9 +136,10 @@ private fun MobileShell(live: LiveTvViewModel = hiltViewModel()) {
     var liveSetup by rememberSaveable { mutableStateOf(false) }
     val holder = rememberSaveableStateHolder()
     var playing by remember { mutableStateOf(false) }
+    var multiview by rememberSaveable { mutableStateOf(false) }
     val exitPlayer = { live.playback.stop(); playing = false }
-    BackHandler(playing || tab != Tab.HOME) {
-        if (playing) exitPlayer() else tab = Tab.HOME
+    BackHandler(playing || multiview || tab != Tab.HOME) {
+        if (multiview) multiview = false else if (playing) exitPlayer() else tab = Tab.HOME
     }
     val c = MaterialTheme.colorScheme
     BoxWithConstraints(Modifier.fillMaxSize().background(c.background).safeDrawingPadding()) {
@@ -136,24 +151,26 @@ private fun MobileShell(live: LiveTvViewModel = hiltViewModel()) {
                 when (tab) {
                     Tab.HOME, Tab.SEARCH, Tab.LIBRARY -> MobileCatalog(tab, { inVodPlayer = it })
                     Tab.GUIDE, Tab.SPORTS, Tab.CALENDAR -> Column {
-                        Row(Modifier.fillMaxWidth()) {
+                        if (!inVodPlayer) Row(Modifier.fillMaxWidth()) {
                             listOf(Tab.GUIDE, Tab.SPORTS, Tab.CALENDAR).forEach { section ->
                                 Action(if (section == Tab.GUIDE) "Guide" else section.label,
                                     Modifier.weight(1f), tab == section) { tab = section }
                             }
+                            Action("Multiview", Modifier.weight(1f)) { multiview = true }
                         }
                         when (tab) {
-                            Tab.GUIDE -> MobileGuide(live, onTune = { live.preview(it); playing = true },
+                            Tab.GUIDE -> MobileGuide(live, onTune = { live.preview(it); playing = true }, onReplay = { playing = true },
                                 onSetup = { liveSetup = true; tab = Tab.SOURCES })
                             Tab.SPORTS -> MobileSports(onWatch = { live.preview(it); playing = true })
-                            else -> MobileCalendar(onWatch = { live.preview(it); playing = true })
+                            else -> MobileCatalog(tab, { inVodPlayer = it }, onWatch = { live.preview(it); playing = true })
                         }
                     }
                     Tab.SOURCES -> MobileSettings(liveSetup, { liveSetup = false })
                 }
             }
         }
-        if (playing) MobilePlayer(live, exitPlayer)
+        if (multiview) MobileMultiview({ multiview = false })
+        else if (playing) MobilePlayer(live, exitPlayer)
         else Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             val tabs: @Composable () -> Unit = {
                 Row(Modifier.widthIn(max = tabWidth).fillMaxWidth().background(c.surface)) {

@@ -35,12 +35,13 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
     val now by vm.now.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     var panel by rememberSaveable { mutableStateOf(false) }
+    var tools by rememberSaveable { mutableStateOf(false) }
     var guideMode by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var detail by remember { mutableStateOf<EpgProgram?>(null) }
     var controls by rememberSaveable { mutableStateOf(true) }
     val accessibility = LocalAccessibilityManager.current
-    LaunchedEffect(controls, panel, state.isPlaying, state.channelKey) {
-        if (controls && !panel && state.isPlaying) {
+    LaunchedEffect(controls, panel, tools, state.isPlaying, state.channelKey) {
+        if (controls && !panel && !tools && state.isPlaying) {
             delay(accessibility?.calculateRecommendedTimeoutMillis(6000, containsControls = true) ?: 6000)
             controls = false
         }
@@ -78,6 +79,7 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
             }
             Row(Modifier.align(Alignment.BottomEnd)) {
                 Action(if (state.userPaused) "Resume" else "Pause") { vm.playback.togglePause() }
+                Action("Options") { tools = true }
                 Action("Channels") { panel = true }
             }
         }
@@ -110,9 +112,9 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
                 }
                 val switch: (LiveChannel) -> Unit = { channel -> vm.preview(channel); panel = false }
                 if (guide) ChannelTimeline(ui.channels, programs, now, now / 1_800_000L * 1_800_000L,
-                    8, settings.use24HourClock, list, rememberScrollState(), switch) { channel, programme ->
+                    8, settings.use24HourClock, list, rememberScrollState(), switch, onProgram = { channel, programme ->
                     if (programme.isLive(now)) switch(channel) else detail = programme
-                }
+                })
                 else LazyColumn(state = list) {
                     items(ui.channels, key = { it.key }) { channel ->
                         val current = programs[channel.key]?.firstOrNull { it.isLive(now) }
@@ -124,6 +126,25 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
                     }
                 }
             }
+        }
+    }
+    if (tools) TouchSheet({ tools = false }) {
+        LazyColumn(contentPadding = PaddingValues(12.dp)) {
+            item { BrowseHeading(state.catchupTitle ?: "Live player", { tools = false }) }
+            if (state.catchupTitle != null || vm.playback.shiftCanSeek()) item {
+                Row {
+                    Action("−30 s") { vm.playback.seekBy(-30_000) }
+                    Action("+30 s") { vm.playback.seekBy(30_000) }
+                    vm.playback.playingChannel?.let { channel -> Action("Live") { vm.preview(channel); tools = false } }
+                }
+            }
+            item { SectionTitle("Audio") }
+            items(vm.playback.audioTracks()) { track -> Action(track.label, selected = track.selected) { vm.playback.pickAudio(track); tools = false } }
+            item { SectionTitle("Subtitles"); Action("Off", selected = !vm.playback.captionsOn()) { vm.playback.pickSubtitle(null); tools = false } }
+            items(vm.playback.subtitleTracks() + vm.playback.moreCaptionTracks()) { track ->
+                Action(track.label, selected = track.selected) { vm.playback.pickSubtitle(track); tools = false }
+            }
+            item { Action("Reconnect") { vm.playback.retry(); tools = false } }
         }
     }
     detail?.let { programme -> TouchSheet({ detail = null }) {

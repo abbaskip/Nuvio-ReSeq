@@ -25,6 +25,7 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
     var chip by rememberSaveable { mutableStateOf<String?>(null) }
     var day by rememberSaveable { mutableIntStateOf(0) }
     var eventId by rememberSaveable { mutableStateOf<String?>(null) }
+    var tool by rememberSaveable { mutableStateOf<String?>(null) }
     val loading by vm.loading.collectAsStateWithLifecycle()
     val problem by vm.problem.collectAsStateWithLifecycle()
     val use24h by vm.use24h.collectAsStateWithLifecycle()
@@ -50,6 +51,7 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
             Action("Refresh") { vm.repo.refreshNow() }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            items(listOf("Teams", "Tables", "Alerts")) { pageName -> Action(pageName) { tool = pageName } }
             items(listOf(CHIP_MINE to "My Sports", CHIP_ALL to "All events", CHIP_TV_NOW to "On TV now")) { (id, name) ->
                 Action(name, selected = active == id) { chip = id }
             }
@@ -88,6 +90,7 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
         }
     }
     val event = page?.opened?.takeIf { it.id == eventId }
+    tool?.let { MobileSportsTools(it, { tool = null }, vm = vm) }
     if (event != null) {
         FixtureSheet(event, page.matches[event.id].orEmpty(), onWatch, { eventId = null }, vm)
     }
@@ -117,9 +120,20 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
         onDispose { vm.repo.focusEvent(null) }
     }
     LaunchedEffect(event.id, allowed) { if (allowed) vm.repo.loadEventChannels(event) }
+    val extras = rememberGameExtras(event, vm)
+    var table by rememberSaveable(event.id) { mutableStateOf(false) }
+    var recording by rememberSaveable(event.id) { mutableStateOf<String?>(null) }
+    var message by remember(event.id) { mutableStateOf("") }
     TouchSheet(onClose) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
             SectionTitle(event.title)
+            val reminded = follows.reminders.firstOrNull { it.eventId == event.id }
+            if (event.startMs > System.currentTimeMillis()) {
+                Action(if (reminded == null) "Remind me" else "Remove reminder", selected = reminded != null) { vm.repo.toggleReminder(event) }
+                if (reminded != null) Action("Tune automatically", selected = reminded.autoSwitch ?: settings.autoSwitch) {
+                    vm.repo.setAutoSwitch(event, !(reminded.autoSwitch ?: settings.autoSwitch))
+                }
+            }
             if (!settings.hideScores) event.status?.let { Label(it) }
             event.sides.forEach { side ->
                 val team = side.team
@@ -133,9 +147,27 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
             channels.forEach { match -> Action(match.channel.name, Modifier.fillMaxWidth()) {
                 onClose()
                 onWatch(match.channel)
-            } }
+            }
+                if (event.state != GameState.POST) Action("Record on " + match.channel.name) { recording = match.channel.key }
+                if (recording == match.channel.key) LazyRow { items(listOf(60, 90, 120, 180, 240)) { mins ->
+                    Action("$mins min") { message = vm.record(event, match, mins); recording = null }
+                } }
+            }
+            if (message.isNotBlank()) Label(message)
+            if (SportsCatalog.league(event.leagueId)?.let(vm.repo::mayHaveTable) == true) Action("League table") { table = true }
+            extras?.let { x ->
+                listOfNotNull(x.venue, x.city, x.conditions, x.referee?.let { "Referee · $it" }, x.attendance?.let { "Attendance · $it" }).forEach { Label(it) }
+                x.lineups.forEach { lineup -> SectionTitle(lineup.team); Label(listOfNotNull(lineup.formation, lineup.players.joinToString(", ")).joinToString(" · ")) }
+                if (!settings.hideScores) {
+                    x.stats.forEach { stat -> Label("${stat.away}  ·  ${stat.label}  ·  ${stat.home}") }
+                    x.performers.forEach { p -> Label(p.name + " · " + p.category + " · " + p.line) }
+                    x.form.forEach { f -> Label(f.team + " · " + f.results.joinToString(" ")) }
+                    x.meetings.forEach { m -> Label(m.text) }
+                }
+            }
         }
     }
+    if (table) MobileSportsTools("Tables", { table = false }, event.leagueId, vm)
 }
 
 @Composable

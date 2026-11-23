@@ -40,7 +40,7 @@
     <string name="iptv_thumbs_msg_one_decoder">No thumbnails: this TV needs its only video decoder for the video</string>
     <string name="seekr_key_save_error">Could not save the Seekr key on this device.</string>
     <string name="seekr_api_key">Seekr API key</string>
-    <string name="seekr_key_description">Use your personal key from seekr.tv to look up movie and episode previews. Clear the field to remove it.</string>
+    <string name="seekr_key_description">Use your personal key from seekr.tv to look up movie and episode previews. Connected Google Drive backup includes this key. Clear the field to remove it.</string>
     <string name="seekr_only">Seekr only</string>
     <string name="seekr_only_description">Show previews only when Seekr has them. Turn off to generate missing previews on this device.</string>
 </resources>

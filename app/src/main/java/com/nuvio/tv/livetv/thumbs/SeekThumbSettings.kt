@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Seek thumbnail settings (Settings > Playback > Seek Thumbnails). Off by default; every limit is
- * a choice the user can change. Kept on this device only (each box has its own memory and storage).
+ * a choice the user can change. Google Drive can back up the preferences and the personal key.
  */
 object SeekThumbSettings {
     /** When thumbnails are made. */
@@ -74,16 +74,71 @@ object SeekThumbSettings {
     fun update(context: Context, change: (Values) -> Values) {
         load(context)
         val next = change(_values.value)
-        if (next.apiKey != _values.value.apiKey) credentials(context).write(DEVICE_SLOT, next.apiKey.ifBlank { null })
+        val old = _values.value
+        val editor = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+        if (next.apiKey != old.apiKey) {
+            credentials(context).write(DEVICE_SLOT, next.apiKey.ifBlank { null })
+            editor.putBoolean(KEY_REMOVED, next.apiKey.isBlank())
+        }
+        if (old.enabled != next.enabled) editor.putBoolean(ENABLED, next.enabled)
+        if (old.seekrOnly != next.seekrOnly) editor.putBoolean("seekr_only", next.seekrOnly)
+        if (old.include4k != next.include4k) editor.putBoolean(INCLUDE_4K, next.include4k)
+        if (old.whenToMake != next.whenToMake) editor.putString(WHEN, next.whenToMake.name)
+        if (old.storageMb != next.storageMb) editor.putInt(STORAGE_MB, next.storageMb)
+        if (old.lastLowMemoryAt != next.lastLowMemoryAt) editor.putLong(LOW_MEMORY_AT, next.lastLowMemoryAt)
+        editor.apply()
         _values.value = next
-        context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-            .putBoolean("seekr_only", next.seekrOnly)
-            .putBoolean(ENABLED, next.enabled)
-            .putBoolean(INCLUDE_4K, next.include4k)
-            .putString(WHEN, next.whenToMake.name)
-            .putInt(STORAGE_MB, next.storageMb)
-            .putLong(LOW_MEMORY_AT, next.lastLowMemoryAt)
-            .apply()
+    }
+
+    private const val KEY_REMOVED = "seekr_key_removed"
+    private const val API_KEY = "api_key"
+
+    @Synchronized
+    internal fun backupFields(context: Context): Map<String, String> {
+        val current = load(context)
+        val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        return buildMap {
+            // Unset options retain this device's defaults, including its memory-based 4K policy.
+            mapOf(ENABLED to current.enabled.toString(), "seekr_only" to current.seekrOnly.toString(),
+                INCLUDE_4K to current.include4k.toString(), WHEN to current.whenToMake.name,
+                STORAGE_MB to current.storageMb.toString()).forEach { (key, value) -> if (prefs.contains(key)) put(key, value) }
+            if (current.apiKey.isNotBlank() || prefs.getBoolean(KEY_REMOVED, false)) put(API_KEY, current.apiKey)
+        }
+    }
+
+    internal fun validateBackup(fields: Map<String, String>) {
+        fields.forEach { (key, value) ->
+            require(when (key) {
+                ENABLED, "seekr_only", INCLUDE_4K -> value == "true" || value == "false"
+                WHEN -> When.entries.any { it.name == value }
+                STORAGE_MB -> value.toIntOrNull() in STORAGE_CHOICES
+                API_KEY -> true
+                else -> false
+            }) { "Invalid seek preview backup field" }
+        }
+    }
+
+    @Synchronized
+    internal fun restoreFields(context: Context, expected: Map<String, String>, restored: Map<String, String>) {
+        validateBackup(restored)
+        val current = backupFields(context)
+        val fields = restored.filterKeys { current[it] == expected[it] }
+        if (fields.isEmpty()) return
+        val editor = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+        fields.forEach { (key, value) ->
+            when (key) {
+                API_KEY -> {
+                    credentials(context).write(DEVICE_SLOT, value.ifBlank { null })
+                    editor.putBoolean(KEY_REMOVED, value.isEmpty())
+                }
+                WHEN -> editor.putString(key, value)
+                STORAGE_MB -> editor.putInt(key, value.toInt())
+                else -> editor.putBoolean(key, value.toBooleanStrict())
+            }
+        }
+        editor.apply()
+        loaded = false
+        load(context)
     }
 
     /** Android counts this box as low on memory (most cheap sticks and older boxes). */

@@ -27,6 +27,26 @@ import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(AndroidJUnit4::class)
 class SeekThumbnailDeviceTest {
+    @Test fun driveRestoreUsesAndroidKeystoreAndPreservesConcurrentEdits() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val old = SeekThumbSettings.load(context)
+        val fields = mapOf("api_key" to "fixture-restore-key", "enabled" to "true", "seekr_only" to "true",
+            "include_4k" to "false", "when" to "WATCHING", "storage_mb" to "100")
+        try {
+            SeekThumbSettings.restoreFields(context, SeekThumbSettings.backupFields(context), fields)
+            assertEquals(fields, SeekThumbSettings.backupFields(context))
+            val encrypted = context.getSharedPreferences("seekr_credentials", android.content.Context.MODE_PRIVATE)
+            assertTrue(encrypted.contains("profile.0"))
+            assertFalse(encrypted.all.toString().contains("fixture-restore-key"))
+            SeekThumbSettings.update(context) { it.copy(apiKey = "fixture-local-edit") }
+            SeekThumbSettings.restoreFields(context, fields, mapOf("api_key" to "fixture-stale-edit"))
+            assertEquals("fixture-local-edit", SeekThumbSettings.load(context).apiKey)
+            SeekThumbSettings.restoreFields(context, SeekThumbSettings.backupFields(context), mapOf("api_key" to ""))
+            assertEquals("", SeekThumbSettings.backupFields(context)["api_key"])
+            assertFalse(encrypted.contains("profile.0"))
+        } finally { SeekThumbSettings.update(context) { old } }
+    }
+
     @Test fun localReaderYieldsToBufferingAndSeekrOnlyNeverOpensIt() = runBlocking {
         val instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext

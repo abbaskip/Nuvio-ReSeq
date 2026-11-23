@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
+import com.nuvio.tv.livetv.thumbs.SeekThumbSettings
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -156,7 +158,8 @@ class LiveTvDriveSync @Inject constructor(
     suspend fun backupInfo(): BackupInfo? = withContext(Dispatchers.IO) {
         runCatching {
             val token = token() ?: return@runCatching null
-            val fileId = fileId(token) ?: fileId(token, TVDB_FILE_NAME, KEY_TVDB_FILE_ID) ?: return@runCatching null
+            val fileId = fileId(token) ?: fileId(token, TVDB_FILE_NAME, KEY_TVDB_FILE_ID)
+                ?: fileId(token, SEEK_FILE_NAME, KEY_SEEK_FILE_ID) ?: return@runCatching null
             val json = JSONObject(execute(
                 Request.Builder()
                     .url("https://www.googleapis.com/drive/v2/files/$fileId?alt=media")
@@ -220,6 +223,7 @@ class LiveTvDriveSync @Inject constructor(
 
     private fun setupChanges() = kotlinx.coroutines.flow.merge(
         prefs.changes,
+        SeekThumbSettings.values.map { it.copy(lastLowMemoryAt = 0) }.distinctUntilChanged().map { Unit },
         tvdbKeys.changes.map { Unit },
         profiles.profilesList.flatMapLatest { list ->
             kotlinx.coroutines.flow.merge(*list.map { mixes.observe(it.id).map { Unit } }.toTypedArray())
@@ -332,7 +336,7 @@ class LiveTvDriveSync @Inject constructor(
         protected.write(1, refresh)
         // An explicit sign-in may be a different Google account. Never reuse its predecessor's baseline.
         clearBase()
-        store.edit().remove(KEY_REFRESH).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_LAST_HASH).putString(KEY_EMAIL, email).apply()
+        store.edit().remove(KEY_REFRESH).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_SEEK_BASE).remove(KEY_SEEK_FILE_ID).remove(KEY_LAST_HASH).putString(KEY_EMAIL, email).apply()
         _state.value = _state.value.copy(connected = true, email = email, signIn = null, message = null)
         // First connection merges with Drive; it must not replace an existing local setup.
         push(force = true)
@@ -343,7 +347,7 @@ class LiveTvDriveSync @Inject constructor(
         cancelSignIn()
         scope.launch {
             mutex.withLock {
-                store.edit().remove(KEY_REFRESH).remove(KEY_EMAIL).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_LAST_HASH)
+                store.edit().remove(KEY_REFRESH).remove(KEY_EMAIL).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_SEEK_BASE).remove(KEY_SEEK_FILE_ID).remove(KEY_LAST_HASH)
                     .remove(KEY_MODE).remove(KEY_LAST_SYNC).remove(KEY_APPLIED_AT).apply()
                 clearBase()
                 protected.clear()
@@ -374,8 +378,9 @@ class LiveTvDriveSync @Inject constructor(
         emptyRefused = false
         _state.value = _state.value.copy(busy = true, message = if (force) "Backing up…" else null)
         val credentials = runCatching { syncTvdbKeys(token, upload = true, restore = false, force = force) }
+        val previews = runCatching { syncSeekPreviews(token, upload = true, restore = false) }
         val result = runCatching {
-            val credentialsSynced = credentials.getOrDefault(false)
+            val credentialsSynced = credentials.getOrDefault(false) || previews.getOrDefault(false)
             var data = exportSetup()
             val removedHere = prefs.removedSourceIds()
             val hash0 = sha(data.toString())
@@ -424,8 +429,9 @@ class LiveTvDriveSync @Inject constructor(
             lastSyncMs = store.getLong(KEY_LAST_SYNC, 0L),
             message = when {
                 result.isFailure -> "Backup failed: ${result.exceptionOrNull()?.message ?: "network error"}"
+                previews.isFailure -> "Seek preview settings or key could not sync. Check the connection. If both TVs edited the same setting, restore the Drive copy."
                 credentials.isFailure -> "TVDB keys could not be backed up. Check the connection and matching profile names, then try again."
-                emptyRefused -> "Nothing backed up: add a playlist, guide, TVDB key or order preference first. Your saved copy in Google Drive was left as it was."
+                emptyRefused -> "Nothing backed up: add a playlist, guide, seek preview setting, TVDB key or order preference first. Your saved copy in Google Drive was left as it was."
                 force -> "Backed up to Google Drive."
                 else -> _state.value.message
             }
@@ -440,8 +446,9 @@ class LiveTvDriveSync @Inject constructor(
         val token = token() ?: return@withLock false
         _state.value = _state.value.copy(busy = true, message = if (force && !onlyIfExists) "Restoring…" else null)
         val credentials = runCatching { syncTvdbKeys(token, upload = false, restore = force, force = force) }
+        val previews = runCatching { syncSeekPreviews(token, upload = false, restore = force) }
         val result = runCatching {
-            val credentialsSynced = credentials.getOrDefault(false)
+            val credentialsSynced = credentials.getOrDefault(false) || previews.getOrDefault(false)
             val fileId = fileId(token) ?: return@runCatching true.takeIf { credentialsSynced }
             val request = Request.Builder()
                 .url("https://www.googleapis.com/drive/v2/files/$fileId?alt=media")
@@ -486,6 +493,7 @@ class LiveTvDriveSync @Inject constructor(
             lastSyncMs = store.getLong(KEY_LAST_SYNC, 0L),
             message = when {
                 result.isFailure -> "Restore failed: ${result.exceptionOrNull()?.message ?: "network error"}"
+                previews.isFailure -> "Seek preview settings or key could not sync. Check the connection. If both TVs edited the same setting, restore the Drive copy."
                 credentials.isFailure -> "TVDB keys could not be restored. Check the connection and matching profile names, then try again."
                 result.getOrNull() == null && force && !onlyIfExists -> "No backup found in Google Drive yet."
                 applied && force -> "Restored from Google Drive."
@@ -662,6 +670,57 @@ class LiveTvDriveSync @Inject constructor(
         edit.apply()
         downloaded?.acknowledgeUnchanged()
         return if (upload || restore) merged.length() > 0 else updates.isNotEmpty()
+    }
+
+    /** The portable key lives in a separate user-owned Drive document. Only field hashes
+     * enter the on-device merge baseline. A missing local key is distinct from explicit removal. */
+    internal suspend fun syncSeekPreviews(token: String, upload: Boolean, restore: Boolean): Boolean {
+        val local = SeekThumbSettings.backupFields(context)
+        val baseline = JSONObject(store.getString(KEY_SEEK_BASE, null) ?: "{}")
+        val id = fileId(token, SEEK_FILE_NAME, KEY_SEEK_FILE_ID)
+        if (id == null && (!upload || local.isEmpty() || local == mapOf("api_key" to ""))) return false
+        val remote = id?.let { remoteCopy(token, it) }
+        val values = remote?.json?.let { doc ->
+            require(doc.optInt("format") == 1) { "Unsupported seek preview backup" }
+            val fields = doc.getJSONObject("settings")
+            fields.keys().asSequence().associateWith { key ->
+                require(fields.get(key) is String) { "Invalid seek preview backup" }
+                fields.getString(key)
+            }.also(SeekThumbSettings::validateBackup)
+        }.orEmpty()
+        val merged = values.toMutableMap()
+        val updates = mutableMapOf<String, String>()
+        val nextBase = JSONObject(baseline.toString())
+        for (key in local.keys + values.keys) {
+            val here = local[key]
+            val there = values[key]
+            val changedHere = here != null && sha(here) != baseline.optString(key) &&
+                (key != "api_key" || here.isNotEmpty() || baseline.has(key))
+            when {
+                here == there -> Unit
+                restore && there != null -> updates[key] = there
+                changedHere && upload -> {
+                    check(!baseline.has(key) || there == null || sha(there) == baseline.getString(key)) {
+                        "Conflicting seek preview changes"
+                    }
+                    merged[key] = requireNotNull(here)
+                }
+                changedHere -> continue
+                there != null -> updates[key] = there
+                here != null && upload -> merged[key] = here
+                else -> continue
+            }
+            merged[key]?.let { nextBase.put(key, sha(it)) }
+        }
+        val changed = merged != values
+        if (changed) uploadFile(token, SEEK_FILE_NAME, KEY_SEEK_FILE_ID, id, remote?.etag,
+            JSONObject().put("format", 1).put("savedAt", System.currentTimeMillis())
+                .put("deviceId", deviceId).put("device", Build.MODEL ?: "TV").put("settings", JSONObject(merged)).toString())
+        SeekThumbSettings.restoreFields(context, local, updates)
+        val edit = store.edit().putString(KEY_SEEK_BASE, nextBase.toString())
+        if (changed || updates.isNotEmpty() || restore && remote != null) edit.putLong(KEY_LAST_SYNC, System.currentTimeMillis())
+        edit.apply()
+        return if (upload || restore) merged.isNotEmpty() else updates.isNotEmpty()
     }
 
     /** Drive uses different ETags for media downloads and file updates. */
@@ -933,7 +992,7 @@ class LiveTvDriveSync @Inject constructor(
         if (response.code == 404) {
             val id = response.request.url.pathSegments.lastOrNull()
             val edit = store.edit()
-            for (key in listOf(KEY_FILE_ID, KEY_TVDB_FILE_ID)) if (id == store.getString(key, null)) edit.remove(key)
+            for (key in listOf(KEY_FILE_ID, KEY_TVDB_FILE_ID, KEY_SEEK_FILE_ID)) if (id == store.getString(key, null)) edit.remove(key)
             edit.apply()
         }
         if (response.code == 412) error("The backup changed on another TV. Sync again before saving.")
@@ -992,6 +1051,9 @@ class LiveTvDriveSync @Inject constructor(
         val SCOPE_ATTEMPTS = listOf(
             "https://www.googleapis.com/auth/drive.file" to MODE_FILE
         )
+        const val SEEK_FILE_NAME = "Nuvio ReSeq seek previews.json"
+        const val KEY_SEEK_FILE_ID = "seek_preview_file_id"
+        const val KEY_SEEK_BASE = "seek_preview_fingerprints"
         const val TVDB_FILE_NAME = "Nuvio ReSeq TVDB credentials.json"
         const val KEY_TVDB_FILE_ID = "tvdb_file_id"
         const val KEY_TVDB_BASE = "tvdb_fingerprints"

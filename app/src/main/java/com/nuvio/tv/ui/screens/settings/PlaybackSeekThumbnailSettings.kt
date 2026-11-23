@@ -1,10 +1,6 @@
 package com.nuvio.tv.ui.screens.settings
 
 import android.text.format.DateFormat
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -96,7 +92,6 @@ internal fun PlaybackSeekThumbnailSection() {
         subtitle = stringResource(whenDetailRes(s.whenToMake)),
         value = stringResource(whenLabelRes(s.whenToMake)),
         enabled = s.enabled && !s.seekrOnly,
-        leadingIcon = Icons.Default.Schedule,
         onClick = {
             val all = SeekThumbSettings.When.entries
             update { it.copy(whenToMake = all[(all.indexOf(it.whenToMake) + 1) % all.size]) }
@@ -107,7 +102,6 @@ internal fun PlaybackSeekThumbnailSection() {
         subtitle = stringResource(R.string.iptv_thumbs_storage_limit_desc),
         value = stringResource(R.string.iptv_thumbs_size_mb, s.storageMb.toString()),
         enabled = s.enabled && !s.seekrOnly,
-        leadingIcon = Icons.Default.SdStorage,
         onClick = {
             val all = SeekThumbSettings.STORAGE_CHOICES
             update { it.copy(storageMb = all[(all.indexOf(it.storageMb) + 1) % all.size]) }
@@ -117,7 +111,6 @@ internal fun PlaybackSeekThumbnailSection() {
         title = stringResource(R.string.iptv_thumbs_clear),
         subtitle = stringResource(R.string.iptv_thumbs_clear_desc),
         value = savedBytes?.let { formatSize(it) },
-        leadingIcon = Icons.Default.DeleteSweep,
         onClick = {
             scope.launch {
                 withContext(Dispatchers.IO) { runCatching { SeekThumbs.clearAll(context) } }

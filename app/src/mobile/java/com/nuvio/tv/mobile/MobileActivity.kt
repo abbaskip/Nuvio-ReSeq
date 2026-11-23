@@ -317,9 +317,13 @@ internal fun Action(text: String, modifier: Modifier = Modifier, selected: Boole
         contentAlignment = if (settings) Alignment.CenterStart else Alignment.Center) { Label(text, strong = selected == true) }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun TouchSheet(onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    // The activity and the sheet use different windows. In three-button mode the dialog
+    // can report a zero inset even while Android's navigation bar intercepts its last row.
+    val hostNavigation = WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
     ModalBottomSheet(onDismissRequest = onClose, shape = RectangleShape, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), content = content)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        contentWindowInsets = { BottomSheetDefaults.windowInsets.union(hostNavigation) }, content = content)
 }

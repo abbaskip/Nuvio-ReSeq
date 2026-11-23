@@ -49,7 +49,7 @@ def fixture():
         files = []
         offline = Event()
         movies = [{"id": "qafilm" + name, "type": "movie", "name": "Test film " + name} for name in channels]
-        series = {"id": "qaseries", "type": "series", "name": "ReSeq Test Series", "videos": [
+        series = {"id": "qaseries", "type": "series", "name": "Zyntraxis ReSeq Fixture", "videos": [
             {"id": f"qaseries:1:{n}", "season": 1, "episode": n, "title": title, "released": "2020-01-01T00:00:00.000Z"}
             for n, title in enumerate(("Pilot", "Second episode"), start=1)]}
         manifest = {"id": "org.reseq.touchtest", "version": "1.0.0", "name": "Offline fixture",
@@ -67,7 +67,7 @@ def fixture():
                     elif "/catalog/movie/" in path:
                         data = {"metas": [] if "/search=" in path and "film" not in path.casefold() else movies}
                     elif "/catalog/series/" in path:
-                        data = {"metas": [series]}
+                        data = {"metas": [series] if "/search=" not in path or "zyntraxis" in path.casefold() else []}
                     elif "/meta/series/" in path:
                         data = {"meta": series}
                     elif "/meta/movie/" in path:
@@ -280,13 +280,13 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
             if any(n.get("text") == "Filters" for n in nodes()):
                 shell("input", "keyevent", "KEYCODE_BACK")
             tap(locate(editable=0))
-            shell("input", "text", "ReSeq%sTest%sSeries")
+            shell("input", "text", "Zyntraxis")
             shell("input", "keyevent", "KEYCODE_ENTER")
-            choose("ReSeq Test Series")
+            tap(scroll_to("Zyntraxis ReSeq Fixture"))
             choose("Add to library")
             locate("Remove from library")
             choose("Library")
-            choose("ReSeq Test Series")
+            choose("Zyntraxis ReSeq Fixture")
             tap(scroll_to("S1E2 · Second episode"))
             choose("Play manually")
             choose("Alternate")
@@ -327,7 +327,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
             shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
             locate("Downloads")
             choose("Library")
-            locate("ReSeq Test Series")
+            locate("Zyntraxis ReSeq Fixture")
             choose("Home")
             choose("Test film One")
             locate("Playing download")

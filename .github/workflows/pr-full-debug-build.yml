@@ -64,6 +64,8 @@ jobs:
             python3 scripts/mobile_smoke.py --extended
             adb -s emulator-5554 shell pm clear io.github.abbaskip.nuvioreseq.mobile
             python3 scripts/mobile_smoke.py --providers-only
+            adb -s emulator-5554 shell pm clear io.github.abbaskip.nuvioreseq.mobile
+            python3 scripts/mobile_smoke.py --account-link
       - name: Save phone and tablet screenshots
         if: always()
         uses: actions/upload-artifact@v6

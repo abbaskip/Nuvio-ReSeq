@@ -1,5 +1,6 @@
 """Exercise the mobile catalogue, library, downloads, VOD and live TV on an isolated emulator."""
 import argparse
+import base64
 import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -14,6 +15,7 @@ import subprocess
 import tempfile
 from threading import Event, Thread
 from urllib.parse import parse_qs, unquote, urlsplit
+from urllib.request import urlopen
 import time
 import xml.etree.ElementTree as ET
 
@@ -51,8 +53,61 @@ def provider_response(path, query):
     return None
 
 
+class AccountFixture:
+    """Loopback Nuvio account with a browser approval and one interrupted status check."""
+
+    def __init__(self):
+        self.approved = False
+        self.interrupted = False
+        self.exchanges = 0
+        self.nonce = None
+        self.user = {"id": "280c2955-66e5-41f6-b618-30fe62cffdff", "email": "reseq@example.test",
+                     "aud": "authenticated", "role": "authenticated", "app_metadata": {"provider": "email"},
+                     "user_metadata": {}, "created_at": "2020-01-01T00:00:00Z"}
+
+    def response(self, path, body, address):
+        if path == "/approve-test":
+            self.approved = self.nonce is not None
+            return 200, {"approved": self.approved}
+        if path == "/rest/v1/rpc/start_device_login_session":
+            if self.nonce or body.get("p_device_type") != "mobile" or not body.get("p_device_nonce"):
+                return 400, {"message": "Expected a single mobile sign-in session"}
+            self.nonce = body["p_device_nonce"]
+            url = address + "/approve-test"
+            return 200, [{"device_code": "test-device", "user_code": "TEST42", "verification_uri": url,
+                          "verification_uri_complete": url, "poll_interval_seconds": 2,
+                          "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()}]
+        if path == "/rest/v1/rpc/poll_tv_login_session":
+            if body.get("p_code") != "test-device" or body.get("p_device_nonce") != self.nonce:
+                return 400, {"message": "Incorrect session"}
+            if self.approved and not self.interrupted:
+                self.interrupted = True
+                return 503, {"message": "Temporary interruption"}
+            return 200, [{"status": "approved" if self.approved else "pending", "poll_interval_seconds": 2}]
+        if path == "/functions/v1/tv-logins-exchange":
+            if not self.approved or body != {"code": "test-device", "device_nonce": self.nonce}:
+                return 403, {"message": "Approval required"}
+            self.exchanges += 1
+            encode = lambda value: base64.urlsafe_b64encode(json.dumps(value).encode()).rstrip(b"=").decode()
+            claims = {"sub": self.user["id"], "aud": "authenticated", "role": "authenticated",
+                      "email": self.user["email"], "iat": int(time.time()), "exp": int(time.time()) + 3600}
+            token = ".".join([encode({"alg": "HS256", "typ": "JWT"}), encode(claims), "dGVzdA"])
+            return 200, {"access_token": token, "refresh_token": "loopback-only", "token_type": "bearer",
+                         "expires_in": 3600, "user": self.user}
+        if path == "/auth/v1/user":
+            return 200, self.user
+        if path == "/rest/v1/rpc/get_sync_owner":
+            return 200, self.user["id"]
+        if path == "/rest/v1/addons":
+            return 200, [{"user_id": self.user["id"], "profile_id": 1, "name": "Offline fixture",
+                          "url": address + "/addon/manifest.json", "enabled": True, "sort_order": 0}]
+        if path.startswith("/rest/v1/"):
+            return 200, []
+        return None
+
+
 @contextmanager
-def fixture():
+def fixture(account=None):
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         (root / "live").mkdir()
@@ -91,8 +146,30 @@ def fixture():
         clip = (ROOT / "scripts/fixtures/mobile-player.mp4").read_bytes()
 
         class Handler(SimpleHTTPRequestHandler):
+            def account_request(self, path):
+                if account is None:
+                    return False
+                body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
+                result = account.response(path, json.loads(body or b"{}"), address)
+                if result is None:
+                    return False
+                status, data = result
+                payload = json.dumps(data).encode()
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+                return True
+
+            def do_POST(self):
+                if not self.account_request(urlsplit(self.path).path):
+                    self.send_error(404)
+
             def do_GET(self):
                 path = unquote(urlsplit(self.path).path)
+                if self.account_request(path):
+                    return
                 provider = provider_response(path, parse_qs(urlsplit(self.path).query))
                 if provider is not None:
                     payload = json.dumps(provider).encode()
@@ -168,7 +245,8 @@ def fixture():
                 thread.join()
 
 
-def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=False, upgrade_apk=None, providers_only=False):
+def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=False, upgrade_apk=None,
+        providers_only=False, account_link=False):
     if not re.fullmatch("emulator-[0-9]+", serial):
         raise ValueError("Use an isolated emulator serial for the touch smoke test")
 
@@ -272,8 +350,16 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
     density = shell("wm", "density")
     rotation = shell("settings", "get", "system", "user_rotation")
     auto = shell("settings", "get", "system", "accelerometer_rotation")
-    with fixture() as (address, port, played, sources, files, offline):
+    account = AccountFixture() if account_link else None
+    if account:
+        config = ROOT / "app/build/generated/source/buildConfig/mobile/debug/com/nuvio/tv/BuildConfig.java"
+        if not ("debug" in apk.name and apk.resolve() == (ROOT / "app/build/outputs/apk/mobile/debug" / apk.name).resolve()
+                and config.exists() and re.search(r'SUPABASE_URL = "http://127\.0\.0\.1:3879[12]"', config.read_text())):
+            raise ValueError("Build the mobile debug APK against the local account fixture before running --account-link")
+    with fixture(account) as (address, port, played, sources, files, offline):
         command("reverse", "tcp:38792", f"tcp:{port}")
+        if account:
+            command("reverse", "tcp:38791", f"tcp:{port}")
         try:
             shell("wm", "size", "1080x2160")
             shell("wm", "density", "420")
@@ -282,6 +368,32 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             shell("wm", "dismiss-keyguard")
             shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
             locate("Catalog sources")
+            if account or extended:
+                choose("Settings")
+                tap(scroll_to("Tracking and TVDB"))
+                scroll_to("MDBList")
+                if account is None and ("release" in apk.name or "universal" in apk.name):
+                    scroll_to("Connect MDBList")
+                tap(scroll_to("MDBList ratings and API key"))
+                scroll_to("MDBList API key")
+                choose("Back")
+                if account:
+                    tap(scroll_to("Nuvio account"))
+                    choose("Sign in to Nuvio")
+                    locate("TEST42")
+                    shell("input", "keyevent", "KEYCODE_HOME")
+                    with urlopen(f"http://127.0.0.1:{port}/approve-test", timeout=5) as approval:
+                        assert json.load(approval)["approved"]
+                    shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
+                    locate(account.user["email"])
+                    assert account.interrupted and account.exchanges == 1, "Approval did not recover in the original session"
+                    choose("Home")
+                    choose("Catalog sources")
+                    locate("Offline fixture", seconds=120)
+                    print("Verified MDBList under Tracking and TVDB, browser-return approval after interrupted polling, "
+                          "and automatic restoration of the account's catalogue.")
+                    return
+                choose("Home")
             if providers_only:
                 shell("wm", "size", "1600x2560")
                 shell("wm", "density", "240")
@@ -387,6 +499,17 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 shell("am", "force-stop", MOBILE_ID)
                 shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
             choose("Catalog sources")
+            # Keep Home deterministic while exercising long-press on a real installed catalogue.
+            # An emulator with internet access can otherwise fill several pages with public rows.
+            source_nodes = nodes()
+            cinemeta = next((node for node in source_nodes if node.get("text") == "Cinemeta"), None)
+            if cinemeta is not None:
+                source_index = source_nodes.index(cinemeta)
+                action = next((node for node in source_nodes[source_index + 1:]
+                               if node.get("text") in ("Enabled", "Disabled")), None)
+                if action is not None and action.get("text") == "Enabled":
+                    tap(action)
+                    locate("Disabled")
             if any(n.get("text") == "Offline fixture" for n in nodes()):
                 shell("input", "keyevent", "KEYCODE_BACK")
             else:
@@ -512,6 +635,8 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             if upgrade_apk:
                 print(f"Verified in-place update to {upgrade_apk.name} with the saved library and offline file.")
         finally:
+            if account:
+                command("reverse", "--remove", "tcp:38791")
             command("reverse", "--remove", "tcp:38792")
             for setting, original in (("size", size), ("density", density)):
                 override = re.search(r"Override (?:size|density): (\S+)", original)
@@ -540,7 +665,9 @@ if __name__ == "__main__":
     parser.add_argument("--catalog-only", action="store_true", help="Run only the on-demand journeys during development")
     parser.add_argument("--upgrade-apk", type=Path, help="Install an update over the seeded APK and verify the saved library and offline playback")
     parser.add_argument("--providers-only", action="store_true", help="Exercise Xtream and Stalker with local synthetic providers on a fresh emulator install")
+    parser.add_argument("--account-link", action="store_true", help="Test browser-return account sync with a loopback debug build")
     parser.add_argument("--drive-sign-in", action="store_true", help="Check the real Google sign-in prompt without authorizing an account")
     parser.add_argument("--extended", action="store_true", help="Exercise collection editing, TV Mix playback, Sports alerts and VOD controls")
     options = parser.parse_args()
-    run(options.adb, options.serial, options.apk, options.catalog_only, options.drive_sign_in, options.extended, options.upgrade_apk, options.providers_only)
+    run(options.adb, options.serial, options.apk, options.catalog_only, options.drive_sign_in, options.extended,
+        options.upgrade_apk, options.providers_only, options.account_link)

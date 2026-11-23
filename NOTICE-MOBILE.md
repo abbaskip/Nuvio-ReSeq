@@ -13,6 +13,7 @@ The reference files under `composeApp/src/commonMain/kotlin/com/nuvio/app` are:
 - `features/collection/CollectionManagementScreen.kt`, `CollectionEditorScreen.kt` and `FolderDetailScreen.kt` for the collection list, editing and folder browsing.
 - `features/livetv/ui/OnDemandScreen.kt`, `OnDemandTitleSheet.kt` and `features/livetv/multiview/MultiviewScreen.kt` for provider libraries, title actions and pane controls.
 - `features/settings/CustomThemeEditor.kt` for solid and gradient colour editing.
+- `core/auth/DeviceLinkAuthRepository.kt` and `features/auth/DeviceLinkAuthSection.kt` for the mobile device sign-in flow.
 - `features/livetv/ui/CalendarScreen.kt` for the week strip, month grid, selected-day agenda and entry sheet.
 - `features/livetv/ui/sports/SportsScreen.kt` and `SportsUi.kt` for the My Sports rows, dated All Events list and fixture cards.
 

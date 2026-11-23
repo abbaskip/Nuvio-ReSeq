@@ -9,26 +9,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.tv.ui.screens.settings.*
 
 @Composable
-internal fun MobileProviderSettings(mdb: MDBListSettingsViewModel = hiltViewModel(),
-    tracker: MdbListTrackerViewModel = hiltViewModel(), anime: AnimeSkipSettingsViewModel = hiltViewModel()) {
+internal fun MobileMdbListSettings(mdb: MDBListSettingsViewModel = hiltViewModel(),
+    tracker: MdbListTrackerViewModel = hiltViewModel()) {
     val state by mdb.uiState.collectAsStateWithLifecycle()
     val account by tracker.uiState.collectAsStateWithLifecycle()
     val lists by tracker.libraryLists.collectAsStateWithLifecycle()
     val validating by mdb.validating.collectAsStateWithLifecycle()
-    val animeId by anime.clientId.collectAsStateWithLifecycle()
-    val useAnime by anime.enabled.collectAsStateWithLifecycle()
-    val checkingAnime by anime.validating.collectAsStateWithLifecycle()
     val uri = LocalUriHandler.current
     var key by remember(state.apiKey) { mutableStateOf(state.apiKey) }
-    var client by remember(animeId) { mutableStateOf(animeId) }
     var mdbMessage by remember { mutableStateOf("") }
-    var animeMessage by remember { mutableStateOf("") }
     LaunchedEffect(mdb) { mdb.validationError.collect { mdbMessage = "MDBList could not validate the key." } }
-    LaunchedEffect(anime) { anime.validationError.collect { animeMessage = "AnimeSkip could not validate the client ID." } }
     LaunchedEffect(account.isConnected) {
         if (account.isConnected) { tracker.onAccountOpened(); tracker.onLibraryListsOpened() }
     }
-    SectionTitle("MDBList account")
+    SectionTitle("MDBList")
     if (account.isConnected) {
         account.username?.let { Label(it) }
         Action(if (account.isSyncing) "Syncing…" else "Sync MDBList") { if (!account.isSyncing) tracker.onSyncNow() }
@@ -47,7 +41,9 @@ internal fun MobileProviderSettings(mdb: MDBListSettingsViewModel = hiltViewMode
         if (!account.isLoading) tracker.onConnect()
     } else Label("MDBList account sign-in is unavailable in this build.")
     (account.errorMessage ?: account.statusMessage)?.let { Label(it) }
-    SectionTitle("MDBList ratings")
+    var editRatings by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    Action("MDBList ratings and API key") { editRatings = !editRatings }
+    if (!editRatings) return
     MobileSecretField("MDBList API key", key) { key = it; mdbMessage = "" }
     Action(if (validating) "Checking key…" else "Save MDBList key") { if (!validating) mdb.validateAndSaveApiKey(key) { mdbMessage = "Saved" } }
     if (mdbMessage.isNotEmpty()) Label(mdbMessage)
@@ -71,7 +67,16 @@ internal fun MobileProviderSettings(mdb: MDBListSettingsViewModel = hiltViewMode
             }
         }
     }
-    SectionTitle("AnimeSkip")
+}
+
+@Composable
+internal fun MobileAnimeSkipSettings(anime: AnimeSkipSettingsViewModel = hiltViewModel()) {
+    val animeId by anime.clientId.collectAsStateWithLifecycle()
+    val useAnime by anime.enabled.collectAsStateWithLifecycle()
+    val checkingAnime by anime.validating.collectAsStateWithLifecycle()
+    var client by remember(animeId) { mutableStateOf(animeId) }
+    var animeMessage by remember { mutableStateOf("") }
+    LaunchedEffect(anime) { anime.validationError.collect { animeMessage = "AnimeSkip could not validate the client ID." } }
     TogglePreference("Use AnimeSkip", useAnime, anime::setEnabled)
     MobileSecretField("AnimeSkip client ID", client) { client = it; animeMessage = "" }
     Action(if (checkingAnime) "Checking client ID…" else "Save AnimeSkip client ID") {

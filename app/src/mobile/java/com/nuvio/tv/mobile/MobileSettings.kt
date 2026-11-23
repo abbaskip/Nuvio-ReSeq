@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
 private enum class SettingsPage(val title: String) {
     ACCOUNT("Nuvio account"), PROFILES("Profiles"), ADDONS("Catalog sources"), PLUGINS("Extensions"),
     PLAYBACK("Playback and source selection"), TRACKING("Tracking and TVDB"), DRIVE("Google Drive backup and restore"),
-    DEBRID("Debrid providers"), THEME("Appearance"), IPTV("IPTV sources"), TMDB("TMDB metadata"), PROVIDERS("MDBList and AnimeSkip"),
+    DEBRID("Debrid providers"), THEME("Appearance"), IPTV("IPTV sources"), TMDB("TMDB metadata"), PROVIDERS("AnimeSkip"),
     SERVERS("Media servers"), HOME("Home and title details"), ABOUT("About and credits")
 }
 
@@ -85,7 +85,7 @@ internal fun MobileSettings(openIptv: Boolean, consumed: () -> Unit, catalog: Mo
                         SettingsPage.DEBRID -> DebridSettings(catalog.debrid)
                         SettingsPage.THEME -> AppearanceSettings(catalog.themes)
                         SettingsPage.TMDB -> MobileTmdbSettings()
-                        SettingsPage.PROVIDERS -> MobileProviderSettings()
+                        SettingsPage.PROVIDERS -> MobileAnimeSkipSettings()
                         SettingsPage.SERVERS -> MobileMediaServers()
                         else -> Unit
                     }
@@ -105,8 +105,13 @@ private fun Field(label: String, value: String, secret: Boolean = false, update:
 internal fun MobileSecretField(label: String, value: String, update: (String) -> Unit) = Field(label, value, true, update)
 
 @Composable
-private fun AccountSettings(vm: AccountViewModel = hiltViewModel()) {
+private fun AccountSettings(vm: AccountViewModel = hiltViewModel(), link: MobileAccountLink = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
+    val login by link.ui.collectAsStateWithLifecycle()
+    androidx.lifecycle.compose.LifecycleResumeEffect(link) {
+        link.foreground(true)
+        onPauseOrDispose { link.foreground(false) }
+    }
     val uri = LocalUriHandler.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -115,16 +120,31 @@ private fun AccountSettings(vm: AccountViewModel = hiltViewModel()) {
     val signed = state.authState as? AuthState.FullAccount
     if (signed != null) {
         Label(signed.email)
+        var requested by remember(signed.userId) { mutableStateOf(false) }
+        Action("Sync account now") { link.syncNow(); requested = true }
+        if (requested) Label("Account sync requested.")
         Action("Sign out") { vm.signOut() }
     } else if (vm.usesEmailPasswordLogin) {
         Field("Email", email) { email = it }
         Field("Password", password, true) { password = it }
         Row { Action("Sign in") { vm.signIn(email.trim(), password) }; Action("Create account") { vm.signUp(email.trim(), password) } }
     } else {
-        if (state.qrLoginCode == null) Action("Sign in to Nuvio") { vm.startQrLogin() }
-        state.qrLoginUserCode?.let { Label(it, strong = true) }
-        (state.qrLoginUrl ?: state.qrLoginVerificationUri)?.let { url -> Action("Open Nuvio sign-in") { uri.openUri(url) } }
-        state.qrLoginStatus?.let { Label(it) }
+        if (login.code == null && !login.busy) Action(if (login.message.isEmpty()) "Sign in to Nuvio" else "Request new code", onClick = link::start)
+        login.code?.let { Label(it, strong = true) }
+        login.address?.let { url ->
+            var showAddress by rememberSaveable(url) { mutableStateOf(false) }
+            Action("Open Nuvio sign-in") {
+                try { uri.openUri(url) } catch (_: IllegalArgumentException) { showAddress = true }
+            }
+            if (showAddress) androidx.compose.foundation.text.selection.SelectionContainer {
+                Label("Open this address in a browser: $url")
+            }
+        }
+        if (login.message.isNotEmpty()) Label(login.message)
+        if (login.code != null) Row {
+            Action("Check approval", onClick = link::checkNow)
+            Action("Cancel sign-in", onClick = link::cancel)
+        }
     }
     SectionTitle("Link devices")
     Field("Sync PIN", pin, true) { pin = it }
@@ -287,13 +307,14 @@ private fun TrackerSettings(trakt: TraktViewModel = hiltViewModel(), simkl: Simk
     val sources by tracking.uiState.collectAsStateWithLifecycle()
     if (sources.connectedProviderIds.isNotEmpty()) {
         SectionTitle("Watch progress")
-        sources.availableWatchProgressSources.forEach { source -> Action(source.name.replace('_', ' '),
+        sources.availableWatchProgressSources.forEach { source -> Action(trackerName(source),
             selected = source == sources.watchProgressSource) { tracking.selectWatchProgressSource(source) } }
         SectionTitle("Library source")
-        sources.availableLibrarySourceModes.forEach { source -> Action(source.name,
+        sources.availableLibrarySourceModes.forEach { source -> Action(trackerName(source),
             selected = source == sources.librarySourceMode) { tracking.selectLibrarySourceMode(source) } }
         SectionTitle("Ratings")
-        sources.availableRatingSources.forEach { source -> Action(source.name,
+        Action("All connected trackers", selected = sources.ratingSource == null) { tracking.selectRatingSource(null) }
+        sources.availableRatingSources.forEach { source -> Action(trackerName(source),
             selected = source == sources.ratingSource) { tracking.selectRatingSource(source) } }
     }
     SectionTitle("Trakt")
@@ -306,12 +327,20 @@ private fun TrackerSettings(trakt: TraktViewModel = hiltViewModel(), simkl: Simk
     else { Action("Connect Simkl", onClick = simkl::onConnect); s.userCode?.let { Label(it) }
         s.verificationUri?.let { Action("Open Simkl") { uri.openUri(it) } } }
     (s.errorMessage ?: s.statusMessage)?.let { Label(it) }
+    MobileMdbListSettings()
     SectionTitle("TheTVDB")
     var key by remember { mutableStateOf("") }
     if (db.configured) Label("API key configured")
     Field("TVDB API key", key, true) { key = it }
     Row { Action("Save key") { if (key.isNotBlank()) { tvdb.save(key.trim()); key = "" } }; Action("Test connection", onClick = tvdb::test) }
     db.message?.let { Label(it) }
+}
+
+private fun trackerName(source: Enum<*>): String = when (source.name) {
+    "MDBLIST" -> "MDBList"
+    "LOCAL" -> "Nuvio library"
+    "NUVIO_SYNC" -> "Nuvio sync"
+    else -> source.name.lowercase().replaceFirstChar { it.uppercase() }
 }
 
 @Composable

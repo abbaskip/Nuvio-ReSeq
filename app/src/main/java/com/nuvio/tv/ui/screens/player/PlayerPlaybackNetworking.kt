@@ -147,6 +147,17 @@ internal object PlayerPlaybackNetworking {
         }
     }
 
+    internal fun withHttp2On403Fallback(http1Client: OkHttpClient): OkHttpClient {
+        // Same client (same interceptors, pool and dispatcher) but allowed to negotiate HTTP/2.
+        // It does not contain the retry interceptor below, so it cannot loop.
+        val http2Client = http1Client.newBuilder()
+            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+            .build()
+        return http1Client.newBuilder()
+            .addInterceptor(Http2On403Interceptor(http2Client))
+            .build()
+    }
+
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     fun createHttpClient(
         defaultHeaders: Map<String, String> = emptyMap(),
@@ -174,14 +185,7 @@ internal object PlayerPlaybackNetworking {
             .build()
         if (proxyHeaders.isEmpty()) return http1Client
 
-        // Same client (same proxyHeaders network interceptor, pool and dispatcher) but allowed to
-        // negotiate HTTP/2. It does not contain the retry interceptor below, so it cannot loop.
-        val http2Client = http1Client.newBuilder()
-            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
-            .build()
-        return http1Client.newBuilder()
-            .addInterceptor(Http2On403Interceptor(http2Client))
-            .build()
+        return withHttp2On403Fallback(http1Client)
     }
 
     @UnstableApi

@@ -165,7 +165,7 @@ fun SportsScreen(
     onOpenGuide: () -> Unit = onOpenLive,
     onChannelMultiview: (String) -> Unit = {},
     onOpenSettings: () -> Unit = {},
-    onFindInNuvio: () -> Unit = {},
+    onFindInNuvio: (com.nuvio.tv.livetv.ui.GuideLookup) -> Unit = {},
     viewModel: SportsViewModel = hiltViewModel(),
     initialEventId: String? = null,
     onCloseInitialEvent: (() -> Unit)? = null
@@ -468,7 +468,7 @@ fun SportsScreen(
             com.nuvio.tv.livetv.ui.LiveTvPlayerScreen(
                 onBack = { fullscreen = false },
                 onBackToGroups = { fullscreen = false; onOpenGuide() },
-                onFindInNuvio = { fullscreen = false; onFindInNuvio() },
+                onFindInNuvio = { fullscreen = false; onFindInNuvio(it) },
                 onOpenSettings = { fullscreen = false; onOpenSettings() },
                 embedded = true
             )

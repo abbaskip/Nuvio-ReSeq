@@ -411,6 +411,7 @@ private fun applyDither(bmp: android.graphics.Bitmap) {
 @Composable
 fun MetaDetailsScreen(
     viewModel: MetaDetailsViewModel = hiltViewModel(),
+    guideListing: com.nuvio.tv.livetv.ui.GuideLookup? = null,
     returnFocusSeason: Int? = null,
     returnFocusEpisode: Int? = null,
     heroRestoreToken: Int = 0,
@@ -473,6 +474,7 @@ fun MetaDetailsScreen(
     ) -> Unit = { _, _, _, _, _, _, _, _, _, _, _, _, _, _ -> }
 ) {
     val playbackAvailability = LocalPlaybackAvailability.current
+    val chooseWatchedDate = com.nuvio.tv.ui.components.rememberWatchedDatePicker()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val posterCardCornerRadiusDp by viewModel.posterCardCornerRadiusDp.collectAsStateWithLifecycle()
     val effectiveAutoplayEnabled by viewModel.effectiveAutoplayEnabled.collectAsStateWithLifecycle(
@@ -926,17 +928,31 @@ fun MetaDetailsScreen(
                 if (playOnLoad && !playOnLoadReturnContentRevealed) {
                     PlaybackHandoffBackdrop(backdropUrl = heroBackdropUrl ?: meta.backdropUrl)
                 }
+                val airing = remember(guideListing, meta.videos) {
+                    guideListing?.let { com.nuvio.tv.livetv.ui.guideEpisode(meta.videos, it.number, it.subtitle) }
+                }
+                var guideFocused by rememberSaveable(meta.id) { mutableStateOf(false) }
+                val guideNext = airing?.let { video ->
+                    val season = video.episodeIdentity?.displayed?.season ?: video.season
+                    val episode = video.episodeIdentity?.displayed?.episode ?: video.episode
+                    if (season == null || episode == null) null else NextToWatch(null, false, video.id, season, episode,
+                        stringResource(R.string.hero_play_episode, season, episode))
+                }
                 MetaDetailsContent(
                     modifier = Modifier.graphicsLayer {
                         alpha = playOnLoadReturnContentAlpha
                     },
                     heroBackdropUrl = heroBackdropUrl,
                     meta = meta,
+                    guideVideo = airing,
                     detailReturnEpisodeFocusRequest = DetailReturnEpisodeFocusRequest(
-                        season = returnFocusSeason,
-                        episode = returnFocusEpisode
+                        season = returnFocusSeason ?: guideNext?.nextSeason?.takeUnless { guideFocused },
+                        episode = returnFocusEpisode ?: guideNext?.nextEpisode?.takeUnless { guideFocused }
                     ),
-                    onDetailReturnEpisodeFocusConsumed = onReturnFocusConsumed,
+                    onDetailReturnEpisodeFocusConsumed = {
+                        guideFocused = true
+                        onReturnFocusConsumed()
+                    },
                     lastFocusedEpisodeIdBySeason = viewModel.lastFocusedEpisodeIdBySeason,
                     heroRestoreToken = heroRestoreToken,
                     seasons = uiState.seasons,
@@ -944,7 +960,7 @@ fun MetaDetailsScreen(
                     episodesForSeason = uiState.episodesForSeason,
                     isInLibrary = uiState.isInLibrary,
                     librarySourceMode = uiState.librarySourceMode,
-                    nextToWatch = uiState.nextToWatch,
+                    nextToWatch = guideNext ?: uiState.nextToWatch,
                     episodeProgressMap = uiState.episodeProgressMap,
                     watchedEpisodes = uiState.watchedEpisodes,
                     episodeWatchedPendingKeys = uiState.episodeWatchedPendingKeys,
@@ -952,7 +968,7 @@ fun MetaDetailsScreen(
                     seasonPostersEnabled = uiState.seasonPostersEnabled,
                     randomEpisodeEnabled = uiState.randomEpisodeEnabled,
                     episodeShuffle = uiState.episodeShuffle,
-                    shufflePoolEmpty = uiState.shufflePoolEmpty,
+                    shufflePoolEmpty = airing == null && uiState.shufflePoolEmpty,
                     onEpisodeShuffleChange = viewModel::setEpisodeShuffle,
                     onEpisodeOrderChanged = viewModel::reloadEpisodeOrder,
                     episodeOptionsOverlayStyle = uiState.episodeOptionsOverlayStyle,
@@ -1040,22 +1056,26 @@ fun MetaDetailsScreen(
                     onPlayButtonFocused = { viewModel.onEvent(MetaDetailsEvent.OnPlayButtonFocused) },
                     onToggleLibrary = { viewModel.onEvent(MetaDetailsEvent.OnToggleLibrary) },
                     onLibraryLongPress = { viewModel.onEvent(MetaDetailsEvent.OnLibraryLongPress) },
-                    onToggleMovieWatched = { viewModel.onEvent(MetaDetailsEvent.OnToggleMovieWatched) },
+                    onToggleMovieWatched = {
+                        if (uiState.isMovieWatched) viewModel.onEvent(MetaDetailsEvent.OnToggleMovieWatched(null))
+                        else chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnToggleMovieWatched(it)) }
+                    },
                     onRemoveWatch = viewModel::removeEpisodeWatch,
-                    onToggleEpisodeWatched = { video ->
-                        viewModel.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(video))
+                    onToggleEpisodeWatched = { video, watched ->
+                        if (watched) viewModel.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(video, null))
+                        else chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(video, it)) }
                     },
                     onMarkSeasonWatched = { season ->
-                        viewModel.onEvent(MetaDetailsEvent.OnMarkSeasonWatched(season))
+                        chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnMarkSeasonWatched(season, it)) }
                     },
                     onMarkSeasonUnwatched = { season ->
                         viewModel.onEvent(MetaDetailsEvent.OnMarkSeasonUnwatched(season))
                     },
                     onMarkPreviousEpisodesWatched = { video ->
-                        viewModel.onEvent(MetaDetailsEvent.OnMarkPreviousEpisodesWatched(video))
+                        chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnMarkPreviousEpisodesWatched(video, it)) }
                     },
                     onMarkPreviousSeasonsWatched = { season ->
-                        viewModel.onEvent(MetaDetailsEvent.OnMarkPreviousSeasonsWatched(season))
+                        chooseWatchedDate { viewModel.onEvent(MetaDetailsEvent.OnMarkPreviousSeasonsWatched(season, it)) }
                     },
                     isSeasonFullyWatched = { season ->
                         viewModel.isSeasonFullyWatched(season)
@@ -1284,6 +1304,7 @@ private fun MetaDetailsContent(
     modifier: Modifier = Modifier,
     heroBackdropUrl: String? = null,
     meta: Meta,
+    guideVideo: Video? = null,
     detailReturnEpisodeFocusRequest: DetailReturnEpisodeFocusRequest? = null,
     onDetailReturnEpisodeFocusConsumed: () -> Unit,
     lastFocusedEpisodeIdBySeason: MutableMap<Int, String>,
@@ -1346,7 +1367,7 @@ private fun MetaDetailsContent(
     onLibraryLongPress: () -> Unit,
     onToggleMovieWatched: () -> Unit,
     onRemoveWatch: (Video, WatchProgress, Boolean) -> Unit,
-    onToggleEpisodeWatched: (Video) -> Unit,
+    onToggleEpisodeWatched: (Video, Boolean) -> Unit,
     onMarkSeasonWatched: (Int) -> Unit,
     onMarkSeasonUnwatched: (Int) -> Unit,
     onMarkPreviousEpisodesWatched: (Video) -> Unit,
@@ -1406,8 +1427,8 @@ private fun MetaDetailsContent(
         meta.videos.firstOrNull { it.id == defaultVideoId && it.available != false }
     }
     val nextEpisode = remember(episodesForSeason) { episodesForSeason.firstOrNull() }
-    val heroVideo = remember(meta, nextToWatch, episodesForSeason) {
-        resolveHeroPlaybackVideo(
+    val heroVideo = remember(meta, nextToWatch, episodesForSeason, guideVideo) {
+        guideVideo ?: resolveHeroPlaybackVideo(
             meta = meta,
             nextToWatch = nextToWatch,
             episodesForSeason = episodesForSeason

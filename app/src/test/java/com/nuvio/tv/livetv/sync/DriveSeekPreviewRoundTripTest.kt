@@ -28,7 +28,7 @@ class DriveSeekPreviewRoundTripTest {
     @Test fun backupRestoreMergeRotateAndClear() = runBlocking {
         val app = RuntimeEnvironment.getApplication()
         val prefs = app.getSharedPreferences("livetv_drive_sync", Context.MODE_PRIVATE)
-        val drive = LiveTvDriveSync(app, mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
+        val drive = LiveTvDriveSync(app, mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
         var saved: JSONObject? = null
         var rejectWrite = false
         val transport = OkHttpClient.Builder().addInterceptor { chain ->

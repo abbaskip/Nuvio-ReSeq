@@ -33,6 +33,10 @@ class TmdbCredentialStore internal constructor(private val protected: ProtectedP
         _changes.value += 1
     }
 
+    internal fun restoreIfUnchanged(profileId: Int, expected: String, key: String) = synchronized(lock) {
+        if (protected.read(profileId).orEmpty() == expected) save(profileId, key)
+    }
+
     override fun removeProfile(profileId: Int) { save(profileId, null) }
     override fun clearAllProfiles() = synchronized(lock) {
         protected.clear()

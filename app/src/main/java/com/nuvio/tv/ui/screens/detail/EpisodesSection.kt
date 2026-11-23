@@ -504,7 +504,7 @@ fun EpisodesRow(
     onEpisodeManualPlayClick: (Video) -> Unit = onEpisodeClick,
     onEpisodeStartFromBeginningClick: (Video) -> Unit = onEpisodeClick,
     onRemoveWatch: (Video, WatchProgress, Boolean) -> Unit,
-    onToggleEpisodeWatched: (Video) -> Unit,
+    onToggleEpisodeWatched: (Video, Boolean) -> Unit,
     showManualPlayOption: Boolean = false,
     onMarkSeasonWatched: (Int) -> Unit = {},
     onMarkSeasonUnwatched: (Int) -> Unit = {},
@@ -749,7 +749,7 @@ fun EpisodesRow(
             },
             showPlayManually = showManualPlayOption && canPlayEpisode(selectedEpisode),
             onToggleWatched = {
-                onToggleEpisodeWatched(selectedEpisode)
+                onToggleEpisodeWatched(selectedEpisode, selectedWatched)
                 optionsEpisode = null
             },
             onMarkSeasonWatched = {

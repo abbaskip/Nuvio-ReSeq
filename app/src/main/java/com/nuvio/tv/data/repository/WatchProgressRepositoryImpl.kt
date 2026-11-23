@@ -1273,7 +1273,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             progress.contentType.equals("tv", ignoreCase = true)) {
             traktSettingsDataStore.removeDismissedNextUpKeysForContent(progress.contentId, profileId)
         }
-        val now = System.currentTimeMillis()
+        val watchedAt = progress.lastWatched
         val progressKey = progressKey(progress)
         val duration = progress.duration.takeIf { it > 1L }
             ?: watchProgressPreferences.getAllRawEntries(profileId)[progressKey]
@@ -1284,7 +1284,6 @@ class WatchProgressRepositoryImpl @Inject constructor(
             position = duration,
             duration = duration,
             progressPercent = 100f,
-            lastWatched = now,
             tvdbCompletedEpisodeIds = progress.tvdbEpisodeIds
         )
         val completed = deviceEvents?.get()?.record(profileId, completedRow) ?: completedRow
@@ -1297,15 +1296,15 @@ class WatchProgressRepositoryImpl @Inject constructor(
         publishContinueWatching(profileId, listOf(completed))
         if (completed.tvdbContext != null) {
             recordTvdbNativeWatched(profileId, listOf(completed), syncRemote = true)
-            broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(now)), coverageChangesOnly = !broadcastTrackingHistory)
+            broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(watchedAt)), coverageChangesOnly = !broadcastTrackingHistory)
             triggerRemoteSync(profileId)
             return
         }
-        val watchedItem = completed.toWatchedItem(watchedAt = now)
+        val watchedItem = completed.toWatchedItem(watchedAt)
         watchedItemsPreferences.markAsWatched(watchedItem, profileId = profileId)
         mutationStore.queueWatchedUpserts(listOf(watchedItem), profileId)
         if (broadcastTrackingHistory || completed.tvdbEpisodeIds?.isNotEmpty() == true) {
-            broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(now)), coverageChangesOnly = !broadcastTrackingHistory)
+            broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(watchedAt)), coverageChangesOnly = !broadcastTrackingHistory)
         }
         if (broadcastTrackingHistory) {
             syncServerWatched(listOf(completed.toServerWatchMark()), played = true, profileId = profileId)
@@ -1323,7 +1322,6 @@ class WatchProgressRepositoryImpl @Inject constructor(
             firstProgress.contentType.equals("tv", ignoreCase = true)) {
             traktSettingsDataStore.removeDismissedNextUpKeysForContent(firstProgress.contentId, profileId)
         }
-        val now = System.currentTimeMillis()
         val rawEntries = watchProgressPreferences.getAllRawEntries(profileId)
 
         val completedList = progressList.map { progress ->
@@ -1335,7 +1333,6 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 position = duration,
                 duration = duration,
                 progressPercent = 100f,
-                lastWatched = now,
                 tvdbCompletedEpisodeIds = progress.tvdbEpisodeIds
             )
         }
@@ -1351,11 +1348,11 @@ class WatchProgressRepositoryImpl @Inject constructor(
         }
         watchProgressPreferences.saveProgressBatch(completedList, profileId = profileId)
         publishContinueWatching(profileId, completedList)
-        val watchedItems = completedList.filter { it.tvdbContext == null }.map { progress -> progress.toWatchedItem(watchedAt = now) }
+        val watchedItems = completedList.filter { it.tvdbContext == null }.map { progress -> progress.toWatchedItem(progress.lastWatched) }
         recordTvdbNativeWatched(profileId, completedList.filter { it.tvdbContext != null && it.isCompleted() }, syncRemote = true)
         watchedItemsPreferences.markAsWatchedBatch(watchedItems, profileId = profileId)
         mutationStore.queueWatchedUpserts(watchedItems, profileId)
-        broadcastHistoryAdd(profileId, completedList.map { it.toTrackingHistoryItem(now) })
+        broadcastHistoryAdd(profileId, completedList.map { it.toTrackingHistoryItem(it.lastWatched) })
         syncServerWatched(completedList.map { it.toServerWatchMark() }, played = true, profileId = profileId)
         triggerRemoteSync(profileId = profileId)
         triggerWatchedItemsSync(watchedItems, profileId = profileId)

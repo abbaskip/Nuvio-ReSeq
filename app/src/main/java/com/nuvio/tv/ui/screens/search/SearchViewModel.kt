@@ -706,7 +706,10 @@ class SearchViewModel @Inject constructor(
                     uiState.value.submittedQuery.trim() == query
                 ) {
                     lastCompletedRequestKey = requestKey
-                    _uiState.update { it.copy(isSearching = false) }
+                    // Guide lookup must see every catalogue before deciding a title is unique.
+                    catalogRowsUpdateJob?.cancel()
+                    updateCatalogRowsNow()
+                    _uiState.update { it.copy(isSearching = false, completedQuery = query) }
                     // Only explicit submit (or moving into results from the text input — see
                     // rememberSearchFromTextInput)
                     // writes history. Live search fires per keystroke and would otherwise record

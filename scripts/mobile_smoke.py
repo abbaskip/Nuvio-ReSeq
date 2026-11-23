@@ -15,7 +15,6 @@ import subprocess
 import tempfile
 from threading import Event, Thread
 from urllib.parse import parse_qs, unquote, urlsplit
-from urllib.request import urlopen
 import time
 import xml.etree.ElementTree as ET
 
@@ -73,7 +72,7 @@ class AccountFixture:
             if self.nonce or body.get("p_device_type") != "mobile" or not body.get("p_device_nonce"):
                 return 400, {"message": "Expected a single mobile sign-in session"}
             self.nonce = body["p_device_nonce"]
-            url = address + "/approve-test"
+            url = address + "/sign-in-test"
             return 200, [{"device_code": "test-device", "user_code": "TEST42", "verification_uri": url,
                           "verification_uri_complete": url, "poll_interval_seconds": 2,
                           "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()}]
@@ -168,6 +167,14 @@ def fixture(account=None):
 
             def do_GET(self):
                 path = unquote(urlsplit(self.path).path)
+                if account and path == "/sign-in-test":
+                    page = b'<!doctype html><meta name="viewport" content="width=device-width"><a href="/approve-test">Approve test sign-in</a>'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html")
+                    self.send_header("Content-Length", str(len(page)))
+                    self.end_headers()
+                    self.wfile.write(page)
+                    return
                 if self.account_request(path):
                     return
                 provider = provider_response(path, parse_qs(urlsplit(self.path).query))
@@ -290,7 +297,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
     def scroll_to(label):
         for attempt in range(30):
             tree = nodes()
-            match = next((n for n in tree if n.get("text") == label), None)
+            match = next((n for n in tree if label in (n.get("text"), n.get("content-desc"))), None)
             if match is not None:
                 return match
             boxes = [tuple(map(int, re.findall(r"-?\d+", n.get("bounds")))) for n in tree if n.get("scrollable") == "true"]
@@ -381,10 +388,15 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                     tap(scroll_to("Nuvio account"))
                     choose("Sign in to Nuvio")
                     locate("TEST42")
-                    shell("input", "keyevent", "KEYCODE_HOME")
-                    with urlopen(f"http://127.0.0.1:{port}/approve-test", timeout=5) as approval:
-                        assert json.load(approval)["approved"]
-                    shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
+                    choose("Open Nuvio sign-in")
+                    choose("Approve test sign-in")
+                    deadline = time.monotonic() + 10
+                    while not account.approved and time.monotonic() < deadline:
+                        time.sleep(.1)
+                    assert account.approved, "The browser did not confirm the test session"
+                    shell("input", "keyevent", "KEYCODE_BACK")
+                    if any(n.get("package") != MOBILE_ID and n.get("text") == "Approve test sign-in" for n in nodes()):
+                        shell("input", "keyevent", "KEYCODE_BACK")
                     locate(account.user["email"])
                     assert account.interrupted and account.exchanges == 1, "Approval did not recover in the original session"
                     choose("Home")

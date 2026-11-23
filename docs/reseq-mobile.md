@@ -44,6 +44,8 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 
 **Provider keys.** Back up keys saves the active profile’s TMDB, Gemini, debrid, MDBList and AnimeSkip keys in a separate passphrase-encrypted Drive file. On another device choose Restore keys and enter the same passphrase. Automatic sync never transfers this file. Both builds need the provider-key controls. TV RC 3.1 can supply the standard backup, including IPTV and TVDB, and retains its previous sign-in behaviour.
 
-**Build availability.** Signed Alpha 3 includes collections, player gestures, Sports tables, media servers and Multiview. The development branch also contains profile editing, post-play settings, home preferences, group management and sports reminder changes. [Alpha 3 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.3)
+**Tracking and account sync.** Open Settings → Tracking and TVDB → MDBList to connect an account, choose its library lists or configure ratings. Open Settings → Nuvio account to link the app. After you approve in the browser, return to ReSeq. It checks the existing code immediately and starts the account sync when signed in. Check approval repeats the status check if needed.
+
+**Build availability.** Alpha 4 adds profile editing, post-play settings, home preferences, channel group management, sports reminders and tracker settings. [Alpha 4 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.4)
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

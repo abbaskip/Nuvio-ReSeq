@@ -29,12 +29,23 @@ internal fun MobileMdbListSettings(mdb: MDBListSettingsViewModel = hiltViewModel
         lists.lists.forEach { option -> TogglePreference(option.name, option.visible) {
             if (lists.pendingKey == null) tracker.onToggleLibraryList(option)
         } }
-        lists.errorMessage?.let { Label(it) }
+        if (lists.isLoading) Label("Loading MDBList lists…")
+        lists.errorMessage?.let {
+            Label(it)
+            Action("Reload MDBList lists", onClick = tracker::onLibraryListsOpened)
+        }
         Action("Disconnect MDBList", onClick = tracker::onDisconnect)
     } else if (account.session != null) {
         account.session?.let { session ->
             Label(session.userCode, strong = true)
-            Action("Open MDBList sign-in") { uri.openUri(session.verificationUriComplete) }
+            var showAddress by remember(session.verificationUriComplete) { mutableStateOf(false) }
+            Action("Open MDBList sign-in") {
+                try { uri.openUri(session.verificationUriComplete) } catch (_: IllegalArgumentException) { showAddress = true }
+            }
+            if (showAddress) androidx.compose.foundation.text.selection.SelectionContainer {
+                Label(session.verificationUriComplete)
+            }
+            if (!account.isPolling && !account.isLoading) Action("Check MDBList approval", onClick = tracker::onRetryPolling)
             Action("Cancel sign-in", onClick = tracker::onCancel)
         }
     } else if (account.credentialsConfigured) Action(if (account.isLoading) "Connecting…" else "Connect MDBList") {

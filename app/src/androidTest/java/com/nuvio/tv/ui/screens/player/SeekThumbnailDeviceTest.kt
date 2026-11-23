@@ -145,6 +145,17 @@ class SeekThumbnailDeviceTest {
                         awaitPlayer("Engine did not resume after seeking") {
                             (mpv?.currentPositionMs() ?: exo?.currentPosition ?: 0) > 2_600
                         }
+                        if (useMpv) {
+                            scenario.onActivity {
+                                mpv!!.releasePlayer()
+                                mpv!!.setMedia(clip.path, emptyMap(), startPositionMs = 1_000)
+                                mpv!!.setPaused(true)
+                            }
+                            awaitPlayer("Recreated libmpv did not resume on the existing surface") {
+                                mpv!!.durationMs() > 3_000 && mpv!!.currentPositionMs() in 750L..1_750L
+                            }
+                            requireNotNull(reader.frameAt(2_000, 160, 90)).recycle()
+                        }
                     } finally { reader.close() }
                 } finally {
                     scenario.onActivity { mpv?.releasePlayer(); exo?.release() }

@@ -32,6 +32,7 @@ abstract class NuvioBaseMpvView(context: Context, attrs: AttributeSet?) : Surfac
 
     fun destroy() {
         holder.removeCallback(this)
+        filePath = null
         mpvInstance?.close()
         mpvInstance = null
     }

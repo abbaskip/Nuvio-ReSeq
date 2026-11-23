@@ -53,7 +53,7 @@ class TraktProgressServiceFailureTest {
     fun `batch history sends the selected date for each episode`() = runBlocking {
         val service = createService()
         val first = WatchProgress("tt0386676", "series", "The Office", null, null, null, "tt0386676:1:1",
-            1, 1, null, 1L, 1L, 946_684_800_000L)
+            1, 1, null, 1L, 1L, -86_400_000L)
         val second = first.copy(episode = 2, videoId = "tt0386676:1:2", lastWatched = first.lastWatched + 86_400_000L)
         val request = io.mockk.slot<com.nuvio.tv.data.remote.dto.trakt.TraktHistoryAddRequestDto>()
         coEvery { traktApi.addHistory(any(), capture(request)) } returns

@@ -5,8 +5,10 @@ import android.widget.TimePicker
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
+import android.view.ViewGroup
+import android.view.inspector.WindowInspector
+import androidx.core.view.descendants
+import androidx.test.filters.SdkSuppress
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.tv.material3.Button
 import androidx.tv.material3.Text
@@ -40,19 +42,24 @@ class WatchedDatePickerTvTest {
         compose.runOnIdle { assertTrue(requireNotNull(saved) in before..System.currentTimeMillis()) }
     }
 
+    private inline fun <reified T : android.view.View> widget(): T =
+        WindowInspector.getGlobalWindowViews().filterIsInstance<ViewGroup>().asSequence()
+            .flatMap { it.descendants }.filterIsInstance<T>().single()
+
+    @SdkSuppress(minSdkVersion = 29)
     @Test fun savesCalendarDateWithOrWithoutTime() {
         open()
         val date = LocalDate.of(2021, 7, 18)
         for (withTime in listOf(false, true)) {
             if (withTime) compose.onNodeWithText("Mark").performClick()
             compose.onNodeWithText(if (withTime) "Choose date and time" else "Choose date").performClick()
-            onView(isAssignableFrom(DatePicker::class.java)).check { view, _ ->
-                (view as DatePicker).updateDate(date.year, date.monthValue - 1, date.dayOfMonth)
+            compose.runOnIdle {
+                widget<DatePicker>().updateDate(date.year, date.monthValue - 1, date.dayOfMonth)
             }
             if (withTime) {
                 compose.onNodeWithText("Choose time").performClick()
-                onView(isAssignableFrom(TimePicker::class.java)).check { view, _ ->
-                    (view as TimePicker).apply { hour = 16; minute = 35 }
+                compose.runOnIdle {
+                    widget<TimePicker>().apply { hour = 16; minute = 35 }
                 }
             }
             compose.onNodeWithText("Save").performClick()

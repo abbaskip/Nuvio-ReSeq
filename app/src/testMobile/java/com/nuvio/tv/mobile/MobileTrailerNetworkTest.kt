@@ -1,9 +1,13 @@
 package com.nuvio.tv.mobile
 
 import com.nuvio.tv.data.local.TmdbSettingsDataStore
+import com.nuvio.tv.data.remote.api.TmdbApi
+import com.nuvio.tv.core.tmdb.TmdbService
+import com.nuvio.tv.domain.model.TmdbSettings
 import com.nuvio.tv.data.trailer.TrailerNetworkAccess
 import com.nuvio.tv.data.trailer.TrailerService
 import io.mockk.Called
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -11,7 +15,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertNull
@@ -23,7 +26,9 @@ class MobileTrailerNetworkTest {
         override fun allowsPlaybackNow() = playbackAllowed.value
     }
     private val settings = mockk<TmdbSettingsDataStore>()
-    private val service = TrailerService(mockk(), mockk(), mockk(), settings, mockk(), trailerNetwork = network)
+    private val api = mockk<TmdbApi>()
+    private val tmdb = mockk<TmdbService>()
+    private val service = TrailerService(mockk(), api, mockk(), settings, tmdb, trailerNetwork = network)
 
     @Test fun cellularRestrictionAlsoBlocksGalleryAndPostPlayLookups() = runBlocking {
         assertNull(service.getTrailerPlaybackSource("A movie", tmdbId = "1", ignoreUseTrailersGate = true))
@@ -35,10 +40,12 @@ class MobileTrailerNetworkTest {
 
     @Test fun losingWifiCancelsAnActiveLookupAndReconnectingCanRetry() = runBlocking {
         withTimeout(10_000) {
+            every { settings.settings } returns MutableStateFlow(TmdbSettings(useTrailers = true))
+            every { tmdb.apiKey() } returns "fixture"
             repeat(2) {
                 val started = CompletableDeferred<Unit>()
                 val stopped = CompletableDeferred<Unit>()
-                every { settings.settings } returns flow {
+                coEvery { api.getMovieVideos(1, "fixture", any()) } coAnswers {
                     started.complete(Unit)
                     try { awaitCancellation() } finally { stopped.complete(Unit) }
                 }

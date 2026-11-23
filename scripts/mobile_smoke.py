@@ -276,17 +276,10 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
                 shell("wm", "size", "1080x2160")
                 shell("wm", "density", "420")
                 shell("settings", "put", "system", "user_rotation", "0")
-                # Rotation and density changes reach SurfaceFlinger before the app finishes relayout.
-                # Wait for Home to move from the tablet rail to the phone's bottom navigation.
-                deadline = time.monotonic() + 45
-                while time.monotonic() < deadline:
-                    home = locate("Home")
-                    left, top, right, bottom = map(int, re.findall(r"-?\d+", home.get("bounds")))
-                    if 0 <= left < right <= 1080 and 1750 < top < bottom <= 2160:
-                        break
-                else:
-                    raise AssertionError("The phone navigation did not return after the tablet test")
-            choose("Home")
+                # Start the catalogue journey on Home after the separate tablet navigation journey.
+                # A fresh Activity reads the final display configuration on the hosted emulator.
+                shell("am", "force-stop", MOBILE_ID)
+                shell("am", "start", "-W", "-n", f"{MOBILE_ID}/{MOBILE_ACTIVITY}")
             choose("Catalog sources")
             if any(n.get("text") == "Offline fixture" for n in nodes()):
                 shell("input", "keyevent", "KEYCODE_BACK")

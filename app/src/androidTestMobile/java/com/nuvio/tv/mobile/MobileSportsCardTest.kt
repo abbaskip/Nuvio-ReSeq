@@ -102,6 +102,6 @@ class MobileSportsCardTest {
         for (label in listOf("174/6", "278/10", " ov", "In Play")) {
             compose.onNodeWithText(label, substring = true, useUnmergedTree = true).assertDoesNotExist()
         }
-        assertEquals(1, layout("Queensland Bulls").lineCount)
+        assertFullyVisible("Queensland Bulls", layout("Queensland Bulls"))
     }
 }

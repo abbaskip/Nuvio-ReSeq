@@ -362,8 +362,7 @@ private fun buildCompletedMovieProgress(item: MetaPreview, watchedAt: Long): Wat
 }
 
 fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview, watchedAt: Long?) {
-    val isSeries = item.apiType.equals("series", ignoreCase = true) ||
-        item.apiType.equals("tv", ignoreCase = true)
+    val isSeries = item.apiType.lowercase() in setOf("series", "tv", "anime")
     if (!isSeries) return
     val statusKey = homeItemStatusKey(item.id, item.apiType)
     if (statusKey in _uiState.value.movieWatchedPending) return
@@ -452,7 +451,7 @@ private suspend fun HomeViewModel.unmarkSeriesWatched(item: MetaPreview) {
 }
 
 private suspend fun HomeViewModel.fetchSeriesEpisodes(item: MetaPreview): List<com.nuvio.tv.domain.model.Video> {
-    val type = if (item.apiType.equals("tv", ignoreCase = true)) "series" else item.apiType
+    val type = if (item.apiType.lowercase() in setOf("tv", "anime")) "series" else item.apiType
     var episodes: List<com.nuvio.tv.domain.model.Video> = emptyList()
     metaRepository.getMetaFromPrimaryAddon(type, item.id)
         .collect { networkResult ->

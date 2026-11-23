@@ -50,6 +50,22 @@ class TraktProgressServiceFailureTest {
     private val traktApi = mockk<TraktApi>()
 
     @Test
+    fun `batch history sends the selected date for each episode`() = runBlocking {
+        val service = createService()
+        val first = WatchProgress("tt0386676", "series", "The Office", null, null, null, "tt0386676:1:1",
+            1, 1, null, 1L, 1L, 946_684_800_000L)
+        val second = first.copy(episode = 2, videoId = "tt0386676:1:2", lastWatched = first.lastWatched + 86_400_000L)
+        val request = io.mockk.slot<com.nuvio.tv.data.remote.dto.trakt.TraktHistoryAddRequestDto>()
+        coEvery { traktApi.addHistory(any(), capture(request)) } returns
+            Response.success(TraktHistoryAddResponseDto(added = TraktHistoryRemoveCountDto(episodes = 2)))
+        service.markSeasonWatchedBatch(listOf(first, second))
+        val timestamps = request.captured.shows.orEmpty().single().seasons.orEmpty().single().episodes.orEmpty().map {
+            java.time.Instant.parse(it.watchedAt).toEpochMilli()
+        }
+        assertEquals(listOf(first.lastWatched, second.lastWatched), timestamps)
+    }
+
+    @Test
     fun `failed playback fetch keeps the previous continue watching snapshot`() = runBlocking {
         val service = createService()
         withTimeout(TIMEOUT_MS) {

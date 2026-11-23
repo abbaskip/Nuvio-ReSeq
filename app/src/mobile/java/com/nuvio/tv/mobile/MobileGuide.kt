@@ -34,7 +34,8 @@ private const val HALF_HOUR = 1_800_000L
 private val slotWidth = 112.dp
 
 @Composable
-internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onReplay: () -> Unit, onSetup: () -> Unit) {
+internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onReplay: () -> Unit, onSetup: () -> Unit,
+    onFind: (GuideLookup) -> Unit) {
     val ui by vm.uiState.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
@@ -152,20 +153,67 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
                 Label(channel.name + " · " + formatClock(full.startMs, settings.use24HourClock) + " – " +
                     formatClock(full.stopMs, settings.use24HourClock))
                 full.description?.let { Label(it, Modifier.padding(vertical = 8.dp)) }
-                Action("Watch channel") { selected = null; onTune(channel) }
                 val user by vm.userState.collectAsStateWithLifecycle()
-                var result by remember { mutableStateOf<String?>(null) }
-                if (channel.catchup != null && full.startMs <= now) Action("Watch from start") {
-                    if (vm.playCatchup(channel, full)) { selected = null; onReplay() } else result = "This programme is outside the catch-up window."
+                var result by remember(channel.key, full.startMs) { mutableStateOf<String?>(null) }
+                val reminded = user.reminders.any { it.channelKey == channel.key && it.startMs == full.startMs }
+                val favourite = channel.key in user.favorites
+                val scheduled = vm.scheduler.isScheduled(channel.key, full)
+                val series = vm.isSeries(channel, full)
+                val actions = buildList {
+                    add(GuideAction("Watch channel", Icons.Default.PlayArrow) { selected = null; onTune(channel) })
+                    if (full.startMs > now) {
+                        add(GuideAction(if (reminded) "Cancel reminder" else "Remind me", Icons.Default.Notifications, reminded) {
+                            vm.toggleReminder(channel, full)
+                        })
+                    } else if (channel.catchup != null) {
+                        add(GuideAction("Watch from start", Icons.Default.Replay) {
+                            if (vm.playCatchup(channel, full)) { selected = null; onReplay() }
+                            else result = "This programme is outside the catch-up window."
+                        })
+                    }
+                    add(GuideAction("Find in Nuvio", Icons.Default.Search) {
+                        selected = null
+                        onFind(GuideLookup.from(full, channel))
+                    })
+                    add(GuideAction(if (scheduled) "Cancel recording" else "Record programme", Icons.Default.FiberManualRecord, scheduled) {
+                        result = vm.toggleScheduled(channel, full)
+                    })
+                    add(GuideAction(if (series) "Cancel series recording" else "Record series", Icons.Default.VideoLibrary, series) {
+                        result = vm.toggleSeries(channel, full)
+                    })
+                    add(GuideAction(if (favourite) "Remove favourite" else "Add to favourites",
+                        if (favourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, favourite) { vm.toggleFavorite(channel) })
                 }
-                if (full.startMs > now) Action(if (user.reminders.any { it.channelKey == channel.key && it.startMs == full.startMs }) "Cancel reminder" else "Remind me") {
-                    vm.toggleReminder(channel, full)
-                }
-                Action(if (vm.scheduler.isScheduled(channel.key, full)) "Cancel recording" else "Record programme") { result = vm.toggleScheduled(channel, full) }
-                Action(if (vm.isSeries(channel, full)) "Cancel series recording" else "Record series") { result = vm.toggleSeries(channel, full) }
-                result?.let { Label(it) }
-                Action(if (channel.key in user.favorites) "Remove from favourites" else "Add to favourites") {
-                    vm.toggleFavorite(channel)
+                ProgrammeActionGrid(actions)
+                result?.let { Label(it, Modifier.padding(top = 6.dp)) }
+            }
+        }
+    }
+}
+
+internal data class GuideAction(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val active: Boolean = false, val run: () -> Unit)
+
+@Composable
+internal fun ProgrammeActionGrid(actions: List<GuideAction>) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val columns = if (maxWidth / density.fontScale < 280.dp) 2 else 3
+        val height = with(density) { 34.dp + 32.sp.toDp() }
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            actions.chunked(columns).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    row.forEach { action ->
+                        Column(Modifier.weight(1f).height(height).mediaPanel(action.active)
+                            .clickable(role = Role.Button, onClick = action.run).padding(horizontal = 3.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Icon(action.icon, null, Modifier.size(19.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.height(2.dp))
+                            Text(action.label, fontFamily = condensed, fontSize = 13.sp, lineHeight = 15.sp,
+                                maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                        }
+                    }
+                    repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }

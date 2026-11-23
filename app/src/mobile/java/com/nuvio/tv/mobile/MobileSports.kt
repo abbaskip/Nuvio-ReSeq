@@ -15,6 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -167,18 +175,15 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
             if (channels.isEmpty()) Label("No matching channels", Modifier.padding(8.dp))
             Action("Match channels") { tool = "channels" }
             Action("Gemini coverage lookup") { tool = "lookup" }
-            channels.forEach { match -> Action(match.channel.sportsChannelLabel, Modifier.fillMaxWidth()) {
-                onClose()
-                onWatch(match.channel)
-            }
-                if (match.catchup && event.startMs <= System.currentTimeMillis()) Action("Replay from start · " + match.channel.sportsChannelLabel) {
-                    val request = if (vm.watchFromStart(event, match)) SportsLaunch.takeCatchup() else null
-                    if (request != null && replay(request)) onClose() else message = "Replay is unavailable on this channel."
-                }
-                if (event.state != GameState.POST) Action("Record on " + match.channel.sportsChannelLabel) { recording = match.channel.key }
-                if (recording == match.channel.key) LazyRow { items(listOf(60, 90, 120, 180, 240)) { mins ->
-                    Action("$mins min") { message = vm.record(event, match, mins); recording = null }
-                } }
+            channels.forEach { match ->
+                FixtureChannelRow(match.channel.sportsChannelLabel, canRecord = event.state != GameState.POST,
+                    canReplay = match.catchup && event.startMs <= System.currentTimeMillis(),
+                    onRecord = { recording = match.channel.key },
+                    onWatch = { onClose(); onWatch(match.channel) },
+                    onReplay = {
+                        val request = if (vm.watchFromStart(event, match)) SportsLaunch.takeCatchup() else null
+                        if (request != null && replay(request)) onClose() else message = "Replay is unavailable on this channel."
+                    })
             }
             if (message.isNotBlank()) Label(message)
             if (SportsCatalog.league(event.leagueId)?.let(vm.repo::mayHaveTable) == true) Action("League table") { table = true }
@@ -195,6 +200,38 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
         }
     }
     if (table) MobileSportsTools("Tables", { table = false }, event.leagueId, vm)
+    channels.firstOrNull { it.channel.key == recording }?.let { match ->
+        TouchSheet({ recording = null }) {
+            BrowseHeading("Record on " + match.channel.sportsChannelLabel) { recording = null }
+            LazyColumn(contentPadding = PaddingValues(10.dp)) {
+                items(listOf(60, 90, 120, 180, 240)) { minutes ->
+                    Action("$minutes min", Modifier.fillMaxWidth()) {
+                        message = vm.record(event, match, minutes)
+                        recording = null
+                    }
+                }
+            }
+        }
+    }
     if (tool == "channels") MobileFixtureChannels(event, channels, vm) { tool = null }
     if (tool == "lookup") MobileSportsLookup(event, vm) { tool = null }
+}
+
+@Composable
+internal fun FixtureChannelRow(label: String, canRecord: Boolean, canReplay: Boolean,
+    onRecord: () -> Unit, onWatch: () -> Unit, onReplay: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        if (canRecord) Row(Modifier.size(50.dp).mediaPanel().semantics { contentDescription = "Record on $label" }
+            .clickable(role = Role.Button, onClick = onRecord), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally)) {
+            Text("REC", fontFamily = condensed, fontSize = 12.sp, maxLines = 1)
+            Icon(Icons.Default.FiberManualRecord, null, Modifier.size(10.dp), tint = Color(0xFFFF565D))
+        }
+        Box(Modifier.weight(1f).heightIn(min = 50.dp).mediaPanel().clickable(role = Role.Button, onClick = onWatch)
+            .padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+            Text(label, Modifier.basicMarquee(), fontFamily = condensed, fontSize = 15.sp, textAlign = TextAlign.Center, maxLines = 1)
+        }
+        if (canReplay) MediaIconAction("Replay from start on $label", Icons.Default.Replay, onClick = onReplay)
+    }
 }

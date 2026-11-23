@@ -10,6 +10,11 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.BookmarkRemove
 import androidx.compose.material.icons.filled.PlaylistAdd
@@ -71,15 +76,16 @@ internal fun mobileDetailRoute(item: MetaPreview, addon: String?, action: VideoA
 
 @Composable
 internal fun MobileCatalog(tab: Tab, playerVisible: (Boolean) -> Unit, onWatch: (com.nuvio.tv.livetv.model.LiveChannel) -> Unit = {},
+    guideContent: (@Composable ((GuideLookup) -> Unit) -> Unit)? = null,
     catalog: MobileCatalogViewModel = hiltViewModel(), tracking: TrackingSettingsViewModel = hiltViewModel()) {
     val profile by catalog.profiles.activeProfileId.collectAsStateWithLifecycle()
-    key(profile, tab) { CatalogNavigation(profile, catalog, tab, playerVisible, onWatch, tracking) }
+    key(profile, tab) { CatalogNavigation(profile, catalog, tab, playerVisible, onWatch, tracking, guideContent) }
 }
 
 @Composable
 private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab: Tab, playerVisible: (Boolean) -> Unit,
     onWatch: (com.nuvio.tv.livetv.model.LiveChannel) -> Unit, tracking: TrackingSettingsViewModel,
-    mix: TvMixViewModel = hiltViewModel()) {
+    guideContent: (@Composable ((GuideLookup) -> Unit) -> Unit)?, mix: TvMixViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -153,6 +159,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
     NavHost(nav, startDestination = "catalog") {
         composable("catalog") {
             when (tab) {
+                Tab.GUIDE -> guideContent?.invoke { nav.navigate(it.route()) }
                 Tab.CALENDAR -> MobileCalendar(onWatch, onTitle = { id, type, title ->
                     nav.navigate(Screen.Detail.createRoute(id, type) + "&operation=Details&previewTitle=" + Uri.encode(title))
                 })
@@ -162,6 +169,20 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                     { nav.navigate("mobile-cloud") }, { nav.navigate("mobile-servers") }, { nav.navigate("mobile-mix") }, { nav.navigate("downloads") })
                 else -> CatalogHome(profile, catalog, openVideo, openTitle, { nav.navigate(it) }, tracking)
             }
+        }
+        composable(GuideLookup.pattern) { entry ->
+            val listing = remember(entry) { GuideLookup.from(requireNotNull(entry.arguments)) }
+            fun details(item: MetaPreview, addon: String?, exact: Boolean) {
+                val focus = if (listing.matchesTitle(item)) "&guideNumber=" + Uri.encode(listing.number) +
+                    "&guideSubtitle=" + Uri.encode(listing.subtitle) else ""
+                nav.navigate(mobileDetailRoute(item, addon, VideoAction.Details) + focus) {
+                    if (exact) popUpTo(entry.destination.id) { inclusive = true }
+                }
+            }
+            MobileSearch(open = { item, addon, action ->
+                if (action == VideoAction.Details) details(item, addon, false) else openTitle(item, addon, action)
+            }, advanced = { nav.navigate("advanced") }, flickPick = { nav.navigate(Screen.FlickPick.route) },
+                guide = listing, back = { nav.popBackStack() }, onGuideMatch = { item, addon -> details(item, addon, true) })
         }
         mobileBrowseDestinations(nav, openTitle)
         composable("downloads") { MobileDownloads(profile, catalog.downloads, back = { nav.popBackStack() }, play = { nav.navigate(it) }) }
@@ -187,11 +208,12 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                 }
             }
         }
-        composable(Screen.Detail.route + "&operation={operation}&previewTitle={previewTitle}") { entry ->
+        composable(Screen.Detail.route + "&operation={operation}&previewTitle={previewTitle}&guideNumber={guideNumber}&guideSubtitle={guideSubtitle}") { entry ->
             val args = requireNotNull(entry.arguments)
             CatalogDetail(profile, args.getString("operation"), args.getString("previewTitle").orEmpty(),
                 args.getString("itemId").orEmpty(), args.getString("itemType").orEmpty(), openVideo,
-                { nav.popBackStack() }, { nav.navigate(it) }, openTitle, mix, catalog.layout, args.getString("addonBaseUrl")?.takeUnless { it == "{addonBaseUrl}" })
+                { nav.popBackStack() }, { nav.navigate(it) }, openTitle, mix, catalog.layout, args.getString("addonBaseUrl")?.takeUnless { it == "{addonBaseUrl}" },
+                args.getString("guideNumber").orEmpty(), args.getString("guideSubtitle").orEmpty())
         }
         composable(Screen.Stream.route + "&operation={operation}",
             arguments = listOf(navArgument("autoSelectStream") { type = NavType.BoolType; defaultValue = false })) { entry ->
@@ -275,6 +297,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     var manage by remember { mutableStateOf<OfflineFile?>(null) }
     var removeDownload by remember { mutableStateOf<OfflineFile?>(null) }
     var providers by rememberSaveable { mutableStateOf(false) }
+    var orderRows by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val width = LocalConfiguration.current.screenWidthDp.dp
@@ -294,6 +317,10 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                     Icon(Icons.Default.Shuffle, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(5.dp))
                     Label("Flick Pick", strong = true)
+                }
+                TextButton(onClick = { orderRows = true }, contentPadding = PaddingValues(horizontal = 5.dp)) {
+                    Icon(Icons.Default.SwapVert, null, Modifier.size(18.dp))
+                    Label("Reorder", small = true)
                 }
                 IconButton(onClick = { providers = true }) {
                     Icon(Icons.Default.Tune, contentDescription = "Catalog sources", modifier = Modifier.size(20.dp), tint = colors.onSurface)
@@ -428,6 +455,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             result.onFailure { Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show() }
         }
     } }
+    if (orderRows) TouchSheet({ orderRows = false }) { MobileCatalogOrder { orderRows = false } }
     if (providers) CatalogSources { providers = false }
     resumeMenu?.let { (video, row) ->
         VideoActions(video.label, { resumeMenu = null }, playable = !row.chooseEpisode && (row !is ContinueWatchingItem.NextUp || row.info.hasAired), extra = {
@@ -455,7 +483,7 @@ internal fun CatalogSources(vm: com.nuvio.tv.ui.screens.addon.AddonManagerViewMo
     TouchSheet(close) {
         if (ordering) MobileCatalogOrder { ordering = false } else LazyColumn(contentPadding = PaddingValues(12.dp), modifier = Modifier.imePadding()) {
             item { BrowseHeading("Catalog sources", close) }
-            item { Action("Catalog order and visibility") { ordering = true } }
+            item { Action("Reorder Home rows") { ordering = true } }
             itemsIndexed(state.installedAddons, key = { _, addon -> addon.baseUrl }) { index, addon ->
                 Label(addon.name, strong = true)
                 if (!vm.isReadOnly) LazyRow {
@@ -483,20 +511,37 @@ internal fun CatalogSources(vm: com.nuvio.tv.ui.screens.addon.AddonManagerViewMo
 }
 
 @Composable
-private fun MobileCatalogOrder(vm: com.nuvio.tv.ui.screens.addon.CatalogOrderViewModel = hiltViewModel(), back: () -> Unit) {
+internal fun MobileCatalogOrder(vm: com.nuvio.tv.ui.screens.addon.CatalogOrderViewModel = hiltViewModel(), back: () -> Unit) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     DisposableEffect(vm) { onDispose { vm.cancelMove() } }
-    LazyColumn(contentPadding = PaddingValues(12.dp)) {
-        item { BrowseHeading("Catalog order", back) }
-        item { Action("Follow source order", selected = state.followAddonsOrder) { vm.toggleFollowAddonsOrder(!state.followAddonsOrder) } }
-        if (state.isLoading) item { Label("Loading catalogs…") }
-        items(state.items, key = { it.key }) { item ->
-            Label(item.catalogName + " · " + item.addonName, strong = true)
-            Row {
-                Action(if (item.isDisabled) "Hidden" else "Visible", selected = !item.isDisabled) { vm.toggleCatalogEnabled(item.disableKey) }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+        BrowseHeading("Reorder Home rows", back)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Action("Custom order", Modifier.weight(1f), !state.followAddonsOrder) { if (state.followAddonsOrder) vm.toggleFollowAddonsOrder(false) }
+            Action("Source order", Modifier.weight(1f), state.followAddonsOrder) { if (!state.followAddonsOrder) vm.toggleFollowAddonsOrder(true) }
+        }
+        if (state.followAddonsOrder) Label("Choose Custom order to move individual lists.", Modifier.padding(vertical = 4.dp), small = true)
+        if (state.isLoading) Label("Loading lists…") else if (state.items.isEmpty()) Label("Your catalogue lists and collections will appear here.")
+        LazyColumn(contentPadding = PaddingValues(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(state.items, key = { it.key }) { item ->
                 fun move(by: Int) { vm.enterMoveMode(item.key); vm.moveDuringDrag(item.key, by); vm.confirmMove() }
-                if (item.canMoveUp) Action("Up") { move(-1) }
-                if (item.canMoveDown) Action("Down") { move(1) }
+                Row(Modifier.fillMaxWidth().mediaPanel().padding(start = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Label(item.catalogName, strong = true, lines = 2)
+                        Label(listOfNotNull(item.addonName.takeIf { it.isNotBlank() }, item.typeLabel.takeIf { it.isNotBlank() },
+                            "Pinned".takeIf { item.isPinnedToTop }).joinToString(" · "), small = true, lines = 2)
+                    }
+                    IconButton(onClick = { move(-1) }, enabled = item.canMoveUp) {
+                        Icon(Icons.Default.KeyboardArrowUp, "Move " + item.catalogName + " up")
+                    }
+                    IconButton(onClick = { move(1) }, enabled = item.canMoveDown) {
+                        Icon(Icons.Default.KeyboardArrowDown, "Move " + item.catalogName + " down")
+                    }
+                    IconButton(onClick = { vm.toggleCatalogEnabled(item.disableKey) }) {
+                        Icon(if (item.isDisabled) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            (if (item.isDisabled) "Show " else "Hide ") + item.catalogName)
+                    }
+                }
             }
         }
     }
@@ -519,7 +564,8 @@ internal fun VideoActions(label: String, close: () -> Unit, playable: Boolean = 
 @Composable
 private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: String, type: String,
     open: (MobileVideo, VideoAction) -> Unit, back: () -> Unit, navigate: (String) -> Unit,
-    openTitle: (MetaPreview, String?, VideoAction) -> Unit, mix: TvMixViewModel, layout: LayoutPreferenceDataStore, sourceAddon: String?, vm: MetaDetailsViewModel = hiltViewModel()) {
+    openTitle: (MetaPreview, String?, VideoAction) -> Unit, mix: TvMixViewModel, layout: LayoutPreferenceDataStore, sourceAddon: String?,
+    guideNumber: String, guideSubtitle: String, vm: MetaDetailsViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val meta = state.meta
     val movie = type == "movie"
@@ -527,7 +573,16 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
     var comments by rememberSaveable { mutableStateOf(false) }
     var shuffle by rememberSaveable { mutableStateOf(false) }
     var addToMix by rememberSaveable { mutableStateOf(false) }
-    val hero = meta?.takeUnless { state.shufflePoolEmpty }?.let { resolveHeroPlaybackVideo(it, state.nextToWatch, state.episodesForSeason) }
+    val airing = remember(meta, guideNumber, guideSubtitle) { meta?.let { guideEpisode(it.videos, guideNumber, guideSubtitle) } }
+    var selectedAiringSeason by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(airing, state.seasons) {
+        val season = airing?.displaySeason
+        if (!selectedAiringSeason && season != null && season in state.seasons) {
+            vm.onEvent(MetaDetailsEvent.OnSeasonSelected(season))
+            selectedAiringSeason = true
+        }
+    }
+    val hero = airing ?: meta?.takeUnless { state.shufflePoolEmpty }?.let { resolveHeroPlaybackVideo(it, state.nextToWatch, state.episodesForSeason) }
     fun selection(selected: Video?): MobileVideo? {
         val title = meta?.name ?: preview
         if (movie && selected == null) return MobileVideo(profile, type, id, meta?.behaviorHints?.defaultVideoId ?: id, title, poster = meta?.poster)
@@ -570,7 +625,7 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
         if (!split) item { header(false) }
         if (state.shufflePoolEmpty) item { Label("No episodes match this show's shuffle settings.") }
         if (target != null) item { Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            val prefix = if (state.nextToWatch?.isResume == true) "Resume" else "Play"
+            val prefix = if (airing == null && state.nextToWatch?.isResume == true) "Resume" else "Play"
             val label = if (!movie && hero?.displaySeason != null && hero.displayEpisode != null)
                 "$prefix S${hero.displaySeason} E${hero.displayEpisode}" else prefix
             PrimaryMediaAction(label, Modifier.weight(1f), onLongClick = { menu = target }) { open(target, VideoAction.Play) }
@@ -582,7 +637,7 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                 horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 MediaArt(hero.thumbnail ?: meta?.backdropUrl, Icons.Default.PlayArrow, Modifier.size(80.dp, 48.dp).clip(mediaCorners))
                 Column(Modifier.weight(1f)) {
-                    Label(if (state.nextToWatch?.isResume == true) "Continue watching" else "Up next", small = true)
+                    Label(if (airing != null) "Episode from the guide" else if (state.nextToWatch?.isResume == true) "Continue watching" else "Up next", small = true)
                     Label("S${hero.displaySeason} E${hero.displayEpisode}  ·  ${hero.title}", strong = true, lines = 2)
                 }
             }
@@ -639,7 +694,7 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                 val progress = state.episodeProgressMap[episodeKey]
                 val watched = episodeKey in state.watchedEpisodes || progress?.isCompleted() == true
                 val rating = (state.episodeImdbRatings[episodeKey] ?: episode.rating).takeIf { state.detailImdbRatingsVisibility.showEpisodeRating(watched) }
-                EpisodeTile(episode, watched, progress?.progressPercentage ?: 0f, rating, video != null, { menu = video }) {
+                EpisodeTile(episode, watched, progress?.progressPercentage ?: 0f, rating, video != null, { menu = video }, highlighted = airing != null && airing.episodeListKey == episode.episodeListKey) {
                     Action(if (watched) "Mark unwatched" else "Mark watched") { vm.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(episode)) }
                     meta.episodeRatingReference(episode)?.let { MobileRating(it) }
                 }

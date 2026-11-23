@@ -181,8 +181,10 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
                         if (!inVodPlayer) LiveSectionBar(tab, wide = wide,
                             back = { tab = returnTab }, section = { tab = it }, multiview = { multiview = true })
                         when (tab) {
-                            Tab.GUIDE -> MobileGuide(live, onTune = { live.preview(it); playing = true }, onReplay = { playing = true },
-                                onSetup = { liveSetup = true; tab = Tab.SOURCES })
+                            Tab.GUIDE -> MobileCatalog(tab, { inVodPlayer = it }, guideContent = { find ->
+                                MobileGuide(live, onTune = { live.preview(it); playing = true }, onReplay = { playing = true },
+                                    onSetup = { liveSetup = true; tab = Tab.SOURCES }, onFind = find)
+                            })
                             Tab.SPORTS -> MobileSports(onWatch = { live.preview(it); playing = true })
                             else -> MobileCatalog(tab, { inVodPlayer = it }, onWatch = { live.preview(it); playing = true })
                         }

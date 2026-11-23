@@ -136,7 +136,12 @@ def fixture(account=None):
         for channel in guide_channels:
             programme = ET.SubElement(guide, "programme", channel=channel, start=(now-timedelta(minutes=45)).strftime(stamp),
                                       stop=(now+timedelta(hours=2)).strftime(stamp))
-            ET.SubElement(programme, "title").text = "Programme " + channel
+            title = {"Zone3": "Zyntraxis ReSeq Fixture: Second episode", "Zone4": "Test film One"}.get(channel, "Programme " + channel)
+            ET.SubElement(programme, "title").text = title
+            if channel == "Zone3":
+                ET.SubElement(programme, "episode-num", system="xmltv_ns").text = "0.1."
+            if channel == "Zone4":
+                ET.SubElement(programme, "category").text = "Movie"
             ET.SubElement(programme, "desc").text = "Local XMLTV fixture"
         (root / "live.m3u").write_text("\n".join(playlist) + "\n", encoding="utf-8")
         ET.ElementTree(guide).write(root / "guide.xml", encoding="utf-8", xml_declaration=True)
@@ -672,6 +677,40 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
             else:
                 enter_first_field(address + "/addon/manifest.json")
                 tap(scroll_to("Install source"))
+            if extended and not catalog_only:
+                choose("Reorder")
+                locate("Reorder Home rows")
+                choose("Custom order")
+                film, show = "Offline fixture movie", "Offline fixture series"
+                def home_list_order():
+                    labels = [n.get("text") for n in nodes()]
+                    return labels.index(film) < labels.index(show)
+                original = home_list_order()
+                lower = show if original else film
+                choose("Move " + lower + " up")
+                assert home_list_order() != original, "Home row did not move"
+                shell("input", "keyevent", "KEYCODE_BACK")
+                choose("Reorder")
+                assert home_list_order() != original, "Home row order was lost after reopening"
+                screenshot("phone-home-order", landscape=False)
+                shell("input", "keyevent", "KEYCODE_BACK")
+                choose("Live TV")
+                choose("Zyntraxis ReSeq Fixture: Second episode")
+                locate("Record programme")
+                screenshot("phone-programme-actions", landscape=False)
+                choose("Find in Nuvio")
+                locate("Episode from the guide", seconds=65)
+                locate("Play S1 E2")
+                screenshot("phone-guide-episode", landscape=False)
+                shell("input", "keyevent", "KEYCODE_BACK")
+                locate("Guide time")
+                choose("Test film One")
+                choose("Find in Nuvio")
+                locate("Play manually", seconds=65)
+                locate("Test film One")
+                shell("input", "keyevent", "KEYCODE_BACK")
+                choose("Leave Live TV")
+                print("Verified saved Home row order and Guide links to a film and the listed episode.")
             # Search through the installed catalogue, save a series, and play a chosen episode.
             if extended:
                 choose("Library")

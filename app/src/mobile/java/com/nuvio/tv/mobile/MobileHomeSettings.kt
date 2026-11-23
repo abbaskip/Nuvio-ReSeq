@@ -1,7 +1,7 @@
 package com.nuvio.tv.mobile
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -13,7 +13,10 @@ import com.nuvio.tv.ui.screens.settings.LayoutSettingsViewModel
 @Composable
 internal fun MobileHomeSettings(vm: LayoutSettingsViewModel = hiltViewModel()) {
     val settings by vm.uiState.collectAsStateWithLifecycle()
+    var order by rememberSaveable { mutableStateOf(false) }
+    if (order) TouchSheet({ order = false }) { MobileCatalogOrder { order = false } }
     SectionTitle("Home")
+    Action("Reorder Home rows") { order = true }
     TogglePreference("Show highlights", settings.heroSectionEnabled) { vm.onEvent(LayoutSettingsEvent.SetHeroSectionEnabled(it)) }
     if (settings.heroSectionEnabled && settings.availableCatalogs.isNotEmpty()) {
         SectionTitle("Highlight sources")

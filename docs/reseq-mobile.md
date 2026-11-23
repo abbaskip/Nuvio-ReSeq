@@ -46,6 +46,6 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 
 **Tracking and account sync.** Open Settings → Tracking and TVDB → MDBList to connect an account, choose its library lists or configure ratings. Open Settings → Nuvio account to link the app. After you approve in the browser, return to ReSeq. It checks the existing code immediately and starts the account sync when signed in. Check approval repeats the status check if needed.
 
-**Build availability.** Alpha 11 adds a compact Guide, a translucent in-player guide, sports filter icons, paired team badges and artwork controls. The Guide clock opens time navigation. The group button also opens group management. [Alpha 11 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.11)
+**Build availability.** Home → Reorder and Settings → Home and title details → Reorder Home rows open the shared catalogue order editor. Guide programme sheets have an icon grid with Find in Nuvio. Sports and Calendar share compact channel recording and tuning controls. [Alpha 12 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.12)
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

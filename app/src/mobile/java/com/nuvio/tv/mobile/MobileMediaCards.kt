@@ -94,9 +94,9 @@ internal fun PrimaryMediaAction(label: String, modifier: Modifier = Modifier, on
 
 @Composable
 internal fun EpisodeTile(episode: Video, watched: Boolean, progress: Float, rating: Double?, enabled: Boolean,
-    open: () -> Unit, actions: @Composable () -> Unit) {
+    open: () -> Unit, highlighted: Boolean = false, actions: @Composable () -> Unit) {
     var options by remember(episode.id) { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().mediaPanel().combinedClickable(enabled = enabled, onClick = open, onLongClickLabel = "Episode actions", onLongClick = open)
+    Row(Modifier.fillMaxWidth().mediaPanel(highlighted).combinedClickable(enabled = enabled, onClick = open, onLongClickLabel = "Episode actions", onLongClick = open)
         .padding(8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(98.dp).aspectRatio(1.42f).clip(mediaCorners)) {
             MediaArt(episode.thumbnail, Icons.Default.Movie, Modifier.fillMaxSize())

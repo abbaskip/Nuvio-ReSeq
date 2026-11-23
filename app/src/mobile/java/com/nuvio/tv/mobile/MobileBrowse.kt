@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -26,20 +27,36 @@ import com.nuvio.tv.ui.screens.library.*
 import com.nuvio.tv.ui.screens.search.*
 
 @Composable
-internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, advanced: () -> Unit, flickPick: () -> Unit, vm: SearchViewModel = hiltViewModel()) {
+internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, advanced: () -> Unit, flickPick: () -> Unit,
+    guide: GuideLookup? = null, back: () -> Unit = {}, onGuideMatch: (MetaPreview, String?) -> Unit = { _, _ -> }, vm: SearchViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val keyboard = LocalSoftwareKeyboardController.current
     var menu by remember { mutableStateOf<Pair<MetaPreview, String?>?>(null) }
     var removeRecent by remember { mutableStateOf<String?>(null) }
     val submit = { vm.onEvent(SearchEvent.SubmitSearch); keyboard?.hide(); Unit }
-    LaunchedEffect(vm) { vm.ensureDiscoverLoaded() }
+    var autoOpen by rememberSaveable(guide) { mutableStateOf(guide != null) }
+    LaunchedEffect(vm, guide) {
+        if (guide == null) vm.ensureDiscoverLoaded()
+        else if (state.submittedQuery.isEmpty()) {
+            vm.onEvent(SearchEvent.QueryChanged(guide.query))
+            vm.onEvent(SearchEvent.SubmitSearch)
+        }
+    }
+    LaunchedEffect(guide, state.submittedQuery, state.isSearching, state.catalogRows, autoOpen) {
+        if (guide != null && autoOpen && state.submittedQuery == guide.query && !state.isSearching) {
+            guide.exactMatch(state.catalogRows)?.let { (item, addon) ->
+                autoOpen = false
+                onGuideMatch(item, addon)
+            }
+        }
+    }
     Column(Modifier.fillMaxSize().padding(horizontal = 10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        if (guide != null) BrowseHeading("Find in Nuvio", back) else Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { SectionTitle("Search") }
             Action("Flick Pick", onClick = flickPick)
             Action("Advanced Discover", onClick = advanced)
         }
-        OutlinedTextField(state.query, { vm.onEvent(SearchEvent.QueryChanged(it)) }, Modifier.fillMaxWidth(),
+        OutlinedTextField(state.query, { autoOpen = false; vm.onEvent(SearchEvent.QueryChanged(it)) }, Modifier.fillMaxWidth(),
             singleLine = true, shape = RectangleShape, label = { Label("Movies and series") },
             trailingIcon = { TextButton(onClick = submit) { Text("Find") } },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { submit() }))
@@ -89,7 +106,7 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
                 state.catalogRows.forEach { row ->
                     item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle(row.catalogName) }
                     items(row.items) { item -> Poster(item, Modifier.fillMaxWidth(),
-                        { open(item, row.addonBaseUrl, VideoAction.Details) }, { menu = item to row.addonBaseUrl }) }
+                        { autoOpen = false; open(item, row.addonBaseUrl, VideoAction.Details) }, { autoOpen = false; menu = item to row.addonBaseUrl }) }
                     if (row.hasMore && row.supportsSkip) item(span = { GridItemSpan(maxLineSpan) }) {
                         Action("More from " + row.catalogName) { vm.onEvent(SearchEvent.LoadMoreCatalog(row.catalogId, row.addonId, row.apiType)) }
                     }

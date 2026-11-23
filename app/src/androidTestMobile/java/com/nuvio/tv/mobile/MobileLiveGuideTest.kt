@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
@@ -21,11 +23,44 @@ import com.nuvio.tv.livetv.model.LiveChannel
 import com.nuvio.tv.livetv.sports.Side
 import com.nuvio.tv.livetv.sports.TeamInfo
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
 class MobileLiveGuideTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun fixtureRecordAndTuneHaveSeparateTargetsOnOneLine() {
+        var action = ""
+        val channel = "AU | Fox Sports 501 FHD · B1G"
+        compose.setContent {
+            FixtureChannelRow(channel, canRecord = true, canReplay = true, onRecord = { action = "record" },
+                onWatch = { action = "tune" }, onReplay = { action = "replay" })
+        }
+        val record = compose.onNodeWithContentDescription("Record on $channel")
+        val watch = compose.onNodeWithText(channel)
+        val replay = compose.onNodeWithContentDescription("Replay from start on $channel")
+        val bounds = record.getUnclippedBoundsInRoot()
+        val watchBounds = watch.getUnclippedBoundsInRoot()
+        assertTrue(bounds.right <= watchBounds.left)
+        assertEquals(bounds.top + bounds.bottom, watchBounds.top + watchBounds.bottom)
+        record.performClick()
+        assertEquals("record", action)
+        watch.performClick()
+        assertEquals("tune", action)
+        replay.performClick()
+        assertEquals("replay", action)
+    }
+
+    @Test fun guideActionsUseTwoRowsOfEqualHeightTiles() {
+        val labels = listOf("Watch channel", "Watch from start", "Find in Nuvio", "Record programme", "Record series", "Add to favourites")
+        compose.setContent { ProgrammeActionGrid(labels.map { GuideAction(it, Icons.Default.PlayArrow) {} }) }
+        val bounds = labels.map { compose.onNodeWithText(it).getUnclippedBoundsInRoot() }
+        assertEquals(2, bounds.map { it.top }.distinct().size)
+        assertEquals(1, bounds.map { it.bottom - it.top }.distinct().size)
+        assertEquals(3, bounds.takeWhile { it.top == bounds.first().top }.size)
+    }
 
     @Test fun calendarShowsBothTeamsEvenWhenNeitherHasArtwork() {
         val teams = listOf("Hull", "Brighton").map { name ->

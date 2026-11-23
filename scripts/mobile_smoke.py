@@ -155,13 +155,23 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
     def choose(text): tap(locate(text))
 
     def scroll_to(label):
-        for _ in range(18):
+        for attempt in range(30):
             tree = nodes()
             match = next((n for n in tree if n.get("text") == label), None)
             if match is not None:
                 return match
-            shell("input", "swipe", "530", "1750", "530", "650", "350")
-        raise AssertionError(f"Could not scroll to {label}")
+            boxes = [tuple(map(int, re.findall(r"-?\d+", n.get("bounds")))) for n in tree if n.get("scrollable") == "true"]
+            if boxes:
+                left, top, right, bottom = max(boxes, key=lambda box: (box[2] - box[0]) * (box[3] - box[1]))
+                x = str((left + right) // 2)
+                start, end = str((top + 4 * bottom) // 5), str((3 * top + 2 * bottom) // 5)
+                # Search results can arrive above the current position while another catalogue loads.
+                if attempt >= 20:
+                    start, end = end, start
+                shell("input", "swipe", x, start, x, end, "350")
+            else:
+                time.sleep(.25)
+        raise AssertionError(f"Could not scroll to {label}. Visible labels: " + str([n.get("text") for n in tree if n.get("text")]))
 
     def long_press(node):
         a, b, c, d = map(int, re.findall(r"-?\d+", node.get("bounds")))
@@ -291,7 +301,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
                 shell("input", "keyevent", "KEYCODE_BACK")
             tap(locate(editable=0))
             shell("input", "text", "Zyntraxis")
-            shell("input", "keyevent", "KEYCODE_ENTER")
+            choose("Find")
             tap(scroll_to("Zyntraxis ReSeq Fixture"))
             choose("Add to library")
             locate("Remove from library")

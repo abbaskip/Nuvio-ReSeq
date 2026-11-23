@@ -28,6 +28,9 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
     val backup by drive.state.collectAsStateWithLifecycle()
     var add by remember { mutableStateOf<String?>(null) }
     var confirmation by remember { mutableStateOf<String?>(null) }
+    var keyTransfer by remember { mutableStateOf<Boolean?>(null) }
+    val keyVm: com.nuvio.tv.livetv.sync.ProviderKeyTransferViewModel = hiltViewModel()
+    val keyState by keyVm.state.collectAsStateWithLifecycle()
     var removal by remember { mutableStateOf<SourceRemoval?>(null) }
     val uri = LocalUriHandler.current
     LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -51,13 +54,18 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
         } else {
         item { Label("Connect the same Google account you use on ReSeq TV, phones and tablets. Choose Restore to load your saved setup.", Modifier.padding(8.dp)) }
         if (!backup.available) item { Label("Google Drive sign-in is unavailable in this build.") }
-        else if (!backup.connected) item { Action("Connect Google Drive", onClick = drive::connectForRestore) }
+        else if (!backup.connected) item { Action("Connect Google Drive", onClick = drive::beginSignIn) }
         else {
             backup.email?.let { item { Label(it) } }
             item { SourceRow("Automatic sync", backup.autoSync, change = drive::setAutoSync) }
             if (!backup.busy) items(listOf("Back up", "Restore", "Disconnect")) { action ->
                 Action(action) { confirmation = action }
             }
+            item { SectionTitle("Provider API keys"); Label("Transfer this profile’s TMDB, Gemini, debrid, MDBList and AnimeSkip keys in a separate passphrase-encrypted backup.", small = true) }
+            if (!keyState.busy) item { Row {
+                Action("Back up keys") { keyTransfer = true }; Action("Restore keys") { keyTransfer = false }
+            } } else item { LinearProgressIndicator() }
+            keyState.message?.let { item { Label(it) } }
         }
         backup.message?.let { item { Label(it, small = true) } }
         if (backup.lastSyncMs > 0) item { Label("Last sync · " + java.text.DateFormat.getDateTimeInstance().format(java.util.Date(backup.lastSyncMs)), small = true) }
@@ -139,6 +147,25 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
                 confirmation = null
             } }, dismissButton = { Action("Cancel") { confirmation = null } })
     }
+    keyTransfer?.let { upload ->
+        var phrase by remember { mutableStateOf("") }
+        var repeat by remember { mutableStateOf("") }
+        TouchSheet({ keyTransfer = null }) {
+            Column(Modifier.verticalScroll(rememberScrollState()).imePadding().padding(16.dp)) {
+                SectionTitle(if (upload) "Back up provider keys" else "Restore provider keys")
+                Label(if (upload) "Choose a passphrase of at least 10 characters and keep it to unlock your keys on other devices."
+                    else "Use the passphrase from the device that backed up this profile.", small = true)
+                OutlinedTextField(phrase, { phrase = it }, singleLine = true, label = { Label("Backup passphrase") }, visualTransformation = PasswordVisualTransformation())
+                if (upload) OutlinedTextField(repeat, { repeat = it }, singleLine = true,
+                    label = { Label("Confirm passphrase") }, visualTransformation = PasswordVisualTransformation())
+                Button(enabled = if (upload) phrase.length >= 10 && phrase == repeat else phrase.isNotEmpty(),
+                    onClick = { keyVm.transfer(upload, phrase); keyTransfer = null }, shape = RectangleShape) {
+                    Text(if (upload) "Back up keys" else "Restore keys")
+                }
+            }
+        }
+    }
+
 }
 
 @Composable

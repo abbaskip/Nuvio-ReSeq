@@ -8,6 +8,7 @@ import com.nuvio.tv.domain.model.MDBListSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -60,8 +61,10 @@ class MDBListSettingsDataStore @Inject constructor(
         store().edit { it[enabledKey] = enabled }
     }
 
-    suspend fun setApiKey(apiKey: String) {
-        store().edit { it[apiKeyKey] = apiKey.trim() }
+    internal suspend fun profileApiKey(profileId: Int) = store(profileId).data.first()[apiKeyKey]
+
+    suspend fun setApiKey(apiKey: String, profileId: Int = profileManager.activeProfileId.value) {
+        store(profileId).edit { it[apiKeyKey] = apiKey.trim() }
     }
 
     suspend fun setShowTrakt(enabled: Boolean) {

@@ -236,12 +236,7 @@ class LiveTvDriveSync @Inject constructor(
 
     // ------------------------------------------------------------------ sign-in
 
-    fun beginSignIn() = beginSignIn(chooseAfterConnect = false)
-
-    /** Mobile setup lets the owner inspect the saved copy before choosing a direction. */
-    fun connectForRestore() = beginSignIn(chooseAfterConnect = true)
-
-    private fun beginSignIn(chooseAfterConnect: Boolean) {
+    fun beginSignIn() {
         if (!_state.value.available) return
         signInJob?.cancel()
         signInJob = scope.launch {
@@ -289,8 +284,7 @@ class LiveTvDriveSync @Inject constructor(
                 }.getOrNull() ?: continue
                 when (token.optString("error")) {
                     "" -> {
-                        store.edit().putString(KEY_MODE, mode).apply()
-                        try { onSignedIn(token, chooseAfterConnect) }
+                        try { finishSignIn(token, mode) }
                         catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
                         catch (_: Exception) {
                             _state.value = _state.value.copy(signIn = null, busy = false,
@@ -319,36 +313,30 @@ class LiveTvDriveSync @Inject constructor(
         _state.value = _state.value.copy(signIn = null, busy = false)
     }
 
-    private suspend fun onSignedIn(token: JSONObject, chooseAfterConnect: Boolean) {
-        val requiredScope = "https://www.googleapis.com/auth/drive." + if (isAppDataMode) "appdata" else "file"
+    internal suspend fun finishSignIn(token: JSONObject, mode: String) = mutex.withLock {
+        val requiredScope = "https://www.googleapis.com/auth/drive." + if (mode == MODE_APPDATA) "appdata" else "file"
         if (requiredScope !in token.optString("scope").split(' ')) {
             _state.value = _state.value.copy(signIn = null, busy = false,
                 message = "Google sign-in did not grant Drive access. Connect again and allow the Drive permission.")
-            return
+            return@withLock
         }
         val refresh = token.optString("refresh_token")
         if (refresh.isBlank()) {
             _state.value = _state.value.copy(signIn = null, message = "Google didn't return a sign-in. Try again.")
-            return
+            return@withLock
         }
         accessToken = token.optString("access_token")
         accessTokenExpiresAt = System.currentTimeMillis() + token.optLong("expires_in", 3600) * 1000
         val email = emailFromIdToken(token.optString("id_token"))
-        protected.write(1, refresh)
-        // An explicit sign-in may be a different Google account. Never reuse its predecessor's baseline.
+        // A new grant may belong to another account. Disable automatic work durably before
+        // publishing the token so even a process restart between these writes cannot upload.
+        check(store.edit().putBoolean(KEY_AUTO, false).putString(KEY_MODE, mode)
+            .remove(KEY_REFRESH).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE)
+            .remove(KEY_LAST_HASH).remove(KEY_APPLIED_AT).remove(KEY_LAST_SYNC).putString(KEY_EMAIL, email).commit())
         clearBase()
-        store.edit().remove(KEY_REFRESH).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_LAST_HASH).putString(KEY_EMAIL, email).apply()
-        if (chooseAfterConnect) {
-            store.edit().putBoolean(KEY_AUTO, false).apply()
-            _state.value = _state.value.copy(connected = true, email = email, autoSync = false, busy = false,
-                signIn = null, message = "Connected. Choose Restore to load an existing backup, or Back up to save this device.")
-            start()
-            return
-        }
-        _state.value = _state.value.copy(connected = true, email = email, signIn = null, message = null)
-        // First connection merges with Drive; it must not replace an existing local setup.
-        push(force = true)
-        start()
+        protected.write(1, refresh)
+        _state.value = _state.value.copy(connected = true, email = email, autoSync = false, busy = false, lastSyncMs = 0L,
+            signIn = null, message = "Connected. Choose Restore to load an existing backup, or Back up to save this device.")
     }
 
     fun disconnect() {
@@ -372,6 +360,7 @@ class LiveTvDriveSync @Inject constructor(
     fun setAutoSync(enabled: Boolean) {
         store.edit().putBoolean(KEY_AUTO, enabled).apply()
         _state.value = _state.value.copy(autoSync = enabled)
+        if (enabled) start()
     }
 
     fun backUpNow() { scope.launch { push(force = true) } }
@@ -382,6 +371,7 @@ class LiveTvDriveSync @Inject constructor(
 
     /** Uploads this TV's setup. Skips the upload when nothing changed since the last one. */
     private suspend fun push(force: Boolean) = mutex.withLock {
+        if (!force && (!_state.value.connected || !_state.value.autoSync)) return@withLock
         val token = token() ?: return@withLock
         emptyRefused = false
         _state.value = _state.value.copy(busy = true, message = if (force) "Backing up…" else null)
@@ -449,6 +439,7 @@ class LiveTvDriveSync @Inject constructor(
      * Returns true if a copy was found and applied.
      */
     private suspend fun pull(force: Boolean, onlyIfExists: Boolean = false): Boolean = mutex.withLock {
+        if (!force && (!_state.value.connected || !_state.value.autoSync)) return@withLock false
         val token = token() ?: return@withLock false
         _state.value = _state.value.copy(busy = true, message = if (force && !onlyIfExists) "Restoring…" else null)
         val credentials = runCatching { syncTvdbKeys(token, upload = false, restore = force, force = force) }
@@ -573,7 +564,20 @@ class LiveTvDriveSync @Inject constructor(
         }
     }
 
-    private suspend fun uploadFile(token: String, name: String, idKey: String, fileId: String?, expectedEtag: String?, body: String) {
+    /** Manual transfer has its own encrypted document. Ordinary sync never searches for it. */
+    internal suspend fun transferProviderKeys(profileId: Int, transform: suspend (JSONObject?) -> JSONObject?) = mutex.withLock {
+        check(_state.value.connected) { "Connect Google Drive first." }
+        val access = token() ?: error("Reconnect Google Drive and try again.")
+        val name = "Nuvio ReSeq provider keys - profile $profileId.json"
+        val id = fileId(access, name, null)
+        val current = id?.let { remoteCopy(access, it) }
+        transform(current?.json)?.let { updated ->
+            uploadFile(access, name, null, id, current?.etag, updated.toString())
+        }
+        Unit
+    }
+
+    private suspend fun uploadFile(token: String, name: String, idKey: String?, fileId: String?, expectedEtag: String?, body: String) {
         if (fileId == null) {
             val meta = JSONObject().put("name", name)
             if (isAppDataMode) meta.put("parents", org.json.JSONArray().put("appDataFolder"))
@@ -588,7 +592,7 @@ class LiveTvDriveSync @Inject constructor(
                     .post(multipart)
                     .build()
             )
-            store.edit().putString(idKey, JSONObject(created).optString("id")).apply()
+            if (idKey != null) store.edit().putString(idKey, JSONObject(created).optString("id")).apply()
         } else {
             execute(
                 Request.Builder()
@@ -908,8 +912,8 @@ class LiveTvDriveSync @Inject constructor(
     }
 
     /** The backup file's id in the app data folder, or null if there isn't one yet. */
-    private suspend fun fileId(token: String, name: String = FILE_NAME, idKey: String = KEY_FILE_ID): String? {
-        store.getString(idKey, null)?.let { return it }
+    private suspend fun fileId(token: String, name: String = FILE_NAME, idKey: String? = KEY_FILE_ID): String? {
+        if (idKey != null) store.getString(idKey, null)?.let { return it }
         val text = execute(
             Request.Builder()
                 .url(
@@ -924,7 +928,7 @@ class LiveTvDriveSync @Inject constructor(
         val files = JSONObject(text).optJSONArray("files")
         check((files?.length() ?: 0) <= 1) { "Multiple backups found. Nothing was overwritten." }
         val id = files?.optJSONObject(0)?.optString("id")?.takeIf { it.isNotBlank() } ?: return null
-        store.edit().putString(idKey, id).apply()
+        if (idKey != null) store.edit().putString(idKey, id).apply()
         return id
     }
 

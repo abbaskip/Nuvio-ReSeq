@@ -77,7 +77,7 @@ class MobileActivity : ComponentActivity() {
                         val locked = locks?.get(active) == true
                         when {
                             locks == null -> CircularProgressIndicator()
-                            locked && unlockedProfile != active -> ProfileUnlock(active) { unlockedProfile = active }
+                            locked && unlockedProfile != active -> ProfileUnlock(active, unlocked = { unlockedProfile = active })
                             else -> CompositionLocalProvider(LocalSelectedProfile provides { id -> unlockedProfile = id }) { MobileShell() }
                         }
                     }

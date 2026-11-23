@@ -11,7 +11,8 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28], application = Application::class)
+@Config(manifest = Config.NONE, sdk = [28], application = Application::class)
+@org.robolectric.annotation.ConscryptMode(org.robolectric.annotation.ConscryptMode.Mode.OFF)
 class MobileOfflineMediaTest {
     private val media = MobileOfflineMedia(RuntimeEnvironment.getApplication())
     private val movie = MobileVideo(1, "movie", "tt1", "tt1", "../Same name")

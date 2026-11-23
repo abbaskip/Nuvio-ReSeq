@@ -8,6 +8,17 @@ permissions:
   contents: read
 
 jobs:
+  restore-tests:
+    name: Verify restore and offline behaviour
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+      - name: Run shared Drive tests on TV and mobile and mobile download tests
+        run: |
+          ./gradlew :app:testMobileDebugUnitTest --tests 'com.nuvio.tv.mobile.*' --tests 'com.nuvio.tv.livetv.sync.*' --tests '*LiveTvGroupPreferencesTest' :app:testFullDebugUnitTest --tests 'com.nuvio.tv.livetv.sync.*' --tests '*LiveTvGroupPreferencesTest' --init-script scripts/ci.gradle -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --console=plain
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 65

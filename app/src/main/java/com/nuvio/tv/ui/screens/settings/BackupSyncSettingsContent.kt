@@ -20,6 +20,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.nuvio.tv.livetv.sync.LiveTvDriveSync
 import com.nuvio.tv.ui.components.NuvioDialog
+import com.nuvio.tv.ui.components.tvTextFieldNavigation
 import com.nuvio.tv.ui.theme.NuvioTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -43,6 +44,9 @@ internal fun BackupSyncSettingsContent(
     val state by drive.state.collectAsStateWithLifecycle()
     var expanded by remember { mutableStateOf(true) }
     var dialog by remember { mutableStateOf<BackupDialog?>(null) }
+    val providerKeys: com.nuvio.tv.livetv.sync.ProviderKeyTransferViewModel = hiltViewModel()
+    val transfer by providerKeys.state.collectAsStateWithLifecycle()
+    var transferUpload by remember { mutableStateOf<Boolean?>(null) }
     val close = { dialog = null }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md)) {
         SettingsDetailHeader(title = "Backup & Sync", subtitle = "TVDB keys and orders, Shuffle choices, IPTV and Sports Hub configuration")
@@ -55,6 +59,13 @@ internal fun BackupSyncSettingsContent(
                     onBackUp = { dialog = BackupDialog.BACK_UP }, onRestore = { dialog = BackupDialog.RESTORE },
                     onDisconnect = { dialog = BackupDialog.DISCONNECT }
                 )
+            }
+            if (state.connected && expanded) item {
+                if (!transfer.busy) {
+                    SettingsActionRow("Back up provider API keys", "Encrypt this profile’s provider keys with a backup passphrase.", onClick = { transferUpload = true })
+                    SettingsActionRow("Restore provider API keys", "Unlock this profile’s saved keys with the backup passphrase.", onClick = { transferUpload = false })
+                }
+                if (transfer.busy || transfer.message != null) Text(transfer.message ?: "Transferring provider keys…", color = NuvioTheme.colors.TextSecondary)
             }
         }
     }
@@ -75,6 +86,22 @@ internal fun BackupSyncSettingsContent(
         null -> Unit
     }
     state.signIn?.let { DriveSignInDialog(it, drive::cancelSignIn) }
+    transferUpload?.let { upload ->
+        var phrase by remember { mutableStateOf("") }
+        var confirmation by remember { mutableStateOf("") }
+        NuvioDialog(onDismiss = { transferUpload = null }, title = if (upload) "Back up provider keys" else "Restore provider keys",
+            subtitle = "TMDB, Gemini, debrid, MDBList and AnimeSkip keys for this profile. Keep the passphrase to restore on another device.", width = 620.dp) {
+            androidx.compose.material3.OutlinedTextField(phrase, { phrase = it }, Modifier.fillMaxWidth().tvTextFieldNavigation(),
+                label = { Text(if (upload) "Backup passphrase (at least 10 characters)" else "Backup passphrase") }, singleLine = true, visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+            if (upload) androidx.compose.material3.OutlinedTextField(confirmation, { confirmation = it }, Modifier.fillMaxWidth().tvTextFieldNavigation(),
+                label = { Text("Confirm passphrase") }, singleLine = true, visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                androidx.tv.material3.Button(onClick = { transferUpload = null }) { Text("Cancel") }
+                androidx.tv.material3.Button(onClick = { providerKeys.transfer(upload, phrase); transferUpload = null },
+                    enabled = if (upload) phrase.length >= 10 && confirmation == phrase else phrase.isNotBlank()) { Text(if (upload) "Back up keys" else "Restore keys") }
+            }
+        }
+    }
 }
 
 // ==================================================================== Google Drive sync
@@ -116,11 +143,11 @@ private fun DriveSyncCard(
                 )
                 !state.connected -> {
                     Text(
-                        text = "Your playlists, guide settings, Sports Hub preferences and per-profile TVDB keys, episode orders and Shuffle choices are saved privately in your Google Drive. Keep the backup private. It includes playlist logins and TVDB keys. TMDB keys and tracker sign-ins stay on this TV.",
+                        text = "Your private Drive backup includes IPTV logins, guides, Sports Hub preferences, TVDB keys and episode orders, and Shuffle choices. Other provider API keys have a separate encrypted backup you can choose after connecting.",
                         style = MaterialTheme.typography.bodySmall,
                         color = NuvioTheme.colors.TextSecondary
                     )
-                    SettingsActionRow("Connect Google Drive", "Keeps your ReSeq configuration on every TV, using your own Google Drive. Sign in with a code on your phone.", onClick = onConnect)
+                    SettingsActionRow("Connect Google Drive", "Sign in with a code on your phone, then choose Restore or Back Up. Automatic sync starts only when you enable it.", onClick = onConnect)
                 }
                 else -> {
                     SettingsActionRow("Account", "The Google account used for your ReSeq backup", state.email ?: "Connected", onClick = {})

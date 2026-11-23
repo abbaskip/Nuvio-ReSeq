@@ -118,7 +118,7 @@ def fixture():
                 thread.join()
 
 
-def run(adb, serial, apk, catalog_only=False):
+def run(adb, serial, apk, catalog_only=False, drive_sign_in=False):
     if not re.fullmatch("emulator-[0-9]+", serial):
         raise ValueError("Use an isolated emulator serial for the touch smoke test")
 
@@ -142,7 +142,7 @@ def run(adb, serial, apk, catalog_only=False):
                     return fields[editable]
             else:
                 for node in tree:
-                    if node.get("text") == text or node.get("content-desc") == text:
+                    if node.get("class") != "android.widget.EditText" and (node.get("text") == text or node.get("content-desc") == text):
                         return node
             time.sleep(.25)
         raise AssertionError(f"Missing {text or 'text field'} on {serial}. Visible labels: " +
@@ -213,6 +213,11 @@ def run(adb, serial, apk, catalog_only=False):
                 if "Connect Google Drive" not in drive_labels:
                     if "-release" in apk.name or "universal.apk" in apk.name or "Google Drive sign-in is unavailable in this build." not in drive_labels:
                         raise AssertionError("Drive connection was unavailable in the configured build")
+                if drive_sign_in:
+                    choose("Connect Google Drive")
+                    # Reaching Google's user-code prompt exercises the packaged OAuth client without an account.
+                    locate("Open sign-in page")
+                    choose("Cancel")
                 choose("Back")
                 choose("IPTV sources")
                 added_playlist = source("Add M3U playlist", "ReSeqFixtureM3U", address + "/live.m3u")
@@ -346,5 +351,6 @@ if __name__ == "__main__":
     parser.add_argument("--serial", default=os.environ.get("ANDROID_SERIAL", "emulator-5554"))
     parser.add_argument("--apk", type=Path, default=ROOT / "app/build/outputs/apk/mobile/debug/app-mobile-x86_64-debug.apk")
     parser.add_argument("--catalog-only", action="store_true", help="Run only the on-demand journeys during development")
+    parser.add_argument("--drive-sign-in", action="store_true", help="Check the real Google sign-in prompt without authorizing an account")
     options = parser.parse_args()
-    run(options.adb, options.serial, options.apk, options.catalog_only)
+    run(options.adb, options.serial, options.apk, options.catalog_only, options.drive_sign_in)

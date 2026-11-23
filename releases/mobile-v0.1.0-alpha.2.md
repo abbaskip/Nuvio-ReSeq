@@ -6,7 +6,9 @@ Install this update over the signed Mobile Alpha 1. Choose the universal APK if 
 
 Home opens with catalogue artwork and Continue Watching. Use Search to find a film or series, then open its details to save it to Library, choose a season and episode, or play a specific source. Advanced Discover is under Search. The Live TV tab contains the guide, Sports and Calendar.
 
-Settings includes Nuvio account sign-in, profiles, extensions, playback preferences, tracking and Google Drive. To bring your setup across, connect the Google account used on your TV and choose **Restore**. The existing TV backup carries playlist logins, XMLTV guides, Sports preferences, TVDB keys and episode orders, mixes and Shuffle choices. Use matching Nuvio profiles on both devices.
+Settings includes Nuvio account sign-in, profiles, extensions, playback preferences, tracking and Google Drive. On a new phone or tablet, open **Settings → Google Drive backup and restore**, connect the Google account used on your TV and choose **Restore**. Connecting or reconnecting leaves automatic sync off and makes no backup. You can turn sync on later.
+
+The existing TV backup carries playlist logins, XMLTV guides, Sports preferences, TVDB keys and episode orders, mixes and Shuffle choices. Use matching Nuvio profiles on both devices. For personal TMDB, Gemini, debrid, MDBList and AnimeSkip keys, use **Back up keys** on the source device and **Restore keys** with the same passphrase on the destination. Both devices need a build with those controls. TV RC 3.1 supports the standard backup only.
 
 ## Save a movie or episode
 
@@ -16,6 +18,8 @@ Settings includes Nuvio account sign-in, profiles, extensions, playback preferen
 - Use **Home → Catalog sources** to install a catalogue or stream addon's manifest URL. Downloads work with file sources that return a supported video container. Adaptive playlists and raw peer-to-peer links require a downloadable file alternative.
 
 Transfers continue when you leave the screen. An interrupted or incomplete file is excluded from playback and can be retried. Removing the app removes its private downloads. SHA-256 checksums are attached.
+
+Continuous TV Mix playback, collection editing, cast pages and extended player controls are still in development. See the [mobile feature list](https://github.com/abbaskip/Nuvio-ReSeq/blob/mobile-v0.1.0-alpha.2/docs/reseq-mobile.md) for coverage by screen.
 
 ## Credits and content sources
 

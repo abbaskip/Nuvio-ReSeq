@@ -82,7 +82,7 @@ private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean
             val url = prepared.url ?: prepared.infoHash?.takeIf { prepared.isTorrent }?.let { "torrent://$it" }
             require(!url.isNullOrBlank()) { "This source did not return a playable file." }
             if (cast.state.value.device != null) {
-                val torrent = prepared.infoHash?.takeIf { prepared.isTorrent && !receiverUrl(url) }?.let {
+                val torrent = prepared.infoHash?.takeIf { prepared.isTorrent && !receiverUrl(url) && !cast.isCurrentTorrent(url) }?.let {
                     CastTorrent(it, prepared.fileIdx, prepared.filename, prepared.sources.orEmpty())
                 }
                 require(!prepared.isExternal && (receiverUrl(url) || torrent != null || cast.isCurrentTorrent(url))) { "Choose a network video for Chromecast, or disconnect to play this source on the phone." }

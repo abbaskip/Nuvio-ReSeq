@@ -30,6 +30,9 @@ import androidx.navigation.compose.*
 import coil3.compose.AsyncImage
 import com.nuvio.tv.core.network.NetworkResult
 import com.nuvio.tv.core.profile.ProfileManager
+import com.nuvio.tv.core.poster.CustomPosterScreen
+import com.nuvio.tv.core.poster.patternForScreen
+import com.nuvio.tv.core.poster.withCustomPosterUrl
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 import com.nuvio.tv.domain.model.*
 import com.nuvio.tv.ui.components.BrandWordmark
@@ -161,7 +164,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                 Tab.CALENDAR -> MobileCalendar(onWatch, onTitle = { id, type, title ->
                     nav.navigate(Screen.Detail.createRoute(id, type) + "&operation=Details&previewTitle=" + Uri.encode(title))
                 })
-                Tab.SEARCH -> MobileSearch(openTitle, { nav.navigate("advanced") }, { nav.navigate(Screen.FlickPick.route) })
+                Tab.SEARCH -> MobileSearch(catalog.layout, openTitle, { nav.navigate("advanced") }, { nav.navigate(Screen.FlickPick.route) })
                 Tab.LIBRARY -> MobileLibrary(openTitle, { nav.navigate(Screen.Collections.route) },
                     { nav.navigate(Screen.OnDemand.route) }, { nav.navigate("mobile-recordings") }, { nav.navigate("mobile-party") },
                     { nav.navigate("mobile-cloud") }, { nav.navigate("mobile-servers") }, { nav.navigate("mobile-mix") }, { nav.navigate("downloads") })
@@ -177,7 +180,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                     if (exact) popUpTo(entry.destination.id) { inclusive = true }
                 }
             }
-            MobileSearch(open = { item, addon, action ->
+            MobileSearch(catalog.layout, open = { item, addon, action ->
                 if (action == VideoAction.Details) details(item, addon, false) else openTitle(item, addon, action)
             }, advanced = { nav.navigate("advanced") }, flickPick = { nav.navigate(Screen.FlickPick.route) },
                 guide = listing, back = { nav.popBackStack() }, onGuideMatch = { item, addon -> details(item, addon, true) })
@@ -300,7 +303,10 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     val context = LocalContext.current
     val width = LocalConfiguration.current.screenWidthDp.dp
     val gutter = if (width >= 600.dp) 24.dp else 16.dp
-    val posterWidth = ((width - gutter - 30.dp) / 3.2f).coerceIn(88.dp, 146.dp)
+    val posterWidth = (((width - gutter - 30.dp) / 3.2f).coerceIn(88.dp, 146.dp) * (state.posterCardWidthDp / 126f)).coerceIn(64.dp, 240.dp)
+    val corners = androidx.compose.foundation.shape.RoundedCornerShape((state.posterCardCornerRadiusDp.coerceIn(0, 60) * 7f / 12f).dp)
+    val homePattern = patternForScreen(state.customPosterUrlPattern, CustomPosterScreen.HOME, state.customPosterEnabledScreens)
+    val continuePattern = patternForScreen(state.customPosterUrlPattern, CustomPosterScreen.CONTINUE_WATCHING, state.customPosterEnabledScreens)
     val insets = PaddingValues(horizontal = gutter)
     val colors = MaterialTheme.colorScheme
     LazyColumn(Modifier.fillMaxSize().background(Brush.verticalGradient(
@@ -327,7 +333,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
         }
         val hero = state.heroItems.ifEmpty { state.catalogRows.firstOrNull()?.items.orEmpty() }
         if (state.heroSectionEnabled && hero.isNotEmpty()) item {
-            HomeHighlights(hero.take(8), gutter, open = { open(it, null, VideoAction.Details) },
+            HomeHighlights(hero.take(8), gutter, state.homeImdbRatingsVisibility.showRatings, open = { open(it, null, VideoAction.Details) },
                 more = { if (it.isTvMix) open(it, null, VideoAction.Details) else menu = it to null })
         }
         if (state.continueWatchingEnabled && state.continueWatchingItems.isEmpty()) item {
@@ -357,7 +363,8 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
         ).forEach { (heading, entries) -> if (entries.isNotEmpty()) item {
             ShelfHeading(heading, gutter)
             LazyRow(contentPadding = insets, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(entries) { entry ->
+                items(entries) { original ->
+                    val entry = remember(original, continuePattern) { original.withCustomPosterUrl(continuePattern) }
                     val video = when (entry) {
                         is ContinueWatchingItem.InProgress -> entry.progress.let { MobileVideo(profile, it.contentType,
                             it.contentId, it.videoId, it.name, it.season, it.episode, it.episodeTitle, it.tvdbContext?.encode(), it.poster) }
@@ -371,11 +378,19 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                             is ContinueWatchingItem.InProgress -> entry.episodeThumbnail
                             is ContinueWatchingItem.NextUp -> entry.info.thumbnail.takeUnless { state.blurUnwatchedEpisodes }
                         }
-                        val artwork = thumbnail.takeIf { state.useEpisodeThumbnailsInCw } ?: video.poster
-                        Box(Modifier.fillMaxWidth().height(96.dp).clip(posterCorners).background(colors.surfaceVariant),
+                        val customLandscape = when (entry) {
+                            is ContinueWatchingItem.InProgress -> entry.customLandscapePoster
+                            is ContinueWatchingItem.NextUp -> entry.customLandscapePoster
+                        }
+                        val fallback = when (entry) {
+                            is ContinueWatchingItem.InProgress -> entry.originalPoster
+                            is ContinueWatchingItem.NextUp -> entry.originalPoster
+                        }
+                        val artwork = thumbnail.takeIf { state.useEpisodeThumbnailsInCw } ?: customLandscape ?: video.poster
+                        Box(Modifier.fillMaxWidth().height(96.dp).clip(corners).background(colors.surfaceVariant),
                             contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.PlayArrow, null, Modifier.size(28.dp), tint = colors.onSurfaceVariant)
-                            if (!artwork.isNullOrBlank()) AsyncImage(artwork, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            if (!artwork.isNullOrBlank()) AsyncImage(posterModel(artwork, fallback), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                             if (entry.shufflePlayback) Icon(Icons.Default.Shuffle, "Episode shuffle",
                                 Modifier.align(Alignment.TopEnd).padding(5.dp)
                                     .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = .75f), mediaCorners).padding(4.dp).size(17.dp),
@@ -430,8 +445,9 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             }
             LazyRow(contentPadding = insets, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(row.items) { item ->
-                    Poster(item, Modifier.width(posterWidth), open = { open(item, row.addonBaseUrl, VideoAction.Details) },
-                        more = { if (item.isTvMix) open(item, null, VideoAction.Details) else menu = item to row.addonBaseUrl }, showCaption = showCaptions)
+                    val cover = remember(item, homePattern) { if (item.isTvMix) item else item.withCustomPosterUrl(homePattern) }
+                    Poster(cover, Modifier.width(posterWidth), open = { open(item, row.addonBaseUrl, VideoAction.Details) },
+                        more = { if (item.isTvMix) open(item, null, VideoAction.Details) else menu = item to row.addonBaseUrl }, showCaption = showCaptions, corners = corners)
                 }
                 if (row.hasMore && row.supportsSkip) item {
                     Action("More titles") { vm.onEvent(HomeEvent.OnLoadMoreCatalog(row.catalogId, row.addonId, row.apiType)) }
@@ -678,15 +694,37 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
             MobileAddToMix(item, mix) { addToMix = false }
         }
     }
-    val header: @Composable (Boolean) -> Unit = { wide ->
-        MobileDetailHero(meta, detailTitle, wide, back) { menu = target }
+    val list = rememberLazyListState()
+    var resumed by remember { mutableStateOf(false) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(vm) {
+        resumed = true
+        onPauseOrDispose { resumed = false; vm.onEvent(MetaDetailsEvent.OnLifecyclePause) }
     }
+    val castState by LocalCasting.current.state.collectAsStateWithLifecycle()
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val split = maxWidth >= 720.dp && maxWidth > maxHeight
+        val heroVisible by remember(split, list) { derivedStateOf { split || list.firstVisibleItemIndex == 0 } }
+        val showingDialog = comments || shuffle || addToMix || menu != null || state.showListPicker || state.isSharedTrailerOverlayVisible
+        val canPreview = resumed && trailersAllowed && !showingDialog && castState.item == null &&
+            (initial == null || initial == VideoAction.Details.name)
+        val startTimer = canPreview && heroVisible && !list.isScrollInProgress && meta != null
+        LaunchedEffect(startTimer) {
+            vm.onEvent(if (startTimer) MetaDetailsEvent.OnPlayButtonFocused else MetaDetailsEvent.OnUserInteraction)
+        }
+        val header: @Composable (Boolean) -> Unit = { wide ->
+            MobileDetailHero(meta, detailTitle, wide, back, preview = {
+                if (state.isBackgroundTrailerPlaying && trailersAllowed && resumed) {
+                    com.nuvio.tv.ui.components.TrailerPlayer(trailerUrl = state.trailerUrl, trailerAudioUrl = state.trailerAudioUrl,
+                        isPlaying = true, isPaused = !canPreview || (state.pauseBackgroundTrailerOnScroll && list.isScrollInProgress),
+                        muted = false, cropToFill = true, onEnded = { vm.onEvent(MetaDetailsEvent.OnTrailerEnded) },
+                        onError = { vm.onEvent(MetaDetailsEvent.OnTrailerEnded) }, modifier = Modifier.fillMaxSize())
+                }
+            }) { menu = target }
+        }
         val padding = if (minOf(maxWidth, maxHeight) >= 600.dp || maxWidth >= 720.dp) 20.dp else 8.dp
         Row(Modifier.fillMaxSize()) {
             if (split) Column(Modifier.weight(.38f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(start = padding, end = 12.dp)) { header(true) }
-            LazyColumn(Modifier.weight(if (split) .62f else 1f), contentPadding = PaddingValues(horizontal = padding, vertical = 10.dp),
+            LazyColumn(Modifier.weight(if (split) .62f else 1f), state = list, contentPadding = PaddingValues(horizontal = padding, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (!split) item { header(false) }
         if (state.shufflePoolEmpty) item { Label("No episodes match this show's shuffle settings.") }
@@ -785,6 +823,7 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
             }
         }
     }
+    if (!trailersAllowed && state.isBackgroundTrailerPlaying) LaunchedEffect(vm) { vm.onEvent(MetaDetailsEvent.OnTrailerEnded) }
     if (state.isSharedTrailerOverlayVisible || state.isTrailerPlaying) {
         if (trailersAllowed) MobileTrailer(state, vm::onEvent)
         else LaunchedEffect(state.isSharedTrailerOverlayVisible) {

@@ -17,12 +17,14 @@ import androidx.compose.ui.unit.dp
 import com.nuvio.tv.domain.model.Meta
 
 @Composable
-internal fun MobileDetailHero(meta: Meta?, title: String, wide: Boolean, back: () -> Unit, actions: () -> Unit) {
+internal fun MobileDetailHero(meta: Meta?, title: String, wide: Boolean, back: () -> Unit,
+    preview: @Composable () -> Unit = {}, actions: () -> Unit) {
     val c = MaterialTheme.colorScheme
     BoxWithConstraints(Modifier.fillMaxWidth().combinedClickable(onClick = actions, onLongClickLabel = "Title actions", onLongClick = actions)) {
         val tall = if (wide) (maxWidth * 1.12f).coerceIn(220.dp, 440.dp) else (maxWidth * .82f).coerceIn(180.dp, 385.dp)
         Box(Modifier.fillMaxWidth().height(tall)) {
             MediaArt(if (wide) meta?.poster ?: meta?.backdropUrl else meta?.backdropUrl, Icons.Default.Theaters, Modifier.fillMaxSize())
+            preview()
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = .30f), .32f to Color.Transparent,
                 .64f to c.background.copy(alpha = .24f), 1f to c.background)))
             Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween) {

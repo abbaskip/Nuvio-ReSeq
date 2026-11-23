@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
@@ -32,6 +33,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import com.nuvio.tv.core.image.CustomPosterFallbackInterceptor
 import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.ui.screens.home.isTvMix
 import com.nuvio.tv.ui.screens.tvmix.TvMixArtwork
@@ -47,10 +50,20 @@ internal fun MetaPreview.posterYears(): String? {
 }
 
 @Composable
-internal fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, more: () -> Unit, showCaption: Boolean = true) {
+internal fun posterModel(url: String?, fallback: String?): Any? {
+    val context = LocalContext.current
+    return remember(context, url, fallback) {
+        if (fallback.isNullOrBlank() || url == fallback) url else ImageRequest.Builder(context)
+            .data(url).memoryCacheKeyExtras(mapOf(CustomPosterFallbackInterceptor.FALLBACK_URL_KEY to fallback)).build()
+    }
+}
+
+@Composable
+internal fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, more: () -> Unit, showCaption: Boolean = true,
+    corners: RoundedCornerShape = posterCorners) {
     val colors = MaterialTheme.colorScheme
     Column(modifier.combinedClickable(onClick = open, onLongClickLabel = "Title actions", onLongClick = more)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(posterCorners).background(colors.surfaceVariant),
+        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(corners).background(colors.surfaceVariant),
             contentAlignment = Alignment.Center) {
             if (item.isTvMix) {
                 val artwork = if (showCaption) Modifier else Modifier.semantics { contentDescription = item.name }
@@ -58,7 +71,7 @@ internal fun Poster(item: MetaPreview, modifier: Modifier, open: () -> Unit, mor
             } else if (item.poster.isNullOrBlank()) {
                 Icon(Icons.Default.Theaters, if (showCaption) null else item.name, tint = colors.onSurfaceVariant)
             } else {
-                AsyncImage(item.poster, if (showCaption) null else item.name, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                AsyncImage(posterModel(item.poster, item.rawPosterUrl), if (showCaption) null else item.name, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             }
         }
         if (showCaption) {
@@ -98,7 +111,7 @@ internal fun ShelfHeading(title: String, gutter: Dp, source: String? = null, see
 }
 
 @Composable
-internal fun HomeHighlights(titles: List<MetaPreview>, gutter: Dp, open: (MetaPreview) -> Unit, more: (MetaPreview) -> Unit) {
+internal fun HomeHighlights(titles: List<MetaPreview>, gutter: Dp, showRating: Boolean, open: (MetaPreview) -> Unit, more: (MetaPreview) -> Unit) {
     val pager = rememberPagerState { titles.size }
     val colors = MaterialTheme.colorScheme
     HorizontalPager(pager, modifier = Modifier.fillMaxWidth()) { index ->
@@ -116,7 +129,10 @@ internal fun HomeHighlights(titles: List<MetaPreview>, gutter: Dp, open: (MetaPr
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         TitleBrand(title.name, title.logo)
                         val facts = listOfNotNull(title.posterYears(), title.genres.firstOrNull()).joinToString("  ·  ")
-                        if (facts.isNotBlank()) Label(facts, small = true)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (facts.isNotBlank()) Label(facts, small = true)
+                            if (showRating) title.imdbRating?.let { StandardRating("IMDb", com.nuvio.tv.R.raw.imdb_logo_2016, it) }
+                        }
                     }
                     if (titles.size > 1) Row(Modifier.padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         repeat(titles.size) { dot ->

@@ -86,7 +86,10 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
     fun initialize() {
         if (manager != null || initializing || GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS) return
         initializing = true
-        CastContext.getSharedInstance(context, Executor { Dispatchers.IO.dispatch(kotlin.coroutines.EmptyCoroutineContext, it) })
+        val initialization = runCatching {
+            CastContext.getSharedInstance(context, Executor { Dispatchers.IO.dispatch(kotlin.coroutines.EmptyCoroutineContext, it) })
+        }.getOrElse { initializing = false; return }
+        initialization
             .addOnSuccessListener { cast ->
                 initializing = false
                 manager = cast.sessionManager
@@ -132,7 +135,7 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
                 if (pending != item) return@launch
                 val torrent = source.torrent
                 val url = if (torrent == null) source.url else torrents.startStream(torrent.hash, torrent.fileIndex, torrent.filename, torrent.trackers)
-                val lease = if (torrent != null || isCurrentTorrent(url)) requireNotNull(torrents.retainStream(url)) else null
+                val lease = if (torrent != null || !receiverUrl(url) && isCurrentTorrent(url)) requireNotNull(torrents.retainStream(url)) else null
                 if (torrent != null) torrents.shutdown()
                 val endpoint = CastRelay.prepare(context, source.copy(url = url), manager?.currentCastSession?.castDevice?.inetAddress, lease)
                 pendingRelay = endpoint.relay

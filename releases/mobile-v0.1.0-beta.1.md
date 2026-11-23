@@ -5,6 +5,7 @@
 - Tap an episode to play it. Long-press its thumbnail for the full description, playback choices, rating and watch history. You can remove a partial watch or the last identifiable watch, or mark an episode watched now or on a date of your choice.
 - Play manually includes add-on tabs and wraps full filenames and descriptions. Home list reordering keeps the moved list in view.
 - **Settings → Home and title details → Allow trailers on mobile data** controls trailer playback on each device. Turn it off for Wi-Fi or Ethernet only.
+- The same menu includes custom poster artwork, Home poster size and corners, spoiler-sensitive episode ratings and trailer autoplay. Choose the delay and whether a preview plays behind the title artwork or opens in the player sheet.
 
 The mobile package installs alongside ReSeq TV and upgrades existing mobile alphas. The arm64 APK suits most recent phones and tablets. Use the universal APK for other Android architectures.
 

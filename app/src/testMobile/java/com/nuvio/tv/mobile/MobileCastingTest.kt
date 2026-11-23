@@ -17,6 +17,7 @@ import org.robolectric.annotation.Config
 import org.json.JSONObject
 
 @RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.ConscryptMode(org.robolectric.annotation.ConscryptMode.Mode.OFF)
 @Config(manifest = Config.NONE, sdk = [28], application = Application::class)
 class MobileCastingTest {
     private val context = RuntimeEnvironment.getApplication() as Application
@@ -63,6 +64,22 @@ class MobileCastingTest {
         callback.captured.onStatusUpdated()
         assertNull(cast.state.value.item)
         verify(exactly = 1) { tracking.finish(true) }
+    }
+
+    @Test fun replacementSourceKeepsPositionAndOnlyHandsOffAfterTheReceiverReportsItsToken() {
+        reconnect(false, false)
+        val request = slot<MediaLoadRequestData>()
+        every { client.load(capture(request)) } returns mockk(relaxed = true)
+        var accepted = false
+        cast.load(CastSource("https://video.example/other.mp4", "Another source", video = video)) { accepted = true }
+        assertFalse(accepted)
+        assertEquals(8_000L, request.captured.currentTime)
+        assertEquals(MediaInfo.STREAM_TYPE_BUFFERED, request.captured.mediaInfo?.streamType)
+        every { status.mediaInfo } returns request.captured.mediaInfo
+        callback.captured.onStatusUpdated()
+        assertTrue(accepted)
+        assertEquals(video, cast.state.value.item?.video)
+        verify(exactly = 0) { tracking.finish(any()) }
     }
 
     @Test fun liveNeverTracksOrSeeksAndAudioKeepsTheActiveSubtitles() {

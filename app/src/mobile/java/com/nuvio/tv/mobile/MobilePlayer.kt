@@ -48,8 +48,12 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
             val headers = channel.headers.toMutableMap()
             if (headers.keys.none { it.equals("User-Agent", true) })
                 headers["User-Agent"] = com.nuvio.tv.livetv.data.LiveTvRepository.DEFAULT_UA
+            val player = vm.playback.playerFlow.value
+            val mime = player?.currentMediaItem?.localConfiguration?.mimeType ?:
+                com.nuvio.tv.ui.screens.player.PlayerMediaSourceFactory.inferMimeType(streamUrl, null) ?:
+                player?.videoFormat?.containerMimeType?.takeIf { player.currentManifest == null }
             vm.playback.handOverForRecording()
-            cast.load(CastSource(streamUrl, replay ?: channel.name, headers, live = replay == null, iptv = true), position) {
+            cast.load(CastSource(streamUrl, replay ?: channel.name, headers, live = replay == null, iptv = true, mime = mime), position) {
                 leaveAfterCast()
             }
         }

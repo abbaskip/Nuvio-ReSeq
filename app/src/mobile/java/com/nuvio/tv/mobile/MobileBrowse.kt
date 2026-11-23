@@ -25,11 +25,18 @@ import com.nuvio.tv.domain.model.*
 import com.nuvio.tv.ui.screens.detail.TvdbOrderControlViewModel
 import com.nuvio.tv.ui.screens.library.*
 import com.nuvio.tv.ui.screens.search.*
+import com.nuvio.tv.core.poster.CustomPosterScreen
+import com.nuvio.tv.core.poster.patternForScreen
+import com.nuvio.tv.core.poster.withCustomPosterUrl
+import com.nuvio.tv.data.local.LayoutPreferenceDataStore
 
 @Composable
-internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, advanced: () -> Unit, flickPick: () -> Unit,
+internal fun MobileSearch(layout: LayoutPreferenceDataStore, open: (MetaPreview, String?, VideoAction) -> Unit, advanced: () -> Unit, flickPick: () -> Unit,
     guide: GuideLookup? = null, back: () -> Unit = {}, onGuideMatch: (MetaPreview, String?) -> Unit = { _, _ -> }, vm: SearchViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
+    val pattern by layout.customPosterUrlPattern.collectAsStateWithLifecycle("")
+    val screens by layout.customPosterEnabledScreens.collectAsStateWithLifecycle(CustomPosterScreen.ALL)
+    val searchPattern = patternForScreen(pattern, CustomPosterScreen.SEARCH, screens)
     val keyboard = LocalSoftwareKeyboardController.current
     var menu by remember { mutableStateOf<Pair<MetaPreview, String?>?>(null) }
     var removeRecent by remember { mutableStateOf<String?>(null) }
@@ -94,7 +101,7 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
                     } }
                 }
                 val addon = state.discoverCatalogs.find { it.key == state.selectedDiscoverCatalogKey }?.addonBaseUrl
-                items(state.discoverResults) { item -> Poster(item, Modifier.fillMaxWidth(),
+                items(state.discoverResults) { item -> Poster(remember(item, searchPattern) { item.withCustomPosterUrl(searchPattern) }, Modifier.fillMaxWidth(),
                     { open(item, addon, VideoAction.Details) }, { menu = item to addon }) }
                 if (state.discoverResults.isNotEmpty() && state.discoverHasMore) item(span = { GridItemSpan(maxLineSpan) }) {
                     Action("More titles") { vm.onEvent(SearchEvent.LoadNextDiscoverResults) }
@@ -105,7 +112,7 @@ internal fun MobileSearch(open: (MetaPreview, String?, VideoAction) -> Unit, adv
                 }
                 state.catalogRows.forEach { row ->
                     item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle(row.catalogName) }
-                    items(row.items) { item -> Poster(item, Modifier.fillMaxWidth(),
+                    items(row.items) { item -> Poster(remember(item, searchPattern) { item.withCustomPosterUrl(searchPattern) }, Modifier.fillMaxWidth(),
                         { autoOpen = false; open(item, row.addonBaseUrl, VideoAction.Details) }, { autoOpen = false; menu = item to row.addonBaseUrl }) }
                     if (row.hasMore && row.supportsSkip) item(span = { GridItemSpan(maxLineSpan) }) {
                         Action("More from " + row.catalogName) { vm.onEvent(SearchEvent.LoadMoreCatalog(row.catalogId, row.addonId, row.apiType)) }

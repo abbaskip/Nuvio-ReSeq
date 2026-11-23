@@ -1184,4 +1184,12 @@
     <string name="autosync_status_no_fit">Passer kanskje ikke</string>
     <string name="autosync_status_no_reference">Ingen innebygde undertekster</string>
     <string name="autosync_status_failed">Mislyktes</string>
+    <string name="iptv_immediate_tier">Ta med IPTV VOD blant kilder for direkte avspilling</string>
+    <string name="iptv_fallback_tier">Ta med IPTV VOD blant reservekilder</string>
+    <string name="when_watched">Når så du dette?</string>
+    <string name="watched_now">Merk som sett nå</string>
+    <string name="choose_watch_date">Velg dato</string>
+    <string name="choose_watch_date_time">Velg dato og klokkeslett</string>
+    <string name="choose_watch_time">Velg klokkeslett</string>
+    <string name="choose_past_watch_time">Velg et gyldig tidspunkt i fortiden.</string>
 </resources>

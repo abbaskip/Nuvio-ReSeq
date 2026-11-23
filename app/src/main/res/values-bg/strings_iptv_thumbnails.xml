@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Миниатюри при превъртане</string>
+    <string name="playback_section_seek_thumbnails_desc">Преглед над лентата при превъртане</string>
+    <string name="iptv_thumbs_subtitle">Показва кадри от Seekr или от видеото на устройството.</string>
+    <string name="iptv_thumbs_works_on">За филми, серии, HLS, записи, спортни повторения, архив и буферирана телевизия. За архив се използва запазената част или HLS потокът на доставчика. Изключва торенти, DASH и защитени потоци.</string>
+    <string name="iptv_thumbs_low_memory_note">Паметта е ограничена. При насичане миниатюрите се спират автоматично.</string>
+    <string name="iptv_thumbs_include_4k">Включване на 4K и HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Използва повече данни. На по-слаби устройства са възможни прекъсвания, а HDR цветовете може да са бледи. Потоците използват най-малкия вариант.</string>
+    <string name="iptv_thumbs_when_to_make">Кога да се създават миниатюри</string>
+    <string name="iptv_thumbs_when_seeking">Само при пауза или превъртане</string>
+    <string name="iptv_thumbs_when_seeking_desc">Не се създават при нормално възпроизвеждане.</string>
+    <string name="iptv_thumbs_when_watching">По време на гледане</string>
+    <string name="iptv_thumbs_when_watching_desc">Създават се във фонов режим при достатъчен буфер.</string>
+    <string name="iptv_thumbs_when_right_away">Веднага</string>
+    <string name="iptv_thumbs_when_right_away_desc">Обработва цялото видео при отваряне и използва най-много данни.</string>
+    <string name="iptv_thumbs_storage_limit">Лимит за съхранение</string>
+    <string name="iptv_thumbs_storage_limit_desc">Първо се премахват миниатюрите на най-отдавна гледаните видеа.</string>
+    <string name="iptv_thumbs_clear">Изчистване на миниатюрите</string>
+    <string name="iptv_thumbs_clear_desc">Изтрива всички миниатюри. Създават се отново при нужда.</string>
+    <string name="iptv_thumbs_last_paused">Последна пауза поради недостиг на памет: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Създаване на миниатюри…</string>
+    <string name="iptv_thumbs_msg_low_memory">Миниатюрите са спрени поради недостиг на памет</string>
+    <string name="iptv_thumbs_msg_live">Няма миниатюри за телевизия на живо</string>
+    <string name="iptv_thumbs_msg_dash">Няма миниатюри за DASH</string>
+    <string name="iptv_thumbs_msg_catchup_save">Включете ускореното превъртане за предавания от архива</string>
+    <string name="iptv_thumbs_msg_protected">Потокът е защитен</string>
+    <string name="iptv_thumbs_msg_torrent">Няма миниатюри за торенти</string>
+    <string name="iptv_thumbs_msg_link_kind">Този тип връзка няма миниатюри</string>
+    <string name="iptv_thumbs_msg_unreadable">Потокът не може да се прочете</string>
+    <string name="iptv_thumbs_msg_pieces_large">Сегментите са твърде големи за миниатюри</string>
+    <string name="iptv_thumbs_msg_stopped">Миниатюрите за това видео спряха</string>
+    <string name="iptv_thumbs_msg_no_pictures">Сървърът не изпрати изображения</string>
+    <string name="iptv_thumbs_msg_format">Форматът не поддържа миниатюри на устройството</string>
+    <string name="iptv_thumbs_msg_open_failed">Видеото не може да се отвори за преглед</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Няма миниатюри за този архивен поток</string>
+    <string name="iptv_thumbs_msg_one_decoder">Единственият декодер е нужен за възпроизвеждане</string>
+    <string name="iptv_thumbs_title">Миниатюри при превъртане</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Ключът за Seekr не можа да се запази.</string>
+    <string name="seekr_api_key">API ключ за Seekr</string>
+    <string name="seekr_key_description">Ключът ви от seekr.tv служи за прегледи на филми и епизоди и се включва в архива в Google Drive. Изчистете полето, за да го премахнете.</string>
+    <string name="seekr_only">Само Seekr</string>
+    <string name="seekr_only_description">Показва само прегледи от Seekr. Изключете за създаване на липсващите прегледи на устройството.</string>
+</resources>

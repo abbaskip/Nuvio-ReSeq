@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Vorschaubilder beim Spulen"</string>
     <string name="playback_section_seek_thumbnails_desc">"Vorschaubilder über der Suchleiste beim Spulen"</string>
     <string name="iptv_thumbs_title">"Vorschaubilder beim Spulen"</string>
-    <string name="iptv_thumbs_subtitle">"Zeigt beim Spulen ein Vorschaubild über der Suchleiste. Die Bilder werden auf diesem Fernseher aus dem Video selbst erstellt"</string>
+    <string name="iptv_thumbs_subtitle">Zeigt beim Spulen Vorschaubilder über der Zeitleiste. Die Bilder stammen von Seekr oder werden auf diesem Gerät aus dem Video erzeugt.</string>
     <string name="iptv_thumbs_works_on">"Funktioniert bei: Filmen und Serien im Haupt-Player (auch gestreamte HLS-Links), deinen Aufnahmen, Sport-Wiederholungen und Highlights, Catch-up und beim Zurückspulen von Live-TV (Pausenpuffer).\nCatch-up: Die Bilder stammen aus dem mit „Schnelleres Spulen bei Catch-up“ gespeicherten Teil oder bei gestreamtem (HLS) Catch-up direkt vom Anbieter.\nFunktioniert nicht bei: Torrents, DASH-Links oder geschützten Streams."</string>
     <string name="iptv_thumbs_low_memory_note">"Dieses Gerät hat wenig Arbeitsspeicher. Vorschaubilder können Ruckler verursachen. Dann pausieren sie von selbst und die Suchleiste zeigt es an."</string>
     <string name="iptv_thumbs_include_4k">"4K und HDR einbeziehen"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Dieses Video konnte für Vorschaubilder nicht geöffnet werden"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Keine Vorschaubilder für diesen Catch-up-Stream"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Keine Vorschaubilder: Dieser Fernseher braucht seinen einzigen Video-Decoder für das Video"</string>
+    <string name="seekr_key_save_error">Der Seekr-Schlüssel konnte auf diesem Gerät nicht gespeichert werden.</string>
+    <string name="seekr_api_key">Seekr-API-Schlüssel</string>
+    <string name="seekr_key_description">Dein Schlüssel von seekr.tv ermöglicht Vorschaubilder für Filme und Folgen. Die Google-Drive-Sicherung enthält diesen Schlüssel. Leere das Feld, um ihn zu entfernen.</string>
+    <string name="seekr_only">Nur Seekr</string>
+    <string name="seekr_only_description">Nur Vorschaubilder von Seekr anzeigen. Deaktiviere diese Option, um fehlende Bilder auf dem Gerät zu erzeugen.</string>
 </resources>

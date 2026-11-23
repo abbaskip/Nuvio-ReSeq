@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"シークのサムネイル"</string>
     <string name="playback_section_seek_thumbnails_desc">"シーク中にシークバーの上にプレビュー画像を表示"</string>
     <string name="iptv_thumbs_title">"シークのサムネイル"</string>
-    <string name="iptv_thumbs_subtitle">"シーク中、シークバーの上にプレビュー画像を表示します。画像は映像そのものからこのテレビで作られます"</string>
+    <string name="iptv_thumbs_subtitle">シーク中にバーの上にプレビューを表示します。Seekr の画像、または端末で動画から生成した画像を使用します。</string>
     <string name="iptv_thumbs_works_on">"対応: メインプレーヤーの映画と番組（ストリーミングの HLS リンクを含む）、録画、スポーツのリプレイとハイライト、キャッチアップ、Live TV の巻き戻し（一時停止バッファ）。\nキャッチアップ: 画像は「キャッチアップのスキップを速く」で保存した部分から、またはストリーミング（HLS）のキャッチアップではプロバイダーから直接取得します。\n非対応: トレント、DASH リンク、保護されたストリーム。"</string>
     <string name="iptv_thumbs_low_memory_note">"この端末はメモリが限られています。サムネイルでカクつくことがあります。その場合は自動で一時停止し、シークバーに表示されます。"</string>
     <string name="iptv_thumbs_include_4k">"4K と HDR も含める"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"この映像はサムネイル用に開けませんでした"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"このキャッチアップのストリームにはサムネイルがありません"</string>
     <string name="iptv_thumbs_msg_one_decoder">"サムネイルなし：このテレビは唯一のビデオデコーダーを動画再生に使う必要があります"</string>
+    <string name="seekr_key_save_error">この端末に Seekr キーを保存できませんでした。</string>
+    <string name="seekr_api_key">Seekr API キー</string>
+    <string name="seekr_key_description">seekr.tv の個人キーで映画やエピソードのプレビューを取得します。キーは Google ドライブのバックアップにも含まれます。削除するには欄を空にしてください。</string>
+    <string name="seekr_only">Seekr のみ</string>
+    <string name="seekr_only_description">Seekr にあるプレビューだけを表示します。オフにすると不足分を端末で生成します。</string>
 </resources>

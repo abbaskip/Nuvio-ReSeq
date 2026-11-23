@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Miniatyrer vid spolning</string>
+    <string name="playback_section_seek_thumbnails_desc">Förhandsvisning ovanför tidslinjen när du spolar</string>
+    <string name="iptv_thumbs_subtitle">Visar bilder från Seekr eller skapar dem från videon på enheten.</string>
+    <string name="iptv_thumbs_works_on">För filmer, serier, HLS, inspelningar, sportrepriser, arkiv-tv och tillbakaspolning av direktsänd tv. Arkiv-tv använder den sparade delen eller leverantörens HLS. Stöder inte torrenter, DASH eller skyddade strömmar.</string>
+    <string name="iptv_thumbs_low_memory_note">Lite minne. Om uppspelningen hackar pausas miniatyrerna automatiskt.</string>
+    <string name="iptv_thumbs_include_4k">Inkludera 4K och HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Använder mer data. Svagare enheter kan hacka och HDR-färger kan bli bleka. För strömmar används den minsta varianten.</string>
+    <string name="iptv_thumbs_when_to_make">När ska miniatyrer skapas?</string>
+    <string name="iptv_thumbs_when_seeking">Endast vid paus eller spolning</string>
+    <string name="iptv_thumbs_when_seeking_desc">Inga bilder skapas under vanlig uppspelning.</string>
+    <string name="iptv_thumbs_when_watching">Under uppspelning</string>
+    <string name="iptv_thumbs_when_watching_desc">Skapar bilder i bakgrunden när tillräckligt med video har buffrats.</string>
+    <string name="iptv_thumbs_when_right_away">Direkt</string>
+    <string name="iptv_thumbs_when_right_away_desc">Bearbetar hela videon när den öppnas. Använder mest data.</string>
+    <string name="iptv_thumbs_storage_limit">Lagringsgräns</string>
+    <string name="iptv_thumbs_storage_limit_desc">Bilder från de videor som visades längst tillbaka i tiden tas bort först.</string>
+    <string name="iptv_thumbs_clear">Rensa sparade miniatyrer</string>
+    <string name="iptv_thumbs_clear_desc">Tar bort alla bilder. De skapas på nytt vid behov.</string>
+    <string name="iptv_thumbs_last_paused">Senaste pausen på grund av lite minne: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Skapar miniatyrer…</string>
+    <string name="iptv_thumbs_msg_low_memory">Miniatyrerna pausades på grund av lite minne</string>
+    <string name="iptv_thumbs_msg_live">Inga miniatyrer för direktsänd tv</string>
+    <string name="iptv_thumbs_msg_dash">Inga miniatyrer för DASH</string>
+    <string name="iptv_thumbs_msg_catchup_save">Aktivera snabbare spolning i arkiv-tv för miniatyrer</string>
+    <string name="iptv_thumbs_msg_protected">Strömmen är skyddad</string>
+    <string name="iptv_thumbs_msg_torrent">Inga miniatyrer för torrenter</string>
+    <string name="iptv_thumbs_msg_link_kind">Inga miniatyrer för den här länktypen</string>
+    <string name="iptv_thumbs_msg_unreadable">Strömmen kunde inte läsas</string>
+    <string name="iptv_thumbs_msg_pieces_large">Strömmens segment är för stora</string>
+    <string name="iptv_thumbs_msg_stopped">Miniatyrerna slutade fungera för videon</string>
+    <string name="iptv_thumbs_msg_no_pictures">Servern skickade inga bilder</string>
+    <string name="iptv_thumbs_msg_format">Enheten stöder inte förhandsvisning av formatet</string>
+    <string name="iptv_thumbs_msg_open_failed">Videon kunde inte öppnas för förhandsvisning</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Inga miniatyrer för den här arkivströmmen</string>
+    <string name="iptv_thumbs_msg_one_decoder">Den enda avkodaren behövs för uppspelningen</string>
+    <string name="iptv_thumbs_title">Miniatyrer vid spolning</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Det gick inte att spara Seekr-nyckeln på enheten.</string>
+    <string name="seekr_api_key">API-nyckel för Seekr</string>
+    <string name="seekr_key_description">Använd din personliga nyckel från seekr.tv för förhandsvisning av filmer och avsnitt. Säkerhetskopian på Google Drive innehåller nyckeln. Töm fältet för att ta bort den.</string>
+    <string name="seekr_only">Endast Seekr</string>
+    <string name="seekr_only_description">Visa bara förhandsvisningar från Seekr. Stäng av för att skapa saknade bilder på enheten.</string>
+</resources>

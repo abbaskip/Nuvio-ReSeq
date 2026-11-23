@@ -2952,4 +2952,12 @@
     <string name="autosync_status_no_fit">Mund të mos përputhet</string>
     <string name="autosync_status_no_reference">Nuk ka titra të integruara</string>
     <string name="autosync_status_failed">Dështoi</string>
+    <string name="iptv_immediate_tier">Përfshi IPTV VOD te burimet për luajtje të menjëhershme</string>
+    <string name="iptv_fallback_tier">Përfshi IPTV VOD te burimet rezervë</string>
+    <string name="when_watched">Kur e shikuat?</string>
+    <string name="watched_now">Shënoje si të shikuar tani</string>
+    <string name="choose_watch_date">Zgjidh datën</string>
+    <string name="choose_watch_date_time">Zgjidh datën dhe orën</string>
+    <string name="choose_watch_time">Zgjidh orën</string>
+    <string name="choose_past_watch_time">Zgjidh një kohë të vlefshme në të kaluarën.</string>
 </resources>

@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"拖动预览图"</string>
     <string name="playback_section_seek_thumbnails_desc">"拖动进度条时在上方显示预览图"</string>
     <string name="iptv_thumbs_title">"拖动预览图"</string>
-    <string name="iptv_thumbs_subtitle">"拖动时在进度条上方显示预览图。预览图由这台电视根据视频本身生成"</string>
+    <string name="iptv_thumbs_subtitle">拖动进度条时在上方显示预览图。使用 Seekr 提供的图片，也可在本设备上从视频生成。</string>
     <string name="iptv_thumbs_works_on">"适用于：主播放器中的电影和节目（包括 HLS 流链接）、你的录制、体育回放和集锦、回看，以及倒回 Live TV（暂停缓冲）。\n回看：预览图来自“更快的回看跳转”保存的部分，或对于流式（HLS）回看直接来自提供商。\n不适用于：种子、DASH 链接或受保护的流。"</string>
     <string name="iptv_thumbs_low_memory_note">"此设备内存有限。预览图可能导致卡顿。如果出现卡顿，会自动暂停，进度条上也会提示。"</string>
     <string name="iptv_thumbs_include_4k">"包括 4K 和 HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"无法打开此视频以生成预览图"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"此回看流不生成预览图"</string>
     <string name="iptv_thumbs_msg_one_decoder">"无缩略图：这台电视需要用它唯一的视频解码器播放视频"</string>
+    <string name="seekr_key_save_error">无法在此设备上保存 Seekr 密钥。</string>
+    <string name="seekr_api_key">Seekr API 密钥</string>
+    <string name="seekr_key_description">使用 seekr.tv 的个人密钥获取电影和剧集预览。Google 云端硬盘备份包含此密钥。清空此栏即可移除。</string>
+    <string name="seekr_only">仅使用 Seekr</string>
+    <string name="seekr_only_description">仅显示 Seekr 提供的预览。关闭后，设备会生成缺少的预览。</string>
 </resources>

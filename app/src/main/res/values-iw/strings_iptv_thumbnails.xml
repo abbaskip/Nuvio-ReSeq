@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"תמונות ממוזערות בחיפוש"</string>
     <string name="playback_section_seek_thumbnails_desc">"תמונות תצוגה מקדימה מעל סרגל החיפוש בזמן חיפוש"</string>
     <string name="iptv_thumbs_title">"תמונות ממוזערות בחיפוש"</string>
-    <string name="iptv_thumbs_subtitle">"מציג תמונת תצוגה מקדימה מעל סרגל החיפוש בזמן חיפוש. התמונות נוצרות בטלוויזיה הזו מהווידאו עצמו"</string>
+    <string name="iptv_thumbs_subtitle">בעת דילוג מוצגות מעל ציר הזמן תמונות מ-Seekr או תמונות שהמכשיר יוצר מהסרטון.</string>
     <string name="iptv_thumbs_works_on">"עובד ב: סרטים ותוכניות בנגן הראשי (כולל קישורי HLS משודרים), ההקלטות שלך, שידורים חוזרים ותקצירים של ספורט, צפייה חוזרת והרצה לאחור של Live TV (מאגר ההשהיה).\nצפייה חוזרת: התמונות מגיעות מהחלק שנשמר בדילוג מהיר יותר בצפייה חוזרת, או ישירות מהספק בצפייה חוזרת משודרת (HLS).\nלא עובד ב: טורנטים, קישורי DASH או שידורים מוגנים."</string>
     <string name="iptv_thumbs_low_memory_note">"למכשיר הזה זיכרון מוגבל. התמונות הממוזערות עלולות לגרום לגמגום. אם כן, הן נעצרות מעצמן וסרגל החיפוש מציין זאת."</string>
     <string name="iptv_thumbs_include_4k">"לכלול 4K ו-HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"לא ניתן לפתוח את הסרטון הזה לתמונות ממוזערות"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"אין תמונות ממוזערות לשידור החוזר הזה"</string>
     <string name="iptv_thumbs_msg_one_decoder">"אין תמונות ממוזערות: הטלוויזיה צריכה את מפענח הווידאו היחיד שלה לסרטון"</string>
+    <string name="seekr_key_save_error">שמירת מפתח Seekr במכשיר נכשלה.</string>
+    <string name="seekr_api_key">מפתח API של Seekr</string>
+    <string name="seekr_key_description">המפתח האישי שלך מאתר seekr.tv משמש לתצוגות מקדימות של סרטים ופרקים. המפתח נכלל בגיבוי ב-Google Drive. יש לרוקן את השדה כדי להסירו.</string>
+    <string name="seekr_only">Seekr בלבד</string>
+    <string name="seekr_only_description">הצגת תצוגות מקדימות מ-Seekr בלבד. כיבוי יאפשר ליצור תצוגות חסרות במכשיר.</string>
 </resources>

@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Ảnh thu nhỏ khi tua"</string>
     <string name="playback_section_seek_thumbnails_desc">"Ảnh xem trước phía trên thanh tua khi bạn tua"</string>
     <string name="iptv_thumbs_title">"Ảnh thu nhỏ khi tua"</string>
-    <string name="iptv_thumbs_subtitle">"Hiện ảnh xem trước phía trên thanh tua khi bạn tua. Ảnh được tạo trên TV này từ chính video"</string>
+    <string name="iptv_thumbs_subtitle">Khi tua, hiển thị ảnh xem trước phía trên thanh thời gian. Ảnh do Seekr cung cấp hoặc được tạo từ video trên thiết bị.</string>
     <string name="iptv_thumbs_works_on">"Hoạt động với: phim và chương trình trong trình phát chính (kể cả liên kết HLS phát trực tuyến), bản ghi của bạn, phát lại và điểm nổi bật thể thao, xem lại, và tua lại Live TV (bộ đệm tạm dừng).\nXem lại: ảnh lấy từ phần được lưu bằng Tua xem lại nhanh hơn, hoặc trực tiếp từ nhà cung cấp với xem lại dạng HLS.\nKhông hoạt động với: torrent, liên kết DASH hoặc luồng được bảo vệ."</string>
     <string name="iptv_thumbs_low_memory_note">"Thiết bị này có bộ nhớ hạn chế. Ảnh thu nhỏ có thể gây giật. Nếu vậy, chúng tự tạm dừng và thanh tua sẽ báo."</string>
     <string name="iptv_thumbs_include_4k">"Bao gồm 4K và HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Không mở được video này để tạo ảnh thu nhỏ"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Không có ảnh thu nhỏ cho luồng xem lại này"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Không có hình thu nhỏ: TV này cần bộ giải mã video duy nhất cho video"</string>
+    <string name="seekr_key_save_error">Không thể lưu khóa Seekr trên thiết bị này.</string>
+    <string name="seekr_api_key">Khóa API Seekr</string>
+    <string name="seekr_key_description">Dùng khóa cá nhân từ seekr.tv để xem trước phim và tập phim. Bản sao lưu trên Google Drive có chứa khóa này. Xóa nội dung ô để gỡ khóa.</string>
+    <string name="seekr_only">Chỉ dùng Seekr</string>
+    <string name="seekr_only_description">Chỉ hiển thị hình xem trước từ Seekr. Tắt để tạo các hình còn thiếu trên thiết bị.</string>
 </resources>

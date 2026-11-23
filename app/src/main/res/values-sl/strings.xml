@@ -2235,4 +2235,12 @@
     <string name="autosync_status_no_fit">Morda se ne ujema</string>
     <string name="autosync_status_no_reference">Brez vdelanih podnapisov</string>
     <string name="autosync_status_failed">Ni uspelo</string>
+    <string name="iptv_immediate_tier">Vključi IPTV VOD med vire za takojšnje predvajanje</string>
+    <string name="iptv_fallback_tier">Vključi IPTV VOD med nadomestne vire</string>
+    <string name="when_watched">Kdaj ste si to ogledali?</string>
+    <string name="watched_now">Označi kot ogledano zdaj</string>
+    <string name="choose_watch_date">Izberi datum</string>
+    <string name="choose_watch_date_time">Izberi datum in čas</string>
+    <string name="choose_watch_time">Izberi čas</string>
+    <string name="choose_past_watch_time">Izberite veljaven čas v preteklosti.</string>
 </resources>

@@ -1,6 +1,5 @@
 package com.nuvio.tv.ui.screens.settings
 
-import android.content.Context
 import android.text.format.DateFormat
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -16,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.nuvio.tv.R
 import com.nuvio.tv.livetv.thumbs.SeekThumbSettings
 import com.nuvio.tv.livetv.thumbs.SeekThumbs
@@ -40,31 +40,31 @@ internal fun PlaybackSeekThumbnailSection() {
     fun update(change: (SeekThumbSettings.Values) -> SeekThumbSettings.Values) = SeekThumbSettings.update(context, change)
 
     SettingsToggleRow(
-        title = context.getString(R.string.iptv_thumbs_title),
-        subtitle = context.getString(R.string.iptv_thumbs_subtitle),
+        title = stringResource(R.string.iptv_thumbs_title),
+        subtitle = stringResource(R.string.iptv_thumbs_subtitle),
         checked = s.enabled,
         onToggle = { update { it.copy(enabled = !it.enabled) } }
     )
     var saveError by remember { mutableStateOf(false) }
     var editingKey by remember { mutableStateOf(false) }
     SettingsToggleRow(
-        title = context.getString(R.string.seekr_only),
-        subtitle = context.getString(R.string.seekr_only_description),
+        title = stringResource(R.string.seekr_only),
+        subtitle = stringResource(R.string.seekr_only_description),
         checked = s.seekrOnly,
         enabled = s.enabled,
         onToggle = { update { it.copy(seekrOnly = !it.seekrOnly) } }
     )
     SettingsActionRow(
-        title = context.getString(R.string.seekr_api_key),
-        subtitle = context.getString(R.string.seekr_key_description),
-        value = if (s.apiKey.isBlank()) null else "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢",
+        title = stringResource(R.string.seekr_api_key),
+        subtitle = stringResource(R.string.seekr_key_description),
+        value = if (s.apiKey.isBlank()) null else "••••••••",
         onClick = { editingKey = true },
         enabled = s.enabled
     )
     if (editingKey) {
         com.nuvio.tv.livetv.ui.TextInputDialog(
-            title = context.getString(R.string.seekr_api_key), initial = s.apiKey,
-            hint = "sk_live_â€¦", confirmLabel = context.getString(R.string.action_save),
+            title = stringResource(R.string.seekr_api_key), initial = s.apiKey,
+            hint = "sk_live_…", confirmLabel = stringResource(R.string.action_save),
             password = true, onDismiss = { editingKey = false },
             onConfirm = { key ->
                 editingKey = false
@@ -76,25 +76,25 @@ internal fun PlaybackSeekThumbnailSection() {
             }
         )
     }
-    if (saveError) SettingsNote(context.getString(R.string.seekr_key_save_error), tone = SettingsNoteTone.Warning)
-    SettingsNote(context.getString(R.string.iptv_thumbs_works_on))
+    if (saveError) SettingsNote(stringResource(R.string.seekr_key_save_error), tone = SettingsNoteTone.Warning)
+    SettingsNote(stringResource(R.string.iptv_thumbs_works_on))
     if (lowMemoryBox && !s.seekrOnly) {
         SettingsNote(
-            context.getString(R.string.iptv_thumbs_low_memory_note),
+            stringResource(R.string.iptv_thumbs_low_memory_note),
             tone = SettingsNoteTone.Warning
         )
     }
     SettingsToggleRow(
-        title = context.getString(R.string.iptv_thumbs_include_4k),
-        subtitle = context.getString(R.string.iptv_thumbs_include_4k_desc),
+        title = stringResource(R.string.iptv_thumbs_include_4k),
+        subtitle = stringResource(R.string.iptv_thumbs_include_4k_desc),
         checked = s.include4k,
         enabled = s.enabled && !s.seekrOnly,
         onToggle = { update { it.copy(include4k = !it.include4k) } }
     )
     SettingsActionRow(
-        title = context.getString(R.string.iptv_thumbs_when_to_make),
-        subtitle = context.getString(whenDetailRes(s.whenToMake)),
-        value = context.getString(whenLabelRes(s.whenToMake)),
+        title = stringResource(R.string.iptv_thumbs_when_to_make),
+        subtitle = stringResource(whenDetailRes(s.whenToMake)),
+        value = stringResource(whenLabelRes(s.whenToMake)),
         enabled = s.enabled && !s.seekrOnly,
         leadingIcon = Icons.Default.Schedule,
         onClick = {
@@ -103,9 +103,9 @@ internal fun PlaybackSeekThumbnailSection() {
         }
     )
     SettingsActionRow(
-        title = context.getString(R.string.iptv_thumbs_storage_limit),
-        subtitle = context.getString(R.string.iptv_thumbs_storage_limit_desc),
-        value = context.getString(R.string.iptv_thumbs_size_mb, s.storageMb.toString()),
+        title = stringResource(R.string.iptv_thumbs_storage_limit),
+        subtitle = stringResource(R.string.iptv_thumbs_storage_limit_desc),
+        value = stringResource(R.string.iptv_thumbs_size_mb, s.storageMb.toString()),
         enabled = s.enabled && !s.seekrOnly,
         leadingIcon = Icons.Default.SdStorage,
         onClick = {
@@ -114,9 +114,9 @@ internal fun PlaybackSeekThumbnailSection() {
         }
     )
     SettingsActionRow(
-        title = context.getString(R.string.iptv_thumbs_clear),
-        subtitle = context.getString(R.string.iptv_thumbs_clear_desc),
-        value = savedBytes?.let { formatSize(context, it) },
+        title = stringResource(R.string.iptv_thumbs_clear),
+        subtitle = stringResource(R.string.iptv_thumbs_clear_desc),
+        value = savedBytes?.let { formatSize(it) },
         leadingIcon = Icons.Default.DeleteSweep,
         onClick = {
             scope.launch {
@@ -128,7 +128,7 @@ internal fun PlaybackSeekThumbnailSection() {
     if (s.lastLowMemoryAt > 0L) {
         val date = Date(s.lastLowMemoryAt)
         SettingsNote(
-            context.getString(
+            stringResource(
                 R.string.iptv_thumbs_last_paused,
                 DateFormat.getMediumDateFormat(context).format(date),
                 DateFormat.getTimeFormat(context).format(date)
@@ -137,9 +137,10 @@ internal fun PlaybackSeekThumbnailSection() {
     }
 }
 
-private fun formatSize(context: Context, bytes: Long): String = when {
-    bytes < 1024L * 1024L -> context.getString(R.string.iptv_thumbs_size_kb, (bytes / 1024L).toString())
-    else -> context.getString(R.string.iptv_thumbs_size_mb, "%.1f".format(bytes / (1024.0 * 1024.0)))
+@Composable
+private fun formatSize(bytes: Long): String = when {
+    bytes < 1024L * 1024L -> stringResource(R.string.iptv_thumbs_size_kb, (bytes / 1024L).toString())
+    else -> stringResource(R.string.iptv_thumbs_size_mb, "%.1f".format(bytes / (1024.0 * 1024.0)))
 }
 
 private fun whenLabelRes(w: SeekThumbSettings.When): Int = when (w) {

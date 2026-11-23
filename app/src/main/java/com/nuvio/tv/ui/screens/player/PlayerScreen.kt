@@ -3309,7 +3309,7 @@ private fun PlayerControlsProgressBarHost(
  * so a single tap still shows the picture (as the seek bar does).
  */
 @Composable
-private fun rememberSeekThumbShown(viewModel: PlayerViewModel): Boolean {
+private fun rememberSeekThumbVisibility(viewModel: PlayerViewModel): SeekThumbVisibility {
     val pending by remember(viewModel) {
         viewModel.uiState.map { it.pendingPreviewSeekPosition != null }.distinctUntilChanged()
     }.collectAsState(initial = false)
@@ -3322,22 +3322,24 @@ private fun rememberSeekThumbShown(viewModel: PlayerViewModel): Boolean {
             lingering = false
         }
     }
-    return pending || lingering
+    return SeekThumbVisibility(pending || lingering, pending)
 }
+
+private data class SeekThumbVisibility(val visible: Boolean, val requestFrame: Boolean)
 
 private const val SEEK_THUMB_LINGER_MS = 1_500L
 
 /** Live TV fork: the seek thumbnail above the bar while a seek is under way. */
 @Composable
 private fun BoxScope.SeekThumbOverBar(viewModel: PlayerViewModel, positionMs: Long, durationMs: Long) {
-    val pending = rememberSeekThumbShown(viewModel)
+    val thumbnail = rememberSeekThumbVisibility(viewModel)
     com.nuvio.tv.livetv.thumbs.SeekThumbAbove(
         owner = com.nuvio.tv.livetv.thumbs.SeekThumbs.Owner.MAIN,
         positionMs = positionMs,
         fraction = if (durationMs > 0) positionMs.toFloat() / durationMs else 0f,
         timeLabel = com.nuvio.tv.livetv.thumbs.seekThumbTime(positionMs),
-        visible = pending && durationMs > 0,
-        requestFrame = viewModel.uiState.value.pendingPreviewSeekPosition != null,
+        visible = thumbnail.visible && durationMs > 0,
+        requestFrame = thumbnail.requestFrame,
         remote = viewModel.seekrPreview,
         modifier = Modifier.align(Alignment.TopStart)
     )
@@ -3744,15 +3746,15 @@ private fun SeekOverlayHost(
 ) {
     val playbackTimeline by viewModel.playbackTimeline.collectAsState()
 
-    val pending = rememberSeekThumbShown(viewModel)
+    val thumbnail = rememberSeekThumbVisibility(viewModel)
     SeekOverlay(
         currentPosition = playbackTimeline.currentPosition,
         duration = playbackTimeline.duration,
         bufferedPosition = playbackTimeline.bufferedPosition,
         chapters = chapters,
-        thumbVisible = pending,
+        thumbVisible = thumbnail.visible,
         remote = viewModel.seekrPreview,
-        requestFrame = viewModel.uiState.value.pendingPreviewSeekPosition != null,
+        requestFrame = thumbnail.requestFrame,
         showChapterTitle = showChapterTitle
     )
 }

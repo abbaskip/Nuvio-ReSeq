@@ -3464,4 +3464,12 @@
     <string name="autosync_status_no_fit">Може да не съвпада</string>
     <string name="autosync_status_no_reference">Без вградени субтитри</string>
     <string name="autosync_status_failed">Неуспешно</string>
+    <string name="iptv_immediate_tier">Включване на IPTV VOD за незабавно пускане</string>
+    <string name="iptv_fallback_tier">Включване на IPTV VOD сред резервните източници</string>
+    <string name="when_watched">Кога го гледахте?</string>
+    <string name="watched_now">Отбелязване като гледано сега</string>
+    <string name="choose_watch_date">Избор на дата</string>
+    <string name="choose_watch_date_time">Избор на дата и час</string>
+    <string name="choose_watch_time">Избор на час</string>
+    <string name="choose_past_watch_time">Изберете валиден момент в миналото.</string>
 </resources>

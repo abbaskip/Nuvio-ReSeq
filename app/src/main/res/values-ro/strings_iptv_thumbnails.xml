@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Miniaturi la derulare</string>
+    <string name="playback_section_seek_thumbnails_desc">Previzualizare deasupra barei în timpul derulării</string>
+    <string name="iptv_thumbs_subtitle">Afișează imagini de la Seekr sau extrase din video pe dispozitiv.</string>
+    <string name="iptv_thumbs_works_on">Pentru filme, seriale, HLS, înregistrări, reluări sportive, arhivă și derularea emisiunilor în direct. Arhiva folosește partea salvată sau fluxul HLS al furnizorului. Nu acceptă torrente, DASH sau fluxuri protejate.</string>
+    <string name="iptv_thumbs_low_memory_note">Memorie redusă. Dacă redarea sacadează, generarea miniaturilor se întrerupe automat.</string>
+    <string name="iptv_thumbs_include_4k">Include 4K și HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Consumă mai multe date. Dispozitivele mai slabe pot sacada, iar culorile HDR pot părea șterse. Fluxurile folosesc varianta cea mai mică.</string>
+    <string name="iptv_thumbs_when_to_make">Când se generează miniaturile</string>
+    <string name="iptv_thumbs_when_seeking">Doar în pauză sau la derulare</string>
+    <string name="iptv_thumbs_when_seeking_desc">Nu se generează imagini în timpul redării normale.</string>
+    <string name="iptv_thumbs_when_watching">În timpul vizionării</string>
+    <string name="iptv_thumbs_when_watching_desc">Generează imagini în fundal când s-a încărcat suficient material în avans.</string>
+    <string name="iptv_thumbs_when_right_away">Imediat</string>
+    <string name="iptv_thumbs_when_right_away_desc">Procesează întregul video la deschidere și consumă cele mai multe date.</string>
+    <string name="iptv_thumbs_storage_limit">Limită de stocare</string>
+    <string name="iptv_thumbs_storage_limit_desc">Se șterg mai întâi imaginile materialelor vizionate cu cel mai mult timp în urmă.</string>
+    <string name="iptv_thumbs_clear">Șterge miniaturile salvate</string>
+    <string name="iptv_thumbs_clear_desc">Șterge toate imaginile. Vor fi regenerate la nevoie.</string>
+    <string name="iptv_thumbs_last_paused">Ultima pauză din lipsă de memorie: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Se creează miniaturi…</string>
+    <string name="iptv_thumbs_msg_low_memory">Miniaturi suspendate din lipsă de memorie</string>
+    <string name="iptv_thumbs_msg_live">Fără miniaturi pentru TV în direct</string>
+    <string name="iptv_thumbs_msg_dash">Fără miniaturi pentru DASH</string>
+    <string name="iptv_thumbs_msg_catchup_save">Activează derularea rapidă în arhivă pentru a vedea miniaturi</string>
+    <string name="iptv_thumbs_msg_protected">Fluxul este protejat</string>
+    <string name="iptv_thumbs_msg_torrent">Fără miniaturi pentru torrente</string>
+    <string name="iptv_thumbs_msg_link_kind">Fără miniaturi pentru acest tip de link</string>
+    <string name="iptv_thumbs_msg_unreadable">Fluxul nu a putut fi citit</string>
+    <string name="iptv_thumbs_msg_pieces_large">Segmentele fluxului sunt prea mari</string>
+    <string name="iptv_thumbs_msg_stopped">Generarea miniaturilor s-a oprit pentru acest video</string>
+    <string name="iptv_thumbs_msg_no_pictures">Serverul nu a trimis imagini</string>
+    <string name="iptv_thumbs_msg_format">Dispozitivul nu acceptă previzualizarea acestui format</string>
+    <string name="iptv_thumbs_msg_open_failed">Videoclipul nu a putut fi deschis pentru previzualizare</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Fără miniaturi pentru acest flux din arhivă</string>
+    <string name="iptv_thumbs_msg_one_decoder">Singurul decodor este necesar pentru redare</string>
+    <string name="iptv_thumbs_title">Miniaturi la derulare</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Cheia Seekr nu a putut fi salvată pe dispozitiv.</string>
+    <string name="seekr_api_key">Cheie API Seekr</string>
+    <string name="seekr_key_description">Cheia personală de pe seekr.tv permite previzualizarea filmelor și episoadelor. Copia de rezervă din Google Drive include cheia. Golește câmpul pentru a o elimina.</string>
+    <string name="seekr_only">Doar Seekr</string>
+    <string name="seekr_only_description">Afișează doar previzualizările disponibile pe Seekr. Dezactivează pentru a genera local imaginile lipsă.</string>
+</resources>

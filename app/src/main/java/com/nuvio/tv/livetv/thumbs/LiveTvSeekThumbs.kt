@@ -47,6 +47,7 @@ private class Seen {
     @Volatile var height = 0
     @Volatile var hdr = false
 
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     fun read(c: LiveTvPlaybackController, vm: com.nuvio.tv.livetv.ui.LiveTvViewModel) {
         val p = c.player ?: return
         playing = p.isPlaying

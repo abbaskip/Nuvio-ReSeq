@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Миниатюры при перемотке"</string>
     <string name="playback_section_seek_thumbnails_desc">"Кадры предпросмотра над полосой перемотки во время перемотки"</string>
     <string name="iptv_thumbs_title">"Миниатюры при перемотке"</string>
-    <string name="iptv_thumbs_subtitle">"Показывает кадр предпросмотра над полосой перемотки во время перемотки. Кадры создаются на этом телевизоре из самого видео"</string>
+    <string name="iptv_thumbs_subtitle">При перемотке над шкалой времени показываются кадры из Seekr или кадры, созданные из видео на этом устройстве.</string>
     <string name="iptv_thumbs_works_on">"Работает с: фильмами и сериалами в основном плеере (включая потоковые ссылки HLS), вашими записями, спортивными повторами и обзорами, catch-up и перемоткой прямого эфира (буфер паузы).\nCatch-up: кадры берутся из части, сохранённой функцией «Быстрая перемотка в catch-up», или прямо у провайдера для потокового (HLS) catch-up.\nНе работает с: торрентами, ссылками DASH и защищёнными потоками."</string>
     <string name="iptv_thumbs_low_memory_note">"На этом устройстве мало памяти. Миниатюры могут вызывать подтормаживание. В этом случае они приостанавливаются сами, а полоса перемотки сообщит об этом."</string>
     <string name="iptv_thumbs_include_4k">"Включить 4K и HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Не удалось открыть видео для миниатюр"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Нет миниатюр для этого потока catch-up"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Без миниатюр: телевизору нужен его единственный видеодекодер для видео"</string>
+    <string name="seekr_key_save_error">Не удалось сохранить ключ Seekr на этом устройстве.</string>
+    <string name="seekr_api_key">Ключ API Seekr</string>
+    <string name="seekr_key_description">Личный ключ с seekr.tv нужен для предпросмотра фильмов и серий. Он входит в резервную копию на Google Диске. Очистите поле, чтобы удалить ключ.</string>
+    <string name="seekr_only">Только Seekr</string>
+    <string name="seekr_only_description">Показывать только кадры из Seekr. Выключите, чтобы недостающие кадры создавались на устройстве.</string>
 </resources>

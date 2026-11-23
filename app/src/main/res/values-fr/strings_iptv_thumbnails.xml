@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Miniatures de navigation"</string>
     <string name="playback_section_seek_thumbnails_desc">"Des images d’aperçu au-dessus de la barre de progression pendant la navigation"</string>
     <string name="iptv_thumbs_title">"Miniatures de navigation"</string>
-    <string name="iptv_thumbs_subtitle">"Affiche une image d’aperçu au-dessus de la barre de progression pendant la navigation. Les images sont créées sur ce téléviseur à partir de la vidéo elle-même"</string>
+    <string name="iptv_thumbs_subtitle">Pendant le déplacement dans la vidéo, affiche au-dessus de la barre des aperçus provenant de Seekr ou générés sur cet appareil.</string>
     <string name="iptv_thumbs_works_on">"Fonctionne avec : les films et séries du lecteur principal (y compris les liens HLS en streaming), vos enregistrements, les replays et résumés sportifs, le replay et le retour en arrière en direct (tampon de pause).\nReplay : les images viennent de la partie enregistrée avec « Avance rapide en replay », ou directement du fournisseur pour le replay en streaming (HLS).\nNe fonctionne pas avec : les torrents, les liens DASH ou les flux protégés."</string>
     <string name="iptv_thumbs_low_memory_note">"Cet appareil a peu de mémoire. Les miniatures peuvent provoquer des saccades. Dans ce cas, elles se mettent en pause toutes seules et la barre de progression l’indique."</string>
     <string name="iptv_thumbs_include_4k">"Inclure la 4K et le HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Cette vidéo n’a pas pu être ouverte pour les miniatures"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Pas de miniatures pour ce flux de replay"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Pas de miniatures : ce téléviseur a besoin de son seul décodeur vidéo pour la vidéo"</string>
+    <string name="seekr_key_save_error">Impossible d’enregistrer la clé Seekr sur cet appareil.</string>
+    <string name="seekr_api_key">Clé API Seekr</string>
+    <string name="seekr_key_description">Votre clé personnelle de seekr.tv donne accès aux aperçus des films et épisodes. La sauvegarde Google Drive inclut cette clé. Videz le champ pour la supprimer.</string>
+    <string name="seekr_only">Seekr uniquement</string>
+    <string name="seekr_only_description">Afficher uniquement les aperçus de Seekr. Désactivez cette option pour générer les aperçus manquants sur l’appareil.</string>
 </resources>

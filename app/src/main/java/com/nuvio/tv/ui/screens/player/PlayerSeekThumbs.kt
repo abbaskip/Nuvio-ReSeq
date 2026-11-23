@@ -68,7 +68,7 @@ internal fun PlayerSeekThumbsHook(viewModel: PlayerViewModel) {
     val plan = windows
     val playingWindow by remember(viewModel, plan, durationMs) {
         viewModel.playbackTimeline.map { plan?.windowAt(it.currentPosition, durationMs) }.distinctUntilChanged()
-    }.collectAsState(initial = plan?.windowAt(viewModel.playbackTimeline.value.currentPosition, durationMs))
+    }.collectAsState(initial = null)
     val pendingPosition = state.pendingPreviewSeekPosition
     val window = if (pendingPosition != null) plan?.windowAt(pendingPosition, durationMs)
         else playingWindow?.takeIf { plan?.contains(it) == true }
@@ -111,6 +111,7 @@ internal fun PlayerSeekThumbsHook(viewModel: PlayerViewModel) {
     DisposableEffect(viewModel) { onDispose { remote.reset(); SeekThumbs.close(SeekThumbs.Owner.MAIN) } }
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private fun update(context: android.content.Context, viewModel: PlayerViewModel) {
     val owner = SeekThumbs.Owner.MAIN
     if (!SeekThumbSettings.values.value.enabled) { SeekThumbs.close(owner); return }

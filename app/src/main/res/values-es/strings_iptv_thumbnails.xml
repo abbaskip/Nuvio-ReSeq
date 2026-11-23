@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">Miniaturas de avance</string>
     <string name="playback_section_seek_thumbnails_desc">Imágenes de vista previa sobre la barra de avance mientras te desplazas</string>
     <string name="iptv_thumbs_title">Miniaturas de avance</string>
-    <string name="iptv_thumbs_subtitle">Muestra una imagen de vista previa sobre la barra de avance mientras te desplazas. Las imágenes se crean en este televisor a partir del propio vídeo</string>
+    <string name="iptv_thumbs_subtitle">Muestra vistas previas sobre la barra al desplazarte. Usa imágenes de Seekr o las genera a partir del vídeo en este dispositivo.</string>
     <string name="iptv_thumbs_works_on">"Funciona en: películas y series del reproductor principal (incluidos los enlaces HLS transmitidos), tus grabaciones, repeticiones y resúmenes deportivos, diferido y al retroceder en TV en directo (el búfer de pausa).\nCatch-up: las imágenes salen de la parte guardada con Saltos más rápidos en diferido, o directamente del proveedor en el diferido transmitido (HLS).\nNo funciona en: torrents, enlaces DASH ni transmisiones protegidas."</string>
     <string name="iptv_thumbs_low_memory_note">Este dispositivo tiene poca memoria. Las miniaturas pueden provocar tirones. Si ocurre, se pausan solas y la barra de avance lo indica.</string>
     <string name="iptv_thumbs_include_4k">Incluir 4K y HDR</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">No se pudo abrir este vídeo para crear miniaturas</string>
     <string name="iptv_thumbs_msg_catchup_stream">Sin miniaturas para esta transmisión de diferido</string>
     <string name="iptv_thumbs_msg_one_decoder">"Sin miniaturas: esta TV necesita su único decodificador de vídeo para el vídeo"</string>
+    <string name="seekr_key_save_error">No se pudo guardar la clave de Seekr en este dispositivo.</string>
+    <string name="seekr_api_key">Clave de API de Seekr</string>
+    <string name="seekr_key_description">Usa tu clave personal de seekr.tv para obtener vistas previas de películas y episodios. La copia de Google Drive incluye esta clave. Vacía el campo para eliminarla.</string>
+    <string name="seekr_only">Solo Seekr</string>
+    <string name="seekr_only_description">Muestra solo las vistas previas disponibles en Seekr. Desactiva esta opción para generar en el dispositivo las que falten.</string>
 </resources>

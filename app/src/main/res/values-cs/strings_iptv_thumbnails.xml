@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Náhledy při posouvání"</string>
     <string name="playback_section_seek_thumbnails_desc">"Náhledové obrázky nad posuvníkem při posouvání"</string>
     <string name="iptv_thumbs_title">"Náhledy při posouvání"</string>
-    <string name="iptv_thumbs_subtitle">"Při posouvání ukazuje náhledový obrázek nad posuvníkem. Obrázky se vytvářejí v této TV ze samotného videa"</string>
+    <string name="iptv_thumbs_subtitle">Při přetáčení zobrazuje nad časovou osou náhledy ze Seekru nebo obrázky vytvořené z videa v zařízení.</string>
     <string name="iptv_thumbs_works_on">"Funguje u: filmů a pořadů v hlavním přehrávači (včetně streamovaných odkazů HLS), vašich nahrávek, sportovních záznamů a sestřihů, zpětného sledování a přetáčení Live TV (vyrovnávací paměť pozastavení).\nZpětné sledování: obrázky pocházejí z části uložené funkcí Rychlejší přeskakování ve zpětném sledování, nebo přímo od poskytovatele u streamovaného (HLS) zpětného sledování.\nNefunguje u: torrentů, odkazů DASH ani chráněných streamů."</string>
     <string name="iptv_thumbs_low_memory_note">"Toto zařízení má omezenou paměť. Náhledy mohou způsobit trhání. Pokud ano, samy se pozastaví a posuvník to oznámí."</string>
     <string name="iptv_thumbs_include_4k">"Zahrnout 4K a HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Toto video se nepodařilo otevřít pro náhledy"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Žádné náhledy pro tento stream zpětného sledování"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Žádné náhledy: tato TV potřebuje svůj jediný dekodér videa pro samotné video"</string>
+    <string name="seekr_key_save_error">Klíč Seekr se nepodařilo uložit do zařízení.</string>
+    <string name="seekr_api_key">Klíč API Seekr</string>
+    <string name="seekr_key_description">Osobní klíč ze seekr.tv slouží k náhledům filmů a epizod. Záloha na Disku Google zahrnuje i klíč. Vymazáním pole jej odstraníte.</string>
+    <string name="seekr_only">Pouze Seekr</string>
+    <string name="seekr_only_description">Zobrazovat pouze náhledy ze Seekru. Po vypnutí se chybějící náhledy vytvoří v zařízení.</string>
 </resources>

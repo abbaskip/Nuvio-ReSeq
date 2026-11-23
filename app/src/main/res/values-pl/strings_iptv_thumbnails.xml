@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Miniatury przy przewijaniu"</string>
     <string name="playback_section_seek_thumbnails_desc">"Podglądy nad paskiem przewijania podczas przewijania"</string>
     <string name="iptv_thumbs_title">"Miniatury przy przewijaniu"</string>
-    <string name="iptv_thumbs_subtitle">"Pokazuje podgląd nad paskiem przewijania podczas przewijania. Obrazy są tworzone na tym telewizorze z samego wideo"</string>
+    <string name="iptv_thumbs_subtitle">Podczas przewijania pokazuje nad paskiem podglądy z Seekr lub obrazy utworzone z filmu na urządzeniu.</string>
     <string name="iptv_thumbs_works_on">"Działa przy: filmach i serialach w głównym odtwarzaczu (także strumieniowanych linkach HLS), twoich nagraniach, powtórkach i skrótach sportowych, catch-up i cofaniu telewizji na żywo (bufor pauzy).\nCatch-up: obrazy pochodzą z części zapisanej przez „Szybsze przewijanie w catch-up” albo bezpośrednio od dostawcy przy strumieniowanym (HLS) catch-up.\nNie działa przy: torrentach, linkach DASH ani zabezpieczonych strumieniach."</string>
     <string name="iptv_thumbs_low_memory_note">"To urządzenie ma mało pamięci. Miniatury mogą powodować przycinanie. Jeśli tak się stanie, same się wstrzymają, a pasek przewijania o tym poinformuje."</string>
     <string name="iptv_thumbs_include_4k">"Uwzględnij 4K i HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Nie udało się otworzyć tego wideo dla miniatur"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Brak miniatur dla tego strumienia catch-up"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Brak miniatur: ten telewizor potrzebuje swojego jedynego dekodera wideo do odtwarzania"</string>
+    <string name="seekr_key_save_error">Nie można zapisać klucza Seekr na tym urządzeniu.</string>
+    <string name="seekr_api_key">Klucz API Seekr</string>
+    <string name="seekr_key_description">Osobisty klucz z seekr.tv służy do pobierania podglądów filmów i odcinków. Kopia na Dysku Google zawiera ten klucz. Wyczyść pole, aby go usunąć.</string>
+    <string name="seekr_only">Tylko Seekr</string>
+    <string name="seekr_only_description">Wyświetlaj tylko podglądy z Seekr. Wyłącz, aby generować brakujące podglądy na urządzeniu.</string>
 </resources>

@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Miniaturas de busca"</string>
     <string name="playback_section_seek_thumbnails_desc">"Imagens de prévia acima da barra de busca enquanto você avança ou volta"</string>
     <string name="iptv_thumbs_title">"Miniaturas de busca"</string>
-    <string name="iptv_thumbs_subtitle">"Mostra uma imagem de prévia acima da barra de busca enquanto você avança ou volta. As imagens são feitas nesta TV a partir do próprio vídeo"</string>
+    <string name="iptv_thumbs_subtitle">Ao avançar ou recuar, mostra por cima da barra imagens do Seekr ou geradas a partir do vídeo neste dispositivo.</string>
     <string name="iptv_thumbs_works_on">"Funciona em: filmes e séries no player principal (incluindo links HLS por streaming), suas gravações, replays e melhores momentos de esportes, catch-up e ao voltar a TV ao vivo (buffer de pausa).\nCatch-up: as imagens vêm da parte salva com \"Avanço mais rápido no catch-up\", ou direto do provedor no catch-up por streaming (HLS).\nNão funciona em: torrents, links DASH ou streams protegidos."</string>
     <string name="iptv_thumbs_low_memory_note">"Este aparelho tem pouca memória. As miniaturas podem causar travadas. Se isso acontecer, elas pausam sozinhas e a barra de busca avisa."</string>
     <string name="iptv_thumbs_include_4k">"Incluir 4K e HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Não foi possível abrir este vídeo para as miniaturas"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Sem miniaturas para este stream de catch-up"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Sem miniaturas: esta TV precisa do seu único decodificador de vídeo para o vídeo"</string>
+    <string name="seekr_key_save_error">Não foi possível guardar a chave Seekr neste dispositivo.</string>
+    <string name="seekr_api_key">Chave de API do Seekr</string>
+    <string name="seekr_key_description">Use a sua chave pessoal de seekr.tv para pré-visualizações de filmes e episódios. A cópia de segurança no Google Drive inclui esta chave. Limpe o campo para a remover.</string>
+    <string name="seekr_only">Apenas Seekr</string>
+    <string name="seekr_only_description">Mostrar apenas pré-visualizações do Seekr. Desative para gerar no dispositivo as que faltam.</string>
 </resources>

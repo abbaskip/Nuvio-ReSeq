@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Sarma küçük resimleri"</string>
     <string name="playback_section_seek_thumbnails_desc">"Sararken arama çubuğunun üstünde önizleme resimleri"</string>
     <string name="iptv_thumbs_title">"Sarma küçük resimleri"</string>
-    <string name="iptv_thumbs_subtitle">"Sararken arama çubuğunun üstünde bir önizleme resmi gösterir. Resimler bu TV’de videonun kendisinden oluşturulur"</string>
+    <string name="iptv_thumbs_subtitle">İleri geri sararken çubuğun üzerinde Seekr’den alınan veya cihazda videodan oluşturulan önizlemeleri gösterir.</string>
     <string name="iptv_thumbs_works_on">"Çalıştığı yerler: ana oynatıcıdaki filmler ve diziler (akış HLS bağlantıları dahil), kayıtların, spor tekrarları ve özetleri, catch-up ve Canlı TV’yi geri sarma (duraklatma arabelleği).\nCatch-up: resimler \"Catch-up’ta daha hızlı atlama\" ile kaydedilen kısımdan ya da akış (HLS) catch-up’ta doğrudan sağlayıcıdan gelir.\nÇalışmadığı yerler: torrentler, DASH bağlantıları veya korumalı yayınlar."</string>
     <string name="iptv_thumbs_low_memory_note">"Bu cihazın belleği sınırlı. Küçük resimler takılmaya yol açabilir. Olursa kendiliğinden duraklar ve arama çubuğu bunu belirtir."</string>
     <string name="iptv_thumbs_include_4k">"4K ve HDR dahil et"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Bu video küçük resimler için açılamadı"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Bu catch-up yayınında küçük resim yok"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Küçük resim yok: bu TV'nin tek video kod çözücüsü video için gerekli"</string>
+    <string name="seekr_key_save_error">Seekr anahtarı bu cihaza kaydedilemedi.</string>
+    <string name="seekr_api_key">Seekr API anahtarı</string>
+    <string name="seekr_key_description">Film ve bölüm önizlemeleri için seekr.tv kişisel anahtarınızı kullanın. Google Drive yedeği bu anahtarı içerir. Kaldırmak için alanı temizleyin.</string>
+    <string name="seekr_only">Yalnızca Seekr</string>
+    <string name="seekr_only_description">Yalnızca Seekr önizlemelerini gösterir. Eksik önizlemeleri cihazda oluşturmak için kapatın.</string>
 </resources>

@@ -3614,4 +3614,12 @@
     <string name="plugin_repo_delete_no">Nie</string>
     <string name="plugin_repo_delete_yes">Tak</string>
     <string name="cast_detail_filter_all">Wszystkie</string>
+    <string name="iptv_immediate_tier">Uwzględnij IPTV VOD w źródłach do natychmiastowego odtwarzania</string>
+    <string name="iptv_fallback_tier">Uwzględnij IPTV VOD w źródłach zapasowych</string>
+    <string name="when_watched">Kiedy to oglądano?</string>
+    <string name="watched_now">Oznacz jako obejrzane teraz</string>
+    <string name="choose_watch_date">Wybierz datę</string>
+    <string name="choose_watch_date_time">Wybierz datę i godzinę</string>
+    <string name="choose_watch_time">Wybierz godzinę</string>
+    <string name="choose_past_watch_time">Wybierz prawidłową datę i godzinę w przeszłości.</string>
 </resources>

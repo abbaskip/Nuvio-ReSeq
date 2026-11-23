@@ -3,7 +3,7 @@
     <string name="playback_section_seek_thumbnails">"Мініатюри перемотування"</string>
     <string name="playback_section_seek_thumbnails_desc">"Кадри попереднього перегляду над смугою перемотування"</string>
     <string name="iptv_thumbs_title">"Мініатюри перемотування"</string>
-    <string name="iptv_thumbs_subtitle">"Показує кадр попереднього перегляду над смугою під час перемотування. Кадри створюються на цьому телевізорі з самого відео"</string>
+    <string name="iptv_thumbs_subtitle">Під час перемотування над шкалою часу з’являються кадри із Seekr або зображення, створені з відео на пристрої.</string>
     <string name="iptv_thumbs_works_on">"Працює з: фільмами й передачами в основному плеєрі (зокрема потоковими посиланнями HLS), вашими записами, спортивними повторами й найкращими моментами, архівом і перемотуванням Live TV (буфер паузи).\nАрхів: кадри беруться з частини, збереженої функцією «Швидше перемотування архіву», або прямо від провайдера для потокового (HLS) архіву.\nНе працює з: торентами, посиланнями DASH і захищеними потоками."</string>
     <string name="iptv_thumbs_low_memory_note">"У цього пристрою обмежена пам’ять. Мініатюри можуть спричиняти ривки. Тоді вони самі ставляться на паузу, і смуга перемотування про це повідомляє."</string>
     <string name="iptv_thumbs_include_4k">"Включати 4K і HDR"</string>
@@ -38,4 +38,9 @@
     <string name="iptv_thumbs_msg_open_failed">"Не вдалося відкрити це відео для мініатюр"</string>
     <string name="iptv_thumbs_msg_catchup_stream">"Для цього потоку архіву мініатюр немає"</string>
     <string name="iptv_thumbs_msg_one_decoder">"Без мініатюр: телевізору потрібен його єдиний відеодекодер для відео"</string>
+    <string name="seekr_key_save_error">Не вдалося зберегти ключ Seekr на цьому пристрої.</string>
+    <string name="seekr_api_key">Ключ API Seekr</string>
+    <string name="seekr_key_description">Особистий ключ із seekr.tv потрібен для попереднього перегляду фільмів і серій. Резервна копія на Google Диску містить цей ключ. Очистьте поле, щоб його видалити.</string>
+    <string name="seekr_only">Лише Seekr</string>
+    <string name="seekr_only_description">Показувати лише кадри із Seekr. Вимкніть, щоб відсутні кадри створювалися на пристрої.</string>
 </resources>

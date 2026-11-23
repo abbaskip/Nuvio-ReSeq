@@ -47,5 +47,6 @@ internal fun watchedRatingRequest(
 ): WatchedRatingRequest? {
     if (!watched || hasError || contentId == null || contentType == null) return null
     val target = personalRatingTarget(contentId, contentType, imdbId) ?: return null
+    if (!target.movie) return null
     return WatchedRatingRequest(profileId, target, title)
 }

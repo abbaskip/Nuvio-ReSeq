@@ -221,9 +221,8 @@ class PlayerViewModel @Inject constructor(
 
     val promptToRateAfterWatching = playerSettingsDataStore.playerSettings.map { it.promptToRateAfterWatching }
     internal fun stopForWatchedRating(enabled: Boolean): com.nuvio.tv.core.tracking.WatchedRatingRequest? {
-        val timeline = playbackTimeline.value
-        val eligible = enabled && !timeline.isLive &&
-            controller.currentTvdbContext()?.permitsTracking(timeline.duration.takeIf { it > 0L } ?: controller.lastKnownDuration) != false
+        val eligible = enabled && !playbackTimeline.value.isLive &&
+            controller.currentEpisode == null && controller.currentTvdbContext() == null
         stopAndRelease() // Flush tracking before reading the completion decision for this item.
         if (!eligible) return null
         return com.nuvio.tv.core.tracking.watchedRatingRequest(

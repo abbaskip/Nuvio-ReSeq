@@ -178,7 +178,7 @@ internal fun WatchedRatingPromptHost(
             !canShow && opened -> { viewModel.close(); onConsumed() }
         }
     }
-    if (canShow) PersonalRatingDialog(if (target.movie) request.title else "Series - ${request.title}", state, eligible, viewModel::write) {
+    if (canShow) PersonalRatingDialog(request.title, state, eligible, viewModel::write) {
         viewModel.close(); onConsumed()
     }
 }
@@ -190,6 +190,6 @@ internal fun PersonalRatingPromptSetting(enabled: Boolean, onToggle: () -> Unit)
     if (connected.isNullOrEmpty()) return
     com.nuvio.tv.ui.screens.settings.SettingsToggleRow(
         title = "Prompt to rate after watching",
-        subtitle = "Ask to rate the movie or series when you leave playback after it counts as watched.",
+        subtitle = "Ask for a rating when you finish watching a movie.",
         checked = enabled, onToggle = onToggle)
 }

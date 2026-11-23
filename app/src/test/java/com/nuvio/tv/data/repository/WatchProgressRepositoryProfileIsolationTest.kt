@@ -282,6 +282,7 @@ class WatchProgressRepositoryProfileIsolationTest {
             every { provider.nextUpSeeds } returns seeds
             every { provider.allProgress } returns seeds
             every { provider.episodeProgress("tt123") } answers { flowOf(mapOf((5 to 13) to native.copy(episode = 13))) }
+            every { provider.nativeEpisodeRecords("tt123") } returns seeds
             every { provider.retainsLocalProgress(any()) } returns false
             val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>(relaxed = true)
             every { tvdb.observeSelectedSeries(1) } returns flowOf(setOf(1L))
@@ -394,6 +395,7 @@ class WatchProgressRepositoryProfileIsolationTest {
                 every { providerId } returns id
                 every { isAuthenticated } returns flowOf(true)
                 every { episodeProgress("show") } returns flowOf(mapOf((6 to 16) to completed))
+                every { nativeEpisodeRecords("show") } returns flowOf(listOf(completed, pause))
                 every { allProgress } returns flowOf(listOf(pause))
             }
             val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>(relaxed = true)

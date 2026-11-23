@@ -22,10 +22,10 @@ jobs:
       - name: Run the full TV suite
         if: matrix.app == 'TV'
         run: ./gradlew :app:testFullDebugUnitTest --init-script scripts/ci.gradle -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --console=plain
-      - name: Run shared Drive tests and offline download tests on mobile
+      - name: Check mobile tracking, downloads, playback and Drive restore
         if: matrix.app == 'Mobile'
         run: |
-          ./gradlew :app:testMobileDebugUnitTest --tests 'com.nuvio.tv.mobile.*' --tests 'com.nuvio.tv.livetv.sync.*' --tests '*LiveTvGroupPreferencesTest' --tests '*TieredStreamAutoPlayTest' --init-script scripts/ci.gradle -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --console=plain
+          ./gradlew :app:testMobileDebugUnitTest --tests 'com.nuvio.tv.mobile.*' --tests 'com.nuvio.tv.livetv.sync.*' --tests '*ContinueWatchingRepositoryTest' --tests '*TraktProgressServiceRefreshTest' --tests '*LiveTvGroupPreferencesTest' --tests '*TieredStreamAutoPlayTest' --init-script scripts/ci.gradle -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --console=plain
 
   build:
     runs-on: ubuntu-latest

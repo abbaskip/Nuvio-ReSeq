@@ -150,7 +150,7 @@ def fixture(account=None):
         files = []
         offline = Event()
         movies = [{"id": "qafilm" + name, "type": "movie", "name": "Test film " + name,
-                   "description": "Two friends catch the last ferry.", "releaseInfo": "2018"} for name in channels]
+                   "description": "Two friends catch the last ferry.", "releaseInfo": "2018", "poster": address + "/station.png"} for name in channels]
         series = {"id": "qaseries", "type": "series", "name": "Zyntraxis ReSeq Fixture", "releaseInfo": "2019-2024", "videos": [
             {"id": f"qaseries:1:{n}", "season": 1, "episode": n, "title": title, "released": "2020-01-01T00:00:00.000Z",
              "overview": "A missing page leads the crew back to the archive. As the last ferry prepares to leave, two accounts of that evening finally come together."}
@@ -187,6 +187,8 @@ def fixture(account=None):
 
             def do_GET(self):
                 path = unquote(urlsplit(self.path).path)
+                if offline.is_set() and (path == "/station.png" or "/meta/" in path or "/catalog/" in path):
+                    return self.send_error(503)
                 if account and path == "/sign-in-test":
                     page = b'<!doctype html><meta name="viewport" content="width=device-width"><a href="/approve-test">Approve test sign-in</a>'
                     self.send_response(200)
@@ -228,8 +230,6 @@ def fixture(account=None):
                         data = {"metas": [] if "/search=" in path and "film" not in path.casefold() else movies}
                     elif "/catalog/series/" in path:
                         data = {"metas": [series] if "/search=" not in path or "zyntraxis" in path.casefold() else []}
-                    elif "/meta/" in path and offline.is_set():
-                        return self.send_error(503)
                     elif "/meta/series/" in path:
                         data = {"meta": series}
                     elif "/meta/movie/" in path:

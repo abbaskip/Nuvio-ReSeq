@@ -51,6 +51,9 @@ class TraktProgressServiceRefreshTest {
     private var lastActivitiesFails = false
 
     @Volatile
+    private var watchedShowsReply: Response<List<TraktWatchedShowItemDto>>? = null
+
+    @Volatile
     private var playbackHangs = false
 
     @Test
@@ -160,12 +163,13 @@ class TraktProgressServiceRefreshTest {
 
     @Test fun `mobile cold start needs watched shows as well as playback before rebuilding saved cards`() = runBlocking {
         org.junit.Assume.assumeTrue(com.nuvio.tv.BuildConfig.FLAVOR == "mobile")
+        // The service starts its first sync in its constructor.
+        watchedShowsReply = Response.error(503, "".toResponseBody())
         val service = createService()
-        coEvery { traktApi.getWatchedShows(any(), any(), any(), any()) } returns Response.error(503, "".toResponseBody())
         val error = runCatching { service.refreshForContinueWatching() }.exceptionOrNull()
-        org.junit.Assert.assertTrue(error is java.io.IOException)
+        org.junit.Assert.assertTrue("Unexpected refresh result: $error", error is java.io.IOException)
         assertEquals(false, service.observeRemoteProgressLoaded().first())
-        coEvery { traktApi.getWatchedShows(any(), any(), any(), any()) } returns Response.success(emptyList())
+        watchedShowsReply = Response.success(emptyList())
         lastActivitiesFails = true
         service.refreshForContinueWatching()
         assertEquals(true, service.observeRemoteProgressLoaded().first())
@@ -246,7 +250,7 @@ class TraktProgressServiceRefreshTest {
         }
         coEvery { traktApi.getWatchedShows(any(), any(), any(), any()) } answers {
             watchedShowsCalls.incrementAndGet()
-            Response.success(listOf(TraktWatchedShowItemDto(show = TraktShowDto(title = "Fixture", ids = TraktIdsDto(imdb = "tt1000001")),
+            watchedShowsReply ?: Response.success(listOf(TraktWatchedShowItemDto(show = TraktShowDto(title = "Fixture", ids = TraktIdsDto(imdb = "tt1000001")),
                 seasons = listOf(TraktWatchedShowSeasonDto(1, listOf(TraktWatchedShowEpisodeDto(2, 2, "2026-06-01T00:00:00Z"),
                     TraktWatchedShowEpisodeDto(8, 1, "2026-02-01T00:00:00Z")))))), okhttp3.Headers.headersOf("X-Pagination-Page-Count", "1"))
         }

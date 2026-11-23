@@ -190,12 +190,7 @@ class LiveTvDriveSync @Inject constructor(
     fun start() {
         if (started || !_state.value.connected) return
         started = true
-        scope.launch {
-            if (_state.value.connected && _state.value.autoSync) {
-                pull(force = false)
-                push(force = false)
-            }
-        }
+        if (_state.value.autoSync) syncAfterEnabling()
         // Poll only while the app process is alive; edits are still debounced below.
         scope.launch {
             while (true) {
@@ -361,10 +356,20 @@ class LiveTvDriveSync @Inject constructor(
         }
     }
 
-    fun setAutoSync(enabled: Boolean) {
+    private fun syncAfterEnabling() {
+        scope.launch {
+            pull(force = false)
+            push(force = false)
+        }
+    }
+
+    @Synchronized fun setAutoSync(enabled: Boolean) {
+        if (!_state.value.connected || enabled == _state.value.autoSync) return
         store.edit().putBoolean(KEY_AUTO, enabled).apply()
         _state.value = _state.value.copy(autoSync = enabled)
-        if (enabled) start()
+        if (enabled) {
+            if (started) syncAfterEnabling() else start()
+        }
     }
 
     fun backUpNow() { scope.launch { push(force = true) } }

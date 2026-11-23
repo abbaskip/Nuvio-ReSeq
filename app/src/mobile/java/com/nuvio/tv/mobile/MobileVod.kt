@@ -142,7 +142,7 @@ private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean
     selected?.let { stream -> TouchSheet({ selected = null }) {
         SectionTitle(stream.getDisplayName())
         Action("Play this file", Modifier.fillMaxWidth()) { selected = null; resolve(stream, null, false, false) }
-        Action("Download this file", Modifier.fillMaxWidth()) { selected = null; resolve(stream, null, false, true) }
+        DownloadAction("Download this file", Modifier.fillMaxWidth(), showLabel = true) { selected = null; resolve(stream, null, false, true) }
     } }
     fun continueWith(info: StreamPlaybackInfo, mode: PlayerPreference?, allow: Boolean) {
         scope.launch {

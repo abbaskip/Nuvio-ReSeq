@@ -5,6 +5,15 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import com.nuvio.tv.livetv.ui.ChannelLogo
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -46,6 +55,8 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
     var searching by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf<LiveChannel?>(null) }
     var groupOptions by remember { mutableStateOf(false) }
+    var pickingGroup by rememberSaveable { mutableStateOf(false) }
+    val playback by vm.playbackState.collectAsStateWithLifecycle()
     LaunchedEffect(vm, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.maintainVisibleGuide() }
     }
@@ -62,13 +73,26 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
         scope.launch { scroll.scrollTo(0) }
     }
     Column(Modifier.fillMaxSize()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { SectionTitle("Live guide") }
-            Action("Search channels") {
+        val colors = MaterialTheme.colorScheme
+        val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 520
+        val groupName = ui.groups.firstOrNull { it.id == ui.selectedGroupId }?.title
+            ?: if (ui.selectedGroupId == ChannelGroup.SEARCH) "Search results" else "All channels"
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            val groupWidth = if (wide) Modifier.widthIn(max = 300.dp) else Modifier.weight(1f)
+            Row(groupWidth.mediaPanel().clickable(role = Role.Button) { pickingGroup = true }
+                .heightIn(min = 48.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Icon(Icons.Default.FilterList, null, Modifier.size(18.dp), tint = colors.primary)
+                Text("Group: $groupName", Modifier.weight(1f), fontFamily = condensed, color = colors.onSurface,
+                    fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Icon(Icons.Default.ArrowDropDown, null, Modifier.size(18.dp))
+            }
+            MediaIconAction("Search", Icons.Default.Search, showLabel = wide, selected = searching) {
                 searching = !searching
                 if (searching) vm.setSearchQuery("") else vm.selectGroup(ChannelGroup.ALL)
             }
-            Action("Sources", onClick = onSetup)
+            MediaIconAction("Sources", Icons.Default.Dns, showLabel = wide, onClick = onSetup)
         }
         if (!ui.hasSources || ui.channels.isEmpty() && ui.groups.isEmpty()) {
             Label(status.error ?: status.message ?: if (status.loading) "Loading channels…" else "Add a playlist to see channels here.",
@@ -76,28 +100,27 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
             return@Column
         }
         if (searching) MobileTextInput("Channel or programme", ui.searchQuery, vm::setSearchQuery)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            items(ui.groups.filterNot { it.id == ChannelGroup.SEARCH }, key = { it.id }) { group ->
-                Action(group.title, selected = ui.selectedGroupId == group.id) {
-                    if (group.locked) locked = group else { searching = false; vm.selectGroup(group.id) }
-                }
-            }
-        }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
-            if (start > earliest) Action("Earlier") { movePage(start - 12 * HALF_HOUR) }
-            Action("Now") { movePage(null) }
-            if (end <= latest) Action("Later") { movePage(end) }
-            Action(java.text.DateFormat.getDateInstance().format(java.util.Date(start))) { dates = true }
-            Action("Groups") { groupOptions = true }
-        }
         if (ui.channels.isEmpty()) Label("No channels in this group.", Modifier.padding(8.dp))
         else ChannelTimeline(ui.channels, programs, now, start, 12, settings.use24HourClock, list, scroll,
-            onTune = onTune, onProgram = { channel, program -> selected = channel to program }, onChannelHold = { editing = it })
+            onTune = onTune, onProgram = { channel, program -> selected = channel to program }, onChannelHold = { editing = it },
+            playingKey = playback.channelKey, onTime = { dates = true })
     }
     locked?.let { group -> MobilePinPrompt(group.title, { locked = null }) { pin ->
         vm.unlockGroup(group, pin).also { if (it) { locked = null; searching = false; vm.selectGroup(group.id) } }
     } }
     editing?.let { channel -> MobileChannelEditor(channel, vm, { editing = null }) }
+    if (pickingGroup) TouchSheet({ pickingGroup = false }) {
+        BrowseHeading("Channel groups") { pickingGroup = false }
+        LazyColumn(contentPadding = PaddingValues(horizontal = 10.dp)) {
+            item { MediaIconAction("Manage groups", Icons.Default.Tune, showLabel = true) { pickingGroup = false; groupOptions = true } }
+            items(ui.groups.filterNot { it.id == ChannelGroup.SEARCH }, key = { it.id }) { group ->
+                Action(group.title, Modifier.fillMaxWidth(), selected = ui.selectedGroupId == group.id) {
+                    pickingGroup = false
+                    if (group.locked) locked = group else { searching = false; vm.selectGroup(group.id) }
+                }
+            }
+        }
+    }
     if (groupOptions) MobileGuideGroups(vm) { groupOptions = false }
     if (dates) TouchSheet({ dates = false }) {
         val zone = java.time.ZoneId.systemDefault()
@@ -105,7 +128,12 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
         val first = localDate(earliest)
         val count = (localDate(latest).toEpochDay() - first.toEpochDay() + 1).toInt()
         val formatter = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.FULL)
-        SectionTitle("Guide date")
+        SectionTitle("Jump to guide time")
+        Row {
+            if (start > earliest) Action("Previous 6 hours") { movePage(start - 12 * HALF_HOUR); dates = false }
+            Action("Jump to live") { movePage(null); dates = false }
+            if (end <= latest) Action("Next 6 hours") { movePage(end); dates = false }
+        }
         LazyColumn {
             items(count) { offset ->
                 val date = first.plusDays(offset.toLong())
@@ -145,14 +173,43 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
 }
 
 @Composable
+internal fun guideHighlight(overlay: Boolean, tuned: Boolean): Color {
+    val colors = MaterialTheme.colorScheme
+    val neutral = lerp(Color.Black, colors.surfaceVariant, .35f)
+    return lerp(neutral, colors.primary, if (tuned) .29f else .17f)
+        .copy(alpha = if (overlay) .55f else 1f)
+}
+
+@Composable
+internal fun ChannelIdentity(channel: LiveChannel, modifier: Modifier = Modifier) {
+    Column(modifier.padding(horizontal = 3.dp), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center) {
+        if (!channel.logo.isNullOrBlank()) ChannelLogo(channel.logo, 19.dp)
+        Text(channel.name, Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxLines = 2,
+            overflow = TextOverflow.Ellipsis, fontFamily = condensed, color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 12.sp, lineHeight = 14.sp, letterSpacing = 0.sp)
+    }
+}
+
+@Composable
 internal fun ChannelTimeline(channels: List<LiveChannel>, programs: Map<String, List<EpgProgram>>,
     now: Long, start: Long, slots: Int, use24h: Boolean, list: LazyListState, scroll: ScrollState,
-    onTune: (LiveChannel) -> Unit, onProgram: (LiveChannel, EpgProgram) -> Unit, onChannelHold: ((LiveChannel) -> Unit)? = null) {
+    onTune: (LiveChannel) -> Unit, onProgram: (LiveChannel, EpgProgram) -> Unit, onChannelHold: ((LiveChannel) -> Unit)? = null,
+    playingKey: String? = null, overlay: Boolean = false, onTime: (() -> Unit)? = null) {
+    val colors = MaterialTheme.colorScheme
+    val base = if (overlay) Color.Black.copy(alpha = .20f) else colors.surface
+    val liveFill = guideHighlight(overlay, tuned = false)
+    val tunedFill = guideHighlight(overlay, tuned = true)
+    val rowHeight = (22.dp + 28.dp * androidx.compose.ui.platform.LocalDensity.current.fontScale).coerceAtLeast(50.dp)
     val end = start + HALF_HOUR * slots
     Column {
         val channelWidth = 108.dp
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Label("Channel", Modifier.width(channelWidth).padding(start = 8.dp), small = true)
+            Row(Modifier.width(channelWidth).then(if (onTime == null) Modifier else Modifier.clickable(role = Role.Button, onClick = onTime))
+                .heightIn(min = 25.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                if (onTime != null) Icon(Icons.Default.Schedule, "Guide time", Modifier.size(15.dp).padding(end = 2.dp))
+                Label("Channel", small = true)
+            }
             Row(Modifier.horizontalScroll(scroll)) {
                 repeat(slots) { i -> Label(formatClock(start + HALF_HOUR * i, use24h),
                     Modifier.width(slotWidth).padding(4.dp), small = true) }
@@ -160,12 +217,10 @@ internal fun ChannelTimeline(channels: List<LiveChannel>, programs: Map<String, 
         }
         LazyColumn(state = list, verticalArrangement = Arrangement.spacedBy(1.dp)) {
             items(channels, key = { it.key }) { channel ->
-                Row(Modifier.fillMaxWidth().height(58.dp)) {
-                    Box(Modifier.width(channelWidth).fillMaxHeight().background(MaterialTheme.colorScheme.surface)
-                        .combinedClickable(onClick = { onTune(channel) }, onLongClick = onChannelHold?.let { hold -> { hold(channel) } })
-                        .padding(6.dp), contentAlignment = Alignment.CenterStart) {
-                        Label(channel.name, small = true, strong = true, lines = 2)
-                    }
+                Row(Modifier.fillMaxWidth().height(rowHeight)) {
+                    ChannelIdentity(channel, Modifier.width(channelWidth).fillMaxHeight()
+                        .background(if (channel.key == playingKey) tunedFill else base)
+                        .combinedClickable(onClick = { onTune(channel) }, onLongClick = onChannelHold?.let { hold -> { hold(channel) } }))
                     val rows = programs[channel.key].orEmpty()
                     val visible = remember(rows, start) { rows.filter { it.stopMs > start && it.startMs < end } }
                     Box(Modifier.horizontalScroll(scroll)) {
@@ -176,8 +231,11 @@ internal fun ChannelTimeline(channels: List<LiveChannel>, programs: Map<String, 
                                 if (to > from) {
                                     Box(Modifier.offset(x = slotWidth * ((from - start).toFloat() / HALF_HOUR))
                                         .width(slotWidth * ((to - from).toFloat() / HALF_HOUR)).fillMaxHeight()
-                                        .padding(start = 1.dp).background(if (program.isLive(now)) MaterialTheme.colorScheme.surfaceVariant
-                                            else MaterialTheme.colorScheme.surface)
+                                        .padding(start = 1.dp).background(when {
+                                            !program.isLive(now) -> base
+                                            channel.key == playingKey -> tunedFill
+                                            else -> liveFill
+                                        })
                                         .clickable { onProgram(channel, program) }.padding(4.dp), contentAlignment = Alignment.CenterStart) {
                                         Label(program.title, small = true, lines = 2)
                                     }

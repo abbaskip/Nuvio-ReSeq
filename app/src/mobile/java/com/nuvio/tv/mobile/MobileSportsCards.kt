@@ -17,6 +17,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -33,15 +35,16 @@ private val oversSuffix = Regex("""\s+\(([^()]*\bov(?:ers?)?\.?)\)$""", RegexOpt
 internal fun sportBorderColor() = MaterialTheme.colorScheme.let { lerp(it.surface, it.onSurface, .27f) }
 
 @Composable
-internal fun SportFilter(text: String, selected: Boolean, choose: () -> Unit) {
+internal fun SportFilter(text: String, selected: Boolean, description: String? = null, choose: () -> Unit) {
     val c = MaterialTheme.colorScheme
     Box(Modifier.selectable(selected, role = Role.Tab, onClick = choose).heightIn(min = 48.dp),
         contentAlignment = Alignment.Center) {
         Box(Modifier.background(if (selected) lerp(c.surface, c.primary, .22f) else c.surface, cardShape)
             .border(1.dp, if (selected) lerp(c.onSurface, c.primary, .6f) else sportBorderColor(), cardShape)
             .padding(horizontal = 12.dp, vertical = 6.dp)) {
-            Text(text, color = c.onSurface, fontFamily = condensed, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                fontSize = 14.sp, lineHeight = 18.sp, maxLines = 1)
+            val glyph = if (description == null) Modifier else Modifier.clearAndSetSemantics { contentDescription = description }
+            Text(text, glyph, color = c.onSurface, fontFamily = condensed, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                fontSize = if (description == null) 14.sp else 20.sp, lineHeight = 18.sp, maxLines = 1)
         }
     }
 }

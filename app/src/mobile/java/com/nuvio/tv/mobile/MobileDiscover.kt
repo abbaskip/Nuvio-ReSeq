@@ -156,7 +156,7 @@ internal fun MobileDiscover(openTitle: (MetaPreview, VideoAction) -> Unit,
             SectionTitle(item.name)
             Action("Title details") { detail = null; openTitle(item, VideoAction.Details) }
             Action("Play manually") { detail = null; openTitle(item, VideoAction.Manual) }
-            Action("Download") { detail = null; openTitle(item, VideoAction.Download) }
+            DownloadAction { detail = null; openTitle(item, VideoAction.Download) }
             item.releaseInfo?.let { Label(it) }
             item.description?.let { Label(it) }
             if (item.apiType == "series" || item.apiType == "tv") {

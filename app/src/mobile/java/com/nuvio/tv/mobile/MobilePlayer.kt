@@ -39,6 +39,7 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
     val now by vm.now.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     var panel by rememberSaveable { mutableStateOf(false) }
+    var groupsOpen by rememberSaveable { mutableStateOf(false) }
     var tools by rememberSaveable { mutableStateOf(false) }
     var guideMode by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var detail by remember { mutableStateOf<EpgProgram?>(null) }
@@ -92,19 +93,23 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
             val tablet = minOf(maxWidth, maxHeight) >= 600.dp
             val sideways = maxWidth > maxHeight && !tablet
             val guide = guideMode ?: tablet
-            val bounds = if (sideways) Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(.46f)
-                else Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(.48f)
-            Column(bounds.background(MaterialTheme.colorScheme.surface)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Action("List", selected = !guide) { guideMode = false }
-                    Action("Guide", selected = guide) { guideMode = true }
-                    Spacer(Modifier.weight(1f))
-                    Action("Close") { panel = false }
-                }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    items(ui.groups.filterNot { it.locked || it.id == com.nuvio.tv.livetv.model.ChannelGroup.SEARCH }, key = { it.id }) {
-                        Action(it.title, selected = ui.selectedGroupId == it.id) { vm.selectGroup(it.id) }
+            val bounds = if (sideways) Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(if (guide) .84f else .50f)
+                else Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(if (guide) .60f else .48f)
+            Column(bounds.background(Color.Black.copy(alpha = .58f))) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { guideMode = false }) {
+                        Icon(Icons.AutoMirrored.Filled.ViewList, "List", tint = if (!guide) MaterialTheme.colorScheme.primary else Color.White)
                     }
+                    IconButton(onClick = { guideMode = true }) {
+                        Icon(Icons.Default.ViewWeek, "Guide", tint = if (guide) MaterialTheme.colorScheme.primary else Color.White)
+                    }
+                    val group = ui.groups.firstOrNull { it.id == ui.selectedGroupId }?.title ?: "All channels"
+                    Row(Modifier.weight(1f).clickable { groupsOpen = true }.heightIn(min = 48.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        Icon(Icons.Default.FilterList, null, Modifier.size(18.dp), tint = Color.White)
+                        Label("Group: $group", Modifier.padding(horizontal = 4.dp), small = true, lines = 1)
+                    }
+                    IconButton(onClick = { panel = false }) { Icon(Icons.Default.Close, "Close", tint = Color.White) }
                 }
                 val list = key(ui.selectedGroupId) {
                     rememberLazyListState(initialFirstVisibleItemIndex = ui.channels.indexOfFirst { it.key == state.channelKey }.coerceAtLeast(0))
@@ -118,16 +123,26 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
                 if (guide) ChannelTimeline(ui.channels, programs, now, now / 1_800_000L * 1_800_000L,
                     8, settings.use24HourClock, list, rememberScrollState(), switch, onProgram = { channel, programme ->
                     if (programme.isLive(now)) switch(channel) else detail = programme
-                })
+                }, playingKey = state.channelKey, overlay = true)
                 else LazyColumn(state = list) {
                     items(ui.channels, key = { it.key }) { channel ->
                         val current = programs[channel.key]?.firstOrNull { it.isLive(now) }
-                        Column(Modifier.fillMaxWidth().clickable { vm.preview(channel); panel = false }
-                            .heightIn(min = 48.dp).padding(6.dp)) {
-                            Label(channel.name, strong = channel.key == state.channelKey)
-                            current?.let { Label(it.title, small = true) }
+                        Row(Modifier.fillMaxWidth().background(if (channel.key == state.channelKey) guideHighlight(true, true) else Color.Transparent)
+                            .clickable { switch(channel) }.heightIn(min = 50.dp), verticalAlignment = Alignment.CenterVertically) {
+                            ChannelIdentity(channel, Modifier.width(104.dp))
+                            current?.let { Label(it.title, Modifier.weight(1f).padding(horizontal = 6.dp), small = true, lines = 2) }
                         }
                     }
+                }
+            }
+        }
+    }
+    if (groupsOpen) TouchSheet({ groupsOpen = false }) {
+        BrowseHeading("Channel groups") { groupsOpen = false }
+        LazyColumn {
+            items(ui.groups.filterNot { it.locked || it.id == com.nuvio.tv.livetv.model.ChannelGroup.SEARCH }, key = { it.id }) { group ->
+                Action(group.title, Modifier.fillMaxWidth(), selected = ui.selectedGroupId == group.id) {
+                    vm.selectGroup(group.id); groupsOpen = false
                 }
             }
         }

@@ -90,13 +90,13 @@ internal fun MobilePlaybackPreferences(state: PlayerSettings, vm: PlaybackSettin
                         TogglePreference("Ask if I’m still watching", state.stillWatchingEnabled) { scope.launch { vm.setStillWatchingEnabled(it) } }
                         ChoiceRow("Episodes before asking", state.stillWatchingEpisodeThreshold, (2..6).toList()) { scope.launch { vm.setStillWatchingEpisodeThreshold(it) } }
                         OptionPreference("Next episode threshold", state.nextEpisodeThresholdMode, NextEpisodeThresholdMode.entries) { scope.launch { vm.setNextEpisodeThresholdMode(it) } }
+                        if (state.nextEpisodeThresholdMode == NextEpisodeThresholdMode.PERCENTAGE) ChoiceRow("Episode watched (%)", state.nextEpisodeThresholdPercent.toInt(), (97..100).toList()) { scope.launch { vm.setNextEpisodeThresholdPercent(it.toFloat()) } }
+                        else ChoiceRow("Seconds before credits", (state.nextEpisodeThresholdMinutesBeforeEnd * 60).toInt(), (0..210 step 30).toList()) { scope.launch { vm.setNextEpisodeThresholdMinutesBeforeEnd(it / 60f) } }
                         TogglePreference("Recommend another movie", state.postPlayRecommendationsEnabled) { scope.launch { vm.setPostPlayRecommendationsEnabled(it) } }
                         ChoiceRow("Movie watched before recommendations (%)", state.postPlayMovieThresholdPercent, (80..100).toList()) { scope.launch { vm.setPostPlayMovieThresholdPercent(it) } }
                         TogglePreference("Prompt to rate completed movies", state.promptToRateAfterWatching) { scope.launch { vm.setPromptToRateAfterWatching(it) } }
                         TogglePreference("Offer skip intro", state.skipIntroEnabled) { scope.launch { vm.setSkipIntroEnabled(it) } }
                         AutoSkipSegmentType.entries.forEach { segment -> TogglePreference("Automatically skip " + segment.storedValue, segment in state.autoSkipSegmentTypes) { scope.launch { vm.setAutoSkipSegmentTypeEnabled(segment, it) } } }
-                        if (state.nextEpisodeThresholdMode == NextEpisodeThresholdMode.PERCENTAGE) ChoiceRow("Episode watched (%)", state.nextEpisodeThresholdPercent.toInt(), (97..100).toList()) { scope.launch { vm.setNextEpisodeThresholdPercent(it.toFloat()) } }
-                        else ChoiceRow("Seconds before credits", (state.nextEpisodeThresholdMinutesBeforeEnd * 60).toInt(), (0..210 step 30).toList()) { scope.launch { vm.setNextEpisodeThresholdMinutesBeforeEnd(it / 60f) } }
                     }
                     "Audio and decoder" -> {
                         TogglePreference("Switch player engine on playback errors", state.autoSwitchInternalPlayerOnError) { scope.launch { vm.setAutoSwitchInternalPlayerOnError(it) } }

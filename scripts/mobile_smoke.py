@@ -121,24 +121,26 @@ def fixture(account=None):
         (root / "live").mkdir()
         address = "http://127.0.0.1:38792"
         channels = ["One", "Two"]
+        guide_channels = channels + [f"Zone{index}" for index in range(3, 9)]
+        shutil.copyfile(ROOT / "app/src/main/res/drawable/rating_tmdb.png", root / "station.png")
         playlist = ["#EXTM3U"]
         guide = ET.Element("tv")
         now = datetime.now(timezone.utc)
         stamp = "%Y%m%d%H%M%S +0000"
-        for channel in channels:
+        for channel in guide_channels:
             name = "QA " + channel
             # The real importer reserves .mp4 playlist entries for on-demand movies.
             shutil.copyfile(ROOT / "app/src/test/resources/usenet/test-pattern.mp4", root / "live" / channel)
-            playlist += [f'#EXTINF:-1 tvg-id="{channel}" group-title="Fixture",{name}', f"{address}/live/{channel}"]
+            playlist += [f'#EXTINF:-1 tvg-id="{channel}" tvg-logo="{address}/station.png" group-title="Fixture",{name}', f"{address}/live/{channel}"]
             ET.SubElement(ET.SubElement(guide, "channel", id=channel), "display-name").text = name
-        for channel in channels:
+        for channel in guide_channels:
             programme = ET.SubElement(guide, "programme", channel=channel, start=(now-timedelta(minutes=45)).strftime(stamp),
                                       stop=(now+timedelta(hours=2)).strftime(stamp))
             ET.SubElement(programme, "title").text = "Programme " + channel
             ET.SubElement(programme, "desc").text = "Local XMLTV fixture"
         (root / "live.m3u").write_text("\n".join(playlist) + "\n", encoding="utf-8")
         ET.ElementTree(guide).write(root / "guide.xml", encoding="utf-8", xml_declaration=True)
-        played = {channel: Event() for channel in channels}
+        played = {channel: Event() for channel in guide_channels}
         sources = []
         files = []
         offline = Event()
@@ -604,13 +606,25 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 if not played["Two"].wait(20):
                     raise AssertionError("Switching channels did not request the second stream")
                 shell("input", "keyevent", "KEYCODE_BACK")
-                locate("Live guide")
+                locate("Guide time")
                 screenshot("phone-guide", landscape=False)
+                rotate(1)
+                group = next(n for n in nodes() if n.get("text", "").startswith("Group:"))
+                tap(group)
+                choose("Fixture")
+                locate("Group: Fixture")
+                screen = nodes()
+                visible_channels = [n for n in screen if n.get("text", "").startswith("QA ")]
+                assert len(visible_channels) >= 4, "Expected at least four landscape guide rows"
+                assert not any(n.get("text") == "Library" for n in screen), "Main navigation took space from the guide"
+                screenshot("landscape-guide", landscape=True)
+                rotate(0)
                 choose("Calendar")
                 choose("Month")
                 choose("Next")
                 screenshot("phone-calendar", landscape=False)
                 rotate(1)
+                choose("Leave Live TV")
                 choose("Search")
                 choose("Advanced Discover")
                 choose("Filters")
@@ -633,6 +647,7 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 choose("Calendar")
                 locate("Month")
                 screenshot("tablet-calendar", landscape=True)
+                choose("Leave Live TV")
                 shell("wm", "size", "1080x2160")
                 shell("wm", "density", "420")
                 rotate(0)

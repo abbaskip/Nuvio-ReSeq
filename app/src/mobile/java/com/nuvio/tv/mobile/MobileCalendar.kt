@@ -24,6 +24,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.tv.R
 import com.nuvio.tv.livetv.calendar.*
 import com.nuvio.tv.livetv.model.LiveChannel
+import com.nuvio.tv.livetv.sports.SportsCatalog
+import com.nuvio.tv.livetv.sports.TeamLogo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.LocalDate
@@ -31,6 +35,30 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Date
+
+@Composable
+internal fun CalendarEventArt(entry: CalendarItem) {
+    val fixtureSides = entry.fixture?.let { game ->
+        SportsCatalog.league(game.leagueId)?.let { game.ordered(it.sport) }?.takeIf { it.size == 2 } ?: game.sides
+    }.orEmpty()
+    val sides = entry.guideSides.takeIf { it.size == 2 } ?: fixtureSides.ifEmpty { entry.guideSides }
+    if (sides.size == 2) {
+        Row(Modifier.width(70.dp).height(60.dp), horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically) {
+            sides.forEach { side ->
+                Box(Modifier.semantics { contentDescription = side.team.name }) { TeamLogo(side.team, 32.dp) }
+            }
+        }
+    } else {
+        val icon = when (entry.kind) {
+            CalendarKind.SPORT -> Icons.Default.EmojiEvents
+            CalendarKind.EPISODE, CalendarKind.GUIDE -> Icons.Default.LiveTv
+            else -> Icons.Default.Movie
+        }
+        MediaArt(entry.artwork ?: sides.firstOrNull()?.team?.logo, icon, Modifier.size(54.dp, 62.dp).clip(mediaCorners),
+            if (entry.fixture != null) androidx.compose.ui.layout.ContentScale.Fit else androidx.compose.ui.layout.ContentScale.Crop)
+    }
+}
 
 @Composable
 internal fun MobileCalendar(onWatch: (LiveChannel) -> Unit, onTitle: (String, String, String) -> Unit, vm: CalendarViewModel = hiltViewModel()) {
@@ -146,19 +174,13 @@ private fun CalendarAgenda(vm: CalendarViewModel, profile: Int, onWatch: (LiveCh
                     if (CalendarStatus.OPENING in status || CalendarStatus.UPDATING in status) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                     else if (rows.isEmpty()) item { Label(stringResource(R.string.calendar_empty), Modifier.fillMaxWidth().mediaPanel().padding(16.dp)) }
                     items(rows, key = { it.key }) { entry ->
-                        val image = entry.artwork ?: entry.fixture?.sides?.firstNotNullOfOrNull { it.team.logo } ?: entry.guideSides.firstNotNullOfOrNull { it.team.logo }
                         Row(Modifier.fillMaxWidth().mediaPanel().clickable {
                             if (entry.fixture != null) vm.selectFixture(entry)
                             detail = entry
                         }.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            MediaArt(image, when (entry.kind) {
-                                CalendarKind.SPORT -> Icons.Default.EmojiEvents
-                                CalendarKind.EPISODE, CalendarKind.GUIDE -> Icons.Default.LiveTv
-                                else -> Icons.Default.Movie
-                            }, Modifier.size(54.dp, 62.dp).clip(mediaCorners),
-                                if (entry.fixture != null) androidx.compose.ui.layout.ContentScale.Fit else androidx.compose.ui.layout.ContentScale.Crop)
+                            CalendarEventArt(entry)
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                entry.time?.let { Text(time.format(Date(it)), fontFamily = condensed, color = colors.primary) }
+                                entry.time?.let { Text(time.format(Date(it)), fontFamily = condensed, color = androidx.compose.ui.graphics.lerp(colors.onSurface, colors.primary, .45f)) }
                                 Label(entry.title, strong = true, lines = 2)
                                 val notes = listOfNotNull(entry.leagueName, entry.detail.takeIf(String::isNotBlank)).joinToString(" · ")
                                 if (notes.isNotBlank()) Label(notes, small = true, lines = 2)

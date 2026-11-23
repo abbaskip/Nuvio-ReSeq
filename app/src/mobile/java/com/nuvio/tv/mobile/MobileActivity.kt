@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -153,6 +154,7 @@ internal enum class Tab(val label: String, val icon: ImageVector) {
 @Composable
 private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsRepository, live: LiveTvViewModel = hiltViewModel()) {
     var tab by rememberSaveable { mutableStateOf(Tab.HOME) }
+    var returnTab by rememberSaveable { mutableStateOf(Tab.HOME) }
     var inVodPlayer by remember { mutableStateOf(false) }
     var liveSetup by rememberSaveable { mutableStateOf(false) }
     val holder = rememberSaveableStateHolder()
@@ -160,25 +162,24 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
     var multiview by rememberSaveable { mutableStateOf(false) }
     val exitPlayer = { live.playback.stop(); playing = false }
     BackHandler(playing || multiview || tab != Tab.HOME) {
-        if (multiview) multiview = false else if (playing) exitPlayer() else tab = Tab.HOME
+        if (multiview) multiview = false else if (playing) exitPlayer() else tab = if (tab.isLiveSection) returnTab else Tab.HOME
     }
     val c = MaterialTheme.colorScheme
     BoxWithConstraints(Modifier.fillMaxSize().background(c.background).safeDrawingPadding()) {
         val tablet = minOf(maxWidth, maxHeight) >= 600.dp
+        val wide = maxWidth > maxHeight
         val tabWidth = if (tablet) 512.dp else maxWidth
-        val select: (Tab) -> Unit = { tab = it }
+        val select: (Tab) -> Unit = { next ->
+            if (next.isLiveSection && !tab.isLiveSection) returnTab = tab
+            tab = next
+        }
         val content: @Composable () -> Unit = {
             holder.SaveableStateProvider(tab.name) {
                 when (tab) {
                     Tab.HOME, Tab.SEARCH, Tab.LIBRARY -> MobileCatalog(tab, { inVodPlayer = it })
                     Tab.GUIDE, Tab.SPORTS, Tab.CALENDAR -> Column {
-                        if (!inVodPlayer) Row(Modifier.fillMaxWidth()) {
-                            listOf(Tab.GUIDE, Tab.SPORTS, Tab.CALENDAR).forEach { section ->
-                                Action(if (section == Tab.GUIDE) "Guide" else section.label,
-                                    Modifier.weight(1f), tab == section) { tab = section }
-                            }
-                            Action("Multiview", Modifier.weight(1f)) { multiview = true }
-                        }
+                        if (!inVodPlayer) LiveSectionBar(tab, wide = wide,
+                            back = { tab = returnTab }, section = { tab = it }, multiview = { multiview = true })
                         when (tab) {
                             Tab.GUIDE -> MobileGuide(live, onTune = { live.preview(it); playing = true }, onReplay = { playing = true },
                                 onSetup = { liveSetup = true; tab = Tab.SOURCES })
@@ -200,14 +201,14 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
                     }
                 }
             }
-            if (tablet && !inVodPlayer) tabs()
+            if (tablet && !inVodPlayer && !tab.isLiveSection) tabs()
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 CompositionLocalProvider(LocalMobileReplay provides { replay ->
                     val channel = live.channelByKey(replay.channelKey)
                     (channel != null && live.playCatchup(channel, replay.program)).also { if (it) playing = true }
                 }) { content() }
             }
-            if (!tablet && !inVodPlayer) tabs()
+            if (!tablet && !inVodPlayer && !tab.isLiveSection) tabs()
         }
         MobileReminders(profile, sports) { channel ->
             tab = Tab.GUIDE
@@ -215,6 +216,35 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
             live.preview(channel)
             playing = true
         }
+    }
+}
+
+private val Tab.isLiveSection get() = this == Tab.GUIDE || this == Tab.SPORTS || this == Tab.CALENDAR
+
+@Composable
+private fun LiveSectionBar(current: Tab, wide: Boolean, back: () -> Unit, section: (Tab) -> Unit, multiview: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(Modifier.fillMaxWidth().background(colors.surface), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = back) {
+            Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack, "Leave Live TV", Modifier.size(19.dp))
+        }
+        LiveSectionTab("Guide", Icons.Default.ViewList, current == Tab.GUIDE, wide) { section(Tab.GUIDE) }
+        LiveSectionTab("Sports", Icons.Default.SportsSoccer, current == Tab.SPORTS, wide) { section(Tab.SPORTS) }
+        LiveSectionTab("Calendar", Icons.Default.CalendarMonth, current == Tab.CALENDAR, wide) { section(Tab.CALENDAR) }
+        LiveSectionTab("Multiview", Icons.Default.GridView, false, wide, multiview)
+    }
+}
+
+@Composable
+private fun RowScope.LiveSectionTab(label: String, icon: ImageVector, active: Boolean, wide: Boolean, select: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Box(Modifier.weight(1f).heightIn(min = 48.dp).selectable(active, role = Role.Tab, onClick = select),
+        contentAlignment = Alignment.Center) {
+        val glyph: @Composable () -> Unit = { Icon(icon, null, Modifier.size(18.dp), tint = if (active) colors.primary else colors.onSurfaceVariant) }
+        val caption: @Composable () -> Unit = { Label(label, small = true, strong = active, lines = 1) }
+        if (wide) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) { glyph(); caption() }
+        else Column(horizontalAlignment = Alignment.CenterHorizontally) { glyph(); caption() }
+        if (active) Spacer(Modifier.align(Alignment.BottomCenter).size(28.dp, 2.dp).background(colors.primary))
     }
 }
 

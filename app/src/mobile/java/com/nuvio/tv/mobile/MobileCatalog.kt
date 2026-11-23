@@ -2,6 +2,7 @@
 package com.nuvio.tv.mobile
 
 import android.net.Uri
+import com.nuvio.tv.R
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -9,6 +10,9 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.BookmarkRemove
+import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -347,6 +351,10 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                             contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.PlayArrow, null, Modifier.size(28.dp), tint = colors.onSurfaceVariant)
                             if (!artwork.isNullOrBlank()) AsyncImage(artwork, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            if (entry.shufflePlayback) Icon(Icons.Default.Shuffle, "Episode shuffle",
+                                Modifier.align(Alignment.TopEnd).padding(5.dp)
+                                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = .75f), mediaCorners).padding(4.dp).size(17.dp),
+                                tint = androidx.compose.ui.graphics.Color.White)
                         }
                         if (entry is ContinueWatchingItem.InProgress) LinearProgressIndicator(
                             progress = { entry.progress.progressPercentage }, modifier = Modifier.fillMaxWidth().semantics {
@@ -354,7 +362,6 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                             }
                         )
                         Label(video.label, Modifier.padding(top = 4.dp), lines = 2)
-                        if (entry.shufflePlayback) Label("Episode shuffle", small = true)
                         if (entry is ContinueWatchingItem.NextUp && !entry.info.hasAired) entry.info.airDateLabel?.let { Label(it, small = true) }
                     }
                 }
@@ -502,7 +509,7 @@ internal fun VideoActions(label: String, close: () -> Unit, playable: Boolean = 
         if (playable) {
             Action("Play", Modifier.fillMaxWidth()) { choose(VideoAction.Play) }
             Action("Play manually", Modifier.fillMaxWidth()) { choose(VideoAction.Manual) }
-            Action("Download", Modifier.fillMaxWidth()) { choose(VideoAction.Download) }
+            DownloadAction(modifier = Modifier.fillMaxWidth(), showLabel = true) { choose(VideoAction.Download) }
         }
         if (showDetails) Action("Title details", Modifier.fillMaxWidth()) { choose(VideoAction.Details) }
         extra()
@@ -567,8 +574,8 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
             val label = if (!movie && hero?.displaySeason != null && hero.displayEpisode != null)
                 "$prefix S${hero.displaySeason} E${hero.displayEpisode}" else prefix
             PrimaryMediaAction(label, Modifier.weight(1f), onLongClick = { menu = target }) { open(target, VideoAction.Play) }
-            Action("Play manually") { open(target, VideoAction.Manual) }
-            Action("Download") { open(target, VideoAction.Download) }
+            MediaIconAction("Play manually", Icons.Default.Tune, showLabel = true) { open(target, VideoAction.Manual) }
+            DownloadAction { open(target, VideoAction.Download) }
         } }
         if (!movie && hero != null && target != null) item {
             Row(Modifier.fillMaxWidth().mediaPanel().clickable { menu = target }.padding(8.dp),
@@ -586,20 +593,24 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                 com.nuvio.tv.ui.components.MDBListRatingsRow(state.mdbListRatings!!, Modifier.horizontalScroll(rememberScrollState()).padding(5.dp),
                     order = state.mdbListRatingOrder, iconSize = 17.dp)
             else if (state.overallRatingsVisibility.showStandardDetailRatings(state.isMdbListRatingsActive))
-                listOfNotNull(meta.imdbRating?.let { "IMDb  $it" }, state.tmdbRating?.let { "TMDB  $it" }).joinToString("     ").takeIf(String::isNotBlank)?.let { Label(it, Modifier.padding(5.dp), small = true) }
+                Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    meta.imdbRating?.let { StandardRating("IMDb", R.raw.imdb_logo_2016, it) }
+                    state.tmdbRating?.let { StandardRating("TMDB", R.raw.mdblist_tmdb, it) }
+                }
         }
         if (meta != null) item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                item { Action(if (state.isInLibrary || state.isInWatchlist) "Remove from library" else "Add to library") {
+                item { val saved = state.isInLibrary || state.isInWatchlist
+                    MediaIconAction(if (saved) "Remove from library" else "Add to library", if (saved) Icons.Default.BookmarkRemove else Icons.Default.BookmarkAdd) {
                     if (!state.defaultLibraryTogglePending) vm.onEvent(MetaDetailsEvent.OnToggleLibrary)
                 } }
                 if (movie) item { Action(if (state.isMovieWatched) "Mark unwatched" else "Mark watched") {
                     vm.onEvent(MetaDetailsEvent.OnToggleMovieWatched)
                 } }
-                if (state.libraryListTabs.isNotEmpty()) item { Action("Choose lists") { vm.onEvent(MetaDetailsEvent.OnLibraryLongPress) } }
+                if (state.libraryListTabs.isNotEmpty()) item { MediaIconAction("Choose lists", Icons.Default.PlaylistAdd) { vm.onEvent(MetaDetailsEvent.OnLibraryLongPress) } }
                 item { MobileRating(meta.ratingReference()) }
                 if (!movie) item { MobileEpisodeOrder(meta, vm::reloadEpisodeOrder) }
-                if (!movie && state.randomEpisodeEnabled) item { Action("Episode shuffle", selected = state.episodeShuffle.enabled) { shuffle = true } }
+                if (!movie && state.randomEpisodeEnabled) item { MediaIconAction("Episode shuffle", Icons.Default.Shuffle, selected = state.episodeShuffle.enabled) { shuffle = true } }
                 if (!movie) state.selectedSeason?.let { season -> item {
                     val watched = vm.isSeasonFullyWatched(season)
                     Action(if (watched) "Mark season unwatched" else "Mark season watched") {

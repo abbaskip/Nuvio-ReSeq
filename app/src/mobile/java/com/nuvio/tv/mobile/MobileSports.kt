@@ -2,6 +2,9 @@
 package com.nuvio.tv.mobile
 
 import androidx.compose.foundation.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material3.HorizontalDivider
@@ -55,8 +58,8 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f)) { SectionTitle("Sports Hub") }
-                Action("Refresh") { vm.repo.refreshNow() }
-                Action("Options") { tool = "Options" }
+                MediaIconAction("Refresh", Icons.Default.Refresh) { vm.repo.refreshNow() }
+                MediaIconAction("Options", Icons.Default.Tune) { tool = "Options" }
             }
             LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically) {
@@ -64,10 +67,12 @@ internal fun MobileSports(onWatch: (LiveChannel) -> Unit, vm: SportsViewModel = 
                     SportFilter(name, selected = active == id) { chip = id }
                 }
                 items(page?.filters?.followedSports.orEmpty()) { sport ->
-                    SportFilter(sport.label, selected = active == CHIP_SPORT + sport.name) { chip = CHIP_SPORT + sport.name }
+                    SportFilter(sport.icon, selected = active == CHIP_SPORT + sport.name, description = stringResource(sport.labelRes)) { chip = CHIP_SPORT + sport.name }
                 }
                 item { Spacer(Modifier.padding(horizontal = 3.dp).size(1.dp, 20.dp).background(sportBorderColor())) }
-                items(listOf("Teams", "Tables", "Alerts")) { pageName -> Action(pageName) { tool = pageName } }
+                item { MediaIconAction("Teams", Icons.Default.Groups) { tool = "Teams" } }
+                item { MediaIconAction("Tables", Icons.Default.Leaderboard) { tool = "Tables" } }
+                item { MediaIconAction("Alerts", Icons.Default.Notifications) { tool = "Alerts" } }
             }
             if (active == CHIP_ALL) {
                 val dates = rememberLazyListState(initialFirstVisibleItemIndex = SportsRepository.DAYS_BACK + day)

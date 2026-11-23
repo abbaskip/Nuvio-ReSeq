@@ -46,6 +46,31 @@ internal fun MediaArt(url: String?, icon: ImageVector, modifier: Modifier, scale
 }
 
 @Composable
+internal fun MediaIconAction(label: String, icon: ImageVector, modifier: Modifier = Modifier,
+    showLabel: Boolean = false, selected: Boolean = false, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(modifier.mediaPanel(selected).clickable(role = Role.Button, onClick = onClick)
+        .sizeIn(minWidth = 48.dp, minHeight = 48.dp).padding(horizontal = 9.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally)) {
+        Icon(icon, if (showLabel) null else label, Modifier.size(20.dp), tint = if (selected) colors.primary else colors.onSurface)
+        if (showLabel) Label(label, small = true, lines = 1)
+    }
+}
+
+@Composable
+internal fun DownloadAction(label: String = "Download", modifier: Modifier = Modifier, showLabel: Boolean = false, onClick: () -> Unit) {
+    MediaIconAction(label, Icons.Default.Download, modifier, showLabel, onClick = onClick)
+}
+
+@Composable
+internal fun StandardRating(label: String, logo: Int, value: Float) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        AsyncImage(logo, label, Modifier.size(29.dp, 16.dp), contentScale = ContentScale.Fit)
+        Label(String.format(java.util.Locale.getDefault(), "%.1f", value), small = true, strong = true)
+    }
+}
+
+@Composable
 internal fun TitleBrand(title: String, logo: String?, modifier: Modifier = Modifier) {
     var loaded by remember(logo) { mutableStateOf(false) }
     Box(modifier, contentAlignment = Alignment.BottomStart) {

@@ -60,48 +60,58 @@ internal fun MobileSettings(openIptv: Boolean, consumed: () -> Unit, catalog: Mo
     LaunchedEffect(openIptv) { if (openIptv) { page = SettingsPage.IPTV; consumed() } }
     BackHandler(page != null) { page = null }
     CompositionLocalProvider(LocalSettingsMenu provides true) {
-        Column(Modifier.fillMaxSize()) {
-            if (page == null || page == SettingsPage.ADDONS) {
-                Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    val groups = listOf(
-                        "Accounts and backup" to listOf(SettingsPage.ACCOUNT, SettingsPage.PROFILES, SettingsPage.TRACKING, SettingsPage.DRIVE),
-                        "Content sources" to listOf(SettingsPage.IPTV, SettingsPage.ADDONS, SettingsPage.PLUGINS, SettingsPage.DEBRID, SettingsPage.SERVERS),
-                        "Home and playback" to listOf(SettingsPage.HOME, SettingsPage.PLAYBACK, SettingsPage.THEME),
-                        "Metadata and extras" to listOf(SettingsPage.TMDB, SettingsPage.PROVIDERS, SettingsPage.ABOUT)
-                    )
-                    groups.forEach { (title, destinations) ->
-                        SettingsHeading(title)
-                        destinations.forEach { option -> SettingsLink(option.title) { page = option } }
+        BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.TopCenter) {
+            val twoColumns = maxWidth >= 720.dp
+            val indexVisible = page == null || page == SettingsPage.ADDONS
+            Column(Modifier.widthIn(max = if (indexVisible) 1040.dp else 760.dp).fillMaxSize()) {
+                if (indexVisible) {
+                    Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val groups = listOf(
+                            "Accounts and backup" to listOf(SettingsPage.ACCOUNT, SettingsPage.PROFILES, SettingsPage.TRACKING, SettingsPage.DRIVE),
+                            "Content sources" to listOf(SettingsPage.IPTV, SettingsPage.ADDONS, SettingsPage.PLUGINS, SettingsPage.DEBRID, SettingsPage.SERVERS),
+                            "Home and playback" to listOf(SettingsPage.HOME, SettingsPage.PLAYBACK, SettingsPage.THEME),
+                            "Metadata and extras" to listOf(SettingsPage.TMDB, SettingsPage.PROVIDERS, SettingsPage.ABOUT)
+                        )
+                        groups.chunked(if (twoColumns) 2 else 1).forEach { groupRow ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                                groupRow.forEach { (title, destinations) ->
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        SettingsHeading(title)
+                                        destinations.forEach { option -> SettingsLink(option.title) { page = option } }
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                if (page == SettingsPage.ADDONS) CatalogSources { page = null }
-            } else {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Action("Back") { page = null }
-                    Label(page!!.title, Modifier.padding(start = 12.dp), strong = true)
-                }
-                HorizontalDivider()
-                when (page) {
-                    SettingsPage.IPTV -> MobileSetup()
-                    SettingsPage.DRIVE -> MobileSetup(driveOnly = true)
-                    SettingsPage.ABOUT -> MobileAbout()
-                    else -> Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        key(page) { when (page) {
-                            SettingsPage.ACCOUNT -> AccountSettings()
-                            SettingsPage.PROFILES -> ProfilesSettings()
-                            SettingsPage.PLUGINS -> ExtensionSettings()
-                            SettingsPage.PLAYBACK -> PlaybackSettings()
-                            SettingsPage.HOME -> MobileHomeSettings()
-                            SettingsPage.TRACKING -> TrackerSettings()
-                            SettingsPage.DEBRID -> DebridSettings(catalog.debrid)
-                            SettingsPage.THEME -> AppearanceSettings(catalog.themes)
-                            SettingsPage.TMDB -> MobileTmdbSettings()
-                            SettingsPage.PROVIDERS -> MobileAnimeSkipSettings()
-                            SettingsPage.SERVERS -> MobileMediaServers()
-                            else -> Unit
-                        } }
+                    if (page == SettingsPage.ADDONS) CatalogSources { page = null }
+                } else {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Action("Back") { page = null }
+                        Label(page!!.title, Modifier.padding(start = 12.dp), strong = true)
+                    }
+                    HorizontalDivider()
+                    when (page) {
+                        SettingsPage.IPTV -> MobileSetup()
+                        SettingsPage.DRIVE -> MobileSetup(driveOnly = true)
+                        SettingsPage.ABOUT -> MobileAbout()
+                        else -> Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            key(page) { when (page) {
+                                SettingsPage.ACCOUNT -> AccountSettings()
+                                SettingsPage.PROFILES -> ProfilesSettings()
+                                SettingsPage.PLUGINS -> ExtensionSettings()
+                                SettingsPage.PLAYBACK -> PlaybackSettings()
+                                SettingsPage.HOME -> MobileHomeSettings()
+                                SettingsPage.TRACKING -> TrackerSettings()
+                                SettingsPage.DEBRID -> DebridSettings(catalog.debrid)
+                                SettingsPage.THEME -> AppearanceSettings(catalog.themes)
+                                SettingsPage.TMDB -> MobileTmdbSettings()
+                                SettingsPage.PROVIDERS -> MobileAnimeSkipSettings()
+                                SettingsPage.SERVERS -> MobileMediaServers()
+                                else -> Unit
+                            } }
+                        }
                     }
                 }
             }

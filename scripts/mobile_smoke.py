@@ -695,6 +695,10 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 tap(local_choice)
                 locate("Playing download")
                 assert len(files) == files_before, "Manual local playback downloaded the file again"
+                choose("Sources")
+                choose_after_sheet_opens("Play downloaded file")
+                locate("Playing download")
+                assert len(files) == files_before, "Switching to the download in the player fetched a remote file"
                 shell("input", "keyevent", "KEYCODE_BACK")
                 locate("Play manually")
             offline.set()

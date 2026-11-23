@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.nuvio.tv.domain.model.Stream
 import com.nuvio.tv.ui.screens.player.*
 
 @Composable
@@ -63,7 +64,7 @@ private fun Steps(title: String, value: String, minus: () -> Unit, plus: () -> U
 }
 
 @Composable
-internal fun MobilePlayerSources(state: PlayerUiState, send: (PlayerEvent) -> Unit) {
+internal fun MobilePlayerSources(state: PlayerUiState, local: Stream?, send: (PlayerEvent) -> Unit) {
     val episodes = state.showEpisodesPanel
     val streams = !episodes || state.showEpisodeStreams || state.isEpisodeAutoPlaySearching
     val back = {
@@ -80,6 +81,9 @@ internal fun MobilePlayerSources(state: PlayerUiState, send: (PlayerEvent) -> Un
                 val loading = if (episodes) state.isLoadingEpisodeStreams || state.isEpisodeAutoPlaySearching else state.isLoadingSourceStreams
                 val options = if (episodes) state.episodeFilteredStreams else state.sourceFilteredStreams
                 val error = if (episodes) state.episodeStreamsError else state.sourceStreamsError
+                if (local != null) item { Action("Play downloaded file", Modifier.fillMaxWidth()) {
+                    send(if (episodes) PlayerEvent.OnEpisodeStreamSelected(local) else PlayerEvent.OnSourceStreamSelected(local))
+                } }
                 if (loading) item { Label("Finding sources…") }
                 if (error != null) item { Label(error) }
                 item { LazyRow { items(listOf<String?>(null) + if (episodes) state.episodeAvailableAddons else state.sourceAvailableAddons) { name ->

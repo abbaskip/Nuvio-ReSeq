@@ -724,6 +724,7 @@ private fun PlayerRuntimeController.persistSelectedStreamForReuse(
     headers: Map<String, String>
 ) {
     if (!streamReuseLastLinkEnabled || stream.serverTarget != null) return
+    if (downloadedEpisodeSource != null && url.startsWith("file:")) return
 
     val key = streamCacheKey ?: return
     val streamName = (stream.name?.takeIf { it.isNotBlank() } ?: stream.addonName)?.takeIf { it.isNotBlank() }
@@ -1328,6 +1329,12 @@ internal fun PlayerRuntimeController.loadStreamsForEpisode(
     val newScope = kotlinx.coroutines.CoroutineScope(scope.coroutineContext + kotlinx.coroutines.SupervisorJob())
     episodeStreamsScope = newScope
     episodeStreamsJob = newScope.launch {
+        if (!manualSelection) {
+            downloadedEpisodeSource?.invoke(video)?.let { saved ->
+                switchToEpisodeStream(saved, forcedTargetVideo = video)
+                return@launch
+            }
+        }
         val playerSettings = when {
             manualSelection -> null
             hasObservedPlayerSettings -> currentPlayerSettingsForReport

@@ -22,6 +22,7 @@ import androidx.media3.ui.PlayerView
 import com.nuvio.tv.data.local.InternalPlayerEngine
 import com.nuvio.tv.data.local.PlayerPreference
 import com.nuvio.tv.domain.model.Stream
+import com.nuvio.tv.domain.model.Video
 import com.nuvio.tv.domain.model.sourceEpisode
 import com.nuvio.tv.domain.model.sourceSeason
 import com.nuvio.tv.domain.model.tvdbPlaybackContext
@@ -155,6 +156,16 @@ private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean
     } }
 }
 
+private fun PlayerRuntimeController.downloadIdentity(episode: Video? = null): MobileVideo? {
+    val titleId = contentId ?: return null
+    val type = contentType ?: return null
+    val selection = episode?.id ?: currentVideoId ?: titleId
+    val tvdb = if (episode == null) currentTvdbContext() else episode.tvdbPlaybackContext()
+    return MobileVideo(profileId, type, titleId, selection, contentName.orEmpty(),
+        episode?.sourceSeason ?: currentSeason, episode?.sourceEpisode ?: currentEpisode,
+        episode?.title ?: currentEpisodeTitle, tvdb?.encode())
+}
+
 @Composable
 internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openParty: (com.nuvio.tv.core.party.PartyMedia) -> Unit,
     onMovieCompleted: (com.nuvio.tv.core.tracking.MovieRatingRequest) -> Unit,
@@ -208,11 +219,8 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
     DisposableEffect(vm, media) {
         val controller = vm.controller
         controller.downloadedEpisodeSource = { episode ->
-            val id = controller.contentId
-            val type = controller.contentType
-            if (id == null || type == null) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                media.localStream(MobileVideo(controller.profileId, type, id, episode.id, controller.contentName.orEmpty(),
-                    episode.sourceSeason, episode.sourceEpisode, episode.title, episode.tvdbPlaybackContext()?.encode()))
+            controller.downloadIdentity(episode)?.let { video ->
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { media.localStream(video) }
             }
         }
         vm.attachHostActivity(context as? Activity)
@@ -294,6 +302,23 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
         MobileWatchParty(vm.party, vm.partyMedia, openParty, vm.currentPartyStream() != null,
             { vm.switchParty() }, vm::catchUpParty) { tracks = null }
     } else tracks?.let { section -> MobilePlayerOptions(section, state, vm::onEvent) { tracks = null } }
-    if (state.showSourcesPanel || state.showEpisodesPanel) MobilePlayerSources(state, vm::onEvent)
+    if (state.showSourcesPanel || state.showEpisodesPanel) {
+        val episode = if (state.showEpisodeStreams) state.episodesAll.singleOrNull {
+            it.id == state.episodeStreamsForVideoId && it.season == state.episodeStreamsSeason &&
+                it.episode == state.episodeStreamsEpisode && it.title == state.episodeStreamsTitle
+        } else null
+        val video = when {
+            state.showSourcesPanel -> vm.controller.downloadIdentity()
+            episode != null -> vm.controller.downloadIdentity(episode)
+            else -> null
+        }
+        val revision by media.changes.collectAsStateWithLifecycle()
+        key(video, revision) {
+            val local by produceState<Stream?>(null) {
+                if (video != null) value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { media.localStream(video) }
+            }
+            MobilePlayerSources(state, local, vm::onEvent)
+        }
+    }
     if (mixCompleted == null && postPlay.isVisible) MobileRecommendations(postPlay, vm, back, recommendation)
 }

@@ -2,6 +2,7 @@ package com.nuvio.tv.ui.components
 
 import android.widget.DatePicker
 import android.widget.TimePicker
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -27,12 +28,18 @@ class WatchedDatePickerTvTest {
     @get:Rule val compose = createComposeRule()
     private var saved: Long? = null
 
+    private fun click(label: String) {
+        compose.waitUntil(5_000) { compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick)
+    }
+
     private fun open() {
         compose.setContent { NuvioTheme {
             val choose = rememberWatchedDatePicker()
             Button(onClick = { choose { saved = it } }) { Text("Mark") }
         } }
-        compose.onNodeWithText("Mark").performClick()
+        click("Mark")
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Mark watched now").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test fun remoteCanMarkWatchedNow() {
@@ -51,18 +58,18 @@ class WatchedDatePickerTvTest {
         open()
         val date = LocalDate.of(2021, 7, 18)
         for (withTime in listOf(false, true)) {
-            if (withTime) compose.onNodeWithText("Mark").performClick()
-            compose.onNodeWithText(if (withTime) "Choose date and time" else "Choose date").performClick()
+            if (withTime) click("Mark")
+            click(if (withTime) "Choose date and time" else "Choose date")
             compose.runOnIdle {
                 widget<DatePicker>().updateDate(date.year, date.monthValue - 1, date.dayOfMonth)
             }
             if (withTime) {
-                compose.onNodeWithText("Choose time").performClick()
+                click("Choose time")
                 compose.runOnIdle {
                     widget<TimePicker>().apply { hour = 16; minute = 35 }
                 }
             }
-            compose.onNodeWithText("Save").performClick()
+            click("Save")
             compose.runOnIdle {
                 val time = if (withTime) LocalTime.of(16, 35) else null
                 assertEquals(watchedInstant(date, time, ZoneId.systemDefault()), saved)

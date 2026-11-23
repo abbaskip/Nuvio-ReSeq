@@ -78,7 +78,10 @@ internal fun PlayerRuntimeController.showErrorUnlessSourceFallback(errorMessage:
  *
  * Returns `true` when a fallback was started and the error must not be shown yet.
  */
-internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(errorMessage: String): Boolean {
+internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(
+    errorMessage: String,
+    onExhausted: ((String) -> Unit)? = null
+): Boolean {
     if (sourceFallbackJob?.isActive == true) return true
     if (!streamAutoPlayFallbackActive || isMixPlayback || isInBackground || isPartyControlLocked ||
         _playbackTimeline.value.isLive || userPausedManually) return false
@@ -161,6 +164,10 @@ internal fun PlayerRuntimeController.tryFallbackToNextSourceAfterError(errorMess
         if (!stillOwnsPlayback()) return@launch
         streamCacheKey?.let { streamLinkCacheDataStore.remove(it, profileId) }
         sourceFallbackJob = null
+        if (onExhausted != null) {
+            onExhausted(errorMessage)
+            return@launch
+        }
         _uiState.update {
             it.copy(
                 error = errorMessage,

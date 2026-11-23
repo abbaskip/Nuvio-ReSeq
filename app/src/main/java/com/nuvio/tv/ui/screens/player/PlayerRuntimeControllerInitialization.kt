@@ -1348,6 +1348,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                                 readyTransition.nextState.shouldEnforceAutoplayOnFirstReady
                             val firstFrameAlreadyRendered = hasRenderedFirstFrame
                             if (readyTransition.nextState.hasRenderedFirstFrame && isTunneledPlayback) {
+                                if (!hasRenderedFirstFrame) tunneledFrameAssumed = true
                                 hasRenderedFirstFrame = true
                             }
                             when (val action = readyTransition.action) {
@@ -1501,6 +1502,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                     }
 
                     override fun onRenderedFirstFrame() {
+                        tunneledFrameAssumed = false
                         val isFirstFrame = !hasRenderedFirstFrame  // capture BEFORE flipping
                         hasRenderedFirstFrame = true
                         mediaSourceFactory.unlockStartupPrefetch()
@@ -2192,6 +2194,7 @@ internal fun PlayerRuntimeController.resetLoadingOverlayForNewStream() {
         message = preparingMessage,
         progress = null
     )
+    tunneledFrameAssumed = false
     hasRenderedFirstFrame = false
     endDetectionArmed = false
     mpvEofSeenClear = false

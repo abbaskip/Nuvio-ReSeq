@@ -983,7 +983,16 @@ internal fun PlayerRuntimeController.handleVc1PlaybackFailure(errorMessage: Stri
     cancelStableProgressReset()
     errorRetryJob?.cancel()
     errorRetryJob = null
+    val allowSourceFallback = vc1StartupSourceFallbackAllowed(
+        currentStreamUrl, autoSelectedSourceUrl, autoSwitchInternalPlayerOnErrorEnabled,
+        hasRenderedFirstFrame, tunneledFrameAssumed
+    )
     releasePlayer(flushPlaybackState = false)
+    if (allowSourceFallback && tryFallbackToNextSourceAfterError(displayMessage, ::showVc1PlaybackError)) return
+    showVc1PlaybackError(displayMessage)
+}
+
+private fun PlayerRuntimeController.showVc1PlaybackError(displayMessage: String) {
     cancelNextEpisodeAutoPlayOnFatalError()
     _uiState.update {
         it.copy(

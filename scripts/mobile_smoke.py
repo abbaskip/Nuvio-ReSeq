@@ -828,22 +828,29 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 choose("TV Mix")
                 choose("FixtureMix")
                 locate("Play episode")
-                episode_start = len(files)
+                played_episodes = set()
                 for step in ("Play episode", "Continue mix"):
                     before_play = len(files)
+                    played_this_step = set()
                     choose(step)
                     deadline = time.monotonic() + 185
                     while time.monotonic() < deadline:
-                        labels = {n.get("text") for n in nodes()}
-                        if "Continue mix" in labels and any("/qaseries:" in path for path in files[before_play:]):
+                        tree = nodes()
+                        labels = {n.get("text", "") for n in tree}
+                        played_this_step.update(path.split("/")[-2] for path in files[before_play:] if "/qaseries:" in path)
+                        if (any(n.get("content-desc") == "Playing download" for n in tree)
+                                and any("S1E2" in label for label in labels)):
+                            played_this_step.add("qaseries:1:2")
+                        if "Continue mix" in labels and played_this_step:
                             break
                         if "Play this file" in labels:
                             choose("Play this file")
                         elif "Primary" in labels:
                             choose("Primary")
                     else:
-                        raise AssertionError("The mix did not return to its continuation prompt")
-                played_episodes = {path.split("/")[-2] for path in files[episode_start:] if "/qaseries:" in path}
+                        raise AssertionError(f"Mix continuation missing after {step}. Played {played_this_step}, visible {labels}")
+                    assert len(played_this_step) == 1, f"Multiple episodes played in one mix step: {played_this_step}"
+                    played_episodes.update(played_this_step)
                 assert len(played_episodes) == 2, f"Expected two distinct mix episodes, saw {played_episodes}"
             choose("Home")
             long_press(scroll_to("Test film One"))

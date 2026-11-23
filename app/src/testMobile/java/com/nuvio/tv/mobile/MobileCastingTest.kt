@@ -1,0 +1,101 @@
+package com.nuvio.tv.mobile
+
+import android.app.Application
+import com.google.android.gms.cast.*
+import com.google.android.gms.cast.framework.CastSession
+import com.google.android.gms.cast.framework.media.RemoteMediaClient
+import com.google.gson.Gson
+import com.nuvio.tv.core.profile.ProfileManager
+import io.mockk.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
+import org.json.JSONObject
+
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [28], application = Application::class)
+class MobileCastingTest {
+    private val context = RuntimeEnvironment.getApplication() as Application
+    private val video = MobileVideo(2, "series", "tt1234567", "tt1234567:2:4", "Test series", 2, 4, "A title", "provider")
+    private val profiles = mockk<ProfileManager> { every { activeProfileId } returns MutableStateFlow(2) }
+    private val tracking = mockk<MobileCastTracking>(relaxed = true)
+    private val callback = slot<RemoteMediaClient.Callback>()
+    private val client = mockk<RemoteMediaClient>(relaxed = true)
+    private val status = mockk<MediaStatus>(relaxed = true)
+    private val session = mockk<CastSession>(relaxed = true)
+    private val cast = MobileCasting(context, tracking, profiles, mockk(relaxed = true))
+
+    private fun reconnect(iptv: Boolean, live: Boolean, profile: Int = 2) {
+        val saved = CastItem("owned-media", profile, "Fixture", video, live, iptv)
+        context.getSharedPreferences("cast_session", 0).edit().putString("item", Gson().toJson(saved)).commit()
+        every { session.remoteMediaClient } returns client
+        every { client.registerCallback(capture(callback)) } just Runs
+        every { client.mediaStatus } returns status
+        every { status.mediaInfo } returns mockk(relaxed = true) {
+            every { customData } returns JSONObject().put("reseqCastId", saved.token)
+        }
+        every { status.playerState } returns MediaStatus.PLAYER_STATE_PLAYING
+        every { client.isPlaying } returns true
+        every { client.streamDuration } returns 50_000L
+        every { client.approximateStreamPosition } returns 8_000L
+        cast.onSessionResumed(session, true)
+    }
+
+    @Test fun remoteVodControlsAndProgressUseTheOriginalEpisodeAfterReconnection() {
+        reconnect(false, false)
+        assertEquals(video, cast.state.value.item?.video)
+        verify { tracking.observe(match { it.video == video && it.position == 8000L && it.playing }) }
+        cast.toggle()
+        verify { client.pause() }
+        cast.seek(20_000)
+        verify { client.seek(match<MediaSeekOptions> { it.position == 20_000L }) }
+        every { status.playerState } returns MediaStatus.PLAYER_STATE_PAUSED
+        every { client.isPlaying } returns false
+        every { client.isPaused } returns true
+        callback.captured.onStatusUpdated()
+        verify { tracking.observe(match { !it.playing && it.video == video }) }
+        every { status.playerState } returns MediaStatus.PLAYER_STATE_IDLE
+        every { status.idleReason } returns MediaStatus.IDLE_REASON_FINISHED
+        callback.captured.onStatusUpdated()
+        assertNull(cast.state.value.item)
+        verify(exactly = 1) { tracking.finish(true) }
+    }
+
+    @Test fun liveNeverTracksOrSeeksAndAudioKeepsTheActiveSubtitles() {
+        reconnect(true, true)
+        val audio = MediaTrack.Builder(101, MediaTrack.TYPE_AUDIO).setName("English").build()
+        val subtitles = MediaTrack.Builder(201, MediaTrack.TYPE_TEXT).setName("Captions").build()
+        every { status.mediaInfo!!.mediaTracks } returns listOf(audio, subtitles)
+        every { status.activeTrackIds } returns longArrayOf(201)
+        callback.captured.onStatusUpdated()
+        cast.track(MediaTrack.TYPE_AUDIO, 101)
+        verify { client.setActiveMediaTracks(match { it.toSet() == setOf(101L, 201L) }) }
+        cast.seek(5000)
+        verify(exactly = 0) { client.seek(any<MediaSeekOptions>()) }
+        verify(exactly = 0) { tracking.observe(any()) }
+    }
+
+    @Test fun catchupIsSeekableAndDoesNotWriteTracking() {
+        reconnect(true, false)
+        cast.seek(5000)
+        verify { client.seek(match<MediaSeekOptions> { it.position == 5000L }) }
+        verify(exactly = 0) { tracking.observe(any()) }
+    }
+
+    @Test fun otherProfilesAndUnownedReceiverMediaCannotCreateHistory() {
+        reconnect(false, false, profile = 3)
+        assertNull(cast.state.value.item)
+        verify(exactly = 0) { tracking.observe(any()) }
+    }
+
+    @Test fun localDownloadsAndUsenetAreExcluded() {
+        for (url in listOf("file:///saved/show.mkv", "content://downloads/item", "usenet://example", "http://127.0.0.1:4872/usenet/a/video.mkv",
+                "http://localhost:8000/video", "http://[::1]/video")) assertFalse(url, receiverUrl(url))
+        assertTrue(receiverUrl("https://media.example.test/movie.mp4"))
+        assertTrue(receiverUrl("http://192.168.1.20/channel.m3u8"))
+    }
+}

@@ -155,7 +155,7 @@ interface WatchProgressRepository {
     /**
      * Mark content as completed
      */
-    suspend fun markAsCompleted(progress: WatchProgress, broadcastTrackingHistory: Boolean = true)
+    suspend fun markAsCompleted(progress: WatchProgress, broadcastTrackingHistory: Boolean = true, watchedAt: Long? = null)
 
     suspend fun markAsCompleted(
         progress: WatchProgress,
@@ -167,7 +167,7 @@ interface WatchProgressRepository {
      * Mark multiple episodes as completed in a single batch operation.
      * More efficient than calling [markAsCompleted] in a loop.
      */
-    suspend fun markAsCompletedBatch(progressList: List<WatchProgress>)
+    suspend fun markAsCompletedBatch(progressList: List<WatchProgress>, watchedAt: Long? = null)
 
     /**
      * Remove multiple episodes from history in a single batch operation.

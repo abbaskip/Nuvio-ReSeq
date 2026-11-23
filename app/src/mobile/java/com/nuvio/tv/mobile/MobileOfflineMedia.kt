@@ -41,9 +41,9 @@ internal data class MobileVideo(
         return MessageDigest.getInstance("SHA-256").digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
-    fun sources(manual: Boolean, explicitAuto: Boolean) = Screen.Stream.createRoute(videoId, type, title, poster = poster,
+    fun sources(manual: Boolean, explicitAuto: Boolean, fromBeginning: Boolean = false) = Screen.Stream.createRoute(videoId, type, title, poster = poster,
         contentId = contentId, contentName = title, season = season, episode = episode, episodeName = episodeName,
-        profileId = profile, manualSelection = manual, autoSelectStream = explicitAuto, tvdbContext = tvdb ?: "provider")
+        profileId = profile, manualSelection = manual, autoSelectStream = explicitAuto, startFromBeginning = fromBeginning, tvdbContext = tvdb ?: "provider")
 
     fun player(url: String, info: StreamPlaybackInfo? = null, localName: String? = null, fromBeginning: Boolean = false) =
         Screen.Player.createRoute(streamUrl = url, title = label, contentId = contentId, contentType = type,

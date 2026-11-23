@@ -118,6 +118,17 @@ class DeviceWatchEventStoreTest {
         }
     }
 
+    @Test fun `a backdated manual completion has its own undo identity apart from a recent playback`() = runTest {
+        val f = Fixture(TrackingProviderId.TRAKT, true)
+        val recent = f.journal.record(1, f.prior.copy(lastWatched = 1_000_000, position = 40, duration = 100))
+        val dated = f.journal.record(1, f.prior.copy(lastWatched = 10_000), separateEvent = true)
+        assertTrue(dated.deviceWatchEventId != recent.deviceWatchEventId)
+        val removed = f.journal.requestRemoval(1, dated)
+        assertEquals(10_000L, removed.startedAt)
+        assertTrue(removed.removes(dated))
+        assertFalse(removed.removes(recent))
+    }
+
     @Test fun `removing Part 1 neither revokes earlier full completion nor a later Part 2 play sharing its native episode`() = runTest {
         val f = Fixture(TrackingProviderId.TRAKT, true)
         val played = f.rewatch()

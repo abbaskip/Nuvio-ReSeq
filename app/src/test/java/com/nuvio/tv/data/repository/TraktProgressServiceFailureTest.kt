@@ -131,6 +131,21 @@ class TraktProgressServiceFailureTest {
         coVerify(exactly = 2) { traktApi.getShowProgressWatched(any(), any()) }
     }
 
+    @Test fun `bulk history writes send the chosen watch time for each mapped episode`() = runBlocking {
+        val service = createService()
+        val show = "tt0386676"
+        val date = java.time.Instant.parse("2018-11-05T07:20:00Z").toEpochMilli()
+        val captured = io.mockk.slot<com.nuvio.tv.data.remote.dto.trakt.TraktHistoryAddRequestDto>()
+        coEvery { traktApi.addHistory(any(), capture(captured)) } returns Response.success(
+            TraktHistoryAddResponseDto(added = TraktHistoryRemoveCountDto(episodes = 2)))
+        val rows = listOf(15, 16).map { e -> WatchProgress(show, "series", "The Office", null, null, null,
+            "$show:6:$e", 6, e, null, 1L, 1L, date) }
+        service.markSeasonWatchedBatch(rows, date)
+        val episodes = captured.captured.shows!!.single().seasons!!.single().episodes!!
+        assertEquals(listOf(15, 16), episodes.map { it.number })
+        assertEquals(listOf(date, date), episodes.map { java.time.Instant.parse(it.watchedAt).toEpochMilli() })
+    }
+
     @Test
     fun `removing a rewatch deletes only the latest matching pause and never removes history`() = runBlocking {
         val service = createService()

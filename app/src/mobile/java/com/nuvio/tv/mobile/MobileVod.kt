@@ -43,7 +43,8 @@ internal fun MobileSourceDestination(video: MobileVideo, media: MobileOfflineMed
         local = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { media.localRoute(video, fromBeginning) }
         checked = true
     }
-    val route = local
+    val casting by LocalCasting.current.state.collectAsStateWithLifecycle()
+    val route = local.takeIf { casting.device == null }
     when {
         !checked -> LinearProgressIndicator()
         route != null && !manual && !download -> LaunchedEffect(route) { play(route) }
@@ -56,6 +57,7 @@ private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean
     back: () -> Unit, play: (String) -> Unit,
     vm: StreamScreenViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
+    val cast = LocalCasting.current
     val p2p by vm.p2pEnabled.collectAsStateWithLifecycle(initialValue = false)
     val shared by vm.sharedStream.collectAsStateWithLifecycle()
     val preference by vm.playerPreference.collectAsStateWithLifecycle(null)
@@ -79,6 +81,16 @@ private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean
             if (prepared.isTorrent && !p2p && !allowedTorrent) { consent = prepared; return }
             val url = prepared.url ?: prepared.infoHash?.takeIf { prepared.isTorrent }?.let { "torrent://$it" }
             require(!url.isNullOrBlank()) { "This source did not return a playable file." }
+            if (cast.state.value.device != null) {
+                val torrent = prepared.infoHash?.takeIf { prepared.isTorrent && !receiverUrl(url) }?.let {
+                    CastTorrent(it, prepared.fileIdx, prepared.filename, prepared.sources.orEmpty())
+                }
+                require(!prepared.isExternal && (receiverUrl(url) || torrent != null || cast.isCurrentTorrent(url))) { "Choose a network video for Chromecast, or disconnect to play this source on the phone." }
+                cast.load(CastSource(url, target.label, prepared.headers.orEmpty(), target,
+                    iptv = prepared.bingeGroup?.startsWith("iptv-playlist:") == true,
+                    mime = PlayerMediaSourceFactory.inferMimeType(url, prepared.filename), torrent = torrent), if (fromBeginning) 0L else null, onAccepted = back)
+                return
+            }
             if (prepared.isExternal) {
                 val uri = android.net.Uri.parse(url)
                 require(uri.scheme in setOf("https", "http")) { "This source returned an unsupported external link." }
@@ -117,32 +129,40 @@ private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean
         if (!manual && preference != null && (state.autoPlayStream != null || state.autoPlayPlaybackInfo != null))
             resolve(state.autoPlayStream, state.autoPlayPlaybackInfo, true, download)
     }
-    LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                PlayerIcon("Back", androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack, onClick = back)
-                Column(Modifier.weight(1f)) {
-                    SectionTitle(if (download) "Download" else "Sources")
-                    Label(video.label, small = true, lines = 2)
-                }
-                if (!video.poster.isNullOrBlank()) MediaArt(video.poster, androidx.compose.material.icons.Icons.Default.Movie,
-                    Modifier.size(38.dp, 54.dp))
+    val sourceList = rememberLazyListState()
+    LaunchedEffect(state.selectedAddonFilter) { sourceList.scrollToItem(0) }
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            PlayerIcon("Back", androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack, onClick = back)
+            Column(Modifier.weight(1f)) {
+                SectionTitle(if (download) "Download" else "Sources")
+                Label(video.label, small = true)
             }
+            if (!download) MobileCastButton()
+            if (!video.poster.isNullOrBlank()) MediaArt(video.poster, androidx.compose.material.icons.Icons.Default.Movie,
+                Modifier.size(38.dp, 54.dp))
         }
-        if (local != null && !download) item { Action("Play downloaded file", Modifier.fillMaxWidth()) { play(local) } }
-        if (busy || state.isLoading) item { Label(state.directAutoPlayMessage ?: "Finding sources…") }
-        (message ?: state.playbackErrorMessage ?: state.error)?.let { item { Label(it) } }
-        shared?.let { item { Action("Play party’s shared source") { resolve(it.stream, null, false, false) } } }
-        items(state.filteredStreams) { stream ->
-            SourceTile(stream, !busy) { selected = stream }
+        MobileSourceTabs(state.availableAddons, state.selectedAddonFilter) { vm.onEvent(StreamScreenEvent.OnAddonFilterSelected(it)) }
+        LazyColumn(Modifier.weight(1f), state = sourceList, contentPadding = PaddingValues(vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (local != null && !download && state.selectedAddonFilter == null) item { Action("Play downloaded file", Modifier.fillMaxWidth()) { play(local) } }
+            if (busy || state.isLoading) item { Label(state.directAutoPlayMessage ?: "Finding sources…") }
+            (message ?: state.playbackErrorMessage ?: state.error)?.let { item { Label(it) } }
+            shared?.takeIf { state.selectedAddonFilter == null || it.stream.addonName == state.selectedAddonFilter }?.let {
+                item { Action("Play party’s shared source") { resolve(it.stream, null, false, false) } }
+            }
+            items(state.filteredStreams) { stream -> SourceTile(stream, !busy) { selected = stream } }
+            val total = state.selectedAddonFilter?.let { name -> state.allStreams.count { it.addonName == name } } ?: state.allStreams.size
+            if (state.filteredStreams.size < total) item { Action("More sources") { vm.expandFilteredStreamsIfNeeded() } }
+            if (!state.isLoading && !busy && state.filteredStreams.isEmpty()) item { Action("Retry") { vm.onEvent(StreamScreenEvent.OnRetry) } }
         }
-        if (state.filteredStreams.size < state.allStreams.size) item { Action("More sources") { vm.expandFilteredStreamsIfNeeded() } }
-        if (!state.isLoading && !busy && state.filteredStreams.isEmpty()) item { Action("Retry") { vm.onEvent(StreamScreenEvent.OnRetry) } }
     }
     selected?.let { stream -> TouchSheet({ selected = null }) {
-        SectionTitle(stream.getDisplayName())
-        Action("Play this file", Modifier.fillMaxWidth()) { selected = null; resolve(stream, null, false, false) }
-        DownloadAction("Download this file", Modifier.fillMaxWidth(), showLabel = true) { selected = null; resolve(stream, null, false, true) }
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            SourceText(stream)
+            Action("Play this file", Modifier.fillMaxWidth()) { selected = null; resolve(stream, null, false, false) }
+            DownloadAction("Download this file", Modifier.fillMaxWidth(), showLabel = true) { selected = null; resolve(stream, null, false, true) }
+        }
     } }
     fun continueWith(info: StreamPlaybackInfo, mode: PlayerPreference?, allow: Boolean) {
         scope.launch {
@@ -195,6 +215,30 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
         }
     }
     val engine = vm.exoPlayer
+    val cast = LocalCasting.current
+    val castState by cast.state.collectAsStateWithLifecycle()
+    val castUrl = state.currentStreamUrl
+    val leaveAfterCast by rememberUpdatedState(back)
+    LaunchedEffect(castState.device, castUrl) {
+        if (castState.device != null && castUrl != null && (receiverUrl(castUrl) || cast.isCurrentTorrent(castUrl))) {
+            val controller = vm.controller
+            val video = controller.downloadIdentity() ?: controller.cloudPlaybackContext?.let { cloud ->
+                cloud.currentFile?.let { file -> MobileVideo(controller.profileId, "cloud", cloud.item.stableKey,
+                    cloud.videoId(file), cloud.item.name, episodeName = file.name) }
+            }
+            val subtitles = state.addonSubtitles.filter { receiverUrl(it.url) && it.url.substringBefore('?').endsWith(".vtt", true) }
+                .mapIndexed { i, sub -> com.google.android.gms.cast.MediaTrack.Builder(i + 1L, com.google.android.gms.cast.MediaTrack.TYPE_TEXT)
+                    .setContentId(sub.url).setContentType("text/vtt").setName(sub.getDisplayLanguage()).setLanguage(sub.lang).build() }
+            cast.load(CastSource(castUrl, video?.label ?: state.title, controller.getCurrentHeaders(), video,
+                iptv = controller.currentStreamBingeGroup?.startsWith("iptv-playlist:") == true || controller.portalPlayback != null ||
+                    controller.currentAddonName == com.nuvio.tv.livetv.ondemand.OnDemandStreams.GROUP_NAME,
+                mime = controller.currentStreamMimeType, subtitles = subtitles, cloudToken = controller.cloudSessionToken),
+                timeline.currentPosition.takeIf { it > 0 }, autoplay = state.isPlaying || timeline.duration <= 0) {
+                vm.stopAndRelease()
+                leaveAfterCast()
+            }
+        }
+    }
     val complete by rememberUpdatedState(mixCompleted)
     var handledEnd by remember(vm, state.currentVideoId) { mutableStateOf(false) }
     var reported by androidx.compose.runtime.saveable.rememberSaveable(state.currentVideoId) { mutableStateOf(false) }
@@ -307,7 +351,7 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
             val local by produceState<Stream?>(null) {
                 if (video != null) value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { media.localStream(video) }
             }
-            MobilePlayerSources(state, local, vm::onEvent)
+            MobilePlayerSources(state, local, vm::onEvent, vm.controller::expandSourceFilteredStreamsIfNeeded)
         }
     }
     if (mixCompleted == null && postPlay.isVisible) MobileRecommendations(postPlay, vm, back, recommendation)

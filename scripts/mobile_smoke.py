@@ -151,7 +151,8 @@ def fixture(account=None):
         offline = Event()
         movies = [{"id": "qafilm" + name, "type": "movie", "name": "Test film " + name, "releaseInfo": "2018"} for name in channels]
         series = {"id": "qaseries", "type": "series", "name": "Zyntraxis ReSeq Fixture", "releaseInfo": "2019-2024", "videos": [
-            {"id": f"qaseries:1:{n}", "season": 1, "episode": n, "title": title, "released": "2020-01-01T00:00:00.000Z"}
+            {"id": f"qaseries:1:{n}", "season": 1, "episode": n, "title": title, "released": "2020-01-01T00:00:00.000Z",
+             "overview": "A missing page leads the crew back to the archive. As the last ferry prepares to leave, two accounts of that evening finally come together."}
             for n, title in enumerate(("Pilot", "Second episode"), start=1)]}
         manifest = {"id": "org.reseq.touchtest", "version": "1.0.0", "name": "Offline fixture",
                     "resources": ["catalog", "meta", "stream"], "types": ["movie", "series"], "idPrefixes": ["qafilm", "qaseries"],
@@ -212,8 +213,15 @@ def fixture(account=None):
                     self.end_headers()
                     self.wfile.write(clip)
                     return
-                if path.startswith("/addon/"):
-                    if path.endswith("/manifest.json"):
+                if path.startswith(("/addon/", "/archive/")):
+                    if path == "/archive/manifest.json":
+                        data = {"id": "org.reseq.archivefixture", "version": "1.0.0", "name": "Archive fixture",
+                                "resources": ["stream"], "types": ["series"], "idPrefixes": ["qaseries"], "catalogs": []}
+                    elif path.startswith("/archive/stream/"):
+                        data = {"streams": [{"name": "Archive print", "url": address + "/files/qaseries/archive.mp4",
+                                             "description": "Alternate archive release with original audio and restored credits. " * 6 + "End of release notes.",
+                                             "behaviorHints": {"proxyHeaders": {"request": {"X-Fixture": "offline"}}}}]}
+                    elif path.endswith("/manifest.json"):
                         data = manifest
                     elif "/catalog/movie/" in path:
                         data = {"metas": [] if "/search=" in path and "film" not in path.casefold() else movies}
@@ -678,6 +686,12 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 enter_first_field(address + "/addon/manifest.json")
                 tap(scroll_to("Install source"))
             if extended and not catalog_only:
+                choose("Catalog sources")
+                if any(n.get("text") == "Archive fixture" for n in nodes()):
+                    shell("input", "keyevent", "KEYCODE_BACK")
+                else:
+                    enter_first_field(address + "/archive/manifest.json")
+                    tap(scroll_to("Install source"))
                 choose("Reorder")
                 locate("Reorder Home rows")
                 choose_after_sheet_opens("Custom order")
@@ -755,9 +769,17 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 locate("Play S1 E1")
                 locate("Up next")
                 screenshot("phone-series-details", landscape=False)
-            tap(scroll_to("S1E2 · Second episode"))
+            long_press(scroll_to("Second episode"))
             choose("Play manually")
             if extended:
+                if not catalog_only:
+                    choose("Archive fixture")
+                    locate("Archive print")
+                    assert not any(n.get("text") == "Alternate" for n in nodes()), "Other add-on leaked into filtered results"
+                    choose("Offline fixture")
+                    locate("Alternate")
+                    assert not any(n.get("text") == "Archive print" for n in nodes()), "Archive result leaked into another tab"
+                    choose("All")
                 locate("Alternate")
                 screenshot("phone-manual-sources", landscape=False)
             choose("Alternate")

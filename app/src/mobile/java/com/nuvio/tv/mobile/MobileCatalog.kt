@@ -8,17 +8,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.BookmarkAdd
-import androidx.compose.material.icons.filled.BookmarkRemove
-import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -69,7 +59,7 @@ internal class MobileCatalogViewModel @Inject constructor(
     val refresh: com.nuvio.tv.core.tracking.TrackingProgressRefreshCoordinator
 ) : ViewModel()
 
-internal enum class VideoAction { Play, Download, Manual, Details }
+internal enum class VideoAction { Play, Download, Manual, Details, Restart }
 
 internal fun mobileDetailRoute(item: MetaPreview, addon: String?, action: VideoAction): String =
     Screen.Detail.createRoute(item.id, item.apiType, addon) + "&operation=" + action.name + "&previewTitle=" + Uri.encode(item.name)
@@ -87,6 +77,13 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
     onWatch: (com.nuvio.tv.livetv.model.LiveChannel) -> Unit, tracking: TrackingSettingsViewModel,
     guideContent: (@Composable ((GuideLookup) -> Unit) -> Unit)?, mix: TvMixViewModel = hiltViewModel()) {
     val nav = rememberNavController()
+    val cast = LocalCasting.current
+    LaunchedEffect(cast, tab, profile) {
+        if (tab == Tab.HOME) cast.requestedSources.collect { video ->
+            if (video != null && video.profile == profile && cast.requestedSources.compareAndSet(video, null))
+                nav.navigate(video.sources(manual = true, explicitAuto = false) + "&operation=Manual") { launchSingleTop = true }
+        }
+    }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val current by nav.currentBackStackEntryAsState()
@@ -122,7 +119,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             scope.launch {
                 val video = MobileVideo(profile, item.apiType, item.id, item.id, item.name, poster = item.poster)
                 val local = withContext(Dispatchers.IO) { catalog.downloads.localRoute(video) }
-                nav.navigate(local ?: mobileDetailRoute(item, addon, action))
+                nav.navigate(local?.takeIf { cast.state.value.device == null } ?: mobileDetailRoute(item, addon, action))
             }
         } else nav.navigate(mobileDetailRoute(item, addon, action))
     }
@@ -133,11 +130,12 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                     "&operation=Details&previewTitle=" + Uri.encode(video.title))
                 return@launch
             }
-            val local = withContext(Dispatchers.IO) { catalog.downloads.localRoute(video) }
+            val restart = action == VideoAction.Restart
+            val local = withContext(Dispatchers.IO) { catalog.downloads.localRoute(video, fromBeginning = restart) }
             when {
-                local != null && action == VideoAction.Play -> nav.navigate(local)
+                local != null && cast.state.value.device == null && (action == VideoAction.Play || restart) -> nav.navigate(local)
                 local != null && action == VideoAction.Download -> Toast.makeText(context, "Already downloaded", Toast.LENGTH_SHORT).show()
-                else -> nav.navigate(video.sources(action == VideoAction.Manual, action == VideoAction.Download) + "&operation=" + action.name)
+                else -> nav.navigate(video.sources(action == VideoAction.Manual, action == VideoAction.Download, restart) + "&operation=" + action.name)
             }
         }
     }
@@ -442,7 +440,24 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             Spacer(Modifier.height(6.dp))
         }
     }
-    menu?.let { (item, addon) -> VideoActions(item.name, { menu = null }) { action -> menu = null; open(item, addon, action) } }
+    menu?.let { (item, addon) ->
+        val key = homeItemStatusKey(item.id, item.apiType)
+        val movie = item.apiType == "movie"
+        VideoActions(item.name, { menu = null }, extra = {
+            if (movie || item.apiType in setOf("series", "tv")) {
+                val watched = state.movieWatchedStatus[key] == true
+                val ready = key !in state.movieWatchedPending
+                fun toggle(date: Long?) {
+                    if (movie) vm.togglePosterMovieWatched(item, date) else vm.togglePosterSeriesWatched(item, date)
+                    menu = null
+                }
+                val subject = if (movie) item.name else "${item.name} · All episodes"
+                if (watched) MediaIconAction(if (movie) "Mark unwatched" else "Mark series unwatched", Icons.Default.RemoveDone,
+                    Modifier.fillMaxWidth(), showLabel = true, enabled = ready) { toggle(null) }
+                else MarkWatchedAction(if (movie) "Mark watched" else "Mark series watched", subject, Modifier.fillMaxWidth(), ready, ::toggle)
+            }
+        }) { action -> menu = null; open(item, addon, action) }
+    }
     manage?.let { entry -> TouchSheet({ manage = null }) {
         SectionTitle(entry.video.label)
         Action("Play downloaded file") { manage = null; openVideo(entry.video, VideoAction.Play) }
@@ -459,7 +474,10 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     if (providers) CatalogSources { providers = false }
     resumeMenu?.let { (video, row) ->
         VideoActions(video.label, { resumeMenu = null }, playable = !row.chooseEpisode && (row !is ContinueWatchingItem.NextUp || row.info.hasAired), extra = {
-            if (row.canMarkWatched()) Action("Mark watched") { vm.onEvent(HomeEvent.OnMarkContinueWatchingWatched(row)); resumeMenu = null }
+            if (row.canMarkWatched()) MarkWatchedAction("Mark watched", video.label, Modifier.fillMaxWidth()) { date ->
+                vm.onEvent(HomeEvent.OnMarkContinueWatchingWatched(row, date))
+                resumeMenu = null
+            }
             Action("Remove from Continue watching") {
                 vm.onEvent(HomeEvent.OnRemoveContinueWatching(video.contentId, video.season, video.episode, row is ContinueWatchingItem.NextUp))
                 resumeMenu = null
@@ -565,14 +583,17 @@ internal fun MobileCatalogOrder(vm: com.nuvio.tv.ui.screens.addon.CatalogOrderVi
 internal fun VideoActions(label: String, close: () -> Unit, playable: Boolean = true, showDetails: Boolean = true,
     extra: @Composable () -> Unit = {}, choose: (VideoAction) -> Unit) {
     TouchSheet(close) {
-        SectionTitle(label)
-        if (playable) {
-            Action("Play", Modifier.fillMaxWidth()) { choose(VideoAction.Play) }
-            Action("Play manually", Modifier.fillMaxWidth()) { choose(VideoAction.Manual) }
-            DownloadAction(modifier = Modifier.fillMaxWidth(), showLabel = true) { choose(VideoAction.Download) }
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            SectionTitle(label)
+            if (playable) {
+                Action("Play", Modifier.fillMaxWidth()) { choose(VideoAction.Play) }
+                Action("Play manually", Modifier.fillMaxWidth()) { choose(VideoAction.Manual) }
+                DownloadAction(modifier = Modifier.fillMaxWidth(), showLabel = true) { choose(VideoAction.Download) }
+            }
+            if (showDetails) Action("Title details", Modifier.fillMaxWidth()) { choose(VideoAction.Details) }
+            extra()
         }
-        if (showDetails) Action("Title details", Modifier.fillMaxWidth()) { choose(VideoAction.Details) }
-        extra()
     }
 }
 
@@ -580,7 +601,7 @@ internal fun VideoActions(label: String, close: () -> Unit, playable: Boolean = 
 private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: String, type: String,
     open: (MobileVideo, VideoAction) -> Unit, back: () -> Unit, navigate: (String) -> Unit,
     openTitle: (MetaPreview, String?, VideoAction) -> Unit, mix: TvMixViewModel, layout: LayoutPreferenceDataStore, sourceAddon: String?,
-    guideNumber: String, guideSubtitle: String, vm: MetaDetailsViewModel = hiltViewModel()) {
+    guideNumber: String, guideSubtitle: String, vm: MetaDetailsViewModel = hiltViewModel(), ratings: RatingViewModel = hiltViewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val meta = state.meta
     val movie = type == "movie"
@@ -588,6 +609,22 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
     val trailerNetwork = LocalTrailerNetwork.current
     val trailersAllowed by trailerNetwork.playbackAllowed.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    LaunchedEffect(ratings, context) {
+        ratings.results.collect { result ->
+            val message = when {
+                !result.saved -> context.getString(R.string.rating_failed, result.provider?.let { context.getString(trackingProviderNameRes(it)) }.orEmpty())
+                result.removed -> context.getString(R.string.rating_removed)
+                else -> context.getString(R.string.rating_saved)
+            }
+            vm.onEvent(MetaDetailsEvent.OnShowMessage(message, isError = !result.saved))
+        }
+    }
+    LaunchedEffect(state.userMessage) {
+        state.userMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            vm.onEvent(MetaDetailsEvent.OnClearMessage)
+        }
+    }
     var previouslyBlocked by remember(vm) { mutableStateOf(!trailersAllowed) }
     LaunchedEffect(trailersAllowed) {
         if (trailersAllowed && previouslyBlocked) vm.retryMissingTrailer()
@@ -629,6 +666,8 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
     }
     var menu by remember { mutableStateOf<MobileVideo?>(null) }
     var showExtras by rememberSaveable(id, type) { mutableStateOf(false) }
+    val episodes = remember(state.episodesForSeason) { state.episodesForSeason.distinctBy { it.episodeListKey } }
+    val ambiguousSlots = remember(episodes) { episodes.ambiguousEpisodeSlots() }
     val detailTitle = meta?.name ?: preview
     if (addToMix && meta != null) TouchSheet({ addToMix = false }) {
         Column(Modifier.verticalScroll(rememberScrollState()).imePadding().padding(12.dp)) {
@@ -686,19 +725,21 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                     MediaIconAction(if (saved) "Remove from library" else "Add to library", if (saved) Icons.Default.BookmarkRemove else Icons.Default.BookmarkAdd) {
                     if (!state.defaultLibraryTogglePending) vm.onEvent(MetaDetailsEvent.OnToggleLibrary)
                 } }
-                if (movie) item { Action(if (state.isMovieWatched) "Mark unwatched" else "Mark watched") {
-                    vm.onEvent(MetaDetailsEvent.OnToggleMovieWatched)
-                } }
+                if (movie) item {
+                    if (state.isMovieWatched) MediaIconAction("Mark unwatched", Icons.Default.RemoveDone, showLabel = true,
+                        enabled = !state.isMovieWatchedPending) { vm.onEvent(MetaDetailsEvent.OnToggleMovieWatched) }
+                    else MarkWatchedAction("Mark watched", meta.name, enabled = !state.isMovieWatchedPending) {
+                        vm.onEvent(MetaDetailsEvent.OnMarkMovieWatched(it))
+                    }
+                }
                 if (state.libraryListTabs.isNotEmpty()) item { MediaIconAction("Choose lists", Icons.Default.PlaylistAdd) { vm.onEvent(MetaDetailsEvent.OnLibraryLongPress) } }
                 item { MobileRating(meta.ratingReference()) }
                 if (!movie) item { MobileEpisodeOrder(meta, vm::reloadEpisodeOrder) }
                 if (!movie && state.randomEpisodeEnabled) item { MediaIconAction("Episode shuffle", Icons.Default.Shuffle, selected = state.episodeShuffle.enabled) { shuffle = true } }
-                if (!movie) state.selectedSeason?.let { season -> item {
-                    val watched = vm.isSeasonFullyWatched(season)
-                    Action(if (watched) "Mark season unwatched" else "Mark season watched") {
-                        vm.onEvent(if (watched) MetaDetailsEvent.OnMarkSeasonUnwatched(season) else MetaDetailsEvent.OnMarkSeasonWatched(season))
-                    }
-                } }
+                if (!movie && state.seasons.isNotEmpty()) item {
+                    SeasonWatchedAction(state.selectedSeason, meta.name, vm.isSeasonFullyWatched(state.selectedSeason),
+                        enabled = state.episodeWatchedPendingKeys.isEmpty(), send = vm::onEvent)
+                }
                 if (state.trailerButtonEnabled && state.trailerUrl != null) item { Action("Play trailer") { trailerAction(MetaDetailsEvent.OnTrailerButtonClick) } }
                 if (state.shouldShowCommentsSection) item { Action("Reviews and comments") { comments = true } }
             }
@@ -715,15 +756,19 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
                 togglePosters = { detailScope.launch { layout.setDetailSeasonPostersEnabled(!state.seasonPostersEnabled) } }) {
                 vm.onEvent(MetaDetailsEvent.OnSeasonSelected(it))
             } }
-            items(state.episodesForSeason) { episode ->
+            items(episodes, key = { "episode-${it.episodeIdentity?.orderType}-${it.episodeListKey}" }) { episode ->
                 val video = selection(episode)
-                val episodeKey = (episode.season ?: 0) to (episode.episode ?: 0)
-                val progress = state.episodeProgressMap[episodeKey]
-                val watched = episodeKey in state.watchedEpisodes || progress?.isCompleted() == true
-                val rating = (state.episodeImdbRatings[episodeKey] ?: episode.rating).takeIf { state.detailImdbRatingsVisibility.showEpisodeRating(watched) }
-                EpisodeTile(episode, watched, progress?.progressPercentage ?: 0f, rating, video != null, { menu = video }, highlighted = airing != null && airing.episodeListKey == episode.episodeListKey) {
-                    Action(if (watched) "Mark unwatched" else "Mark watched") { vm.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(episode)) }
-                    meta.episodeRatingReference(episode)?.let { MobileRating(it) }
+                val tracking = state.trackingForEpisode(episode, (episode.displaySeason to episode.displayEpisode) in ambiguousSlots)
+                val rating = (tracking.displayKey?.let(state.episodeImdbRatings::get) ?: episode.rating)
+                    .takeIf { state.detailImdbRatingsVisibility.showEpisodeRating(tracking.watched) }
+                EpisodeTile(episode, tracking.watched, tracking.progress?.progressPercentage ?: 0f, rating, video != null,
+                    open = { video?.let { open(it, VideoAction.Play) } },
+                    highlighted = airing != null && airing.episodeListKey == episode.episodeListKey) { close ->
+                    EpisodeSheetActions(episode, tracking, state, meta, vm.isSeasonFullyWatched(state.selectedSeason),
+                        play = video?.let { selected -> { action -> close(); open(selected, action) } },
+                        send = { close(); vm.onEvent(it) },
+                        remove = { event, last -> close(); vm.removeEpisodeWatch(episode.forEpisodeSource(), event, last, "Last watch removed") },
+                        comments = { close(); vm.onEvent(MetaDetailsEvent.OnCommentsEpisodeSelected(episode)); comments = true })
                 }
             }
         } else if (meta != null) {
@@ -773,11 +818,11 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
 }
 
 @Composable
-private fun MobileRating(media: com.nuvio.tv.core.tracking.TrackingMediaReference, vm: RatingViewModel = hiltViewModel()) {
+internal fun MobileRating(media: com.nuvio.tv.core.tracking.TrackingMediaReference, modifier: Modifier = Modifier, vm: RatingViewModel = hiltViewModel()) {
     val state by rememberRatingState(media, vm)
     var show by remember { mutableStateOf(false) }
     if (!state.isAvailable) return
-    Action(state.rating?.let { "Rated $it" } ?: "Rate") { show = true }
+    MediaIconAction(state.rating?.let { "Rated $it" } ?: "Rate", Icons.Default.Star, modifier, showLabel = true) { show = true }
     if (show) TouchSheet({ show = false }) {
         SectionTitle("Your rating")
         for (row in listOf(1..5, 6..10)) Row { row.forEach { rating ->

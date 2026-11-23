@@ -33,6 +33,27 @@ import kotlin.math.abs
 @Composable
 internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
     val state by vm.playbackState.collectAsStateWithLifecycle()
+    val cast = LocalCasting.current
+    val castState by cast.state.collectAsStateWithLifecycle()
+    val channel = vm.playback.playingChannel
+    val streamUrl = vm.playback.playingStreamUrl
+    val leaveAfterCast by rememberUpdatedState(onClose)
+    LaunchedEffect(castState.error) {
+        if (castState.error != null && channel != null && !state.isPlaying) vm.playback.retry()
+    }
+    LaunchedEffect(castState.device, state.channelKey, streamUrl) {
+        if (castState.device != null && channel != null && channel.drm == null && streamUrl != null && receiverUrl(streamUrl)) {
+            val replay = state.catchupTitle
+            val position = if (replay != null) vm.playback.playerFlow.value?.currentPosition else 0L
+            val headers = channel.headers.toMutableMap()
+            if (headers.keys.none { it.equals("User-Agent", true) })
+                headers["User-Agent"] = com.nuvio.tv.livetv.data.LiveTvRepository.DEFAULT_UA
+            vm.playback.handOverForRecording()
+            cast.load(CastSource(streamUrl, replay ?: channel.name, headers, live = replay == null, iptv = true), position) {
+                leaveAfterCast()
+            }
+        }
+    }
     val player by vm.playback.playerFlow.collectAsStateWithLifecycle()
     val ui by vm.uiState.collectAsStateWithLifecycle()
     val programs by vm.programs.collectAsStateWithLifecycle()
@@ -81,6 +102,7 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
             Row(Modifier.align(Alignment.TopStart), verticalAlignment = Alignment.CenterVertically) {
                 PlayerIcon("Back", Icons.AutoMirrored.Filled.ArrowBack, onClick = onClose)
                 Label(vm.playback.playingChannel?.name.orEmpty(), Modifier.background(Color.Black.copy(alpha = .7f)).padding(6.dp))
+                if (channel?.drm == null && receiverUrl(streamUrl)) MobileCastButton()
             }
             Row(Modifier.align(Alignment.BottomEnd)) {
                 PlayerIcon(if (state.userPaused) "Resume" else "Pause", if (state.userPaused) Icons.Default.PlayArrow else Icons.Default.Pause) { vm.playback.togglePause() }

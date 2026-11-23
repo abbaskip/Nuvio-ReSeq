@@ -11,6 +11,7 @@ import com.nuvio.tv.domain.model.LibrarySourceMode
 import com.nuvio.tv.domain.model.ListMembershipChanges
 import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.domain.model.WatchProgress
+import com.nuvio.tv.domain.model.tvdbPlaybackContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -316,7 +317,7 @@ private fun HomeViewModel.closePosterListPickerAfterSave(changes: ListMembership
     }
 }
 
-fun HomeViewModel.togglePosterMovieWatched(item: MetaPreview) {
+fun HomeViewModel.togglePosterMovieWatched(item: MetaPreview, watchedAt: Long? = null) {
     if (!item.apiType.equals("movie", ignoreCase = true)) return
     val statusKey = homeItemStatusKey(item.id, item.apiType)
     if (statusKey in _uiState.value.movieWatchedPending) return
@@ -329,9 +330,10 @@ fun HomeViewModel.togglePosterMovieWatched(item: MetaPreview) {
         val currentlyWatched = _uiState.value.movieWatchedStatus[statusKey] == true
         runCatching {
             if (currentlyWatched) {
+                if (watchedAt != null) return@runCatching
                 watchProgressRepository.removeFromHistory(item.id, videoId = item.imdbId)
             } else {
-                watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(item))
+                watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(item), watchedAt = watchedAt)
             }
         }.onFailure { error ->
             Log.w(HomeViewModel.TAG, "Failed to toggle poster watched status for ${item.id}: ${error.message}")
@@ -361,7 +363,7 @@ private fun buildCompletedMovieProgress(item: MetaPreview): WatchProgress {
     )
 }
 
-fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview) {
+fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview, watchedAt: Long? = null) {
     val isSeries = item.apiType.equals("series", ignoreCase = true) ||
         item.apiType.equals("tv", ignoreCase = true)
     if (!isSeries) return
@@ -369,6 +371,7 @@ fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview) {
     if (statusKey in _uiState.value.movieWatchedPending) return
 
     val currentlyWatched = _uiState.value.movieWatchedStatus[statusKey] == true
+    if (currentlyWatched && watchedAt != null) return
 
     // Optimistically update the UI immediately
     _uiState.update { state ->
@@ -383,7 +386,7 @@ fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview) {
             if (currentlyWatched) {
                 unmarkSeriesWatched(item)
             } else {
-                markSeriesWatched(item)
+                markSeriesWatched(item, watchedAt)
             }
         }.onFailure { error ->
             Log.w(HomeViewModel.TAG, "Failed to toggle series watched for ${item.id}: ${error.message}")
@@ -400,13 +403,14 @@ fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview) {
     }
 }
 
-private suspend fun HomeViewModel.markSeriesWatched(item: MetaPreview) {
+private suspend fun HomeViewModel.markSeriesWatched(item: MetaPreview, watchedAt: Long?) {
     val episodes = fetchSeriesEpisodes(item)
     // Without episodes the only mark left is a show-level one, which trackers answer by marking
     // every episode watched. Fail instead so the optimistic badge is reverted.
     check(episodes.isNotEmpty()) { "No episodes found for ${item.id}" }
 
     val progressList = episodes.map { video ->
+        val context = if (watchedAt != null) video.tvdbPlaybackContext() else null
         WatchProgress(
             contentId = item.id,
             contentType = item.apiType,
@@ -418,13 +422,16 @@ private suspend fun HomeViewModel.markSeriesWatched(item: MetaPreview) {
             season = video.season,
             episode = video.episode,
             episodeTitle = video.title,
+            tvdbContext = context,
+            tvdbEpisodeIds = context?.episodeIds,
+            tvdbEpisodeId = context?.episodeIds?.firstOrNull(),
             position = 1L,
             duration = 1L,
             lastWatched = System.currentTimeMillis(),
             progressPercent = 100f
         )
     }
-    watchProgressRepository.markAsCompletedBatch(progressList)
+    watchProgressRepository.markAsCompletedBatch(progressList, watchedAt)
     fullyWatchedSeriesIds.updateWithValidation(
         fullyWatchedSeriesIds.fullyWatchedSeriesIds.value + item.id,
         setOf(item.id)

@@ -76,10 +76,10 @@ class DeviceWatchEventStore @Inject constructor(
         }
     }
 
-    suspend fun record(profile: Int, row: WatchProgress): WatchProgress = lock.withLock {
+    suspend fun record(profile: Int, row: WatchProgress, separateEvent: Boolean = false): WatchProgress = lock.withLock {
         if (row.source != WatchProgress.SOURCE_LOCAL || row.trackingProviderId != null || row.season == null || row.episode == null) return@withLock row
         val old = events(profile).filter { !it.removed && it.matches(row) }.maxByOrNull { it.startedAt }
-        val fresh = old == null || (old.progress.isCompleted() && row.progressPercentage < .01f)
+        val fresh = separateEvent || old == null || (old.progress.isCompleted() && row.progressPercentage < .01f)
         val event = if (!fresh) old!! else {
             val candidate = DeviceWatchEvent(UUID.randomUUID().toString(), row, row.lastWatched, row.lastWatched)
             candidate.copy(priorLocal = local.getAllRawEntries(profile).filterValues(candidate::matches),

@@ -2303,7 +2303,7 @@ class TraktProgressService @Inject constructor(
      * Mark multiple episodes as watched on Trakt in a single API call.
      * Groups episodes by show and sends one POST /sync/history request.
      */
-    suspend fun markSeasonWatchedBatch(progressList: List<WatchProgress>) {
+    suspend fun markSeasonWatchedBatch(progressList: List<WatchProgress>, watchedAtMillis: Long? = null) {
         if (progressList.isEmpty()) return
         val first = progressList.first()
         val ids = resolveHistoryIds(first)
@@ -2311,7 +2311,7 @@ class TraktProgressService @Inject constructor(
             Log.w(TAG, "markSeasonWatchedBatch: no valid Trakt IDs for ${first.contentId}")
             return
         }
-        val watchedAt = toTraktUtcDateTime(System.currentTimeMillis())
+        val watchedAt = toTraktUtcDateTime(watchedAtMillis ?: System.currentTimeMillis())
         val episodesBySeason = progressList
             .filter { it.season != null && it.episode != null }
             .groupBy { it.season!! }

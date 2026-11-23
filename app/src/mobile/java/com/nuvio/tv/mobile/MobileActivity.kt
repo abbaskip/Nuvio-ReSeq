@@ -48,7 +48,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MobileActivity : ComponentActivity() {
+class MobileActivity : androidx.fragment.app.FragmentActivity() {
+    @Inject internal lateinit var casting: MobileCasting
     @Inject lateinit var themes: ThemeDataStore
     @Inject internal lateinit var trailerNetwork: MobileTrailerNetwork
     @Inject lateinit var profileLocks: com.nuvio.tv.data.local.ProfileLockStateDataStore
@@ -73,6 +74,7 @@ class MobileActivity : ComponentActivity() {
             return
         }
         ready = true
+        casting.initialize()
         lifecycleScope.launch {
             var hadPlayer = false
             com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen.collectLatest { open ->
@@ -104,6 +106,7 @@ class MobileActivity : ComponentActivity() {
                             locks == null -> CircularProgressIndicator()
                             locked && unlockedProfile != active -> ProfileUnlock(active, unlocked = { unlockedProfile = active })
                             else -> CompositionLocalProvider(LocalSelectedProfile provides { id -> unlockedProfile = id },
+                                LocalCasting provides casting,
                                 LocalTrailerNetwork provides trailerNetwork,
                                 LocalContentColor provides MaterialTheme.colorScheme.onSurface) { MobileShell(active, sports.get()) }
                         }
@@ -160,6 +163,12 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
     var inVodPlayer by remember { mutableStateOf(false) }
     var liveSetup by rememberSaveable { mutableStateOf(false) }
     val holder = rememberSaveableStateHolder()
+    val cast = LocalCasting.current
+    val castState by cast.state.collectAsStateWithLifecycle()
+    castState.error?.let { message ->
+        AlertDialog(onDismissRequest = cast::dismissError, title = { Text("Chromecast") }, text = { Text(message) },
+            confirmButton = { TextButton(onClick = cast::dismissError) { Text("OK") } })
+    }
     var playing by remember { mutableStateOf(false) }
     var multiview by rememberSaveable { mutableStateOf(false) }
     val exitPlayer = { live.playback.stop(); playing = false }
@@ -212,6 +221,8 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
                     (channel != null && live.playCatchup(channel, replay.program)).also { if (it) playing = true }
                 }) { content() }
             }
+            MobileCastBar(cast, sources = { video -> tab = Tab.HOME; cast.requestedSources.value = video },
+                channels = { tab = Tab.GUIDE })
             if (!tablet && !inVodPlayer && !tab.isLiveSection) tabs()
         }
         MobileReminders(profile, sports) { channel ->

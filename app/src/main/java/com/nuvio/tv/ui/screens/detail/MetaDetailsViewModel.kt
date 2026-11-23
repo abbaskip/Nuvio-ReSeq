@@ -395,11 +395,12 @@ class MetaDetailsViewModel @Inject constructor(
             MetaDetailsEvent.OnDismissSharedTrailer -> dismissSharedTrailerOverlay()
             MetaDetailsEvent.OnRetrySharedTrailer -> retrySharedTrailer()
             MetaDetailsEvent.OnToggleMovieWatched -> toggleMovieWatched()
-            is MetaDetailsEvent.OnToggleEpisodeWatched -> toggleEpisodeWatched(event.video)
-            is MetaDetailsEvent.OnMarkSeasonWatched -> markSeasonWatched(event.season)
+            is MetaDetailsEvent.OnMarkMovieWatched -> toggleMovieWatched(event.watchedAt)
+            is MetaDetailsEvent.OnToggleEpisodeWatched -> toggleEpisodeWatched(event.video, event.watchedAt)
+            is MetaDetailsEvent.OnMarkSeasonWatched -> markSeasonWatched(event.season, event.watchedAt)
             is MetaDetailsEvent.OnMarkSeasonUnwatched -> markSeasonUnwatched(event.season)
-            is MetaDetailsEvent.OnMarkPreviousEpisodesWatched -> markPreviousEpisodesWatched(event.video)
-            is MetaDetailsEvent.OnMarkPreviousSeasonsWatched -> markPreviousSeasonsWatched(event.season)
+            is MetaDetailsEvent.OnMarkPreviousEpisodesWatched -> markPreviousEpisodesWatched(event.video, event.watchedAt)
+            is MetaDetailsEvent.OnMarkPreviousSeasonsWatched -> markPreviousSeasonsWatched(event.season, event.watchedAt)
             MetaDetailsEvent.OnLibraryLongPress -> openListPicker()
             is MetaDetailsEvent.OnPickerMembershipToggled -> togglePickerMembership(event.listKey)
             MetaDetailsEvent.OnPickerSave -> savePickerMembership()
@@ -2251,7 +2252,7 @@ class MetaDetailsViewModel @Inject constructor(
         showMessage(localizedContext.getString(R.string.detail_lists_updated))
     }
 
-    private fun toggleMovieWatched() {
+    private fun toggleMovieWatched(watchedAt: Long? = null) {
         val meta = _uiState.value.meta ?: return
         if (meta.apiType != "movie") return
         if (_uiState.value.isMovieWatchedPending) return
@@ -2260,10 +2261,11 @@ class MetaDetailsViewModel @Inject constructor(
             _uiState.update { it.copy(isMovieWatchedPending = true) }
             runCatching {
                 if (_uiState.value.isMovieWatched) {
+                    if (watchedAt != null) return@runCatching
                     watchProgressRepository.removeFromHistory(_effectiveContentId.value, videoId = resolveFallbackVideoId())
                     showMessage(localizedContext.getString(R.string.detail_movie_marked_unwatched))
                 } else {
-                    watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(meta))
+                    watchProgressRepository.markAsCompleted(buildCompletedMovieProgress(meta), watchedAt = watchedAt)
                     showMessage(localizedContext.getString(R.string.detail_movie_marked_watched))
                 }
             }.onFailure { error ->
@@ -2277,6 +2279,10 @@ class MetaDetailsViewModel @Inject constructor(
     }
 
     fun removeEpisodeWatch(video: Video, resume: WatchProgress, lastWatchOnly: Boolean) {
+        removeEpisodeWatch(video, resume, lastWatchOnly, localizedContext.getString(R.string.episodes_last_watch_removed))
+    }
+
+    fun removeEpisodeWatch(video: Video, resume: WatchProgress, lastWatchOnly: Boolean, lastWatchRemovedMessage: String) {
         if (!video.hasResolvedSource) return
         val season = video.season ?: return
         val episode = video.episode ?: return
@@ -2289,7 +2295,7 @@ class MetaDetailsViewModel @Inject constructor(
             try {
                 if (lastWatchOnly) {
                     watchProgressRepository.removeLastTraktWatch(contentId, video.forEpisodeSource(), resume)
-                    showMessage(localizedContext.getString(R.string.episodes_last_watch_removed))
+                    showMessage(lastWatchRemovedMessage)
                 } else {
                     watchProgressRepository.removeEpisodePartialWatch(contentId, video.forEpisodeSource(), resume)
                     showMessage(localizedContext.getString(R.string.episodes_partial_watch_removed))
@@ -2305,7 +2311,7 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun toggleEpisodeWatched(displayVideo: Video) {
+    private fun toggleEpisodeWatched(displayVideo: Video, watchedAt: Long?) {
         if (!displayVideo.hasResolvedSource) return
         val video = displayVideo.forEpisodeSource()
         val meta = _uiState.value.meta ?: return
@@ -2323,6 +2329,7 @@ class MetaDetailsViewModel @Inject constructor(
                 || _uiState.value.watchedEpisodes.contains(season to episode)
             runCatching {
                 if (isWatched) {
+                    if (watchedAt != null) return@runCatching
                     _optimisticMarks -= season to episode
                     _optimisticUnmarks += season to episode
                     watchProgressRepository.removeFromHistory(_effectiveContentId.value, videoId = video.id, season = season, episode = episode)
@@ -2330,7 +2337,7 @@ class MetaDetailsViewModel @Inject constructor(
                 } else {
                     _optimisticUnmarks -= season to episode
                     _optimisticMarks += season to episode
-                    watchProgressRepository.markAsCompleted(buildCompletedEpisodeProgress(meta, video))
+                    watchProgressRepository.markAsCompleted(buildCompletedEpisodeProgress(meta, video), watchedAt = watchedAt)
                     showMessage(localizedContext.getString(R.string.detail_episode_marked_watched))
                 }
             }.onFailure { error ->
@@ -2365,7 +2372,7 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun markSeasonWatched(season: Int) {
+    private fun markSeasonWatched(season: Int, watchedAt: Long?) {
         val meta = _uiState.value.meta ?: return
         suppressSeasonAutoSwitch = true
         viewModelScope.launch {
@@ -2397,7 +2404,7 @@ class MetaDetailsViewModel @Inject constructor(
 
             runCatching {
                 val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it) }
-                watchProgressRepository.markAsCompletedBatch(progressList)
+                watchProgressRepository.markAsCompletedBatch(progressList, watchedAt)
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark season $season as watched: ${error.message}")
             }
@@ -2458,7 +2465,7 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun markPreviousEpisodesWatched(displayVideo: Video) {
+    private fun markPreviousEpisodesWatched(displayVideo: Video, watchedAt: Long?) {
         if (!displayVideo.hasResolvedSource) return
         val video = displayVideo.forEpisodeSource()
         val meta = _uiState.value.meta ?: return
@@ -2498,7 +2505,7 @@ class MetaDetailsViewModel @Inject constructor(
 
             runCatching {
                 val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it) }
-                watchProgressRepository.markAsCompletedBatch(progressList)
+                watchProgressRepository.markAsCompletedBatch(progressList, watchedAt)
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark previous episodes as watched: ${error.message}")
             }
@@ -2511,7 +2518,7 @@ class MetaDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun markPreviousSeasonsWatched(targetSeason: Int) {
+    private fun markPreviousSeasonsWatched(targetSeason: Int, watchedAt: Long?) {
         val meta = _uiState.value.meta ?: return
         suppressSeasonAutoSwitch = true
         viewModelScope.launch {
@@ -2543,7 +2550,7 @@ class MetaDetailsViewModel @Inject constructor(
 
             runCatching {
                 val progressList = unwatched.map { buildCompletedEpisodeProgress(meta, it) }
-                watchProgressRepository.markAsCompletedBatch(progressList)
+                watchProgressRepository.markAsCompletedBatch(progressList, watchedAt)
             }.onFailure { error ->
                 Log.w(TAG, "Failed to batch mark previous seasons as watched: ${error.message}")
             }

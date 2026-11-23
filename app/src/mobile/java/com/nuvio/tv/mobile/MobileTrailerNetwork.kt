@@ -25,35 +25,58 @@ internal class MobileTrailerNetwork @Inject constructor(@ApplicationContext cont
     private val networks = context.getSystemService(ConnectivityManager::class.java)
     private val preference = MutableStateFlow(prefs.getBoolean("trailers_on_mobile_data", true))
     val allowMobileData = preference.asStateFlow()
-    private val allowed = MutableStateFlow(allowsPlaybackNow())
+    private var defaultNetwork: Network? = null
+    private var onFixedNetwork = false
+    private val allowed = MutableStateFlow(preference.value)
     override val playbackAllowed = allowed.asStateFlow()
 
     init {
-        networks.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) = refresh()
-            override fun onLost(network: Network) = refresh()
-            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) = refresh()
-        })
-        refresh()
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network): Unit = synchronized(this@MobileTrailerNetwork) {
+                if (network != defaultNetwork) updateRoute(network, false)
+            }
+
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities): Unit =
+                synchronized(this@MobileTrailerNetwork) {
+                    if (network == defaultNetwork) updateRoute(network, capabilities.allowsTrailers())
+                }
+
+            override fun onLost(network: Network): Unit = synchronized(this@MobileTrailerNetwork) {
+                if (network == defaultNetwork) updateRoute(null, false)
+            }
+        }
+        synchronized(this) {
+            networks.registerDefaultNetworkCallback(callback)
+            val initial = networks.activeNetwork
+            updateRoute(initial, initial?.let(networks::getNetworkCapabilities).allowsTrailers())
+        }
     }
 
-    fun setAllowMobileData(value: Boolean) {
+    @Synchronized fun setAllowMobileData(value: Boolean) {
         prefs.edit().putBoolean("trailers_on_mobile_data", value).apply()
         preference.value = value
-        refresh()
+        allowed.value = value || onFixedNetwork
     }
 
     override fun allowsPlaybackNow(): Boolean {
         if (preference.value) return true
         val active = networks.activeNetwork ?: return false
-        val caps = networks.getNetworkCapabilities(active) ?: return false
-        // Android includes the underlying transports on VPN networks. An unknown route
-        // stays blocked until the default network is positively identified.
-        return !caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
-            (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+        return allowed.value && networks.getNetworkCapabilities(active).allowsTrailers()
     }
 
-    @Synchronized private fun refresh() { allowed.value = allowsPlaybackNow() }
+    private fun NetworkCapabilities?.allowsTrailers(): Boolean {
+        if (this == null) return false
+        // Android includes the underlying transports on VPN networks. An unknown route
+        // stays blocked until the default network is positively identified.
+        return !hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+            (hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+    }
+
+    private fun updateRoute(network: Network?, fixed: Boolean) {
+        defaultNetwork = network
+        onFixedNetwork = fixed
+        allowed.value = preference.value || fixed
+    }
 }
 
 @Module

@@ -1251,9 +1251,9 @@ class WatchProgressRepositoryImpl @Inject constructor(
         triggerRemoteSync(profileId = profileId)
     }
 
-    override suspend fun markAsCompleted(progress: WatchProgress, broadcastTrackingHistory: Boolean) {
+    override suspend fun markAsCompleted(progress: WatchProgress, broadcastTrackingHistory: Boolean, watchedAt: Long?) {
         val profileId = profileManager.activeProfileId.value
-        markAsCompleted(progress, profileId, broadcastTrackingHistory)
+        completeProgress(progress, profileId, broadcastTrackingHistory, watchedAt)
     }
 
     override suspend fun markAsCompleted(
@@ -1261,19 +1261,23 @@ class WatchProgressRepositoryImpl @Inject constructor(
         profileId: Int,
         broadcastTrackingHistory: Boolean
     ) {
+        completeProgress(progress, profileId, broadcastTrackingHistory, watchedAt = null)
+    }
+
+    private suspend fun completeProgress(progress: WatchProgress, profileId: Int, broadcastTrackingHistory: Boolean, watchedAt: Long?) {
         if (progress.tvdbCoverageVerified == false) {
             saveProgress(progress, profileId)
             return
         }
         if (progress.tvdbEpisodeIds == null && tvdbTracking != null) {
             val identified = tvdbTracking.identifyProgress(profileId, progress)
-            if (!identified.tvdbEpisodeIds.isNullOrEmpty()) { markAsCompleted(identified, profileId, broadcastTrackingHistory); return }
+            if (!identified.tvdbEpisodeIds.isNullOrEmpty()) { completeProgress(identified, profileId, broadcastTrackingHistory, watchedAt); return }
         }
         if (progress.contentType.equals("series", ignoreCase = true) ||
             progress.contentType.equals("tv", ignoreCase = true)) {
             traktSettingsDataStore.removeDismissedNextUpKeysForContent(progress.contentId, profileId)
         }
-        val now = System.currentTimeMillis()
+        val eventTime = watchedAt ?: System.currentTimeMillis()
         val progressKey = progressKey(progress)
         val duration = progress.duration.takeIf { it > 1L }
             ?: watchProgressPreferences.getAllRawEntries(profileId)[progressKey]
@@ -1284,10 +1288,10 @@ class WatchProgressRepositoryImpl @Inject constructor(
             position = duration,
             duration = duration,
             progressPercent = 100f,
-            lastWatched = now,
+            lastWatched = eventTime,
             tvdbCompletedEpisodeIds = progress.tvdbEpisodeIds
         )
-        val completed = deviceEvents?.get()?.record(profileId, completedRow) ?: completedRow
+        val completed = deviceEvents?.get()?.record(profileId, completedRow, separateEvent = watchedAt != null) ?: completedRow
         mutationStore.queueProgressUpserts(mapOf(progressKey to completed), profileId)
         if (profileManager.activeProfileId.value == profileId) {
             optimisticContinueWatchingUpdates.tryEmit(completed)
@@ -1297,15 +1301,15 @@ class WatchProgressRepositoryImpl @Inject constructor(
         publishContinueWatching(profileId, listOf(completed))
         if (completed.tvdbContext != null) {
             recordTvdbNativeWatched(profileId, listOf(completed), syncRemote = true)
-            broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(now)), coverageChangesOnly = !broadcastTrackingHistory)
+            broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(eventTime, watchedAt != null)), coverageChangesOnly = !broadcastTrackingHistory)
             triggerRemoteSync(profileId)
             return
         }
-        val watchedItem = completed.toWatchedItem(watchedAt = now)
+        val watchedItem = completed.toWatchedItem(watchedAt = eventTime)
         watchedItemsPreferences.markAsWatched(watchedItem, profileId = profileId)
         mutationStore.queueWatchedUpserts(listOf(watchedItem), profileId)
         if (broadcastTrackingHistory || completed.tvdbEpisodeIds?.isNotEmpty() == true) {
-            broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(now)), coverageChangesOnly = !broadcastTrackingHistory)
+            broadcastHistoryAdd(profileId, listOf(completed.toTrackingHistoryItem(eventTime, watchedAt != null)), coverageChangesOnly = !broadcastTrackingHistory)
         }
         if (broadcastTrackingHistory) {
             syncServerWatched(listOf(completed.toServerWatchMark()), played = true, profileId = profileId)
@@ -1314,7 +1318,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
         triggerWatchedItemsSync(listOf(watchedItem), profileId = profileId)
     }
 
-    override suspend fun markAsCompletedBatch(progressList: List<WatchProgress>) {
+    override suspend fun markAsCompletedBatch(progressList: List<WatchProgress>, watchedAt: Long?) {
         if (progressList.isEmpty()) return
         val profileId = profileManager.activeProfileId.value
         val progressList = if (tvdbTracking == null) progressList else progressList.map { tvdbTracking.identifyProgress(profileId, it) }
@@ -1323,7 +1327,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             firstProgress.contentType.equals("tv", ignoreCase = true)) {
             traktSettingsDataStore.removeDismissedNextUpKeysForContent(firstProgress.contentId, profileId)
         }
-        val now = System.currentTimeMillis()
+        val eventTime = watchedAt ?: System.currentTimeMillis()
         val rawEntries = watchProgressPreferences.getAllRawEntries(profileId)
 
         val completedList = progressList.map { progress ->
@@ -1335,7 +1339,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 position = duration,
                 duration = duration,
                 progressPercent = 100f,
-                lastWatched = now,
+                lastWatched = eventTime,
                 tvdbCompletedEpisodeIds = progress.tvdbEpisodeIds
             )
         }
@@ -1351,11 +1355,11 @@ class WatchProgressRepositoryImpl @Inject constructor(
         }
         watchProgressPreferences.saveProgressBatch(completedList, profileId = profileId)
         publishContinueWatching(profileId, completedList)
-        val watchedItems = completedList.filter { it.tvdbContext == null }.map { progress -> progress.toWatchedItem(watchedAt = now) }
+        val watchedItems = completedList.filter { it.tvdbContext == null }.map { progress -> progress.toWatchedItem(watchedAt = eventTime) }
         recordTvdbNativeWatched(profileId, completedList.filter { it.tvdbContext != null && it.isCompleted() }, syncRemote = true)
         watchedItemsPreferences.markAsWatchedBatch(watchedItems, profileId = profileId)
         mutationStore.queueWatchedUpserts(watchedItems, profileId)
-        broadcastHistoryAdd(profileId, completedList.map { it.toTrackingHistoryItem(now) })
+        broadcastHistoryAdd(profileId, completedList.map { it.toTrackingHistoryItem(eventTime, watchedAt != null) })
         syncServerWatched(completedList.map { it.toServerWatchMark() }, played = true, profileId = profileId)
         triggerRemoteSync(profileId = profileId)
         triggerWatchedItemsSync(watchedItems, profileId = profileId)
@@ -1444,7 +1448,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             watchedAt = watchedAt
         )
 
-    private fun WatchProgress.toTrackingHistoryItem(watchedAt: Long): TrackingHistoryItem =
+    private fun WatchProgress.toTrackingHistoryItem(watchedAt: Long, userSelectedWatchTime: Boolean = false): TrackingHistoryItem =
         TrackingHistoryItem(
             media = buildTrackingMediaReference(
                 contentType = contentType,
@@ -1455,7 +1459,8 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 episodeNumber = episode,
                 episodeTitle = episodeTitle
             ).let { media -> media.copy(catalog = media.catalog?.copy(tvdbEpisodeIds = tvdbEpisodeIds, tvdbContext = tvdbContext, providerDefault = providerDefaultPlayback, tvdbCoverageVerified = tvdbCoverageVerified != false)) },
-            watchedAtEpochMs = watchedAt
+            watchedAtEpochMs = watchedAt,
+            userSelectedWatchTime = userSelectedWatchTime
         )
 
     private suspend fun broadcastHistoryAdd(

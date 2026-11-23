@@ -29,7 +29,7 @@ internal fun PlayerIcon(label: String, icon: ImageVector, prominent: Boolean = f
     }
 }
 
-private fun playerTime(ms: Long): String {
+internal fun playerTime(ms: Long): String {
     val seconds = ms.coerceAtLeast(0) / 1000
     val minutes = seconds / 60
     val tail = (seconds % 60).toString().padStart(2, '0')
@@ -46,6 +46,7 @@ internal fun BoxScope.MobileTransport(state: PlayerUiState, timeline: PlaybackTi
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         PlayerIcon("Back", Icons.AutoMirrored.Filled.ArrowBack, onClick = back)
         Label(state.title, Modifier.weight(1f), strong = true, lines = 2)
+        if (receiverUrl(state.currentStreamUrl) || state.isTorrentStream) MobileCastButton()
         if (downloaded) Icon(Icons.Default.DownloadDone, "Playing download", tint = Color.White)
     }
     Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically,

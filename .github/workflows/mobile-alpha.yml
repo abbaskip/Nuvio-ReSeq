@@ -1,8 +1,8 @@
-name: ReSeq Mobile signed alpha
+name: ReSeq Mobile signed prerelease
 
 on:
   push:
-    branches: ['release/mobile-v*-alpha.*']
+    branches: ['release/mobile-v*-alpha.*', 'release/mobile-v*-beta.*']
 
 permissions:
   contents: read
@@ -101,7 +101,7 @@ jobs:
           (cd build/mobile-downloads && sha256sum *.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v6
         with:
-          name: mobile-alpha-apks
+          name: mobile-prerelease-apks
           path: build/mobile-downloads/
           compression-level: 0
           if-no-files-found: error
@@ -118,7 +118,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v6
         with:
-          name: mobile-alpha-apks
+          name: mobile-prerelease-apks
           path: build/mobile-downloads
       - name: Verify downloaded bytes and enable emulator acceleration
         run: |

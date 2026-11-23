@@ -64,7 +64,7 @@ private fun Steps(title: String, value: String, minus: () -> Unit, plus: () -> U
 }
 
 @Composable
-internal fun MobilePlayerSources(state: PlayerUiState, local: Stream?, send: (PlayerEvent) -> Unit) {
+internal fun MobilePlayerSources(state: PlayerUiState, local: Stream?, send: (PlayerEvent) -> Unit, expand: () -> Unit) {
     val episodes = state.showEpisodesPanel
     val streams = !episodes || state.showEpisodeStreams || state.isEpisodeAutoPlaySearching
     val back = {
@@ -75,25 +75,27 @@ internal fun MobilePlayerSources(state: PlayerUiState, local: Stream?, send: (Pl
         })
     }
     TouchSheet(back) {
-        LazyColumn(contentPadding = PaddingValues(12.dp)) {
-            item { BrowseHeading(if (streams) "Sources" else "Episodes", back) }
+        BrowseHeading(if (streams) "Sources" else "Episodes", back)
+        val filter = if (episodes) state.episodeSelectedAddonFilter else state.sourceSelectedAddonFilter
+        if (streams) MobileSourceTabs(if (episodes) state.episodeAvailableAddons else state.sourceAvailableAddons, filter) { name ->
+            send(if (episodes) PlayerEvent.OnEpisodeAddonFilterSelected(name) else PlayerEvent.OnSourceAddonFilterSelected(name))
+        }
+        val list = rememberLazyListState()
+        LaunchedEffect(filter, streams) { list.scrollToItem(0) }
+        LazyColumn(state = list, contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (streams) {
                 val loading = if (episodes) state.isLoadingEpisodeStreams || state.isEpisodeAutoPlaySearching else state.isLoadingSourceStreams
                 val options = if (episodes) state.episodeFilteredStreams else state.sourceFilteredStreams
                 val error = if (episodes) state.episodeStreamsError else state.sourceStreamsError
-                if (local != null) item { Action("Play downloaded file", Modifier.fillMaxWidth()) {
+                if (local != null && filter == null) item { Action("Play downloaded file", Modifier.fillMaxWidth()) {
                     send(if (episodes) PlayerEvent.OnEpisodeStreamSelected(local) else PlayerEvent.OnSourceStreamSelected(local))
                 } }
                 if (loading) item { Label("Finding sources…") }
                 if (error != null) item { Label(error) }
-                item { LazyRow { items(listOf<String?>(null) + if (episodes) state.episodeAvailableAddons else state.sourceAvailableAddons) { name ->
-                    Action(name ?: "All", selected = name == if (episodes) state.episodeSelectedAddonFilter else state.sourceSelectedAddonFilter) {
-                        send(if (episodes) PlayerEvent.OnEpisodeAddonFilterSelected(name) else PlayerEvent.OnSourceAddonFilterSelected(name))
-                    }
-                } } }
-                items(options) { stream -> Action(stream.getDisplayName() + " · " + (stream.description ?: stream.title ?: stream.addonName)) {
+                items(options) { stream -> SourceTile(stream, enabled = true) {
                     send(if (episodes) PlayerEvent.OnEpisodeStreamSelected(stream) else PlayerEvent.OnSourceStreamSelected(stream))
                 } }
+                if (!episodes && options.size < state.sourceFilterFullList.size) item { Action("More sources", onClick = expand) }
                 item { Action("Refresh sources") { send(if (episodes) PlayerEvent.OnReloadEpisodeStreams else PlayerEvent.OnReloadSourceStreams) } }
             } else {
                 item { LazyRow { items(state.episodesAvailableSeasons) { season -> Action("Season $season", selected = season == state.episodesSelectedSeason) {

@@ -1,5 +1,10 @@
 package com.nuvio.tv.mobile
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import com.nuvio.tv.data.local.TmdbSettingsDataStore
 import com.nuvio.tv.data.remote.api.TmdbApi
 import com.nuvio.tv.core.tmdb.TmdbService
@@ -10,6 +15,7 @@ import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
@@ -18,6 +24,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MobileTrailerNetworkTest {
@@ -29,6 +37,40 @@ class MobileTrailerNetworkTest {
     private val api = mockk<TmdbApi>()
     private val tmdb = mockk<TmdbService>()
     private val service = TrailerService(mockk(), api, mockk(), settings, tmdb, trailerNetwork = network)
+
+    @Test fun routeChangesUseTheCallbackEvenWhenActiveNetworkStillReportsWifi() {
+        val context = mockk<Context>()
+        val prefs = mockk<SharedPreferences>()
+        val connectivity = mockk<ConnectivityManager>()
+        val callback = slot<ConnectivityManager.NetworkCallback>()
+        val wifi = mockk<Network>()
+        val mobile = mockk<Network>()
+        val wifiCaps = mockk<NetworkCapabilities>(relaxed = true)
+        val mobileCaps = mockk<NetworkCapabilities>(relaxed = true)
+        every { wifiCaps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) } returns true
+        every { mobileCaps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) } returns true
+        every { context.getSystemService(ConnectivityManager::class.java) } returns connectivity
+        every { context.getSharedPreferences("mobile_video_preferences", Context.MODE_PRIVATE) } returns prefs
+        every { prefs.getBoolean("trailers_on_mobile_data", true) } returns false
+        every { connectivity.registerDefaultNetworkCallback(capture(callback)) } returns Unit
+        every { connectivity.activeNetwork } returns wifi
+        every { connectivity.getNetworkCapabilities(wifi) } returns wifiCaps
+
+        val policy = MobileTrailerNetwork(context)
+        assertTrue(policy.playbackAllowed.value)
+        callback.captured.onLost(wifi)
+        assertFalse(policy.playbackAllowed.value)
+        assertFalse(policy.allowsPlaybackNow())
+        callback.captured.onAvailable(mobile)
+        callback.captured.onCapabilitiesChanged(mobile, mobileCaps)
+        assertFalse(policy.playbackAllowed.value)
+        callback.captured.onAvailable(wifi)
+        assertFalse(policy.playbackAllowed.value)
+        callback.captured.onCapabilitiesChanged(wifi, wifiCaps)
+        callback.captured.onLost(mobile)
+        assertTrue(policy.playbackAllowed.value)
+        assertTrue(policy.allowsPlaybackNow())
+    }
 
     @Test fun cellularRestrictionAlsoBlocksGalleryAndPostPlayLookups() = runBlocking {
         assertNull(service.getTrailerPlaybackSource("A movie", tmdbId = "1", ignoreUseTrailersGate = true))

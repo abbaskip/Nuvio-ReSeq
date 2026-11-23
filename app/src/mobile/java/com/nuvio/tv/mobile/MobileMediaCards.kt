@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -47,13 +48,14 @@ internal fun MediaArt(url: String?, icon: ImageVector, modifier: Modifier, scale
 
 @Composable
 internal fun MediaIconAction(label: String, icon: ImageVector, modifier: Modifier = Modifier,
-    showLabel: Boolean = false, selected: Boolean = false, onClick: () -> Unit) {
+    showLabel: Boolean = false, selected: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    Row(modifier.mediaPanel(selected).clickable(role = Role.Button, onClick = onClick)
+    Row(modifier.alpha(if (enabled) 1f else .5f).mediaPanel(selected).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
         .sizeIn(minWidth = 48.dp, minHeight = 48.dp).padding(horizontal = 9.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally)) {
         Icon(icon, if (showLabel) null else label, Modifier.size(20.dp), tint = if (selected) colors.primary else colors.onSurface)
-        if (showLabel) Label(label, small = true, lines = 1)
+        if (showLabel) Text(label, color = colors.onSurface, fontFamily = condensed, fontSize = 12.sp, lineHeight = 16.sp,
+            maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }
 
@@ -94,30 +96,41 @@ internal fun PrimaryMediaAction(label: String, modifier: Modifier = Modifier, on
 
 @Composable
 internal fun EpisodeTile(episode: Video, watched: Boolean, progress: Float, rating: Double?, enabled: Boolean,
-    open: () -> Unit, highlighted: Boolean = false, actions: @Composable () -> Unit) {
-    var options by remember(episode.id) { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().mediaPanel(highlighted).combinedClickable(enabled = enabled, onClick = open, onLongClickLabel = "Episode actions", onLongClick = open)
-        .padding(8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+    open: () -> Unit, highlighted: Boolean = false, actions: @Composable (close: () -> Unit) -> Unit) {
+    var options by androidx.compose.runtime.saveable.rememberSaveable(episode.episodeListKey, episode.episodeIdentity?.orderType) { mutableStateOf(false) }
+    val accent = MaterialTheme.colorScheme.primary
+    val surface = lerp(Color(0xff101115), accent, if (highlighted) .28f else .16f)
+    val edge = if (highlighted) Modifier.border(1.dp, accent, mediaCorners) else Modifier
+    Row(Modifier.fillMaxWidth().clip(mediaCorners).background(surface).then(edge).combinedClickable(
+        role = Role.Button, onClickLabel = if (enabled) "Play episode" else "Episode actions",
+        onClick = { if (enabled) open() else options = true }, onLongClickLabel = "Episode actions", onLongClick = { options = true })
+        .padding(6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(98.dp).aspectRatio(1.42f).clip(mediaCorners)) {
             MediaArt(episode.thumbnail, Icons.Default.Movie, Modifier.fillMaxSize())
+            val season = episode.displaySeason
+            val number = episode.displayEpisode
+            if (season != null && number != null) {
+                val badge = "S${season.toString().padStart(2, '0')}E${number.toString().padStart(2, '0')}"
+                Text(badge, Modifier.align(Alignment.TopStart).background(Color.Black).padding(horizontal = 5.dp, vertical = 2.dp),
+                    color = Color.White, fontFamily = condensed, fontSize = 10.sp, lineHeight = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
             if (watched) Icon(Icons.Default.CheckCircle, "Watched", Modifier.align(Alignment.TopEnd).padding(3.dp).size(19.dp)
                 .background(Color.Black.copy(alpha = .72f), mediaCorners), tint = Color.White)
             if (progress > 0f && !watched) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Label("S${episode.displaySeason}E${episode.displayEpisode} · ${episode.title}", strong = true, lines = 2)
+            Label(episode.title, strong = true, lines = 2)
             val date = remember(episode.released) { episode.released?.let(::formatReleaseDate) }
             val facts = listOfNotNull(date?.takeIf(String::isNotBlank), episode.runtime?.let { "$it min" }, rating?.let { "★ $it" }).joinToString("  ·  ")
             if (facts.isNotBlank()) Label(facts, small = true, lines = 2)
             episode.overview?.takeIf(String::isNotBlank)?.let { Label(it, small = true, lines = 2) }
         }
-        IconButton(onClick = { options = true }) { Icon(Icons.Default.MoreVert, "Options for ${episode.title}", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
     if (options) TouchSheet({ options = false }) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             BrowseHeading(episode.title) { options = false }
-            if (enabled) Action("Playback options", Modifier.fillMaxWidth()) { options = false; open() }
-            actions()
+            episode.overview?.takeIf(String::isNotBlank)?.let { Label(it, Modifier.padding(horizontal = 4.dp)) }
+            actions { options = false }
         }
     }
 }
@@ -125,17 +138,37 @@ internal fun EpisodeTile(episode: Video, watched: Boolean, progress: Float, rati
 @Composable
 internal fun SourceTile(stream: Stream, enabled: Boolean, select: () -> Unit) {
     val c = MaterialTheme.colorScheme
-    val title = stream.getDisplayName()
     Row(Modifier.fillMaxWidth().mediaPanel().combinedClickable(enabled = enabled, onClick = select, onLongClick = select)
         .padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
         MediaArt(stream.addonLogo, Icons.Default.VideoLibrary, Modifier.size(44.dp).clip(mediaCorners), ContentScale.Fit)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            val origin = listOfNotNull(stream.pluginSourceName ?: stream.addonName, stream.quality).filter(String::isNotBlank).distinct().joinToString("  ·  ")
-            if (origin.isNotBlank() && origin != title) Text(origin, color = c.onSurfaceVariant, fontFamily = condensed, fontSize = 12.sp, maxLines = 2)
-            Label(title, strong = true, lines = 3)
-            (stream.description ?: stream.title)?.takeIf { it.isNotBlank() && it != title }?.let { Label(it, small = true, lines = 4) }
-        }
+        SourceText(stream, Modifier.weight(1f))
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(20.dp), tint = c.primary)
+    }
+}
+
+@Composable
+internal fun SourceText(stream: Stream, modifier: Modifier = Modifier) {
+    val title = stream.getDisplayName().trim()
+    val details = listOfNotNull(stream.title, stream.description).map(String::trim).filter { it.isNotEmpty() && it != title }.distinct()
+    val origin = listOfNotNull(stream.pluginSourceName ?: stream.addonName, stream.quality).filter(String::isNotBlank).distinct().joinToString("  ·  ")
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (origin.isNotBlank() && origin != title) Text(origin, fontFamily = condensed, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Label(title, strong = true)
+        details.forEach { Label(it, small = true) }
+        stream.behaviorHints?.filename?.takeIf { it.isNotBlank() && it !in title && details.none { detail -> it in detail } }
+            ?.let { Label(it, small = true) }
+    }
+}
+
+@Composable
+internal fun MobileSourceTabs(addons: List<String>, selected: String?, choose: (String?) -> Unit) {
+    if (addons.isEmpty()) return
+    LazyRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(vertical = 4.dp)) {
+        item { Action("All", selected = selected == null) { choose(null) } }
+        items(addons.distinct(), key = { "addon-$it" }) { name ->
+            Action(name, Modifier.widthIn(max = 220.dp), selected = selected == name) { choose(name) }
+        }
     }
 }
 

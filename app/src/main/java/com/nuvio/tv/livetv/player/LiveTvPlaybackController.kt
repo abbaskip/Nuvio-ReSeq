@@ -534,6 +534,7 @@ class LiveTvPlaybackController @Inject constructor(
 
     /** The channel the player is on (as it was when playback started). */
     val playingChannel: LiveChannel? get() = currentChannel
+    internal val playingStreamUrl: String? get() = currentUrl
     private var currentUrl: String? = null
     private var attachCount = 0
     private var releaseJob: Job? = null

@@ -1,0 +1,11 @@
+# Nuvio ReSeq Mobile Beta 3
+
+Tap the video to show the player controls. The Cast button stays visible beside the title when playing a debrid stream, a saved download or a Usenet release. Choose your TV to move playback to it. If Google Cast cannot start, the phone explains the problem and lets you retry.
+
+Live TV casting now distinguishes the provider stream from the phone’s rewind playlist. ReSeq buffers several seconds of a raw transport stream before offering it to the receiver. If the receiver keeps buffering for 30 seconds after the load request, the phone reports the failure and can resume the channel locally.
+
+For downloads and Usenet, keep the phone on the receiver’s network. The phone serves the original file first and can prepare a compatible copy when the receiver rejects the format. The Cast controls support seeking and collapse to a mini-player while you browse.
+
+Open **Settings → About and credits → Check for updates** to find future mobile releases. ReSeq opens the APK for your phone in your browser. Once it downloads, open it to install the update with Android.
+
+To upgrade from Beta 2 or earlier, install the ARM64 APK on a recent Android phone or tablet, or choose universal for other architectures. Both update the existing signed mobile app in place.

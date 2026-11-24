@@ -2,6 +2,8 @@ package com.nuvio.tv.mobile
 
 import android.content.Context
 import com.nuvio.tv.livetv.player.LiveTvTimeshift
+import com.nuvio.tv.livetv.player.REWIND_STARTUP_MS
+import com.nuvio.tv.livetv.player.rewindPlaylistDurationMs
 import com.nuvio.tv.ui.screens.player.PlayerMediaSourceFactory
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.*
@@ -13,7 +15,7 @@ import java.net.DatagramSocket
 import java.net.InetAddress
 import java.util.UUID
 
-internal data class CastEndpoint(val url: String, val mime: String, val relay: CastRelay? = null)
+internal data class CastEndpoint(val url: String, val mime: String, val relay: CastRelay? = null, val transportStreamSegments: Boolean = false)
 
 /** The receiver can request only the selected media and resources named by its playlist. */
 internal class CastRelay private constructor(private val source: CastSource, bind: String,
@@ -93,8 +95,10 @@ internal class CastRelay private constructor(private val source: CastSource, bin
     private fun localSegment(path: String): Response {
         require(path == "index.m3u8" || Regex("seg[0-9]+\\.ts").matches(path))
         val file = File(requireNotNull(shift?.session).dir, path)
-        return newFixedLengthResponse(Response.Status.OK, if (path == "index.m3u8") HLS else "video/mp2t",
-            file.inputStream(), file.length())
+        if (path == "index.m3u8") return newFixedLengthResponse(Response.Status.OK, HLS, file.readText()).apply {
+            addHeader("Cache-Control", "no-store")
+        }
+        return newFixedLengthResponse(Response.Status.OK, "video/mp2t", file.inputStream(), file.length())
     }
     private fun upstream(start: HttpUrl, session: IHTTPSession): Response {
         var url = start
@@ -120,7 +124,8 @@ internal class CastRelay private constructor(private val source: CastSource, bin
                         return newFixedLengthResponse(status, "application/dash+xml", manifest)
                     }
                 }
-                if (session.method == Method.GET && response.isSuccessful && (mime.contains("mpegurl", true) || url.encodedPath.endsWith(".m3u8", true))) {
+                if (session.method == Method.GET && response.isSuccessful && (mime.contains("mpegurl", true) ||
+                        url.encodedPath.endsWith(".m3u8", true) || start == root && source.mime?.contains("mpegurl", true) == true)) {
                     response.use {
                         require(!body.source().request(4L * 1024 * 1024 + 1))
                         fun child(path: String) = resource(requireNotNull(url.resolve(path)).also { require(receiverUrl(it.toString())) })
@@ -159,7 +164,8 @@ internal class CastRelay private constructor(private val source: CastSource, bin
         private val DASH_NUMBER = Regex("""\$(?:Number|Time|SubNumber)(?:%0?[0-9]+d)?\$""")
         suspend fun prepare(context: Context, source: CastSource, receiver: InetAddress?, engineFile: Closeable? = null, selectedFile: File? = null): CastEndpoint {
             val mime = source.mime ?: PlayerMediaSourceFactory.inferMimeType(source.url, null)
-                ?: if (source.live) HLS else "video/mp4"
+                ?: if (source.live) PlayerMediaSourceFactory.probeNetworkMimeType(source.url, source.headers)
+                    ?: error("Unknown live stream format") else "video/mp4"
             val ts = source.live && mime.equals("video/mp2t", true)
             if (source.headers.isEmpty() && !ts && engineFile == null && selectedFile == null) return CastEndpoint(source.url, mime)
             val bind = try { withContext(Dispatchers.IO) {
@@ -173,14 +179,16 @@ internal class CastRelay private constructor(private val source: CastSource, bin
                     server.start(SOCKET_READ_TIMEOUT, true)
                     if (selectedFile != null) return@withContext server.token + "video"
                     if (shift == null) return@withContext server.resource(requireNotNull(server.root))
-                    val buffer = requireNotNull(shift.start(source.url, source.headers, keepMinutes = 1, label = "Chromecast"))
-                    withTimeout(25_000) {
+                    val buffer = requireNotNull(shift.start(source.url, source.headers, keepMinutes = 1, label = "Chromecast", kind = LiveTvTimeshift.Kind.TS))
+                    val ready = withTimeoutOrNull(25_000) {
                         val playlist = File(buffer.dir, "index.m3u8")
-                        while (!playlist.isFile || !playlist.readText().contains("#EXTINF:")) delay(250)
+                        while (!playlist.isFile || rewindPlaylistDurationMs(playlist.readText()) < REWIND_STARTUP_MS) delay(250)
+                        true
                     }
+                    check(ready == true) { "Live channel buffer did not start" }
                     server.token + "index.m3u8"
                 }
-                return CastEndpoint(requireNotNull(server.localBase.resolve(path)).toString(), if (ts) HLS else mime, server)
+                return CastEndpoint(requireNotNull(server.localBase.resolve(path)).toString(), if (ts) HLS else mime, server, ts)
             } catch (e: Exception) { server.close(); throw e }
         }
     }

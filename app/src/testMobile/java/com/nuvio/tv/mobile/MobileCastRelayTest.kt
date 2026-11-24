@@ -21,6 +21,34 @@ import java.util.concurrent.TimeUnit
 @org.robolectric.annotation.ConscryptMode(org.robolectric.annotation.ConscryptMode.Mode.OFF)
 @Config(manifest = Config.NONE, sdk = [28], application = Application::class)
 class MobileCastRelayTest {
+    @Test fun extensionlessLiveTransportStreamReachesTheReceiverAsPlayableHls() = runBlocking {
+        val address = InetAddress.getByName("127.0.0.1")
+        val bytes = requireNotNull(javaClass.getResourceAsStream("/cast/channel.ts")).use { it.readBytes() }
+        MockWebServer().use { upstream ->
+            upstream.start(address, 0)
+            upstream.enqueue(MockResponse().setHeader("Content-Type", "video/mp2t"))
+            upstream.enqueue(MockResponse().setBody(okio.Buffer().write(bytes)).setHeader("Content-Type", "video/mp2t"))
+            val source = CastSource(upstream.url("/channels/501").toString(), "Test channel", live = true, iptv = true)
+            val endpoint = CastRelay.prepare(RuntimeEnvironment.getApplication(), source, address)
+            requireNotNull(endpoint.relay).use {
+                assertTrue(endpoint.transportStreamSegments)
+                val client = OkHttpClient()
+                val manifest = client.newCall(Request.Builder().url(endpoint.url).build()).execute().use { response ->
+                    assertEquals(200, response.code)
+                    assertEquals("no-store", response.header("Cache-Control"))
+                    response.body!!.string()
+                }
+                assertTrue(com.nuvio.tv.livetv.player.rewindPlaylistDurationMs(manifest) >= 6000L)
+                val segment = manifest.lineSequence().first { it.endsWith(".ts") }
+                val url = requireNotNull(endpoint.url.toHttpUrl().resolve(segment))
+                client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+                    assertEquals("video/mp2t", response.header("Content-Type"))
+                    assertEquals(0x47, response.body!!.byteStream().read())
+                }
+            }
+        }
+    }
+
     @Test fun servingADownloadSupportsHeadRangesAndRejectsOtherPaths() = runBlocking {
         val context = RuntimeEnvironment.getApplication()
         val file = java.io.File.createTempFile("cast-download", ".mp4", context.cacheDir)

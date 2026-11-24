@@ -10,21 +10,36 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.keepScreenOn
-import androidx.compose.ui.viewinterop.AndroidView
+import android.widget.Toast
+import androidx.activity.compose.LocalActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.mediarouter.app.MediaRouteButton
+import androidx.mediarouter.app.MediaRouteChooserDialogFragment
+import androidx.mediarouter.app.MediaRouteControllerDialogFragment
+import androidx.mediarouter.media.MediaRouter
 import com.google.android.gms.cast.MediaTrack
-import com.google.android.gms.cast.framework.CastButtonFactory
 
 @Composable internal fun MobileCastButton(casting: MobileCasting = LocalCasting.current) {
-    val available by casting.available.collectAsStateWithLifecycle()
-    if (available) AndroidView(factory = { context ->
-        MediaRouteButton(context).apply {
-            contentDescription = "Cast"
-            CastButtonFactory.setUpMediaRouteButton(context, this)
+    val activity = LocalActivity.current as FragmentActivity
+    val state by casting.state.collectAsStateWithLifecycle()
+    PlayerIcon("Cast", if (state.device == null) Icons.Default.Cast else Icons.Default.CastConnected) {
+        casting.initialize().addOnCompleteListener(activity) { task ->
+            val fragments = activity.supportFragmentManager
+            val tag = "reseq-cast-dialog"
+            if (fragments.isStateSaved || fragments.findFragmentByTag(tag) != null) return@addOnCompleteListener
+            val selector = if (task.isSuccessful) task.result.mergedSelector else null
+            if (selector == null) {
+                Toast.makeText(activity, "Couldn’t start Google Cast. Check Google Play services and try again.", Toast.LENGTH_LONG).show()
+                return@addOnCompleteListener
+            }
+            val selected = MediaRouter.getInstance(activity).selectedRoute
+            val dialog = if (!selected.isDefaultOrBluetooth && selected.matchesSelector(selector))
+                MediaRouteControllerDialogFragment()
+            else MediaRouteChooserDialogFragment().apply { routeSelector = selector }
+            dialog.showNow(fragments, tag)
         }
-    }, modifier = Modifier.size(48.dp))
+    }
 }
 
 @Composable internal fun MobileCastBar(casting: MobileCasting, state: CastControls, sources: (MobileVideo) -> Unit, channels: () -> Unit) {

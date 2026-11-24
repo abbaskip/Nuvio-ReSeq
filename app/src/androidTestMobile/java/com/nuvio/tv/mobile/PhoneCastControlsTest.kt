@@ -24,6 +24,24 @@ import org.junit.runner.RunWith
 class PhoneCastControlsTest {
     @get:Rule val compose = createAndroidComposeRule<MobileActivity>()
 
+    @Test fun playerShowsCastForDebridDownloadsAndUsenet() {
+        val url = mutableStateOf("https://media.example.test/torbox/episode.mkv")
+        compose.activityRule.scenario.onActivity { activity ->
+            activity.setContent {
+                androidx.compose.runtime.CompositionLocalProvider(LocalCasting provides activity.casting) {
+                    Box(Modifier.fillMaxSize()) {
+                        MobileTransport(com.nuvio.tv.ui.screens.player.PlayerUiState(title = "Episode", currentStreamUrl = url.value),
+                            com.nuvio.tv.ui.screens.player.PlaybackTimelineState(), null, {}, {}, false, {}, {}, {})
+                    }
+                }
+            }
+        }
+        for (source in listOf(url.value, "file:///saved/episode.mkv", "http://127.0.0.1:4872/usenet/a/video.mkv")) {
+            compose.runOnIdle { url.value = source }
+            compose.onNodeWithContentDescription("Cast").assertIsDisplayed().assertHasClickAction()
+        }
+    }
+
     @Test fun handoffOpensControlsAndProgressUpdatesRespectDismissal() {
         val controls = mutableStateOf(CastControls(device = "Living room"))
         val item = CastItem("fixture", 1, "Test film", null, live = false, iptv = false)

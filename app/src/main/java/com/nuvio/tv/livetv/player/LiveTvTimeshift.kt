@@ -89,13 +89,14 @@ class LiveTvTimeshift(private val context: Context) {
         reconnect: Boolean = true,
         /** How it's named in the Start-Up Report. */
         label: String = "Pause buffer",
-        connectionReleaseDelayMs: Long = 2_500L
+        connectionReleaseDelayMs: Long = 2_500L,
+        kind: Kind? = null
     ): Session? {
         stop()
         val directoryName = "${System.currentTimeMillis()}-${java.util.UUID.randomUUID()}"
         val dir = File(baseDir, directoryName).apply { mkdirs() }
             .takeIf { it.exists() } ?: File(context.cacheDir, "timeshift/" + directoryName).apply { mkdirs() }
-        val isHls = url.lowercase().substringBefore('?').endsWith(".m3u8") || url.contains("m3u8", ignoreCase = true)
+        val isHls = kind?.let { it == Kind.HLS } ?: url.contains("m3u8", ignoreCase = true)
         val now = System.currentTimeMillis()
         trimmedMs = 0L
         firstBatchMs = 0L

@@ -99,6 +99,25 @@ class MobileCastingTest {
         verify(exactly = 0) { tracking.observe(any()) }
     }
 
+    @Test fun liveBufferingNeverCompletesHandoffAndTimesOutAnOwnedLoad() {
+        reconnect(true, true)
+        val request = slot<MediaLoadRequestData>()
+        every { client.load(capture(request)) } returns mockk(relaxed = true)
+        var accepted = false
+        cast.load(CastSource("https://video.example/news.m3u8", "News", live = true, iptv = true)) { accepted = true }
+        every { status.mediaInfo } returns request.captured.mediaInfo
+        every { status.playerState } returns MediaStatus.PLAYER_STATE_BUFFERING
+        every { client.isPlaying } returns false
+        callback.captured.onStatusUpdated()
+        assertFalse(accepted)
+        assertTrue(cast.state.value.loading)
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(31))
+        assertFalse(accepted)
+        assertFalse(cast.state.value.loading)
+        assertTrue(cast.state.value.error.orEmpty().contains("30 seconds"))
+        verify { client.stop() }
+    }
+
     @Test fun catchupIsSeekableAndDoesNotWriteTracking() {
         reconnect(true, false)
         cast.seek(5000)

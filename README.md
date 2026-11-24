@@ -10,9 +10,9 @@ Nuvio ReSeq is an independent Android TV fork of [Nuvio](https://github.com/Nuvi
 
 **Android TV** · [Latest TV release](https://github.com/abbaskip/Nuvio-ReSeq/releases/latest) · [All releases](https://github.com/abbaskip/Nuvio-ReSeq/releases)
 
-**Android phones and tablets** · [ReSeq Mobile 0.1.0 Beta 2 release notes and checksums](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-beta.2) · [All mobile releases](https://github.com/abbaskip/Nuvio-ReSeq/releases?q=ReSeq+Mobile)
+**Android phones and tablets** · [ReSeq Mobile 0.1.0 Beta 3 release notes and checksums](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-beta.3) · [All mobile releases](https://github.com/abbaskip/Nuvio-ReSeq/releases?q=ReSeq+Mobile)
 
-Install the [universal APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/download/mobile-v0.1.0-beta.2/Nuvio-ReSeq-Mobile-v0.1.0-beta.2-universal.apk) if you’re unsure which to choose. For ARM64 phones and tablets, the [ARM64 APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/download/mobile-v0.1.0-beta.2/Nuvio-ReSeq-Mobile-v0.1.0-beta.2-arm64-v8a.apk) is a smaller download. Either APK updates an existing signed ReSeq Mobile installation and can be installed alongside ReSeq TV. [Mobile features and build instructions](docs/reseq-mobile.md)
+Install the [universal APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/download/mobile-v0.1.0-beta.3/Nuvio-ReSeq-Mobile-v0.1.0-beta.3-universal.apk) if you’re unsure which to choose. For ARM64 phones and tablets, the [ARM64 APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/download/mobile-v0.1.0-beta.3/Nuvio-ReSeq-Mobile-v0.1.0-beta.3-arm64-v8a.apk) is a smaller download. Either APK updates an existing signed ReSeq Mobile installation and can be installed alongside ReSeq TV. [Mobile features and build instructions](docs/reseq-mobile.md)
 
 [Report an issue](https://github.com/abbaskip/Nuvio-ReSeq/issues) · [Project website](https://abbaskip.github.io/Nuvio-ReSeq/) · [Privacy Policy](https://abbaskip.github.io/Nuvio-ReSeq/privacy.html) · [Terms of Service](https://abbaskip.github.io/Nuvio-ReSeq/terms.html)
 

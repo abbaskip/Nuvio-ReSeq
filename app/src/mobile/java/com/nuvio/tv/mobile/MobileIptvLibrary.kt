@@ -87,7 +87,9 @@ internal fun MobileIptvLibrary(back: () -> Unit, play: (String) -> Unit, vm: OnD
                 poster = item.icon, addonName = OnDemandStreams.GROUP_NAME))
         }
         TouchSheet({ selected = null }) {
-            LazyColumn(Modifier.navigationBarsPadding(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Reserve the episode list's space before provider details arrive so its buttons stay above the taskbar.
+            val listSize = if (item.kind == VodKind.SERIES) Modifier.fillMaxHeight(.75f) else Modifier
+            LazyColumn(listSize.navigationBarsPadding(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 item { SectionTitle(vm.nameFor(item))
                     Label(listOfNotNull(item.year?.toString(), info?.genre, info?.durationText, item.rating).joinToString(" · "))
                     info?.plot?.let { Text(it) }

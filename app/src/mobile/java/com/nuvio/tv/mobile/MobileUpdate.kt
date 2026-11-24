@@ -1,74 +1,67 @@
 package com.nuvio.tv.mobile
 
-import android.os.Build
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalUriHandler
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import com.nuvio.tv.BuildConfig
-import com.nuvio.tv.data.remote.api.GitHubReleaseApi
-import com.nuvio.tv.data.remote.dto.GitHubReleaseDto
-import com.nuvio.tv.updater.ReleaseSelector
-import com.nuvio.tv.updater.VersionUtils
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nuvio.tv.updater.ApkInstaller
+import com.nuvio.tv.updater.UpdateViewModel
+import kotlin.math.roundToInt
 
-internal data class MobileRelease(val version: String, val apkUrl: String)
-
-internal fun latestMobileRelease(releases: List<GitHubReleaseDto>, abis: List<String>): MobileRelease? =
-    releases.mapNotNull { release ->
-        val tag = release.tagName ?: return@mapNotNull null
-        if (release.draft || !tag.startsWith("mobile-v")) return@mapNotNull null
-        val version = tag.removePrefix("mobile-v")
-        val parsed = VersionUtils.parse(version) ?: return@mapNotNull null
-        val asset = (abis + "universal").firstNotNullOfOrNull { abi ->
-            val name = "Nuvio-ReSeq-Mobile-v$version-$abi.apk"
-            release.assets.find { it.name == name && ReleaseSelector.isOwnApk(it, BuildConfig.GITHUB_OWNER, BuildConfig.GITHUB_REPO) }
-        } ?: return@mapNotNull null
-        parsed to MobileRelease(version, asset.browserDownloadUrl)
-    }.maxByOrNull { it.first }?.second
-
-@HiltViewModel
-internal class MobileUpdateViewModel @Inject constructor(private val api: GitHubReleaseApi) : ViewModel() {
-    suspend fun latest(): MobileRelease {
-        val response = api.getReleases(BuildConfig.GITHUB_OWNER, BuildConfig.GITHUB_REPO)
-        check(response.isSuccessful)
-        return checkNotNull(latestMobileRelease(response.body().orEmpty(), Build.SUPPORTED_ABIS.toList()))
+@Composable
+internal fun MobileUpdateAction(vm: UpdateViewModel = hiltViewModel()) {
+    val state by vm.uiState.collectAsStateWithLifecycle()
+    Action(if (state.isChecking) "Checking for updates…" else "Check for updates") {
+        if (!state.isChecking && !state.isDownloading) vm.checkForUpdates(force = true, showNoUpdateFeedback = true)
     }
+    state.feedbackMessage?.let { Label(it) }
 }
 
 @Composable
-internal fun MobileUpdateAction(vm: MobileUpdateViewModel = hiltViewModel()) {
-    val scope = rememberCoroutineScope()
-    val uri = LocalUriHandler.current
-    var checking by remember { mutableStateOf(false) }
-    var update by remember { mutableStateOf<MobileRelease?>(null) }
-    var message by remember { mutableStateOf<String?>(null) }
-    val release = update
-    if (release == null) {
-        Action(if (checking) "Checking for updates…" else "Check for updates") {
-            if (checking) return@Action
-            checking = true
-            message = null
-            scope.launch {
-                try {
-                    val latest = vm.latest()
-                    if (VersionUtils.isRemoteNewer(latest.version, BuildConfig.VERSION_NAME)) update = latest
-                    else message = "ReSeq Mobile is up to date."
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (_: Exception) {
-                    message = "Couldn’t check mobile releases. Try again."
-                } finally { checking = false }
-            }
-        }
-    } else {
-        Action("Download Mobile " + release.version) {
-            try { uri.openUri(release.apkUrl) }
-            catch (_: IllegalArgumentException) { message = "Open the mobile release in a browser to download the APK." }
-        }
+internal fun MobileUpdatePrompt(vm: UpdateViewModel = hiltViewModel()) {
+    val state by vm.uiState.collectAsStateWithLifecycle()
+    val update = state.update ?: return
+    if (!state.showBanner) return
+    val context = LocalContext.current
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (ApkInstaller.canRequestPackageInstalls(context)) vm.installUpdateOrRequestPermission()
     }
-    message?.let { Label(it) }
+    val version = update.tag.removePrefix("v")
+    val progress = state.downloadProgress?.let { " ${(it * 100).roundToInt()}%" }.orEmpty()
+    AlertDialog(
+        onDismissRequest = { if (!state.isDownloading) vm.dismissBanner() },
+        title = { Text("ReSeq Mobile $version") },
+        text = {
+            Text(when {
+                state.showUnknownSourcesDialog -> "Allow ReSeq Mobile to install apps from this source, then return to finish the update."
+                state.errorMessage != null -> state.errorMessage.orEmpty()
+                state.isDownloading -> "Downloading update$progress"
+                state.downloadedApkPath != null -> "The update is ready to install."
+                else -> "A mobile update is available."
+            })
+        },
+        confirmButton = {
+            if (state.showUnknownSourcesDialog) {
+                TextButton(onClick = {
+                    val intent = ApkInstaller.buildUnknownSourcesSettingsIntent(context)
+                    if (intent != null) {
+                        intent.removeFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { permission.launch(intent) }.onFailure { vm.openUnknownSourcesSettings() }
+                    }
+                }) { Text("Allow installation") }
+            } else if (!state.isDownloading) {
+                TextButton(onClick = {
+                    if (state.downloadedApkPath != null) vm.installUpdateOrRequestPermission() else vm.downloadUpdate()
+                }) { Text(if (state.downloadedApkPath != null) "Install update" else "Download update") }
+            }
+        },
+        dismissButton = { if (!state.isDownloading) TextButton(onClick = vm::dismissBanner) { Text("Later") } }
+    )
 }

@@ -46,13 +46,17 @@ def check_mobile_manifest(path):
                   if feature.get(ANDROID + "name") == "android.hardware.touchscreen"), None)
     if touch is None or touch.get(ANDROID + "required", "true") != "true":
         raise ValueError("Mobile build must declare touchscreen support")
-    forbidden = {"android.software.leanback", "android.permission.REQUEST_INSTALL_PACKAGES",
+    forbidden = {"android.software.leanback",
                  "android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION", "android.intent.category.LEANBACK_LAUNCHER",
                  "com.android.providers.tv.permission.READ_EPG_DATA", "com.android.providers.tv.permission.WRITE_EPG_DATA"}
     names = {node.get(ANDROID + "name", "") for node in manifest.iter()}
-    if names & forbidden or any(name.startswith(("com.nuvio.tv.launcher.", "com.nuvio.tv.core.sync.androidtv.",
-                                                  "com.nuvio.tv.updater.")) for name in names):
-        raise ValueError("TV components or install permissions leaked into the mobile package")
+    if names & forbidden or any(name.startswith(("com.nuvio.tv.launcher.", "com.nuvio.tv.core.sync.androidtv.")) for name in names):
+        raise ValueError("TV components or unattended install permission leaked into the mobile package")
+    required_updater = {"android.permission.REQUEST_INSTALL_PACKAGES", "com.nuvio.tv.updater.UpdateJobService",
+                        "com.nuvio.tv.updater.UpdateInstallResultReceiver", "com.nuvio.tv.updater.UpdateReplacedReceiver",
+                        "com.nuvio.tv.updater.UpdateRelaunchReceiver"}
+    if missing := required_updater - names:
+        raise ValueError(f"Missing mobile updater components: {sorted(missing)}")
     launchers = []
     for activity in manifest.findall("./application/*"):
         for intent in activity.findall("intent-filter"):

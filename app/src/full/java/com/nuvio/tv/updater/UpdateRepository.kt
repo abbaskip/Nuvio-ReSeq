@@ -1,7 +1,10 @@
 package com.nuvio.tv.updater
 
+import android.os.Build
 import com.nuvio.tv.BuildConfig
 import com.nuvio.tv.data.remote.api.GitHubReleaseApi
+import com.nuvio.tv.data.remote.dto.GitHubAssetDto
+import com.nuvio.tv.data.remote.dto.GitHubReleaseDto
 import com.nuvio.tv.updater.model.AppUpdate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -11,6 +14,19 @@ import kotlinx.coroutines.sync.withLock
 
 internal class NoEligibleUpdateException :
     IllegalStateException("No compatible Nuvio ReSeq APK release found")
+
+internal fun latestMobileRelease(releases: List<GitHubReleaseDto>, abis: List<String>): Pair<GitHubReleaseDto, GitHubAssetDto>? =
+    releases.mapNotNull { release ->
+        val tag = release.tagName ?: return@mapNotNull null
+        if (release.draft || !tag.startsWith("mobile-v")) return@mapNotNull null
+        val version = tag.removePrefix("mobile-v")
+        val parsed = VersionUtils.parse(version) ?: return@mapNotNull null
+        val asset = (abis + "universal").firstNotNullOfOrNull { abi ->
+            val name = "Nuvio-ReSeq-Mobile-v$version-$abi.apk"
+            release.assets.find { it.name == name && ReleaseSelector.isOwnApk(it, BuildConfig.GITHUB_OWNER, BuildConfig.GITHUB_REPO) }
+        } ?: return@mapNotNull null
+        parsed to (release to asset)
+    }.maxByOrNull { it.first }?.second
 
 @Singleton
 class UpdateRepository @Inject constructor(
@@ -38,17 +54,20 @@ class UpdateRepository @Inject constructor(
             val owner = BuildConfig.GITHUB_OWNER
             val repo = BuildConfig.GITHUB_REPO
 
-            val response = gitHubReleaseApi.getLatestRelease(owner = owner, repo = repo)
-            if (!response.isSuccessful) error("GitHub API error: ${response.code()}")
-            val releases = listOf(response.body() ?: error("Empty GitHub release response"))
-            val releaseWithAsset = ReleaseSelector
-                .eligibleReleases(releases)
-                .firstNotNullOfOrNull { release ->
-                    AbiSelector.chooseBestApkAsset(release.assets.filter { ReleaseSelector.isOwnApk(it, owner, repo) })?.let { asset ->
-                        release to asset
+            val releaseWithAsset = if (BuildConfig.FLAVOR == "mobile") {
+                val response = gitHubReleaseApi.getReleases(owner, repo)
+                if (!response.isSuccessful) error("GitHub API error: ${response.code()}")
+                latestMobileRelease(response.body().orEmpty(), Build.SUPPORTED_ABIS.toList())
+            } else {
+                val response = gitHubReleaseApi.getLatestRelease(owner, repo)
+                if (!response.isSuccessful) error("GitHub API error: ${response.code()}")
+                ReleaseSelector.eligibleReleases(listOf(response.body() ?: error("Empty GitHub release response")))
+                    .firstNotNullOfOrNull { release ->
+                        AbiSelector.chooseBestApkAsset(release.assets.filter { ReleaseSelector.isOwnApk(it, owner, repo) })?.let { asset ->
+                            release to asset
+                        }
                     }
-                }
-                ?: throw NoEligibleUpdateException()
+            } ?: throw NoEligibleUpdateException()
             val (dto, asset) = releaseWithAsset
 
             val tag = dto.tagName?.takeIf { it.isNotBlank() }
@@ -56,7 +75,7 @@ class UpdateRepository @Inject constructor(
                 ?: error("Release has no tag/name")
 
             AppUpdate(
-                tag = tag,
+                tag = tag.removePrefix("mobile-"),
                 title = dto.name?.takeIf { it.isNotBlank() } ?: tag,
                 notes = dto.body.orEmpty(),
                 releaseUrl = dto.htmlUrl,

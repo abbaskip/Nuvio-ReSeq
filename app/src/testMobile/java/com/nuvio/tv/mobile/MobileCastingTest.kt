@@ -34,6 +34,7 @@ class MobileCastingTest {
         val saved = CastItem("owned-media", profile, "Fixture", video, live, iptv)
         context.getSharedPreferences("cast_session", 0).edit().putString("item", Gson().toJson(saved)).commit()
         every { session.remoteMediaClient } returns client
+        every { session.castDevice?.inetAddress } returns java.net.InetAddress.getByName("127.0.0.1") as java.net.Inet4Address
         every { client.registerCallback(capture(callback)) } just Runs
         every { client.mediaStatus } returns status
         val media = MediaInfo.Builder("https://video.example/media")
@@ -116,6 +117,39 @@ class MobileCastingTest {
         assertFalse(cast.state.value.loading)
         assertTrue(cast.state.value.error.orEmpty().contains("30 seconds"))
         verify { client.stop() }
+    }
+
+    @Test fun directDebridDeliveryFailureRetriesThroughThePhoneAndPreservesPosition() {
+        reconnect(false, false)
+        val requests = mutableListOf<MediaLoadRequestData>()
+        every { client.load(capture(requests)) } returns mockk(relaxed = true)
+        val url = "https://media.example.test/episode.mp4"
+        var accepted = false
+        cast.load(CastSource(url, "Episode", video = video)) { accepted = true }
+        assertEquals(url, requests.single().mediaInfo?.contentId)
+        every { status.mediaInfo } returns requests.single().mediaInfo
+        every { client.isPlaying } returns false
+        callback.captured.onMediaError(mockk {
+            every { type } returns MediaError.ERROR_TYPE_LOAD_FAILED
+            every { detailedErrorCode } returns MediaError.DetailedErrorCode.MEDIA_NETWORK
+        })
+        val main = org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+        main.idleFor(java.time.Duration.ofMillis(10))
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+        while (requests.size < 2 && System.nanoTime() < deadline) {
+            Thread.sleep(10)
+            main.idle()
+        }
+        try {
+            assertEquals(2, requests.size)
+            assertFalse(accepted)
+            assertEquals("127.0.0.1", java.net.URI(requests.last().mediaInfo!!.contentId).host)
+            assertEquals(8_000L, requests.last().currentTime)
+            every { status.mediaInfo } returns requests.last().mediaInfo
+            every { client.isPlaying } returns true
+            callback.captured.onStatusUpdated()
+            assertTrue(accepted)
+        } finally { cast.onSessionEnded(session, 0) }
     }
 
     @Test fun catchupIsSeekableAndDoesNotWriteTracking() {

@@ -162,12 +162,13 @@ internal class CastRelay private constructor(private val source: CastSource, bin
         private const val HLS = "application/x-mpegURL"
         private val URI_ATTRIBUTE = Regex("URI=\"([^\"]+)\"")
         private val DASH_NUMBER = Regex("""\$(?:Number|Time|SubNumber)(?:%0?[0-9]+d)?\$""")
-        suspend fun prepare(context: Context, source: CastSource, receiver: InetAddress?, engineFile: Closeable? = null, selectedFile: File? = null): CastEndpoint {
+        suspend fun prepare(context: Context, source: CastSource, receiver: InetAddress?, engineFile: Closeable? = null,
+            selectedFile: File? = null, forceRelay: Boolean = false): CastEndpoint {
             val mime = source.mime ?: PlayerMediaSourceFactory.inferMimeType(source.url, null)
                 ?: if (source.live) PlayerMediaSourceFactory.probeNetworkMimeType(source.url, source.headers)
                     ?: error("Unknown live stream format") else "video/mp4"
             val ts = source.live && mime.equals("video/mp2t", true)
-            if (source.headers.isEmpty() && !ts && engineFile == null && selectedFile == null) return CastEndpoint(source.url, mime)
+            if (!forceRelay && source.headers.isEmpty() && !ts && engineFile == null && selectedFile == null) return CastEndpoint(source.url, mime)
             val bind = try { withContext(Dispatchers.IO) {
                 requireNotNull(receiver)
                 DatagramSocket().use { socket -> socket.connect(receiver, 8009); requireNotNull(socket.localAddress.hostAddress) }

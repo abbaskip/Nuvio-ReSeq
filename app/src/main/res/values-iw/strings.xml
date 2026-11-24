@@ -3538,4 +3538,5 @@
     <string name="choose_watch_date_time">בחירת תאריך ושעה</string>
     <string name="choose_watch_time">בחירת שעה</string>
     <string name="choose_past_watch_time">יש לבחור מועד תקין בעבר.</string>
+    <string name="episodes_last_watch_mdblist_pending">הצפייה הוסרה מהמכשיר הזה. בהמתנה לאישור מ־MDBList.</string>
 </resources>

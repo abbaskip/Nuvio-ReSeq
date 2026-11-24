@@ -3184,4 +3184,5 @@
     <string name="choose_watch_date_time">Выбрать дату и время</string>
     <string name="choose_watch_time">Выбрать время</string>
     <string name="choose_past_watch_time">Выберите корректную дату и время в прошлом.</string>
+    <string name="episodes_last_watch_mdblist_pending">Запись о просмотре удалена с этого устройства. Ожидается подтверждение от MDBList.</string>
 </resources>

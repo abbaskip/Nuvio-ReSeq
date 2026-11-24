@@ -39,6 +39,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -195,7 +196,8 @@ internal fun MatchCentre(
             }
         })
         add(MatchPage("Fixture details") {
-            LiveText(SimpleDateFormat("EEEE d MMMM", Locale.getDefault()).format(Date(ev.startMs)) +
+            val locale = LocalConfiguration.current.locales[0]
+            LiveText(remember(ev.startMs, locale) { SimpleDateFormat("EEEE d MMMM", locale).format(Date(ev.startMs)) } +
                 " · " + startLabel(ev, use24h), size = 15.sp, weight = FontWeight.Bold)
             if (hideScores) LiveText("Scores hidden", color = SportsLook.Dim, size = 12.sp)
             if (!hideScores) {

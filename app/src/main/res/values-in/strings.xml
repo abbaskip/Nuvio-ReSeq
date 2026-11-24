@@ -2571,4 +2571,5 @@
     <string name="choose_watch_date_time">Pilih tanggal dan waktu</string>
     <string name="choose_watch_time">Pilih waktu</string>
     <string name="choose_past_watch_time">Pilih waktu yang valid di masa lalu.</string>
+    <string name="episodes_last_watch_mdblist_pending">Riwayat tontonan dihapus dari perangkat ini. Menunggu konfirmasi MDBList.</string>
 </resources>

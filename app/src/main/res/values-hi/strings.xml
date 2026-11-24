@@ -1067,4 +1067,5 @@
     <string name="choose_watch_date_time">तारीख और समय चुनें</string>
     <string name="choose_watch_time">समय चुनें</string>
     <string name="choose_past_watch_time">बीते समय की कोई मान्य तारीख और समय चुनें।</string>
+    <string name="episodes_last_watch_mdblist_pending">इस डिवाइस से देखने का रिकॉर्ड हटा दिया गया है। MDBList की पुष्टि का इंतज़ार है।</string>
 </resources>

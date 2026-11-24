@@ -3622,4 +3622,5 @@
     <string name="choose_watch_date_time">Wybierz datę i godzinę</string>
     <string name="choose_watch_time">Wybierz godzinę</string>
     <string name="choose_past_watch_time">Wybierz prawidłową datę i godzinę w przeszłości.</string>
+    <string name="episodes_last_watch_mdblist_pending">Usunięto wpis o obejrzeniu na tym urządzeniu. Oczekiwanie na potwierdzenie z MDBList.</string>
 </resources>

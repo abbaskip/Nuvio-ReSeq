@@ -3472,4 +3472,5 @@
     <string name="choose_watch_date_time">Избор на дата и час</string>
     <string name="choose_watch_time">Избор на час</string>
     <string name="choose_past_watch_time">Изберете валиден момент в миналото.</string>
+    <string name="episodes_last_watch_mdblist_pending">Гледането е премахнато от това устройство. Очаква се потвърждение от MDBList.</string>
 </resources>

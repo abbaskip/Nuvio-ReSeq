@@ -899,4 +899,5 @@
     <string name="choose_watch_date_time">Alege data și ora</string>
     <string name="choose_watch_time">Alege ora</string>
     <string name="choose_past_watch_time">Alege un moment valid din trecut.</string>
+    <string name="episodes_last_watch_mdblist_pending">Vizionarea a fost eliminată de pe acest dispozitiv. Se așteaptă confirmarea de la MDBList.</string>
 </resources>

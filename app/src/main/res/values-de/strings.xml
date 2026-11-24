@@ -2341,4 +2341,5 @@
     <string name="choose_watch_date_time">Datum und Uhrzeit wählen</string>
     <string name="choose_watch_time">Uhrzeit wählen</string>
     <string name="choose_past_watch_time">Wähle einen gültigen Zeitpunkt in der Vergangenheit.</string>
+    <string name="episodes_last_watch_mdblist_pending">Der Wiedergabeeintrag wurde auf diesem Gerät entfernt. Die Bestätigung von MDBList steht noch aus.</string>
 </resources>

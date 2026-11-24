@@ -3499,4 +3499,5 @@
     <string name="choose_watch_date_time">日付と時刻を選ぶ</string>
     <string name="choose_watch_time">時刻を選ぶ</string>
     <string name="choose_past_watch_time">過去の有効な日時を選んでください。</string>
+    <string name="episodes_last_watch_mdblist_pending">このデバイスから視聴記録を削除しました。MDBList の確認を待っています。</string>
 </resources>

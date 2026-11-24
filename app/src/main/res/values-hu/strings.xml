@@ -3483,4 +3483,5 @@ Próbálj meg egy másik forrást. [%1$s]</string>
     <string name="choose_watch_date_time">Dátum és idő kiválasztása</string>
     <string name="choose_watch_time">Idő kiválasztása</string>
     <string name="choose_past_watch_time">Válassz érvényes múltbeli időpontot.</string>
+    <string name="episodes_last_watch_mdblist_pending">A megtekintés törölve lett erről az eszközről. Várakozás az MDBList megerősítésére.</string>
 </resources>

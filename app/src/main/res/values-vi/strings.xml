@@ -3538,4 +3538,5 @@
     <string name="choose_watch_date_time">Chọn ngày và giờ</string>
     <string name="choose_watch_time">Chọn giờ</string>
     <string name="choose_past_watch_time">Hãy chọn thời điểm hợp lệ trong quá khứ.</string>
+    <string name="episodes_last_watch_mdblist_pending">Đã xóa lượt xem trên thiết bị này. Đang chờ MDBList xác nhận.</string>
 </resources>

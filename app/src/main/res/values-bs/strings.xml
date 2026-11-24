@@ -1561,4 +1561,5 @@
     <string name="choose_watch_date_time">Odaberi datum i vrijeme</string>
     <string name="choose_watch_time">Odaberi vrijeme</string>
     <string name="choose_past_watch_time">Odaberite ispravno vrijeme u prošlosti.</string>
+    <string name="episodes_last_watch_mdblist_pending">Gledanje je uklonjeno s ovog uređaja. Čeka se potvrda servisa MDBList.</string>
 </resources>

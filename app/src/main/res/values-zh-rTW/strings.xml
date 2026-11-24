@@ -3298,4 +3298,5 @@
     <string name="choose_watch_date_time">選擇日期與時間</string>
     <string name="choose_watch_time">選擇時間</string>
     <string name="choose_past_watch_time">請選擇過去的有效時間。</string>
+    <string name="episodes_last_watch_mdblist_pending">已從此裝置移除觀看紀錄，正在等待 MDBList 確認。</string>
 </resources>

@@ -1192,4 +1192,5 @@
     <string name="choose_watch_date_time">Velg dato og klokkeslett</string>
     <string name="choose_watch_time">Velg klokkeslett</string>
     <string name="choose_past_watch_time">Velg et gyldig tidspunkt i fortiden.</string>
+    <string name="episodes_last_watch_mdblist_pending">Visningen er fjernet fra denne enheten. Venter på bekreftelse fra MDBList.</string>
 </resources>

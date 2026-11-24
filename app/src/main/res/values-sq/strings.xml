@@ -2960,4 +2960,5 @@
     <string name="choose_watch_date_time">Zgjidh datën dhe orën</string>
     <string name="choose_watch_time">Zgjidh orën</string>
     <string name="choose_past_watch_time">Zgjidh një kohë të vlefshme në të kaluarën.</string>
+    <string name="episodes_last_watch_mdblist_pending">Shikimi u hoq nga kjo pajisje. Në pritje të konfirmimit nga MDBList.</string>
 </resources>

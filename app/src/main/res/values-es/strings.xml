@@ -3498,4 +3498,5 @@ Utilizas esta función bajo tu entera responsabilidad. P2P se puede desactivar e
     <string name="choose_watch_date_time">Elegir fecha y hora</string>
     <string name="choose_watch_time">Elegir hora</string>
     <string name="choose_past_watch_time">Elige una fecha y hora válidas en el pasado.</string>
+    <string name="episodes_last_watch_mdblist_pending">Se ha eliminado la reproducción en este dispositivo. Esperando la confirmación de MDBList.</string>
 </resources>

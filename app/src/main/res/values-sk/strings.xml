@@ -3559,4 +3559,5 @@
     <string name="choose_watch_date_time">Vybrať dátum a čas</string>
     <string name="choose_watch_time">Vybrať čas</string>
     <string name="choose_past_watch_time">Vyberte platný čas v minulosti.</string>
+    <string name="episodes_last_watch_mdblist_pending">Záznam o pozretí bol z tohto zariadenia odstránený. Čaká sa na potvrdenie od MDBList.</string>
 </resources>

@@ -3476,4 +3476,5 @@
     <string name="choose_watch_date_time">Datum en tijd kiezen</string>
     <string name="choose_watch_time">Tijd kiezen</string>
     <string name="choose_past_watch_time">Kies een geldig tijdstip in het verleden.</string>
+    <string name="episodes_last_watch_mdblist_pending">De kijkbeurt is op dit apparaat verwijderd. Wachten op bevestiging van MDBList.</string>
 </resources>

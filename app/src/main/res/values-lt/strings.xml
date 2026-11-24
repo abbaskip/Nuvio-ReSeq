@@ -3400,4 +3400,5 @@
     <string name="choose_watch_date_time">Pasirinkti datą ir laiką</string>
     <string name="choose_watch_time">Pasirinkti laiką</string>
     <string name="choose_past_watch_time">Pasirinkite tinkamą laiką praeityje.</string>
+    <string name="episodes_last_watch_mdblist_pending">Peržiūros įrašas pašalintas iš šio įrenginio. Laukiama MDBList patvirtinimo.</string>
 </resources>

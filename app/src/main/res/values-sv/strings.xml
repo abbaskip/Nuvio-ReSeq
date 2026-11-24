@@ -1834,4 +1834,5 @@
     <string name="choose_watch_date_time">Välj datum och tid</string>
     <string name="choose_watch_time">Välj tid</string>
     <string name="choose_past_watch_time">Välj en giltig tidpunkt i det förflutna.</string>
+    <string name="episodes_last_watch_mdblist_pending">Visningen har tagits bort från den här enheten. Väntar på bekräftelse från MDBList.</string>
 </resources>

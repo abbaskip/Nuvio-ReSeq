@@ -3334,4 +3334,5 @@
     <string name="autosync_status_no_fit">Pode não corresponder</string>
     <string name="autosync_status_no_reference">Sem legendas incorporadas</string>
     <string name="autosync_status_failed">Falha</string>
+    <string name="episodes_last_watch_mdblist_pending">O registo de visualização foi removido deste dispositivo. A aguardar confirmação do MDBList.</string>
 </resources>

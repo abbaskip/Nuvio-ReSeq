@@ -3143,4 +3143,5 @@
     <string name="choose_watch_date_time">اختيار التاريخ والوقت</string>
     <string name="choose_watch_time">اختيار الوقت</string>
     <string name="choose_past_watch_time">اختر وقتًا صالحًا في الماضي.</string>
+    <string name="episodes_last_watch_mdblist_pending">أُزيل سجل المشاهدة من هذا الجهاز. في انتظار تأكيد MDBList.</string>
 </resources>

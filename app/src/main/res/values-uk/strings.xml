@@ -2801,4 +2801,5 @@
     <string name="choose_watch_date_time">Вибрати дату й час</string>
     <string name="choose_watch_time">Вибрати час</string>
     <string name="choose_past_watch_time">Виберіть коректний час у минулому.</string>
+    <string name="episodes_last_watch_mdblist_pending">Запис про перегляд видалено з цього пристрою. Очікується підтвердження від MDBList.</string>
 </resources>

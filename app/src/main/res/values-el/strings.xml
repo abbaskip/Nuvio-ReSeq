@@ -3406,4 +3406,5 @@
     <string name="choose_watch_date_time">Επιλογή ημερομηνίας και ώρας</string>
     <string name="choose_watch_time">Επιλογή ώρας</string>
     <string name="choose_past_watch_time">Επιλέξτε έγκυρη ώρα στο παρελθόν.</string>
+    <string name="episodes_last_watch_mdblist_pending">Η προβολή αφαιρέθηκε από αυτή τη συσκευή. Αναμένεται επιβεβαίωση από το MDBList.</string>
 </resources>

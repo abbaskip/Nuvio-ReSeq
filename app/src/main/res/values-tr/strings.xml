@@ -3516,4 +3516,5 @@
     <string name="choose_watch_date_time">Tarih ve saat seç</string>
     <string name="choose_watch_time">Saat seç</string>
     <string name="choose_past_watch_time">Geçmişte geçerli bir zaman seçin.</string>
+    <string name="episodes_last_watch_mdblist_pending">İzleme kaydı bu cihazdan kaldırıldı. MDBList onayı bekleniyor.</string>
 </resources>

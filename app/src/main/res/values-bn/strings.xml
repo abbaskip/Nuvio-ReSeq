@@ -3285,4 +3285,5 @@
     <string name="choose_watch_date_time">তারিখ ও সময় বাছুন</string>
     <string name="choose_watch_time">সময় বাছুন</string>
     <string name="choose_past_watch_time">অতীতের একটি বৈধ সময় বাছুন।</string>
+    <string name="episodes_last_watch_mdblist_pending">এই ডিভাইস থেকে দেখার রেকর্ড সরানো হয়েছে। MDBList-এর নিশ্চিতকরণের অপেক্ষায়।</string>
 </resources>

@@ -2243,4 +2243,5 @@
     <string name="choose_watch_date_time">Izberi datum in čas</string>
     <string name="choose_watch_time">Izberi čas</string>
     <string name="choose_past_watch_time">Izberite veljaven čas v preteklosti.</string>
+    <string name="episodes_last_watch_mdblist_pending">Ogled je bil odstranjen iz te naprave. Čakanje na potrditev storitve MDBList.</string>
 </resources>

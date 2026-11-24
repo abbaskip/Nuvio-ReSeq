@@ -8,4 +8,5 @@
     <string name="choose_watch_date_time">Escolher data e hora</string>
     <string name="choose_watch_time">Escolher hora</string>
     <string name="choose_past_watch_time">Escolha uma data e hora válidas no passado.</string>
+    <string name="episodes_last_watch_mdblist_pending">O registo de visualização foi removido deste dispositivo. A aguardar confirmação do MDBList.</string>
 </resources>

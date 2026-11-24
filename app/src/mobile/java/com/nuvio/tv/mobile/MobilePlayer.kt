@@ -20,6 +20,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nuvio.tv.livetv.data.LiveTvRepository
 import com.nuvio.tv.livetv.ui.LivePlayerSurface
 import com.nuvio.tv.livetv.ui.LiveTvViewModel
 import com.nuvio.tv.livetv.ui.PauseLiveTvInBackground
@@ -31,6 +32,10 @@ import com.nuvio.tv.livetv.ui.formatClock
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.abs
+
+internal fun LiveChannel.toCastSource(streamUrl: String, replayTitle: String?, mime: String?) =
+    CastSource(streamUrl, replayTitle ?: name, headers, live = replayTitle == null, iptv = true,
+        mime = mime, fallbackUserAgent = LiveTvRepository.DEFAULT_UA)
 
 @Composable
 internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
@@ -47,9 +52,6 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
         if (castState.device != null && channel != null && channel.drm == null && streamUrl != null && receiverUrl(streamUrl)) {
             val replay = state.catchupTitle
             val position = if (replay != null) vm.playback.playerFlow.value?.currentPosition else 0L
-            val headers = channel.headers.toMutableMap()
-            if (headers.keys.none { it.equals("User-Agent", true) })
-                headers["User-Agent"] = com.nuvio.tv.livetv.data.LiveTvRepository.DEFAULT_UA
             val player = vm.playback.playerFlow.value
             val upstreamItem = player?.currentMediaItem?.localConfiguration?.takeIf { it.uri.toString() == streamUrl }
             val mime = when (vm.playback.upstreamBufferKind) {
@@ -59,7 +61,7 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
                     ?: player?.videoFormat?.containerMimeType?.takeIf { upstreamItem != null && player.currentManifest == null }
             }
             vm.playback.handOverForRecording()
-            cast.load(CastSource(streamUrl, replay ?: channel.name, headers, live = replay == null, iptv = true, mime = mime), position) {
+            cast.load(channel.toCastSource(streamUrl, replay, mime), position) {
                 leaveAfterCast()
             }
         }

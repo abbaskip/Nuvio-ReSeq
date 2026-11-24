@@ -21,6 +21,24 @@ import java.util.concurrent.TimeUnit
 @org.robolectric.annotation.ConscryptMode(org.robolectric.annotation.ConscryptMode.Mode.OFF)
 @Config(manifest = Config.NONE, sdk = [28], application = Application::class)
 class MobileCastRelayTest {
+    @Test fun extensionlessLiveUrlStaysDirectWhenTheProviderRequiresGetToIdentifyIt() = runBlocking {
+        MockWebServer().use { upstream ->
+            upstream.enqueue(MockResponse().setResponseCode(405))
+            upstream.enqueue(MockResponse().setHeader("Content-Type", "application/vnd.apple.mpegurl"))
+            val source = CastSource(upstream.url("/channels/501?ticket=fixture").toString(), "Test channel",
+                live = true, iptv = true, fallbackUserAgent = "Live player")
+            val endpoint = CastRelay.prepare(RuntimeEnvironment.getApplication(), source, null)
+            assertEquals(source.url, endpoint.url)
+            assertNull(endpoint.relay)
+            val head = requireNotNull(upstream.takeRequest(3, TimeUnit.SECONDS))
+            val get = requireNotNull(upstream.takeRequest(3, TimeUnit.SECONDS))
+            assertEquals("HEAD", head.method)
+            assertEquals("GET", get.method)
+            assertEquals("bytes=0-2048", get.getHeader("Range"))
+            assertEquals("Live player", get.getHeader("User-Agent"))
+        }
+    }
+
     @Test fun extensionlessLiveTransportStreamReachesTheReceiverAsPlayableHls() = runBlocking {
         val address = InetAddress.getByName("127.0.0.1")
         val bytes = requireNotNull(javaClass.getResourceAsStream("/cast/channel.ts")).use { it.readBytes() }
@@ -28,8 +46,9 @@ class MobileCastRelayTest {
             upstream.start(address, 0)
             upstream.enqueue(MockResponse().setHeader("Content-Type", "video/mp2t"))
             upstream.enqueue(MockResponse().setBody(okio.Buffer().write(bytes)).setHeader("Content-Type", "video/mp2t"))
-            val source = CastSource(upstream.url("/channels/501").toString(), "Test channel", live = true, iptv = true)
-            val endpoint = CastRelay.prepare(RuntimeEnvironment.getApplication(), source, address)
+            val source = CastSource(upstream.url("/channels/501").toString(), "Test channel", live = true, iptv = true,
+                fallbackUserAgent = "Live player")
+            val endpoint = CastRelay.prepare(RuntimeEnvironment.getApplication(), source, address, forceRelay = true)
             requireNotNull(endpoint.relay).use {
                 assertTrue(endpoint.transportStreamSegments)
                 val client = OkHttpClient()
@@ -44,6 +63,11 @@ class MobileCastRelayTest {
                 client.newCall(Request.Builder().url(url).build()).execute().use { response ->
                     assertEquals("video/mp2t", response.header("Content-Type"))
                     assertEquals(0x47, response.body!!.byteStream().read())
+                }
+                for (method in listOf("HEAD", "GET")) {
+                    val request = requireNotNull(upstream.takeRequest(3, TimeUnit.SECONDS))
+                    assertEquals(method, request.method)
+                    assertEquals("Live player", request.getHeader("User-Agent"))
                 }
             }
         }
@@ -121,7 +145,8 @@ class MobileCastRelayTest {
         MockWebServer().use { upstream ->
             upstream.enqueue(MockResponse().setResponseCode(206).setHeader("Content-Range", "bytes 2-4/8").setBody("cde"))
             upstream.start(InetAddress.getByName("127.0.0.1"), 0)
-            val source = CastSource(upstream.url("/media/episode.mp4").toString(), "Fixture", mapOf("Authorization" to "Bearer fixture"))
+            val source = CastSource(upstream.url("/media/episode.mp4").toString(), "Fixture",
+                mapOf("Authorization" to "Bearer fixture", "user-agent" to "Provider agent"), fallbackUserAgent = "Default agent")
             var released = false
             val endpoint = CastRelay.prepare(RuntimeEnvironment.getApplication(), source, InetAddress.getByName("127.0.0.1"), Closeable { released = true })
             requireNotNull(endpoint.relay).use {
@@ -136,6 +161,7 @@ class MobileCastRelayTest {
                 }
                 val request = requireNotNull(upstream.takeRequest(3, TimeUnit.SECONDS))
                 assertEquals("Bearer fixture", request.getHeader("Authorization"))
+                assertEquals(listOf("Provider agent"), request.headers.values("User-Agent"))
                 assertEquals("bytes=2-4", request.getHeader("Range"))
                 client.newCall(Request.Builder().url(endpoint.url + "-wrong").build()).execute().use { assertEquals(404, it.code) }
                 assertEquals(1, upstream.requestCount)

@@ -932,7 +932,7 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
             val methods = listOf("HEAD", "GET")
             for (method in methods) {
                 runCatching {
-                    val requestBuilder = Request.Builder().url(url)
+                    val requestBuilder = Request.Builder().url(url).method(method, null)
                     if (method == "GET") {
                         requestBuilder.header("Range", "bytes=0-2048")
                     }

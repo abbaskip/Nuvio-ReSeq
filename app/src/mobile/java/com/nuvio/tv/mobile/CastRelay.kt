@@ -164,23 +164,25 @@ internal class CastRelay private constructor(private val source: CastSource, bin
         private val DASH_NUMBER = Regex("""\$(?:Number|Time|SubNumber)(?:%0?[0-9]+d)?\$""")
         suspend fun prepare(context: Context, source: CastSource, receiver: InetAddress?, engineFile: Closeable? = null,
             selectedFile: File? = null, forceRelay: Boolean = false): CastEndpoint {
+            val headers = if (source.fallbackUserAgent != null && source.headers.keys.none { it.equals("User-Agent", true) })
+                source.headers + ("User-Agent" to source.fallbackUserAgent) else source.headers
             val mime = source.mime ?: PlayerMediaSourceFactory.inferMimeType(source.url, null)
-                ?: if (source.live) PlayerMediaSourceFactory.probeNetworkMimeType(source.url, source.headers)
+                ?: if (source.live) PlayerMediaSourceFactory.probeNetworkMimeType(source.url, headers)
                     ?: error("Unknown live stream format") else "video/mp4"
+            if (!forceRelay && source.headers.isEmpty() && engineFile == null && selectedFile == null) return CastEndpoint(source.url, mime)
             val ts = source.live && mime.equals("video/mp2t", true)
-            if (!forceRelay && source.headers.isEmpty() && !ts && engineFile == null && selectedFile == null) return CastEndpoint(source.url, mime)
             val bind = try { withContext(Dispatchers.IO) {
                 requireNotNull(receiver)
                 DatagramSocket().use { socket -> socket.connect(receiver, 8009); requireNotNull(socket.localAddress.hostAddress) }
             } } catch (e: Exception) { engineFile?.close(); throw e }
             val shift = if (ts) LiveTvTimeshift(context) else null
-            val server = CastRelay(source.copy(mime = mime), bind, requireNotNull(receiver), shift, engineFile, selectedFile)
+            val server = CastRelay(source.copy(mime = mime, headers = headers), bind, requireNotNull(receiver), shift, engineFile, selectedFile)
             try {
                 val path = withContext(Dispatchers.IO) {
                     server.start(SOCKET_READ_TIMEOUT, true)
                     if (selectedFile != null) return@withContext server.token + "video"
                     if (shift == null) return@withContext server.resource(requireNotNull(server.root))
-                    val buffer = requireNotNull(shift.start(source.url, source.headers, keepMinutes = 1, label = "Chromecast", kind = LiveTvTimeshift.Kind.TS))
+                    val buffer = requireNotNull(shift.start(source.url, headers, keepMinutes = 1, label = "Chromecast", kind = LiveTvTimeshift.Kind.TS))
                     val ready = withTimeoutOrNull(25_000) {
                         val playlist = File(buffer.dir, "index.m3u8")
                         while (!playlist.isFile || rewindPlaylistDurationMs(playlist.readText()) < REWIND_STARTUP_MS) delay(250)

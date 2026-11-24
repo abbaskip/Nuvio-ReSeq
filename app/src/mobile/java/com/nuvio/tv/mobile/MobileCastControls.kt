@@ -31,11 +31,20 @@ import com.google.android.gms.cast.framework.CastButtonFactory
     var expanded by rememberSaveable { mutableStateOf(false) }
     var section by rememberSaveable { mutableStateOf<String?>(null) }
     val device = state.device ?: return
+    var lastOpened by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(state.item?.token) {
+        val token = state.item?.token ?: return@LaunchedEffect
+        if (token != lastOpened) {
+            lastOpened = token
+            section = null
+            expanded = true
+        }
+    }
     Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).clickable { expanded = true }
         .padding(horizontal = 8.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.CastConnected, null, tint = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
-            Label(state.item?.title ?: if (state.loading) "Connecting media…" else "Connected to Chromecast", strong = true, lines = 1)
+            Label(state.preparation ?: state.item?.title ?: if (state.loading) "Connecting media…" else "Connected to Chromecast", strong = true, lines = 1)
             Label(device, small = true, lines = 1)
         }
         if (state.item != null) CastPlayPause(state, casting)
@@ -45,6 +54,7 @@ import com.google.android.gms.cast.framework.CastButtonFactory
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp)) {
             BrowseHeading(state.item?.title ?: device) { expanded = false; section = null }
             Label(device, small = true)
+            state.preparation?.let { Label(it) }
             val item = state.item
             if (item != null) {
                 if (!item.live && state.duration > 0) {

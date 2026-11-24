@@ -126,7 +126,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             scope.launch {
                 val video = MobileVideo(profile, item.apiType, item.id, item.id, item.name, poster = item.poster)
                 val local = withContext(Dispatchers.IO) { catalog.downloads.localRoute(video) }
-                nav.navigate(local?.takeIf { cast.state.value.device == null } ?: mobileDetailRoute(item, addon, action))
+                nav.navigate(local ?: mobileDetailRoute(item, addon, action))
             }
         } else nav.navigate(mobileDetailRoute(item, addon, action))
     }
@@ -140,7 +140,7 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
             val restart = action == VideoAction.Restart
             val local = withContext(Dispatchers.IO) { catalog.downloads.localRoute(video, fromBeginning = restart) }
             when {
-                local != null && cast.state.value.device == null && (action == VideoAction.Play || restart) -> nav.navigate(local)
+                local != null && (action == VideoAction.Play || restart) -> nav.navigate(local)
                 local != null && action == VideoAction.Download -> Toast.makeText(context, "Already downloaded", Toast.LENGTH_SHORT).show()
                 else -> nav.navigate(video.sources(action == VideoAction.Manual, action == VideoAction.Download, restart) + "&operation=" + action.name)
             }
@@ -246,6 +246,20 @@ private fun CatalogNavigation(profile: Int, catalog: MobileCatalogViewModel, tab
                     args.getString("contentId").orEmpty(), args.getString("videoId").orEmpty(), args.getString("contentName").orEmpty(),
                     args.getString("season")?.toIntOrNull(), args.getString("episode")?.toIntOrNull(), args.getString("episodeTitle"),
                     args.getString("tvdbContext"), args.getString("poster")) }
+                // A receiver connected on entry takes precedence over the external-player preference.
+                // A receiver chosen later is handed the current position by MobileVodPlayer.
+                val castOnEntry = remember(entry) { cast.state.value.device != null }
+                if (castOnEntry && cast.state.collectAsStateWithLifecycle().value.device != null) {
+                    LaunchedEffect(entry) {
+                        val file = withContext(Dispatchers.IO) { catalog.downloads.find(video) }
+                        if (file == null) { leave(); return@LaunchedEffect }
+                        cast.load(CastSource(Uri.fromFile(file).toString(), video.label, video = video, download = file),
+                            position = if (args.getString("startFromBeginning").toBoolean()) 0L else null)
+                        if (nav.currentBackStackEntry == entry) leave()
+                    }
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    return@composable
+                }
                 if (!downloadUsesInternalPlayer(video, args.getString("startFromBeginning").toBoolean(), catalog,
                         cancel = leave, externalOpened = { if (nav.currentBackStackEntry == entry) nav.popBackStack() })) return@composable
             }

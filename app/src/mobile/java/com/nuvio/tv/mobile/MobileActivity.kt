@@ -166,9 +166,14 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
     val holder = rememberSaveableStateHolder()
     val cast = LocalCasting.current
     val castState by cast.state.collectAsStateWithLifecycle()
+    com.nuvio.tv.livetv.ui.KeepScreenAwake(castState.device != null && (castState.loading || castState.item != null))
     castState.error?.let { message ->
         AlertDialog(onDismissRequest = cast::dismissError, title = { Text("Chromecast") }, text = { Text(message) },
-            confirmButton = { TextButton(onClick = cast::dismissError) { Text("OK") } })
+            confirmButton = {
+                if (castState.compatibilityAvailable) TextButton(onClick = cast::tryCompatibility) { Text("Try compatibility mode") }
+                else TextButton(onClick = cast::dismissError) { Text("OK") }
+            },
+            dismissButton = { if (castState.compatibilityAvailable) TextButton(onClick = cast::dismissError) { Text("Cancel") } })
     }
     var playing by remember { mutableStateOf(false) }
     var multiview by rememberSaveable { mutableStateOf(false) }

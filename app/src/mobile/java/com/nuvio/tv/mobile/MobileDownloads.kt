@@ -52,7 +52,12 @@ internal fun MobileDownloads(profile: Int, media: MobileOfflineMedia, back: () -
     val active = transfers.values.filter { it.video.profile == profile && it.active }
     val colors = MaterialTheme.colorScheme
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item { BrowseHeading("Downloads", back) }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                BrowseHeading("Downloads", back)
+                MobileCastButton()
+            }
+        }
         if (active.isNotEmpty()) {
             item { SettingsHeading("Downloading") }
             items(active, key = { "transfer-" + it.video.key }) { transfer ->

@@ -112,7 +112,19 @@ class MobileCastingTest {
         verify(exactly = 0) { tracking.observe(any()) }
     }
 
-    @Test fun localDownloadsAndUsenetAreExcluded() {
+    @Test fun deliveryErrorsTakePrecedenceAndOnlyFormatErrorsAutomaticallyConvert() {
+        assertEquals(CastFailure.DELIVERY, classifyCastFailure(104, true))
+        assertEquals(CastFailure.DELIVERY, classifyCastFailure(103, false))
+        assertEquals(CastFailure.FORMAT, classifyCastFailure(104, false))
+        assertEquals(CastFailure.FORMAT, classifyCastFailure(102, false))
+        assertEquals(CastFailure.UNKNOWN, classifyCastFailure(null, false))
+        assertEquals(CastFormat.MP4, nextCastFormat(CastFormat.ORIGINAL, "audio/mp4a-latm", false))
+        assertEquals(CastFormat.AAC, nextCastFormat(CastFormat.ORIGINAL, "audio/vnd.dts", false))
+        assertEquals(CastFormat.H264, nextCastFormat(CastFormat.AAC, "audio/vnd.dts", false))
+        assertNull(nextCastFormat(CastFormat.H264, "audio/mp4a-latm", true))
+    }
+
+    @Test fun rawLocalUrlsAreNeverHandedToTheReceiver() {
         for (url in listOf("file:///saved/show.mkv", "content://downloads/item", "usenet://example", "http://127.0.0.1:4872/usenet/a/video.mkv",
                 "http://localhost:8000/video", "http://[::1]/video")) assertFalse(url, receiverUrl(url))
         assertTrue(receiverUrl("https://media.example.test/movie.mp4"))

@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.tv.livetv.ui.LiveTvSettingsViewModel
+import com.nuvio.tv.livetv.model.PlaylistSource
+import java.util.UUID
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 
@@ -150,7 +152,12 @@ internal fun MobileSetup(driveOnly: Boolean = false, vm: LiveTvSettingsViewModel
                                     sourceError = "Enter the portal address without a login, query or fragment."
                                     return@Action
                                 }
-                                vm.addStalker(label, address.trim(), mac.trim(), username.trim(), password, serial.trim(), vod, live)
+                                vm.addStalker(PlaylistSource(
+                                    id = UUID.randomUUID().toString(), name = label, url = "",
+                                    stalkerPortal = address.trim(), stalkerMac = mac.trim().uppercase(),
+                                    stalkerUsername = username.trim(), stalkerPassword = password,
+                                    stalkerSerial = serial.trim(), importVod = vod, importLive = live
+                                ))
                             }
                             else -> vm.addEpg(label, address.trim())
                         }

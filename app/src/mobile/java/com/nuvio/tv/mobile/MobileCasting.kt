@@ -45,7 +45,7 @@ internal fun receiverUrl(url: String?): Boolean {
 internal data class CastSource(val url: String, val title: String, val headers: Map<String,String> = emptyMap(),
     val video: MobileVideo? = null, val live: Boolean = false, val iptv: Boolean = false, val mime: String? = null,
     val subtitles: List<MediaTrack> = emptyList(), val cloudToken: String? = null, val torrent: CastTorrent? = null,
-    val download: File? = null)
+    val download: File? = null, val fallbackUserAgent: String? = null)
 
 internal data class CastTorrent(val hash: String, val fileIndex: Int?, val filename: String?, val trackers: List<String>)
 
@@ -317,9 +317,10 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
             }
             val phone = attempt?.phone
             if (phone == null) {
-                // A provider can allow the phone to read a signed URL while rejecting requests from Cast.
-                if (attempt != null && !attempt.source.iptv && !attempt.forceRelay && failedRelay == null &&
-                    receiverUrl(attempt.source.url) && (failure == CastFailure.DELIVERY || timedOut)) {
+                // A failed direct live load can also be a raw TS feed that needs packaging as HLS.
+                val retryDelivery = failure == CastFailure.DELIVERY || timedOut || (item.live && wasPending)
+                if (attempt != null && retryDelivery && !attempt.forceRelay && failedRelay == null &&
+                    receiverUrl(attempt.source.url)) {
                     attempt.forceRelay = true
                     start(attempt)
                     return@launch

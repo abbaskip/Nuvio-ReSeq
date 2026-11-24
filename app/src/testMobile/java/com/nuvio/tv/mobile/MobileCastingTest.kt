@@ -6,6 +6,7 @@ import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.gson.Gson
 import com.nuvio.tv.core.profile.ProfileManager
+import com.nuvio.tv.livetv.model.LiveChannel
 import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.*
@@ -100,23 +101,99 @@ class MobileCastingTest {
         verify(exactly = 0) { tracking.observe(any()) }
     }
 
-    @Test fun liveBufferingNeverCompletesHandoffAndTimesOutAnOwnedLoad() {
+    private fun channel(headers: Map<String, String> = emptyMap()) = LiveChannel(
+        key = "fixture", sourceId = "iptv", sourceName = "Playlist", name = "News", tvgId = null, tvgName = null,
+        logo = null, groupId = "group", group = "News", number = 1, url = "https://playlist.example/entry", headers = headers)
+
+    private fun waitForLoad(requests: List<MediaLoadRequestData>, count: Int) {
+        val main = org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+        while (requests.size < count && System.nanoTime() < deadline) {
+            Thread.sleep(10)
+            main.idle()
+        }
+        assertEquals(count, requests.size)
+    }
+
+    @Test fun livePlayerSendsResolvedHlsAndTsUrlsWithTheirQueryToTheTV() {
         reconnect(true, true)
-        val request = slot<MediaLoadRequestData>()
-        every { client.load(capture(request)) } returns mockk(relaxed = true)
+        val requests = mutableListOf<MediaLoadRequestData>()
+        every { client.load(capture(requests)) } returns mockk(relaxed = true)
+        for ((extension, mime) in listOf("m3u8" to "application/x-mpegURL", "ts" to "video/mp2t")) {
+            val url = "https://media.example/live/channel.$extension?ticket=fixture"
+            cast.load(channel().toCastSource(url, replayTitle = null, mime = mime))
+            val media = requireNotNull(requests.last().mediaInfo)
+            assertEquals(url, media.contentId)
+            assertEquals(mime, media.contentType)
+            assertEquals(MediaInfo.STREAM_TYPE_LIVE, media.streamType)
+        }
+        cast.onSessionEnded(session, 0)
+    }
+
+    @Test fun liveWithProviderHeadersStartsOnTheRelay() {
+        reconnect(true, true)
+        val requests = mutableListOf<MediaLoadRequestData>()
+        every { client.load(capture(requests)) } returns mockk(relaxed = true)
+        val url = "https://media.example/live.m3u8"
+        val source = channel(mapOf("User-Agent" to "Provider agent")).toCastSource(url, null, null)
+        try {
+            cast.load(source)
+            waitForLoad(requests, 1)
+            assertEquals("127.0.0.1", java.net.URI(requests.single().mediaInfo!!.contentId).host)
+        } finally { cast.onSessionEnded(session, 0) }
+    }
+
+    @Test fun genericLiveLoadErrorRetriesTheSameChannelAndWaitsForTheTVToPlay() {
+        reconnect(true, true)
+        val requests = mutableListOf<MediaLoadRequestData>()
+        every { client.load(capture(requests)) } returns mockk(relaxed = true)
+        val url = "https://video.example/news.m3u8"
         var accepted = false
-        cast.load(CastSource("https://video.example/news.m3u8", "News", live = true, iptv = true)) { accepted = true }
-        every { status.mediaInfo } returns request.captured.mediaInfo
+        try {
+            cast.load(channel().toCastSource(url, null, null)) { accepted = true }
+            assertEquals(url, requests.single().mediaInfo?.contentId)
+            every { status.mediaInfo } answers { requests.last().mediaInfo }
+            every { status.playerState } returns MediaStatus.PLAYER_STATE_IDLE
+            every { status.idleReason } returns MediaStatus.IDLE_REASON_ERROR
+            every { client.isPlaying } returns false
+            callback.captured.onStatusUpdated()
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(500))
+            waitForLoad(requests, 2)
+            assertEquals("127.0.0.1", java.net.URI(requests.last().mediaInfo!!.contentId).host)
+            assertEquals(MediaInfo.STREAM_TYPE_LIVE, requests.last().mediaInfo?.streamType)
+            assertFalse(accepted)
+            every { status.playerState } returns MediaStatus.PLAYER_STATE_PLAYING
+            every { client.isPlaying } returns true
+            callback.captured.onStatusUpdated()
+            assertTrue(accepted)
+        } finally { cast.onSessionEnded(session, 0) }
+    }
+
+    @Test fun liveBufferingRetriesOnTheRelayOnceAndTimesOutWithoutCompletingHandoff() {
+        reconnect(true, true)
+        val requests = mutableListOf<MediaLoadRequestData>()
+        every { client.load(capture(requests)) } returns mockk(relaxed = true)
+        var accepted = false
+        val url = "https://video.example/news.m3u8"
+        cast.load(channel().toCastSource(url, null, null)) { accepted = true }
+        assertEquals(url, requests.single().mediaInfo?.contentId)
+        every { status.mediaInfo } answers { requests.last().mediaInfo }
         every { status.playerState } returns MediaStatus.PLAYER_STATE_BUFFERING
         every { client.isPlaying } returns false
         callback.captured.onStatusUpdated()
         assertFalse(accepted)
         assertTrue(cast.state.value.loading)
-        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(31))
+        val main = org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+        main.idleFor(java.time.Duration.ofSeconds(31))
+        waitForLoad(requests, 2)
+        assertFalse(accepted)
+        assertEquals("127.0.0.1", java.net.URI(requests.last().mediaInfo!!.contentId).host)
+        main.idleFor(java.time.Duration.ofSeconds(31))
         assertFalse(accepted)
         assertFalse(cast.state.value.loading)
+        assertEquals(2, requests.size)
         assertTrue(cast.state.value.error.orEmpty().contains("30 seconds"))
-        verify { client.stop() }
+        verify(exactly = 2) { client.stop() }
     }
 
     @Test fun directDebridDeliveryFailureRetriesThroughThePhoneAndPreservesPosition() {
@@ -135,13 +212,8 @@ class MobileCastingTest {
         })
         val main = org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
         main.idleFor(java.time.Duration.ofMillis(10))
-        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
-        while (requests.size < 2 && System.nanoTime() < deadline) {
-            Thread.sleep(10)
-            main.idle()
-        }
         try {
-            assertEquals(2, requests.size)
+            waitForLoad(requests, 2)
             assertFalse(accepted)
             assertEquals("127.0.0.1", java.net.URI(requests.last().mediaInfo!!.contentId).host)
             assertEquals(8_000L, requests.last().currentTime)

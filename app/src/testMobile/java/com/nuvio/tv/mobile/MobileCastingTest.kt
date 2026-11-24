@@ -130,6 +130,16 @@ class MobileCastingTest {
         cast.onSessionEnded(session, 0)
     }
 
+    @Test fun castExplainsTheHevcTransportStreamLimitOnlyForAKnownTransportStream() {
+        val channel = channel()
+        val hevc = androidx.media3.common.Format.Builder().setSampleMimeType("video/hevc")
+        val hls = "application/x-mpegURL"
+        assertTrue(channel.toCastSource(channel.url, null, "video/mp2t", hevc.build()).hevcTransportStream)
+        assertTrue(channel.toCastSource(channel.url, null, hls, hevc.setContainerMimeType("video/mp2t").build()).hevcTransportStream)
+        assertFalse(channel.toCastSource(channel.url, null, hls, hevc.setContainerMimeType("video/mp4").build()).hevcTransportStream)
+        assertFalse(channel.toCastSource(channel.url, null, "video/mp2t", hevc.setSampleMimeType("video/avc").build()).hevcTransportStream)
+    }
+
     @Test fun liveWithProviderHeadersStartsOnTheRelay() {
         reconnect(true, true)
         val requests = mutableListOf<MediaLoadRequestData>()
@@ -169,6 +179,41 @@ class MobileCastingTest {
         } finally { cast.onSessionEnded(session, 0) }
     }
 
+    @Test fun hevcUsesTheProviderFirstThenFragmentedMp4AndOnlyConvertsVideoAfterTheTVReachesThePhone() {
+        reconnect(true, true)
+        val requests = mutableListOf<MediaLoadRequestData>()
+        every { client.load(capture(requests)) } returns mockk(relaxed = true)
+        val url = "https://media.example/sports.ts"
+        val main = org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+        try {
+            cast.load(channel().toCastSource(url, null, "video/mp2t").copy(hevcTransportStream = true))
+            assertEquals(url, requests.single().mediaInfo!!.contentId)
+            every { status.mediaInfo } answers { requests.last().mediaInfo }
+            every { client.isPlaying } returns false
+            fun reject() {
+                callback.captured.onMediaError(mockk {
+                    every { type } returns MediaError.ERROR_TYPE_LOAD_FAILED
+                    every { detailedErrorCode } returns MediaError.DetailedErrorCode.MEDIA_SRC_NOT_SUPPORTED
+                })
+                main.idleFor(java.time.Duration.ofMillis(10))
+            }
+            reject()
+            waitForLoad(requests, 2)
+            val media = requests.last().mediaInfo!!
+            assertEquals(HlsVideoSegmentFormat.FMP4, media.hlsVideoSegmentFormat)
+            assertEquals(HlsSegmentFormat.FMP4, media.hlsSegmentFormat)
+            assertTrue(cast.state.value.preparation!!.startsWith("Preparing"))
+            val head = java.net.URI(media.contentId).resolve("init.mp4").toURL().openConnection() as java.net.HttpURLConnection
+            try { head.requestMethod = "HEAD"; head.responseCode } finally { head.disconnect() }
+            reject()
+            waitForLoad(requests, 3)
+            assertTrue(cast.state.value.preparation!!.startsWith("Converting"))
+            reject()
+            assertEquals(3, requests.size)
+            assertNotNull(cast.state.value.error)
+        } finally { cast.onSessionEnded(session, 0) }
+    }
+
     @Test fun liveBufferingRetriesOnTheRelayOnceAndTimesOutWithoutCompletingHandoff() {
         reconnect(true, true)
         val requests = mutableListOf<MediaLoadRequestData>()
@@ -192,7 +237,11 @@ class MobileCastingTest {
         assertFalse(accepted)
         assertFalse(cast.state.value.loading)
         assertEquals(2, requests.size)
-        assertTrue(cast.state.value.error.orEmpty().contains("30 seconds"))
+        val error = requireNotNull(cast.state.value.error)
+        assertTrue(error.contains("Provider URL (HLS) timed out after 30 seconds"))
+        assertTrue(error.contains("Phone relay (HLS) timed out after 30 seconds"))
+        assertTrue(error.contains("no media request"))
+        assertFalse(error.contains(url))
         verify(exactly = 2) { client.stop() }
     }
 

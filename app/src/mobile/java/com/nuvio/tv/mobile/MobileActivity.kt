@@ -235,6 +235,7 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
         if (multiview) MobileMultiview({ multiview = false })
         else if (playing) MobilePlayer(live, exitPlayer)
         else Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (!inVodPlayer && (tab == Tab.HOME || tab == Tab.SOURCES)) MobileUpdatePrompt()
             val tabs: @Composable () -> Unit = {
                 Row(Modifier.widthIn(max = tabWidth).fillMaxWidth().background(c.surface)) {
                     listOf(Tab.HOME, Tab.SEARCH, Tab.LIBRARY, Tab.GUIDE, Tab.SOURCES).forEach {

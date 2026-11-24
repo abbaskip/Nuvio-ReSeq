@@ -65,16 +65,7 @@ class UpdateDownloadStore @Inject constructor(
         val destination = destinationFor(update)
         if (files.isPinned(destination)) return@withLock Result.failure(IllegalStateException("An update installation is still in progress"))
         updatePreferences.setDownloadedUpdate(null)
-        apkDownloader.download(update.assetUrl, destination, update.assetDigest, onProgress)
-            .mapCatching { file ->
-                // The checksum identifies the exact release artifact. Android checks install compatibility.
-                // Releases cached by previous app versions may have no checksum.
-                if (update.assetDigest == null && !ApkInstaller.isCompatibleUpdate(context, file)) {
-                    files.completed(file)
-                    error("Could not verify the APK as an update to this app")
-                }
-                file
-            }
+        apkDownloader.download(update.assetUrl, destination, onProgress)
             .onSuccess { file ->
                 files.sweep(file, keepPending = true)
                 updatePreferences.setDownloadedUpdate(DownloadedUpdate(update.tag, file.absolutePath, file.length(), update.assetDigest))

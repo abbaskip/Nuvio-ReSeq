@@ -1,5 +1,6 @@
 package com.nuvio.tv.updater
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -12,23 +13,6 @@ import com.nuvio.tv.BuildConfig
 import java.io.File
 
 object ApkInstaller {
-
-    fun isCompatibleUpdate(context: Context, apk: File): Boolean = runCatching {
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
-            else android.content.pm.PackageManager.GET_SIGNATURES
-        @Suppress("DEPRECATION")
-        val installed = context.packageManager.getPackageInfo(context.packageName, flags)
-        @Suppress("DEPRECATION")
-        val candidate = context.packageManager.getPackageArchiveInfo(apk.path, flags) ?: return false
-        if (candidate.packageName != context.packageName) return false
-        @Suppress("DEPRECATION")
-        val newer = if (Build.VERSION.SDK_INT >= 28) candidate.longVersionCode > installed.longVersionCode
-            else candidate.versionCode > installed.versionCode
-        @Suppress("DEPRECATION")
-        fun signatures(info: PackageInfo) = if (Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners?.toSet()
-            else info.signatures?.toSet()
-        newer && !signatures(installed).isNullOrEmpty() && signatures(installed) == signatures(candidate)
-    }.getOrDefault(false)
 
     fun canRequestPackageInstalls(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -102,7 +86,7 @@ object ApkInstaller {
         }
     }
 
-    /** Hands the APK to the system installer screen, used when the session install cannot be completed. */
+    /** Opens the downloaded APK in the system installer with temporary read access. */
     fun launchSystemInstaller(context: Context, apkFile: File) {
         UpdateRelaunchReceiver.cancelReopen(context)
         UpdateFiles(File(context.filesDir, "updates")).pin(apkFile)
@@ -111,6 +95,7 @@ object ApkInstaller {
 
         val intent = Intent(Intent.ACTION_VIEW)
             .setDataAndType(uri, "application/vnd.android.package-archive")
+            .apply { clipData = ClipData.newRawUri(apkFile.name, uri) }
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 

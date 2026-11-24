@@ -4,8 +4,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
-import java.security.MessageDigest
-import okio.ByteString.Companion.toByteString
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -20,7 +18,6 @@ class ApkDownloader @Inject constructor(
     suspend fun download(
         url: String,
         destinationFile: File,
-        expectedDigest: String? = null,
         onProgress: (downloadedBytes: Long, totalBytes: Long?) -> Unit
     ): Result<File> {
         val partial = File(destinationFile.parentFile, destinationFile.name + ".part")
@@ -41,7 +38,6 @@ class ApkDownloader @Inject constructor(
 
                 val body = response.body ?: error("Empty download body")
                 val total = body.contentLength().takeIf { it > 0 }
-                val sha256 = expectedDigest?.let { MessageDigest.getInstance("SHA-256") }
 
                 body.byteStream().use { input ->
                     FileOutputStream(partial).use { output ->
@@ -52,19 +48,12 @@ class ApkDownloader @Inject constructor(
                             val read = input.read(buffer)
                             if (read <= 0) break
                             output.write(buffer, 0, read)
-                            sha256?.update(buffer, 0, read)
                             downloaded += read
                             onProgress(downloaded, total)
                         }
                         output.flush()
                         check(total == null || downloaded == total) { "Incomplete update download" }
                         check(downloaded > 0) { "Empty update download" }
-                        if (sha256 != null) {
-                            val actualDigest = "sha256:${sha256.digest().toByteString().hex()}"
-                            check(actualDigest.equals(expectedDigest, ignoreCase = true)) {
-                                "Downloaded APK does not match the release checksum. Please download it again."
-                            }
-                        }
                     }
                 }
             }

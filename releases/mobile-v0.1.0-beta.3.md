@@ -8,6 +8,8 @@ Live TV casting now distinguishes the provider stream from the phone’s rewind 
 
 For downloads and Usenet, keep the phone on the receiver’s network. The phone serves the original file first and can prepare a compatible copy when the receiver rejects the format. The Cast controls support seeking and collapse to a mini-player while you browse.
 
+In the IPTV library, the series episode list reserves its space as provider details load, keeping episode buttons reachable above the tablet taskbar.
+
 ReSeq now checks for mobile updates when you open the app. You can also open **Settings → About and credits → Check for updates**. Tap **Download update** to download the matching APK inside ReSeq. The first time, Android may ask you to allow installs from ReSeq Mobile. Return to ReSeq and confirm **Update** in the Android installer.
 
 To upgrade from Beta 2 or earlier, install the ARM64 APK on a recent Android phone or tablet, or choose universal for other architectures. Both update the existing signed mobile app in place.

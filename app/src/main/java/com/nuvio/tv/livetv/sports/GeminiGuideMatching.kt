@@ -22,18 +22,39 @@ internal class GeminiGuideCache(private val dir: File, usageDir: File = dir,
         return entry["decision"]?.jsonPrimitive?.contentOrNull?.let { runCatching { GuideMatchDecision.valueOf(it) }.getOrNull() }
     }
     @Synchronized fun put(profile: Int, key: String, decision: GuideMatchDecision) {
+        save(profile, key, buildJsonObject { put("decision", decision.name) })
+    }
+
+    @Synchronized fun observation(profile: Int, key: String, sport: Sport): SportsGuideFixtures.Observation? {
+        val data = read(file(profile))?.get(key) as? JsonObject ?: return null
+        val at = data["at"]?.jsonPrimitive?.longOrNull ?: return null
+        if (clock() - at !in 0 until SportsGuideFixtures.VALID_MS) return null
+        val url = data["url"]?.jsonPrimitive?.contentOrNull ?: return SportsGuideFixtures.Observation(null, at)
+        if (!SportsFixtureDiscovery.authorizedUrl(url, sport)) return null
+        val start = data["start"]?.jsonPrimitive?.longOrNull ?: return null
+        val name = data["competition"]?.jsonPrimitive?.contentOrNull ?: return null
+        return SportsGuideFixtures.Observation(SportsFixtureDiscovery.Proof(url, name, start), at)
+    }
+
+    @Synchronized fun remember(profile: Int, key: String, proof: SportsFixtureDiscovery.Proof?) {
+        save(profile, key, buildJsonObject {
+            if (proof != null) { put("url", proof.url); put("competition", proof.competition); put("start", proof.startMs) }
+        })
+    }
+
+    private fun save(profile: Int, key: String, fields: JsonObject) {
         dir.mkdirs()
         val now = clock()
         val entries = read(file(profile)).orEmpty().filterValues {
             val at = it.jsonObject["at"]?.jsonPrimitive?.longOrNull ?: 0
             now - at in 0 until 3 * 24 * 60 * 60_000L
         }.toMutableMap()
-        entries[key] = buildJsonObject { put("at", now); put("decision", decision.name) }
-        // Only hashes, timestamps and decisions are retained; no raw EPG descriptions or API keys.
+        entries[key] = JsonObject(fields + ("at" to JsonPrimitive(now)))
+        // No raw EPG descriptions, channel identifiers or API keys are retained.
         val bounded = entries.entries.sortedByDescending { it.value.jsonObject["at"]!!.jsonPrimitive.long }.take(500)
         file(profile).writeText(JsonObject(bounded.associate { it.key to it.value }).toString())
     }
-    @Synchronized fun reserve(): Boolean {
+    @Synchronized fun reserve(discovery: Boolean = false): Boolean {
         val now = clock()
         val usage = read(usageFile)
         if (now < (usage?.get("pausedUntil")?.jsonPrimitive?.longOrNull ?: 0)) return false
@@ -42,7 +63,13 @@ internal class GeminiGuideCache(private val dir: File, usageDir: File = dir,
         val attempts = recorded.filter { now - it in 0 until 24 * 60 * 60_000L }
         if (attempts.size >= 40 || attempts.count { now - it < 60 * 60_000L } >= 12 ||
             attempts.any { now - it < 15_000 }) return false
-        usageFile.writeText(buildJsonObject { put("attempts", JsonArray((attempts + now).map(::JsonPrimitive))) }.toString())
+        val searches = (usage?.get("searches") as? JsonArray).orEmpty().mapNotNull { it.jsonPrimitive.longOrNull }
+            .filter { now - it in 0 until 24 * 60 * 60_000L }
+        if (discovery && (searches.size >= 8 || searches.count { now - it < 3_600_000 } >= 3)) return false
+        usageFile.writeText(buildJsonObject {
+            put("attempts", JsonArray((attempts + now).map(::JsonPrimitive)))
+            put("searches", JsonArray((if (discovery) searches + now else searches).map(::JsonPrimitive)))
+        }.toString())
         return true
     }
     @Synchronized fun pause() {

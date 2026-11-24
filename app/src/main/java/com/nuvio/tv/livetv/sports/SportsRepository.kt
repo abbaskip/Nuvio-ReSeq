@@ -129,6 +129,7 @@ class SportsRepository @Inject constructor(
     /** Games of teams looked up on a table (their card), by team key: so their game pages open. */
     private val lookedUp = MutableStateFlow<Map<String, LeagueData>>(emptyMap())
     /** Shows found in the guide, by day (the day's start). */
+    private val scheduleObservations = MutableStateFlow<Map<SportsGuideFixtures.Listing, SportsGuideFixtures.Observation>>(emptyMap())
     private val guideData = MutableStateFlow<Map<Long, List<SportsEvent>>>(emptyMap())
     private val pageData = MutableStateFlow<List<SportsEvent>>(emptyList())
     private val pageRestored = MutableStateFlow(false)
@@ -183,12 +184,22 @@ class SportsRepository @Inject constructor(
      * Everything we know, for My Teams: the page's days plus your teams' whole seasons and the
      * non-league seasons. A game in both counts once (the fresher copy, from the page's days).
      */
-    val known: StateFlow<List<SportsEvent>> = combine(events, scheduleData, tsdbData, aheadData, lookedUp) { ev, s, t, a, lu ->
+    private val providerAndGuideEvents = combine(events, scheduleData, tsdbData, aheadData, lookedUp) { ev, s, t, a, lu ->
         val seen = HashSet<String>(ev.size * 2)
         ev.forEach { seen += dedupeKey(it) }
         val extra = (a.values.flatMap { it.events } + s.values.flatMap { it.events } + t.values.flatMap { it.events } + lu.values.flatMap { it.events })
             .filter { seen.add(dedupeKey(it)) }
         ev + extra
+    }
+    private val discoveryChannels = combine(channelStore.displayChannels, prefs.settings, prefs.userState) { channels, live, user ->
+        Triple(channels, live, user)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(), null)
+    val known: StateFlow<List<SportsEvent>> = combine(providerAndGuideEvents, scheduleObservations, guideData,
+        discoveryChannels, settings) { list, observations, days, inputs, sp ->
+        if (inputs == null || !sp.discoverGuideFixtures || observations.values.none { it.proof != null }) return@combine list
+        val (channels, live, user) = inputs
+        val visible = visibleSportsChannels(live, user, sp, channels).mapTo(HashSet()) { it.key }
+        SportsGuideFixtures.add(list, observations, System.currentTimeMillis(), days.values.asSequence().flatten(), visible::contains)
     }.combine(settings) { list, s ->
         list.filter { SportsTaxonomy.acceptsEvent(SportsCatalog.league(it.leagueId), it.title, it.subtitle, s.excludedSportsNodes) }
     }.stateIn(scope, SharingStarted.Eagerly, emptyList())
@@ -231,7 +242,20 @@ class SportsRepository @Inject constructor(
 
     private val _matches = MutableStateFlow<Map<String, List<ChannelMatch>>>(emptyMap())
     /** Event id -> the channels showing it, best first. */
-    val matches: StateFlow<Map<String, List<ChannelMatch>>> = _matches.asStateFlow()
+    val matches: StateFlow<Map<String, List<ChannelMatch>>> = combine(_matches, known.map { list ->
+        list.filter { it.source == EventSource.VERIFIED_SCHEDULE }
+    }.distinctUntilChanged(), settings) { local, verified, sp ->
+        if (verified.isEmpty()) return@combine local
+        val links = local.entries.asSequence().filter { it.key.startsWith("guide:") }
+            .flatMap { it.value.asSequence() }.associateBy { it.channel.key to it.program }
+        val additions = verified.associate { ev ->
+            val guide = ev.guideHits.mapNotNull { hit -> links[hit]?.copy(score = 78, how = "Guide listing at scheduled start") }
+            val picks = local[ev.id].orEmpty().filter { it.score >= 150 || (it.channel.key to it.program) in ev.guideHits }
+            ev.id to SportsMatcher.sortMatches((picks + guide).distinctBy { it.channel.key }
+                .filterNot { ev.id + "|" + it.channel.key in sp.blocked }, sp.bestChannelFirst, SportsMatcher.preferenceRank(sp))
+        }
+        local + additions
+    }.stateIn(scope, SharingStarted.Eagerly, emptyMap())
 
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
@@ -280,6 +304,7 @@ class SportsRepository @Inject constructor(
     fun start() {
         if (started) return
         started = true
+        scope.launch { discoverGuideFixtures() }
         // One bounded, user-visible restore survives a brief visit. No Sports disk work at app start.
         scope.launch {
             channelLookupAllowed.first { it }
@@ -1381,6 +1406,51 @@ class SportsRepository @Inject constructor(
         }
     }
 
+    private suspend fun discoverGuideFixtures() {
+        settings.map { it.discoverGuideFixtures }.distinctUntilChanged().collectLatest { enabled ->
+            scheduleObservations.value = emptyMap()
+            if (!enabled) return@collectLatest
+            val client = gemini.get()
+            client.sessions.distinctUntilChanged().collectLatest sessionLoop@ { session ->
+                scheduleObservations.value = emptyMap()
+                if (session.second == null) return@sessionLoop
+                combine(backgroundAllowed, viewers, firstMatchingComplete) { allowed, viewing, ready ->
+                    allowed && viewing > 0 && ready
+                }.distinctUntilChanged().collectLatest viewingLoop@ { allowed ->
+                    if (!allowed) return@viewingLoop
+                    while (true) {
+                        val now = System.currentTimeMillis()
+                        scheduleObservations.update { previous -> previous.filter { (entry, value) ->
+                            entry.programme.stopMs > now && now - value.checkedAt in 0 until SportsGuideFixtures.VALID_MS
+                        } }
+                        val sp = settings.value
+                        val channels = visibleSportsChannels(prefs.settings.first(), prefs.userState.first(), sp)
+                            .mapTo(HashSet()) { it.key }
+                        val fixtures = known.value.filter { it.source != EventSource.GUIDE && it.source != EventSource.VERIFIED_SCHEDULE }
+                        val coveredHits = fixtures.asSequence().flatMap { _matches.value[it.id].orEmpty().asSequence() }
+                            .filter { it.sure && it.program != null }.map { it.channel.key to it.program }.toSet()
+                        val active = activeLeagues(sp).mapTo(HashSet()) { it.id }
+                        val airings = guideData.value.values.asSequence().flatten().filter { it.leagueId in active &&
+                            SportsTaxonomy.acceptsEvent(SportsCatalog.league(it.leagueId), it.title, it.subtitle, sp.excludedSportsNodes) }
+                        val next = if (_loading.value) null else SportsGuideFixtures.next(airings, fixtures, channels,
+                            coveredHits, scheduleObservations.value.keys, now, focusedEvent.value)
+                        if (next != null) {
+                            val (airing, p) = next
+                            val sport = SportsCatalog.league(airing.leagueId)?.sport ?: Sport.OTHER
+                            val result = sportsCatching { client.discover(airing, p, sport, session) }.getOrNull()
+                            currentCoroutineContext().ensureActive()
+                            if (result != null && settings.value.discoverGuideFixtures && session == client.session()) {
+                                val key = SportsGuideFixtures.Listing(airing.leagueId, p)
+                                scheduleObservations.update { it + (key to result) }
+                            }
+                        }
+                        delay(60_000L)
+                    }
+                }
+            }
+        }
+    }
+
     /** Refine only uncertain, timed EPG candidates after publishing the local results. */
     private fun queueGeminiMatching() {
         if (!backgroundAllowed.value || viewers.value == 0 || !settings.value.backgroundGeminiMatching) return
@@ -2060,7 +2130,7 @@ class SportsRepository @Inject constructor(
     fun clearFixes() = updateSettings { it.copy(networkChannels = emptyMap(), eventChannels = emptyMap(), blocked = emptySet(), teamChannels = emptyMap(), leagueChannels = emptyMap()) }
 
     /** The channel to tune for a reminder or "watch now": the best match, if any. */
-    fun bestChannel(eventId: String): ChannelMatch? = _matches.value[eventId]?.firstOrNull()
+    fun bestChannel(eventId: String): ChannelMatch? = matches.value[eventId]?.firstOrNull()
 
     val channelsForPicker: StateFlow<List<LiveChannel>> = channelStore.displayChannels
 

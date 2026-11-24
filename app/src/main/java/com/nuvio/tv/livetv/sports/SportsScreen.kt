@@ -1435,6 +1435,14 @@ private fun GamePage(
             if (!settings.hideScores && hasFullTable) {
                 item { SportsAction("Full table", onClick = onTable) }
             }
+            ev.scheduleUrl?.let { url ->
+                item {
+                    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+                    SportsAction("Official schedule", onClick = {
+                        runCatching { uri.openUri(url) }.onFailure { LiveTvNotice.show("Unable to open the schedule") }
+                    })
+                }
+            }
             item { SportsAction("Ask Gemini", onClick = { if (viewModel.gemini.configured()) geminiOpen = true else geminiKey = true }) }
         }
     }

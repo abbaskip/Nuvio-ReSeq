@@ -316,11 +316,14 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
         var byGuide = 0; var byName = 0; var byNetwork = 0
 
         // Shows found in the guide already know their channels.
-        wanted.filter { it.source == EventSource.GUIDE && (selected == null || it.id in selected) }.forEach { ev ->
-            ev.guideHits.forEach { (key, p) -> add(ev.id, key, 100, guideLabel(p), p) }
+        wanted.filter { it.guideHits.isNotEmpty() && (selected == null || it.id in selected) }.forEach { ev ->
+            val verified = ev.source == EventSource.VERIFIED_SCHEDULE
+            if (verified || ev.source == EventSource.GUIDE) ev.guideHits.forEach { (key, p) ->
+                add(ev.id, key, if (verified) 78 else 100, if (verified) "Guide listing at scheduled start" else guideLabel(p), p)
+            }
         }
 
-        val teamEvents = wanted.filter { it.source != EventSource.GUIDE }
+        val teamEvents = wanted.filter { it.source != EventSource.GUIDE && it.source != EventSource.VERIFIED_SCHEDULE }
         val terms = teamEvents.associate { ev -> ev.id to termsFor(ev) }
 
         // Tournaments and race weekends running at the same time (several tennis events, two golf

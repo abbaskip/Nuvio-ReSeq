@@ -47,7 +47,11 @@ internal object SportsEventListings {
     }
 
     fun display(events: List<SportsEvent>, now: Long): List<SportsEvent> = events.mapNotNull {
-        if (it.source == EventSource.GUIDE) guideAiring(it, now) else it
+        when (it.source) {
+            EventSource.GUIDE -> guideAiring(it, now)
+            EventSource.VERIFIED_SCHEDULE -> it.takeIf { event -> (event.endMs ?: event.startMs) > now }
+            else -> it
+        }
     }
 
     fun onMyChannels(events: List<SportsEvent>, matches: Map<String, List<ChannelMatch>>,
@@ -68,6 +72,13 @@ internal object SportsEventListings {
 
     fun allEvents(events: List<SportsEvent>, dayStart: Long, dayEnd: Long, now: Long): List<SportsEvent> =
         events.filter { ev ->
+            if (ev.source == EventSource.VERIFIED_SCHEDULE) {
+                val url = ev.scheduleUrl ?: return@filter false
+                val sport = SportsCatalog.league(ev.leagueId)?.sport ?: return@filter false
+                if (!SportsFixtureDiscovery.authorizedUrl(url, sport) || ev.guideHits.none { (_, p) ->
+                        p.stopMs > now && kotlin.math.abs(p.startMs - ev.startMs) <= 15 * 60_000L
+                    }) return@filter false
+            }
             ev.source != EventSource.GUIDE && when {
                 ev.state == GameState.POST -> {
                     val finished = if (ev.hasTime) ev.startMs else minOf(ev.endMs ?: ev.startMs, now)

@@ -23,7 +23,7 @@ internal fun SportsGeminiKeyDialog(client: SportsGemini, onClose: () -> Unit) {
     SportsDialog(onDismiss = onClose, width = 760.dp) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             LiveText("Gemini sports assistance (optional)", size = 22.sp)
-            LiveText("Uses your Google API allowance for manual sourced answers and optional background guide matching. Availability and free quota vary; a billed project may incur charges. Answers may be delayed or incomplete.", size = 13.sp, maxLines = 3)
+            LiveText("Uses your Google API allowance for manual answers, optional guide matching and optional searches for missing fixtures. Availability and free quota vary; a billed project may incur charges. Answers may be delayed or incomplete.", size = 13.sp, maxLines = 3)
             LiveText(if (configured) "A key is saved for this profile." else "No key saved for this profile.", size = 13.sp)
             LiveTextField(key, { key = it }, "Gemini API key", password = true)
             error?.let { LiveText(it, size = 13.sp) }

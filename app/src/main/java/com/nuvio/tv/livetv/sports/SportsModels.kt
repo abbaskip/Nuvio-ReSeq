@@ -120,7 +120,7 @@ enum class GameState { PRE, LIVE, POST, OFF }
 /** One line of a race result or leaderboard: "1", "Kyle Larson", "-12" (golf) or null. */
 data class Standing(val pos: String, val name: String, val detail: String?)
 
-enum class EventSource { ESPN, GUIDE, FIXTURES, THESPORTSDB, CRICKET_AUSTRALIA }
+enum class EventSource { ESPN, GUIDE, FIXTURES, THESPORTSDB, CRICKET_AUSTRALIA, VERIFIED_SCHEDULE }
 
 @com.squareup.moshi.JsonClass(generateAdapter = true)
 data class SportsBroadcast(val name: String, val country: String?)
@@ -165,7 +165,8 @@ data class SportsEvent(
     val caCompetitionId: Int? = null,
     val venue: String? = null,
     val toss: String? = null,
-    val caFixtureId: Int? = null
+    val caFixtureId: Int? = null,
+    val scheduleUrl: String? = null
 ) {
     // A guide's transmission time does not establish the original match's live status.
     val isReplay: Boolean by lazy {
@@ -230,6 +231,7 @@ data class SportsSettings(
     /** The video window on the Sports page (games play there; off: the full-width layout). */
     val videoWindow: Boolean = true,
     val backgroundGeminiMatching: Boolean = false,
+    val discoverGuideFixtures: Boolean = false,
     /** Leagues taken off the Sports page. */
     val hiddenLeagues: Set<String> = emptySet(),
     val excludedSportsNodes: Set<String> = emptySet(),
@@ -259,6 +261,7 @@ data class SportsSettings(
         .put("onlyMyChannels", onlyOnMyChannels)
         .put("videoWindow", videoWindow)
         .put("backgroundGeminiMatching", backgroundGeminiMatching)
+        .put("discoverGuideFixtures", discoverGuideFixtures)
         .put("hiddenLeagues", JSONArray(hiddenLeagues.toList()))
         .put("excludedSportsNodes", JSONArray(excludedSportsNodes.toList()))
         .put("networkChannels", JSONObject(networkChannels as Map<*, *>))
@@ -289,6 +292,7 @@ data class SportsSettings(
                     onlyOnMyChannels = o.optBoolean("onlyMyChannels", d.onlyOnMyChannels),
                     videoWindow = o.optBoolean("videoWindow", d.videoWindow),
                     backgroundGeminiMatching = o.optBoolean("backgroundGeminiMatching", false),
+                    discoverGuideFixtures = o.optBoolean("discoverGuideFixtures", false),
                     hiddenLeagues = o.optJSONArray("hiddenLeagues").strings().toSet(),
                     excludedSportsNodes = o.optJSONArray("excludedSportsNodes").strings().toSet(),
                     networkChannels = o.optJSONObject("networkChannels").stringMap(),

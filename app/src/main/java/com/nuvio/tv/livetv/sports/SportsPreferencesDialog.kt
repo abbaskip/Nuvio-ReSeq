@@ -26,6 +26,11 @@ internal fun ChooseSportsDialog(viewModel: SportsViewModel, onTeams: () -> Unit,
             val excluded = current.excludedSportsNodes
             current.copy(excludedSportsNodes = if (id in excluded) excluded - id else excluded + id)
         } },
+        discoverFixtures = settings.discoverGuideFixtures,
+        onDiscoverFixtures = {
+            if (!settings.discoverGuideFixtures && !viewModel.gemini.configured()) geminiSetup = true
+            else viewModel.repo.updateSettings { it.copy(discoverGuideFixtures = !it.discoverGuideFixtures) }
+        },
         geminiMatching = settings.backgroundGeminiMatching,
         onToggleGemini = {
             if (!settings.backgroundGeminiMatching && !viewModel.gemini.configured()) geminiSetup = true
@@ -37,6 +42,7 @@ internal fun ChooseSportsDialog(viewModel: SportsViewModel, onTeams: () -> Unit,
 
 @Composable
 private fun SportsPreferencesDialog(excluded: Set<String>, region: String, onRegion: (String) -> Unit, onToggle: (String) -> Unit,
+    discoverFixtures: Boolean, onDiscoverFixtures: () -> Unit,
     geminiMatching: Boolean, onToggleGemini: () -> Unit, onTeams: () -> Unit, onGemini: () -> Unit,
     calendarOptions: (@Composable () -> Unit)?, onClose: () -> Unit) {
     var regionOpen by remember { mutableStateOf(false) }
@@ -69,6 +75,8 @@ private fun SportsPreferencesDialog(excluded: Set<String>, region: String, onReg
             if (parent == null) {
                 calendarOptions?.invoke()
                 SportsPill("Gemini guide matching: " + if (geminiMatching) "On" else "Off", onClick = onToggleGemini)
+                SportsPill("Verify missing guide events: " + if (discoverFixtures) "On" else "Off", onClick = onDiscoverFixtures)
+                LiveText("Uses Gemini Search to check unmatched IPTV listings against published schedules for All Events. Up to 3 checks per hour and 8 per day within the shared allowance.", size = 12.sp, maxLines = 3)
                 LiveText("Sends uncertain event and programme text to Google using your key. Up to 12 requests/hour and 40 per 24 hours per device. Google project charges may apply.", size = 12.sp, maxLines = 3)
             }
             if (parent != null && !SportsTaxonomy.enabled(parent.id, excluded))

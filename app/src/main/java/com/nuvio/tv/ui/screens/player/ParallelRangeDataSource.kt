@@ -304,7 +304,8 @@ internal class ParallelRangeDataSource(
         }
 
         private fun teardownSessionLocked(session: ChunkSession, poolCap: Int) {
-            session.abandoned.set(true)
+            // Close registration before collecting the futures whose buffers we own.
+            synchronized(session) { session.abandoned.set(true) }
             session.activeSources.forEach { ds ->
                 try { ds.close() } catch (_: Exception) {}
             }
@@ -1140,33 +1141,27 @@ internal class ParallelRangeDataSource(
         val activeSession = session ?: return
 
         enforceSessionCap(activeSession, protectIndex = chunkIndex, poolCap = maxPoolSize)
-        activeSession.futures.computeIfAbsent(chunkIndex) {
-            val future = CompletableFuture<DownloadedChunk>()
+        if (activeSession.futures.containsKey(chunkIndex)) return
+        val future = synchronized(activeSession) {
+            if (activeSession.abandoned.get() || activeSession.futures.containsKey(chunkIndex)) return
             activeSession.touch(chunkIndex)
-            Log.d(TAG, "Scheduling chunk $chunkIndex")
-            sharedExecutor.execute {
-                try {
-                    if (!future.isCancelled && !activeSession.abandoned.get()) {
-                        val result = downloadChunk(activeSession, chunkIndex, future)
-                        if (!future.complete(result)) {
-                            releaseBuffer(result.buffer)
-                        }
-                    } else if (future.isCancelled) {
-
-                    } else {
-                        future.completeExceptionally(IOException("Session abandoned"))
-                    }
-                } catch (e: Exception) {
-                    future.completeExceptionally(e)
-                } catch (e: OutOfMemoryError) {
-
-                    drainIdleBuffers(activeSession.chunkSize)
-                    future.completeExceptionally(
-                        IOException("Native chunk buffer allocation failed (out of memory)", e)
-                    )
+            CompletableFuture<DownloadedChunk>().also { activeSession.futures[chunkIndex] = it }
+        }
+        Log.d(TAG, "Scheduling chunk $chunkIndex")
+        sharedExecutor.execute {
+            try {
+                if (future.isCancelled) return@execute
+                if (activeSession.abandoned.get()) throw IOException("Session abandoned")
+                val result = downloadChunk(activeSession, chunkIndex, future)
+                if (!future.complete(result)) {
+                    releaseBuffer(result.buffer)
                 }
+            } catch (e: Exception) {
+                future.completeExceptionally(e)
+            } catch (e: OutOfMemoryError) {
+                drainIdleBuffers(activeSession.chunkSize)
+                future.completeExceptionally(IOException("Native chunk buffer allocation failed (out of memory)", e))
             }
-            future
         }
     }
 

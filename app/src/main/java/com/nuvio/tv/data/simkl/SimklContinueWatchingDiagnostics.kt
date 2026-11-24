@@ -270,7 +270,7 @@ private fun com.nuvio.tv.domain.model.WatchedItem?.toDiagnosticEpisode(): SimklD
 private fun WatchProgress?.toDiagnosticEpisode(): SimklDiagnosticEpisode? =
     this?.episode?.let { episode -> SimklDiagnosticEpisode(season, episode) }
 
-private fun parseSimklEpisodeMarker(value: String?): SimklDiagnosticEpisode? {
+internal fun parseSimklEpisodeMarker(value: String?): SimklDiagnosticEpisode? {
     val match = value?.trim()?.let(SIMKL_EPISODE_MARKER::matchEntire) ?: return null
     val season = match.groupValues[1].takeIf(String::isNotEmpty)?.toIntOrNull()
     val episode = match.groupValues[2].toIntOrNull() ?: return null

@@ -100,9 +100,12 @@ class DeviceWatchEventStoreTest {
                 source = WatchProgress.SOURCE_REMOTE_PLAYBACK, trackingProviderId = source.storageId)
             f.confirmed = confirmedFirst
             val shown = if (confirmedFirst) played.copy(source = nativePause.source) else played
-            f.repository(f.journal).removeLastTraktWatch(played.contentId,
+            val result = runCatching { f.repository(f.journal).removeLastTraktWatch(played.contentId,
                 Video(id = played.videoId, title = played.episodeTitle!!, season = played.season, episode = played.episode,
-                    released = null, thumbnail = null, overview = null), shown)
+                    released = null, thumbnail = null, overview = null), shown) }
+            if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile" && source == TrackingProviderId.MDBLIST && !confirmedFirst)
+                assertTrue(result.exceptionOrNull() is com.nuvio.tv.domain.repository.MdbListUndoPending)
+            else result.getOrThrow()
             assertEquals(listOf(f.prior), f.local.getAllRawEntries(1).values.toList())
             assertEquals(listOf(f.oldWatched), f.watched.getAllItems(1))
             assertTrue(f.local.observeDeviceProgress(1, source.name).first().isEmpty())

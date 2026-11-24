@@ -36,6 +36,7 @@ internal data class PersonalRatingsState(val open: Boolean = false, val busy: Bo
 @HiltViewModel
 internal class PersonalRatingsViewModel @Inject constructor(
     private val service: PersonalRatingsService,
+    private val traktEpisodes: dagger.Lazy<TraktEpisodeMappingService>,
     profiles: ProfileManager,
     private val ratingSettings: com.nuvio.tv.data.local.TraktSettingsDataStore,
     preferences: com.nuvio.tv.data.local.PlayerSettingsDataStore
@@ -53,7 +54,7 @@ internal class PersonalRatingsViewModel @Inject constructor(
     private var requestVersion = 0L
     init { viewModelScope.launch { profiles.activeProfileId.drop(1).collect { close() } } }
 
-    fun open(value: PersonalRatingTarget) {
+    fun open(value: PersonalRatingTarget, catalog: TrackingCatalogReference? = null) {
         close()
         target = value
         val version = requestVersion
@@ -65,8 +66,17 @@ internal class PersonalRatingsViewModel @Inject constructor(
                 val account = current.copy(providers = current.providers.filterTo(mutableSetOf()) {
                     source == null || it.name == source.name
                 })
+                val episode = value.episode
+                val mapped = if (episode != null && episode.tvdbId == null && episode.traktId == null &&
+                    catalog != null && account.providers == setOf(PersonalRatingProvider.TRAKT)) {
+                    traktEpisodes.get().resolveEpisodeMapping(catalog.contentId, catalog.contentType, catalog.videoId,
+                        episode.season, episode.number, episode.title)?.let { value.copy(episode =
+                            episode.copy(season = it.season, number = it.episode)) }
+                } else null
+                val native = mapped ?: value
                 session = account
-                val result = service.read(value, account)
+                target = native
+                val result = service.read(native, account)
                 state.value = PersonalRatingsState(open = true, results = result)
             } catch (cancelled: CancellationException) { if (version == requestVersion) close(); throw cancelled }
             catch (_: Exception) { state.value = state.value.copy(busy = false, error = "Could not contact your trackers. Close and try again.") }

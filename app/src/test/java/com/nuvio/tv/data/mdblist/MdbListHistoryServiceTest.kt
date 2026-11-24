@@ -159,6 +159,25 @@ class MdbListHistoryServiceTest {
         assertTrue(harness.http.engine.requests.isEmpty())
     }
 
+    @Test fun mobileUndoRemovesOnlyTheMatchingPlayEvenWithoutAPriorBaseline() = runTest {
+        val harness = MdbListSyncTestHarness(backgroundScope)
+        val latest = mdbListTestEpisode(6, 18).copy(episodeTmdbId = 501, episodeTvdbId = 1692591)
+        val previous = "2015-01-01T00:00:00Z"
+        val sibling = mdbListTestEpisode(6, 17, previous)
+        harness.seed(harness.snapshot().copy(watched = listOf(sibling, latest)))
+        harness.remote.watched = listOf(sibling, latest)
+        harness.http.reply(body = """{"type":"episode","provider":"tmdb","id":"501","play_count":2,"truncated":false,
+            "plays":[{"play_id":87,"watched_at":"$MDBLIST_TEST_TIME"},{"play_id":52,"watched_at":"$previous"}]}""")
+        harness.http.reply(body = """{"removed":[87],"not_found":[]}""")
+        val ref = com.nuvio.tv.core.tracking.buildTrackingMediaReference("series","tt1","tt1:6:18",seasonNumber=6,episodeNumber=18)
+        val progress = MdbListProgressProjection(harness.snapshot().copy(watched = listOf(latest))).nextUp(false).single()
+        val event = com.nuvio.tv.core.tracking.TrackingWatchEvent("undo", progress, progress.lastWatched - 2000, progress.lastWatched + 2000)
+        assertTrue(service(harness).undo(harness.repository.currentScope(), ref, event, byPlayId = true))
+        assertEquals(listOf("/sync/history/episode/tmdb/501", "/sync/watched/plays/remove"), harness.http.engine.requests.map { it.path })
+        assertEquals("""{"play_ids":[87]}""", harness.http.engine.requests.last().body)
+        assertEquals(listOf(sibling, latest.copy(watchedAt = previous)), harness.repository.currentSnapshot()!!.watched)
+    }
+
     private fun item(id: Long) = TrackingHistoryItem(
         TrackingMediaReference(TrackingMediaKind.MOVIE, "Movie $id", ids = TrackingExternalIds(imdb = "tt$id")),
         mdbListTimestamp(MDBLIST_TEST_TIME)

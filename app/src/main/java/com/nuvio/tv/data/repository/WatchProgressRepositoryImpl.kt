@@ -178,6 +178,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
     private val cwRepository: com.nuvio.tv.data.cw.ContinueWatchingRepository? = null,
     private val traktEvents: javax.inject.Provider<TraktProgressService>? = null,
     private val deviceEvents: javax.inject.Provider<com.nuvio.tv.data.local.DeviceWatchEventStore>? = null,
+    private val offlineWatches: dagger.Lazy<OfflineWatchQueue>? = null,
 ) : WatchProgressRepository {
     companion object {
         private const val TAG = "WatchProgressRepo"
@@ -458,6 +459,14 @@ class WatchProgressRepositoryImpl @Inject constructor(
         }.distinctUntilChanged()
     }
 
+    private fun deviceProgress(profileId: Int, source: TrackingProviderId): Flow<List<WatchProgress>> {
+        val recent = watchProgressPreferences.observeDeviceProgress(profileId, source.name)
+        val queue = mobileOfflineWatches() ?: return recent
+        return combine(recent, queue.pending(profileId, source)) { rows, pending -> (rows + pending).distinct() }
+    }
+
+    private fun mobileOfflineWatches() = offlineWatches?.takeIf { com.nuvio.tv.BuildConfig.FLAVOR == "mobile" }?.get()
+
     override suspend fun confirmSelectedDeviceProgress() {
         val provider = activeProgressProvider() ?: return
         val profile = profileManager.activeProfileId.value
@@ -481,7 +490,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 if (provider != null) {
                     combine(
                         provider.allProgress,
-                        watchProgressPreferences.observeDeviceProgress(profileId, provider.providerId.name),
+                        deviceProgress(profileId, provider.providerId),
                         metadataState,
                         tvdbTracking?.observeSelectedSeries(profileId) ?: flowOf(emptySet<Long>())
                     ) { items, localItems, metadata, selectedSeries ->
@@ -550,7 +559,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
         return profileProgressProviderFlow(profileId)
             .flatMapLatest { provider ->
                 if (provider != null) {
-                    combine(provider.allProgress, watchProgressPreferences.observeDeviceProgress(profileId, provider.providerId.name)) { remote, local ->
+                    combine(provider.allProgress, deviceProgress(profileId, provider.providerId)) { remote, local ->
                         (remote + local)
                             .filter { it.contentId.equals(contentId, ignoreCase = true) }
                             .maxByOrNull(WatchProgress::lastWatched)
@@ -627,8 +636,8 @@ class WatchProgressRepositoryImpl @Inject constructor(
     private fun selectedTvdbProgress(contentId: String, profileId: Int, context: com.nuvio.tv.domain.model.TvdbPlaybackContext? = null): Flow<Map<Pair<Int, Int>, WatchProgress>> {
         val tvdb = tvdbTracking ?: return getAllEpisodeProgress(contentId, profileId)
         return profileProgressProviderFlow(profileId).flatMapLatest { provider ->
-            val nativeRecords = if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile" && provider?.providerId == TrackingProviderId.MDBLIST)
-                provider.nativeEpisodeRecords(contentId) else null
+            val nativeRecords = if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile")
+                provider?.nativeEpisodeRecords(contentId) else null
             val remoteRows = if (nativeRecords != null && provider != null)
                 combine(nativeRecords, provider.allProgress) { native, other ->
                     // A mapped catalogue can omit a split episode or merge several into one slot.
@@ -647,7 +656,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 state?.takeIf { it.profileId == profileId && it.source == provider?.providerId?.name }?.ignoredProgress.orEmpty()
             }?.distinctUntilChanged() ?: flowOf(emptyMap())
             val local = if (provider == null) watchProgressPreferences.observeEpisodeRecords(contentId, profileId)
-                else watchProgressPreferences.observeDeviceProgress(profileId, provider.providerId.name).map { rows -> rows.filter { it.contentId == contentId } }
+                else deviceProgress(profileId, provider.providerId).map { rows -> rows.filter { it.contentId == contentId } }
             combine(remote, local, revoked) { entries, records, ignored ->
                 tvdb.projectProgress(profileId, contentId, emptyMap(),
                     (records + entries)
@@ -670,7 +679,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
                 if (provider != null) {
                     combine(
                         provider.episodeProgress(contentId),
-                        combine(provider.allProgress, watchProgressPreferences.observeDeviceProgress(profileId, provider.providerId.name)) { remote, local -> remote + local }.map { items ->
+                        combine(provider.allProgress, deviceProgress(profileId, provider.providerId)) { remote, local -> remote + local }.map { items ->
                             items.filter {
                                 it.contentId.equals(contentId, ignoreCase = true) &&
                                     it.season != null && it.episode != null
@@ -708,7 +717,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
         activeProgressProviderFlow().flatMapLatest { provider ->
             val history = provider?.nextUpSeeds ?: localNextUpSeeds()
             val local = if (provider == null) watchProgressPreferences.observeAllRawProgress(profileId)
-                else watchProgressPreferences.observeDeviceProgress(profileId, provider.providerId.name)
+                else deviceProgress(profileId, provider.providerId)
             val candidates = combine(history, local,
                 tvdbTracking?.observeSelectedSeries(profileId) ?: flowOf(emptySet<Long>())) { seeds, records, selected ->
                 seeds to records.filter { (it.tvdbContext == null || it.tvdbContext.seriesId in selected) && it.isCompleted() }
@@ -843,7 +852,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
         if (provider != null) {
             val providerEpisodes = provider.watchedShowEpisodes()
             if (profileManager.activeProfileId.value != profileId) return emptyMap()
-            val localItems = watchProgressPreferences.observeDeviceProgress(profileId, provider.providerId.name).first()
+            val localItems = deviceProgress(profileId, provider.providerId).first()
                 .filter { it.isCompleted() }.map { it.toWatchedItem() }
             if (profileManager.activeProfileId.value != profileId) return emptyMap()
             return mergeWatchedEpisodeProjection(
@@ -1029,6 +1038,7 @@ class WatchProgressRepositoryImpl @Inject constructor(
             require(event.contentId == contentId && event.hasRemovableWatchEvent())
             val profile = profileManager.activeProfileId.value
             val removed = journal.requestRemoval(profile, event)
+            mobileOfflineWatches()?.discard(profile) { removed.removes(it) }
             val local = watchProgressPreferences.getAllRawEntries(profile).filterValues { removed.removes(it) }
             mutationStore.acknowledgeProgressUpserts(local, profile)
             watchProgressPreferences.removeMatchingProgress(local, profile)
@@ -1049,6 +1059,11 @@ class WatchProgressRepositoryImpl @Inject constructor(
             // Consume that committed history without another full tracker refresh.
             cwRepository?.historyCommitted(profile, contentId, before = removed.startedAt)
             if (authManager.isAuthenticated) watchProgressSyncService.removeWatchMirrors(profile) { removed.removes(it) }
+            if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile" &&
+                traktSettingsDataStore.getWatchProgressSource(profile) == WatchProgressSource.MDBLIST &&
+                journal.events(profile).any { it.id == removed.id && TrackingProviderId.MDBLIST.name !in it.handled }) {
+                throw com.nuvio.tv.domain.repository.MdbListUndoPending()
+            }
             return
         }
         require(event.contentId == contentId && event.hasRemovableTraktWatch())
@@ -1160,6 +1175,8 @@ class WatchProgressRepositoryImpl @Inject constructor(
 
     override suspend fun removeFromHistory(contentId: String, videoId: String?, season: Int?, episode: Int?) {
         val profileId = profileManager.activeProfileId.value
+        mobileOfflineWatches()?.discard(profileId) { it.contentId == contentId && (season == null ||
+            it.season == season && (episode == null || it.episode == episode)) }
         if (season != null && episode != null && tvdbTracking?.isSelected(profileId, contentId) == true) {
             removeSelectedTvdbEpisode(profileId, contentId, videoId, season, episode, history = true)
             return
@@ -1211,6 +1228,8 @@ class WatchProgressRepositoryImpl @Inject constructor(
     ) {
         if (episodes.isEmpty()) return
         val profileId = profileManager.activeProfileId.value
+        val removedEpisodes = episodes.map { it.first to it.second }.toSet()
+        mobileOfflineWatches()?.discard(profileId) { it.contentId == contentId && (it.season to it.episode) in removedEpisodes }
         if (tvdbTracking?.isSelected(profileId, contentId) == true) {
             episodes.forEach { (season, number, id) -> removeSelectedTvdbEpisode(profileId, contentId, id ?: videoId, season, number, history = true) }
             return
@@ -1302,6 +1321,9 @@ class WatchProgressRepositoryImpl @Inject constructor(
             tvdbCompletedEpisodeIds = progress.tvdbEpisodeIds
         )
         val completed = deviceEvents?.get()?.record(profileId, completedRow, separateEvent = watchedAt != null) ?: completedRow
+        if (!broadcastTrackingHistory && !ServerItemRef.isServerId(completed.contentId)) {
+            mobileOfflineWatches()?.recordIfOffline(profileId, completed)
+        }
         mutationStore.queueProgressUpserts(mapOf(progressKey to completed), profileId)
         if (profileManager.activeProfileId.value == profileId) {
             optimisticContinueWatchingUpdates.tryEmit(completed)
@@ -1455,21 +1477,6 @@ class WatchProgressRepositoryImpl @Inject constructor(
             season = season,
             episode = episode,
             watchedAt = watchedAt
-        )
-
-    private fun WatchProgress.toTrackingHistoryItem(watchedAt: Long, userSelectedWatchTime: Boolean = false): TrackingHistoryItem =
-        TrackingHistoryItem(
-            media = buildTrackingMediaReference(
-                contentType = contentType,
-                parentMetaId = contentId,
-                videoId = videoId,
-                title = name,
-                seasonNumber = season,
-                episodeNumber = episode,
-                episodeTitle = episodeTitle
-            ).let { media -> media.copy(catalog = media.catalog?.copy(tvdbEpisodeIds = tvdbEpisodeIds, tvdbContext = tvdbContext, providerDefault = providerDefaultPlayback, tvdbCoverageVerified = tvdbCoverageVerified != false)) },
-            watchedAtEpochMs = watchedAt,
-            userSelectedWatchTime = userSelectedWatchTime
         )
 
     private suspend fun broadcastHistoryAdd(
@@ -1698,3 +1705,18 @@ internal fun WatchProgress.matchesPartialEpisode(parent: String, video: Video): 
             source.coordinates.season == season && source.coordinates.episode == episode
     }
 }
+
+internal fun WatchProgress.toTrackingHistoryItem(watchedAt: Long, userSelectedWatchTime: Boolean = false): TrackingHistoryItem =
+        TrackingHistoryItem(
+            media = buildTrackingMediaReference(
+                contentType = contentType,
+                parentMetaId = contentId,
+                videoId = videoId,
+                title = name,
+                seasonNumber = season,
+                episodeNumber = episode,
+                episodeTitle = episodeTitle
+            ).let { media -> media.copy(catalog = media.catalog?.copy(tvdbEpisodeIds = tvdbEpisodeIds, tvdbContext = tvdbContext, providerDefault = providerDefaultPlayback, tvdbCoverageVerified = tvdbCoverageVerified != false)) },
+            watchedAtEpochMs = watchedAt,
+            userSelectedWatchTime = userSelectedWatchTime
+        )

@@ -8,6 +8,18 @@ internal data class TvdbTrackingTarget(val episode: TrackingEpisode, val content
     val parentIds: com.nuvio.tv.core.tracking.TrackingExternalIds? = null,
     val parentTitle: String? = null, val parentYear: Int? = null)
 
+/** Simkl accepts episode-level TVDB IDs for a first watch, before it has any account history for this show. */
+internal fun EpisodeOrderStatus.simklHistoryTargets(ids: Set<Long>, known: List<TvdbTrackingTarget>): List<TvdbTrackingTarget> {
+    val missing = ids - known.flatMap { it.contentIds }.toSet()
+    if (missing.isEmpty()) return known
+    val byId = content.filter { it.officialCoordinates != null && it.episodeIds.any(missing::contains) }
+    return known + byId.map { record ->
+        val slot = requireNotNull(record.officialCoordinates)
+        TvdbTrackingTarget(TrackingEpisode(slot.season, slot.episode, record.title, record.tvdbId, numberingProvider = "tvdb"),
+            record.episodeIds.toSet())
+    }
+}
+
 internal fun TvdbTrackingTarget.matchesParent(progress: WatchProgress): Boolean {
     val ids = parentIds ?: return true
     if (progress.traktShowId != null && ids.trakt != null) return progress.traktShowId.toLong() == ids.trakt

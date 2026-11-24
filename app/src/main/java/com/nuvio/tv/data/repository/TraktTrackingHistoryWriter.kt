@@ -40,6 +40,14 @@ class TraktTrackingHistoryWriter @Inject constructor(
         return TrackingMutationResult(items.size)
     }
 
+    override suspend fun addOfflineWatch(profileId: Int, item: TrackingHistoryItem): TrackingMutationResult {
+        if (profileManager.activeProfileId.value != profileId || item.isWholeSeriesMark) return TrackingMutationResult(0)
+        val row = item.media.toWatchProgress(requireNotNull(item.watchedAtEpochMs))
+        service.markAsWatched(row, item.media.title, item.media.year,
+            nativeNumbering = item.media.episode?.numberingProvider == "trakt", requireAdded = true)
+        return TrackingMutationResult(1)
+    }
+
     override suspend fun removeFromHistory(
         profileId: Int,
         items: Collection<TrackingMediaReference>

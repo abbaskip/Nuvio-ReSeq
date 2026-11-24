@@ -44,6 +44,21 @@ class PersonalRatingsServiceTest {
         return PersonalRatingsService(profiles, trakt, auth, store, simkl, simklStore, mdb, mdbStore)
     }
 
+    @Test fun traktEpisodeRatingUsesVerifiedIdentityForReadingWritingAndRemoval() = runTest {
+        val episode = PersonalRatingTarget(false, target.ids, episode = TrackingEpisode(6, 20, tvdbId = 1692591))
+        val service = service()
+        val account = session.copy(providers = setOf(PersonalRatingProvider.TRAKT))
+        coEvery { trakt.getPersonalRatings(any(), "episodes", 1, any()) } returns Response.success(
+            """[{"rating":3,"show":{"ids":{"imdb":"tt1234567"}},"episode":{"ids":{"tvdb":123}}},
+                {"rating":8,"show":{"ids":{"imdb":"tt1234567"}},"episode":{"ids":{"tvdb":1692591}}}]""".toResponseBody())
+        assertEquals(8, service.read(episode, account).single().rating)
+        for (score in listOf(8, null)) {
+            val item = ratingBody(episode, PersonalRatingProvider.TRAKT, score).getJSONArray("episodes").getJSONObject(0)
+            assertEquals(1692591, item.getJSONObject("ids").getInt("tvdb"))
+            assertEquals(score != null, item.has("rating"))
+        }
+    }
+
     @Test fun partialFailuresDoNotSuppressOtherTrackers() = runTest {
         val service = service()
         coEvery { trakt.setPersonalRating(any(), any()) } throws IllegalStateException("fixture failure")

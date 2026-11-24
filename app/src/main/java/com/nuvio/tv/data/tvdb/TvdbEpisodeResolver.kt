@@ -32,6 +32,18 @@ class TvdbEpisodeResolver @Inject constructor(
         }
     }
 
+    /** Project already-loaded orders for a mobile download without making additional catalogue requests. */
+    internal suspend fun cachedDownloadOrders(profileId: Int, displayed: Meta): List<Meta> = withContext(Dispatchers.Default) {
+        val base = projectionMutex.withLock { projections.entries.lastOrNull {
+            it.key.profile == profileId && it.value.id == displayed.id && it.value.episodeOrder === displayed.episodeOrder
+        }?.key } ?: return@withContext emptyList()
+        base.order.relatedOrders.mapNotNull { (type, rows) ->
+            if (type == base.order.effectiveType || rows.isEmpty()) return@mapNotNull null
+            val order = base.order.copy(selectedType = type, effectiveType = type, episodes = rows)
+            project(profileId, base.meta, base.selection.copy(orderType = type), order, base.sources)
+        } + base.meta
+    }
+
     suspend fun seriesId(profileId: Int, meta: Meta, aliases: Collection<String>): Long? {
         preferences.knownSeries(profileId, aliases)?.let { return it }
         meta.id.takeIf { it.startsWith("tvdb:") }?.substringAfter(':')?.substringBefore(':')?.toLongOrNull()?.let { return it }

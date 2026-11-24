@@ -2300,6 +2300,8 @@ class MetaDetailsViewModel @Inject constructor(
                 }
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
+            } catch (_: com.nuvio.tv.domain.repository.MdbListUndoPending) {
+                showMessage(localizedContext.getString(R.string.episodes_last_watch_mdblist_pending))
             } catch (_: Exception) {
                 showMessage(localizedContext.getString(if (lastWatchOnly) R.string.episodes_last_watch_failed
                     else R.string.episodes_partial_watch_failed), isError = true)

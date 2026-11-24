@@ -99,6 +99,7 @@ object MdbListModule {
     ) = MdbListSyncRepository(
         storage, auth, api, profiles.activeProfileId,
         CoroutineScope(SupervisorJob() + Dispatchers.IO),
+        requestEpisodeIdentities = com.nuvio.tv.BuildConfig.FLAVOR == "mobile",
         ratingsEnabled = { settings.ratingSource.value == TrackingProviderId.MDBLIST }
     )
 }

@@ -21,10 +21,17 @@ class MdbListHistoryService @Inject constructor(
 
     /** Restore the pre-play timestamp only when the current row is this play. */
     suspend fun undo(scope: MdbListAuthScope, media: TrackingMediaReference,
-        event: com.nuvio.tv.core.tracking.TrackingWatchEvent): Boolean {
+        event: com.nuvio.tv.core.tracking.TrackingWatchEvent, byPlayId: Boolean = false): Boolean {
         sync.refresh(TrackingRefreshIntent.INVALIDATED)
         return sync.write(scope, setOf(MdbListSyncBucket.WATCHED)) { snapshot ->
             val target = snapshot.mutationTarget(media) ?: return@write snapshot to false
+            if (byPlayId) {
+                val requested = media.episode ?: return@write snapshot to false
+                if (requested.tmdbId != null && requested.tmdbId != target.episodeTmdbId ||
+                    requested.tvdbId != null && target.episodeTvdbId != null && requested.tvdbId != target.episodeTvdbId ||
+                    !target.scrobbleCoordinatesResolved && requested.tmdbId == null) return@write snapshot to false
+                return@write undoEpisodePlay(scope, snapshot, target, event)
+            }
             val current = snapshot.watched.singleOrNull(target::matches) ?: return@write snapshot to false
             if (!event.contains(mdbListTimestamp(current.watchedAt))) return@write snapshot to false
             check(event.priorKnown) { "The previous MDBList watch is unknown" }
@@ -37,6 +44,32 @@ class MdbListHistoryService @Inject constructor(
             snapshot.copy(watched = snapshot.watched.filterNot(target::matches) +
                 if (prior == null) emptyList() else listOf(current.copy(watchedAt = prior))) to true
         }
+    }
+
+    private suspend fun undoEpisodePlay(scope: MdbListAuthScope, snapshot: MdbListSyncSnapshot,
+        target: MdbListMutationTarget, event: com.nuvio.tv.core.tracking.TrackingWatchEvent
+    ): Pair<MdbListSyncSnapshot, Boolean> {
+        val id = target.episodeTmdbId?.takeIf { it > 0 } ?: return snapshot to false
+        val payload = mdbListResponseElement(api.get("/sync/history/episode/tmdb/$id", scope = scope).body).objectValue()
+        check(payload.text("type") == "episode" && payload.text("provider") == "tmdb" && payload.number("id") == id)
+        check(payload["plays"] is kotlinx.serialization.json.JsonArray && payload.integer("play_count") == payload.arrayValue("plays").size)
+        val plays = payload.arrayValue("plays").map { element ->
+            val row = element.objectValue()
+            requireNotNull(row.number("play_id")?.takeIf { it > 0 }) to requireNotNull(row.timestamp("watched_at"))
+        }
+        val candidates = plays.filter { (_, date) ->
+            val timestamp = mdbListTimestamp(date)
+            event.contains(timestamp) && timestamp != event.priorWatchedAt
+        }
+        val selected = candidates.singleOrNull() ?: return snapshot to
+            (candidates.isEmpty() && payload.flag("truncated") == false)
+        val receipt = mdbListResponseElement(api.post("/sync/watched/plays/remove",
+            """{"play_ids":[${selected.first}]}""", scope).body).objectValue()
+        check(receipt.arrayValue("removed").singleOrNull()?.toString()?.toLongOrNull() == selected.first)
+        val remaining = plays.filterNot { it.first == selected.first }.maxByOrNull { mdbListTimestamp(it.second) }
+        val watched = snapshot.watched.filterNot { it.episodeTmdbId == id } +
+            listOfNotNull(remaining?.let { target.watched(it.second) })
+        return snapshot.copy(watched = watched, invalidatedBuckets = snapshot.invalidatedBuckets + MdbListSyncBucket.WATCHED) to true
     }
 
     private suspend fun change(

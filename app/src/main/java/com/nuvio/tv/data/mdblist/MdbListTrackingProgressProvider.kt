@@ -139,7 +139,7 @@ class MdbListTrackingProgressProvider @Inject constructor(
         val mapped = mapping?.takeIf { it.remaps }?.toTmdb(requireNotNull(episode.season), episode.number)
         val native = if (mapped == null) target else target.copy(episode = episode.copy(season = mapped.season, number = mapped.episode))
         val pause = scrobbles.clearDatedEpisodePause(scope, native, event)
-        val watch = event.completionExpected && requireNotNull(history).undo(scope, native, event)
+        val watch = event.completionExpected && requireNotNull(history).undo(scope, native, event, byPlayId = com.nuvio.tv.BuildConfig.FLAVOR == "mobile")
         return if (event.completionExpected) watch else pause
     }
 

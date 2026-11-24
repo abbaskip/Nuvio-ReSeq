@@ -5,9 +5,10 @@ import com.nuvio.tv.domain.model.WatchedItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
-/**
- * Repository for managing watch progress data.
- */
+internal class MdbListUndoPending : Exception()
+
+/** Repository for managing watch progress data. */
+
 interface WatchProgressRepository {
     
     /**

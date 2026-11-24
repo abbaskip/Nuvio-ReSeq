@@ -63,6 +63,7 @@ internal class MobileCatalogViewModel @Inject constructor(
     val themes: com.nuvio.tv.data.local.ThemeDataStore, val debrid: com.nuvio.tv.data.local.DebridSettingsDataStore,
     val layout: LayoutPreferenceDataStore, val playback: com.nuvio.tv.data.local.PlayerSettingsDataStore,
     val progress: com.nuvio.tv.data.cw.ContinueWatchingRepository, val sync: com.nuvio.tv.core.sync.StartupSyncService,
+    val offlineWatches: com.nuvio.tv.data.repository.OfflineWatchQueue,
     val watchProgress: com.nuvio.tv.domain.repository.WatchProgressRepository
 ) : ViewModel()
 
@@ -282,6 +283,8 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
     val resolved by vm.initialCwResolved.collectAsStateWithLifecycle()
     val trackingState by tracking.uiState.collectAsStateWithLifecycle()
     val source = trackingState.watchProgressSource
+    var remoteLoaded by remember(profile, source) { mutableStateOf(false) }
+    val projection by catalog.progress.projection.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(lifecycle, source, profile, trackingState.isReady) {
         if (trackingState.isReady) lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -291,18 +294,18 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
             }.distinctUntilChanged().conflate().catch { error ->
                 android.util.Log.e("MobileHome", "Could not observe Continue Watching", error)
             }.collect { (_, _, loaded) ->
+                remoteLoaded = loaded
                 if (loaded) catalog.progress.refreshFromStoredProgress(profile, source.name)
             }
         }
     }
     var refreshing by remember(source) { mutableStateOf(false) }
     var refreshError by remember(source) { mutableStateOf<String?>(null) }
-    val revision by catalog.downloads.changes.collectAsStateWithLifecycle()
     val transfers by catalog.downloads.transfers.collectAsStateWithLifecycle()
     // The TV presentation suppresses captions in its Modern layout. Mobile uses the profile's actual preference.
     val showCaptions by catalog.layout.posterLabelsEnabled.collectAsStateWithLifecycle(initialValue = true)
-    val saved by produceState(emptyList<OfflineFile>(), profile, revision) {
-        value = withContext(Dispatchers.IO) { catalog.downloads.saved(profile) }
+    val saved by produceState(emptyList<OfflineFile>(), profile) {
+        catalog.downloads.observeSaved(profile).collect { value = it }
     }
     val connected by LocalTrailerNetwork.current.hasNetwork.collectAsStateWithLifecycle()
     var menu by remember { mutableStateOf<Pair<MetaPreview,String?>?>(null) }
@@ -352,7 +355,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
         if (connected && state.continueWatchingEnabled && state.continueWatchingItems.isEmpty()) item {
             ShelfHeading("Continue watching", gutter, trackerName(source))
             Row(Modifier.fillMaxWidth().padding(horizontal = gutter), verticalAlignment = Alignment.CenterVertically) {
-                Label(refreshError ?: if (!resolved || refreshing) "Checking watch progress…" else "No unfinished titles from this source.",
+                Label(refreshError ?: if (!resolved || !remoteLoaded || refreshing) "Checking watch progress…" else "No unfinished titles from this source.",
                     Modifier.weight(1f), small = true)
                 TextButton(enabled = !refreshing, onClick = {
                     refreshing = true
@@ -360,6 +363,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                     scope.launch {
                         try {
                             if (source == com.nuvio.tv.data.local.WatchProgressSource.NUVIO_SYNC) catalog.sync.requestSyncNow()
+                            catalog.offlineWatches.deliver(profile)
                             val failures = catalog.progress.refreshSelected(com.nuvio.tv.core.tracking.TrackingRefreshIntent.USER_INITIATED)
                             if (failures.isNotEmpty()) refreshError = "Couldn’t refresh " + trackerName(source) + ". Try again."
                         } catch (cancelled: kotlinx.coroutines.CancellationException) {
@@ -414,7 +418,14 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
                                 contentDescription = "Watch progress for " + video.label
                             }
                         )
-                        Label(video.label, Modifier.padding(top = 4.dp), lines = 2)
+                        val cachedNext = if (entry is ContinueWatchingItem.NextUp && entry.chooseEpisode && entry.info.episode == 0) {
+                            val seed = projection?.takeIf { it.profileId == profile && it.source == source.name }
+                                ?.members?.get(video.contentId)?.progress
+                            seed?.takeIf { it.isCompleted() && it.lastWatched == entry.info.lastWatched }?.let { watched ->
+                                saved.singleOrNull { file -> file.video.matchesCachedWatch(watched) || file.downloadedVideo.matchesCachedWatch(watched) }?.details?.nextEpisodeLabel
+                            }
+                        } else null
+                        Label(cachedNext ?: video.label, Modifier.padding(top = 4.dp), lines = 2)
                         if (entry is ContinueWatchingItem.NextUp && !entry.info.hasAired) entry.info.airDateLabel?.let { Label(it, small = true) }
                     }
                 }
@@ -422,7 +433,7 @@ private fun CatalogHome(profile: Int, catalog: MobileCatalogViewModel, openVideo
         } }
         if (saved.isNotEmpty()) {
             item { ShelfHeading("Downloads", gutter, seeAll = { navigate("downloads") }) }
-            items(saved, key = { "offline-" + it.video.key }) { entry ->
+            items(saved, key = { "offline-" + it.downloadedVideo.key }) { entry ->
                 Row(Modifier.padding(horizontal = gutter), verticalAlignment = Alignment.CenterVertically) {
                     MediaArt(entry.artwork ?: entry.video.poster, Icons.Default.Download, Modifier.size(38.dp, 56.dp))
                     Action(entry.video.label, Modifier.weight(1f)) { openVideo(entry.video, VideoAction.Play) }
@@ -634,9 +645,8 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
     open: (MobileVideo, VideoAction) -> Unit, back: () -> Unit, navigate: (String) -> Unit,
     openTitle: (MetaPreview, String?, VideoAction) -> Unit, mix: TvMixViewModel, layout: LayoutPreferenceDataStore, sourceAddon: String?,
     guideNumber: String, guideSubtitle: String, downloads: MobileOfflineMedia) {
-    val downloadRevision by downloads.changes.collectAsStateWithLifecycle()
-    val matches by produceState<List<OfflineFile>?>(null, profile, id, type, downloadRevision) {
-        value = withContext(Dispatchers.IO) { downloads.saved(profile).filter { it.video.contentId == id && it.video.type == type } }
+    val matches by produceState<List<OfflineFile>?>(null, profile, id, type) {
+        downloads.observeSaved(profile).collect { entries -> value = entries.filter { it.video.contentId == id && it.video.type == type } }
     }
     val saved = matches.orEmpty()
     val connected by LocalTrailerNetwork.current.hasNetwork.collectAsStateWithLifecycle()
@@ -657,8 +667,9 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
             downloads.rememberTitle(profile, type, id, meta)
             withContext(Dispatchers.IO) {
                 val cover = if (saved.any { it.artwork == null }) downloads.fetchCover(meta.poster) else null
+                val orders = if (saved.isEmpty()) emptyList() else downloads.cachedOrders(profile, meta)
                 saved.forEach { entry ->
-                    try { downloads.updateDetails(entry, meta, cover) } catch (_: java.io.IOException) { }
+                    try { downloads.updateDetails(entry, meta, cover, orders) } catch (_: java.io.IOException) { }
                 }
             }
         }
@@ -906,6 +917,12 @@ private fun CatalogDetail(profile: Int, initial: String?, preview: String, id: S
 
 @Composable
 internal fun MobileRating(media: com.nuvio.tv.core.tracking.TrackingMediaReference, modifier: Modifier = Modifier, vm: RatingViewModel = hiltViewModel()) {
+    val choices: MobileTrackerChoices = hiltViewModel()
+    val source by choices.rating.selected.collectAsStateWithLifecycle()
+    if (source == com.nuvio.tv.core.tracking.TrackingProviderId.TRAKT || source == null && media.episode == null) {
+        MobilePersonalRating(media, modifier)
+        return
+    }
     val state by rememberRatingState(media, vm)
     var show by remember { mutableStateOf(false) }
     if (!state.isAvailable) return

@@ -135,7 +135,7 @@ internal class MobileDownloadService : Service() {
                         val meta = media.viewedTitle(video) ?: downloadMetadata(video)
                         val cover = media.fetchCover(meta?.poster ?: video.poster)
                         job.ensureActive()
-                        media.publish(video, partial, extension, meta?.offlineDetails(video), cover)
+                        media.publish(video, partial, extension, meta?.offlineDetails(video), cover, meta, media.cachedOrders(video.profile, meta))
                         return
                     }
                 } finally { abort.dispose() }

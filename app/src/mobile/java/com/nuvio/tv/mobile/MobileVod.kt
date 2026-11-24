@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
+import com.nuvio.tv.core.usenet.UsenetPlayback
 import com.nuvio.tv.data.local.InternalPlayerEngine
 import com.nuvio.tv.data.local.PlayerPreference
 import com.nuvio.tv.domain.model.Stream
@@ -43,12 +44,10 @@ internal fun MobileSourceDestination(video: MobileVideo, media: MobileOfflineMed
         local = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { media.localRoute(video, fromBeginning) }
         checked = true
     }
-    val casting by LocalCasting.current.state.collectAsStateWithLifecycle()
-    val route = local.takeIf { casting.device == null }
     when {
         !checked -> LinearProgressIndicator()
-        route != null && !manual && !download -> LaunchedEffect(route) { play(route) }
-        else -> MobileSources(video, download, manual, route, fromBeginning, back, play)
+        local != null && !manual && !download -> LaunchedEffect(local) { local?.let(play) }
+        else -> MobileSources(video, download, manual, local, fromBeginning, back, play)
     }
 }
 
@@ -85,7 +84,7 @@ private fun MobileSources(video: MobileVideo, download: Boolean, manual: Boolean
                 val torrent = prepared.infoHash?.takeIf { prepared.isTorrent && !receiverUrl(url) && !cast.isCurrentTorrent(url) }?.let {
                     CastTorrent(it, prepared.fileIdx, prepared.filename, prepared.sources.orEmpty())
                 }
-                require(!prepared.isExternal && (receiverUrl(url) || torrent != null || cast.isCurrentTorrent(url))) { "Choose a network video for Chromecast, or disconnect to play this source on the phone." }
+                require(!prepared.isExternal && (receiverUrl(url) || torrent != null || cast.isCurrentTorrent(url) || UsenetPlayback.hasSession(url))) { "Choose a network video for Chromecast, or disconnect to play this source on the phone." }
                 cast.load(CastSource(url, target.label, prepared.headers.orEmpty(), target,
                     iptv = prepared.bingeGroup?.startsWith("iptv-playlist:") == true,
                     mime = PlayerMediaSourceFactory.inferMimeType(url, prepared.filename), torrent = torrent), if (fromBeginning) 0L else null, onAccepted = back)
@@ -220,19 +219,24 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
     val castUrl = state.currentStreamUrl
     val leaveAfterCast by rememberUpdatedState(back)
     LaunchedEffect(castState.device, castUrl) {
-        if (castState.device != null && castUrl != null && (receiverUrl(castUrl) || cast.isCurrentTorrent(castUrl))) {
+        if (castState.device != null && castUrl != null) {
             val controller = vm.controller
             val video = controller.downloadIdentity() ?: controller.cloudPlaybackContext?.let { cloud ->
                 cloud.currentFile?.let { file -> MobileVideo(controller.profileId, "cloud", cloud.item.stableKey,
                     cloud.videoId(file), cloud.item.name, episodeName = file.name) }
             }
+            val download = if (castUrl.startsWith("file:") && video != null) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                media.find(video)?.takeIf { android.net.Uri.fromFile(it).toString() == castUrl }
+            } else null
+            if (download == null && !receiverUrl(castUrl) && !cast.isCurrentTorrent(castUrl) &&
+                !UsenetPlayback.hasSession(castUrl)) return@LaunchedEffect
             val subtitles = state.addonSubtitles.filter { receiverUrl(it.url) && it.url.substringBefore('?').endsWith(".vtt", true) }
                 .mapIndexed { i, sub -> com.google.android.gms.cast.MediaTrack.Builder(i + 1L, com.google.android.gms.cast.MediaTrack.TYPE_TEXT)
                     .setContentId(sub.url).setContentType("text/vtt").setName(sub.getDisplayLanguage()).setLanguage(sub.lang).build() }
             cast.load(CastSource(castUrl, video?.label ?: state.title, controller.getCurrentHeaders(), video,
                 iptv = controller.currentStreamBingeGroup?.startsWith("iptv-playlist:") == true || controller.portalPlayback != null ||
                     controller.currentAddonName == com.nuvio.tv.livetv.ondemand.OnDemandStreams.GROUP_NAME,
-                mime = controller.currentStreamMimeType, subtitles = subtitles, cloudToken = controller.cloudSessionToken),
+                download = download, mime = controller.currentStreamMimeType, subtitles = subtitles, cloudToken = controller.cloudSessionToken),
                 timeline.currentPosition.takeIf { it > 0 }, autoplay = state.isPlaying || timeline.duration <= 0) {
                 vm.stopAndRelease()
                 leaveAfterCast()

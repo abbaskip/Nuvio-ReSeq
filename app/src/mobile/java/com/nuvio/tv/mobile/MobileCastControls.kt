@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,25 +27,35 @@ import com.google.android.gms.cast.framework.CastButtonFactory
     }, modifier = Modifier.size(48.dp))
 }
 
-@Composable internal fun MobileCastBar(casting: MobileCasting, sources: (MobileVideo) -> Unit, channels: () -> Unit) {
-    val state by casting.state.collectAsStateWithLifecycle()
+@Composable internal fun MobileCastBar(casting: MobileCasting, state: CastControls, sources: (MobileVideo) -> Unit, channels: () -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var section by rememberSaveable { mutableStateOf<String?>(null) }
     val device = state.device ?: return
+    var lastOpened by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(state.item?.token) {
+        val token = state.item?.token ?: return@LaunchedEffect
+        if (token != lastOpened) {
+            lastOpened = token
+            section = null
+            expanded = true
+        }
+    }
     Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).clickable { expanded = true }
         .padding(horizontal = 8.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.CastConnected, null, tint = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
-            Label(state.item?.title ?: if (state.loading) "Connecting media…" else "Connected to Chromecast", strong = true, lines = 1)
+            Label(state.preparation ?: state.item?.title ?: if (state.loading) "Connecting media…" else "Connected to Chromecast", strong = true, lines = 1)
             Label(device, small = true, lines = 1)
         }
         if (state.item != null) CastPlayPause(state, casting)
         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.ExpandLess, "Cast controls") }
     }
     if (expanded) TouchSheet({ expanded = false; section = null }) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        val display = if (state.item != null || state.loading) Modifier.keepScreenOn() else Modifier
+        Column(Modifier.fillMaxWidth().then(display).verticalScroll(rememberScrollState()).padding(12.dp)) {
             BrowseHeading(state.item?.title ?: device) { expanded = false; section = null }
             Label(device, small = true)
+            state.preparation?.let { Label(it) }
             val item = state.item
             if (item != null) {
                 if (!item.live && state.duration > 0) {

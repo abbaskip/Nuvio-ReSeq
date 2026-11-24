@@ -14,12 +14,33 @@ internal object UsenetPlayback {
     private val sessions = LinkedHashMap<String, UsenetHttpSession>()
     private val originalStreams = LinkedHashMap<String, Stream>()
 
+    // Cast may continue reading after the results screen or local player releases its ownership.
+    private val readers = mutableMapOf<String, Int>()
+    private val released = mutableSetOf<String>()
+
+    fun retain(url: String): java.io.Closeable? = synchronized(sessions) {
+        if (url !in sessions) return null
+        readers[url] = readers.getOrDefault(url, 0) + 1
+        val closed = java.util.concurrent.atomic.AtomicBoolean()
+        java.io.Closeable {
+            synchronized(sessions) {
+                if (closed.compareAndSet(false, true)) {
+                    val remaining = readers.getValue(url) - 1
+                    if (remaining > 0) readers[url] = remaining else {
+                        readers.remove(url)
+                        if (released.remove(url)) release(url)
+                    }
+                }
+            }
+        }
+    }
+
     fun originalStream(url: String): Stream? = synchronized(sessions) { originalStreams[url] }
     fun hasSession(url: String): Boolean = synchronized(sessions) { sessions.containsKey(url) }
     private val cleanup by lazy {
         Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "Usenet session cleanup").apply { isDaemon = true } }.apply {
             scheduleWithFixedDelay({
-                val idle = synchronized(sessions) { sessions.values.filter { it.isIdle() }.map { it.url } }
+                val idle = synchronized(sessions) { sessions.values.filter { it.isIdle() && it.url !in readers }.map { it.url } }
                 idle.forEach(::release)
             }, 1, 1, TimeUnit.MINUTES)
         }
@@ -27,6 +48,10 @@ internal object UsenetPlayback {
 
     fun release(url: String) {
         val session = synchronized(sessions) {
+            if (url in readers) {
+                released.add(url)
+                return
+            }
             originalStreams.remove(url)
             sessions.remove(url)
         } ?: return
@@ -111,7 +136,11 @@ internal object UsenetPlayback {
         session.start()
         trace.mark("session_started")
         synchronized(sessions) {
-            if (sessions.size >= 2) release(sessions.keys.first())
+            if (sessions.size >= 2) {
+                val oldest = sessions.keys.firstOrNull { it !in readers }
+                    ?: throw UsenetFailure("All Usenet sessions are in use.")
+                release(oldest)
+            }
             sessions[session.url] = session
             originalStreams[session.url] = stream
         }

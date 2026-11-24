@@ -76,12 +76,7 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
             controls = false
         }
     }
-    val view = androidx.compose.ui.platform.LocalView.current
-    DisposableEffect(view) {
-        val previous = view.keepScreenOn
-        view.keepScreenOn = true
-        onDispose { view.keepScreenOn = previous }
-    }
+    com.nuvio.tv.livetv.ui.KeepScreenAwake(true)
     BackHandler(panel) { panel = false }
     DisposableEffect(vm) {
         com.nuvio.tv.livetv.ui.LiveTvFullscreen.active.value = true

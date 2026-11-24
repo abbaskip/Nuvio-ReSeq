@@ -17,9 +17,12 @@ internal data class CastEndpoint(val url: String, val mime: String, val relay: C
 
 /** The receiver can request only the selected media and resources named by its playlist. */
 internal class CastRelay private constructor(private val source: CastSource, bind: String,
-    private val receiver: InetAddress, private val shift: LiveTvTimeshift?, private val engineFile: Closeable?) : NanoHTTPD(bind, 0), Closeable {
+    private val receiver: InetAddress, private val shift: LiveTvTimeshift?, private val engineFile: Closeable?,
+    private val selectedFile: File?) : NanoHTTPD(bind, 0), Closeable {
     private val token = "/" + UUID.randomUUID().toString() + "/"
-    private val root = source.url.toHttpUrl()
+    private val root = if (selectedFile == null) source.url.toHttpUrl() else null
+    @Volatile var deliveryFailed = false
+        private set
     private val paths = object : LinkedHashMap<String, HttpUrl>(128, .75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, HttpUrl>?) = size > 2048
     }
@@ -44,10 +47,12 @@ internal class CastRelay private constructor(private val source: CastSource, bin
         val replacements = values.iterator()
         return entry.base.resolve(DASH_NUMBER.replace(entry.pattern) { replacements.next() }.replace("\$\$", "\$"))
     }
-    private val client = OkHttpClient.Builder().followRedirects(false).dns { host ->
+    private val client = OkHttpClient.Builder().apply {
+        if (engineFile != null) readTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+    }.followRedirects(false).dns { host ->
         Dns.SYSTEM.lookup(host).filter { address ->
-            !address.isAnyLocalAddress && (!address.isLoopbackAddress || engineFile != null && host == root.host) && !address.isLinkLocalAddress && !address.isMulticastAddress &&
-                (host == root.host || !address.isSiteLocalAddress && (address.address.size != 16 || address.address[0].toInt() and 0xfe != 0xfc))
+            !address.isAnyLocalAddress && (!address.isLoopbackAddress || engineFile != null && host == root?.host) && !address.isLinkLocalAddress && !address.isMulticastAddress &&
+                (host == root?.host || !address.isSiteLocalAddress && (address.address.size != 16 || address.address[0].toInt() and 0xfe != 0xfc))
         }.ifEmpty { throw java.net.UnknownHostException("Unreachable Cast media host") }
     }.build()
     private val localBase get() = HttpUrl.Builder().scheme("http").host(hostname).port(listeningPort).build()
@@ -58,7 +63,7 @@ internal class CastRelay private constructor(private val source: CastSource, bin
     }
     private fun providerHeaders(url: HttpUrl) = source.headers.filterKeys { key ->
         key.lowercase() !in setOf("host", "connection", "content-length", "range", "accept-encoding") &&
-            (root.scheme == url.scheme && root.host == url.host && root.port == url.port || key.equals("User-Agent", true))
+            (root != null && root.scheme == url.scheme && root.host == url.host && root.port == url.port || key.equals("User-Agent", true))
     }
     override fun serve(session: IHTTPSession): Response {
         if (!session.uri.startsWith(token) || session.remoteIpAddress.substringBefore('%') != receiver.hostAddress?.substringBefore('%'))
@@ -68,11 +73,14 @@ internal class CastRelay private constructor(private val source: CastSource, bin
             when {
                 session.method == Method.OPTIONS -> newFixedLengthResponse("")
                 session.method !in setOf(Method.GET, Method.HEAD) -> newFixedLengthResponse(Response.Status.METHOD_NOT_ALLOWED, "text/plain", "")
+                selectedFile != null && path == "video" -> serveCastFile(selectedFile, requireNotNull(source.mime), session)
+                selectedFile != null -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "")
                 shift != null -> localSegment(path)
                 else -> lookup(path)?.let { upstream(it, session) }
                     ?: newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "")
             }
         } catch (_: Exception) {
+            deliveryFailed = true
             newFixedLengthResponse(Response.Status.SERVICE_UNAVAILABLE, "text/plain", "")
         }.apply {
             addHeader("Access-Control-Allow-Origin", "*")
@@ -103,6 +111,7 @@ internal class CastRelay private constructor(private val source: CastSource, bin
             try {
                 val body = requireNotNull(response.body)
                 val mime = response.header("Content-Type")?.substringBefore(';') ?: "application/octet-stream"
+                if (response.code >= 400 && response.code != 416) deliveryFailed = true
                 val status = Response.Status.lookup(response.code) ?: Response.Status.SERVICE_UNAVAILABLE
                 if (session.method == Method.GET && response.isSuccessful && (mime.contains("dash+xml", true) || url.encodedPath.endsWith(".mpd", true))) {
                     response.use {
@@ -125,9 +134,18 @@ internal class CastRelay private constructor(private val source: CastSource, bin
                         return newFixedLengthResponse(status, HLS, lines)
                     }
                 }
-                val length = body.contentLength()
-                val outgoing = if (length >= 0) newFixedLengthResponse(status, mime, body.byteStream(), length)
-                    else newChunkedResponse(status, mime, body.byteStream())
+                val length = if (session.method == Method.HEAD) response.header("Content-Length")?.toLongOrNull() ?: 0L
+                    else body.contentLength()
+                val stream = object : java.io.FilterInputStream(body.byteStream()) {
+                    override fun read(buffer: ByteArray, off: Int, len: Int): Int = try {
+                        super.read(buffer, off, len)
+                    } catch (error: java.io.IOException) {
+                        deliveryFailed = true
+                        throw error
+                    }
+                }
+                val outgoing = if (length >= 0) newFixedLengthResponse(status, mime, stream, length)
+                    else newChunkedResponse(status, mime, stream)
                 for (key in listOf("Accept-Ranges", "Content-Range")) response.header(key)?.let { outgoing.addHeader(key, it) }
                 return outgoing
             } catch (e: Exception) { response.close(); throw e }
@@ -139,21 +157,22 @@ internal class CastRelay private constructor(private val source: CastSource, bin
         private const val HLS = "application/x-mpegURL"
         private val URI_ATTRIBUTE = Regex("URI=\"([^\"]+)\"")
         private val DASH_NUMBER = Regex("""\$(?:Number|Time|SubNumber)(?:%0?[0-9]+d)?\$""")
-        suspend fun prepare(context: Context, source: CastSource, receiver: InetAddress?, engineFile: Closeable? = null): CastEndpoint {
+        suspend fun prepare(context: Context, source: CastSource, receiver: InetAddress?, engineFile: Closeable? = null, selectedFile: File? = null): CastEndpoint {
             val mime = source.mime ?: PlayerMediaSourceFactory.inferMimeType(source.url, null)
                 ?: if (source.live) HLS else "video/mp4"
             val ts = source.live && mime.equals("video/mp2t", true)
-            if (source.headers.isEmpty() && !ts && engineFile == null) return CastEndpoint(source.url, mime)
+            if (source.headers.isEmpty() && !ts && engineFile == null && selectedFile == null) return CastEndpoint(source.url, mime)
             val bind = try { withContext(Dispatchers.IO) {
                 requireNotNull(receiver)
                 DatagramSocket().use { socket -> socket.connect(receiver, 8009); requireNotNull(socket.localAddress.hostAddress) }
             } } catch (e: Exception) { engineFile?.close(); throw e }
             val shift = if (ts) LiveTvTimeshift(context) else null
-            val server = CastRelay(source, bind, requireNotNull(receiver), shift, engineFile)
+            val server = CastRelay(source.copy(mime = mime), bind, requireNotNull(receiver), shift, engineFile, selectedFile)
             try {
                 val path = withContext(Dispatchers.IO) {
                     server.start(SOCKET_READ_TIMEOUT, true)
-                    if (shift == null) return@withContext server.resource(server.root)
+                    if (selectedFile != null) return@withContext server.token + "video"
+                    if (shift == null) return@withContext server.resource(requireNotNull(server.root))
                     val buffer = requireNotNull(shift.start(source.url, source.headers, keepMinutes = 1, label = "Chromecast"))
                     withTimeout(25_000) {
                         val playlist = File(buffer.dir, "index.m3u8")

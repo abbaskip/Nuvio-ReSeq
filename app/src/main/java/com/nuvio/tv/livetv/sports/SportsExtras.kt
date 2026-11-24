@@ -24,8 +24,9 @@ data class FormRow(val teamId: String?, val team: String, val results: List<Stri
 /** One earlier meeting: when, and how it went ("Everton 0–2 Arsenal"). */
 data class Meeting(val dateMs: Long?, val text: String)
 
-/** A line of the league table. [mine]: one of this game's teams. */
-data class TableRow(val pos: String, val team: String, val a: String, val b: String, val c: String, val mine: Boolean)
+/** A small window around one fixture participant, within its own division or group. */
+data class TeamTableSection(val heading: String, val columns: List<String>, val rows: List<TableRow>)
+data class TableRow(val pos: String, val team: String, val values: List<String>, val highlighted: Boolean)
 
 /** A team's starting line-up (football). */
 data class Lineup(val team: String, val teamId: String?, val formation: String?, val players: List<String>)
@@ -35,9 +36,7 @@ data class GameExtras(
     val performers: List<Performer> = emptyList(),
     val form: List<FormRow> = emptyList(),
     val meetings: List<Meeting> = emptyList(),
-    val tableTitle: String? = null,
-    val tableHead: List<String> = emptyList(),
-    val table: List<TableRow> = emptyList(),
+    val table: List<TeamTableSection> = emptyList(),
     val venue: String? = null,
     val city: String? = null,
     val tempF: Int? = null,
@@ -50,7 +49,10 @@ data class GameExtras(
     val draw: Double? = null,
     /** The home team's chance through the game (0–1), oldest first. */
     val winHistory: List<Float> = emptyList(),
-    val lineups: List<Lineup> = emptyList()
+    val lineups: List<Lineup> = emptyList(),
+    val scoring: List<ScoringPlay> = emptyList(),
+    val cricketTableLeague: String? = null,
+    val playerLines: List<Performer> = emptyList()
 ) {
     val hasMatchInfo: Boolean get() = venue != null || tempF != null || referee != null || attendance != null
     val hasOdds: Boolean get() = homeWin != null && awayWin != null
@@ -68,7 +70,7 @@ internal object SportsExtras {
         return Regex("""^-?\d+(?:\.\d+)?""").find(t)?.value?.toDoubleOrNull()
     }
 
-    /** The stats worth a line, per sport, in order (ESPN's own names). Others fill in up to six. */
+    /** The stats worth a line, per sport, in order (ESPN's own names). Other shared statistics follow. */
     private fun preferred(sport: Sport): List<String> = when (sport) {
         Sport.AMERICAN_FOOTBALL -> listOf("totalYards", "netPassingYards", "rushingYards", "turnovers", "possessionTime", "thirdDownEff")
         Sport.FOOTBALL -> listOf("possessionPct", "totalShots", "shotsOnTarget", "wonCorners", "foulsCommitted", "saves")
@@ -80,16 +82,25 @@ internal object SportsExtras {
 
     fun parse(root: JSONObject, ev: SportsEvent, sport: Sport): GameExtras {
         val homeId = ev.home?.team?.id
-        val awayId = ev.away?.team?.id
         val names = listOfNotNull(ev.home?.team, ev.away?.team).associate { it.id to it.name }
         fun nameOf(id: String?, fallback: String?) = names[id] ?: fallback ?: ""
         return GameExtras(
+            playerLines = when (sport) {
+                Sport.BASKETBALL -> SportsPlayerStats.basketball(root)
+                Sport.CRICKET -> SportsPlayerStats.espnCricket(root, ev.state)
+                else -> emptyList()
+            },
+            cricketTableLeague = if (sport == Sport.CRICKET) root.optJSONObject("header")?.optJSONArray("leagues").objs()
+                .firstOrNull { league -> league.optJSONArray("links").objs().any { link ->
+                    val rel = link.optJSONArray("rel")
+                    rel != null && (0 until rel.length()).any { rel.optString(it) == "table" }
+                } }?.s("id")?.let { "cricket/$it" }?.takeIf { SportsCatalog.league(it) != null } else null,
             stats = runCatching { stats(root, sport, homeId) }.getOrDefault(emptyList()),
             performers = runCatching { performers(root) }.getOrDefault(emptyList()),
             form = runCatching { form(root, ::nameOf) }.getOrDefault(emptyList()),
             meetings = runCatching { meetings(root, ::nameOf) }.getOrDefault(emptyList()),
             lineups = runCatching { lineups(root, ::nameOf) }.getOrDefault(emptyList())
-        ).let { e -> runCatching { table(root, e, setOfNotNull(homeId, awayId), names.values.toSet()) }.getOrDefault(e) }
+        ).let { e -> runCatching { e.copy(table = table(root, ev.ordered(sport))) }.getOrDefault(e) }
             .let { e -> runCatching { info(root, e) }.getOrDefault(e) }
             .let { e -> runCatching { odds(root, e) }.getOrDefault(e) }
     }
@@ -118,8 +129,8 @@ internal object SportsExtras {
         val h = flat(home)
         val a = flat(away)
         val keys = preferred(sport).filter { it in h && it in a }.toMutableList()
-        if (keys.size < 4) h.keys.filter { it in a && it !in keys }.take(6 - keys.size).forEach { keys += it }
-        return keys.take(6).map { k ->
+        keys += h.keys.filter { it in a && it !in keys }
+        return keys.map { k ->
             val label = (h[k]?.first ?: k).uppercase(Locale.ROOT)
             val av = a[k]!!.second
             val hv = h[k]!!.second
@@ -144,10 +155,10 @@ internal object SportsExtras {
                 )
             }
         }
-        // Both teams' first two kinds (passing, then rushing…), each team's leader in turn.
+        // Compare the two teams within each category before moving to the next one.
         val out = ArrayList<Performer>()
-        for (i in 0 until 3) for (list in byTeam) list.getOrNull(i)?.let { out += it }
-        return out.distinctBy { it.name + it.category }.take(4)
+        for (i in 0 until (byTeam.maxOfOrNull { it.size } ?: 0)) for (list in byTeam) list.getOrNull(i)?.let { out += it }
+        return out.distinctBy { Triple(it.teamId, it.name, it.category) }
     }
 
     // ---- last five
@@ -193,34 +204,44 @@ internal object SportsExtras {
             if (starters.size < 5) null else Lineup(nameOf(team?.s("id"), team?.s("displayName")), team?.s("id"), r.s("formation"), starters)
         }.take(2)
 
-    // ---- standings: the top three and the rows around this game's teams
-    private fun table(root: JSONObject, e: GameExtras, ids: Set<String>, teamNames: Set<String>): GameExtras {
-        val st = root.optJSONObject("standings") ?: return e
-        val groups = st.optJSONArray("groups").objs()
-        fun entries(g: JSONObject) = g.optJSONObject("standings")?.optJSONArray("entries").objs()
-        fun isMine(en: JSONObject) = en.s("id") in ids || (en.s("team") ?: en.optJSONObject("team")?.s("displayName")) in teamNames
-        val group = groups.firstOrNull { g -> entries(g).any(::isMine) } ?: groups.firstOrNull() ?: return e
-        val all = entries(group)
-        if (all.isEmpty()) return e
-        fun stat(en: JSONObject, vararg n: String): String? {
-            val stats = en.optJSONArray("stats").objs()
-            for (name in n) stats.firstOrNull { it.s("name") == name || it.s("type") == name }?.let { s -> s.s("displayValue")?.let { return it } }
-            return null
+    // Work within a single group for each team, including same-division matchups.
+    private fun table(root: JSONObject, sides: List<Side>): List<TeamTableSection> {
+        val standings = root.optJSONObject("standings") ?: return emptyList()
+        fun stat(entry: JSONObject, vararg names: String): String? = entry.optJSONArray("stats").objs()
+            .firstOrNull { it.s("name") in names || it.s("type") in names }?.s("displayValue")
+        fun teamName(entry: JSONObject): String? = entry.optJSONObject("team")?.s("displayName")
+            ?: (entry.opt("team") as? String)
+        fun matches(entry: JSONObject, team: TeamInfo): Boolean {
+            val id = entry.optJSONObject("team")?.s("id") ?: entry.s("id")
+            if (id != null) return id == team.id
+            return teamName(entry)?.let { it.equals(team.name, true) || it.equals(team.fullName, true) } == true
         }
-        val soccerLike = all.any { stat(it, "points") != null && stat(it, "gamesPlayed") != null }
-        val head = if (soccerLike) listOf("P", "GD", "Pts") else listOf("W", "L", "PCT")
-        val rows = all.mapIndexed { i, en ->
-            val name = en.s("team") ?: en.optJSONObject("team")?.s("displayName") ?: "?"
-            val pos = stat(en, "rank", "position") ?: (i + 1).toString()
-            if (soccerLike) TableRow(pos, name, stat(en, "gamesPlayed") ?: "", stat(en, "pointDifferential", "differential") ?: "", stat(en, "points") ?: "", isMine(en))
-            else TableRow(pos, name, stat(en, "wins") ?: "", stat(en, "losses") ?: "", stat(en, "winPercent", "leagueWinPercent") ?: "", isMine(en))
+        val groups = standings.optJSONArray("groups").objs().map { group ->
+            val heading = group.s("header") ?: group.s("name") ?: standings.s("header")
+            val entries = group.optJSONObject("standings")?.optJSONArray("entries").objs()
+            heading to entries
         }
-        // The top three, and one either side of each of this game's teams (in table order).
-        val keep = sortedSetOf(0, 1, 2)
-        rows.forEachIndexed { i, r -> if (r.mine) { keep += i - 1; keep += i; keep += i + 1 } }
-        val slice = keep.filter { it in rows.indices }.map { rows[it] }.take(8)
-        val title = group.s("header") ?: st.s("header")
-        return e.copy(tableTitle = title, tableHead = head, table = slice)
+        return sides.mapNotNull { side ->
+            val (heading, entries) = groups.filter { (_, rows) -> rows.any { matches(it, side.team) } }
+                .minByOrNull { it.second.size } ?: return@mapNotNull null
+            val ranked = entries.mapIndexed { i, row ->
+                (stat(row, "rank", "position")?.toIntOrNull() ?: (i + 1)) to row
+            }.sortedBy { it.first }
+            val index = ranked.indexOfFirst { matches(it.second, side.team) }
+            val (position, participant) = ranked[index]
+            val points = stat(participant, "points") != null && stat(participant, "gamesPlayed") != null
+            val columns = if (points) listOf("P", "GD", "Pts") else listOf("W", "L", "PCT")
+            val rows = (maxOf(0, index - 1)..minOf(ranked.lastIndex, index + 1)).mapNotNull neighbour@{ i ->
+                val (rank, row) = ranked[i]
+                // Some summaries contain a partial table with gaps in the published ranks.
+                if (kotlin.math.abs(rank - position) > 1) return@neighbour null
+                val name = teamName(row) ?: return@neighbour null
+                val values = if (points) listOf(stat(row, "gamesPlayed"), stat(row, "pointDifferential", "differential"), stat(row, "points"))
+                    else listOf(stat(row, "wins"), stat(row, "losses"), stat(row, "winPercent", "leagueWinPercent"))
+                TableRow(rank.toString(), name, values.map { it ?: "–" }, highlighted = i == index)
+            }
+            TeamTableSection(heading ?: side.team.name, columns, rows)
+        }
     }
 
     // ---- venue, weather, referee, attendance

@@ -1,0 +1,147 @@
+{
+  "header": {
+    "id": "401910032",
+    "competitions": [
+      {
+        "id": "401910032",
+        "date": "2026-11-23T00:00Z",
+        "status": {
+          "type": {
+            "id": "3",
+            "name": "STATUS_FINAL",
+            "state": "post",
+            "completed": true,
+            "description": "Final",
+            "detail": "Final/OT",
+            "shortDetail": "Final/OT",
+            "altDetail": "OT"
+          }
+        },
+        "competitors": [
+          {
+            "id": "4",
+            "score": "145",
+            "homeAway": "home",
+            "winner": false,
+            "team": {
+              "id": "4",
+              "abbreviation": "CHI",
+              "displayName": "Chicago Bulls",
+              "name": "Bulls"
+            }
+          },
+          {
+            "id": "7",
+            "score": "151",
+            "homeAway": "away",
+            "winner": true,
+            "team": {
+              "id": "7",
+              "abbreviation": "DEN",
+              "displayName": "Denver Nuggets",
+              "name": "Nuggets"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "boxscore": {
+    "players": [
+      {
+        "team": {
+          "id": "7",
+          "abbreviation": "DEN"
+        },
+        "statistics": [
+          {
+            "labels": [
+              "PTS",
+              "REB",
+              "AST"
+            ],
+            "athletes": [
+              {
+                "athlete": {
+                  "displayName": "Nikola Jokic"
+                },
+                "stats": [
+                  "37",
+                  "18",
+                  "11"
+                ]
+              },
+              {
+                "athlete": {
+                  "displayName": "Jamal Murray"
+                },
+                "stats": [
+                  "45",
+                  "5",
+                  "7"
+                ]
+              },
+              {
+                "athlete": {
+                  "displayName": "Christian Braun"
+                },
+                "stats": [
+                  "21",
+                  "8",
+                  "3"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "team": {
+          "id": "4",
+          "abbreviation": "CHI"
+        },
+        "statistics": [
+          {
+            "labels": [
+              "PTS",
+              "REB",
+              "AST"
+            ],
+            "athletes": [
+              {
+                "athlete": {
+                  "displayName": "Josh Giddey"
+                },
+                "stats": [
+                  "23",
+                  "14",
+                  "22"
+                ]
+              },
+              {
+                "athlete": {
+                  "displayName": "Buddy Hield"
+                },
+                "stats": [
+                  "33",
+                  "7",
+                  "6"
+                ]
+              },
+              {
+                "athlete": {
+                  "displayName": "Jalen Smith"
+                },
+                "stats": [
+                  "26",
+                  "4",
+                  "1"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

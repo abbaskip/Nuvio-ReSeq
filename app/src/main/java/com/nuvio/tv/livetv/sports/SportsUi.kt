@@ -31,6 +31,13 @@ internal fun startLabel(ev: SportsEvent, use24h: Boolean): String = when {
     else -> "All day"
 }
 
+/** Use the same device zone and 12/24-hour preference as the rest of the guide. */
+internal fun eventTimelineLabel(ev: SportsEvent, use24h: Boolean): String {
+    val day = java.text.SimpleDateFormat("EEE d MMM", java.util.Locale.getDefault()).format(java.util.Date(ev.startMs))
+    val time = if (ev.hasTime) formatClock(ev.startMs, use24h) else "Time to be confirmed"
+    return "$day  ·  $time"
+}
+
 /** "in 1 h 51", "in 12 min", "Tonight", "Tomorrow". */
 internal fun untilLabel(startMs: Long, now: Long, dayEnd: Long): String {
     val m = ((startMs - now) / 60_000L).toInt()

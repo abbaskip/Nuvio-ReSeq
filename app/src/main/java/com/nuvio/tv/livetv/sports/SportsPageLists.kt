@@ -42,7 +42,7 @@ internal class SportsPageLists(
             val mine = { event: SportsEvent -> isMine(event, follows) }
             val fixtures = SportsEventListings.allEvents(known, start, end, now)
                 .filter { it.leagueId in active || mine(it) }
-            val dayEvents = SportsEventListings.onMyChannels(fixtures, matches, settings.onlyOnMyChannels && hasChannels, matched, mine)
+            val dayEvents = SportsEventListings.onMyChannels(fixtures, matches, settings.onlyOnMyChannels && hasChannels, matched, now, mine)
             val shown = if (chip == CHIP_TV_NOW) SportsCurrentGuide.withFixtures(SportsEventListings.tvNow(events, now),
                 SportsCurrentGuide.fixtures(events).filter { it.leagueId in active }, matches, now).filter { it.leagueId in active }
                 else dayEvents
@@ -57,7 +57,7 @@ internal class SportsPageLists(
                 .filter { event -> matches[event.id]?.any { it.channel.key == playingKey } == true }
                 .minByOrNull { if (it.state == GameState.LIVE) 0 else if (it.state == GameState.PRE) 1 else 2 }
             return SportsPageLists(request, filters, events, known, matches, dayEvents, shown,
-                dayEvents.count { it.state == GameState.LIVE }, SportsEventListings.entryIndex(shown), teams, opened, playing, playingKey)
+                dayEvents.count { it.state == GameState.LIVE }, SportsEventListings.entryIndex(shown, now), teams, opened, playing, playingKey)
         }
     }
 }

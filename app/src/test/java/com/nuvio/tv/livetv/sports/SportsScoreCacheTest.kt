@@ -7,11 +7,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
-class CollegeBasketballScoresTest {
+class SportsScoreCacheTest {
     @get:Rule val directory = TemporaryFolder()
     private val now = 1_795_132_800_000L
     private val tip = now - 7 * 3_600_000L
-    private val league = "basketball/womens-college-basketball"
+    private val league = "basketball/nba"
     private fun side(id: String, home: Boolean) = Side(TeamInfo(league,id,id,id,id,null,null,null,null),
         null,null,false,home)
     private val scheduled = SportsEvent("espn:$league:1001",league,tip,true,GameState.PRE,"Visitors at Home",
@@ -19,13 +19,16 @@ class CollegeBasketballScoresTest {
     private val final = scheduled.copy(state=GameState.POST,status="Final/OT",updatedAt=now,
         home=scheduled.home!!.copy(score="72",winner=true,periods=listOf("37","35")),
         away=scheduled.away!!.copy(score="70",periods=listOf("34","36")))
-    private fun cache() = CollegeBasketballScores(File(directory.root,"scores.json"))
+    private fun cache() = SportsScoreCache(File(directory.root,"scores.json"))
 
     @Test fun `a cold hub keeps a confirmed early final even when it was omitted from the 512 game page`() = runBlocking {
         val upcoming = (1..530).map { scheduled.copy(id="upcoming-$it",startMs=now+it) }
         val page = File(directory.root,"page.json")
         SportsPageSnapshot.write(page,upcoming+final,emptyMap(),now,tip,now+86_400_000L) { false }
         assertFalse(SportsPageSnapshot.read(page,now)!!.events.any { it.id == final.id })
+        SportsPageSnapshot.write(page, upcoming.map { it.copy(startMs = now + 2 * 86_400_000L) } + final,
+            emptyMap(), now, tip, now + 3 * 86_400_000L) { false }
+        assertTrue(SportsPageSnapshot.read(page, now)!!.events.any { it.id == final.id })
         cache().remember(listOf(final), now)
         val reopened = cache().apply { read(now+1) }
         val stale = scheduled.copy(updatedAt=now+1,broadcasts=listOf("Updated channel"),note="Schedule metadata")
@@ -37,7 +40,7 @@ class CollegeBasketballScoresTest {
         assertEquals(stale.broadcasts,restored.broadcasts)
         assertEquals(stale.note,restored.note)
         assertEquals(final.id,restored.id)
-        assertFalse(restored.awaitingCollegeStatus(now+1))
+        assertFalse(restored.pastScheduledStart(now+1))
         val unseen = stale.copy(id = "unseen")
         assertSame(unseen, reopened.apply(unseen, now + 1))
         val live = scheduled.copy(id="live",state=GameState.LIVE,startMs=now-60_000)
@@ -67,9 +70,9 @@ class CollegeBasketballScoresTest {
         assertEquals("2nd 04:19",reopened.apply(scheduled,now+500).status)
         assertSame(scheduled,reopened.apply(scheduled,now+SportsPageSnapshot.SCORE_AGE+1))
         assertSame(scheduled,cache().apply { read(now+SportsPageSnapshot.SCORE_AGE+1) }.apply(scheduled,now+SportsPageSnapshot.SCORE_AGE+1))
-        val nba = scheduled.copy(leagueId="basketball/nba")
+        val otherLeague = scheduled.copy(leagueId="basketball/womens-college-basketball")
         val airing = scheduled.copy(source=EventSource.GUIDE)
-        assertSame(nba,reopened.apply(nba,now+500))
+        assertSame(otherLeague,reopened.apply(otherLeague,now+500))
         assertSame(airing,reopened.apply(airing,now+500))
     }
 }

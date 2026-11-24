@@ -84,12 +84,13 @@ class SportsRepository @Inject constructor(
     @Volatile private var tvNowFixtureMatches = emptyMap<String, List<ChannelMatch>>()
     private val sportsCache = SportsDiskCache.directory(context.filesDir, context.cacheDir)
     private val dir get() = sportsCache.apply { mkdirs() }
-    private val collegeScores = CollegeBasketballScores(File(sportsCache, "college-scores.json"))
+    // Keep the existing file so earlier installations retain their confirmed scores.
+    private val scoreCache = SportsScoreCache(File(sportsCache, "college-scores.json"))
 
     private fun scoreboardResults(league: League, games: List<SportsEvent>, now: Long): List<SportsEvent> {
-        if (!isCollegeBasketball(league.id)) return games
-        collegeScores.remember(games, now)
-        return games.map { collegeScores.apply(it, now) }
+        if (league.espnPath == null || league.kind != LeagueKind.TEAMS) return games
+        if (backgroundAllowed.value && !PlayerSessionTracker.hasOpenTrailer) scoreCache.remember(games, now)
+        return games.map { scoreCache.apply(it, now) }
     }
 
     val settings: StateFlow<SportsSettings> = prefs.sportsSettingsJson
@@ -120,7 +121,7 @@ class SportsRepository @Inject constructor(
     private val baseFeed by lazy { SportsBaseFeed(dir, com.nuvio.tv.BuildConfig.SPORTS_BASE_FEED_URL, allowLocalhost = com.nuvio.tv.BuildConfig.DEBUG || com.nuvio.tv.BuildConfig.STABILITY_FIXTURES) }
     private var appliedBaseAt = 0L
     private val baseApplyGate = kotlinx.coroutines.sync.Mutex()
-    private val scoreAttempts = HashMap<String, Long>()
+    private val scoreAttempts = java.util.concurrent.ConcurrentHashMap<SportsRefreshPolicy.Board, Long>()
     private var lastSharedScoreRound = 0L
     private val focusedEvent = MutableStateFlow<String?>(null)
     private val geminiMatchGate = kotlinx.coroutines.sync.Mutex()
@@ -286,7 +287,7 @@ class SportsRepository @Inject constructor(
             try {
                 val now = System.currentTimeMillis()
                 val page = withContext(SportsPageSnapshot.dispatcher) {
-                    collegeScores.read(now)
+                    scoreCache.read(now)
                     SportsPageSnapshot.read(File(dir, "page-snapshot.json"), now)
                 }
                 if (page != null) {
@@ -294,7 +295,7 @@ class SportsRepository @Inject constructor(
                     page.items.mapNotNull { it.event.league?.league() }.distinctBy { it.id }
                         .filter { SportsCatalog.league(it.id) == null }.forEach { freeLeagues[it.id] = it }
                     if (freeLeagues.isNotEmpty()) SportsCatalog.setExtra(freeLeagues.values.toList())
-                    pageData.value = page.events.map { collegeScores.apply(it, now) }
+                    pageData.value = page.events.map { scoreCache.apply(it, now) }
                     scope.launch {
                         val channels = channelStore.displayChannels.first { it.isNotEmpty() }.associateBy { it.key }
                         _matches.update { page.matches(channels) + it }
@@ -325,7 +326,7 @@ class SportsRepository @Inject constructor(
                 if (observed <= 0L) return@collect
                 withContext(SportsPageSnapshot.dispatcher) {
                     SportsPageSnapshot.write(File(dir, "page-snapshot.json"), ev, matched, observed,
-                        dayStart(-DAYS_BACK), dayStart(DAYS_AHEAD + 1)) { com.nuvio.tv.livetv.sports.isMine(it, follows.value) }
+                        dayStart(-DAYS_BACK), dayStart(DAYS_AHEAD + 1), now) { com.nuvio.tv.livetv.sports.isMine(it, follows.value) }
                 }
                 savedAt = now
             }
@@ -428,28 +429,31 @@ class SportsRepository @Inject constructor(
                 }
         }
         scope.launch {
-            sportsScoresAllowed(foreground, playback.state, viewing = viewers)
-                .combine(cacheLoaded) { allowed, loaded -> allowed && loaded }.distinctUntilChanged()
-                .collectLatest { allowed ->
-                    if (!allowed) return@collectLatest
-                    while (true) {
-                        runCatching {
-                            if (baseFeed.enabled) updateSharedScores(System.currentTimeMillis())
-                            val channel = playback.state.value.channelKey
-                            val now = System.currentTimeMillis()
-                            val watching = known.value.filter { event ->
-                                FreeSportsDb.refreshableWhileWatching(event, now) && _matches.value[event.id].orEmpty()
-                                    .any { it.channel.key == channel && it.sure }
-                            }.maxByOrNull { it.startMs }
-                            if (watching != null) refreshFreeEvent(watching)
-                        }.onFailure {
-                            currentCoroutineContext().ensureActive()
-                            Log.w(TAG, "Live score update failed; will retry", it)
-                        }
-                        val lastKick = kick.value
-                        withTimeoutOrNull(30_000L) { kick.first { it != lastKick } }
+            val allowed = sportsScoresAllowed(foreground, playback.state, viewing = viewers)
+            val browsingWithoutVideo = sportsScoreCatchUpAllowed(backgroundAllowed, channelLookupAllowed)
+            combine(allowed, browsingWithoutVideo, known.map { it.isNotEmpty() }.distinctUntilChanged()) { canScore, idle, hasFixtures ->
+                if (canScore && hasFixtures) idle else null
+            }.distinctUntilChanged().collectLatest { fast ->
+                if (fast == null) return@collectLatest
+                while (true) {
+                    val lastKick = kick.value
+                    var waitMs = 30_000L
+                    runCatching {
+                        if (baseFeed.enabled) waitMs = updateSharedScores(System.currentTimeMillis(), fast)
+                        val channel = playback.state.value.channelKey
+                        val now = System.currentTimeMillis()
+                        val watching = known.value.filter { event ->
+                            FreeSportsDb.refreshableWhileWatching(event, now) && _matches.value[event.id].orEmpty()
+                                .any { it.channel.key == channel && it.sure }
+                        }.maxByOrNull { it.startMs }
+                        if (watching != null) refreshFreeEvent(watching)
+                    }.onFailure {
+                        currentCoroutineContext().ensureActive()
+                        Log.w(TAG, "Live score update failed; will retry", it)
                     }
+                    withTimeoutOrNull(waitMs) { kick.first { it != lastKick } }
                 }
+            }
         }
     }
 
@@ -650,7 +654,7 @@ class SportsRepository @Inject constructor(
                 }
                 val now = System.currentTimeMillis()
                 val scheduled = events.mapNotNull { SportsPageSnapshot.display(SportsBaseFeed.scheduled(it, entry.fetchedAt), entry.fetchedAt, now) }
-                val batch = scoreboardResults(league, scheduled, now)
+                val batch = scheduled.map { scoreCache.apply(it, now) }
                 parsed.addAll(batch)
                 if (appliedBaseAt == 0L && pageData.value.isEmpty()) {
                     val grew = firstPage.addAll(batch.filter { it.state == GameState.LIVE || it.startMs in today })
@@ -695,39 +699,50 @@ class SportsRepository @Inject constructor(
         }
     }
 
-    private suspend fun updateSharedScores(now: Long) {
-        if (now - lastSharedScoreRound < 30_000L) return
-        lastSharedScoreRound = now
+    private suspend fun updateSharedScores(now: Long, fast: Boolean): Long {
+        val spacing = if (fast) 2_000L else 30_000L
+        val remaining = lastSharedScoreRound + spacing - now
+        if (remaining > 0) return remaining
         val channel = playback.state.value.channelKey
-        val playing = _matches.value.filterValues { list -> list.any { it.channel.key == channel && it.sure } }.keys
+        val playing = if (channel == null) emptySet() else _matches.value.filterValues { list ->
+            list.any { it.channel.key == channel && it.sure }
+        }.keys
         val browsing = browsingAllowed.value && viewers.value > 0
-        val focused = focusedEvent.value.takeIf { browsing }
-        val due = SportsRefreshPolicy.choose(known.value, activeLeagues(), focused, playing,
-            followedLeagueIds(), browsing, now, scoreAttempts)
-        for (league in due) {
-            // Record attempts before I/O: a failed service must not be retried on each loop.
-            val previousAttempt = scoreAttempts.put(league.id, now)
-            val at = SportsRefreshPolicy.scoreboardAnchor(known.value, league, focused, playing, browsing, now)
-            sportsCatching {
-                val scoreboard = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, SportsRefreshPolicy.scoreboardDay(league, at)))
+        scoreAttempts.entries.removeAll { it.value < now - 2 * DAY }
+        val due = SportsRefreshPolicy.choose(known.value, activeLeagues(), focusedEvent.value.takeIf { browsing },
+            playing, followedLeagueIds(), browsing, now, scoreAttempts)
+        if (due.isNotEmpty()) {
+            lastSharedScoreRound = now
+            val batch = due.take(2)
+            val results = if (fast) coroutineScope { batch.map { async { fetchSharedScore(it, now) } }.awaitAll() }
+                else batch.map { fetchSharedScore(it, now) }
+            problems.scores.value = if (results.none { it }) "Live scores unavailable; showing saved schedules and results." else null
+            rebuildLiveScores()
+        }
+        return if (fast && (due.size > 2 || !cacheLoaded.value)) spacing else 30_000L
+    }
+
+    private suspend fun fetchSharedScore(board: SportsRefreshPolicy.Board, now: Long): Boolean {
+        val league = board.league
+        val previousAttempt = scoreAttempts.put(board, now)
+        try {
+            return sportsCatching {
+                val scoreboard = SportsFeeds.parseScoreboard(league, feeds.scoreboardDayRaw(league, board.day))
                     .map { it.copy(updatedAt = now) }
                 val parsed = scoreboardResults(league, scoreboard, now)
-                val previous = leagueData.value[league.id]
-                val prior = previous?.events.orEmpty().filter {
-                    it.startMs >= now - DAY || (it.endMs?.let { end -> end > now } == true)
+                val prior = leagueData.value[league.id]?.events.orEmpty()
+                if (parsed.isNotEmpty()) leagueData.update { map ->
+                    val kept = map[league.id]?.events.orEmpty().filter { it.startMs >= now - DAY || (it.endMs ?: 0L) > now }
+                    map + (league.id to LeagueData(SportsDaySchedule.freshest(parsed + kept), now, null))
                 }
-                leagueData.update { it + (league.id to LeagueData((parsed + prior).distinctBy { e -> e.id }, now, null)) }
-                // An initial or restored scoreboard establishes the baseline for live alerts.
-                if (previous != null && previous.fetchedAt == previousAttempt) noticeScoring(league, prior, parsed)
-                problems.scores.value = null
-                Log.d(TAG, "Live scores: ${league.id}, ${parsed.size} games, ${parsed.count { it.state == GameState.LIVE }} live")
-            }.onFailure {
-                currentCoroutineContext().ensureActive()
-                problems.scores.value = "Live scores unavailable; showing saved schedules and results."
-                Log.w(TAG, "Live scoreboard failed for ${league.id}: ${describe(it)}")
-            }
+                // Alert only for this board's previously observed games, never the initial baseline.
+                if (previousAttempt != null) noticeScoring(league, prior.filter { it.updatedAt == previousAttempt }, parsed)
+                Log.d(TAG, "Live scores: ${league.id} ${board.day}, ${parsed.size} games, ${parsed.count { it.state == GameState.LIVE }} live")
+            }.onFailure { Log.w(TAG, "Live scoreboard failed for ${league.id}: ${describe(it)}") }.isSuccess
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            if (previousAttempt == null) scoreAttempts.remove(board, now) else scoreAttempts.replace(board, now, previousAttempt)
+            throw cancelled
         }
-        rebuildLiveScores()
     }
 
     private suspend fun updateOnce(now: Long) {
@@ -1002,7 +1017,7 @@ class SportsRepository @Inject constructor(
             sportsCatching {
                 val raw = fetch()
                 val payload = kotlinx.serialization.json.Json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject
-                require(payload != null && payload.keys.any { it in setOf("leagues", "countries", "events", "event", "tvevent", "tv", "eventtv", "teams") })
+                require(payload != null && payload.keys.any { it in setOf("leagues", "countries", "events", "event", "tvevent", "tv", "eventtv", "teams", "fixture") })
                 file.writeText("$now\n$raw")
                 freeAttemptAt.remove(name)
                 now to raw
@@ -1100,6 +1115,14 @@ class SportsRepository @Inject constructor(
     }
 
     /** Event-specific TV listings; only a verified cross-feed identity may enrich an ESPN event. */
+    internal suspend fun cricketPlayers(id: Int, completed: Boolean): List<Performer> = withContext(Dispatchers.IO) {
+        val saved = freeCached("ca_card_${id}_${if (completed) "final" else "live"}", if (completed) DAY else 30_000L) {
+            cricketAustralia.scorecard(id)
+        } ?: return@withContext emptyList()
+        if (!completed && System.currentTimeMillis() - saved.first > 2 * MINUTE) return@withContext emptyList()
+        SportsPlayerStats.cricketAustralia(org.json.JSONObject(saved.second), id)
+    }
+
     suspend fun loadBroadcasts(event: SportsEvent) = withContext(Dispatchers.IO) {
         var candidate = event
         if (event.source != EventSource.THESPORTSDB) {
@@ -1659,6 +1682,7 @@ class SportsRepository @Inject constructor(
     /** Whether [league] might have a table (it's asked once; one without is left out after that). */
     fun mayHaveTable(league: League): Boolean {
         if (noTable.containsKey(league.id) && System.currentTimeMillis() - (noTable[league.id] ?: 0L) < 12 * HOUR) return false
+        if (league.id in CricketAustralia.domesticTables) return true
         if (league.guideOnly) return false
         if (league.id.startsWith("tsdb/")) return false
         if (league.espnPath == null) return false
@@ -1689,35 +1713,52 @@ class SportsRepository @Inject constructor(
      * otherwise from ESPN or the nuvio-data file, with recent form and places moved since the
      * last round. Null when the league has no table (or it can't be had right now).
      */
-    suspend fun standings(leagueId: String, force: Boolean = false): Standings? = withContext(Dispatchers.IO) {
+    suspend fun standings(leagueId: String, force: Boolean = false, caCompetitionId: Int? = null): Standings? = withContext(Dispatchers.IO) {
         val league = SportsCatalog.league(leagueId) ?: return@withContext null
-        val lock = tableLocks.getOrPut(leagueId) { kotlinx.coroutines.sync.Mutex() }
+        val domestic = leagueId in CricketAustralia.domesticTables
+        val currentSeries = if (domestic) cricketData.value.values.asSequence().flatten()
+            .filter { it.leagueId == leagueId && it.caCompetitionId != null }.maxByOrNull { it.startMs }?.caCompetitionId else null
+        val series = caCompetitionId ?: currentSeries
+        if (domestic && series == null) return@withContext null
+        val key = series?.let { "ca-series-$it" } ?: leagueId
+        fun publish(table: Standings): Standings {
+            _standings.update { existing ->
+                val updated = existing + (key to table)
+                if (domestic && currentSeries == series) updated + (leagueId to table) else updated
+            }
+            return table
+        }
+        val lock = tableLocks.getOrPut(key) { kotlinx.coroutines.sync.Mutex() }
         lock.lock()
         try {
             val now = System.currentTimeMillis()
-            _standings.value[leagueId]?.let { if (!force && now - it.fetchedAt < Standings.CACHE_DURATION_MS) return@withContext it }
-            if (!mayHaveTable(league)) return@withContext null
-            val file = File(dir, "table_${safe(leagueId)}.json")
+            _standings.value[key]?.let {
+                if (!force && now - it.fetchedAt < Standings.CACHE_DURATION_MS) return@withContext if (domestic) publish(it) else it
+            }
+            if (series == null && !mayHaveTable(league)) return@withContext null
+            if (series != null && !force && now - (noTable[key] ?: 0L) < HOUR) return@withContext null
+            val file = File(dir, "table_${safe(key)}.json")
             val raw = sportsCatching {
-                if (leagueId.startsWith("tsdb/")) return@withContext null
+                if (series != null) cricketAustralia.seriesPage(series)
+                else if (leagueId.startsWith("tsdb/")) return@withContext null
                 else feeds.standingsRaw(league, Standings.espnUrl(league) ?: return@withContext null)
             }.getOrElse { e ->
                 Log.w(TAG, "Table for $leagueId failed: ${describe(e)}")
                 // No connection: the last copy (it says how old it is on the page).
                 val old = sportsCatching { file.takeIf { it.exists() }?.readText() }.getOrNull()
-                val at = old?.substringBefore('\n')?.toLongOrNull() ?: return@withContext _standings.value[leagueId]
-                return@withContext (parseTable(league, old!!.substringAfter('\n'), at) ?: _standings.value[leagueId])
-                    ?.also { st -> _standings.update { it + (leagueId to st) } }
+                val at = old?.substringBefore('\n')?.toLongOrNull() ?: return@withContext _standings.value[key]
+                return@withContext (parseTable(league, old!!.substringAfter('\n'), at, series) ?: _standings.value[key])
+                    ?.let(::publish)
             }
-            var table = parseTable(league, raw, now)
+            var table = parseTable(league, raw, now, series)
             if (table == null) {
-                noTable[leagueId] = now
+                noTable[key] = now
                 return@withContext null
             }
             sportsCatching { file.writeText("$now\n$raw") }
             // Form (the last five as squares): ESPN's tables don't have it, so it comes from the last
             // six weeks' results (one request).
-            if (table.kind != StandingsKind.RACING && table.source == "ESPN") {
+            if (table.kind != StandingsKind.RACING && league.sport != Sport.CRICKET && table.source == "ESPN") {
                 val recent = known.value.filter { it.leagueId == leagueId }
                 val past = sportsCatching {
                     val fmt = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = TimeZone.getTimeZone("America/New_York") }
@@ -1726,7 +1767,7 @@ class SportsRepository @Inject constructor(
                 table = Standings.withForm(table, Standings.formFrom((past + recent).distinctBy { it.espnId ?: it.id }, leagueId))
             }
             // Team colours for the rows: the league's team list (kept for a week), else games we know.
-            if (table.kind != StandingsKind.RACING) {
+            if (table.kind != StandingsKind.RACING && league.sport != Sport.CRICKET) {
                 val listed = if (league.espnPath != null) sportsCatching { leagueTeams(league) }.getOrDefault(emptyList()).associateBy { it.id } else emptyMap()
                 val fam = SportsCatalog.teamFamily(leagueId)
                 val seen = HashMap<String, TeamInfo>()
@@ -1741,18 +1782,18 @@ class SportsRepository @Inject constructor(
                 })
             }
             // Places moved since the last round (remembered on this TV).
-            val mem = File(dir, "table_moves_${safe(leagueId)}.json")
+            val mem = File(dir, "table_moves_${safe(key)}.json")
             val (moved, save) = Standings.withChanges(table, sportsCatching { mem.takeIf { it.exists() }?.readText() }.getOrNull())
             sportsCatching { mem.writeText(save) }
-            _standings.update { it + (leagueId to moved) }
-            moved
+            publish(moved)
         } finally {
             lock.unlock()
         }
     }
 
-    private fun parseTable(league: League, raw: String, at: Long): Standings? = runCatching {
-        if (league.id.startsWith("tsdb/")) Standings.parseTsdb(league, raw, at) else Standings.parseEspn(league, raw, at)
+    private fun parseTable(league: League, raw: String, at: Long, series: Int?): Standings? = runCatching {
+        if (series != null) CricketAustralia.parseTable(league.id, raw, at)
+        else if (league.id.startsWith("tsdb/")) Standings.parseTsdb(league, raw, at) else Standings.parseEspn(league, raw, at)
     }.getOrNull()?.takeIf { s -> s.groups.any { it.rows.isNotEmpty() } }
 
     /** The tables My Sports' row headers need ("2nd in Premier League"): your teams' own leagues. */
@@ -1853,8 +1894,14 @@ class SportsRepository @Inject constructor(
     }
 
     /** A game's summary as last asked: when, the score then, its scoring plays and the rest. */
-    private class GameSummary(val at: Long, val sig: String, val plays: List<ScoringPlay>, val extras: GameExtras)
-    private val summaryCache = HashMap<String, GameSummary>()
+    private class GameSummary(val at: Long, val sig: String, val extras: GameExtras)
+    private class SummarySlot {
+        val lock = kotlinx.coroutines.sync.Mutex()
+        var cached: GameSummary? = null
+    }
+    private val summaryCache = object : LinkedHashMap<String, SummarySlot>(32, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, SummarySlot>?): Boolean = size > 32
+    }
 
     /**
      * The game's ESPN summary, one request for the latest scoring and everything under it (team
@@ -1865,18 +1912,33 @@ class SportsRepository @Inject constructor(
         val league = SportsCatalog.league(ev.leagueId) ?: return@withContext null
         val id = ev.espnId ?: return@withContext null
         if (league.kind != LeagueKind.TEAMS || league.espnPath == null) return@withContext null
-        val sig = "${ev.away?.score}-${ev.home?.score}-${ev.state}"
-        val cached = synchronized(summaryCache) { summaryCache[ev.id] }
-        if (cached != null && cached.sig == sig && System.currentTimeMillis() - cached.at < (if (ev.state == GameState.LIVE) 25_000 else 30 * MINUTE)) return@withContext cached
-        val root = sportsCatching { feeds.summaryJson(league, id) }.getOrNull() ?: return@withContext cached
-        val plays = if (ev.state == GameState.PRE) emptyList() else sportsCatching { SportsFeeds.parseSummary(root) }.getOrDefault(emptyList())
-        val extras = sportsCatching { SportsExtras.parse(root, ev, league.sport) }.getOrDefault(GameExtras())
-        GameSummary(System.currentTimeMillis(), sig, plays, extras).also { synchronized(summaryCache) { summaryCache[ev.id] = it } }
+        val slot = synchronized(summaryCache) { summaryCache.getOrPut(ev.id) { SummarySlot() } }
+        slot.lock.withLock {
+            val now = System.currentTimeMillis()
+            fun signature(game: SportsEvent) = "${game.away?.score}-${game.home?.score}-${game.state}"
+            val sig = signature(ev)
+            val cached = slot.cached
+            val awaiting = ev.awaitingUpdate || ev.state == GameState.PRE && ev.startMs <= now
+            val ttl = if (ev.state == GameState.LIVE || awaiting) 25_000L else 30 * MINUTE
+            if (cached != null && cached.sig == sig && now - cached.at < ttl) return@withLock cached
+            val root = sportsCatching { feeds.summaryJson(league, id) }.getOrNull() ?: return@withLock cached
+            val score = SportsFeeds.summaryScore(league, ev, root, now)
+            if (score != null) leagueData.update { map ->
+                val old = map[league.id]
+                val games = SportsDaySchedule.freshest(listOf(score) + old?.events.orEmpty())
+                map + (league.id to LeagueData(games, old?.fetchedAt ?: 0L, old?.error))
+            }
+            if (score != null && backgroundAllowed.value && !PlayerSessionTracker.hasOpenTrailer) scoreCache.remember(listOf(score), now)
+            val current = score ?: ev
+            val plays = if (current.state == GameState.PRE) emptyList() else sportsCatching { SportsFeeds.parseSummary(root) }.getOrDefault(emptyList())
+            val extras = sportsCatching { SportsExtras.parse(root, current, league.sport) }.getOrDefault(GameExtras())
+            GameSummary(now, signature(current), extras.copy(scoring = plays)).also { slot.cached = it }
+        }
     }
 
     /** The game's scoring plays (touchdowns, goals…), when ESPN has them. */
     suspend fun scoringPlays(ev: SportsEvent): List<ScoringPlay> =
-        if (ev.state == GameState.PRE) emptyList() else summaryFor(ev)?.plays.orEmpty()
+        if (ev.state == GameState.PRE) emptyList() else summaryFor(ev)?.extras?.scoring.orEmpty()
 
     /** Everything else about the game ESPN has (see [GameExtras]); null when there's nothing to ask. */
     suspend fun gameExtras(ev: SportsEvent): GameExtras? = summaryFor(ev)?.extras

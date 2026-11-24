@@ -1,12 +1,11 @@
 package com.nuvio.tv.livetv.sports
 
-internal fun isCollegeBasketball(leagueId: String): Boolean =
-    leagueId == "basketball/mens-college-basketball" || leagueId == "basketball/womens-college-basketball"
+/** A scheduled start alone cannot confirm a live game or a final result. */
+internal fun SportsEvent.pastScheduledStart(now: Long): Boolean =
+    source != EventSource.GUIDE && state == GameState.PRE && hasTime && startMs < now
 
-/** ESPN can still report a scheduled tip-off while a college scoreboard is catching up. */
-internal fun SportsEvent.awaitingCollegeStatus(now: Long): Boolean =
-    source == EventSource.ESPN && state == GameState.PRE && hasTime && now - startMs >= 60_000L &&
-        isCollegeBasketball(leagueId)
+internal fun SportsEvent.pendingStatusLabel(now: Long): String =
+    if (now >= endEstimate(this)) "Result pending" else "Status pending"
 
 /** Fixtures and TV airings have separate timelines; channel matching never sets event order. */
 internal object SportsEventListings {
@@ -52,15 +51,20 @@ internal object SportsEventListings {
     }
 
     fun onMyChannels(events: List<SportsEvent>, matches: Map<String, List<ChannelMatch>>,
-        requested: Boolean, ready: Boolean, isMine: (SportsEvent) -> Boolean): List<SportsEvent> {
+        requested: Boolean, ready: Boolean, now: Long, isMine: (SportsEvent) -> Boolean): List<SportsEvent> {
         if (!requested || !ready || matches.isEmpty()) return events
-        return events.filter { it.state == GameState.POST || isMine(it) || matches[it.id]?.isNotEmpty() == true }
+        return events.filter { it.state == GameState.POST || (it.pastScheduledStart(now) && now >= endEstimate(it)) ||
+            isMine(it) || matches[it.id]?.isNotEmpty() == true }
     }
 
-    /** Enter the timeline at live sport, leaving earlier results available above it. */
-    fun entryIndex(events: List<SportsEvent>): Int =
-        events.indexOfFirst { it.state == GameState.LIVE }.takeIf { it >= 0 }
-            ?: events.indexOfFirst { it.state == GameState.PRE }.coerceAtLeast(0)
+    /** Clock time stays useful even when cached games are still waiting for their final status. */
+    fun entryIndex(events: List<SportsEvent>, now: Long): Int {
+        val next = events.indices.filter { i ->
+            val event = events[i]
+            event.state == GameState.PRE && event.hasTime && event.startMs >= now
+        }.minByOrNull { events[it].startMs }
+        return next ?: events.indexOfFirst { it.state == GameState.LIVE && !it.awaitingUpdate }.coerceAtLeast(0)
+    }
 
     fun allEvents(events: List<SportsEvent>, dayStart: Long, dayEnd: Long, now: Long): List<SportsEvent> =
         events.filter { ev ->
@@ -82,12 +86,11 @@ internal object SportsEventListings {
             if (now in dayStart until dayEnd) when (it.state) {
                 GameState.POST -> 0
                 GameState.LIVE -> 1
-                GameState.PRE -> if (it.awaitingCollegeStatus(now)) {
-                    val expectedEnd = it.endMs ?: SportsCatalog.league(it.leagueId)?.let { league ->
-                        it.startMs + league.minutes * 60_000L
-                    }
-                    if (expectedEnd != null && now >= expectedEnd) 0 else 1
-                } else 2
+                GameState.PRE -> when {
+                    it.pastScheduledStart(now) -> if (now >= endEstimate(it)) 0 else 1
+                    it.endMs != null && it.endMs <= now -> 0
+                    else -> 2
+                }
                 GameState.OFF -> 2
             } else 0
         }.thenBy { it.startMs }.thenBy { it.id })

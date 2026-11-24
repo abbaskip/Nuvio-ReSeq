@@ -8,6 +8,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -16,6 +17,13 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SportsPlaybackWorkTest {
+    @Test fun `score catchup needs a visible idle screen without any video including trailers`() = runTest {
+        for (idle in listOf(true, false)) for (visible in listOf(true, false)) for (playing in listOf(true, false)) {
+            val result = sportsScoreCatchUpAllowed(flowOf(idle), flowOf(visible), flowOf(playing)).first()
+            assertEquals(idle && visible && !playing, result)
+        }
+    }
+
     @Test fun `Multiview holds bulk work with an empty single player and resumes on exit`() = runTest {
         val liveOpen = MutableStateFlow(false)
         val allowed = sportsBackgroundAllowed(MutableStateFlow(true), MutableStateFlow(LivePlaybackState()),

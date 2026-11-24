@@ -112,7 +112,7 @@ internal fun PreGameTimeColumn(ev: SportsEvent, sides: List<Side>, x: GameExtras
         if (ev.hasTime) {
             LiveText(synchronized(dayFmt) { dayFmt.format(Date(ev.startMs)) }.uppercase(), color = SportsLook.Dim, size = 9.sp, weight = FontWeight.Bold)
             LiveText(formatClock(ev.startMs, use24h), color = Color.White, size = 22.sp, weight = FontWeight.Black, maxLines = 1)
-            LiveText(if (ev.awaitingCollegeStatus(now)) "Status pending" else countdownLabel(ev.startMs, now),
+            LiveText(if (ev.pastScheduledStart(now)) ev.pendingStatusLabel(now) else countdownLabel(ev.startMs, now),
                 color = SportsLook.Dim, size = 11.sp)
         } else {
             LiveText(startLabel(ev, use24h), color = Color.White, size = 18.sp, weight = FontWeight.Black)

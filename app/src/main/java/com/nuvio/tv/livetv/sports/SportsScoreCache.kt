@@ -11,7 +11,7 @@ import okio.FileSystem
 import okio.Path.Companion.toOkioPath
 
 /** Preserve observed scores independently of which 512 fixtures fit in the first-paint snapshot. */
-internal class CollegeBasketballScores(private val file: File) {
+internal class SportsScoreCache(private val file: File) {
     @Serializable
     private data class TeamScore(val id: String, val score: String?, val winner: Boolean, val periods: List<String>) {
         fun apply(side: Side) = side.copy(score = score, winner = winner, periods = periods)
@@ -47,7 +47,7 @@ internal class CollegeBasketballScores(private val file: File) {
     /** Keep ids, scheduled times, teams, broadcasts and channel associations from the current fixture. */
     fun apply(event: SportsEvent, now: Long): SportsEvent {
         val result = scores[event.id] ?: return event
-        if (event.source != EventSource.ESPN || !isCollegeBasketball(event.leagueId) ||
+        if (event.source != EventSource.ESPN ||
             !result.sameGame(event) || !result.validAt(now)) return event
         val at = event.updatedAt ?: 0L
         val useSaved = when (event.state) {
@@ -67,12 +67,12 @@ internal class CollegeBasketballScores(private val file: File) {
         val next = scores.filterValues { it.validAt(now) }.toMutableMap()
         for (event in events) {
             val at = event.updatedAt ?: continue
-            if (event.source != EventSource.ESPN || !isCollegeBasketball(event.leagueId) || at > now) continue
+            if (event.source != EventSource.ESPN || at > now) continue
             val old = next[event.id]
             if (old != null && at < old.observed) continue
             if (old != null && (event.state == GameState.OFF || event.startMs != old.start ||
                     event.home != null && event.away != null && !old.sameGame(event))) next.remove(event.id)
-            if (event.awaitingUpdate || !event.hasTime || event.startMs < now - SportsPageSnapshot.MAX_AGE ||
+            if (event.state == GameState.OFF || event.awaitingUpdate || !event.hasTime || event.startMs < now - SportsPageSnapshot.MAX_AGE ||
                 !event.hasScore) continue
             fun side(s: Side?) = s?.let { TeamScore(it.team.id, it.score, it.winner, it.periods) }
             val result = Result(event.leagueId, event.startMs, at, event.state == GameState.POST, event.status,
@@ -82,6 +82,11 @@ internal class CollegeBasketballScores(private val file: File) {
             if (old != null && result.copy(observed = old.observed) == old &&
                 (result.final || at - old.observed < SportsPageSnapshot.SCORE_AGE / 2)) continue
             next[event.id] = result
+        }
+        // Stay comfortably within the bounded restore file on busy multi-sport weekends.
+        if (next.size > 1024) {
+            val expired = next.entries.sortedBy { it.value.observed }.take(next.size - 1024)
+            expired.forEach { next.remove(it.key) }
         }
         if (next == scores && !needsWrite) return
         val temp = File(file.parentFile, file.name + ".tmp")

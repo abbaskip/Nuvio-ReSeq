@@ -91,10 +91,16 @@ internal object SportsPageSnapshot {
     }
 
     suspend fun write(file: File, events: List<SportsEvent>, matches: Map<String, List<ChannelMatch>>,
-        savedAt: Long, from: Long, to: Long, followed: (SportsEvent) -> Boolean) {
+        savedAt: Long, from: Long, to: Long, now: Long = savedAt, followed: (SportsEvent) -> Boolean) {
         val context = currentCoroutineContext()
+        val zone = java.time.ZoneId.systemDefault()
+        val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val start = today.atStartOfDay(zone).toInstant().toEpochMilli()
+        val end = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
         val selected = events.asSequence().filter { it.startMs < to && (it.endMs ?: it.startMs) >= from }
-            .sortedWith(compareBy<SportsEvent> { !followed(it) }.thenBy { it.state == GameState.POST }.thenBy { it.startMs })
+            // First paint should include today's results even with a full week of future fixtures.
+            .sortedWith(compareBy<SportsEvent> { it.startMs >= end || (it.endMs ?: it.startMs) < start }
+                .thenBy { !followed(it) }.thenBy { kotlin.math.abs(it.startMs - now) }.thenBy { it.id })
             .take(MAX_EVENTS).toList()
         if (selected.isEmpty()) return
         val temp = File(file.parentFile, file.name + ".tmp")
@@ -178,17 +184,18 @@ internal data class SportsSnapshotEvent(val id: String, val leagueId: String, va
     val broadcasts: List<String>, val note: String?, val word: String?, val updatedAt: Long?,
     @com.squareup.moshi.Json(ignore = true) val awaitingUpdate: Boolean = false,
     val hits: List<SportsSnapshotHit>, val league: SportsSnapshotLeague? = null,
-    val coverage: List<SportsBroadcast> = emptyList()) {
+    val coverage: List<SportsBroadcast> = emptyList(), val caCompetitionId: Int? = null,
+    val venue: String? = null, val toss: String? = null, val caFixtureId: Int? = null) {
     fun event() = SportsEvent(id, leagueId, start, hasTime, GameState.valueOf(state), title, subtitle, status,
         away?.side(), home?.side(), broadcasts, source = EventSource.valueOf(source), endMs = end,
         espnId = espnId, note = note, word = word, updatedAt = updatedAt, awaitingUpdate = awaitingUpdate,
-        guideHits = hits.map { it.key to it.program.program() }, broadcastCoverage = coverage)
+        guideHits = hits.map { it.key to it.program.program() }, broadcastCoverage = coverage, caCompetitionId = caCompetitionId, venue = venue, toss = toss, caFixtureId = caFixtureId)
     companion object {
         fun from(e: SportsEvent) = SportsSnapshotEvent(e.id, e.leagueId, e.startMs, e.endMs, e.hasTime, e.state.name,
             e.title.take(400), e.subtitle?.take(400),
             if (e.awaitingUpdate) "Live score pending" else e.status?.take(200), e.away?.let(SportsSnapshotSide::from),
             e.home?.let(SportsSnapshotSide::from), e.source.name, e.espnId, e.broadcasts.take(16), e.note?.take(200),
             e.word, e.updatedAt, e.awaitingUpdate, e.guideHits.take(SportsPageSnapshot.MAX_MATCHES).map { (key, p) -> SportsSnapshotHit(key, SportsSnapshotProgram.from(p)) },
-            SportsCatalog.league(e.leagueId)?.let(SportsSnapshotLeague::from), e.broadcastCoverage.take(24))
+            SportsCatalog.league(e.leagueId)?.let(SportsSnapshotLeague::from), e.broadcastCoverage.take(24), e.caCompetitionId, e.venue, e.toss, e.caFixtureId)
     }
 }

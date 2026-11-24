@@ -25,6 +25,8 @@ import com.nuvio.tv.livetv.ui.LiveTvViewModel
 import com.nuvio.tv.livetv.ui.PauseLiveTvInBackground
 import com.nuvio.tv.livetv.model.LiveChannel
 import com.nuvio.tv.livetv.model.EpgProgram
+import com.nuvio.tv.livetv.player.LiveTvTimeshift
+import androidx.media3.common.MimeTypes
 import com.nuvio.tv.livetv.ui.formatClock
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -49,9 +51,13 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
             if (headers.keys.none { it.equals("User-Agent", true) })
                 headers["User-Agent"] = com.nuvio.tv.livetv.data.LiveTvRepository.DEFAULT_UA
             val player = vm.playback.playerFlow.value
-            val mime = player?.currentMediaItem?.localConfiguration?.mimeType ?:
-                com.nuvio.tv.ui.screens.player.PlayerMediaSourceFactory.inferMimeType(streamUrl, null) ?:
-                player?.videoFormat?.containerMimeType?.takeIf { player.currentManifest == null }
+            val upstreamItem = player?.currentMediaItem?.localConfiguration?.takeIf { it.uri.toString() == streamUrl }
+            val mime = when (vm.playback.upstreamBufferKind) {
+                LiveTvTimeshift.Kind.TS -> MimeTypes.VIDEO_MP2T
+                LiveTvTimeshift.Kind.HLS -> MimeTypes.APPLICATION_M3U8
+                null -> upstreamItem?.mimeType ?: com.nuvio.tv.ui.screens.player.PlayerMediaSourceFactory.inferMimeType(streamUrl, null)
+                    ?: player?.videoFormat?.containerMimeType?.takeIf { upstreamItem != null && player.currentManifest == null }
+            }
             vm.playback.handOverForRecording()
             cast.load(CastSource(streamUrl, replay ?: channel.name, headers, live = replay == null, iptv = true, mime = mime), position) {
                 leaveAfterCast()

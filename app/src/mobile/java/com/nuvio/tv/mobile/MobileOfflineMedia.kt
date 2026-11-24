@@ -10,6 +10,8 @@ import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.google.gson.Gson
+import okio.FileSystem
+import okio.Path.Companion.toOkioPath
 import com.nuvio.tv.domain.model.TvdbPlaybackContext
 import com.nuvio.tv.domain.model.episodeSequenceComparator
 import com.nuvio.tv.domain.model.displaySeason
@@ -289,9 +291,11 @@ internal class MobileOfflineMedia @Inject constructor(@ApplicationContext privat
         val index = File(dir, "entry.tmp")
         index.writeText(gson.toJson(entry))
         if (!partial.renameTo(target)) throw IOException("Could not finish saving the video.")
-        if (!index.renameTo(File(dir, "entry.json"))) {
+        try {
+            FileSystem.SYSTEM.atomicMove(index.toOkioPath(), File(dir, "entry.json").toOkioPath())
+        } catch (e: IOException) {
             target.delete()
-            throw IOException("Could not index the downloaded video.")
+            throw IOException("Could not index the downloaded video.", e)
         }
         val artwork = File(dir, "${target.name}.jpg")
         try {
@@ -325,7 +329,8 @@ internal class MobileOfflineMedia @Inject constructor(@ApplicationContext privat
         if (revised != current) {
             val index = File(dir, "entry.tmp")
             index.writeText(gson.toJson(revised))
-            if (index.renameTo(File(dir, "entry.json"))) changes.update { it + 1 }
+            FileSystem.SYSTEM.atomicMove(index.toOkioPath(), File(dir, "entry.json").toOkioPath())
+            changes.update { it + 1 }
         }
         if (cover != null && current.artwork == null) {
             val tmp = File(dir, "cover.tmp")

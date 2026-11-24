@@ -216,7 +216,7 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
     val engine = vm.exoPlayer
     val cast = LocalCasting.current
     val castState by cast.state.collectAsStateWithLifecycle()
-    val castUrl = state.currentStreamUrl
+    val castUrl = vm.getCurrentStreamUrl().takeIf { it.isNotBlank() && !it.startsWith("torrent://") }
     val leaveAfterCast by rememberUpdatedState(back)
     LaunchedEffect(castState.device, castUrl) {
         if (castState.device != null && castUrl != null) {
@@ -228,8 +228,6 @@ internal fun MobileVodPlayer(media: MobileOfflineMedia, back: () -> Unit, openPa
             val download = if (castUrl.startsWith("file:") && video != null) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 media.find(video)?.takeIf { android.net.Uri.fromFile(it).toString() == castUrl }
             } else null
-            if (download == null && !receiverUrl(castUrl) && !cast.isCurrentTorrent(castUrl) &&
-                !UsenetPlayback.hasSession(castUrl)) return@LaunchedEffect
             val subtitles = state.addonSubtitles.filter { receiverUrl(it.url) && it.url.substringBefore('?').endsWith(".vtt", true) }
                 .mapIndexed { i, sub -> com.google.android.gms.cast.MediaTrack.Builder(i + 1L, com.google.android.gms.cast.MediaTrack.TYPE_TEXT)
                     .setContentId(sub.url).setContentType("text/vtt").setName(sub.getDisplayLanguage()).setLanguage(sub.lang).build() }

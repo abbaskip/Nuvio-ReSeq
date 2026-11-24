@@ -11,6 +11,8 @@ import com.google.android.gms.cast.framework.*
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.gson.Gson
 import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.core.torrent.TorrentService
@@ -63,10 +65,10 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
     private val gson = Gson()
     private val controls = MutableStateFlow(CastControls())
     val state = controls.asStateFlow()
-    val available = MutableStateFlow(false)
     val requestedSources = MutableStateFlow<MobileVideo?>(null)
     private var manager: SessionManager? = null
-    private var initializing = false
+    private var receiver: java.net.InetAddress? = null
+    private var castInitialization: Task<CastContext>? = null
     private var remote: RemoteMediaClient? = null
     private var pending: CastItem? = null
     private var relay: CastRelay? = null
@@ -74,7 +76,7 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
     private var loading: Job? = null
 
     private data class Attempt(val source: CastSource, val phone: PhoneCastMedia?, var position: Long?,
-        var autoplay: Boolean, var onAccepted: (() -> Unit)?)
+        var autoplay: Boolean, var onAccepted: (() -> Unit)?, var forceRelay: Boolean = false)
     private var nextAttempt: Attempt? = null
     private var playingAttempt: Attempt? = null
     private var failedAttempt: Attempt? = null
@@ -100,24 +102,26 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
         }
     }
 
-    fun initialize() {
-        if (manager != null || initializing || GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS) return
-        initializing = true
-        val initialization = runCatching {
+    fun initialize(): Task<CastContext> {
+        castInitialization?.let { return it }
+        if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS)
+            return Tasks.forException(IllegalStateException("Google Play services is unavailable"))
+        val initialization = try {
             CastContext.getSharedInstance(context, Executor { Dispatchers.IO.dispatch(kotlin.coroutines.EmptyCoroutineContext, it) })
-        }.getOrElse { initializing = false; return }
+        } catch (e: Exception) { return Tasks.forException(e) }
+        castInitialization = initialization
         initialization
             .addOnSuccessListener { cast ->
-                initializing = false
                 manager = cast.sessionManager
                 manager?.addSessionManagerListener(this, CastSession::class.java)
-                available.value = true
                 manager?.currentCastSession?.takeIf { it.isConnected }?.let(::attach)
-            }.addOnFailureListener { initializing = false }
+            }.addOnFailureListener { castInitialization = null }
+        return initialization
     }
 
     private fun attach(session: CastSession) {
         detachClient()
+        receiver = session.castDevice?.inetAddress
         remote = session.remoteMediaClient
         remote?.registerCallback(observer)
         remote?.addProgressListener(tick, 1_000)
@@ -129,6 +133,7 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
         remote?.unregisterCallback(observer)
         remote?.removeProgressListener(tick)
         remote = null
+        receiver = null
     }
 
     fun load(source: CastSource, position: Long? = null, autoplay: Boolean = true, onAccepted: () -> Unit = {}) {
@@ -180,13 +185,20 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
                 if (torrent != null) torrents.shutdown()
                 val file = phone?.file
                 val mime = if (phone != null && phone.format != CastFormat.ORIGINAL) "video/mp4" else source.mime
-                val endpoint = CastRelay.prepare(context, source.copy(url = url, mime = mime), manager?.currentCastSession?.castDevice?.inetAddress, lease, file)
+                val endpoint = CastRelay.prepare(context, source.copy(url = url, mime = mime), receiver, lease, file,
+                    forceRelay = attempt.forceRelay)
                 pendingRelay = endpoint.relay
                 val metadata = MediaMetadata(if (item.video?.episode != null) MediaMetadata.MEDIA_TYPE_TV_SHOW else MediaMetadata.MEDIA_TYPE_GENERIC)
                 metadata.putString(MediaMetadata.KEY_TITLE, item.title)
                 val info = MediaInfo.Builder(endpoint.url).setContentType(endpoint.mime)
                     .setStreamType(if (source.live) MediaInfo.STREAM_TYPE_LIVE else MediaInfo.STREAM_TYPE_BUFFERED)
                     .setMetadata(metadata).setCustomData(JSONObject().put("reseqCastId", item.token))
+                    .apply {
+                        if (endpoint.transportStreamSegments) {
+                            setHlsSegmentFormat(HlsSegmentFormat.TS)
+                            setHlsVideoSegmentFormat(HlsVideoSegmentFormat.MPEG2_TS)
+                        }
+                    }
                     .setMediaTracks(source.subtitles).build()
                 val request = MediaLoadRequestData.Builder().setMediaInfo(info).setAutoplay(attempt.autoplay)
                 if (!source.live) request.setCurrentTime(start.coerceAtLeast(0))
@@ -197,7 +209,7 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
                     }
                 }
                 delay(30_000)
-                if (pending == item) receiverFailure(item, null)
+                if (pending == item) receiverFailure(item, null, timedOut = true)
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) {
                 if (pending == item) fail(if (attempt.phone?.format?.let { it != CastFormat.ORIGINAL } == true)
@@ -212,8 +224,7 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
         val status = client.mediaStatus ?: return
         val id = status.mediaInfo?.customData?.optString("reseqCastId")?.takeIf { it.isNotBlank() }
         val idle = status.playerState == MediaStatus.PLAYER_STATE_IDLE
-        val ready = if (nextAttempt?.phone != null) client.isPlaying || client.isPaused else
-            !idle && status.playerState != MediaStatus.PLAYER_STATE_UNKNOWN
+        val ready = client.isPlaying || client.isPaused && nextAttempt?.autoplay == false
         if (id == pending?.token && pending != null && ready) {
             val item = requireNotNull(pending)
             val old = controls.value.item
@@ -281,7 +292,7 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
         nextAttempt?.phone?.close()
         nextAttempt = null
     }
-    private fun receiverFailure(item: CastItem, code: Int?) {
+    private fun receiverFailure(item: CastItem, code: Int?, timedOut: Boolean = false) {
         if (item != pending && (item != controls.value.item || pending != null)) return
         // Status changes can precede the detailed load error. Give the paired callback a turn.
         val failedDuringLoad = pending == item
@@ -292,8 +303,10 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
             val wasPending = pending == item
             if (failedDuringLoad != wasPending) return@launch
             if (!wasPending && (controls.value.item != item || pending != null)) return@launch
+            if (timedOut && remote?.mediaStatus?.mediaInfo?.customData?.optString("reseqCastId") == item.token) remote?.stop()
             val attempt = if (wasPending) nextAttempt else playingAttempt
-            val deliveryFailed = (if (wasPending) pendingRelay else relay)?.deliveryFailed == true
+            val failedRelay = if (wasPending) pendingRelay else relay
+            val failure = classifyCastFailure(code, failedRelay?.deliveryFailed == true)
             if (wasPending) {
                 nextAttempt = null
                 cancelPending()
@@ -303,8 +316,20 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
                 finish(false)
             }
             val phone = attempt?.phone
-            if (phone == null) { fail("Chromecast couldn't play this source."); return@launch }
-            when (classifyCastFailure(code, deliveryFailed)) {
+            if (phone == null) {
+                // A provider can allow the phone to read a signed URL while rejecting requests from Cast.
+                if (attempt != null && !attempt.source.iptv && !attempt.forceRelay && failedRelay == null &&
+                    receiverUrl(attempt.source.url) && (failure == CastFailure.DELIVERY || timedOut)) {
+                    attempt.forceRelay = true
+                    start(attempt)
+                    return@launch
+                }
+                fail(if (timedOut && item.live) "Chromecast could not start this channel within 30 seconds."
+                    else if (failure == CastFailure.FORMAT) "Chromecast couldn’t decode this source. Choose another version of the video."
+                    else "Chromecast couldn't play this source.")
+                return@launch
+            }
+            when (failure) {
                 CastFailure.DELIVERY -> if (!phone.deliveryRetried) {
                     phone.deliveryRetried = true
                     start(attempt)

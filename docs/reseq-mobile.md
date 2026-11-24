@@ -1,5 +1,7 @@
 # ReSeq Mobile
 
+For the signed phone and tablet APKs, see [mobile downloads in the README](../README.md#downloads) or browse [all mobile releases](https://github.com/abbaskip/Nuvio-ReSeq/releases?q=ReSeq+Mobile).
+
 Select the **mobileDebug** build variant in Android Studio or run `./gradlew :app:assembleMobileDebug`. The phone and tablet launcher installs as `io.github.abbaskip.nuvioreseq.mobile`. The existing TV targets are `fullDebug` and `fullRelease`. The two installs have independent Android storage. Drive backup uses the same ReSeq backup format.
 
 ## Shared engine and touch layouts
@@ -58,6 +60,6 @@ The table tracks every named TV navigation destination. Run `python scripts/mobi
 
 **Chromecast.** Open Play manually or the mobile player and tap Cast to choose a receiver. The Cast bar opens playback, track and source controls while browsing. Movie and episode progress follows the receiver clock and uses the selected ReSeq profile and episode order. IPTV channels, replay and IPTV VOD skip catalogue tracking. Seek is available for on-demand video and catch-up. For downloads and Usenet releases, the phone serves the original video over the local network. The Cast controls open automatically and the screen stays awake while ReSeq is visible. A delivery error retries the connection once. When the receiver reports a format error, the phone prepares a seekable MP4 in its cache, copying compatible tracks or converting audio first and encoding video as a final fallback. Conversion needs temporary storage and finishes before playback resumes. An ambiguous receiver error offers **Try compatibility mode**. Provider headers and live TS buffering use a receiver-specific connection to the phone. The receiver determines the codecs and selectable audio and subtitle tracks.
 
-**Build availability.** Home → Reorder and Settings → Home and title details → Reorder Home rows open the shared catalogue order editor. Guide programme sheets have an icon grid with Find in Nuvio. Sports and Calendar share compact channel recording and tuning controls. [Public Alpha 12 downloads and release notes](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-alpha.12)
+**Build availability.** Home → Reorder and Settings → Home and title details → Reorder Home rows open the shared catalogue order editor. Guide programme sheets have an icon grid with Find in Nuvio. Sports and Calendar share compact channel recording and tuning controls.
 
 **Reference.** The mobile layout adaptations and their source revision are listed in [NOTICE-MOBILE.md](../NOTICE-MOBILE.md).

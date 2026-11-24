@@ -127,7 +127,9 @@ fun TrailerPlayer(
     val seamlessHandoff = remember(incomingHandoff, rootView) {
         incomingHandoff?.sourceBounds?.coversView(rootView.width, rootView.height) == true
     }
-    var hasRenderedFirstFrame by remember(trailerUrl) { mutableStateOf(seamlessHandoff) }
+    val hasRenderedFirstFrameState = remember(trailerUrl) { mutableStateOf(seamlessHandoff) }
+    var hasRenderedFirstFrame by hasRenderedFirstFrameState
+    val currentHasRenderedFirstFrameState by rememberUpdatedState(hasRenderedFirstFrameState)
     val subtitleStyle by remember(resolvedPool) {
         resolvedPool?.subtitleStyle ?: MutableStateFlow(SubtitleStyleSettings())
     }.collectAsState()
@@ -291,7 +293,7 @@ fun TrailerPlayer(
             }
 
             override fun onRenderedFirstFrame() {
-                hasRenderedFirstFrame = true
+                currentHasRenderedFirstFrameState.value = true
                 currentOnFirstFrameRendered()
             }
 

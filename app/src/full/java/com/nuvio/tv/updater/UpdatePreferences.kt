@@ -39,7 +39,8 @@ class UpdatePreferences @Inject constructor(
     private val ignoredTagKey = stringPreferencesKey("ignored_release_tag")
     private val lastCheckAtKey = longPreferencesKey("last_check_at_ms")
     private val frequencyKey = stringPreferencesKey("update_check_frequency")
-    private val checkedReleaseKey = stringPreferencesKey("checked_release")
+    // Older cached checks contain the universal selection even when the release has a device-specific APK.
+    private val checkedReleaseKey = stringPreferencesKey("checked_release_by_abi")
     private val updateBannerEnabledKey = booleanPreferencesKey("update_banner_enabled")
     private val autoInstallEnabledKey = booleanPreferencesKey("auto_install_enabled")
     private val downloadedTagKey = stringPreferencesKey("downloaded_release_tag")

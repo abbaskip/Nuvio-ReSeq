@@ -52,7 +52,8 @@ validation, export and restore, including legacy backups. Explicit trailing lang
 are cleaned consistently in indexed lookup and final identity verification, while source
 labels remain intact and contradictory IDs/years/episodes are rejected.
 
-Pending APKs expire after 24 hours, with a two-hour active-install grace period. Successful
+Automatic cleanup expires pending APKs after 24 hours and gives installation attempts a two-hour grace period.
+“Clean up unused data” discards a pending download immediately once the Android installer releases it. Successful
 callbacks delete only their exact installer, with package-replacement/startup fallback.
 Banner-only checks do not predownload. Downloaded guide/playlist sources migrate into
 Android-reclaimable cache storage with a readable legacy fallback. Cleanup removes abandoned

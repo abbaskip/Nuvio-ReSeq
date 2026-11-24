@@ -6,12 +6,16 @@ import org.junit.Test
 
 class AbiSelectorTest {
     private fun assets(vararg names: String) = names.map { GitHubAssetDto(it, "https://example.test/$it") }
-    @Test fun universalWinsForEveryDeviceAndAssetOrder() {
+    @Test fun preferDeviceApkAndUseUniversalWhenThereIsNoCompatibleBuild() {
         val apks = assets("ReSeq-v1-arm64-v8a.apk", "ReSeq-v1-x86.apk", "ReSeq-v1-universal.apk")
-        for (abis in listOf(listOf("armeabi-v7a"), listOf("arm64-v8a"), listOf("x86"), listOf("x86_64"), emptyList())) {
-            assertEquals("ReSeq-v1-universal.apk", AbiSelector.chooseBestApkAsset(apks, abis)?.name)
-            assertEquals("ReSeq-v1-universal.apk", AbiSelector.chooseBestApkAsset(apks.reversed(), abis)?.name)
+        val devices = mapOf(listOf("arm64-v8a", "armeabi-v7a") to "arm64-v8a", listOf("x86_64", "x86") to "x86",
+            listOf("armeabi-v7a") to "universal", emptyList<String>() to "universal")
+        for ((abis, expected) in devices) {
+            assertEquals("ReSeq-v1-$expected.apk", AbiSelector.chooseBestApkAsset(apks, abis)?.name)
+            assertEquals("ReSeq-v1-$expected.apk", AbiSelector.chooseBestApkAsset(apks.reversed(), abis)?.name)
         }
+        assertEquals("ReSeq-armeabi-v7a.apk", AbiSelector.chooseBestApkAsset(
+            assets("ReSeq-universal.apk", "ReSeq-arm64-v8a.apk", "ReSeq-armeabi-v7a.apk"), listOf("armeabi-v7a"))?.name)
     }
     @Test fun incompatibleSingleAssetIsRejected() {
         assertNull(AbiSelector.chooseBestApkAsset(assets("ReSeq-arm64-v8a.apk"), listOf("armeabi-v7a")))

@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import androidx.core.database.sqlite.transaction
 import com.nuvio.tv.livetv.model.EpgAssignment
 import com.nuvio.tv.livetv.model.EpgProgram
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -175,7 +176,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 "INSERT INTO programs (ch, start, stop, title, descr, cat, ep, icon, year, people) VALUES (?,?,?,?,?,?,?,?,?,?)"
             )
             programs.forEach { (ch, list) ->
-                list.forEach { p ->
+                for (p in list) {
+                    if (GuideGapTitles.matches(p.title)) continue
                     stmt.clearBindings()
                     stmt.bindString(1, ch)
                     stmt.bindLong(2, p.startMs)
@@ -229,7 +231,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 "INSERT INTO programs (ch, start, stop, title, descr, cat, ep, icon, year, people) VALUES (?,?,?,?,?,?,?,?,?,?)"
             )
             programs.forEach { (ch, list) ->
-                list.forEach { p ->
+                for (p in list) {
+                    if (GuideGapTitles.matches(p.title)) continue
                     stmt.clearBindings()
                     stmt.bindString(1, ch)
                     stmt.bindLong(2, p.startMs)
@@ -384,6 +387,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                         aliases[c.getString(3)] = c.getString(0)
                         continue
                     }
+                    if (GuideGapTitles.matches(c.getString(3))) continue
                     val p = if (light) EpgProgram(
                         startMs = c.getLong(1),
                         stopMs = c.getLong(2),
@@ -625,10 +629,10 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
      * response keep their previously published programmes.
      */
     fun mergeChannelArchive(ch: String, programs: List<EpgProgram>) {
-        if (programs.isEmpty()) return
+        val listings = programs.filterNot { GuideGapTitles.matches(it.title) }
+        if (listings.isEmpty()) return
         val db = writableDatabase
-        db.beginTransaction()
-        try {
+        db.transaction {
             // A catch-up edit belongs to just this channel. Detach its full schedule first.
             db.execSQL("INSERT INTO programs (ch,start,stop,title,descr,cat,ep,icon,year,people) " +
                 "SELECT a.ch,p.start,p.stop,p.title,p.descr,p.cat,p.ep,p.icon,p.year,p.people " +
@@ -636,7 +640,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.delete("schedule_channels", "ch = ?", arrayOf(ch))
             db.compileStatement("DELETE FROM programs WHERE shared=0 AND ch=? AND start<? AND stop>?").use { remove ->
                 remove.bindString(1, ch)
-                for (p in programs) {
+                for (p in listings) {
                     remove.bindLong(2, p.stopMs)
                     remove.bindLong(3, p.startMs)
                     remove.executeUpdateDelete()
@@ -645,7 +649,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             val stmt = db.compileStatement(
                 "INSERT INTO programs (ch, start, stop, title, descr, cat, ep, icon, year, people) VALUES (?,?,?,?,?,?,?,?,?,?)"
             )
-            programs.forEach { p ->
+            listings.forEach { p ->
                 stmt.clearBindings()
                 stmt.bindString(1, ch); stmt.bindLong(2, p.startMs); stmt.bindLong(3, p.stopMs); stmt.bindString(4, p.title)
                 p.description?.takeIf { retainDescriptions }?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
@@ -653,9 +657,6 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 stmt.executeInsert()
             }
             bumpContentRevision(db)
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
         }
     }
 
@@ -743,6 +744,12 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             if (programs.isEmpty()) return
             val m = meta.getOrPut(xid) { LongArray(3) }
             programs.forEach { p ->
+                // Source ranking counts the feed as supplied, even when a blank has no stored row.
+                m[0]++
+                if (p.stopMs > m[1]) m[1] = p.stopMs
+                val gap = GuideGapTitles.matches(p.title)
+                if (gap || isPlaceholder(p.title)) m[2]++
+                if (gap) return@forEach
                 stmt.clearBindings()
                 stmt.bindString(1, src); stmt.bindString(2, xid)
                 stmt.bindLong(3, p.startMs); stmt.bindLong(4, p.stopMs); stmt.bindString(5, p.title)
@@ -753,9 +760,6 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 p.year?.let { stmt.bindLong(10, it.toLong()) } ?: stmt.bindNull(10)
                 if (!retainDescriptions || p.people.isEmpty()) stmt.bindNull(11) else stmt.bindString(11, p.people.joinToString("\u001F"))
                 stmt.executeInsert()
-                m[0]++
-                if (p.stopMs > m[1]) m[1] = p.stopMs
-                if (isPlaceholder(p.title)) m[2]++
             }
             rows += programs.size
             // Written in parts, so the database's pending changes stay small on big guides.
@@ -974,7 +978,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
             db.execSQL(
                 "INSERT INTO programs (ch, start, stop, title, descr, cat, ep, icon, year, people) " +
                     "SELECT c.ch, s.start, s.stop, s.title, ${if (retainDescriptions) "s.descr" else "NULL"}, s.cat, s.ep, s.icon, s.year, ${if (retainDescriptions) "s.people" else "NULL"} " +
-                    "FROM stage s JOIN temp.choice c ON c.src = s.src AND c.xid = s.xid WHERE s.stop > ? AND s.start < ?",
+                    "FROM stage s JOIN temp.choice c ON c.src = s.src AND c.xid = s.xid WHERE s.stop > ? AND s.start < ? " +
+                    "AND NOT (${GuideGapTitles.predicate("s.title")})",
                 arrayOf<Any>(fromMs, toMs)
             )
             db.execSQL("DROP TABLE IF EXISTS temp.choice")
@@ -982,7 +987,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 "INSERT INTO programs (ch, start, stop, title, descr, cat, ep, icon, year, people) VALUES (?,?,?,?,?,?,?,?,?,?)"
             )
             extra.forEach { (ch, list) ->
-                list.forEach { p ->
+                for (p in list) {
+                    if (GuideGapTitles.matches(p.title)) continue
                     stmt.clearBindings()
                     stmt.bindString(1, ch); stmt.bindLong(2, p.startMs); stmt.bindLong(3, p.stopMs); stmt.bindString(4, p.title)
                     p.description?.takeIf { retainDescriptions }?.let { stmt.bindString(5, it) } ?: stmt.bindNull(5)
@@ -1061,8 +1067,9 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         fun copy(old: String, destination: String, sharedRow: Int) {
             db.execSQL(
                 "INSERT INTO guide_next(ch,start,stop,title,descr,cat,ep,icon,year,people,shared) " +
-                    "SELECT ?,p.start,p.stop,p.title,$description,p.cat,p.ep,p.icon,p.year,$people,? " +
+                "SELECT ?,p.start,p.stop,p.title,$description,p.cat,p.ep,p.icon,p.year,$people,? " +
                     "FROM programs p WHERE p.ch=? AND p.shared=? AND p.stop>? AND p.stop<=? " +
+                    "AND NOT (${GuideGapTitles.predicate("p.title")}) " +
                     "AND NOT EXISTS (SELECT 1 FROM guide_next n WHERE n.ch=? AND n.shared=? " +
                     "AND n.start<p.stop AND n.stop>p.start)",
                 arrayOf<Any>(destination, sharedRow, old, sharedRow, fromMs, airedByMs, destination, sharedRow)
@@ -1162,8 +1169,8 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                         "SELECT c.ch,s.start,s.stop,s.title,${if (retainDescriptions) "s.descr" else "NULL"},s.cat,s.ep,s.icon,s.year,${if (retainDescriptions) "s.people" else "NULL"},1 " +
                         "FROM stage s CROSS JOIN guide_choice c ON c.src=s.src AND c.xid=s.xid " +
                         "WHERE s.rowid>? AND s.rowid<=? AND s.stop>? AND s.start<? " +
-                        "AND (s.stop>? OR s.title<>? COLLATE NOCASE)",
-                        arrayOf<Any>(row, row + 1024, fromMs, toMs, airedByMs, NO_GUIDE_TITLE))
+                        "AND NOT (${GuideGapTitles.predicate("s.title")})",
+                        arrayOf<Any>(row, row + 1024, fromMs, toMs))
                 }
                 row += 1024
             }
@@ -1218,7 +1225,31 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
     }
 
     /** Gives back space left empty by deleted listings (see [SqliteCompact]). */
-    fun compact(): Long = SqliteCompact.compactIfWasteful(writableDatabase, "guide")
+    fun compact(): Long {
+        val db = writableDatabase
+        val cleaned = db.rawQuery("SELECT 1 FROM meta WHERE k='guide_gap_rows_removed'", null).use { it.moveToFirst() }
+        if (!cleaned) {
+            // Idle or manual maintenance. Bounded deletes allow WAL checkpoints on space-constrained TVs.
+            for (table in listOf("programs", "stage")) {
+                var after = 0L
+                val missing = GuideGapTitles.predicate("title")
+                while (true) {
+                    val last = db.rawQuery("SELECT MAX(rowid) FROM (SELECT rowid FROM $table " +
+                        "WHERE rowid>? AND $missing ORDER BY rowid LIMIT 1000)", arrayOf(after.toString())).use {
+                        it.moveToFirst()
+                        if (it.isNull(0)) null else it.getLong(0)
+                    } ?: break
+                    db.delete(table, "rowid>? AND rowid<=? AND $missing", arrayOf(after.toString(), last.toString()))
+                    after = last
+                }
+            }
+            db.transaction {
+                bumpContentRevision(db)
+                db.execSQL("INSERT OR REPLACE INTO meta(k,v) VALUES ('guide_gap_rows_removed','1')")
+            }
+        }
+        return SqliteCompact.compactIfWasteful(db, "guide")
+    }
 
     fun clear() {
         val db = writableDatabase
@@ -1231,7 +1262,6 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
     }
 }
 
-internal const val NO_GUIDE_TITLE = "No Program Guide Available"
 
 private val STAGING_TABLES = listOf("stage", "stage_meta", "stage_channels", "stage_info")
 

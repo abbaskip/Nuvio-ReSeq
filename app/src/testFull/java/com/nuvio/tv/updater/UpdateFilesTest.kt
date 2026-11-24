@@ -51,4 +51,21 @@ class UpdateFilesTest {
         files.sweep(outside, true)
         assertFalse(apk.exists()); assertFalse(files.completed(outside)); assertTrue(outside.exists())
     }
+
+    @Test fun `manual cleanup releases a failed install as soon as the installer closes`() {
+        val directory = temp.newFolder("updates")
+        val files = UpdateFiles(directory) { now }
+        val apk = file(directory, "pending.apk")
+        val recording = temp.newFile("recording.ts")
+        file(directory, "update.apk.part")
+        files.pin(apk)
+
+        assertFalse(files.discardDownloads { it == apk })
+        assertTrue(apk.exists())
+        assertTrue(files.isPinned(apk))
+        assertTrue(files.discardDownloads { false })
+        assertTrue(directory.listFiles()!!.isEmpty())
+        assertTrue(recording.exists())
+        assertTrue(files.discardDownloads { false })
+    }
 }

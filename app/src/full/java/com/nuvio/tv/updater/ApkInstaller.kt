@@ -1,9 +1,11 @@
 package com.nuvio.tv.updater
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageInstaller
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -12,23 +14,6 @@ import com.nuvio.tv.BuildConfig
 import java.io.File
 
 object ApkInstaller {
-
-    fun isCompatibleUpdate(context: Context, apk: File): Boolean = runCatching {
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
-            else android.content.pm.PackageManager.GET_SIGNATURES
-        @Suppress("DEPRECATION")
-        val installed = context.packageManager.getPackageInfo(context.packageName, flags)
-        @Suppress("DEPRECATION")
-        val candidate = context.packageManager.getPackageArchiveInfo(apk.path, flags) ?: return false
-        if (candidate.packageName != context.packageName) return false
-        @Suppress("DEPRECATION")
-        val newer = if (Build.VERSION.SDK_INT >= 28) candidate.longVersionCode > installed.longVersionCode
-            else candidate.versionCode > installed.versionCode
-        @Suppress("DEPRECATION")
-        fun signatures(info: PackageInfo) = if (Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners?.toSet()
-            else info.signatures?.toSet()
-        newer && !signatures(installed).isNullOrEmpty() && signatures(installed) == signatures(candidate)
-    }.getOrDefault(false)
 
     fun canRequestPackageInstalls(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -55,6 +40,7 @@ object ApkInstaller {
      * confirmation screen, which Android 12+ allows for an app updating itself; elsewhere the system still asks.
      * The outcome arrives in [UpdateInstallResultReceiver].
      */
+    @Synchronized
     fun install(
         context: Context,
         apkFile: File,
@@ -102,19 +88,35 @@ object ApkInstaller {
         }
     }
 
-    /** Hands the APK to the system installer screen, used when the session install cannot be completed. */
+    /** Opens the downloaded APK in the system installer with temporary read access. */
+    @Synchronized
     fun launchSystemInstaller(context: Context, apkFile: File) {
         UpdateRelaunchReceiver.cancelReopen(context)
         UpdateFiles(File(context.filesDir, "updates")).pin(apkFile)
+        context.startActivity(systemInstallerIntent(context, apkFile))
+    }
+
+    // A session owns its staged copy after commit. An external installer may still need to open our URI.
+    @Synchronized
+    internal fun discardDownloads(context: Context, files: UpdateFiles): Boolean =
+        files.discardDownloads { apk ->
+            val intent = systemInstallerIntent(context, apk)
+            @Suppress("DEPRECATION")
+            context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).any { handler ->
+                context.checkUriPermission(requireNotNull(intent.data), -1, handler.activityInfo.applicationInfo.uid,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION) == PackageManager.PERMISSION_GRANTED
+            }
+        }
+
+    private fun systemInstallerIntent(context: Context, apkFile: File): Intent {
         val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
         val uri = FileProvider.getUriForFile(context, authority, apkFile)
 
-        val intent = Intent(Intent.ACTION_VIEW)
+        return Intent(Intent.ACTION_VIEW)
             .setDataAndType(uri, "application/vnd.android.package-archive")
+            .apply { clipData = ClipData.newRawUri(apkFile.name, uri) }
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-        context.startActivity(intent)
     }
 
     private fun PackageInstaller.Session.writeFile(name: String, file: File) {

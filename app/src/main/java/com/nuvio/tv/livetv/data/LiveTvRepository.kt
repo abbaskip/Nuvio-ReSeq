@@ -1558,7 +1558,7 @@ class LiveTvRepository @Inject constructor(
                             val existingEnd = maxOf(now, existing.maxOfOrNull { it.stopMs } ?: now)
                             val incoming = list.filter { it.stopMs > from && it.startMs < to &&
                                 (it.startMs < now || it.startMs >= existingEnd) &&
-                                !it.title.equals(NO_GUIDE_TITLE, ignoreCase = true) }
+                                !GuideGapTitles.matches(it.title) }
                             if (incoming.isEmpty()) return@runCatching
                             val replacement = resolveOverlaps(incoming)
                             val merged = if (guideInDb) {
@@ -1776,7 +1776,7 @@ class LiveTvRepository @Inject constructor(
                         val icon = readOpt(input)
                         val year = input.readInt().takeIf { it > 0 }
                         val people = List(input.readInt()) { input.readUTF() }
-                        list += EpgProgram(start, stop, title, desc, category, episode, icon, year, people)
+                        if (!GuideGapTitles.matches(title)) list += EpgProgram(start, stop, title, desc, category, episode, icon, year, people)
                     }
                     programs[key] = list
                 }
@@ -2484,7 +2484,7 @@ class LiveTvRepository @Inject constructor(
         val newPrograms = HashMap<String, List<EpgProgram>>()
         val newIcons = HashMap<String, String>()
         assigned.forEach { (key, a) ->
-            newPrograms[key] = cleanListings(programsBySource[a.sourceId]?.get(a.xmltvId).orEmpty())
+            newPrograms[key] = cleanListings(programsBySource[a.sourceId]?.get(a.xmltvId).orEmpty()).filterNot { GuideGapTitles.matches(it.title) }
             iconsBySource[a.sourceId]?.get(a.xmltvId)?.let { newIcons[key] = it }
         }
         // Automatic: the same choice a full update makes (real listings first, then a tvg-id
@@ -2500,7 +2500,7 @@ class LiveTvRepository @Inject constructor(
                 if (score > bestScore) { bestScore = score; best = c to listings }
             }
             best?.let { (c, listings) ->
-                newPrograms[key] = listings
+                    newPrograms[key] = listings.filterNot { GuideGapTitles.matches(it.title) }
                 newAuto[key] = EpgAssignment(c.sourceId, c.xmltvId)
                 iconsBySource[c.sourceId]?.get(c.xmltvId)?.let { newIcons[key] = it }
             }

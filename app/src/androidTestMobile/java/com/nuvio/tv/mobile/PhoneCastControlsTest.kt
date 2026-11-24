@@ -2,6 +2,12 @@ package com.nuvio.tv.mobile
 
 import android.graphics.Bitmap
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.mutableStateOf
@@ -24,7 +30,11 @@ class PhoneCastControlsTest {
         compose.activityRule.scenario.onActivity { activity ->
             activity.setContent {
                 MaterialTheme(colorScheme = darkColorScheme()) {
-                    MobileCastBar(activity.casting, controls.value, {}, {})
+                    Surface(Modifier.fillMaxSize()) {
+                        Box(contentAlignment = Alignment.BottomCenter) {
+                            MobileCastBar(activity.casting, controls.value, {}, {})
+                        }
+                    }
                 }
             }
         }
@@ -35,7 +45,15 @@ class PhoneCastControlsTest {
         fun save(node: SemanticsNodeInteraction, name: String) {
             File(screenshots, name).outputStream().use { node.captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
-        save(compose.onNode(isRoot() and hasAnyDescendant(hasText("Stop casting"))), "phone-cast-expanded.png")
+        // A Material bottom sheet lives in its own window. Capture the composed display.
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        // Compose's test clock can settle before SurfaceFlinger presents the dialog surface.
+        InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(500, 5_000)
+        android.os.SystemClock.sleep(500)
+        val display = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+        File(screenshots, "phone-cast-expanded.png").outputStream().use { display.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        display.recycle()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.runOnIdle { controls.value = controls.value.copy(position = 13_000) }
         compose.onNodeWithText("Stop casting").assertDoesNotExist()

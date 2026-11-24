@@ -343,7 +343,7 @@ private fun TrackerSettings(trakt: TraktViewModel = hiltViewModel(), simkl: Simk
     if (sources.connectedProviderIds.isNotEmpty()) {
         TrackerSourceGroup("Continue Watching source", sources.availableWatchProgressSources, choices.progress, ::trackerName)
         TrackerSourceGroup("Library source", sources.availableLibrarySourceModes, choices.library, ::trackerName)
-        TrackerSourceGroup("Personal ratings source", listOf(null) + sources.availableRatingSources, choices.rating) {
+        TrackerSourceGroup("Personal ratings source", listOf(null) + sources.connectedProviderIds.sortedBy { it.ordinal }, choices.rating) {
             it?.let(::trackerName) ?: "All connected trackers"
         }
     }

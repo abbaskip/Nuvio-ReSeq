@@ -34,6 +34,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import androidx.lifecycle.repeatOnLifecycle
 import com.nuvio.tv.core.tracking.TrackingRefreshIntent
 import com.nuvio.tv.core.runtime.PluginRuntimeHooks
 import com.nuvio.tv.core.storage.DatabaseVersions
@@ -51,6 +54,7 @@ import javax.inject.Inject
 class MobileActivity : androidx.fragment.app.FragmentActivity() {
     @Inject internal lateinit var casting: MobileCasting
     @Inject lateinit var themes: ThemeDataStore
+    @Inject lateinit var offlineWatches: com.nuvio.tv.data.repository.OfflineWatchQueue
     @Inject internal lateinit var trailerNetwork: MobileTrailerNetwork
     @Inject lateinit var profileLocks: com.nuvio.tv.data.local.ProfileLockStateDataStore
     @Inject lateinit var profileManager: com.nuvio.tv.core.profile.ProfileManager
@@ -76,6 +80,24 @@ class MobileActivity : androidx.fragment.app.FragmentActivity() {
         }
         ready = true
         casting.initialize()
+        lifecycleScope.launch {
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                combine(profileManager.activeProfileId, trailerNetwork.hasNetwork,
+                    com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen) { profile, online, playing ->
+                    profile.takeIf { online && !playing }
+                }.collectLatest { profile ->
+                    if (profile == null) return@collectLatest
+                    while (true) {
+                        offlineWatches.pending(profile).first { it.isNotEmpty() }
+                        try {
+                            if (offlineWatches.deliver(profile)) projection.refreshConnected(TrackingRefreshIntent.INVALIDATED)
+                        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (e: Exception) { android.util.Log.w("OfflineHistory", "Delivery deferred (${e.javaClass.simpleName})") }
+                        kotlinx.coroutines.delay(60_000)
+                    }
+                }
+            }
+        }
         lifecycleScope.launch {
             var hadPlayer = false
             com.nuvio.tv.core.player.PlayerSessionTracker.isSessionOpen.collectLatest { open ->
@@ -166,9 +188,14 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
     val holder = rememberSaveableStateHolder()
     val cast = LocalCasting.current
     val castState by cast.state.collectAsStateWithLifecycle()
+    com.nuvio.tv.livetv.ui.KeepScreenAwake(castState.device != null && (castState.loading || castState.item != null))
     castState.error?.let { message ->
         AlertDialog(onDismissRequest = cast::dismissError, title = { Text("Chromecast") }, text = { Text(message) },
-            confirmButton = { TextButton(onClick = cast::dismissError) { Text("OK") } })
+            confirmButton = {
+                if (castState.compatibilityAvailable) TextButton(onClick = cast::tryCompatibility) { Text("Try compatibility mode") }
+                else TextButton(onClick = cast::dismissError) { Text("OK") }
+            },
+            dismissButton = { if (castState.compatibilityAvailable) TextButton(onClick = cast::dismissError) { Text("Cancel") } })
     }
     var playing by remember { mutableStateOf(false) }
     var multiview by rememberSaveable { mutableStateOf(false) }
@@ -222,7 +249,7 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
                     (channel != null && live.playCatchup(channel, replay.program)).also { if (it) playing = true }
                 }) { content() }
             }
-            MobileCastBar(cast, sources = { video -> tab = Tab.HOME; cast.requestedSources.value = video },
+            MobileCastBar(cast, castState, sources = { video -> tab = Tab.HOME; cast.requestedSources.value = video },
                 channels = { tab = Tab.GUIDE })
             if (!tablet && !inVodPlayer && !tab.isLiveSection) tabs()
         }

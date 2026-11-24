@@ -175,6 +175,20 @@ internal fun ratingBody(target: PersonalRatingTarget, provider: PersonalRatingPr
             target.ids.mal?.let { put("mal", it) }
         }
     }
+    target.episode?.let { episode ->
+        val item = JSONObject()
+        rating?.let { item.put("rating", it) }
+        if (episode.tvdbId != null || episode.traktId != null) {
+            val episodeIds = JSONObject()
+            episode.tvdbId?.let { episodeIds.put("tvdb", it) }
+            episode.traktId?.let { episodeIds.put("trakt", it) }
+            return JSONObject().put("episodes", JSONArray().put(item.put("ids", episodeIds)))
+        }
+        val season = JSONObject().put("number", requireNotNull(episode.season))
+            .put("episodes", JSONArray().put(item.put("number", episode.number)))
+        return JSONObject().put("shows", JSONArray().put(JSONObject().put("ids", ids)
+            .put("seasons", JSONArray().put(season))))
+    }
     val item = JSONObject().put("ids", ids)
     rating?.let { item.put("rating", it) }
     // Simkl accepts anime on add, but its removal schema uses shows for anime too.
@@ -222,7 +236,16 @@ private fun findRatingRow(target: PersonalRatingTarget, rows: JSONArray): JSONOb
         val row = rows.getJSONObject(i)
         check(!hasRatingErrors(row)) { "Invalid rating record" }
         val media = row.optJSONObject(if (target.movie) "movie" else "show") ?: row.optJSONObject("anime") ?: continue
-        if (ratingIdsMatch(target.ids, media.optJSONObject("ids"))) return row
+        if (!ratingIdsMatch(target.ids, media.optJSONObject("ids"))) continue
+        val episode = target.episode ?: return row
+        val native = row.optJSONObject("episode") ?: continue
+        val ids = native.optJSONObject("ids")
+        val matches = when {
+            episode.traktId != null -> ids?.optInt("trakt") == episode.traktId
+            episode.tvdbId != null -> ids?.optLong("tvdb") == episode.tvdbId
+            else -> native.optInt("season", -1) == episode.season && native.optInt("number", -1) == episode.number
+        }
+        if (matches) return row
     }
     return null
 }

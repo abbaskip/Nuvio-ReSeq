@@ -76,6 +76,10 @@ class SimklSyncRepository @Inject constructor(
         ensureLoaded()
         val profileId = profileManager.activeProfileId.value
         val generation = profileGeneration
+        if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile" && intent == TrackingRefreshIntent.USER_INITIATED) {
+            refreshSnapshot(profileId, generation, fullHistory = true)
+            return@withContext
+        }
         refreshGate.runIfNeeded(
             profileGeneration = generation,
             shouldRun = {
@@ -250,11 +254,12 @@ class SimklSyncRepository @Inject constructor(
         }
     }
 
-    private suspend fun refreshSnapshot(profileId: Int, generation: Long) = snapshotMutex.withLock {
+    private suspend fun refreshSnapshot(profileId: Int, generation: Long, fullHistory: Boolean = false) = snapshotMutex.withLock {
+        if (!isCurrent(profileId, generation) || !authStorage.state.value.isAuthenticated) return@withLock
         val previous = _state.value
         _state.value = previous.copy(isLoading = true, errorMessage = null)
         val result = try {
-            engine.synchronize(previous.snapshot)
+            if (fullHistory) engine.reloadHistory() else engine.synchronize(previous.snapshot)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {

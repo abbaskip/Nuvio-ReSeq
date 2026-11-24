@@ -21,6 +21,25 @@ class MobileContinueWatchingUndoTest {
     private fun watched(season: Int, episode: Int, id: Long, date: String) =
         mdbListTestEpisode(season, episode, date).copy(media = office, episodeTvdbId = id)
 
+    @Test fun linkedMdbListHistoryAdvancesInTheRecordedOfficeAltTwoOrder() = runTest {
+        val order = com.nuvio.tv.data.tvdb.officeOrderFixtures().getValue("alttwo")
+        val meta = com.nuvio.tv.data.tvdb.tvdbEpisodeOverlay(com.nuvio.tv.data.tvdb.recordedProvider(order), 73244, order)
+        val history = decodeMdbListWatched("""{"episodes":[{"watched_at":"2026-11-24T00:19:00Z",
+            "episode":{"season":6,"number":18,"ids":{"tmdb":501},"tvdb_ids":{"series":73244,"episode":1692591}},
+            "show":{"ids":{"imdb":"tt0386676"}}}]}""")
+        val raw = MdbListProgressProjection(MdbListSyncSnapshot(1, watched = history.items)).nextUp(false).single()
+        val prior = raw.copy(episode = 17, tvdbEpisodeId = 1775891, lastWatched = raw.lastWatched - 60000)
+        val seasonFour = raw.copy(season = 4, episode = 1, tvdbEpisodeId = 10718498, lastWatched = prior.lastWatched - 60000)
+        val next = com.nuvio.tv.ui.screens.detail.SeriesNextToWatch(mockk(relaxed = true))
+        for ((rows, expected) in listOf(listOf(seasonFour, prior, raw) to 21, listOf(seasonFour, prior) to 20)) {
+            val watched = com.nuvio.tv.data.tvdb.reconcileTvdbProgress(meta, emptyMap(), rows)
+            for (furthest in listOf(false, true)) {
+                val offer = next.resolve(meta.id, "series", meta.name, meta.videos, true, null, watched, emptySet(), furthest) { emptyMap() }
+                assertEquals(6 to expected, offer.nextSeason to offer.nextEpisode)
+            }
+        }
+    }
+
     @Test fun undoneAlt2WatchUsesRemainingMdbListHistoryWithEitherPreferenceAfterRestart() = runTest {
         val earlier = watched(3, 2, 302, "2026-11-21T12:00:00Z")
         val furthest = watched(6, 16, 616, "2026-10-21T12:00:00Z")

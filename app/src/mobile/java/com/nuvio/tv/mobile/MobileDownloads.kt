@@ -40,19 +40,23 @@ internal fun DownloadsLink(open: () -> Unit) {
 internal fun MobileDownloads(profile: Int, media: MobileOfflineMedia, back: () -> Unit, details: (MobileVideo) -> Unit, play: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val revision by media.changes.collectAsStateWithLifecycle()
     val transfers by media.transfers.collectAsStateWithLifecycle()
     var refresh by remember(profile) { mutableIntStateOf(0) }
     var removing by remember(profile) { mutableStateOf<OfflineFile?>(null) }
     var message by remember(profile) { mutableStateOf<String?>(null) }
     LifecycleResumeEffect(profile) { refresh++; onPauseOrDispose { } }
-    val entries by produceState<List<OfflineFile>?>(null, profile, revision, refresh) {
-        value = withContext(Dispatchers.IO) { media.saved(profile) }
+    val entries by produceState<List<OfflineFile>?>(null, profile, refresh) {
+        media.observeSaved(profile).collect { value = it }
     }
     val active = transfers.values.filter { it.video.profile == profile && it.active }
     val colors = MaterialTheme.colorScheme
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item { BrowseHeading("Downloads", back) }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                BrowseHeading("Downloads", back)
+                MobileCastButton()
+            }
+        }
         if (active.isNotEmpty()) {
             item { SettingsHeading("Downloading") }
             items(active, key = { "transfer-" + it.video.key }) { transfer ->
@@ -70,7 +74,7 @@ internal fun MobileDownloads(profile: Int, media: MobileOfflineMedia, back: () -
                     val size = Formatter.formatShortFileSize(context, saved.sumOf { it.length })
                     Label("${saved.size} ${if (saved.size == 1) "download" else "downloads"} · $size on this device", small = true)
                 }
-                items(saved, key = { it.video.key }) { entry ->
+                items(saved, key = { it.downloadedVideo.key }) { entry ->
                     Row(Modifier.fillMaxWidth().mediaPanel(), verticalAlignment = Alignment.CenterVertically) {
                         MediaArt(entry.artwork ?: entry.video.poster, Icons.Default.Download, Modifier.padding(start = 6.dp).size(42.dp, 58.dp))
                         Column(Modifier.weight(1f).clickable(role = Role.Button, onClickLabel = "Play download") {
@@ -80,7 +84,8 @@ internal fun MobileDownloads(profile: Int, media: MobileOfflineMedia, back: () -
                             }
                         }.heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 6.dp), verticalArrangement = Arrangement.Center) {
                             Label(entry.video.label, strong = true, lines = 2)
-                            Label(Formatter.formatShortFileSize(context, entry.length), small = true)
+                            Label(listOfNotNull(Formatter.formatShortFileSize(context, entry.length),
+                                "Original download order".takeIf { entry.usingDownloadedOrder }).joinToString(" · "), small = true)
                         }
                         IconButton(onClick = { details(entry.video) }) { Icon(Icons.Default.Info, "Details for " + entry.video.label) }
                         IconButton(onClick = { removing = entry }) {
@@ -122,10 +127,11 @@ internal fun SavedTitleDetails(entries: List<OfflineFile>, back: () -> Unit, pla
             }
         }
         info?.synopsis?.takeIf(String::isNotBlank)?.let { item { Label(it) } }
-        items(ordered, key = { it.video.key }) { entry ->
+        items(ordered, key = { it.downloadedVideo.key }) { entry ->
             Column(Modifier.fillMaxWidth().mediaPanel().padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 if (entry.video.episode != null) {
                     Label(entry.video.label.removePrefix(entry.video.title + " "), strong = true)
+                    if (entry.usingDownloadedOrder) Label("Original download order", small = true)
                     entry.details?.let { details ->
                         val facts = listOfNotNull(details.episodeAirDate, details.runtime).joinToString(" · ")
                         if (facts.isNotBlank()) Label(facts, small = true)

@@ -763,13 +763,15 @@ class TraktProgressService @Inject constructor(
     suspend fun markAsWatched(
         progress: WatchProgress,
         title: String?,
-        year: Int?
+        year: Int?,
+        nativeNumbering: Boolean = false,
+        requireAdded: Boolean = false
     ) {
         Log.d(TAG, "markAsWatched: contentId=${progress.contentId} videoId=${progress.videoId} " +
             "season=${progress.season} episode=${progress.episode} " +
             "contentType=${progress.contentType} title=$title year=$year")
 
-        val effectiveInitialProgress = if (isSeriesEpisodeProgress(progress)) {
+        val effectiveInitialProgress = if (!nativeNumbering && isSeriesEpisodeProgress(progress)) {
             val remapped = resolveCanonicalEpisodeMapping(progress)
             if (remapped != null && (remapped.season != progress.season || remapped.episode != progress.episode)) {
                 Log.d(TAG, "markAsWatched: proactive remap from s=${progress.season} e=${progress.episode} " +
@@ -788,6 +790,7 @@ class TraktProgressService @Inject constructor(
 
         val body = buildHistoryAddRequest(effectiveInitialProgress, title, year)
         if (body == null) {
+            check(!requireAdded) { "No Trakt identity for offline completion" }
             Log.w(TAG, "markAsWatched: insufficient Trakt IDs for contentId=${progress.contentId} videoId=${progress.videoId} — skipping")
             return
         }
@@ -813,7 +816,7 @@ class TraktProgressService @Inject constructor(
             "shows=${responseBody?.notFound?.shows?.map { it.ids }} " +
             "episodes=${responseBody?.notFound?.episodes?.map { "s=${it.season} e=${it.number} ids=${it.ids}" }}]")
 
-        val shouldRetryRemap = isSeriesEpisode && (
+        val shouldRetryRemap = !nativeNumbering && isSeriesEpisode && (
             !response.isSuccessful ||
                 hasHistoryAddNotFound(responseBody) ||
                 !hasSuccessfulHistoryAdd(responseBody)
@@ -848,6 +851,7 @@ class TraktProgressService @Inject constructor(
             throw IllegalStateException(appContext.getString(com.nuvio.tv.R.string.trakt_error_mark_watched_failed, effectiveResponseCode))
         }
         if (!hasSuccessfulHistoryAdd(responseBody)) {
+            check(!requireAdded) { "Trakt did not acknowledge the offline completion" }
             trace("markAsWatched: Trakt accepted request with no new history rows (code=$effectiveResponseCode)")
         }
 

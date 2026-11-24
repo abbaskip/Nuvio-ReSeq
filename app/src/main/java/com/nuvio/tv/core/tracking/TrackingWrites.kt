@@ -89,6 +89,9 @@ interface TrackingHistoryWriter {
         items: Collection<TrackingHistoryItem>
     ): TrackingMutationResult
 
+    suspend fun addOfflineWatch(profileId: Int, item: TrackingHistoryItem): TrackingMutationResult =
+        addToHistory(profileId, listOf(item))
+
     suspend fun removeFromHistory(
         profileId: Int,
         items: Collection<TrackingMediaReference>

@@ -6,7 +6,7 @@ class MdbListSyncEngine(
     private val remote: MdbListSyncRemote,
     private val now: () -> Long = System::currentTimeMillis
 ) {
-    suspend fun synchronize(previous: MdbListSyncSnapshot, includeRatings: Boolean = false): MdbListSyncSnapshot {
+    suspend fun synchronize(previous: MdbListSyncSnapshot, includeRatings: Boolean = false, requestEpisodeIdentities: Boolean = false): MdbListSyncSnapshot {
         val activities = remote.activities()
         val previousActivities = previous.activities
         val full = !previous.isInitialized || previousActivities == null
@@ -14,10 +14,15 @@ class MdbListSyncEngine(
         val expired = watermark == null || mdbListTimestamp(activities.serverTime) -
             mdbListTimestamp(watermark) !in 0 until JOURNAL_RETENTION_MS
         val watched = when {
-            full || expired || MdbListSyncBucket.WATCHED in previous.invalidatedBuckets -> remote.watched()
+            full || expired || (requestEpisodeIdentities && !previous.requestedEpisodeIdentities) || MdbListSyncBucket.WATCHED in previous.invalidatedBuckets -> remote.watched()
             activities.watchedChanged(previousActivities) -> {
                 val journal = remote.journal(watermark)
-                if (journal.requiresFullSync) remote.watched()
+                val needsIdentity = requestEpisodeIdentities && journal.items.any { change ->
+                    !change.removed && change.type == MdbListItemType.EPISODE && change.episodeTvdbId == null &&
+                        previous.watched.none { it.type == change.type && it.season == change.season &&
+                            it.episode == change.episode && it.episodeTvdbId != null && it.media.ids.matches(change.ids) }
+                }
+                if (journal.requiresFullSync || needsIdentity) remote.watched()
                 else applyMdbListJournal(previous, journal.items)
             }
             else -> previous.watched
@@ -51,6 +56,7 @@ class MdbListSyncEngine(
             watermark = activities.serverTime,
             checkedAtEpochMs = now(),
             isInitialized = true,
+            requestedEpisodeIdentities = requestEpisodeIdentities || previous.requestedEpisodeIdentities,
             invalidatedBuckets = emptySet()
         )
         return if (watched === previous.watched && playback === previous.playback) next else next.normalizeMedia()

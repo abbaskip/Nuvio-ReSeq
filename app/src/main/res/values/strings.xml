@@ -3567,4 +3567,5 @@
     <string name="choose_watch_date_time">Choose date and time</string>
     <string name="choose_watch_time">Choose time</string>
     <string name="choose_past_watch_time">Choose a valid time in the past.</string>
+    <string name="episodes_last_watch_mdblist_pending">Watch removed on this device. Waiting for MDBList to confirm.</string>
 </resources>

@@ -872,6 +872,9 @@ internal fun PlayerRuntimeController.handleNaturalPlaybackEnded() {
     emitCompletionScrobbleStop(progressPercent = 99.5f)
     if (contentType.equals("cloud", ignoreCase = true)) {
         saveCloudLibraryProgress(position, duration, completed = true)
+    } else if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile" && currentStreamUrl.startsWith("file:") && duration > 0) {
+        // Some decoders reset position to zero at EOF. The validated natural end is authoritative.
+        saveWatchProgressInternal(duration, duration)
     } else {
         saveWatchProgress()
     }

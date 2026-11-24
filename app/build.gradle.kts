@@ -217,8 +217,8 @@ android {
         create("mobile") {
             initWith(full)
             applicationId = "io.github.abbaskip.nuvioreseq.mobile"
-            versionCode = 16
-            versionName = "0.1.0-beta.1.1"
+            versionCode = 17
+            versionName = "0.1.0-beta.2"
             buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "false")
         }
     }
@@ -517,6 +517,7 @@ val downloadAudioSyncRuntime by tasks.registering {
 
 dependencies {
     add("mobileImplementation", "com.google.android.gms:play-services-cast-framework:22.3.1")
+    add("mobileImplementation", "androidx.media3:media3-transformer:1.8.0")
     implementation(files(sherpaOnnxAar).builtBy(downloadAudioSyncRuntime))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     val composeBom = platform("androidx.compose:compose-bom:2026.05.01")

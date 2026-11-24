@@ -1,6 +1,7 @@
 package com.nuvio.tv.mobile
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
@@ -33,11 +34,18 @@ internal fun MobileMovieRating(request: MovieRatingRequest, close: () -> Unit,
         }
     }
     DisposableEffect(vm) { onDispose { vm.close() } }
-    if (state.open && profile == request.profileId) TouchSheet(dismiss) {
+    if (state.open && profile == request.profileId) MobilePersonalRatingSheet(request.title, target, eligible, vm, dismiss)
+}
+
+@Composable
+internal fun MobilePersonalRatingSheet(title: String, target: PersonalRatingTarget?, eligible: List<PersonalRatingProvider>,
+    vm: PersonalRatingsViewModel, dismiss: () -> Unit) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    TouchSheet(dismiss) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp)) {
-            BrowseHeading("Rate " + request.title, dismiss)
+            BrowseHeading("Rate " + title, dismiss)
             Label(eligible.joinToString { it.label })
-            var score by rememberSaveable(request.contentId) { mutableStateOf<Int?>(null) }
+            var score by rememberSaveable(target?.ids?.toString(), target?.episode?.number, target?.episode?.season) { mutableStateOf<Int?>(null) }
             LaunchedEffect(state.results) {
                 if (!state.saved) score = state.results.filter { it.confirmed }.mapNotNull { it.rating }.distinct().singleOrNull()
             }
@@ -58,6 +66,27 @@ internal fun MobileMovieRating(request: MovieRatingRequest, close: () -> Unit,
                 Action("Remove rating") { vm.write(null) }
                 if (state.saved && state.results.all { it.confirmed }) Label("Saved")
             }
+        }
+    }
+}
+
+@Composable
+internal fun MobilePersonalRating(media: TrackingMediaReference, modifier: Modifier) {
+    val target = remember(media) { PersonalRatingTarget(media.kind == TrackingMediaKind.MOVIE, media.ids,
+        media.kind == TrackingMediaKind.ANIME, media.episode) }
+    val vm: PersonalRatingsViewModel = hiltViewModel(key = "mobile-personal-rating")
+    var opened by remember(target) { mutableStateOf(false) }
+    val connected by vm.connected.collectAsStateWithLifecycle()
+    val state by vm.state.collectAsStateWithLifecycle()
+    val eligible = connected.orEmpty().filter(target::supports)
+    if (eligible.isEmpty()) return
+    MediaIconAction("Rate", androidx.compose.material.icons.Icons.Default.Star,
+        modifier, showLabel = true) { opened = true; vm.open(target, media.catalog) }
+    if (opened) {
+        DisposableEffect(vm) { onDispose { vm.close() } }
+        if (state.open) MobilePersonalRatingSheet(media.episode?.title ?: media.title.orEmpty(), target, eligible, vm) {
+            opened = false
+            vm.close()
         }
     }
 }

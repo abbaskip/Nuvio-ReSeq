@@ -1,7 +1,8 @@
 package com.nuvio.tv.mobile
 
 import android.app.Application
-import com.nuvio.tv.domain.model.TvdbPlaybackContext
+import com.nuvio.tv.data.tvdb.*
+import com.nuvio.tv.domain.model.*
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -16,6 +17,56 @@ import java.io.File
 class MobileOfflineMediaTest {
     private val media = MobileOfflineMedia(RuntimeEnvironment.getApplication())
     private val movie = MobileVideo(1, "movie", "tt1", "tt1", "../Same name")
+
+    @Test fun offlineHistoryJobWaitsForConnectivityAndSurvivesRestart() {
+        val context = RuntimeEnvironment.getApplication()
+        val scheduler = MobileOfflineWatchScheduler(context)
+        scheduler.schedule(1)
+        scheduler.schedule(1)
+        val jobs = context.getSystemService(android.app.job.JobScheduler::class.java).allPendingJobs
+            .filter { it.service.className == MobileOfflineWatchJob::class.java.name }
+        val job = jobs.single()
+        assertEquals(android.app.job.JobInfo.NETWORK_TYPE_ANY, job.networkType)
+        assertEquals(1, job.extras.getInt("profile"))
+        assertTrue(job.isPersisted)
+    }
+
+    @Test fun switchingOrdersUpdatesSavedDownloadAndPreservesThePlaybackIdentityAfterRestart() {
+        val orders = officeOrderFixtures()
+        val alt = orders.getValue("alttwo")
+        val source = recordedProvider(alt)
+        val meta = tvdbEpisodeOverlay(source, 73244, alt)
+        val row = meta.videos.single { it.title == "New Leads (Extended Cut)" }
+        val selected = row.tvdbPlaybackContext()!!
+        val original = MobileVideo(1, "series", meta.id, row.id, meta.name, row.sourceSeason, row.sourceEpisode,
+            row.title, selected.encode())
+        val dir = media.folder(original).apply { mkdirs() }
+        media.publish(original, File(dir, "media.part").apply { writeText("saved episode") }, "mkv", meta = meta)
+        val other = tvdbEpisodeOverlay(source, 73244, orders.getValue("dvd"))
+        val target = other.videos.single {
+            it.hasResolvedSource && it.episodeIdentity!!.trackingEpisodeIds.toSet() == selected.episodeIds.toSet()
+        }
+        media.updateDetails(media.saved(1).single(), meta, otherOrders = listOf(other))
+        val indexed = MobileOfflineMedia(RuntimeEnvironment.getApplication()).saved(1).single()
+        val cached = indexed.inOrder(TvdbOrderPreference(73244, "dvd"))
+        assertEquals("dvd", TvdbPlaybackContext.decode(cached.video.tvdb)?.orderType)
+        assertEquals("alttwo", TvdbPlaybackContext.decode(indexed.inOrder(TvdbOrderPreference(73244, "alttwo")).video.tvdb)?.orderType)
+        media.updateDetails(indexed, other)
+        val restarted = MobileOfflineMedia(RuntimeEnvironment.getApplication())
+        val record = restarted.saved(1).single()
+        val current = TvdbPlaybackContext.decode(record.video.tvdb)!!
+        assertEquals(20, selected.episode)
+        assertEquals(18, current.episode)
+        assertEquals(target.displayEpisode, current.episode)
+        assertEquals("dvd", current.orderType)
+        assertEquals(selected.episodeIds.toSet(), current.episodeIds.toSet())
+        assertEquals(original, record.downloadedVideo)
+        assertEquals(restarted.find(original), restarted.find(record.video))
+        assertNull(restarted.find(original.copy(tvdb = selected.copy(episodeIds = selected.episodeIds + 999999L).encode())))
+        assertNotNull(restarted.localRoute(record.video))
+        restarted.remove(record)
+        assertFalse(dir.exists())
+    }
 
     @Test fun verifiedEpisodesUseContentIdentityAndStayIsolatedByProfile() {
         val order = TvdbPlaybackContext(42, "official", 501, 2, 4, listOf(501), "tt2:2:4")

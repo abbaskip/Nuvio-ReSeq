@@ -10,7 +10,7 @@ class SimklSyncEngine internal constructor(
     constructor(remote: SimklSyncRemote) : this(remote, System::currentTimeMillis)
 
     suspend fun synchronize(current: SimklSyncSnapshot): SimklSyncSnapshot {
-        if (!current.isInitialized) return initialSync()
+        if (!current.isInitialized) return reloadHistory()
 
         val activities = remote.fetchActivities()
         if (activities.all == current.watermark) {
@@ -19,7 +19,7 @@ class SimklSyncEngine internal constructor(
                 lastCheckedAtEpochMs = nowEpochMs()
             )
         }
-        if (current.watermark == null) return initialSync()
+        if (current.watermark == null) return reloadHistory()
 
         var entries = current.entries
         if (hasAllItemsActivityChanged(current.activities, activities)) {
@@ -48,7 +48,7 @@ class SimklSyncEngine internal constructor(
         ).reconcileWatchedPlayback()
     }
 
-    private suspend fun initialSync(): SimklSyncSnapshot {
+    internal suspend fun reloadHistory(): SimklSyncSnapshot {
         val entries = buildList {
             SimklMediaType.entries.forEach { type ->
                 addAll(remote.fetchAllItems(SimklAllItemsRequest.Bootstrap(type)).entriesFor(type))

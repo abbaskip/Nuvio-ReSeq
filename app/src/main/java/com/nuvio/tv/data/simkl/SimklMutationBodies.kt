@@ -169,6 +169,7 @@ private fun TrackingEpisode.toEpisodeDto(
 ): SimklEpisodeMutationDto = SimklEpisodeMutationDto(
     season = season.takeIf { includeSeason },
     number = number,
+    ids = tvdbId?.takeIf { numberingProvider == "tvdb" && includeWatchedAt }?.let { id -> buildJsonObject { put("tvdb", id) } },
     watchedAt = watchedAtEpochMs.takeIf { includeWatchedAt }?.watchHistoryUtcIso()
 )
 
@@ -271,6 +272,7 @@ private data class SimklSeasonMutationDto(
 @Serializable
 private data class SimklEpisodeMutationDto(
     val season: Int? = null,
+    val ids: JsonObject? = null,
     val number: Int,
     @SerialName("watched_at") val watchedAt: String? = null
 )

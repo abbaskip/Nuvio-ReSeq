@@ -59,6 +59,21 @@ class SimklSyncEngineTest {
     }
 
     @Test
+    fun `manual history reload recovers a missing show with an unchanged activity watermark`() = runBlocking {
+        val show = entry(SimklMediaType.SHOWS, "1")
+        val remote = ScriptedRemote(
+            Step.Activities(activities(all = "v1")),
+            Step.AllItems(SimklMediaType.SHOWS, responseOf(show)),
+            Step.AllItems(SimklMediaType.MOVIES, SimklAllItemsResponse()),
+            Step.AllItems(SimklMediaType.ANIME, SimklAllItemsResponse()),
+            Step.Playback(emptyList()), Step.Activities(activities(all = "v1"))
+        )
+        val engine = SimklSyncEngine(remote) { 500L }
+        assertTrue(engine.synchronize(SimklSyncSnapshot(isInitialized = true, watermark = "v1")).entries.isEmpty())
+        assertEquals(listOf(show), engine.reloadHistory().entries)
+    }
+
+    @Test
     fun `unchanged activities gate avoids library and playback calls`() = runBlocking {
         val current = SimklSyncSnapshot(
             isInitialized = true,

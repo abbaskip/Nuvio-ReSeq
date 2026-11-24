@@ -150,7 +150,8 @@ data class MdbListSyncSnapshot(
     val invalidatedBuckets: Set<MdbListSyncBucket> = emptySet(),
     val library: MdbListLibrarySnapshot? = null,
     val storageRevision: String? = null,
-    val ratings: List<MdbListRatingRecord>? = null
+    val ratings: List<MdbListRatingRecord>? = null,
+    val requestedEpisodeIdentities: Boolean = false
 )
 
 @Serializable

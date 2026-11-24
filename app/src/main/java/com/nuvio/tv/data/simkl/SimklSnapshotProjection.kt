@@ -180,10 +180,15 @@ internal class SimklSnapshotProjection private constructor(
             val watchedItemsByContent = watched.items
                 .filter { item -> item.season != null && item.episode != null }
                 .groupBy { item -> item.contentId.simklLookupKey() }
+            val summarySeeds = if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") snapshot.entries.asSequence()
+                .filter { entry -> entry.media?.canonicalContentId()?.simklLookupKey() !in watchedItemsByContent }
+                .mapNotNull { it.summaryNextUpSeed() }.filterNot { it.contentId.simklLookupKey() in hiddenContentIds }
+                else emptySequence()
             val nextUpCandidates = watched.items.asSequence()
                 .filterNot { item -> item.contentId.simklLookupKey() in hiddenContentIds }
                 .filter { item -> item.season != null && item.episode != null && item.season != 0 }
                 .map(WatchedItem::toSimklCompletedProgress)
+                .plus(summarySeeds)
                 .toList()
 
             val baseWatchedMovieIds = snapshot.simklBaseWatchedMovieIds()
@@ -263,7 +268,7 @@ internal fun SimklMedia.simklTrackingContentIds(): Set<String> = buildSet {
     ids.simklIdValue()?.let { add("simkl:$it") }
 }
 
-private fun WatchedItem.toSimklCompletedProgress(): WatchProgress = WatchProgress(
+internal fun WatchedItem.toSimklCompletedProgress(): WatchProgress = WatchProgress(
     tvdbEpisodeId = tvdbEpisodeId,
     contentId = contentId,
     contentType = contentType,
@@ -279,7 +284,8 @@ private fun WatchedItem.toSimklCompletedProgress(): WatchProgress = WatchProgres
     duration = 1L,
     lastWatched = watchedAt,
     progressPercent = 100f,
-    source = WatchProgress.SOURCE_SIMKL_PLAYBACK,
+    source = if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") WatchProgress.SOURCE_REMOTE_HISTORY
+        else WatchProgress.SOURCE_SIMKL_PLAYBACK,
     trackingProviderId = trackingProviderId,
     trackingProviderItemId = trackingProviderItemId,
     trackingSourceUrl = trackingSourceUrl

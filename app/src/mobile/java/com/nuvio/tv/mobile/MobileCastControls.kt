@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,8 +27,7 @@ import com.google.android.gms.cast.framework.CastButtonFactory
     }, modifier = Modifier.size(48.dp))
 }
 
-@Composable internal fun MobileCastBar(casting: MobileCasting, sources: (MobileVideo) -> Unit, channels: () -> Unit) {
-    val state by casting.state.collectAsStateWithLifecycle()
+@Composable internal fun MobileCastBar(casting: MobileCasting, state: CastControls, sources: (MobileVideo) -> Unit, channels: () -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var section by rememberSaveable { mutableStateOf<String?>(null) }
     val device = state.device ?: return
@@ -51,7 +51,8 @@ import com.google.android.gms.cast.framework.CastButtonFactory
         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.ExpandLess, "Cast controls") }
     }
     if (expanded) TouchSheet({ expanded = false; section = null }) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        val display = if (state.item != null || state.loading) Modifier.keepScreenOn() else Modifier
+        Column(Modifier.fillMaxWidth().then(display).verticalScroll(rememberScrollState()).padding(12.dp)) {
             BrowseHeading(state.item?.title ?: device) { expanded = false; section = null }
             Label(device, small = true)
             state.preparation?.let { Label(it) }

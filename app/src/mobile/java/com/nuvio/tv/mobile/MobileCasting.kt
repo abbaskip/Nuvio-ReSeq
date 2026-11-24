@@ -299,7 +299,7 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
                 cancelPending()
             } else {
                 playingAttempt = null
-                attempt?.let { controls.value.position.takeIf { position -> position > 0 }?.let { position -> it.position = position } }
+                if (attempt != null && controls.value.position > 0) attempt.position = controls.value.position
                 finish(false)
             }
             val phone = attempt?.phone

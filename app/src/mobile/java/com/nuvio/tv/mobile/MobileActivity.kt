@@ -227,7 +227,7 @@ private fun MobileShell(profile: Int, sports: com.nuvio.tv.livetv.sports.SportsR
                     (channel != null && live.playCatchup(channel, replay.program)).also { if (it) playing = true }
                 }) { content() }
             }
-            MobileCastBar(cast, sources = { video -> tab = Tab.HOME; cast.requestedSources.value = video },
+            MobileCastBar(cast, castState, sources = { video -> tab = Tab.HOME; cast.requestedSources.value = video },
                 channels = { tab = Tab.GUIDE })
             if (!tablet && !inVodPlayer && !tab.isLiveSection) tabs()
         }

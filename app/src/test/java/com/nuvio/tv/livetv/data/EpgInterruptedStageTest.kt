@@ -17,6 +17,29 @@ class EpgInterruptedStageTest {
     private var db=EpgDatabase(context)
     @After fun close() { db.close(); context.deleteDatabase("livetv_guide.db"); java.io.File(context.filesDir,"guide-stage-in-progress").delete() }
     private fun stagedRows()=db.readableDatabase.rawQuery("SELECT count(*) FROM stage",null).use { it.moveToFirst();it.getLong(0) }
+    @Test fun `missing titles occupy no programme rows and maintenance removes legacy copies`() = kotlinx.coroutines.runBlocking {
+        val gap = EpgProgram(10, 20, "No Program Guide Available")
+        val show = EpgProgram(20, 30, "Paid Programming")
+        val incoming = listOf(gap, show, gap.copy(startMs = 35, stopMs = 45, title = " No Information. "))
+        val writer = db.startStage("provider")
+        writer.add("station", incoming) { false }
+        writer.finish("stamp", emptyList())
+        assertEquals(1L, stagedRows())
+        val assignment = mapOf("channel" to com.nuvio.tv.livetv.model.EpgAssignment("provider", "station"))
+        db.replaceAllFromStageBatched("guide", assignment, assignment, null, 0, 80, 15) {}
+        db.mergeChannelArchive("channel", listOf(gap.copy(startMs = 21, stopMs = 25)))
+        assertEquals(listOf(show), db.channelRange("channel", 0, 80))
+
+        val sql = db.writableDatabase
+        sql.execSQL("INSERT INTO stage(src,xid,start,stop,title) VALUES ('provider','station',10,20,'NO PROGRAMME GUIDE AVAILABLE.')")
+        sql.execSQL("INSERT INTO programs(ch,start,stop,title) VALUES ('channel',10,20,'No Program Guide Available')")
+        db.compact()
+        db.compact()
+        assertEquals(1L, stagedRows())
+        val count = sql.rawQuery("SELECT COUNT(*) FROM programs", null).use { it.moveToFirst(); it.getLong(0) }
+        assertEquals(1L, count)
+        assertEquals(listOf(show), db.channelRange("channel", 0, 80))
+    }
     @Test fun `reopen removes committed partial batches while retaining the previous published guide`() {
         val old=EpgProgram(100,300,"Published guide")
         db.replaceAll("committed",mapOf("old" to listOf(old)),emptyMap())

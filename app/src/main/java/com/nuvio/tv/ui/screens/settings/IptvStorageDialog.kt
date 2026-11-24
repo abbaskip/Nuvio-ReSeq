@@ -28,7 +28,7 @@ internal fun IptvStorageDialog(
             item { Text(if (busy) "Measuring or cleaning storage…" else message ?: "Measure the catalogue, guide and downloaded files separately.", color = NuvioTheme.colors.TextPrimary) }
             item { SettingsActionRow("Refresh sizes", subtitle = "Reports sizes without exporting file contents", enabled = !busy,
                 modifier = Modifier.focusRequester(first), onClick = onMeasure) }
-            item { SettingsActionRow("Clean up unused data", subtitle = "Removes abandoned imports and expired files, then reclaims free database space when possible",
+            item { SettingsActionRow("Clean up unused data", subtitle = "Removes downloaded update installers, abandoned imports and expired files, then reclaims free database space when possible",
                 enabled = !busy, onClick = onClean) }
             items(snapshot?.categories.orEmpty(), key = { it.label }) { category ->
                 Text("${category.label}: ${IptvStorageSnapshot.size(category.bytes)}", color = NuvioTheme.colors.TextPrimary)

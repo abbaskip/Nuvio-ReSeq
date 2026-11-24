@@ -72,9 +72,10 @@ class UpdateDownloadStore @Inject constructor(
             }
     }
 
-    /** Drops the downloaded APK once it is installed, outdated, or no longer wanted. */
-    suspend fun clear() = downloadMutex.withLock {
-        if (files.sweep(null, keepPending = false)) updatePreferences.setDownloadedUpdate(null)
+    suspend fun discardDownloads(): Boolean = downloadMutex.withLock {
+        if (!ApkInstaller.discardDownloads(context, files)) return@withLock false
+        updatePreferences.setDownloadedUpdate(null)
+        true
     }
 
     suspend fun clearIfInstalled() = downloadMutex.withLock {

@@ -7,7 +7,7 @@ internal class UpdateFiles(private val directory: File, private val now: () -> L
     fun contains(file: File): Boolean = file.canonicalFile.parentFile == directory.canonicalFile
 
     fun pin(file: File) {
-        require(contains(file))
+        require(contains(file) && file.isFile)
         File(directory, file.name + PIN_SUFFIX).apply { writeText(""); setLastModified(now()) }
     }
 
@@ -22,6 +22,18 @@ internal class UpdateFiles(private val directory: File, private val now: () -> L
         val deleted = !file.exists() || file.delete()
         if (deleted) File(directory, file.name + PIN_SUFFIX).delete()
         return deleted
+    }
+
+    /** An explicit cleanup may discard a recent attempt once the system installer has released the APK. */
+    fun discardDownloads(isInUse: (File) -> Boolean): Boolean {
+        if (!directory.exists()) return true
+        val entries = checkNotNull(directory.listFiles()) { "Could not read update downloads" }
+        val downloads = entries.filter { contains(it) && it.isFile }
+        if (downloads.any { it.extension.equals("apk", ignoreCase = true) && isInUse(it) }) return false
+        for (file in downloads) {
+            check(file.delete() || !file.exists()) { "Could not remove update download" }
+        }
+        return true
     }
 
     fun sweep(pending: File?, keepPending: Boolean): Boolean {

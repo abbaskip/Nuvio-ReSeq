@@ -60,6 +60,11 @@ class UpdateViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            updatePreferences.downloadedUpdate.collect { download ->
+                if (download == null) _uiState.update { it.copy(downloadedApkPath = null) }
+            }
+        }
+        viewModelScope.launch {
             val enabled = updatePreferences.updateBannerEnabled.first()
             val autoInstallEnabled = updatePreferences.autoInstallEnabled.first()
             val autoInstallNoticeEnabled = updatePreferences.autoInstallNoticeEnabled.first()
@@ -274,6 +279,7 @@ class UpdateViewModel @Inject constructor(
         if (!apkFile.exists()) {
             _uiState.update {
                 it.copy(
+                    downloadedApkPath = null,
                     errorMessage = context.getString(R.string.update_error_apk_missing),
                     showBanner = true
                 )

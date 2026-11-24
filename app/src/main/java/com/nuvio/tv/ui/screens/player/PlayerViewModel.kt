@@ -220,6 +220,9 @@ class PlayerViewModel @Inject constructor(
         get() = postPlayRecommendationController.uiState
 
     val promptToRateAfterWatching = playerSettingsDataStore.playerSettings.map { it.promptToRateAfterWatching }
+    internal fun completedMovieRatingRequest(): com.nuvio.tv.core.tracking.MovieRatingRequest? =
+        controller.contentId?.let { com.nuvio.tv.core.tracking.MovieRatingRequest(controller.profileId, it, controller.title) }
+
     internal fun stopForWatchedRating(enabled: Boolean): com.nuvio.tv.core.tracking.WatchedRatingRequest? {
         val eligible = enabled && !playbackTimeline.value.isLive &&
             controller.currentEpisode == null && controller.currentTvdbContext() == null

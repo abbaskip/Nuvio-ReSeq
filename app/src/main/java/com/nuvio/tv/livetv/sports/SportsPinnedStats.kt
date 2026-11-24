@@ -97,6 +97,13 @@ internal fun pinnedSummary(ev: SportsEvent, x: GameExtras?, table: Standings?, h
 
 @Composable
 internal fun PinnedMatchStats(ev: SportsEvent, extras: GameExtras?, table: Standings?, hidden: Boolean, use24h: Boolean, modifier: Modifier) {
+    if (SportsCatalog.league(ev.leagueId)?.sport == Sport.BASKETBALL && !hidden && !ev.awaitingUpdate &&
+        ev.state != GameState.PRE && extras != null &&
+        (extras.stats.isNotEmpty() || extras.performers.isNotEmpty() || extras.playerLines.isNotEmpty())
+    ) {
+        BasketballGamePanels(ev, extras, modifier)
+        return
+    }
     val summary = remember(ev, extras, table, hidden, use24h) { pinnedSummary(ev, extras, table, hidden, use24h) }
     BoxWithConstraints(modifier.fillMaxWidth().padding(top = 9.dp)) {
         var available = maxHeight - 29.dp

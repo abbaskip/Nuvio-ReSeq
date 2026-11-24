@@ -36,6 +36,12 @@ fun personalRatingTarget(contentId: String, contentType: String, imdbId: String?
 /** Ephemeral UI request; it never records a watch or changes playback progress. */
 data class WatchedRatingRequest(val profileId: Int, val target: PersonalRatingTarget, val title: String)
 
+/** The mobile player's natural-completion prompt resolves its target when the sheet opens. */
+data class MovieRatingRequest(val profileId: Int, val contentId: String, val title: String)
+
+internal fun shouldRequestMovieRating(enabled: Boolean, type: String?, ended: Boolean, hasError: Boolean): Boolean =
+    enabled && type == "movie" && ended && !hasError
+
 internal fun watchedRatingRequest(
     profileId: Int,
     contentId: String?,

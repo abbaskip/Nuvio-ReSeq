@@ -1445,14 +1445,7 @@ private fun GamePage(
             channels()
             val players = rememberCricketPlayers(ev, viewModel, settings.hideScores)
             val pinnedExtras = if (players.isEmpty()) extras else (extras ?: GameExtras()).copy(playerLines = players)
-            if (sport == Sport.BASKETBALL && !settings.hideScores && !ev.awaitingUpdate &&
-                ev.state != GameState.PRE && extras != null &&
-                (extras.stats.isNotEmpty() || extras.performers.isNotEmpty() || extras.playerLines.isNotEmpty())
-            ) {
-                BasketballGamePanels(ev, extras, Modifier.weight(1f))
-            } else {
-                PinnedMatchStats(ev, pinnedExtras, cricketTable, settings.hideScores, use24h, Modifier.weight(1f))
-            }
+            PinnedMatchStats(ev, pinnedExtras, cricketTable, settings.hideScores, use24h, Modifier.weight(1f))
         }
         Spacer(Modifier.width(18.dp))
         Column(Modifier.weight(1f).fillMaxHeight().padding(top = 4.dp)) {

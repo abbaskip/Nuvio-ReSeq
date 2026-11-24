@@ -443,12 +443,20 @@ private fun BasketballPanel(title: String, modifier: Modifier, content: @Composa
 private fun LeadersPanel(leaders: List<Performer>, ev: SportsEvent, awayColor: Color, homeColor: Color) {
     leaders.forEach { p ->
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            LiveText(p.category, color = SportsLook.Dim, size = 9.sp, weight = FontWeight.Black, modifier = Modifier.width(76.dp), maxLines = 1)
-            Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(if (p.teamId == ev.home?.team?.id) homeColor else awayColor))
+            if (p.category != "Box score") {
+                LiveText(p.category, color = SportsLook.Dim, size = 9.sp, weight = FontWeight.Black, modifier = Modifier.width(62.dp), maxLines = 1)
+            }
+            val color = when {
+                p.teamId == null -> SportsLook.Dim
+                p.teamId == ev.home?.team?.id -> homeColor
+                p.teamId == ev.away?.team?.id -> awayColor
+                else -> SportsLook.Dim
+            }
+            Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(color))
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
                 LiveText(p.name, color = Color.White, size = 12.sp, weight = FontWeight.ExtraBold, maxLines = 1)
-                LiveText(p.line, color = Color(0xFFC9CCD6), size = 10.sp, maxLines = 1)
+                LiveText(p.line, color = Color(0xFFC9CCD6), size = 10.sp, maxLines = 2)
             }
         }
     }

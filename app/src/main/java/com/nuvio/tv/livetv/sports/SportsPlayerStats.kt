@@ -26,7 +26,7 @@ internal object SportsPlayerStats {
                     val ast = stat("AST") ?: return@mapNotNull null
                     if (pts + reb + ast == 0) return@mapNotNull null
                     val line = listOfNotNull(abbr, "$pts PTS", "$reb REB", "$ast AST").joinToString("  ·  ")
-                    PlayerLine(Performer("Box score", name, line, null), pts + reb + ast, pts)
+                    PlayerLine(Performer("Box score", name, line, team.optJSONObject("team")?.text("id")), pts + reb + ast, pts)
                 }
             }.distinctBy { it.performer.name }.sortedWith(compareByDescending<PlayerLine> { it.rank }.thenByDescending { it.tie })
         }

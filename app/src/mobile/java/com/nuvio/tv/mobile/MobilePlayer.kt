@@ -33,9 +33,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.abs
 
-internal fun LiveChannel.toCastSource(streamUrl: String, replayTitle: String?, mime: String?) =
+internal fun LiveChannel.toCastSource(streamUrl: String, replayTitle: String?, mime: String?, video: androidx.media3.common.Format? = null) =
     CastSource(streamUrl, replayTitle ?: name, headers, live = replayTitle == null, iptv = true,
-        mime = mime, fallbackUserAgent = LiveTvRepository.DEFAULT_UA)
+        mime = mime, fallbackUserAgent = LiveTvRepository.DEFAULT_UA,
+        hevcTransportStream = video?.sampleMimeType == MimeTypes.VIDEO_H265 &&
+            (mime == MimeTypes.VIDEO_MP2T || video.containerMimeType == MimeTypes.VIDEO_MP2T))
 
 @Composable
 internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
@@ -60,8 +62,11 @@ internal fun MobilePlayer(vm: LiveTvViewModel, onClose: () -> Unit) {
                 null -> upstreamItem?.mimeType ?: com.nuvio.tv.ui.screens.player.PlayerMediaSourceFactory.inferMimeType(streamUrl, null)
                     ?: player?.videoFormat?.containerMimeType?.takeIf { upstreamItem != null && player.currentManifest == null }
             }
+            val video = player?.videoFormat?.takeIf { upstreamItem != null || vm.playback.upstreamBufferKind != null }
+            val source = channel.toCastSource(streamUrl, replay, mime, video).copy(
+                audioMime = player?.audioFormat?.sampleMimeType, videoHeight = video?.height ?: 0)
             vm.playback.handOverForRecording()
-            cast.load(channel.toCastSource(streamUrl, replay, mime), position) {
+            cast.load(source, position) {
                 leaveAfterCast()
             }
         }

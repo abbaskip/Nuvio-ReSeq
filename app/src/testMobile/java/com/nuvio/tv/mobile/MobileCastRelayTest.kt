@@ -21,6 +21,23 @@ import java.util.concurrent.TimeUnit
 @org.robolectric.annotation.ConscryptMode(org.robolectric.annotation.ConscryptMode.Mode.OFF)
 @Config(manifest = Config.NONE, sdk = [28], application = Application::class)
 class MobileCastRelayTest {
+    @Test fun liveWindowKeepsAnAdvertisedHistoryAndAShortGracePeriodForTheTV() {
+        val dir = java.nio.file.Files.createTempDirectory("live-cast-window").toFile()
+        LiveCastWindow(dir).use { window ->
+            repeat(50) { index ->
+                window.create("pending").use { it.write(index) }
+                window.publish(if (index < 3) 2.0 else 1.0)
+            }
+            val lines = window.playlist().lines()
+            assertTrue("#EXT-X-TARGETDURATION:2" in lines)
+            assertTrue("#EXT-X-MEDIA-SEQUENCE:44" in lines)
+            assertEquals(6, lines.count { it.startsWith("#EXTINF:") })
+            assertEquals(9, requireNotNull(dir.listFiles()).size)
+            assertNull(window.read("40.m4s") { it.length() })
+            assertEquals(41, window.read("41.m4s") { it.readBytes().single().toInt() })
+        }
+        assertFalse(dir.exists())
+    }
     @Test fun extensionlessLiveUrlStaysDirectWhenTheProviderRequiresGetToIdentifyIt() = runBlocking {
         MockWebServer().use { upstream ->
             upstream.enqueue(MockResponse().setResponseCode(405))
@@ -167,6 +184,25 @@ class MobileCastRelayTest {
                 assertEquals(1, upstream.requestCount)
             }
             assertTrue(released)
+        }
+    }
+
+    @Test fun liveFailureDistinguishesAnUnreachedRelayFromAProviderRefusal() = runBlocking {
+        MockWebServer().use { upstream ->
+            val address = InetAddress.getByName("127.0.0.1")
+            upstream.start(address, 0)
+            upstream.enqueue(MockResponse().setResponseCode(403))
+            val source = CastSource(upstream.url("/live.m3u8?token=private").toString(), "News",
+                headers = mapOf("Cookie" to "private"), live = true, iptv = true)
+            val endpoint = CastRelay.prepare(RuntimeEnvironment.getApplication(), source, address, Closeable {})
+            requireNotNull(endpoint.relay).use { relay ->
+                assertTrue(relay.liveFailureDetail().contains("no media request"))
+                OkHttpClient().newCall(Request.Builder().url(endpoint.url).build()).execute().use {
+                    assertEquals(403, it.code)
+                }
+                assertEquals("The IPTV provider returned HTTP 403 to the phone.", relay.liveFailureDetail())
+                assertFalse(relay.canRetryLiveFormat(null))
+            }
         }
     }
 }

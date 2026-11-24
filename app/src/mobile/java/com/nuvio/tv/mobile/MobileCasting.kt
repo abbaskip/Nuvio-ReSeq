@@ -45,7 +45,8 @@ internal fun receiverUrl(url: String?): Boolean {
 internal data class CastSource(val url: String, val title: String, val headers: Map<String,String> = emptyMap(),
     val video: MobileVideo? = null, val live: Boolean = false, val iptv: Boolean = false, val mime: String? = null,
     val subtitles: List<MediaTrack> = emptyList(), val cloudToken: String? = null, val torrent: CastTorrent? = null,
-    val download: File? = null, val fallbackUserAgent: String? = null)
+    val download: File? = null, val fallbackUserAgent: String? = null, val hevcTransportStream: Boolean = false,
+    val audioMime: String? = null, val videoHeight: Int = 0)
 
 internal data class CastTorrent(val hash: String, val fileIndex: Int?, val filename: String?, val trackers: List<String>)
 
@@ -76,7 +77,12 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
     private var loading: Job? = null
 
     private data class Attempt(val source: CastSource, val phone: PhoneCastMedia?, var position: Long?,
-        var autoplay: Boolean, var onAccepted: (() -> Unit)?, var forceRelay: Boolean = false)
+        var autoplay: Boolean, var onAccepted: (() -> Unit)?, var forceRelay: Boolean = false,
+        var directFailure: String? = null, var mediaType: String? = null, var loadStatus: Int? = null,
+        var liveFormat: LiveCastFormat? = null) {
+        // Keep a brief direct attempt in case the provider negotiates a different rendition for Cast.
+        val loadTimeoutSeconds get() = if (source.live && source.hevcTransportStream && !forceRelay && liveFormat == null) 8 else 30
+    }
     private var nextAttempt: Attempt? = null
     private var playingAttempt: Attempt? = null
     private var failedAttempt: Attempt? = null
@@ -151,7 +157,10 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
             PhoneCastMedia(source, java.io.Closeable { lease?.close(); service.close() })
         } else null
         dismissError()
-        start(Attempt(source, phone, position, autoplay, onAccepted))
+        val initialFormat = LiveCastFormat.COPY_VIDEO.takeIf {
+            source.live && source.iptv && source.hevcTransportStream && source.headers.isNotEmpty()
+        }
+        start(Attempt(source, phone, position, autoplay, onAccepted, liveFormat = initialFormat))
     }
 
     private fun start(attempt: Attempt, advance: Boolean = false) {
@@ -162,7 +171,12 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
         val item = CastItem(UUID.randomUUID().toString(), profiles.activeProfileId.value, source.title, source.video, source.live, source.iptv, source.cloudToken)
         nextAttempt = attempt
         pending = item
-        controls.update { it.copy(loading = true, error = null, preparation = null, compatibilityAvailable = false) }
+        val preparing = when (attempt.liveFormat) {
+            LiveCastFormat.COPY_VIDEO -> "Preparing this channel for Chromecast"
+            LiveCastFormat.H264 -> "Converting this channel for Chromecast"
+            null -> null
+        }
+        controls.update { it.copy(loading = true, error = null, preparation = preparing, compatibilityAvailable = false) }
         loading = scope.launch {
             try {
                 val phone = attempt.phone
@@ -186,7 +200,9 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
                 val file = phone?.file
                 val mime = if (phone != null && phone.format != CastFormat.ORIGINAL) "video/mp4" else source.mime
                 val endpoint = CastRelay.prepare(context, source.copy(url = url, mime = mime), receiver, lease, file,
-                    forceRelay = attempt.forceRelay)
+                    forceRelay = attempt.forceRelay, liveFormat = attempt.liveFormat)
+                attempt.mediaType = endpoint.mime
+                attempt.loadStatus = null
                 pendingRelay = endpoint.relay
                 val metadata = MediaMetadata(if (item.video?.episode != null) MediaMetadata.MEDIA_TYPE_TV_SHOW else MediaMetadata.MEDIA_TYPE_GENERIC)
                 metadata.putString(MediaMetadata.KEY_TITLE, item.title)
@@ -197,6 +213,9 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
                         if (endpoint.transportStreamSegments) {
                             setHlsSegmentFormat(HlsSegmentFormat.TS)
                             setHlsVideoSegmentFormat(HlsVideoSegmentFormat.MPEG2_TS)
+                        } else if (endpoint.fragmentedMp4) {
+                            setHlsSegmentFormat(HlsSegmentFormat.FMP4)
+                            setHlsVideoSegmentFormat(HlsVideoSegmentFormat.FMP4)
                         }
                     }
                     .setMediaTracks(source.subtitles).build()
@@ -205,15 +224,20 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
                 client.load(request.build()).setResultCallback { result ->
                     if (pending == item) {
                         if (result.status.isSuccess) update()
-                        else receiverFailure(item, result.mediaError?.detailedErrorCode)
+                        else {
+                            attempt.loadStatus = result.status.statusCode
+                            receiverFailure(item, result.mediaError?.detailedErrorCode)
+                        }
                     }
                 }
-                delay(30_000)
+                delay(attempt.loadTimeoutSeconds * 1000L)
                 if (pending == item) receiverFailure(item, null, timedOut = true)
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) {
                 if (pending == item) fail(if (attempt.phone?.format?.let { it != CastFormat.ORIGINAL } == true)
                     "The phone couldn’t convert this file. Check free storage and device codec support."
+                    else if (source.live && attempt.directFailure != null)
+                        "${attempt.directFailure}\nThe phone could not prepare the relay for this channel."
                     else "Couldn't prepare this source for Chromecast.")
             }
         }
@@ -307,6 +331,27 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
             val attempt = if (wasPending) nextAttempt else playingAttempt
             val failedRelay = if (wasPending) pendingRelay else relay
             val failure = classifyCastFailure(code, failedRelay?.deliveryFailed == true)
+            val retryLiveFormat = item.live && item.iptv && failedRelay?.canRetryLiveFormat(code) == true
+            val liveFailure = if (item.live) {
+                val format = when {
+                    attempt?.mediaType?.contains("mpegurl", ignoreCase = true) == true -> "HLS"
+                    attempt?.mediaType.equals("video/mp2t", true) -> "MPEG-TS"
+                    attempt?.mediaType.equals("application/dash+xml", true) -> "DASH"
+                    else -> "stream"
+                }
+                val route = when {
+                    failedRelay != null -> "Phone relay ($format)"
+                    attempt != null -> "Provider URL ($format)"
+                    else -> "Chromecast"
+                }
+                val reason = when {
+                    timedOut -> "timed out after ${attempt?.loadTimeoutSeconds ?: 30} seconds."
+                    code != null && code != 0 -> "reported Cast media error $code."
+                    attempt?.loadStatus != null -> "failed with Cast load status ${attempt.loadStatus}."
+                    else -> "failed without a receiver error code."
+                }
+                listOfNotNull("$route $reason", failedRelay?.liveFailureDetail()).joinToString(" ")
+            } else null
             if (wasPending) {
                 nextAttempt = null
                 cancelPending()
@@ -318,14 +363,26 @@ internal class MobileCasting @Inject constructor(@ApplicationContext private val
             val phone = attempt?.phone
             if (phone == null) {
                 // A failed direct live load can also be a raw TS feed that needs packaging as HLS.
-                val retryDelivery = failure == CastFailure.DELIVERY || timedOut || (item.live && wasPending)
+                val retryDelivery = failure == CastFailure.DELIVERY || timedOut || (item.live && (wasPending || failure == CastFailure.FORMAT))
                 if (attempt != null && retryDelivery && !attempt.forceRelay && failedRelay == null &&
                     receiverUrl(attempt.source.url)) {
+                    attempt.directFailure = liveFailure
+                    attempt.forceRelay = true
+                    if (item.live && item.iptv && attempt.source.hevcTransportStream) attempt.liveFormat = LiveCastFormat.COPY_VIDEO
+                    start(attempt)
+                    return@launch
+                }
+                if (retryLiveFormat && attempt != null && attempt.liveFormat != LiveCastFormat.H264) {
+                    attempt.liveFormat = if (attempt.liveFormat == null) LiveCastFormat.COPY_VIDEO else LiveCastFormat.H264
                     attempt.forceRelay = true
                     start(attempt)
                     return@launch
                 }
-                fail(if (timedOut && item.live) "Chromecast could not start this channel within 30 seconds."
+                fail(if (liveFailure != null) listOfNotNull(
+                    "Google Cast does not support H.265 in MPEG-TS. Choose an H.264 version of this channel if available."
+                        .takeIf { attempt?.source?.hevcTransportStream == true },
+                    attempt?.directFailure, liveFailure
+                ).joinToString("\n")
                     else if (failure == CastFailure.FORMAT) "Chromecast couldn’t decode this source. Choose another version of the video."
                     else "Chromecast couldn't play this source.")
                 return@launch

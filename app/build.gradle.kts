@@ -517,6 +517,7 @@ val downloadAudioSyncRuntime by tasks.registering {
 
 dependencies {
     add("mobileImplementation", "com.google.android.gms:play-services-cast-framework:22.3.1")
+    add("mobileImplementation", "androidx.media3:media3-transformer:1.8.0")
     implementation(files(sherpaOnnxAar).builtBy(downloadAudioSyncRuntime))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     val composeBom = platform("androidx.compose:compose-bom:2026.05.01")

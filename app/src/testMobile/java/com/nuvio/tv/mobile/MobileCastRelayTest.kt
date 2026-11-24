@@ -21,6 +21,34 @@ import java.util.concurrent.TimeUnit
 @org.robolectric.annotation.ConscryptMode(org.robolectric.annotation.ConscryptMode.Mode.OFF)
 @Config(manifest = Config.NONE, sdk = [28], application = Application::class)
 class MobileCastRelayTest {
+    @Test fun servingADownloadSupportsHeadRangesAndRejectsOtherPaths() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val file = java.io.File.createTempFile("cast-download", ".mp4", context.cacheDir)
+        try {
+            file.writeText("abcdefgh")
+            val source = CastSource(android.net.Uri.fromFile(file).toString(), "Saved", download = file)
+            val endpoint = CastRelay.prepare(context, source, InetAddress.getByName("127.0.0.1"), selectedFile = file)
+            requireNotNull(endpoint.relay).use {
+                val client = OkHttpClient()
+                fun request(path: String = endpoint.url) = Request.Builder().url(path)
+                client.newCall(request().head().build()).execute().use { head ->
+                    assertEquals("8", head.header("Content-Length"))
+                    assertEquals("bytes", head.header("Accept-Ranges"))
+                    assertEquals(0, head.body!!.bytes().size)
+                }
+                client.newCall(request().header("Range", "bytes=2-4").build()).execute().use { range ->
+                    assertEquals(206, range.code)
+                    assertEquals("bytes 2-4/8", range.header("Content-Range"))
+                    assertEquals("cde", range.body!!.string())
+                }
+                client.newCall(request().header("Range", "bytes=8-").build()).execute().use { range ->
+                    assertEquals(416, range.code)
+                }
+                client.newCall(request(endpoint.url + "other").build()).execute().use { assertEquals(404, it.code) }
+            }
+        } finally { file.delete() }
+    }
+
     @Test fun adaptiveManifestRetainsTheRepresentationAndSegmentNumber() {
         val manifest = "https://provider.example/title/manifest.mpd".toHttpUrl()
         val number = "\$Number%05d\$"

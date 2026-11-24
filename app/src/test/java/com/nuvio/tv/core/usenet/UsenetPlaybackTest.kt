@@ -285,6 +285,8 @@ class UsenetPlaybackTest {
                     assertFalse(source.stableKey().contains("fixture.nzb"))
                     val stream = runBlocking { UsenetPlayback.resolve(source) }
                     val url = URL(stream.getStreamUrl())
+                    val cast = requireNotNull(UsenetPlayback.retain(url.toString()))
+                    UsenetPlayback.release(url.toString())
                     try {
                         val head = url.openConnection() as HttpURLConnection
                         head.requestMethod = "HEAD"
@@ -312,7 +314,9 @@ class UsenetPlaybackTest {
                         assertEquals(404, wrong.responseCode)
                         wrong.disconnect()
                         assertTrue(missing.requests.get() > 0 && available.requests.get() > 1)
-                    } finally { UsenetPlayback.release(url.toString()) }
+                    } finally { cast.close() }
+                    cast.close()
+                    assertFalse(UsenetPlayback.hasSession(url.toString()))
                 }
             }
         } finally { http.stop() }

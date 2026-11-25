@@ -70,8 +70,14 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            adb -s emulator-5554 shell svc wifi disable
-            adb -s emulator-5554 shell svc data disable
+            # Keep a default Android network for catalogue journeys. Only loopback fixtures are reachable.
+            adb -s emulator-5554 root
+            adb -s emulator-5554 wait-for-device
+            adb -s emulator-5554 shell settings put global captive_portal_mode 0
+            adb -s emulator-5554 shell iptables -I OUTPUT ! -o lo -j REJECT
+            adb -s emulator-5554 shell ip6tables -I OUTPUT ! -o lo -j REJECT
+            adb -s emulator-5554 shell iptables -C OUTPUT ! -o lo -j REJECT
+            adb -s emulator-5554 shell ip6tables -C OUTPUT ! -o lo -j REJECT
             python3 scripts/mobile_smoke.py --extended --apk app/build/outputs/apk/mobile/debug/app-mobile-x86_64-debug.apk
       - name: Require nonempty passing instrumentation results
         if: matrix.revision != 'mobile'

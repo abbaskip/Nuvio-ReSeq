@@ -82,8 +82,6 @@ internal fun ModernSidebarBlurPanel(
     sidebarLabelAlpha: Float,
     sidebarIconScale: Float,
     sidebarExpandProgress: Float,
-    isSidebarExpanded: Boolean,
-    sidebarCollapsePending: Boolean,
     blurEnabled: Boolean,
     sidebarHazeState: HazeState,
     panelShape: RoundedCornerShape,
@@ -98,10 +96,7 @@ internal fun ModernSidebarBlurPanel(
 ) {
     val delayedBlurProgress =
         ((sidebarExpandProgress - 0.34f) / 0.66f).coerceIn(0f, 1f)
-    val showPanelBlur = blurEnabled &&
-        isSidebarExpanded &&
-        !sidebarCollapsePending &&
-        delayedBlurProgress > 0f
+    val showPanelBlur = blurEnabled && delayedBlurProgress > 0f
     val expandedPanelBlurModifier = if (showPanelBlur) {
         Modifier.hazeEffect(state = sidebarHazeState) {
             blurRadius = NuvioTheme.effects.blurPanel * delayedBlurProgress

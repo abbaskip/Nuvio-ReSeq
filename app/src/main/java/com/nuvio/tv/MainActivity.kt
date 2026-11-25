@@ -2303,8 +2303,6 @@ private fun ModernSidebarScaffold(
                         sidebarLabelAlpha = sidebarLabelAlpha,
                         sidebarIconScale = sidebarIconScale,
                         sidebarExpandProgress = sidebarExpandProgress,
-                        isSidebarExpanded = isSidebarExpanded,
-                        sidebarCollapsePending = sidebarCollapsePending,
                         blurEnabled = modernSidebarBlurEnabled,
                         sidebarHazeState = sidebarHazeState,
                         panelShape = panelShape,

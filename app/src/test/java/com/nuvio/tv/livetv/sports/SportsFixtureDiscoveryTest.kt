@@ -11,81 +11,111 @@ import java.time.OffsetDateTime
 class SportsFixtureDiscoveryTest {
     @get:Rule val temporary = TemporaryFolder()
     private val sport = Sport.SNOOKER
-    private val time = OffsetDateTime.parse("2026-01-12T13:00:00Z")
+    private val time = OffsetDateTime.parse("2026-01-12T13:00Z")
     private val ms = time.toInstant().toEpochMilli()
     private val programme = EpgProgram(ms - 5 * 60_000, ms + 2 * 3_600_000, "Masters Snooker Day 2")
-    private val claim = SportsFixtureDiscovery.Claim("https://www.wst.tv/events/masters-draw/", "Masters", time,
-        "Europe/London", "Masters 2026 Draw", "Monday January 12th 1pm", "Play starts January 11th", "Masters in London")
-    private val html = "<article><h1>Masters 2026 Draw</h1><p>Masters in London</p><p>Play starts January 11th.</p>" +
-        "<p>Monday January 12<sup>th</sup></p><p>1pm – Player One vs Player Two</p><p>7pm – Evening match</p></article>"
-    private fun verify(c: SportsFixtureDiscovery.Claim = claim, p: EpgProgram = programme, page: String = html) =
-        SportsFixtureDiscovery.verify(p, sport, c, page)
+    private val source = "https://example.org/masters/session"
+    private val fact = "Masters Snooker Day 2 is scheduled for 2026-01-12T13:00Z."
+    private fun report(name: String = "Masters Snooker", finding: String = fact, sport: Sport = this.sport,
+                       fields: Map<String,String> = emptyMap()) = buildJsonObject {
+        val defaults = mapOf("eventName" to name, "evidence" to finding, "sport" to sport.name,
+            "eventStart" to "2026-01-12T13:00Z", "fixtureMatch" to "exact", "airingType" to "live_at_fixture_time")
+        (defaults + fields).forEach { (key,value) -> put(key, value) }
+    }
 
-    @Test fun unlabelledDayTwoAndActualSessionStart() {
-        val result = verify()!!
-        assertEquals(ms, result.startMs)
-        assertEquals(claim.url, result.url)
+    /** Simulate the generateContent wire format, including byte offsets into its visible response part. */
+    private fun grounded(data: JsonObject = report(), excerpt: String? = data["evidence"]?.jsonPrimitive?.content,
+                         url: String = source, finish: String = "STOP", chunk: Int = 0, part: Int = 1): String {
+        val answer = data.toString()
+        val supports = buildJsonArray {
+            if (excerpt != null) {
+                val at = answer.indexOf(excerpt)
+                require(at >= 0)
+                val from = answer.take(at).toByteArray().size
+                add(buildJsonObject {
+                    put("segment", buildJsonObject { put("partIndex", part); put("text", excerpt)
+                        put("startIndex", from); put("endIndex", from + excerpt.toByteArray().size) })
+                    put("groundingChunkIndices", buildJsonArray { add(chunk) })
+                })
+            }
+        }
+        return buildJsonObject { put("candidates", buildJsonArray { add(buildJsonObject {
+            put("finishReason", finish)
+            put("content", buildJsonObject { put("parts", buildJsonArray {
+                add(buildJsonObject { put("thought", true); put("text", "Looking up the fixture") })
+                add(buildJsonObject { put("text", answer) })
+            }) })
+            put("groundingMetadata", buildJsonObject {
+                put("groundingChunks", buildJsonArray { add(buildJsonObject { put("web", buildJsonObject { put("uri", url) }) }) })
+                put("groundingSupports", supports)
+            })
+        }) }) }.toString()
+    }
+
+    private fun verify(raw: String = grounded(), p: EpgProgram = programme, sport: Sport = this.sport) =
+        SportsFixtureDiscovery.verify(p, sport, raw)
+
+    @Test fun originalFixtureTimeAndSessionAreRequired() {
+        assertEquals(ms, verify()!!.startMs)
+        assertEquals(source, verify()!!.url)
         assertNull(verify(p = programme.copy(title = "Masters Snooker Day 3")))
-        assertNull(verify(c = claim.copy(opening = "Play starts January 10th")))
-        assertNull(verify(p = programme.copy(startMs = ms + 45 * 60_000)))
-        assertNull(verify(p = programme.copy(description = "Evening session")))
         assertNull(verify(p = programme.copy(title = "German Masters Snooker Day 2")))
         assertNull(verify(p = programme.copy(title = "Masters Snooker Final")))
+        assertNull(verify(p = programme.copy(startMs = ms - 20 * 60_000)))
+        assertNull(verify(grounded(report(fields = mapOf("eventStart" to "2026-01-12T14:00+01:00")))))
+        assertNull(verify(grounded(report(finding = "Masters Snooker Day 2 is on January 12."))))
+        assertNull(verify(grounded(report(finding = fact.replace("13:00Z","13:00-05:00"),
+            fields = mapOf("eventStart" to "2026-01-12T13:00-05:00")))))
     }
 
-    @Test fun previouslyUnknownTournamentCanQualifyInAnotherSport() {
-        val c = claim.copy(url = "https://www.worldaquatics.com/competition/schedule", competition = "Harbour Cup",
-            edition = "Harbour Cup 2026", zone = "UTC", slot = "January 12th 13:00 UTC", opening = "", zoneEvidence = "")
-        val p = programme.copy(title = "Swimming – Harbour Cup")
-        val source = "<h1>Harbour Cup 2026</h1><p>January 12th 13:00 UTC</p>"
-        assertNotNull(SportsFixtureDiscovery.verify(p, Sport.SWIMMING, c, source))
-        assertNull(SportsFixtureDiscovery.verify(p, Sport.SNOOKER, c, source))
-        assertNull(SportsFixtureDiscovery.verify(p, Sport.SWIMMING, c, source + "<p>Meeting cancelled.</p>"))
+    @Test fun publisherIndependentHighSchoolFixtureHonoursCompetitionFilter() {
+        val p = programme.copy(title = "High School Basketball: Lincoln vs Central")
+        val name = "Lincoln vs Central"
+        val evidence = "$name in high school basketball is scheduled for 2026-01-12T13:00Z."
+        val data = report(name, evidence, Sport.BASKETBALL)
+        val url = "https://athletics.lincoln.example/calendar"
+        assertEquals(url, verify(grounded(data, url = url), p, Sport.BASKETBALL)?.url)
+        val redirect = "https://vertexaisearch.cloud.google.com/grounding-api-redirect/sample"
+        assertEquals(redirect, verify(grounded(data, url = redirect), p, Sport.BASKETBALL)?.url)
+        assertNull(verify(grounded(report(name, evidence.replace("high school","college"), Sport.BASKETBALL)), p, Sport.BASKETBALL))
+        assertNull(verify(grounded(data), p.copy(title = "High School Basketball: Lincoln vs East"), Sport.BASKETBALL))
+        assertNull(verify(grounded(report(name, evidence.replace("basketball","football"), Sport.BASKETBALL)), p, Sport.BASKETBALL))
+        val node = requireNotNull(SportsTaxonomy.classifyProgramme(p.title, null))
+        assertEquals("basketball.high-school-basketball", node.id)
+        assertFalse(SportsTaxonomy.acceptsEvent(SportsTaxonomy.leagueById["taxonomy/" + node.id], p.title, null, setOf(node.id)))
+        assertFalse(SportsTaxonomy.enabled(node.id, setOf("basketball")))
     }
 
-    @Test fun falsePositiveGuideEntriesNeverQualify() {
+    @Test fun onlyExplicitPositiveVerdictsQualify() {
+        for (type in listOf("unknown","replay_or_delayed","non_event","yes",""))
+            assertNull(verify(grounded(report(fields = mapOf("airingType" to type)))))
+        for (match in listOf("different","unknown","yes"))
+            assertNull(verify(grounded(report(fields = mapOf("fixtureMatch" to match)))))
+        assertNull(verify(grounded(report(fields = mapOf("sport" to "unknown")))))
+        assertNull(verify(grounded(JsonObject(report() - "fixtureMatch"))))
+        assertNull(verify(grounded(report(finding = "$fact The match is postponed."))))
+    }
+
+    @Test fun citationsMustSupportTheFixtureAndTheTimeInTheCorrectPart() {
+        assertNull(verify(grounded(excerpt = null)))
+        assertNull(verify(grounded(excerpt = "Masters Snooker")))
+        assertNull(verify(grounded(chunk = 4)))
+        assertNull(verify(grounded(part = 0)))
+        assertNull(verify(grounded(finish = "MAX_TOKENS")))
+        assertNull(verify(grounded(url = "file:///schedule")))
+        assertNull(verify(grounded(url = "http://publisher.example/game")))
+        assertNull(verify(grounded(url = "https://localhost/game")))
+        val name = "Étoile vs Central"
+        val data = report(name,"$name in high school basketball starts at 2026-01-12T13:00Z.", Sport.BASKETBALL)
+        assertNotNull(verify(grounded(data), programme.copy(title = "High School Basketball", description = name), Sport.BASKETBALL))
+    }
+
+    @Test fun wrongEditionsAndEditorialShowsCannotTriggerDiscovery() {
         for (p in listOf(programme.copy(title = "Masters Snooker 2024"), programme.copy(year = 2025),
             programme.copy(category = "Highlights"), programme.copy(description = "A repeat of last year's final."),
             programme.copy(title = "Masters Snooker studio"), programme.copy(title = "Snooker"),
             programme.copy(stopMs = programme.startMs))) assertFalse(p.toString(), SportsFixtureDiscovery.eligible(p))
     }
-
-    @Test fun datesClocksAndZonesMustBelongToTheOfficialPage() {
-        assertNull(verify(page = "<h1>Masters 2026 Draw</h1>Runs January 11th to 18th"))
-        assertNull(verify(page = html.replace("2026", "2025")))
-        assertNull(verify(page = html.replace("12<sup>", "14<sup>")))
-        assertNull(verify(page = html.replace("1pm", "7pm")))
-        assertNull(verify(c = claim.copy(zone = "Europe/Paris")))
-        assertNull(verify(c = claim.copy(url = "https://wst.tv.example.org/draw")))
-        assertNull(verify(c = claim.copy(url = "http://wst.tv/draw")))
-        assertNull(verify(c = claim.copy(url = "https://www.bbc.co.uk/guide")))
-        assertNull(verify(p = programme.copy(description = "Smith vs Jones in the first round.")))
-        val range = "Monday January 12th 11am to 1pm"
-        assertNull(verify(c = claim.copy(slot = range), page = html.replace("1pm", "11am to 1pm")))
-        assertNull(verify(p = programme.copy(title = "Masters Snooker Final"),
-            c = claim.copy(edition = "Masters 2026 Semifinal"), page = html.replace("Masters 2026 Draw", "Masters 2026 Semifinal")))
-    }
-
-    @Test fun sessionTimeUsesVenueZoneAtDaylightSavingBoundary() {
-        val local = OffsetDateTime.parse("2026-07-12T13:00:00+01:00")
-        val start = local.toInstant().toEpochMilli()
-        val p = programme.copy(startMs = start, stopMs = start + 3_600_000)
-        val c = claim.copy(start = local, slot = "July 12th 1pm", opening = "Play starts July 11th")
-        assertNotNull(verify(c, p, html.replace("January", "July")))
-        assertNull(verify(c.copy(start = local.withOffsetSameLocal(java.time.ZoneOffset.UTC)), p, html.replace("January", "July")))
-    }
-
-    @Test fun unrelatedCitationsAndUnfinishedResponsesAreRejected() {
-        val data = buildJsonObject {
-            put("decision","scheduled"); put("url",claim.url); put("competition","Masters")
-            put("start",time.toString()); put("zone",claim.zone); put("edition",claim.edition); put("slot",claim.slot)
-        }
-        fun response(title: String, finish: String) = """{"candidates":[{"finishReason":"$finish","content":{"parts":[{"text":${JsonPrimitive(data.toString())}}]},"groundingMetadata":{"groundingChunks":[{"web":{"uri":"https://vertexaisearch.cloud.google.com/grounding-api-redirect/id","title":"$title"}}]}}]}"""
-        assertNotNull(SportsFixtureDiscovery.claim(response("wst.tv","STOP"), sport))
-        assertNull(SportsFixtureDiscovery.claim(response("elsewhere.example","STOP"), sport))
-        assertNull(SportsFixtureDiscovery.claim(response("wst.tv","MAX_TOKENS"), sport))
-    }
-
     @Test fun confirmedFixturesRequireTheSameGuideContentAndGiveWayToProviders() {
         val guide = SportsEvent("guide:123", "guide/snooker", programme.startMs, true, GameState.LIVE, programme.title,
             null, null, null, null, source = EventSource.GUIDE, guideHits = listOf("ch1" to programme))
@@ -94,7 +124,7 @@ class SportsFixtureDiscoveryTest {
             SportsGuideFixtures.add(input.toList(), observations, now), ms - 86_400_000, ms + 86_400_000, now)
         val fixture = fixtures(guide, guide.copy(id = "guide:other", guideHits = listOf("ch2" to programme))).single()
         assertEquals(setOf("ch1","ch2"), fixture.guideHits.map { it.first }.toSet())
-        assertEquals(claim.url, fixture.scheduleUrl)
+        assertEquals(source, fixture.scheduleUrl)
         assertEquals(GameState.PRE, fixture.state)
         assertEquals(ms, fixture.startMs)
         assertTrue(fixtures(guide.copy(guideHits = listOf("ch1" to programme.copy(description = "Replay")))).isEmpty())
@@ -125,12 +155,12 @@ class SportsFixtureDiscoveryTest {
         val cache = GeminiGuideCache(dir) { now }
         cache.remember(1, "listing", verify())
         cache.remember(1, "uncertain", null)
-        assertEquals(ms, cache.observation(1, "listing", sport)?.proof?.startMs)
-        assertNotNull(cache.observation(1, "uncertain", sport))
-        assertNull(cache.observation(2, "listing", sport))
-        assertNull(cache.observation(1, "changed-programme", sport))
+        assertEquals(ms, cache.observation(1, "listing")?.proof?.startMs)
+        assertNotNull(cache.observation(1, "uncertain"))
+        assertNull(cache.observation(2, "listing"))
+        assertNull(cache.observation(1, "changed-programme"))
         now += SportsGuideFixtures.VALID_MS
-        assertNull(GeminiGuideCache(dir) { now }.observation(1, "listing", sport))
+        assertNull(GeminiGuideCache(dir) { now }.observation(1, "listing"))
     }
 
     @Test fun discoveryHasItsOwnPersistentLimitWithinTheSharedBudget() {

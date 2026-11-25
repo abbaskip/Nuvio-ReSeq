@@ -60,7 +60,7 @@ internal object SportsGuideFixtures {
                     id = "verified:" + SportsGuideCache.digest(listOf(sport.name, identity.second, proof.startMs.toString())),
                     source = EventSource.VERIFIED_SCHEDULE, startMs = proof.startMs, endMs = p.stopMs,
                     state = GameState.PRE, status = "Scheduled", title = p.title, guideHits = listOf(hit),
-                    note = "Official schedule", scheduleUrl = proof.url
+                    note = "Verified schedule", about = proof.evidence, scheduleUrl = proof.url
                 ) else previous.copy(guideHits = (previous.guideHits + hit).distinct(), endMs = maxOf(previous.endMs!!, p.stopMs))
             }
         }

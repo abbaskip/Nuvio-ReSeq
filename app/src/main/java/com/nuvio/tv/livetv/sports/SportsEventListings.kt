@@ -74,8 +74,7 @@ internal object SportsEventListings {
         events.filter { ev ->
             if (ev.source == EventSource.VERIFIED_SCHEDULE) {
                 val url = ev.scheduleUrl ?: return@filter false
-                val sport = SportsCatalog.league(ev.leagueId)?.sport ?: return@filter false
-                if (!SportsFixtureDiscovery.authorizedUrl(url, sport) || ev.guideHits.none { (_, p) ->
+                if (!SportsFixtureDiscovery.isSourceUrl(url) || ev.guideHits.none { (_, p) ->
                         p.stopMs > now && kotlin.math.abs(p.startMs - ev.startMs) <= 15 * 60_000L
                     }) return@filter false
             }

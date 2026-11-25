@@ -25,20 +25,24 @@ internal class GeminiGuideCache(private val dir: File, usageDir: File = dir,
         save(profile, key, buildJsonObject { put("decision", decision.name) })
     }
 
-    @Synchronized fun observation(profile: Int, key: String, sport: Sport): SportsGuideFixtures.Observation? {
+    @Synchronized fun observation(profile: Int, key: String): SportsGuideFixtures.Observation? {
         val data = read(file(profile))?.get(key) as? JsonObject ?: return null
         val at = data["at"]?.jsonPrimitive?.longOrNull ?: return null
         if (clock() - at !in 0 until SportsGuideFixtures.VALID_MS) return null
         val url = data["url"]?.jsonPrimitive?.contentOrNull ?: return SportsGuideFixtures.Observation(null, at)
-        if (!SportsFixtureDiscovery.authorizedUrl(url, sport)) return null
+        if (!SportsFixtureDiscovery.isSourceUrl(url)) return null
         val start = data["start"]?.jsonPrimitive?.longOrNull ?: return null
         val name = data["competition"]?.jsonPrimitive?.contentOrNull ?: return null
-        return SportsGuideFixtures.Observation(SportsFixtureDiscovery.Proof(url, name, start), at)
+        val evidence = data["evidence"]?.jsonPrimitive?.contentOrNull ?: return null
+        return SportsGuideFixtures.Observation(SportsFixtureDiscovery.Proof(url, name, start, evidence), at)
     }
 
     @Synchronized fun remember(profile: Int, key: String, proof: SportsFixtureDiscovery.Proof?) {
         save(profile, key, buildJsonObject {
-            if (proof != null) { put("url", proof.url); put("competition", proof.competition); put("start", proof.startMs) }
+            if (proof != null) {
+                put("url", proof.url); put("competition", proof.competition)
+                put("start", proof.startMs); put("evidence", proof.evidence)
+            }
         })
     }
 
@@ -54,27 +58,59 @@ internal class GeminiGuideCache(private val dir: File, usageDir: File = dir,
         val bounded = entries.entries.sortedByDescending { it.value.jsonObject["at"]!!.jsonPrimitive.long }.take(500)
         file(profile).writeText(JsonObject(bounded.associate { it.key to it.value }).toString())
     }
-    @Synchronized fun reserve(discovery: Boolean = false): Boolean {
+    // All callers, including manual lookups and different profiles, share this on-device ledger.
+    companion object {
+        private val budgetLock = Any()
+
+        fun quotaPause(retryAfter: String?, now: Long, errorBody: String = ""): Long {
+            val header = retryAfter?.trim().orEmpty()
+            val seconds = header.toLongOrNull()?.takeIf { it >= 0 }
+            val delay = seconds?.coerceAtMost((Long.MAX_VALUE - now) / 1000)?.times(1000) ?: runCatching {
+                java.time.ZonedDateTime.parse(header, java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME)
+                    .toInstant().toEpochMilli() - now
+            }.getOrNull()
+            val details = runCatching { Json.parseToJsonElement(errorBody).jsonObject["error"]
+                ?.jsonObject?.get("details") as? JsonArray }.getOrNull().orEmpty().filterIsInstance<JsonObject>()
+            val retryMs = details.asSequence().mapNotNull { (it["retryDelay"] as? JsonPrimitive)?.content
+                ?.removeSuffix("s")?.toDoubleOrNull()?.takeIf { n -> n.isFinite() && n >= 0 } }
+                .maxOrNull()?.let { kotlin.math.ceil(it * 1000).toLong().coerceAtMost(Long.MAX_VALUE - now) }
+            val daily = details.flatMap { (it["violations"] as? JsonArray).orEmpty() }.filterIsInstance<JsonObject>()
+                .any { (it["quotaId"] as? JsonPrimitive)?.content?.replace("_", "")?.contains("perday", ignoreCase = true) == true }
+            val untilReset = if (daily) {
+                val pacific = java.time.ZoneId.of("America/Los_Angeles")
+                java.time.Instant.ofEpochMilli(now).atZone(pacific).toLocalDate().plusDays(1)
+                    .atStartOfDay(pacific).toInstant().toEpochMilli() - now
+            } else 0L
+            return maxOf(15 * 60_000L, maxOf(delay ?: 0L, retryMs ?: 0L, untilReset)
+                .takeIf { it > 0 } ?: 3_600_000L)
+        }
+    }
+
+    fun reserve(discovery: Boolean = false): Boolean = synchronized(budgetLock) {
         val now = clock()
         val usage = read(usageFile)
-        if (now < (usage?.get("pausedUntil")?.jsonPrimitive?.longOrNull ?: 0)) return false
+        if (usage == null && usageFile.exists() && now - usageFile.lastModified() < 24 * 3_600_000L) return@synchronized false
+        if (now < (usage?.get("pausedUntil")?.jsonPrimitive?.longOrNull ?: 0)) return@synchronized false
         val recorded = (usage?.get("attempts") as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.longOrNull }
-        if (recorded.any { it > now }) return false
+        if (recorded.any { it > now }) return@synchronized false
         val attempts = recorded.filter { now - it in 0 until 24 * 60 * 60_000L }
         if (attempts.size >= 40 || attempts.count { now - it < 60 * 60_000L } >= 12 ||
-            attempts.any { now - it < 15_000 }) return false
+            attempts.any { now - it < 15_000 }) return@synchronized false
         val searches = (usage?.get("searches") as? JsonArray).orEmpty().mapNotNull { it.jsonPrimitive.longOrNull }
             .filter { now - it in 0 until 24 * 60 * 60_000L }
-        if (discovery && (searches.size >= 8 || searches.count { now - it < 3_600_000 } >= 3)) return false
+        if (discovery && (searches.size >= 8 || searches.count { now - it < 3_600_000 } >= 3)) return@synchronized false
         usageFile.writeText(buildJsonObject {
             put("attempts", JsonArray((attempts + now).map(::JsonPrimitive)))
             put("searches", JsonArray((if (discovery) searches + now else searches).map(::JsonPrimitive)))
         }.toString())
-        return true
+        true
     }
-    @Synchronized fun pause() {
-        val usage = read(usageFile).orEmpty().toMutableMap()
-        usage["pausedUntil"] = JsonPrimitive(clock() + 15 * 60_000L)
+    fun pause(minimumMs: Long = 15 * 60_000L) = synchronized(budgetLock) {
+        val data = read(usageFile)
+        if (data == null && usageFile.exists()) return@synchronized
+        val usage = data.orEmpty().toMutableMap()
+        val previous = usage["pausedUntil"]?.jsonPrimitive?.longOrNull ?: 0L
+        usage["pausedUntil"] = JsonPrimitive(maxOf(previous, clock() + minimumMs))
         usageFile.writeText(JsonObject(usage).toString())
     }
 }
@@ -83,6 +119,13 @@ internal object GeminiGuideInput {
     private val url = Regex("https?://\\S+", RegexOption.IGNORE_CASE)
     private val opaque = Regex("[A-Za-z0-9_=-]{48,}")
     private fun clean(value: String?, limit: Int) = opaque.replace(url.replace(value.orEmpty(), "[link omitted]"), "[identifier omitted]").take(limit)
+    fun listing(competition: String?, programme: EpgProgram): JsonObject = buildJsonObject {
+        put("title", clean(programme.title, 200))
+        programme.description?.takeIf(String::isNotBlank)?.let { put("description", clean(it, 500)) }
+        competition?.let { put("guideCategory", clean(it, 100)) }
+        programme.episode?.let { put("episode", clean(it, 80)) }
+        put("airtime", java.time.Instant.ofEpochMilli(programme.startMs).toString())
+    }
     fun data(event: SportsEvent, programme: EpgProgram): JsonObject = buildJsonObject {
         put("event", clean(event.title, 200))
         put("competition", clean(SportsCatalog.league(event.leagueId)?.name, 100))

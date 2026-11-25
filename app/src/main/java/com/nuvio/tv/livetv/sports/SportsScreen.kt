@@ -1438,7 +1438,7 @@ private fun GamePage(
             ev.scheduleUrl?.let { url ->
                 item {
                     val uri = androidx.compose.ui.platform.LocalUriHandler.current
-                    SportsAction("Official schedule", onClick = {
+                    SportsAction("Schedule source", onClick = {
                         runCatching { uri.openUri(url) }.onFailure { LiveTvNotice.show("Unable to open the schedule") }
                     })
                 }

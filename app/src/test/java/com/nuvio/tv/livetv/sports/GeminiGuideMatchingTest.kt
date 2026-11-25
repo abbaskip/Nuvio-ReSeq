@@ -45,6 +45,36 @@ class GeminiGuideMatchingTest {
         clock = now - 60_000
         assertFalse(GeminiGuideCache(dir) { clock }.reserve())
     }
+    @Test fun `provider cooldown survives restart and shorter pauses cannot cancel it`() {
+        val dir = temporary.newFolder()
+        var clock = now
+        val cache = GeminiGuideCache(dir) { clock }
+        cache.pause(GeminiGuideCache.quotaPause("7200", clock))
+        cache.pause()
+        clock += 3_600_000
+        assertFalse(GeminiGuideCache(dir) { clock }.reserve(discovery = true))
+        clock += 3_600_000
+        assertTrue(cache.reserve())
+        assertFalse(cache.reserve(discovery = true))
+        assertEquals(3_600_000L, GeminiGuideCache.quotaPause(null, now))
+        val until = java.time.Instant.ofEpochMilli(now + 7_200_000L).atZone(java.time.ZoneOffset.UTC)
+            .format(java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME)
+        assertEquals(7_200_000L, GeminiGuideCache.quotaPause(until, now))
+        val daily = """{"error":{"details":[{"violations":[{"quotaId":"GenerateRequestsPerDayPerProjectPerModel"}]},{"retryDelay":"5s"}]}}"""
+        val pacific = java.time.ZoneId.of("America/Los_Angeles")
+        val reset = java.time.Instant.ofEpochMilli(now).atZone(pacific).toLocalDate().plusDays(1).atStartOfDay(pacific)
+        assertEquals(reset.toInstant().toEpochMilli() - now, GeminiGuideCache.quotaPause(null, now, daily))
+        val minute = """{"error":{"details":[{"retryDelay":"3600s"}]}}"""
+        assertEquals(3_600_000L, GeminiGuideCache.quotaPause(null, now, minute))
+    }
+
+    @Test fun `an interrupted ledger write cannot give the app a second daily budget`() {
+        val dir = temporary.newFolder()
+        val ledger = java.io.File(dir, "gemini-guide-usage.json").apply { writeText("{"); setLastModified(now) }
+        assertFalse(GeminiGuideCache(dir) { now + 60_000 }.reserve())
+        assertTrue(GeminiGuideCache(dir) { ledger.lastModified() + 86_400_000 }.reserve())
+    }
+
     @Test fun `decisions are profile scoped content keyed and expire`() {
         val dir = temporary.newFolder()
         var clock = now

@@ -4174,6 +4174,17 @@
       ],
       "categories": [
         {
+          "id": "basketball.high-school-basketball",
+          "display": "High School Basketball",
+          "synonyms": [
+            { "term": "High School Basketball", "match": "standalone" },
+            { "term": "High School Boys Basketball", "match": "standalone" },
+            { "term": "High School Girls Basketball", "match": "standalone" },
+            { "term": "HS Basketball", "match": "standalone" }
+          ],
+          "subcategories": []
+        },
+        {
           "id": "basketball.professional-basketball-leagues",
           "display": "Professional Basketball Leagues",
           "synonyms": [

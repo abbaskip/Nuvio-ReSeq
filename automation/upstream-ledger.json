@@ -5782,10 +5782,19 @@
       "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
     },
     "5f5c191997ff2f8bd87b5ba9bde939eb26e30324": {
-      "outcome": "held",
-      "reason": "Folder-to-details trailer continuation must preserve the distinct ReSeq IPTV/VOD preview pool, chosen stream and transfer lifecycle. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
-      "run": "20261122T150304Z-295620",
-      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at d98af5eecb2ce7a6e0d2faffe04624e687be8211. fix(collections): continue folder trailers on the details page. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Folder-to-details trailer continuation must preserve the distinct ReSeq IPTV/VOD preview pool, chosen stream and transfer lifecycle. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
+          "run": "20261122T150304Z-295620",
+          "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+        }
+      ]
     },
     "1981d7ff43cdde8f65940ef39b6e7cc7e98ee6a7": {
       "outcome": "equivalent",
@@ -5794,10 +5803,19 @@
       "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
     },
     "4d8cd878e84aaf0f82cecb3111eb1a8d2f36566d": {
-      "outcome": "held",
-      "reason": "Framed hero/Details transition layering needs remote focus, Back, touch and trailer-handoff acceptance on current themed ReSeq layouts. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
-      "run": "20261122T150304Z-295620",
-      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at e326f7a66c99aa4d4b5072d82bc252f228c0be80. fix(home): keep Home visible while details fades in over a framed hero trailer. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "Framed hero/Details transition layering needs remote focus, Back, touch and trailer-handoff acceptance on current themed ReSeq layouts. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
+          "run": "20261122T150304Z-295620",
+          "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+        }
+      ]
     },
     "640ba7eb0d3876d7720b1554cf609f7e45823272": {
       "outcome": "equivalent",
@@ -5806,10 +5824,18 @@
       "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
     },
     "2dc535d3973095eb3cfe844fa54a6003a332156b": {
-      "outcome": "held",
-      "reason": "First-load trailer caption fix must preserve lazy YouTube/caption client startup, preferred-language settings, player ownership and cancellation. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
-      "run": "20261122T150304Z-295620",
-      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+      "outcome": "equivalent",
+      "reason": "Shipped trailer observer only sets hostResumed on resume; the sole loading effect builds the media item with subtitles. Replaying upstream would reintroduce a competing player loader.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "review_history": [
+        {
+          "outcome": "held",
+          "reason": "First-load trailer caption fix must preserve lazy YouTube/caption client startup, preferred-language settings, player ownership and cancellation. Engineering adaptation/acceptance queue; not a request to reopen declined functionality.",
+          "run": "20261122T150304Z-295620",
+          "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+        }
+      ]
     },
     "19d2839535bc6a5c5cf00b4d90470a3738cf674a": {
       "outcome": "equivalent",
@@ -5819,9 +5845,18 @@
     },
     "a0ec0aeaeaa8605467ad2df61754e9cda9fb706c": {
       "outcome": "integrated",
-      "reason": "Read persisted hero sources before first catalog-load mutation; preserve empty-selection defaults and cancellation. Three targeted JVM regressions added. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
-      "run": "20261122T150304Z-295620",
-      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+      "reason": "Ported to isolated TV/mobile source at 319e9700397694fe5f64631ecd944424ab458800. fix(home): apply saved hero sources before the first catalog load. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified",
+      "review_history": [
+        {
+          "outcome": "integrated",
+          "reason": "Read persisted hero sources before first catalog-load mutation; preserve empty-selection defaults and cancellation. Three targeted JVM regressions added. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
+          "run": "20261122T150304Z-295620",
+          "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+        }
+      ]
     },
     "09330465cb15b2ac728713ba4798532e3e0dcdb0": {
       "outcome": "equivalent",
@@ -5867,9 +5902,2204 @@
     },
     "d2eeb3d0e9475e56e7beca921ad555e8d4ad9c66": {
       "outcome": "integrated",
-      "reason": "Declare Wi-Fi hardware optional, retaining Wi-Fi/network permissions and runtime support while avoiding implied required hardware. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
-      "run": "20261122T150304Z-295620",
-      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+      "reason": "Ported to isolated TV/mobile source at f1e030e49d6a7f407703368d182ca687a58f44d2. fix(android): mark wifi as optional. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified",
+      "review_history": [
+        {
+          "outcome": "integrated",
+          "reason": "Declare Wi-Fi hardware optional, retaining Wi-Fi/network permissions and runtime support while avoiding implied required hardware. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
+          "run": "20261122T150304Z-295620",
+          "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
+        }
+      ]
+    },
+    "8b6ac91b16aa52ea4f0e6f34f4f82d4e028b3060": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at bae842c08bff230ad3beaedd86da606e304a61e1. \u2728 feat(player): handle audio track remote key. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "4bd2502d2f8723898fe1665056401661dd86589e": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "49acd493af8742125237b90b397fcd57a5456274": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "584a80a7df05bbb17e4b518afffc68e582e1307a": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f87f07fd0dc1fe26457dfe5e72d152354f13679b": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cc268f168e6ddb8a26cd8ce4f6b1a352473456f3": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3138d10e70ab6be57562f97b5a35e6029890679b": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f34cb4a5660d0efc821c2303c8713f361db667e8": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d1bad8c0bcca4901fbacf66d6199c35966cc16d9": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "40fd030e2099d77ad00e5595100cae921b76c51b": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ec395666acd038a08a95436e4d7bb91bb4948f3a": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a5183051c5718e0471af8246474827643b246fb6": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d4eab27a7337da0d523edfc76e26c42b15bcdb42": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e4a1bdc49a8b8ef62a7fce25b17d0abf5ceddf0f": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f53cb6195aff90d7be176f0d5b092651fb1e3d85": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f2d159455b61b8671e69142aa6c2d98d2c034313": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3afa62cd0b50a94746ed5adc07ef94ce01f766bb": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ea3193907b75a4b08e4ddc323bed1cae6d29fffe": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "0ae08ec0dbed3ad33a8e0b61591984b5df9b8d4d": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "0cf406aed32e305832a50a50fd62902f13ed77cb": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "98e05d4ea3212e29805a31cdb9e4327bbe9e9f0f": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ed2b409e2e604549d9b7e1c8480855231fe8b5f3": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "53dffdd1a4fc1a1eb13ea322a2f6b66189a960ce": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "109bdd88a4d6c8784bae70fc86b783175f40ea6d": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3063a97f89e1eb56dcd8f8c92baf09e031516c45": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e0255815eea4910cc05ddcb07b672b3a2654425a": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a97133b699cfc27cc146b60bcd1558892415d1c5": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "05cd2182b93ff20de72ec4eae451fcfb42ac0b33": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "bd113d27ab839bc8254e74223e00545ec3414228": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e9009ae5030894814089f98e378c1f4c0e31ab95": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5e195b5ebdf268cf4504e8a2f0293a57bf2f3aad": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f19852eedb99926f14d65ca7ad30fd59cc02d342": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7689fa244f054d79302c8f746df14b93e3c7824f": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5d9ad4e730e28aff443f15d39572e730230dbf87": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f9731ceb0b1ed4de143f2263666934dfe021845c": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5c1ff0d529da2f69ffe48d1193aab77c73705061": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5b2099d7951d4ac018080e2630039e1e9b09db72": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "9df356b21a5f71da3bb940995df89927f9ae90de": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cfa9f6d24476ea9e1931ef4efa2dc66cf1bb1c5e": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ac4d98fa6cdb03a1404dd91e3dc481e6fc19bd00": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e8b4f8bccfcbc7d06e33b24c3a7fe070875003a5": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a97c276cc2026da3c0b0c0564dc83252abe64ad6": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "41285ea58547a7a59be5a95ee5bd98f5dfc187f0": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "df3924ef469b1a8541467c1a170cba3f72edc7c4": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6a8b9cb3badabecaa70b80e9cafa5786c0cda2fd": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "36eb054542430161b5b3a44c233c282cea2ab3ff": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: Align settings button arguments with upstream to fix PR compilation. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cab7f54ee2954a1b322b9f1949be2ca500299203": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6a039f3471ac7a2b90542721138cc140eac6f8bc": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "65b7ef85ace09dc7b2f922a149710033969e21e2": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d9a8c868909b7c3b9958aaccdaf091aed742c693": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3a3c996b0ea54e3ab7cb5f7f205f02d194d0d7aa": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "37859c64ad8a8c61edb78fbd87a3880b0d0459a6": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "97effc94eadbd6d111e303b280027b892e3ec317": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7198ea2a6d1cecd7286f333ef4cbe26057d8afd2": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "bb88584933fb8db1221300db98035e67254b6fee": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "24075a67b73d3542758c17a074ffc42916b9b52f": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "330ee7548f1f5b030e8f57727779356b3edb3ff5": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d0aaeced12127cdaebca93c9805e0d2584c10158": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "991bb3038db9b3e245cec4f589f0d54e02d36a15": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "da8e7c6f27b6c2ea1f3ffdfd0d3f2a02540b376c": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "233dd1f3b03ae3ab2a42d15b654e55579392733b": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(player): restore ASS/SSA sizing and opt-in styling on libass and MPV. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c8ce91ae74f8dcf5c4ff29f30bd1ef6929f8f6d4": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f834fb5729a8d5627b4cc417194dbd8f6842658a": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d910519309bff704fd3c68938edc507b45a2c6e5": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6bdc34f2b0c172b359dfb78cabd3d6f7e958ca9d": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "30efd64c6f29f6bcd5e5f61d9813a1ef59ada7cb": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "da2fdbbb7b72e70d09555392ce695eb82f1ca29c": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "695a51e9cc374dcf7f650ac650d3bfdba1dee3e7": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 3a3bf43de54aa1bbdb50d31ce5a4a94baa59a54e. fix(player): keep the Skip Intro button rounded while it fades. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "a858d82e2d3f75c73c37ffd1dd6ab082a71bd54c": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "2a2c4849f311954eb037fe88862b82f3bfc699cb": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 2c4b4a31873d802f23c93f543090c863692a37d0. perf(autosync): embedded-subtitle sync finishes several times faster on TV hardware. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "0c1f8d1688c7292438b727b0c1d58f89fb3ef5fa": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e4b4286f6bcd185eef3f98bb0fce85f6b4ce4a9f": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(details): compose nearby rows ahead so scrolling does not stall. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "485c8a07cbe67ce012c40abf184a2f456a706ffc": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 9506c8b9908e040e2e51d7245a9b71503fc64fce. perf(trailer): fade the background trailer without an offscreen layer. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "a740755e0f5a43874b3fee1ac808fdfc4c3884e7": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "61bb532370fc25bdc86fbf972d2aedba47d19ed8": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "eeede10f3bea2b113877f0bf67184e8b405a1151": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "38590b600fa030d50642cb3a5d096c5922b14fe3": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "321a8e2be5b37e69729d140dc300fd468e68ebca": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "466fa1f25a438e703709f8e0a5f788b18004b6d8": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "987764b2eaadeb88a75c4c5ecacd9da5c9f89f89": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7f37c1f5a677aab82582ea45593d8ab398df399e": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3a1476ff904c9f9371fd9f4c837afbca71ba710f": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "32670f7fcad695256412b92bdd1664958e200a22": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4c1693657eb6b4ab99da1d1ac3628c7cc8252ed2": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5ce7a4978524883e654f16606fd0c85f10a7c285": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a39971b32057619e1546bba960594dd0142c76f6": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "68ae61376c11d7c4a96962ac4f5048fac9e3e436": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3dd32989dfcb18bc6e6c27cc8bed3f2b7234826a": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7097af17f4cef3404379bf7e8b178001c915be62": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "eef42e1731c83bff61436822fc71c58c97a73dd2": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7d602f9fddf180381518046584beb314d0ad5d65": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4db6cbabdf8e1d56d1833aa6918f647e926d8597": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at f81fb1cbd7b43b0fd68853ac0222dda6673fad6a. feat(player): show a format badge for styled subtitles instead of the codec. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "8efa5ca57c338bf260b5b72c7ea92aeb9389f254": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 67c16f5cc2b1f457a90b786c8201cdcbc29a7e7b. fix(player): show the track label as the built-in subtitle title. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "23850e9d569c7be160835472ad1795ffb83f5f4e": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "8ce69c2a17870ea72d4c1bcd09fcece0d693ef19": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: feat(player): keep a separate subtitle style for ASS/SSA. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "42e34876fb26f2397b114470ddb57bc69b3cf924": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "80b1b33db5e94d9a12a67e7f27afe6925a897727": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 47dafe6a165a35b3efe086cbd7778c1bda9a4646. fix(autosync): embedded subtitles are found again on hosts that reject HTTP/1.1. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "2ed752298654e7c731df73170e4ab67c0d7fae78": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at b89afd2c3c2d20eaf2b53de8e002446b56506151. fix(autosync): accept legacy ASS codec IDs and CR line breaks after bulk sections. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "b70adbb8357e5c5042c35824ed1f060cd9fa973a": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "bf210ec5128b24c944ce095e1c9d1d21928f79ef": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 06444155dd3729f3f3d19243f6bcb99b6f35296f. Fix focus skipping single folder and source actions in collection editor. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "9c6f31531ecca55ace2b91f6df77147d9e643ace": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f867fae3288f0a961de32061f7fb1603bc7c050f": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f5770999694bc8af47f77de22420a1d63dd512fe": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: Show the streaming type in the player HUD. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "742dfbe293d9e61eed37638b6458b9922b1ce58e": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c3af0fed93ed399278193ba47e9cb8f469cb2ead": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "fd344881ba270b146bc54e39be904a6fc27b278a": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "79c787796a48aaa384a427f6218d60ad9354f7f1": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "dc89d4bec800a4b25c92ed4f2e68f08b0ea8447f": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "558d65df7b919e7bc65780cdcd59bd8a9741440a": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(details): show the trailer video on details opened from More like this. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1d055a4342ad3b88e79745f15a00589cd14da45d": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "02a9afc85870bbe9b71b390582da285ad4b345ab": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(tv): sync the launcher Continue Watching channel when CW changes. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "92d0385619b4c87af59037f30da4e30f18712050": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "98264d32f3ddeff1e691f79b497a7a50c5ae13df": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at f50e44261fc5e9d05800d692816c83b8279a6f35. fix(home): reuse loaded collection covers for focus glow. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "9f753b3b155f8ad0abc1d27531c2ef446da710be": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 94f7a58a72a4a73e8cbf6e4de898196b953d1b7a. fix(home): bound concurrent collection cover fetches. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "61e54f7d0b24811c361d2781c707055a030b3ab0": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 34047f62ade3cf6e27b1eaffec9611b50913f896. fix(home): let disk-cached covers bypass the network queue. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "e0be1a8e7ad56d5841848102d1fac2bd3b0c25e7": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1a18710234a173686f4e4f8c63d3ed79cd61d5e6": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: perf(subtitles): bump nuvio-libass to v0.0.14 with Laskco's libass fork. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d91e9069b27cb4f1ecc7fd2b69e2625418a817c3": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "54c505452a9d3d0b97083019b089daa80af016be": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at bcbfe2f3aca6eecba073ccd79c4db8bd4b1feab5. perf(details): draw the details background once and only the visible part of the hero gradient. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "11859c5d93556e5e480dd8dd7f014b8895a8c66d": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ae438b42f77ccf590e498d84452465be72256d33": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "018dbd0a56e9a65a9673f993c2cf291c144feb29": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e200c74dd03ed6155b0cfc8d4f25644d4511786a": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d575ff55a97657fb8c3fce5c14c6741125798784": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "928244de2d758103df997fae93915a6abdc0c54a": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ff09b664e47de11c7a80feaa95f6b2ef27ee1307": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5cb750a31a430cfbe0b4057ef1d027d712a1d311": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d0a1f01b2d0112f113d44f73c0218c1b4f6d7f03": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5ffa431b7cf317fcc3ae0cb33d48539b7d720065": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1c9ac2347e0f5fee7de1a9017f4de8bf9e892159": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e0620230e55a73151a53a1b72bf3bdbcc161bd1c": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "36ae375fd0aa3c73a2c937f1dc46d7ef56864d07": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "9ee46e7a657089098f101ed085bd812877451b1d": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b236ee77dff6df18cc58af5e09754992e6cf9d5b": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4b71d71aed0fa953fec2f6cc8ecbcc2f8d7d6591": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at ab3156521944632ccbd2cb29a2674707c7e6886e. [verified] fix(debrid): match ampersand filename variants. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "6e4a3cf1e4ef2c976e477b5a0f4b43c48343b302": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "927e81575ae0d8486496e5ba77726049c8d946a9": {
+      "outcome": "held",
+      "reason": "Disc playback changes share media source construction, track selection and seeking with ReSeq. Stage as a coherent series and verify playlist/clip seeks, TrueHD, existing NNTP and non-disc fallback using media fixtures.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1edcb5a472efbe0a89785618093be030d87f1b9d": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "077912ce6f286f64f792c91e421a2af55b5d78e5": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a8d0b63ef39fef30a218425c702cddc94a53a9c5": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "9e5af3d6c2bec1bdd353a4f941a279f36c4c2d7b": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "de06162281989f241a772475186825e47b59937e": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "170be2eb804f10fc424b619a816a37d9bc518d54": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1086d15306e351691fc30f096778e742694d076e": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "326b7c94a7ef2aa95c61e175948f039b27dc093f": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "17f7a3b7920853ac768339fe02568d6ea61c8e4c": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: feat(build): give the fork release its own app id so it installs next to the official app. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "90ee0b33d12944108027457f3253444251b3b656": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3ed4259546b55ac0b8d48bddd06d6b41a88f0390": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1ced1fa41d39674bbbe7f555357fe76e5e22abe0": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "418c869529603311e5b4acc2ee24702d08f100d2": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "57f9bf4cb410724f67e7356871b237393f5c03e2": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "934d9d8c6dd0f29676d9dcf8a6dc50bdbc3138f2": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "681e4c19590e3deb7b529d4266d3ecf0142db776": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a93325891621f47700ecf43683ad9f5334e96cec": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "0f257bede43369893161fc6042ff4653223ae9a2": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "8dd4a352bc950e7e3adb3ce80d915d909b9d9477": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b694bf798f94c4044d2c5686efac57f5171f5e6e": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4d0ff8544199b9acee937437c39a57a68d21993b": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d5d126057d6e19cbe16b9288f86e1df35a40e217": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "36d57c459ddf85b7e63054e35007947fb5c96535": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f191b43325be548f534f27a614d312b77b339d88": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: build(ci): pass the introdb api url into the release build. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c52e203d2e63f76fcf48b8245b470a84a4b232c4": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5a31025e1fb60e439cf89ea63f02756a234cfeaa": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a7c33d3bc8e2be596dd8193cf0a56b969dd48249": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "80de7aa453ecc910f5daef4a5aeae463b5d2aef1": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c7f878b43ca291188c7307543c2af435bb6612e1": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ddfa7358cff75ebdbfc5f1df40dba7cea2c68139": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d248d7b194b14f7ef107bdd93d6c4990ff19aa9e": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "39efb0fbf307d658f4d15fbb8f5af91b825fc8b9": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "26c559a71440f818429c146b7821bec516653d53": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "40f0176b2673e9b20f932a9029122a7a99c74f6d": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: chore(build): drop the fork build workflow and application id from the PR. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "322c6f279353325ed5b55e7a81f016982fd8678e": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3b6cca41c0edcc2f6ce14f4f4d116b9595d78708": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: style(settings): drop an unused import. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d566d9ede4a6ec6d5bd75e3f239aed7e769aac7f": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3e47c1886cd850bc723b2255ce009fab5a4e01c8": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4641e74d124a98c2f028f5c4fdff019f2baa6fd4": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "0443c88a0829535c6d709ddf2927186a910acbcf": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f0dcf5802d1a0bb42d2fd13ed20088d754a007f0": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "30b32325ff12f3c41f64030dc30b411745739604": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ff3f789d9171ca5d51c8d15ceda56bbe43e6cf79": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e0ef7a80b3199e807b99ac462da5b1a5d4d0f826": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c4a58c3cf9b178cba79b50d3f94aed2e31df31d7": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "dafcd1c44796c53af3982185c417f7f56174961f": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1227c2fae1567f49b3a9d5167f0261e23d3d97aa": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7c08b248954d0b3e98b148c1066917b78d4a7375": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "fc53287c7e9b3255ee7db1c4df976d481664cdda": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4e8e0d195b3867de1154e34c1d3b3e62dc7e4794": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7a5a79cc6a4d99cbfbd1855b04a7047b28f91c92": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6ec5cff4a8bdce32245ca3b3f62620298b71c47d": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "bd5409e0c476f420330524b18e25d807e69ae98c": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "020fcf679c5b1c68f4fb76ffcb06a1b783d57de6": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b71beb62b4224edc1917c27b092d98cd3957760f": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a8f8adfdee318ecef39fe2df8b1c3c823942bf1c": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "8af542d9a542fdb7eb47b39cdeef65896f0d95c1": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "a60855dc89f74d4c6a07aa7a3afe0d3756e76e25": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "088ba5fa1916c58c5be1f6456d1f23518e3c7822": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "90a150018ac5445860d10141961607d0fa3306ef": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ff687e7b8ffc45f68229c762c4a45ff9bd55aa8d": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ca3229f91fbfd00cc5edd5e393ba094d3d0cfc50": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "2d2ee57d0b0bd863497f2cd1fc171795025ccaf2": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "54393120fdd437401d71e7b669a74bee4fae6fd6": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f32ed416684238cb922c8b2cb201a30c4dcd304b": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4169be2844a24bd3d4e62d3216d06c29049ea0b9": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "499d835b71ec090584c3fa7399a2189c011f4c50": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4ec0db1e99cb42030913d041b7e00f9708f0e89b": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5dba6ded0b361b3380099c5072ef3da7aa1213c9": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f421e703e95709783e797b0a5b50333c244a4000": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "96c87f5d30c5a195f628e29590a51275fdf6471a": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "512d63f7f8ffcf8089b98fcfc7b86f39b03e6251": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "8cfcd149b7b7052f4e87bbf975ff7bb064d6c012": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4af9009bbc841b7367e92a29f93e747021e722e4": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(player): ask the stop policy with the above-bar flag on the exit path too. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "dce69bebd698414c36d4cb23d03936aef3d00eda": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7435aab17951e4eee9cf54e30297a4f17047b82c": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "fb0c9b979718b8e5ca3732dfa4986e7262813e08": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "15c78fabbedf25e460389135633b43c7193e22f0": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "8788d9d640e150327c7655f4044c6ce17080fb67": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "62f91d296c9c1dadd01007f9a315b3cfd0ac22f3": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "14a84d3b1d60ab4595a2a73a88eec7bbf758502e": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ef1e98c33e5b555620b9293af80e68f9d34b5ab5": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3e5adea8a39fbc0995e12745d12b8137731ccc65": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5667ad6770bbb283441f4c9d12332b7febcd39c5": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(ui): keep the dismissal the user made and resume the run's episode. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "85846ae51d90f6aa85bb735a74140ab9d8968f31": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "17a3ac783f3f365cea1e306298fd99a9c4aad74c": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "da5e3dae90e3f805877c8f5808631d6fc8499e8e": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7b7e342bb3b7bbae10f5ecf0609f4238d4d3ad82": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "683452a2bf337bca8a1a4da49f60bbc270958e51": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c6bea9fd2b9fc19bb0b67289981c5bd47f6b0b84": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6f5682fb8b8e0ce120826ba2d0f9841ff54f9b28": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "bc80e681dc5c59d58fbd05f6c53f590cb832f0c2": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "003a5cbbc1ffc21edfa8b2ee85ac8154cbac423e": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(player): rotate the run id when a new session opens. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cfb552578c741750ad9183f97ee1ae6b174b15fd": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3e5497ad124decb8ba9cc22dccedc5ad0cc34d7b": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4f5e874ed24f766f5aee2ebf3a8463e4bb1bc7c5": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "71a8fea2cea003fac9caf474cb8a26038484b423": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e4216c2a8c85819a2436202253b23cf4fd52ed98": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c1dd546ab9b5026d676da88d72becc00adf1105a": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5405ccb13c282696e6e8475c3be2e6f374a7aba1": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f56a6f7812d69085ebb3d9170d2dcbca10f07a91": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "042383e6b9aa94a19ce6008f74ccecce9fdde089": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ca77d00fcb5f3cf2d86b123581aba7001b5c3421": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "634676aae1f6f4a2f8721cb7cb646bfe86833229": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "bbe7a4be8b5169708765e2a5a78036d293d7e84d": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d6e0a43f6b32799f2b6f2183d3557ec49254b8e9": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d9889dcb9844204d4af714e1d7aaeb20cdacbf21": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "2e4dccbee97b41f3725bba3ac304be1bf514556d": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cb382232aab218d31f17008da36d40d2980c7b05": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d4d07ab8a94f2a7dbd886d69cfbc3e0b15b97586": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "2fd6e46950a8b899de1b6a83c88a7e4a6534597d": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b7714ed382bf35bbacf751d73039ae6311e56e78": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "04ad8eddd4da0274a79ac774c997349940b27215": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5338df490298a576a5fe5096d99d76d6889dd2dd": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ab5cc953b7dace71d47f79bad9ad73fc72a7e464": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "709a323660e73298a7a9627c5aacf4d569745771": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "8e7201e87b817ab72e151280ed3714d12d003e6a": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "052ff861225424c37068610b752fec53ad6e7210": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "06c6b164ea59223afd239b60f643ea912fd45371": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ba5c708cc395325e07ce77d18a4ab43ea5516e83": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "4f8fe3145da463e56622a72f301cf2cf05eeb36c": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "96f4f1d7e6f3567773dd85f26ed0a6513f1bee3f": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1d3275c9ce62ef4cf36069c6896b7d524eb1f0db": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ec5f722b42637bbe4eeb16648c870c5752ef8cab": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6d3008e8707b73bebef3771cefe5219bef41b727": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(stream): pass the real resume percent to prepare. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f5b640bb43523c47e4fed5be92cdaf076aebbf59": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "372a5a7d0e0c1ec3431e40a8071e36b9074565fa": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "78756856d0e6c684e8fbb7935e45f2736bd7089e": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "393f1a1a6057818fcab995e5a1c29f3221d4a1e0": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b221fe2aaf22c14ebd8063659c2728809cfae4fd": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "2577ee27c9845fb67ee48b8af1a9631ec361020a": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "2150c9ee9121c33c9cc6898de27f67fe2b258af1": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5811f6022c7f11be624f9f152f699f477538f5fe": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cdd57d61a4880d52b8cef7cab59e6fff54011854": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "0a617494f6806286e0e68ce0ec46d907b9eddeb4": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1b0346611ffad7c7ab67586de71839c63926f4e5": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "912a713c7d32dbc2141f53861622f5a4800a7444": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "395489d82e6c10d5d2586ae978c8c0a78e99412b": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f0173bc6f644cdaa766bed20686656f9c5dfa63d": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "32e6f914a5c903542e7d909b5b4f5688ae319582": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6af552acdea2acc9a7e07a0bcf75b5bf11b509a9": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6592d4275c5e6800a9fb9e84598dc53ce3417cdf": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "51cbe2c5099bcb68a7872dfc510ebac61bdc4bf0": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "39d18fb7fffaa3fb95d644c66ebdb2e62ed02e2e": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7bcda25738d458e650b8b910810534b82ee537f0": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: feat(settings): describe the watched threshold by playback percentage. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "69ed85035f9d17d060753e2dbd67536b4f530082": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(detail): keep the watched marker in place and put R to its left. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "9590bd17df66665102270de6b07fd856102e8337": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "056960d0cd1eacf555dcb5fa795929c847316312": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "07ae9866ccc71c0d51d5d6511e1598e33b11038c": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ea4c2fd630cf4400d8e7921ecdac4069b7fad051": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "406188e6236f2a931162e4a26e77f1469ade3992": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "0224b8b5892528eb89a30c906d48dee13b3c6fd9": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "61291bdd8b326a709eb711501bb3fbd44cfce745": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "277722c106d739595ae0a2ca6c354ede579dd27f": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "35933fd0ac2fc544fa48e5b7838739baee333a3b": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3c039b5d3dd98789dcad5bb5ad221cc3d1430c50": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c01b9195367548f9d167d24becfef6cb5d320fbf": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cbffc0afb9063cd5852fb59e5dd67e3c6b80acb5": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: fix(player): keep the external playback start across recreation. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cf00645f516c6473c304e4f54f9c74073c1c0bd1": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b7e145d4972588d9dca556c960a795f466da2e64": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "ded69d9b06ed37847d75f7098c9ff1bcea763dcc": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "252709b81c0d194185661e9d5454b2dc4566b118": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f3e2736382f12455bec9e47bfb7d219abe59a51c": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c855022be95e67ec311aa4d7a60ffc0cbaf6bb1a": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "86998a206529c83cd6a1fcde0f4ea2d2d1b887ce": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "176ff6ea7d3f715ce7a4609b79af1a0ed3f04b7d": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "85cdb37d12c240141a84dd956233f75036dbe5ad": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "987cc5d380a7129edeb2a66c161d64dc8f240c4d": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "37837ac5db7d025f2f4d263730d989a06a3395e8": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b4fe3f65a62f9bb3e4f7118da26e600006c071be": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b801b37fc0c27fda822e4f8c074122cac518a143": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c87c2d67ee6d446638d29567c6d6f746e8f0ac0f": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "25d53a85e067057a1ed7272af75d422ad37463cd": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "2ee7ddcb00d93d15cbba18d355ea5ab09a98ef8c": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "6633806cf6be6f0eff28e864cd04cd6e46f4bd59": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f103dded80186db888dd1fc2587eefcc3030c00d": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "5aa513f580e362ca1459bea4bb26ad357a41e9da": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "db9db9d3d83d08faaaa393b9e564d71684292dd4": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "cc7ace612d83c856aea492c9cc5f49766ef01cf5": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b5cabab1c9b9c5d916aeb929c63831864269c94c": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e20f0eae5548473b6fcded1d2dba8809e95ee3e0": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "3e2a5b0ed60bb736b8f08ec5e949f345dd40f107": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "f2117b69e9a1e757de6eb3fa75c0ffa6ca53a9ab": {
+      "outcome": "held",
+      "reason": "Rewatch/session series overlaps ReSeq canonical episode identities, per-tracker completion policy and offline watch receipts. Compare final aggregate and exercise first watches, rewatches and profile changes before enabling.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b130266f0ba2eb926ab3099d79a0ea1e5756101b": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "22a0adc878d668a7a0b0db72b7807ccc16010166": {
+      "outcome": "held",
+      "reason": "Merge resolution retained with source dependencies. Compare recorded remerge diff before applying the parent feature on top of ReSeq.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e8f4a8f0541ad5b329e4e0697a9063da7a870a47": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "db35dca2cc2cf78624a43d6f6449ab4896f8911b": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "be8948cbe7fdd4dd6a0739acbee5221f8215e7a4": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "e2b4247d221eb312850e7b209f35f8d7e37f0366": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "578a8186230ebf3edc175b38d8635632e01bdf0d": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "77cc0bb5f42f55c5e3877fc4d57a7df510c3f42b": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: bump version. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "75e79d4d5a3fcadaa56c718a9c74fefe66b612cd": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 177e4ad92322213b6ca328526a7630926b8db4fe. fix(audiosync): filter HTML/multi-line lyrics and stop infinite provisional spinner. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "4df14575d39546b1619b96c972a7de65950131f4": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "18d52e3608568c7c73401e2767c217925ea43440": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "383bfbd09539415438210b6305bff8793cda84e5": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "16021a0beda5bb3a4e2f04053a392a2f3a59d453": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "7d047b471736ab8158cbac5ad8ef02f628fab224": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c132e02753675af227ccbbb5026462f2e9926e0f": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "76cd525ebd4e7dc4a443e821e022e1e62378d14a": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "b983cdf9026e5f6a4fe61e572c191139c462e900": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "87d255c841afde41b5647409e3c27a23299ff8e6": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "dfc8e2d40ad4ceea0e72567ff9fb330e71ae897c": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "08733d81ca25aa1d11e27103aed41e622cac79eb": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at f2d59aa92ed6ce22d826ac796a39e24f424ddd1b. perf(details): draw the loading skeleton shimmer without recomposing. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "f8555767467cad910f11684bbac68b6ba0345b4b": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "c488daf332602fbffb72ab4dc82374490be52f39": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 9151380f1fcb39d2f9af777e808ebe436c1b72f6. fix(details): keep season tabs and episodes in view together. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "fd8e8d957e95dcf00a02fbee0a04e22b1d89dc48": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "655bccb7803fa0133a3e95842a92945acb1993aa": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "65d80756e19edbe1de3f7e1a90332e20fd292637": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "27cc9a13c6fdf9432b52083b136966d9be19e852": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "8729105c1037ae2eba7eb272d57dd499f705b0ae": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d3bfa9463cdb7be0514fda6537f32fa702a76a17": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "526c690c856762d1a670ead13d1050a9f485fd48": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "2a72d0bb5545ee089fe28f0795af5ff357ad31ae": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "79f56fdf9f217438d23e6a7799654eb6681329ad": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at f02556f9ee812b966cb3c4aefb2638a98f9195ac. fix(detail): shrink rating stars evenly when the dialog is narrow. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "5edbfbcfba24b490ec6d7374b5f3af141cfb701b": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at 40899470a6d79be0aa79abb349a89a3fd2afca1f. fix(sidebar): fade the modern sidebar blur with the collapse animation. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "b48e9d8d3623c6d51e94111bb494e28bc62c8d8d": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d2f18e00617c54fbe866a33481ae1f02a4d92321": {
+      "outcome": "held",
+      "reason": "Retained for individual adaptation and acceptance: feat(detail): show the watched toggle for series in the hero. Diff and impacted paths recorded in the scheduled review inventory.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "05bcd5ead5efcffd8c5ccf31acfbbd1cc924503e": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "45367b7d52903bc228c445d32dcd057cc52d94d3": {
+      "outcome": "held",
+      "reason": "Upstream Usenet series uses a separate engine and settings. ReSeq already supports NNTP, seek, archives and mobile casting; evaluate additive behaviour without duplicating configuration or regressing existing playback.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "d9ca7a1b6e040cb145c2284d21fd9f71f29e09c5": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "1b5826181407ad7aa904091400fc364d94e061ce": {
+      "outcome": "held",
+      "reason": "Locale delta requires key-level comparison to adapted ReSeq terminology and supported source strings. Avoid replacing whole locale resources.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "fcaf1c723a57fe8b88215db638990b75801a7c94": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
+    },
+    "fa685a17ff67dafcd4c590e3850132e64ae23f07": {
+      "outcome": "integrated",
+      "reason": "Ported to isolated TV/mobile source at eee9ffa32de745ea8e0eaef4b046e6f3504fb3b8. [verified] fix(sync): restore show chapters setting. Requires combined validation.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
+      "integration_status": "isolated candidate; publication unverified"
+    },
+    "f656d54521d9bf781fa4906e981ca66563bc4ff6": {
+      "outcome": "irrelevant",
+      "reason": "No independent merge resolution in git remerge-diff. Functional changes reviewed with their source commits.",
+      "run": "20261125T150415Z-e29f9d",
+      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9"
     }
   }
 }

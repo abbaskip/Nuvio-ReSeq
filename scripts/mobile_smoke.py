@@ -143,6 +143,9 @@ def fixture(account=None):
             if channel == "Zone4":
                 ET.SubElement(programme, "category").text = "Movie"
             ET.SubElement(programme, "desc").text = "Local XMLTV fixture"
+        future = ET.SubElement(guide, "programme", channel="One", start=(now+timedelta(hours=2)).strftime(stamp),
+                               stop=(now+timedelta(hours=3)).strftime(stamp))
+        ET.SubElement(future, "title").text = "Moonrise Fixture Film"
         (root / "live.m3u").write_text("\n".join(playlist) + "\n", encoding="utf-8")
         ET.ElementTree(guide).write(root / "guide.xml", encoding="utf-8", xml_declaration=True)
         played = {channel: Event() for channel in guide_channels}
@@ -627,6 +630,24 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 shell("input", "keyevent", "KEYCODE_BACK")
                 locate("Guide time")
                 screenshot("phone-guide", landscape=False)
+                choose("Search")
+                choose("Programmes")
+                enter_first_field("Moonrise")
+                deadline = time.monotonic() + 30
+                while time.monotonic() < deadline:
+                    airing = next((node for node in nodes()
+                                   if node.get("text", "").startswith("Moonrise Fixture Film · QA One")), None)
+                    if airing is not None:
+                        tap(airing)
+                        break
+                    time.sleep(.25)
+                else:
+                    raise AssertionError("Missing future programme on its fixture channel")
+                choose("Remind me")
+                choose("Cancel reminder")
+                shell("input", "keyevent", "KEYCODE_BACK")
+                choose("Channels")
+                choose("Search")
                 rotate(1)
                 group = next(n for n in nodes() if n.get("text", "").startswith("Group:"))
                 tap(group)

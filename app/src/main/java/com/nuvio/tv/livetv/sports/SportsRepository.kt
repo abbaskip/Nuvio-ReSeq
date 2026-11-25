@@ -1432,17 +1432,13 @@ class SportsRepository @Inject constructor(
                         val active = activeLeagues(sp).mapTo(HashSet()) { it.id }
                         val airings = guideData.value.values.asSequence().flatten().filter { it.leagueId in active &&
                             SportsTaxonomy.acceptsEvent(SportsCatalog.league(it.leagueId), it.title, it.subtitle, sp.excludedSportsNodes) }
-                        val next = if (_loading.value) null else SportsGuideFixtures.next(airings, fixtures, channels,
-                            coveredHits, scheduleObservations.value.keys, now, focusedEvent.value)
-                        if (next != null) {
-                            val (airing, p) = next
-                            val sport = SportsCatalog.league(airing.leagueId)?.sport ?: Sport.OTHER
-                            val result = sportsCatching { client.discover(airing, p, sport, session) }.getOrNull()
+                        if (!_loading.value) {
+                            val candidates = SportsGuideFixtures.candidates(airings, fixtures, channels, coveredHits,
+                                scheduleObservations.value.keys, now, focusedEvent.value, follows.value)
+                            val results = sportsCatching { client.discover(candidates, session) }.getOrNull().orEmpty()
                             currentCoroutineContext().ensureActive()
-                            if (result != null && settings.value.discoverGuideFixtures && session == client.session()) {
-                                val key = SportsGuideFixtures.Listing(airing.leagueId, p)
-                                scheduleObservations.update { it + (key to result) }
-                            }
+                            if (results.isNotEmpty() && settings.value.discoverGuideFixtures && session == client.session())
+                                scheduleObservations.update { it + results }
                         }
                         delay(60_000L)
                     }

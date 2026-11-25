@@ -8,18 +8,50 @@ internal object SportsGuideFixtures {
     data class Observation(val proof: SportsFixtureDiscovery.Proof?, val checkedAt: Long)
     const val VALID_MS = 3 * 3_600_000L
 
-    fun next(airings: Sequence<SportsEvent>, fixtures: List<SportsEvent>, channels: Set<String>,
-             matched: Set<Pair<String, EpgProgram?>>, observed: Set<Listing>, now: Long, focused: String?): Pair<SportsEvent, EpgProgram>? {
+    const val BATCH_SIZE = 4
+
+    private data class Candidate(val airing: SportsEvent, val listing: Listing, val priority: Int)
+
+    // Preserve the taxonomy sport for competitions which share the catch-all Sport.OTHER.
+    private fun sportGroup(leagueId: String): String? {
+        if (leagueId == InternationalCricket.LEAGUE_ID) return Sport.CRICKET.name
+        val league = SportsCatalog.league(leagueId) ?: return null
+        if (league.sport != Sport.OTHER) return league.sport.name
+        return SportsTaxonomy.byId[leagueId.removePrefix("taxonomy/")]?.sportId
+            ?: SportsTaxonomy.classify(league.name, null)?.sportId
+    }
+
+    fun candidates(airings: Sequence<SportsEvent>, fixtures: List<SportsEvent>, channels: Set<String>,
+                   matched: Set<Pair<String, EpgProgram?>>, observed: Set<Listing>, now: Long, focused: String?,
+                   follows: SportsFollows): Sequence<Listing> {
         val hour = 3_600_000L
-        return airings.filter { it.source == EventSource.GUIDE }
-            .flatMap { airing -> airing.guideHits.asSequence().filter { it.first in channels && it !in matched }
-                .map { airing to it.second } }
-            .filter { (airing, p) -> p.stopMs > now && p.startMs in (now - 3 * hour)..(now + 24 * hour) &&
-                Listing(airing.leagueId, p) !in observed }
-            .distinctBy { (airing, p) -> Listing(airing.leagueId, p) }
-            .filter { (_, p) -> SportsFixtureDiscovery.eligible(p) }
-            .sortedWith(compareBy({ it.first.id != focused }, { abs(it.second.startMs - now) }))
-            .firstOrNull { (airing, p) -> !covered(airing, fixtures, p.startMs) }
+        val followedGroups = (follows.leagues + follows.pins + follows.teams.map { it.leagueId })
+            .mapNotNull(::sportGroup).toSet()
+        val words = follows.words.map { SportsCatalog.norm(it).trim() }.filter { it.isNotEmpty() }
+        val teamNames = follows.teams.groupBy { sportGroup(it.leagueId) }.mapValues { (_, teams) ->
+            teams.map { SportsCatalog.norm(it.name).trim() }.filter { it.isNotEmpty() }
+        }
+        return airings.filter { it.source == EventSource.GUIDE }.flatMap { airing ->
+            val group = sportGroup(airing.leagueId)
+            val directlyFollowed = isMine(airing, follows)
+            airing.guideHits.asSequence().filter { it.first in channels && it !in matched }.mapNotNull { (_, p) ->
+                val listing = Listing(airing.leagueId, p)
+                if (listing in observed || p.stopMs <= now || p.startMs !in (now - 3 * hour)..(now + 24 * hour) ||
+                    !SportsFixtureDiscovery.eligible(p)) return@mapNotNull null
+                val text = SportsCatalog.norm(p.title + " " + p.description.orEmpty())
+                val priority = when {
+                    directlyFollowed || words.any { SportsCatalog.hasWord(text, it) } ||
+                        (group != null && teamNames[group].orEmpty().any { SportsCatalog.hasWord(text, it) }) -> 0
+                    group in followedGroups -> 1
+                    else -> 2
+                }
+                Candidate(airing, listing, priority)
+            }
+        }.sortedWith(compareBy({ it.priority }, { it.airing.id != focused }, { abs(it.listing.programme.startMs - now) },
+            { it.listing.league }, { it.listing.programme.title }))
+            .distinctBy { it.listing.copy(programme = it.listing.programme.copy(icon = null, people = emptyList())) }
+            .filter { !covered(it.airing, fixtures, it.listing.programme.startMs) }
+            .map { it.listing }
     }
 
     /** With overlapping provider sessions, suppress ambiguous duplicates even if the provider uses different names. */

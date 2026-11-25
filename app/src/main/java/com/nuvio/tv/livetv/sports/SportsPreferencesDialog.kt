@@ -76,7 +76,7 @@ private fun SportsPreferencesDialog(excluded: Set<String>, region: String, onReg
                 calendarOptions?.invoke()
                 SportsPill("Gemini guide matching: " + if (geminiMatching) "On" else "Off", onClick = onToggleGemini)
                 SportsPill("Verify missing guide events: " + if (discoverFixtures) "On" else "Off", onClick = onDiscoverFixtures)
-                LiveText("Uses Gemini Search to check unmatched IPTV listings against published schedules for All Events. Up to 3 checks per hour and 8 per day within the shared allowance.", size = 12.sp, maxLines = 3)
+                LiveText("Checks up to four unmatched IPTV listings per request, prioritising sports you follow. Up to 3 requests per hour and 8 per 24 hours for missing events.", size = 12.sp, maxLines = 3)
                 LiveText("Guide checks and Ask Gemini share 12 requests per hour and 40 per 24 hours on this device. Google project limits and charges may also apply.", size = 12.sp, maxLines = 3)
             }
             if (parent != null && !SportsTaxonomy.enabled(parent.id, excluded))

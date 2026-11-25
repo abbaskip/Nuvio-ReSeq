@@ -22,38 +22,51 @@ internal class GeminiGuideCache(private val dir: File, usageDir: File = dir,
         return entry["decision"]?.jsonPrimitive?.contentOrNull?.let { runCatching { GuideMatchDecision.valueOf(it) }.getOrNull() }
     }
     @Synchronized fun put(profile: Int, key: String, decision: GuideMatchDecision) {
-        save(profile, key, buildJsonObject { put("decision", decision.name) })
+        save(profile, mapOf(key to buildJsonObject { put("decision", decision.name) }), clock())
     }
 
-    @Synchronized fun observation(profile: Int, key: String): SportsGuideFixtures.Observation? {
-        val data = read(file(profile))?.get(key) as? JsonObject ?: return null
-        val at = data["at"]?.jsonPrimitive?.longOrNull ?: return null
-        if (clock() - at !in 0 until SportsGuideFixtures.VALID_MS) return null
-        val url = data["url"]?.jsonPrimitive?.contentOrNull ?: return SportsGuideFixtures.Observation(null, at)
+    @Synchronized fun observations(profile: Int): Map<String, SportsGuideFixtures.Observation> {
+        val now = clock()
+        return read(file(profile)).orEmpty().mapNotNull { (key, value) ->
+            val data = value as? JsonObject ?: return@mapNotNull null
+            if ("decision" in data) return@mapNotNull null
+            readObservation(data, now)?.let { key to it }
+        }.toMap()
+    }
+
+    private fun readObservation(data: JsonObject, now: Long): SportsGuideFixtures.Observation? {
+        fun field(key: String) = data[key] as? JsonPrimitive
+        val at = field("at")?.longOrNull ?: return null
+        if (now - at !in 0 until SportsGuideFixtures.VALID_MS) return null
+        val url = field("url")?.contentOrNull ?: return SportsGuideFixtures.Observation(null, at)
         if (!SportsFixtureDiscovery.isSourceUrl(url)) return null
-        val start = data["start"]?.jsonPrimitive?.longOrNull ?: return null
-        val name = data["competition"]?.jsonPrimitive?.contentOrNull ?: return null
-        val evidence = data["evidence"]?.jsonPrimitive?.contentOrNull ?: return null
+        val start = field("start")?.longOrNull ?: return null
+        val name = field("competition")?.contentOrNull ?: return null
+        val evidence = field("evidence")?.contentOrNull ?: return null
         return SportsGuideFixtures.Observation(SportsFixtureDiscovery.Proof(url, name, start, evidence), at)
     }
 
-    @Synchronized fun remember(profile: Int, key: String, proof: SportsFixtureDiscovery.Proof?) {
-        save(profile, key, buildJsonObject {
-            if (proof != null) {
-                put("url", proof.url); put("competition", proof.competition)
-                put("start", proof.startMs); put("evidence", proof.evidence)
+    @Synchronized fun remember(profile: Int, proofs: Map<String, SportsFixtureDiscovery.Proof?>): Long {
+        val now = clock()
+        val entries = proofs.mapValues { (_, proof) ->
+            buildJsonObject {
+                if (proof != null) {
+                    put("url", proof.url); put("competition", proof.competition)
+                    put("start", proof.startMs); put("evidence", proof.evidence)
+                }
             }
-        })
+        }
+        save(profile, entries, now)
+        return now
     }
 
-    private fun save(profile: Int, key: String, fields: JsonObject) {
+    private fun save(profile: Int, updates: Map<String, JsonObject>, now: Long) {
         dir.mkdirs()
-        val now = clock()
         val entries = read(file(profile)).orEmpty().filterValues {
-            val at = it.jsonObject["at"]?.jsonPrimitive?.longOrNull ?: 0
+            val at = ((it as? JsonObject)?.get("at") as? JsonPrimitive)?.longOrNull ?: return@filterValues false
             now - at in 0 until 3 * 24 * 60 * 60_000L
         }.toMutableMap()
-        entries[key] = JsonObject(fields + ("at" to JsonPrimitive(now)))
+        updates.forEach { (key, fields) -> entries[key] = JsonObject(fields + ("at" to JsonPrimitive(now))) }
         // No raw EPG descriptions, channel identifiers or API keys are retained.
         val bounded = entries.entries.sortedByDescending { it.value.jsonObject["at"]!!.jsonPrimitive.long }.take(500)
         file(profile).writeText(JsonObject(bounded.associate { it.key to it.value }).toString())

@@ -47,16 +47,44 @@ internal object SportsFixtureDiscovery {
             !url.host.endsWith(".local") && !url.host.endsWith(".internal")
     }
 
-    fun verify(p: EpgProgram, sport: Sport, raw: String): Proof? {
-        if (!eligible(p)) return null
-        val candidate = Json.parseToJsonElement(raw).jsonObject["candidates"]?.jsonArray?.singleOrNull()?.jsonObject ?: return null
-        if (candidate["finishReason"]?.jsonPrimitive?.content != "STOP") return null
-        val parts = candidate["content"]?.jsonObject?.get("parts")?.jsonArray ?: return null
-        val part = parts.withIndex().singleOrNull { (_, value) -> value.jsonObject["thought"]?.jsonPrimitive?.booleanOrNull != true &&
-            value.jsonObject["text"] is JsonPrimitive } ?: return null
-        val answer = part.value.jsonObject.getValue("text").jsonPrimitive.content
-        val report = runCatching { Json.parseToJsonElement(answer.trim().removePrefix("```json")
-            .removePrefix("```").removeSuffix("```").trim()) as? JsonObject }.getOrNull() ?: return null
+    /** IDs belong to this request only. Google offsets refer to bytes within each response part. */
+    fun verify(listings: Map<String, SportsGuideFixtures.Listing>, raw: String): Map<String, Proof> {
+        val root = runCatching { Json.parseToJsonElement(raw) as? JsonObject }.getOrNull()
+        val candidate = (root?.get("candidates") as? JsonArray)?.singleOrNull() as? JsonObject ?: return emptyMap()
+        if ((candidate["finishReason"] as? JsonPrimitive)?.content != "STOP") return emptyMap()
+        val parts = (candidate["content"] as? JsonObject)?.get("parts") as? JsonArray ?: return emptyMap()
+        val grounding = candidate["groundingMetadata"] as? JsonObject ?: return emptyMap()
+        val chunks = grounding["groundingChunks"] as? JsonArray ?: return emptyMap()
+        val supports = grounding["groundingSupports"] as? JsonArray ?: return emptyMap()
+        val seen = mutableSetOf<String>()
+        val verified = mutableMapOf<String, Proof>()
+        for ((partIndex, part) in parts.withIndex()) {
+            val obj = part as? JsonObject ?: continue
+            if ((obj["thought"] as? JsonPrimitive)?.booleanOrNull == true) continue
+            val answer = (obj["text"] as? JsonPrimitive)?.contentOrNull ?: continue
+            var offset = 0
+            for (line in answer.split('\n')) {
+                val start = offset
+                val bytes = line.toByteArray(Charsets.UTF_8)
+                offset += bytes.size + 1
+                val report = runCatching { Json.parseToJsonElement(line) as? JsonObject }.getOrNull() ?: continue
+                val id = (report["id"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: continue
+                val listing = listings[id] ?: continue
+                if (!seen.add(id)) {
+                    verified.remove(id)
+                    continue
+                }
+                val sport = SportsCatalog.league(listing.league)?.sport ?: continue
+                if (!eligible(listing.programme)) continue
+                val proof = verifyRow(listing.programme, sport, report, partIndex, start, bytes, chunks, supports)
+                if (proof != null) verified[id] = proof
+            }
+        }
+        return verified
+    }
+
+    private fun verifyRow(p: EpgProgram, sport: Sport, report: JsonObject, partIndex: Int, rowStart: Int,
+                          bytes: ByteArray, chunks: JsonArray, supports: JsonArray): Proof? {
         fun field(key: String) = (report[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
         if (field("fixtureMatch") != "exact" || field("airingType") != "live_at_fixture_time" ||
             field("sport") != sport.name) return null
@@ -70,25 +98,21 @@ internal object SportsFixtureDiscovery {
         val start = runCatching { OffsetDateTime.parse(stamp).toInstant().toEpochMilli() }.getOrNull() ?: return null
         if (abs(start - p.startMs) > 15 * 60_000L || start >= p.stopMs || !matchesListing(p, sport, finding)) return null
 
-        val grounding = candidate["groundingMetadata"]?.jsonObject ?: return null
-        val chunks = grounding["groundingChunks"] as? JsonArray ?: return null
-        val supports = grounding["groundingSupports"] as? JsonArray ?: return null
-        // generateContent reports UTF-8 byte offsets relative to the indicated part, including with non-ASCII team names.
-        val bytes = answer.toByteArray(Charsets.UTF_8)
-        val fact = finding.trimEnd('.', '!', ' ')
+        val fact = JsonPrimitive(finding.trimEnd('.', '!', ' ')).toString().removeSurrounding("\"")
         for (entry in supports) {
             val support = entry as? JsonObject ?: continue
             val segment = support["segment"] as? JsonObject ?: continue
-            if ((segment["partIndex"]?.jsonPrimitive?.intOrNull ?: 0) != part.index) continue
-            val from = segment["startIndex"]?.jsonPrimitive?.intOrNull ?: 0
-            val to = segment["endIndex"]?.jsonPrimitive?.intOrNull ?: continue
-            if (from !in 0 until bytes.size || to !in (from + 1)..bytes.size) continue
-            val cited = String(bytes, from, to - from, Charsets.UTF_8)
-            val encodedFact = JsonPrimitive(fact).toString().removeSurrounding("\"")
-            if (!cited.contains(encodedFact) || segment["text"]?.jsonPrimitive?.contentOrNull?.let { it != cited } == true) continue
+            val part = segment["partIndex"] ?: JsonPrimitive(0)
+            if ((part as? JsonPrimitive)?.intOrNull != partIndex) continue
+            val from = ((segment["startIndex"] ?: JsonPrimitive(0)) as? JsonPrimitive)?.intOrNull ?: continue
+            val to = (segment["endIndex"] as? JsonPrimitive)?.intOrNull ?: continue
+            // A citation that spans two verdicts cannot establish which entry its source supports.
+            if (from < rowStart || to <= from || to > rowStart + bytes.size) continue
+            val cited = String(bytes, from - rowStart, to - from, Charsets.UTF_8)
+            if (!cited.contains(fact) || (segment["text"] as? JsonPrimitive)?.contentOrNull?.let { it != cited } == true) continue
             for (index in (support["groundingChunkIndices"] as? JsonArray).orEmpty()) {
-                val chunk = index.jsonPrimitive.intOrNull?.let(chunks::getOrNull) as? JsonObject ?: continue
-                val url = (chunk["web"] as? JsonObject)?.get("uri")?.jsonPrimitive?.contentOrNull ?: continue
+                val chunk = (index as? JsonPrimitive)?.intOrNull?.let(chunks::getOrNull) as? JsonObject ?: continue
+                val url = ((chunk["web"] as? JsonObject)?.get("uri") as? JsonPrimitive)?.contentOrNull ?: continue
                 if (isSourceUrl(url)) return Proof(url, name, start, finding)
             }
         }

@@ -5845,18 +5845,9 @@
     },
     "a0ec0aeaeaa8605467ad2df61754e9cda9fb706c": {
       "outcome": "integrated",
-      "reason": "Ported to isolated TV/mobile source at 319e9700397694fe5f64631ecd944424ab458800. fix(home): apply saved hero sources before the first catalog load. Requires combined validation.",
-      "run": "20261125T150415Z-e29f9d",
-      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
-      "integration_status": "isolated candidate; publication unverified",
-      "review_history": [
-        {
-          "outcome": "integrated",
-          "reason": "Read persisted hero sources before first catalog-load mutation; preserve empty-selection defaults and cancellation. Three targeted JVM regressions added. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
-          "run": "20261122T150304Z-295620",
-          "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
-        }
-      ]
+      "reason": "Read persisted hero sources before first catalog-load mutation; preserve empty-selection defaults and cancellation. Three targeted JVM regressions added. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
     },
     "09330465cb15b2ac728713ba4798532e3e0dcdb0": {
       "outcome": "equivalent",
@@ -5902,18 +5893,9 @@
     },
     "d2eeb3d0e9475e56e7beca921ad555e8d4ad9c66": {
       "outcome": "integrated",
-      "reason": "Ported to isolated TV/mobile source at f1e030e49d6a7f407703368d182ca687a58f44d2. fix(android): mark wifi as optional. Requires combined validation.",
-      "run": "20261125T150415Z-e29f9d",
-      "base": "26b8384217bfb97ef1149ee3a8a95e08e44b7ca9",
-      "integration_status": "isolated candidate; publication unverified",
-      "review_history": [
-        {
-          "outcome": "integrated",
-          "reason": "Declare Wi-Fi hardware optional, retaining Wi-Fi/network permissions and runtime support while avoiding implied required hardware. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
-          "run": "20261122T150304Z-295620",
-          "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
-        }
-      ]
+      "reason": "Declare Wi-Fi hardware optional, retaining Wi-Fi/network permissions and runtime support while avoiding implied required hardware. Prepared in isolated RC3.1 descendant; exact validation required before publication.",
+      "run": "20261122T150304Z-295620",
+      "base": "ba3a28278328c6eef937a78dd3b326c5b54dc39c"
     },
     "8b6ac91b16aa52ea4f0e6f34f4f82d4e028b3060": {
       "outcome": "integrated",

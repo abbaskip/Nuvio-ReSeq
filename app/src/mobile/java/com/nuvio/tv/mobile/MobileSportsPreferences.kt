@@ -49,6 +49,11 @@ internal fun MobileSportsPreferences(vm: SportsViewModel, close: () -> Unit) {
                 TogglePreference("Use Gemini guide matching", s.backgroundGeminiMatching) { v ->
                     if (!v || configured) vm.repo.updateSettings { it.copy(backgroundGeminiMatching = v) } else note = "Save a Gemini key first."
                 }
+                TogglePreference("Verify missing guide events", s.discoverGuideFixtures) { enabled ->
+                    if (!enabled || configured) vm.repo.updateSettings { it.copy(discoverGuideFixtures = enabled) }
+                    else note = "Save a Gemini key first."
+                }
+                Label("Checks up to four unmatched guide listings per request, prioritising followed sports. Missing events use up to 3 requests per hour and 8 per day.")
                 SectionTitle("Sports and competitions")
             }
             items(parent?.children ?: SportsTaxonomy.browseRoots, key = { it.id }) { node ->

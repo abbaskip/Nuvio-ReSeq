@@ -269,6 +269,25 @@ class LiveTvViewModel @Inject constructor(
         session.currentGroupId.value = ChannelGroup.SEARCH
     }
 
+    internal suspend fun searchGuideProgrammes(
+        query: String,
+        channels: List<LiveChannel>,
+        limit: Int
+    ): List<Pair<LiveChannel, EpgProgram>> {
+        val channelsByKey = channels.associateBy { it.key }
+        val guideSettings = settings.value
+        val offset = guideSettings.epgOffsetMinutes * 60_000L
+        val from = System.currentTimeMillis() - offset
+        val to = from + guideSettings.epgFutureDays.coerceAtLeast(1) * 86_400_000L
+        return repository.searchProgrammeTitles(query, channelsByKey.keys, from, to, limit)
+            .map { (key, program) ->
+                channelsByKey.getValue(key) to program.copy(
+                    startMs = program.startMs + offset,
+                    stopMs = program.stopMs + offset
+                )
+            }
+    }
+
     fun preview(channel: LiveChannel) = playerHooks.preview(playback, channel, uiState.value.selectedGroupId)
 
     /** Adult channels never show in Recently watched (by their name or their group's name). */

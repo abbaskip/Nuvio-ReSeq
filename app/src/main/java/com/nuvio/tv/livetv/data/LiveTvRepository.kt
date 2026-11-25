@@ -1313,6 +1313,30 @@ class LiveTvRepository @Inject constructor(
         if (!guideInDb) null else runCatching { guideDb.program(channelKey, startMs) }.getOrNull()
     }
 
+    internal suspend fun searchProgrammeTitles(
+        query: String,
+        channelKeys: Set<String>,
+        fromMs: Long,
+        toMs: Long,
+        limit: Int
+    ): List<Pair<String, EpgProgram>> = withContext(BackgroundWork.reads) {
+        if (query.isBlank() || channelKeys.isEmpty()) return@withContext emptyList()
+        if (guideInDb) return@withContext guideDb.searchTitles(query, channelKeys, fromMs, toMs, limit)
+
+        val cachedPrograms = _programs.value
+        val coroutine = kotlinx.coroutines.currentCoroutineContext()
+        channelKeys.asSequence().flatMap { key ->
+            coroutine.ensureActive()
+            cachedPrograms[key].orEmpty().asSequence().filter {
+                it.stopMs > fromMs && it.startMs < toMs &&
+                    it.title.contains(query, ignoreCase = true) && !isPlaceholderTitle(it.title)
+            }.map { key to it }
+        }.distinctBy { (key, program) -> key to program.startMs }
+            .sortedBy { (_, program) -> program.startMs }
+            .take(limit)
+            .toList()
+    }
+
     /**
      * Makes sure listings for [fromMs]..[toMs] are loaded (scrolling the guide ahead or back,
      * catch-up). Reads only what's missing; does nothing when the database isn't in use.

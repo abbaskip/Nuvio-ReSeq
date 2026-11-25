@@ -10,6 +10,8 @@ import com.nuvio.tv.livetv.model.EpgProgram
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 /**
  * The TV guide on the device, TiviMate style: every listing is stored here after a guide
@@ -606,6 +608,36 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
         visit:(String,EpgProgram)->Unit) {
         val rows=findByWords(fromMs,toMs,minStopMs,words)
         (if(chronological) rows.sortedBy { it.second.startMs } else rows).forEach { (ch,p) -> visit(ch,p) }
+    }
+
+    /** Searches the stored schedule without loading entire channel schedules into memory. */
+    internal suspend fun searchTitles(
+        query: String,
+        channelKeys: Set<String>,
+        fromMs: Long,
+        toMs: Long,
+        limit: Int
+    ): List<Pair<String, EpgProgram>> {
+        val coroutine = currentCoroutineContext()
+        val results = ArrayList<Pair<String, EpgProgram>>()
+        val seen = HashSet<Pair<String, Long>>()
+        readableDatabase.rawQuery(
+            "SELECT ch, start, stop, title FROM $GUIDE_LISTINGS WHERE start < ? AND stop > ? ORDER BY start",
+            arrayOf(toMs.toString(), fromMs.toString())
+        ).use { cursor ->
+            while (results.size < limit && cursor.moveToNext()) {
+                coroutine.ensureActive()
+                val channel = cursor.getString(0)
+                if (channel !in channelKeys) continue
+                val title = cursor.getString(3)
+                if (!title.contains(query, ignoreCase = true) || LiveTvRepository.isPlaceholderTitle(title)) continue
+                val start = cursor.getLong(1)
+                if (seen.add(channel to start)) {
+                    results += channel to EpgProgram(startMs = start, stopMs = cursor.getLong(2), title = title)
+                }
+            }
+        }
+        return results
     }
 
     /** One show's full details (description, cast…), for the show you're looking at. */

@@ -371,6 +371,8 @@ fun LiveTvGuideScreen(
     var manualRecordingFor by remember { mutableStateOf<LiveChannel?>(null) }
     var infoTarget by remember { mutableStateOf<MenuTarget?>(null) }
     var searchOpen by remember { mutableStateOf(false) }
+    var programmeSearchQuery by remember { mutableStateOf<String?>(null) }
+    var guideSearchInput by remember { mutableStateOf<String?>(null) }
     var textPrompt by remember { mutableStateOf<TextPrompt?>(null) }
     var groupPickerFor by remember { mutableStateOf<LiveChannel?>(null) }
     var groupMenu by remember { mutableStateOf<ChannelGroup?>(null) }
@@ -1166,8 +1168,7 @@ fun LiveTvGuideScreen(
                             pinGroup = g
                             pinWrong = false
                         } else if (g.id == ChannelGroup.SEARCH) {
-                            LiveTvSearchBridge.origin.value = LiveTvSearchBridge.GUIDE
-                            run { searchOpen = true }
+                            searchOpen = true
                         } else {
                             if (g.id != ui.selectedGroupId) {
                                 viewModel.selectGroup(g.id)
@@ -1446,7 +1447,7 @@ fun LiveTvGuideScreen(
                                         focusedChannel?.let { menuTarget = MenuTarget(it, focusedBlock) }
                                         true
                                     }
-                                            event.key == Key.Search -> { LiveTvSearchBridge.origin.value = LiveTvSearchBridge.GUIDE; run { searchOpen = true }; true }
+                                            event.key == Key.Search -> { searchOpen = true; true }
                                     code in android.view.KeyEvent.KEYCODE_0..android.view.KeyEvent.KEYCODE_9 -> {
                                         if (numberBuffer.length < 5) numberBuffer += (code - android.view.KeyEvent.KEYCODE_0).toString()
                                         true
@@ -1819,7 +1820,7 @@ fun LiveTvGuideScreen(
                 onProgramInfo = { menuTarget = null; infoTarget = target },
                 streamProgram = target.block?.program ?: viewModel.currentProgram(target.channel.key),
                 onFindInNuvio = { p -> menuTarget = null; onFindInNuvio(GuideLookup.from(p, target.channel)) },
-                onSearch = { menuTarget = null; LiveTvSearchBridge.origin.value = LiveTvSearchBridge.GUIDE; run { searchOpen = true } },
+                onSearch = { menuTarget = null; searchOpen = true },
                 onRefresh = { menuTarget = null; viewModel.refresh() },
                 onGuideDisplay = { menuTarget = null; guideGearOpen = true },
                 onSettings = { menuTarget = null; onOpenSettings() }
@@ -1854,11 +1855,14 @@ fun LiveTvGuideScreen(
                 use24h = settings.use24HourClock,
                 showEpisode = settings.showEpisodeNumbers,
                 onDismiss = { infoTarget = null },
-                onFind = { p -> infoTarget = null; onFindInNuvio(GuideLookup.from(p, target.channel)) },
-                onWatch = { infoTarget = null; playChannel(target.channel) },
+                onFind = { p -> infoTarget = null; programmeSearchQuery = null; onFindInNuvio(GuideLookup.from(p, target.channel)) },
+                onWatch = { infoTarget = null; programmeSearchQuery = null; playChannel(target.channel) },
                 onCatchup = { p ->
                     infoTarget = null
-                    if (viewModel.playCatchup(target.channel, p)) goFullscreen()
+                    if (viewModel.playCatchup(target.channel, p)) {
+                        programmeSearchQuery = null
+                        goFullscreen()
+                    }
                 },
                 reminderSet = target.block?.program?.let { p -> user.reminders.any { it.channelKey == target.channel.key && it.startMs == p.startMs } } == true,
                 onRemind = { p -> viewModel.toggleReminder(target.channel, p); infoTarget = null },
@@ -1867,6 +1871,7 @@ fun LiveTvGuideScreen(
                 canRestart = viewModel.canWatchFromStart(target.channel),
                 onRestart = {
                     infoTarget = null
+                    programmeSearchQuery = null
                     if (viewModel.watchFromStart(target.channel)) goFullscreen()
                 }
             )
@@ -2038,15 +2043,40 @@ fun LiveTvGuideScreen(
             LiveTvOrderDialog(request) { orderRequest = null }
         }
         if (searchOpen) {
-            SearchDialog(
-                initial = ui.searchQuery,
+            GuideSearchDialog(
+                initial = guideSearchInput ?: ui.searchQuery,
                 onDismiss = { searchOpen = false },
-                onSearch = { q ->
+                onChannels = { q ->
+                    LiveTvSearchBridge.origin.value = LiveTvSearchBridge.GUIDE
+                    guideSearchInput = q
                     searchOpen = false
                     viewModel.setSearchQuery(q)
                     row = 0
                     resetToNow()
                     scope.launch { delay(80); runCatching { gridFocus.requestFocus() } }
+                },
+                onProgrammes = { q ->
+                    guideSearchInput = q
+                    searchOpen = false
+                    programmeSearchQuery = q
+                }
+            )
+        }
+        programmeSearchQuery?.let { query ->
+            GuideProgrammeResults(
+                query = query,
+                visible = infoTarget == null,
+                channels = ui.allVisibleChannels,
+                playlistNames = playlistNames,
+                guideGeneration = guideGeneration,
+                settings = settings,
+                guideLoading = status.loading,
+                now = now,
+                viewModel = viewModel,
+                onDismiss = { programmeSearchQuery = null },
+                onEdit = { programmeSearchQuery = null; searchOpen = true },
+                onPick = { channel, program ->
+                    infoTarget = MenuTarget(channel, GuideBlock(program.startMs, program.stopMs, program))
                 }
             )
         }

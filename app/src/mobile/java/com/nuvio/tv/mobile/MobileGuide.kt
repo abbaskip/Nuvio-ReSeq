@@ -54,6 +54,8 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
     var selected by remember { mutableStateOf<Pair<LiveChannel, EpgProgram>?>(null) }
     var locked by remember { mutableStateOf<ChannelGroup?>(null) }
     var searching by rememberSaveable { mutableStateOf(false) }
+    var programmeMode by rememberSaveable { mutableStateOf(false) }
+    var programmeQuery by rememberSaveable { mutableStateOf("") }
     var editing by remember { mutableStateOf<LiveChannel?>(null) }
     var groupOptions by remember { mutableStateOf(false) }
     var pickingGroup by rememberSaveable { mutableStateOf(false) }
@@ -100,7 +102,50 @@ internal fun MobileGuide(vm: LiveTvViewModel, onTune: (LiveChannel) -> Unit, onR
                 Modifier.padding(12.dp))
             return@Column
         }
-        if (searching) MobileTextInput("Channel or programme", ui.searchQuery, vm::setSearchQuery)
+        if (searching) {
+            Row {
+                Action("Channels", selected = !programmeMode) { programmeMode = false }
+                Action("Programmes", selected = programmeMode) { programmeMode = true }
+            }
+            if (programmeMode) {
+                MobileTextInput("Show or movie title", programmeQuery) { programmeQuery = it }
+                val generation by vm.guideGeneration.collectAsStateWithLifecycle()
+                val query = programmeQuery.trim()
+                val visible = ui.allVisibleChannels
+                var hits by remember(query, visible, generation, settings.epgOffsetMinutes, settings.epgFutureDays) {
+                    mutableStateOf<List<Pair<LiveChannel, EpgProgram>>?>(null)
+                }
+                var failed by remember(query, visible, generation) { mutableStateOf(false) }
+                LaunchedEffect(query, visible, generation, settings.epgOffsetMinutes, settings.epgFutureDays) {
+                    failed = false
+                    if (query.isEmpty()) return@LaunchedEffect
+                    kotlinx.coroutines.delay(250)
+                    try {
+                        hits = vm.searchGuideProgrammes(query, visible, 101)
+                    } catch (_: android.database.sqlite.SQLiteException) {
+                        failed = true
+                    }
+                }
+                when {
+                    query.isEmpty() -> Unit
+                    failed -> Label("Couldn’t read the TV guide.")
+                    hits == null -> Label("Searching the TV guide…")
+                    hits!!.isEmpty() -> Label("No current or upcoming airings found.")
+                    else -> LazyColumn {
+                        if (hits!!.size > 100) item { Label("Showing the first 100 airings. Refine your search for fewer results.") }
+                        items(hits!!.take(100)) { (channel, programme) ->
+                            val date = java.text.DateFormat.getDateInstance().format(java.util.Date(programme.startMs))
+                            Action(programme.title + " · " + channel.name + " · " + date + " " +
+                                formatClock(programme.startMs, settings.use24HourClock), Modifier.fillMaxWidth()) {
+                                selected = channel to programme
+                            }
+                        }
+                    }
+                }
+                return@Column
+            }
+            MobileTextInput("Channel or programme", ui.searchQuery, vm::setSearchQuery)
+        }
         if (ui.channels.isEmpty()) Label("No channels in this group.", Modifier.padding(8.dp))
         else ChannelTimeline(ui.channels, programs, now, start, 12, settings.use24HourClock, list, scroll,
             onTune = onTune, onProgram = { channel, program -> selected = channel to program }, onChannelHold = { editing = it },

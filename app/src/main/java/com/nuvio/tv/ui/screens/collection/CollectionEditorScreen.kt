@@ -213,7 +213,7 @@ fun CollectionEditorScreen(
 
     val foldersMovingIndex = uiState.folders.indexOfFirst { it.id == uiState.movingFolderKey }
     val singleFolderEditRequester = uiState.folders.singleOrNull()?.id?.let { singleId ->
-        folderFocusRequesters.getOrPut(singleId) { FocusRequester() }
+        remember(singleId, folderFocusRequesters) { folderFocusRequesters.getOrPut(singleId) { FocusRequester() } }
     }
     Box(modifier = Modifier.fillMaxSize()) {
     TvReorderList(

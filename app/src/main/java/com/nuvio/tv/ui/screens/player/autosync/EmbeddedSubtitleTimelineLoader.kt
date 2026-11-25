@@ -41,7 +41,7 @@ import kotlin.math.max
  * This is deliberately best-effort. If range requests, Tracks, or subtitle Cues are unavailable,
  * AutoSync falls back to the existing live Media3 observation path.
  */
-@OptIn(UnstableApi::class)
+@androidx.annotation.OptIn(UnstableApi::class)
 internal object EmbeddedSubtitleTimelineLoader {
     private const val TOTAL_TIMEOUT_MS = 7_000L
     private const val INITIAL_PROBE_BYTES = 512 * 1024

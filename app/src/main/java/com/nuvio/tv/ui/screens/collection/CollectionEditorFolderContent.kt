@@ -301,14 +301,12 @@ fun FolderEditorContent(
             }
         }
         val hasGenreOptions = addonSource != null && catalog?.genreOptions?.isNotEmpty() == true
-        when {
-            item.source is TmdbCollectionSource || item.source is TraktCollectionSource ->
-                sourceEditFocusRequesters.getOrPut(item.key) { FocusRequester() }
-            hasGenreOptions ->
-                sourceGenreFocusRequesters.getOrPut(item.key) { FocusRequester() }
-            else ->
-                sourceRemoveFocusRequesters.getOrPut(item.key) { FocusRequester() }
+        val requesters = when {
+            item.source is TmdbCollectionSource || item.source is TraktCollectionSource -> sourceEditFocusRequesters
+            hasGenreOptions -> sourceGenreFocusRequesters
+            else -> sourceRemoveFocusRequesters
         }
+        remember(item.key, requesters) { requesters.getOrPut(item.key) { FocusRequester() } }
     }
 
     val sourcesMovingIndex = sourceItems.indexOfFirst { it.key == uiState.movingSourceKey }

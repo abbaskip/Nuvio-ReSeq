@@ -174,6 +174,12 @@ private fun FixtureSheet(event: SportsEvent, channels: List<ChannelMatch>, onWat
             }
             if (channels.isEmpty()) Label("No matching channels", Modifier.padding(8.dp))
             Action("Match channels") { tool = "channels" }
+            event.scheduleUrl?.let { url ->
+                val uri = androidx.compose.ui.platform.LocalUriHandler.current
+                Action("Official schedule") {
+                    runCatching { uri.openUri(url) }.onFailure { message = "Unable to open the schedule." }
+                }
+            }
             Action("Gemini coverage lookup") { tool = "lookup" }
             channels.forEach { match ->
                 FixtureChannelRow(match.channel.sportsChannelLabel, canRecord = event.state != GameState.POST,

@@ -1,8 +1,14 @@
 {
   "schema": 1,
-  "hold": true,
-  "reason": "Maintainer 23 November: RC3.1 was too recent; no separate publication of this upstream batch. Continue development/validation and combine with more work later in the week.",
-  "clear_when": "The combined release with additional work is ready and coordinated under the maintainer plan, or the maintainer explicitly changes this instruction. A scheduled date alone does not clear the hold.",
-  "scope": "2026-11-23 upstream candidate",
-  "evidence": "Maintainer instruction in the upstream-sync chat, 23 November 2026"
+  "hold": false,
+  "scope": "Combined TV RC4.1.2 candidate only",
+  "reason": "Maintainer explicitly authorised this scheduled combined TV revision with the saved programme search and complete Gemini series. Publication remains subject to exact-candidate validation, mobile acceptance, cross-chat coordination and existing release gates.",
+  "supersedes": {
+    "schema": 1,
+    "hold": true,
+    "reason": "Maintainer 23 November: RC3.1 was too recent; no separate publication of this upstream batch. Continue development/validation and combine with more work later in the week.",
+    "clear_when": "The combined release with additional work is ready and coordinated under the maintainer plan, or the maintainer explicitly changes this instruction. A scheduled date alone does not clear the hold.",
+    "scope": "2026-11-23 upstream candidate",
+    "evidence": "Maintainer instruction in the upstream-sync chat, 23 November 2026"
+  }
 }

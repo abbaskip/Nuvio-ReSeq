@@ -82,7 +82,7 @@ private fun SimklSyncSnapshot.withHistoryMutations(
                         title = episode.title
                     )
                 },
-                watchedAt = request.watchedAtEpochMs?.epochMsToUtcIso()
+                watchedAt = request.watchedAtEpochMs?.watchHistoryUtcIso()
             ),
             committedAtEpochMs = committedAtEpochMs,
             entryIndex = if (idx == 0) entryIndex else null

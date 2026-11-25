@@ -2896,4 +2896,13 @@
     <string name="autosync_status_no_fit">Nemusí se shodovat</string>
     <string name="autosync_status_no_reference">Žádné vložené titulky</string>
     <string name="autosync_status_failed">Nepodařilo se</string>
+    <string name="iptv_immediate_tier">Zahrnout IPTV VOD mezi okamžité zdroje</string>
+    <string name="iptv_fallback_tier">Zahrnout IPTV VOD mezi záložní zdroje</string>
+    <string name="when_watched">Kdy jste se dívali?</string>
+    <string name="watched_now">Označit jako zhlédnuté nyní</string>
+    <string name="choose_watch_date">Vybrat datum</string>
+    <string name="choose_watch_date_time">Vybrat datum a čas</string>
+    <string name="choose_watch_time">Vybrat čas</string>
+    <string name="choose_past_watch_time">Vyberte platný čas v minulosti.</string>
+    <string name="episodes_last_watch_mdblist_pending">Záznam o zhlédnutí byl z tohoto zařízení odstraněn. Čeká se na potvrzení od MDBList.</string>
 </resources>

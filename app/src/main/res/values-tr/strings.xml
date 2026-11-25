@@ -3508,4 +3508,13 @@
     <string name="autosync_status_no_fit">Eşleşmeyebilir</string>
     <string name="autosync_status_no_reference">Gömülü altyazı yok</string>
     <string name="autosync_status_failed">Başarısız</string>
+    <string name="iptv_immediate_tier">IPTV VOD’u anında oynatma kaynaklarına dahil et</string>
+    <string name="iptv_fallback_tier">IPTV VOD’u yedek kaynaklara dahil et</string>
+    <string name="when_watched">Ne zaman izlediniz?</string>
+    <string name="watched_now">Şimdi izlendi olarak işaretle</string>
+    <string name="choose_watch_date">Tarih seç</string>
+    <string name="choose_watch_date_time">Tarih ve saat seç</string>
+    <string name="choose_watch_time">Saat seç</string>
+    <string name="choose_past_watch_time">Geçmişte geçerli bir zaman seçin.</string>
+    <string name="episodes_last_watch_mdblist_pending">İzleme kaydı bu cihazdan kaldırıldı. MDBList onayı bekleniyor.</string>
 </resources>

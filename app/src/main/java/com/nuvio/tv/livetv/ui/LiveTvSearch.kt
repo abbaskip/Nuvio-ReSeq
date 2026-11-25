@@ -344,15 +344,6 @@ object LiveTvSearchBridge {
     const val GUIDE = "guide"
     const val ON_DEMAND = "ondemand"
 
-    /** The title waiting to be searched, or null. The search screen collects this. */
-    val pending = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
-
-    fun request(programTitle: String) {
-        pending.value = cleanTitle(programTitle).ifBlank { programTitle.trim() }
-    }
-
-    fun consume(): String? = pending.value.also { pending.value = null }
-
     private val leadingTags = Regex("""^\s*(new|live|premiere|repeat|re-?run|encore|movie|film)\s*[:!\-–]\s*""", RegexOption.IGNORE_CASE)
     private val bracketed = Regex("""\s*[\[(][^\])]*[\])]\s*""")
     private val episodeCode = Regex("""\b[Ss]\d{1,2}\s*[Ee]\d{1,3}\b""")

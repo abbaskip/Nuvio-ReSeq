@@ -60,6 +60,11 @@ class UpdateViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            updatePreferences.downloadedUpdate.collect { download ->
+                if (download == null) _uiState.update { it.copy(downloadedApkPath = null) }
+            }
+        }
+        viewModelScope.launch {
             val enabled = updatePreferences.updateBannerEnabled.first()
             val autoInstallEnabled = updatePreferences.autoInstallEnabled.first()
             val autoInstallNoticeEnabled = updatePreferences.autoInstallNoticeEnabled.first()
@@ -128,8 +133,7 @@ class UpdateViewModel @Inject constructor(
                             isUpdateAvailable = remoteNewer,
                             isDownloading = false,
                             downloadProgress = null,
-                            downloadedApkPath = downloadedFile?.absolutePath
-                                ?: state.downloadedApkPath.takeIf { remoteNewer && state.update?.tag == update.tag },
+                            downloadedApkPath = downloadedFile?.absolutePath,
                             showBanner = shouldShow || installedUpdate != null,
                             installedUpdate = installedUpdate,
                             showUnknownSourcesDialog = false,
@@ -275,6 +279,7 @@ class UpdateViewModel @Inject constructor(
         if (!apkFile.exists()) {
             _uiState.update {
                 it.copy(
+                    downloadedApkPath = null,
                     errorMessage = context.getString(R.string.update_error_apk_missing),
                     showBanner = true
                 )
@@ -287,13 +292,18 @@ class UpdateViewModel @Inject constructor(
             return
         }
 
-        _uiState.update { it.copy(showUnknownSourcesDialog = false) }
+        _uiState.update { it.copy(showUnknownSourcesDialog = false, errorMessage = null) }
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { ApkInstaller.install(context, apkFile, background = false) }
-                .onFailure {
-                    Log.w(TAG, "Session install failed, falling back to the system installer", it)
-                    runCatching { ApkInstaller.launchSystemInstaller(context, apkFile) }
-                        .onFailure { error -> Log.w(TAG, "System installer failed", error) }
+            runCatching { ApkInstaller.launchSystemInstaller(context, apkFile) }
+                .recoverCatching { error ->
+                    Log.w(TAG, "Could not open the system installer, trying an APK-only session", error)
+                    ApkInstaller.install(context, apkFile, background = false, withDexMetadata = false)
+                }
+                .onFailure { error ->
+                    Log.w(TAG, "Could not start the install session", error)
+                    _uiState.update {
+                        it.copy(errorMessage = error.localizedMessage ?: context.getString(R.string.error_generic), showBanner = true)
+                    }
                 }
         }
     }

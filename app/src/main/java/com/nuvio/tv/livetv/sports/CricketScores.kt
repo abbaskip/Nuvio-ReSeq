@@ -13,7 +13,7 @@ internal fun cricketScoreText(value: String?): CricketScoreText {
 
 internal fun cricketInningsScores(side: Side): List<CricketScoreText> {
     // Older cached feeds stored ESPN's numeric innings ordinal here, rather than the runs.
-    val innings = side.periods.filter { Regex("\\d+\\s*/\\s*\\d+").containsMatchIn(it) }
+    val innings = side.periods.filter { Regex("\\d+\\s*/\\s*\\d+").containsMatchIn(it) || cricketScoreText(it).overs != null }
         .ifEmpty { side.score?.takeIf { it.isNotBlank() }?.split(Regex("\\s*&\\s*")).orEmpty() }
     return innings.map(::cricketScoreText).filter { it.runs.isNotBlank() }
 }

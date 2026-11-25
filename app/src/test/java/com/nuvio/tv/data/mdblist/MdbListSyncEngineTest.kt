@@ -137,6 +137,23 @@ class MdbListSyncEngineTest {
         assertEquals(listOf("tt1", "tt99"), normalized.watched.map { it.media.ids.imdb })
     }
 
+    @Test fun mobileBackfillsOldHistoryOnceAndHydratesNewUnidentifiedEpisodes() = runTest {
+        val remote = Remote()
+        val engine = MdbListSyncEngine(remote)
+        val upgraded = engine.synchronize(snapshot(), requestEpisodeIdentities = true)
+        assertEquals(listOf("activities", "watched"), remote.calls)
+        remote.calls.clear()
+        engine.synchronize(upgraded, requestEpisodeIdentities = true)
+        assertEquals(listOf("activities"), remote.calls)
+        remote.calls.clear()
+        remote.activities = remote.activities.copy(values = mapOf("journal_at" to TIME))
+        remote.journal = MdbListPage(listOf(change(1).copy(type = MdbListItemType.EPISODE, season = 6, episode = 18)))
+        remote.watched = listOf(mdbListTestEpisode(6, 18).copy(episodeTvdbId = 1692591))
+        val refreshed = engine.synchronize(upgraded, requestEpisodeIdentities = true)
+        assertEquals(listOf("activities", "journal:$TIME", "watched"), remote.calls)
+        assertEquals(1692591L, refreshed.watched.single().episodeTvdbId)
+    }
+
     private class Remote : MdbListSyncRemote {
         val calls = mutableListOf<String>()
         var activities = MdbListActivities(mapOf("watched_at" to null, "journal_at" to null), TIME)

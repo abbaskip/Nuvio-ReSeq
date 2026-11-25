@@ -3491,4 +3491,5 @@
     <string name="autosync_status_no_fit">Puede que no coincida</string>
     <string name="autosync_status_no_reference">Sin subtítulos incrustados</string>
     <string name="autosync_status_failed">Fallido</string>
+    <string name="episodes_last_watch_mdblist_pending">Se eliminó la reproducción en este dispositivo. Esperando la confirmación de MDBList.</string>
 </resources>

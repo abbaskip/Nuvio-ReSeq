@@ -91,6 +91,34 @@ class LiveTvGroupPreferencesTest {
         assertEquals(listOf("b", "a", "hidden"), withTimeout(5000) { prefs.userState.first() }.groupOrder)
     }
 
+    @Test fun `Drive restores IPTV credentials and guide across independent TV and mobile stores in both directions`() = runBlocking {
+        fun device(): LiveTvPreferences {
+            val manager = mockk<ProfileManager>()
+            every { manager.activeProfileId } returns MutableStateFlow(1)
+            return LiveTvPreferences(context(), manager)
+        }
+        suspend fun transfer(from: LiveTvPreferences, to: LiveTvPreferences) {
+            val wire = JSONObject().put("format", 1).put("data", from.exportForSync()).toString()
+            to.importFromSync(driveBackupData(JSONObject(wire)))
+        }
+        val tv = device()
+        val mobile = device()
+        val playlist = PlaylistSource("fixture", "IPTV", "https://iptv.invalid/list", xtreamServer = "https://iptv.invalid",
+            xtreamUsername = "fixture-user", xtreamPassword = "fixture-password", importVod = true,
+            vodSeriesCategories = setOf("Drama"), userAgent = "fixture-agent")
+        val guide = com.nuvio.tv.livetv.model.EpgSource("guide", "Guide", "https://guide.invalid/guide.xml?token=fixture")
+        tv.updatePlaylists { listOf(playlist) }
+        tv.updateEpgSources { listOf(guide) }
+        transfer(tv, mobile)
+        assertEquals(listOf(playlist), mobile.currentPlaylists())
+        assertEquals(listOf(guide), mobile.currentEpgSources())
+        val changed = playlist.copy(xtreamPassword = "rotated-fixture-password")
+        mobile.updatePlaylists { listOf(changed) }
+        transfer(mobile, tv)
+        assertEquals(listOf(changed), tv.currentPlaylists())
+        assertEquals(listOf(guide), tv.currentEpgSources())
+    }
+
     @Test fun `unfavouriting a legacy single-playlist group removes the old alias`() = runBlocking {
         val context = context()
         val profiles = mockk<ProfileManager>()

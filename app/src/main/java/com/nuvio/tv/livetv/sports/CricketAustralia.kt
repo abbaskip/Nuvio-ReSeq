@@ -26,7 +26,59 @@ internal class CricketAustralia {
         }
     }
 
+    suspend fun scorecard(id: Int): String {
+        require(id > 0)
+        val url = "https://apiv2.cricket.com.au/web/views/scorecard".toHttpUrl().newBuilder()
+            .addQueryParameter("fixtureId", id.toString()).addQueryParameter("jsconfig", "eccn:true")
+            .addQueryParameter("format", "json").build()
+        return http.newCall(Request.Builder().url(url).build()).consumeSportsResponse { response ->
+            if (!response.isSuccessful) throw IOException("Cricket Australia HTTP ${response.code}")
+            response.body?.string() ?: throw IOException("Empty scorecard")
+        }
+    }
+
+    suspend fun seriesPage(id: Int): String {
+        require(id > 0)
+        val request = Request.Builder().url("https://www.cricket.com.au/matches/series/CA%3A$id").build()
+        return http.newCall(request).consumeSportsResponse { response ->
+            if (!response.isSuccessful) throw IOException("Cricket Australia HTTP ${response.code}")
+            response.body?.string() ?: throw IOException("Empty series page")
+        }
+    }
+
     companion object {
+        val domesticTables = setOf("ca/shield", "ca/one-day")
+
+        fun parseTable(leagueId: String, html: String, now: Long): Standings? {
+            val doc = org.jsoup.Jsoup.parse(html)
+            val title = doc.selectFirst("h1")?.text()?.trim().orEmpty().ifBlank { SportsCatalog.league(leagueId)?.name.orEmpty() }
+            val groups = mutableListOf<StandingsGroup>()
+            val offered = linkedMapOf<String, StandingsColumn>()
+            val fields = mapOf("played" to StandingsColumn("gamesPlayed", "M"), "won" to StandingsColumn("wins", "W"),
+                "lost" to StandingsColumn("losses", "L"), "drawn" to StandingsColumn("draws", "D"),
+                "points" to StandingsColumn("points", "PTS"), "netRunRate" to StandingsColumn("netRunRate", "NRR"))
+            for (table in doc.select(".w-series-standings table")) {
+                val columns = table.select("thead th").drop(1).map { fields[it.attr("aria-labelledby").substringAfterLast('_')] }
+                if (columns.none { it?.key == "points" }) continue
+                val rows = table.select("tbody tr").mapNotNull { tr ->
+                    val team = tr.selectFirst(".o-standings__team-name")?.text() ?: return@mapNotNull null
+                    val id = tr.selectFirst(".o-standings__team-flag")?.attr("data-id")?.takeIf { it.isNotBlank() } ?: team
+                    val rank = tr.selectFirst(".o-standings__team-position")?.text()?.toIntOrNull() ?: return@mapNotNull null
+                    val short = tr.selectFirst(".w-series-standings__team-name--short")?.text() ?: team
+                    val cells = tr.select("td")
+                    val values = columns.mapIndexedNotNull { i, col -> col?.let { c -> cells.getOrNull(i)?.text()?.let { c.key to it } } }.toMap()
+                    if (values["points"].isNullOrBlank()) null else StandingsRow(id, team.removeSuffix(" Men"), short, short,
+                        null, rank, values)
+                }
+                if (rows.isEmpty()) continue
+                columns.filterNotNull().forEach { offered[it.key] = it }
+                val label = table.closest(".o-standings__group")?.selectFirst("h4,h5")?.text() ?: title
+                groups += StandingsGroup(label, null, rows)
+            }
+            if (groups.isEmpty()) return null
+            return Standings(leagueId, title, StandingsKind.TABLE, offered.values.toList(), groups, "Cricket Australia", now)
+        }
+
         private const val DAY = 86_400_000L
         val formats = listOf(1, 2, 3, 4, 5)
         val leagues = listOf(
@@ -87,6 +139,10 @@ internal class CricketAustralia {
                     competition, o.text("gameStatus") ?: if (state == GameState.OFF) "In progress" else null,
                     away, home, situation = o.text("resultText"), source = EventSource.CRICKET_AUSTRALIA,
                     endMs = timestamp(o.text("endDateTime")), updatedAt = checkedAt,
+                    caFixtureId = id.toIntOrNull(),
+                    caCompetitionId = (o["competition"] as? JsonObject)?.number("id")?.takeIf { format in 4..5 && it > 0 },
+                    venue = (o["venue"] as? JsonObject)?.let { listOfNotNull(it.text("name"), it.text("location")).distinct().joinToString(", ").ifBlank { null } },
+                    toss = o.text("tossResult")?.takeIf { it.isNotBlank() },
                     note = o.number("matchDay")?.takeIf { it > 0 }?.let { "Day $it" })
             }
         }
@@ -106,7 +162,8 @@ internal class CricketAustralia {
                 if (!used.add(ca.id)) return@mapNotNull null
                 fun score(side: Side?): Side? = side?.let { s -> ca.sides.firstOrNull { team(it.team.fullName.ifBlank { it.team.name }) == team(s.team.fullName.ifBlank { s.team.name }) }
                     ?.let { s.copy(score = it.score, periods = it.periods) } ?: s }
-                old.copy(state = ca.state, status = ca.status, endMs = ca.endMs, situation = ca.situation, awaitingUpdate = false,
+                old.copy(state = ca.state, status = ca.status, endMs = ca.endMs, situation = ca.situation, awaitingUpdate = false, caCompetitionId = ca.caCompetitionId,
+                    caFixtureId = ca.caFixtureId, venue = ca.venue ?: old.venue, toss = ca.toss ?: old.toss,
                     home = score(old.home), away = score(old.away), updatedAt = ca.updatedAt, note = ca.note)
             }
             return merged + secondary.filterNot { it.id in used }

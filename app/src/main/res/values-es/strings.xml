@@ -3490,4 +3490,13 @@ Utilizas esta función bajo tu entera responsabilidad. P2P se puede desactivar e
     <string name="autosync_status_no_fit">Puede que no coincida</string>
     <string name="autosync_status_no_reference">Sin subtítulos incrustados</string>
     <string name="autosync_status_failed">Fallido</string>
+    <string name="iptv_immediate_tier">Incluir IPTV VOD entre las fuentes de reproducción inmediata</string>
+    <string name="iptv_fallback_tier">Incluir IPTV VOD entre las fuentes de reserva</string>
+    <string name="when_watched">¿Cuándo lo viste?</string>
+    <string name="watched_now">Marcar como visto ahora</string>
+    <string name="choose_watch_date">Elegir fecha</string>
+    <string name="choose_watch_date_time">Elegir fecha y hora</string>
+    <string name="choose_watch_time">Elegir hora</string>
+    <string name="choose_past_watch_time">Elige una fecha y hora válidas en el pasado.</string>
+    <string name="episodes_last_watch_mdblist_pending">Se ha eliminado la reproducción en este dispositivo. Esperando la confirmación de MDBList.</string>
 </resources>

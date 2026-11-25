@@ -1553,4 +1553,13 @@
     <string name="autosync_status_no_fit">Možda se ne podudara</string>
     <string name="autosync_status_no_reference">Nema ugrađenih titlova</string>
     <string name="autosync_status_failed">Nije uspjelo</string>
+    <string name="iptv_immediate_tier">Uključi IPTV VOD među izvore za trenutno pokretanje</string>
+    <string name="iptv_fallback_tier">Uključi IPTV VOD među rezervne izvore</string>
+    <string name="when_watched">Kada ste gledali?</string>
+    <string name="watched_now">Označi kao gledano sada</string>
+    <string name="choose_watch_date">Odaberi datum</string>
+    <string name="choose_watch_date_time">Odaberi datum i vrijeme</string>
+    <string name="choose_watch_time">Odaberi vrijeme</string>
+    <string name="choose_past_watch_time">Odaberite ispravno vrijeme u prošlosti.</string>
+    <string name="episodes_last_watch_mdblist_pending">Gledanje je uklonjeno s ovog uređaja. Čeka se potvrda servisa MDBList.</string>
 </resources>

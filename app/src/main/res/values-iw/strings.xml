@@ -3530,4 +3530,13 @@
     <string name="autosync_status_no_fit">אולי לא תואם</string>
     <string name="autosync_status_no_reference">אין כתוביות מוטבעות</string>
     <string name="autosync_status_failed">נכשל</string>
+    <string name="iptv_immediate_tier">כלילת IPTV VOD במקורות לניגון מיידי</string>
+    <string name="iptv_fallback_tier">כלילת IPTV VOD במקורות החלופיים</string>
+    <string name="when_watched">מתי צפית בזה?</string>
+    <string name="watched_now">סימון כנצפה עכשיו</string>
+    <string name="choose_watch_date">בחירת תאריך</string>
+    <string name="choose_watch_date_time">בחירת תאריך ושעה</string>
+    <string name="choose_watch_time">בחירת שעה</string>
+    <string name="choose_past_watch_time">יש לבחור מועד תקין בעבר.</string>
+    <string name="episodes_last_watch_mdblist_pending">הצפייה הוסרה מהמכשיר הזה. בהמתנה לאישור מ־MDBList.</string>
 </resources>

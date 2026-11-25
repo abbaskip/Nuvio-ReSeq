@@ -82,7 +82,7 @@ class WatchProgressPreferences @Inject constructor(
         if (own.isEmpty()) return
         metadataStore(profileId).edit { prefs ->
             val receipts = deviceReceipts(prefs[deviceProgressKey]).filterValues {
-                now - it.recordedAt in 0 until DEVICE_PROGRESS_GRACE_MS
+                it.retainedAt(now)
             }.toMutableMap()
             own.forEach { receipts[it.storageKey] = RecentDeviceProgress(it, now) }
             prefs[deviceProgressKey] = gson.toJson(receipts)
@@ -92,19 +92,44 @@ class WatchProgressPreferences @Inject constructor(
     fun observeDeviceProgress(profileId: Int, source: String): Flow<List<WatchProgress>> =
         combine(metadataStore(profileId).data, observeAllRawProgress(profileId)) { prefs, existing ->
             val now = System.currentTimeMillis()
-            deviceReceipts(prefs[deviceProgressKey]).values.filter {
-                it.pendingFor(source, now) && it.progress in existing
-            }.map { it.progress }
+            val receipts = deviceReceipts(prefs[deviceProgressKey])
+            existing.filter { row ->
+                val receipt = receipts[row.storageKey]
+                receipt != null && receipt.pendingFor(source, now) && row.matchesSavedPlay(receipt.progress)
+            }
         }.distinctUntilChanged()
 
     suspend fun confirmDeviceProgress(profileId: Int, source: String, remote: List<WatchProgress>) {
+        confirmDeviceProgress(profileId, source, remote, emptyList())
+    }
+
+    internal suspend fun confirmDeviceProgress(profileId: Int, source: String, remote: List<WatchProgress>, events: List<DeviceWatchEvent>) {
+        // Older versions pruned receipts after ten minutes. Recover only a play that is
+        // still present in both this device's journal and this profile's saved progress.
+        val candidates = events.filter { !it.removed && it.progress.isDeviceEpisodeResume() }
+        val saved = if (candidates.isEmpty()) emptyMap() else getAllRawEntries(profileId)
+        val remoteByContent = remote.groupBy(WatchProgress::contentId)
         metadataStore(profileId).edit { prefs ->
-            val receipts = deviceReceipts(prefs[deviceProgressKey])
-            val confirmed = receipts.mapValues { (_, receipt) ->
-                if (source !in receipt.confirmedSources && remote.any { it.confirmsDeviceProgress(receipt.progress) })
-                    receipt.copy(confirmedSources = receipt.confirmedSources + source) else receipt
+            val previous = deviceReceipts(prefs[deviceProgressKey])
+            val receipts = previous.toMutableMap()
+            for (event in candidates) {
+                val key = event.progress.storageKey
+                val row = saved[key] ?: continue
+                if (key !in receipts && row.matchesSavedPlay(event.progress)) {
+                    receipts[key] = RecentDeviceProgress(row, event.lastAt)
+                }
             }
-            if (confirmed != receipts) prefs[deviceProgressKey] = gson.toJson(confirmed)
+            val updated = receipts.mapValues { (_, receipt) ->
+                val matches = remoteByContent[receipt.progress.contentId].orEmpty().filter { it.confirmsDeviceProgress(receipt.progress) }
+                when {
+                    source in receipt.completedSources.orEmpty() -> receipt
+                    matches.any { it.isCompleted() } -> receipt.copy(completedSources = receipt.completedSources.orEmpty() + source)
+                    matches.isNotEmpty() -> receipt.copy(confirmedSources = receipt.confirmedSources + source)
+                    receipt.progress.isDeviceEpisodeResume() -> receipt.copy(confirmedSources = receipt.confirmedSources - source)
+                    else -> receipt
+                }
+            }
+            if (updated != previous) prefs[deviceProgressKey] = gson.toJson(updated)
         }
     }
 
@@ -959,6 +984,19 @@ class WatchProgressPreferences @Inject constructor(
             traktMovieId = obj.getInt("traktMovieId", "trakt_movie_id"),
             traktShowId = obj.getInt("traktShowId", "trakt_show_id"),
             traktEpisodeId = obj.getInt("traktEpisodeId", "trakt_episode_id"),
+            simklPlaybackId = obj.getLong("simklPlaybackId", "simkl_playback_id"),
+            trackingProviderId = obj.getString("trackingProviderId", "tracking_provider_id"),
+            trackingProviderItemId = obj.getString("trackingProviderItemId", "tracking_provider_item_id"),
+            trackingSourceUrl = obj.getString("trackingSourceUrl", "tracking_source_url"),
+            completionThresholdOverride = obj.getFloat("completionThresholdOverride", "completion_threshold_override"),
+            excludedNextUpSeasons = obj.get("excludedNextUpSeasons")?.takeIf { it.isJsonArray }?.asJsonArray
+                ?.mapNotNull { runCatching { it.asInt }.getOrNull() }?.toSet().orEmpty(),
+            traktHistoryEpisode = obj.get("traktHistoryEpisode")?.takeIf { it.isJsonObject }?.asJsonObject?.let { coords ->
+                val season = coords.getInt("season") ?: return@let null
+                coords.getInt("episode")?.let { com.nuvio.tv.domain.model.EpisodeCoordinates(season, it) }
+            },
+            deviceWatchEventId = obj.getString("deviceWatchEventId", "device_watch_event_id"),
+            nativeProgressPercent = obj.getFloat("nativeProgressPercent", "native_progress_percent"),
             tvdbEpisodeId = obj.getLong("tvdbEpisodeId", "tvdb_episode_id"),
             tvdbEpisodeIds = obj.get("tvdbEpisodeIds")?.takeIf { it.isJsonArray }?.asJsonArray?.mapNotNull { runCatching { it.asLong }.getOrNull() },
             tvdbCompletedEpisodeIds = obj.get("tvdbCompletedEpisodeIds")?.takeIf { it.isJsonArray }?.asJsonArray?.mapNotNull { runCatching { it.asLong }.getOrNull() },

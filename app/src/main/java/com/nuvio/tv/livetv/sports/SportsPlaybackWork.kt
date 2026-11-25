@@ -71,6 +71,12 @@ internal fun sportsBackgroundAllowed(
     front && !vod && !full && live.channelKey == null && !live.isBuffering
 }.distinctUntilChanged()
 
+/** Parallel catch-up is for an idle Sports screen. A trailer also keeps the slower playback cadence. */
+internal fun sportsScoreCatchUpAllowed(idle: Flow<Boolean>, browsing: Flow<Boolean>,
+    playerActive: Flow<Boolean> = PlayerSessionTracker.playbackActive): Flow<Boolean> =
+    combine(idle, browsing, playerActive) { available, visible, playing -> available && visible && !playing }
+        .distinctUntilChanged()
+
 /** Only the small watched-game score requests may continue once playback is stable. */
 internal fun sportsScoresAllowed(
     foreground: Flow<Boolean>,

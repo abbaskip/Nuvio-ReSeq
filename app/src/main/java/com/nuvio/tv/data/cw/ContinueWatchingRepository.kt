@@ -261,9 +261,13 @@ class ContinueWatchingRepository @Inject constructor(
     /** A successful sync supplies deletion evidence for the selected Nuvio source. */
     suspend fun pruneAfterSync(lease: CwLease, supportedContentIds: Set<String>) {
         if (lease.source != "NUVIO_SYNC") return
+        val supported = if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") {
+            // A resume can disappear from sync while an older watched episode still supports Next Up.
+            supportedContentIds + progressProvider.get().observeNextUpSeeds().first().map { it.contentId }
+        } else supportedContentIds
         mutate(lease) { state -> CwMembershipReducer.remove(state, lease,
             CwRemovalProof(CwRemovalReason.AUTHORITATIVE_ABSENCE,
-                state.members.keys - supportedContentIds, System.currentTimeMillis())) }
+                state.members.keys - supported, System.currentTimeMillis())) }
     }
 
     /** All return/refresh triggers converge here; a missing player result changes no progress. */
@@ -279,12 +283,24 @@ class ContinueWatchingRepository @Inject constructor(
                 return@withLock listOf(com.nuvio.tv.core.tracking.TrackingProgressRefreshFailure(provider.providerId, error))
             }
         }
-        refreshProjectionLocked()
+        refreshProjectionLocked(snapshot())
         emptyList()
     }
 
     suspend fun refreshProjection() {
         refreshSelected(com.nuvio.tv.core.tracking.TrackingRefreshIntent.AUTOMATIC)
+    }
+
+    /** Rebuild after a selected-source emission without requesting another tracker sync. */
+    suspend fun refreshFromStoredProgress(profileId: Int, source: String) = withContext(Dispatchers.IO) {
+        try {
+            refreshMutex.withLock {
+                val state = snapshot()
+                if (state.profileId == profileId && state.source == source) refreshProjectionLocked(state)
+            }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (error: Exception) { Log.e("ContinueWatching", "Could not read stored watch history", error) }
+        Unit
     }
 
     suspend fun historyCommitted(profileId: Int, contentId: String, before: Long) {
@@ -302,6 +318,15 @@ class ContinueWatchingRepository @Inject constructor(
         val sourceSeeds = progress.observeNextUpSeeds().first()
         val remaining = mutableListOf<WatchProgress>()
         for (id in contentIds) {
+            // Mobile's source snapshot already applies the undo journal and the profile's
+            // episode preference. Use the same winner here and on the next cold start.
+            if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") {
+                val selected = sourceSeeds.firstOrNull { it.contentId == id && !it.isRevokedHistory(state.ignoredProgress) }
+                if (selected != null) {
+                    remaining += selected
+                    continue
+                }
+            }
             // The provider's single latest seed may itself be the revoked event. Read
             // remaining history, not a filtered latest seed that loses the whole show.
             progress.getAllEpisodeProgress(id, profileId).first().values
@@ -326,8 +351,7 @@ class ContinueWatchingRepository @Inject constructor(
         _settledProgress.value = SettledProgress(ready.lease, items, seeds, watched)
     }
 
-    private suspend fun refreshProjectionLocked() {
-        val state = snapshot()
+    private suspend fun refreshProjectionLocked(state: CwProjection) {
         val progress = progressProvider.get()
         val loaded = progress.observeRemoteProgressLoaded().first()
         if (!loaded && state.source != "NUVIO_SYNC") {

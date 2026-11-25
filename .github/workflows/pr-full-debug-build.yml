@@ -12,6 +12,7 @@ on:
       - '*.gradle.kts'
       - 'gradle.properties'
       - 'scripts/**'
+      - 'docs/reseq-mobile.md'
       - 'tools/sports-feed/**'
       - '.github/actions/gradle/**'
       - '.github/workflows/pr-full-debug-build.yml'
@@ -34,6 +35,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  mobile-debug:
+    name: Mobile APK and touch navigation
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/gradle
+      - name: Build mobile APK and check feature coverage
+        run: |
+          printf '%s\n' 'NUVIO_SUPABASE_URL=http://127.0.0.1:38792' 'NUVIO_SUPABASE_ANON_KEY=mobile-smoke' > local.properties
+          ./gradlew :app:assembleMobileDebug :app:assembleMobileDebugAndroidTest :app:testMobileDebugUnitTest --tests 'com.nuvio.tv.mobile.*' --tests 'com.nuvio.tv.livetv.sync.*' --tests '*ContinueWatchingRepositoryTest' --tests '*TraktProgressServiceRefreshTest' --tests '*LiveTvGroupPreferencesTest' --init-script scripts/ci.gradle --max-workers=2 -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process
+          python3 scripts/mobile_parity.py --merged
+      - name: Enable Android emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_5
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: |
+            adb -s emulator-5554 install -r app/build/outputs/apk/mobile/debug/app-mobile-x86_64-debug.apk
+            adb -s emulator-5554 install -r app/build/outputs/apk/androidTest/mobile/debug/*-androidTest.apk
+            adb -s emulator-5554 shell am instrument -w -e package com.nuvio.tv.mobile io.github.abbaskip.nuvioreseq.mobile.test/androidx.test.runner.AndroidJUnitRunner | tee build/mobile-instrumentation.txt
+            grep -Eq '^OK \([1-9][0-9]* tests?\)' build/mobile-instrumentation.txt
+            mkdir -p build/mobile-smoke
+            adb -s emulator-5554 pull /sdcard/Android/data/io.github.abbaskip.nuvioreseq.mobile/files/screenshots/sheffield-shield-320dp.png build/mobile-smoke/sheffield-shield-320dp.png
+            python3 scripts/mobile_smoke.py --extended
+            adb -s emulator-5554 shell pm clear io.github.abbaskip.nuvioreseq.mobile
+            python3 scripts/mobile_smoke.py --providers-only
+            adb -s emulator-5554 shell pm clear io.github.abbaskip.nuvioreseq.mobile
+            python3 scripts/mobile_smoke.py --account-link
+      - name: Save phone and tablet screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: mobile-touch-screenshots
+          path: build/mobile-smoke/*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
   full-debug-build:
     name: Development regression checks
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
@@ -61,13 +108,11 @@ jobs:
       - name: Run development checks
         env:
           COMPREHENSIVE: ${{ inputs.comprehensive }}
-          BUILD_APK: ${{ inputs.build_apk }}
         run: |
           lane=development
           if [[ "$COMPREHENSIVE" == true ]]; then lane=validate; fi
-          args=()
-          if [[ "$BUILD_APK" == true ]]; then args+=(--apk); fi
-          python3 scripts/ci_pipeline.py "$lane" "${args[@]}"
+          python3 scripts/ci_pipeline.py "$lane" --apk
+          python3 scripts/mobile_parity.py --tv
       - name: Verify actual debug APK services before sharing
         if: inputs.build_apk
         env:

@@ -152,7 +152,7 @@ private fun TrackingMediaReference.toHistoryItemDto(
     title = title.nonBlankOrNull(),
     year = year,
     ids = ids.toSimklJsonObjectOrNull(),
-    watchedAt = watchedAtEpochMs.takeIf { includeWatchedAt }?.epochMsToUtcIso(),
+    watchedAt = watchedAtEpochMs.takeIf { includeWatchedAt }?.watchHistoryUtcIso(),
     status = status,
     episodes = episodes,
     seasons = seasons,
@@ -169,7 +169,8 @@ private fun TrackingEpisode.toEpisodeDto(
 ): SimklEpisodeMutationDto = SimklEpisodeMutationDto(
     season = season.takeIf { includeSeason },
     number = number,
-    watchedAt = watchedAtEpochMs.takeIf { includeWatchedAt }?.epochMsToUtcIso()
+    ids = tvdbId?.takeIf { numberingProvider == "tvdb" && includeWatchedAt }?.let { id -> buildJsonObject { put("tvdb", id) } },
+    watchedAt = watchedAtEpochMs.takeIf { includeWatchedAt }?.watchHistoryUtcIso()
 )
 
 internal fun TrackingExternalIds.toSimklJsonObjectOrNull(): JsonObject? {
@@ -192,6 +193,9 @@ private fun Double.clampAndRoundProgress(): Double =
     round(coerceIn(0.0, 100.0) * 100.0) / 100.0
 
 private fun String?.nonBlankOrNull(): String? = this?.trim()?.takeIf(String::isNotEmpty)
+
+internal fun Long.watchHistoryUtcIso(): String =
+    java.time.Instant.ofEpochMilli(this).truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString()
 
 fun Long.epochMsToUtcIso(): String? {
     if (this < 10_000_000_000L) return null
@@ -268,6 +272,7 @@ private data class SimklSeasonMutationDto(
 @Serializable
 private data class SimklEpisodeMutationDto(
     val season: Int? = null,
+    val ids: JsonObject? = null,
     val number: Int,
     @SerialName("watched_at") val watchedAt: String? = null
 )

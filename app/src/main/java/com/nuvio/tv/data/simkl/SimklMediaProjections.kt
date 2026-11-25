@@ -75,6 +75,18 @@ fun SimklSyncSnapshot.toSimklWatchedProjection(): SimklWatchedProjection {
     )
 }
 
+/** A dated last-watched marker can seed Continue Watching, but is not a detailed history receipt. */
+internal fun SimklLibraryEntry.summaryNextUpSeed(): WatchProgress? {
+    if (mediaType != SimklMediaType.SHOWS || status != SimklListStatus.WATCHING) return null
+    val marker = parseSimklEpisodeMarker(lastWatched) ?: return null
+    val season = marker.season?.takeIf { it > 0 } ?: return null
+    val date = parseSimklUtcEpochMs(lastWatchedAt) ?: return null
+    val show = media ?: return null
+    val id = show.canonicalContentId() ?: return null
+    if (marker.episode <= 0) return null
+    return toWatchedItem(id, "series", show.title ?: id, show, date, season, marker.episode).toSimklCompletedProgress()
+}
+
 fun SimklSyncSnapshot.toSimklProgressEntries(): List<WatchProgress> =
     toSimklProgressEntries(entryIndex = null)
 

@@ -60,6 +60,13 @@ class SimklTrackingProgressProvider @Inject constructor(
         }.onStart { syncRepository.refresh(TrackingRefreshIntent.AUTOMATIC) }
             .distinctUntilChanged()
 
+    override fun nativeEpisodeRecords(contentId: String) = syncRepository.projection.map { snapshot ->
+        snapshot.completedNextUpHistory(contentId) + snapshot.episodeProgress(contentId).values
+    }.onStart { syncRepository.refresh(TrackingRefreshIntent.AUTOMATIC) }.distinctUntilChanged()
+
+    override suspend fun completedNextUpHistory(contentId: String) =
+        syncRepository.projection.value.completedNextUpHistory(contentId)
+
     override fun airedEpisodeOrder(contentId: String): Flow<List<Pair<Int, Int>>> = flowOf(emptyList())
 
     override fun isWatched(
@@ -92,6 +99,14 @@ class SimklTrackingProgressProvider @Inject constructor(
     }
 
     override suspend fun refresh(intent: TrackingRefreshIntent) = syncRepository.refresh(intent)
+
+    override suspend fun refreshForContinueWatching(intent: TrackingRefreshIntent) {
+        refresh(intent)
+        if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") {
+            val state = syncRepository.state.value
+            check(state.profileId == authStorage.currentScope().profileId && state.hasLoaded && state.errorMessage == null)
+        }
+    }
 
     override suspend fun watchBaseline(target: TrackingMediaReference): com.nuvio.tv.core.tracking.TrackingWatchBaseline {
         syncRepository.refresh(TrackingRefreshIntent.INVALIDATED)

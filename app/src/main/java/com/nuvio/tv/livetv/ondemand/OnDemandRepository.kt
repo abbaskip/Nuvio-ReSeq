@@ -758,7 +758,9 @@ class OnDemandRepository @Inject constructor(
         if (stored.isM3u && item.id.startsWith("m3u-")) return@withContext if (db.m3u.current(stored)) db.m3u.info(item) else null
         val pl = if (stored.isM3u) db.m3u.login(stored)?.forCatalog(stored) ?: return@withContext null else stored
         val cacheKey = item.uid + ":" + _version.value + ":" + java.security.MessageDigest.getInstance("SHA-256").digest(
-            listOf(pl.xtreamServer, pl.xtreamUsername, pl.xtreamPassword, pl.userAgent, pl.stalkerPortal, pl.stalkerMac, pl.stalkerUsername, pl.stalkerPassword, pl.stalkerSerial).joinToString("\u0000").toByteArray()).toHexString()
+            listOf(pl.xtreamServer, pl.xtreamUsername, pl.xtreamPassword, pl.userAgent, pl.stalkerPortal, pl.stalkerMac,
+                pl.stalkerUsername, pl.stalkerPassword, pl.stalkerSerial, pl.stalkerDeviceId, pl.stalkerDeviceId2)
+                .joinToString("\u0000").toByteArray()).toHexString()
         infoCache[cacheKey]?.let { return@withContext it }
         infoLocks.getOrPut(cacheKey) { Mutex() }.withLock {
         infoCache[cacheKey]?.let { return@withLock it }

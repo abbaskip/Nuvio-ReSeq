@@ -53,6 +53,7 @@ class ApkDownloader @Inject constructor(
                         }
                         output.flush()
                         check(total == null || downloaded == total) { "Incomplete update download" }
+                        check(downloaded > 0) { "Empty update download" }
                     }
                 }
             }

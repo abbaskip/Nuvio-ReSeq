@@ -48,7 +48,7 @@ private fun watchedRecord(
         type, media, watchedAt, season, episode,
         episodeTitle = target.text("title", "name").takeIf { type == MdbListItemType.EPISODE },
         episodeTmdbId = ids?.number("tmdb", "tmdbid").takeIf { type == MdbListItemType.EPISODE },
-        episodeTvdbId = ids?.number("tvdb", "tvdbid").takeIf { type == MdbListItemType.EPISODE }
+        episodeTvdbId = (target.objectValue("tvdb_ids")?.number("episode")?.takeIf { it > 0 } ?: ids?.number("tvdb", "tvdbid")).takeIf { type == MdbListItemType.EPISODE }
     )
 }
 

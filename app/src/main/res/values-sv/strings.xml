@@ -1826,4 +1826,13 @@
     <string name="autosync_status_no_fit">Kanske inte matchar</string>
     <string name="autosync_status_no_reference">Inga inbäddade undertexter</string>
     <string name="autosync_status_failed">Misslyckades</string>
+    <string name="iptv_immediate_tier">Inkludera IPTV VOD bland källor för direkt uppspelning</string>
+    <string name="iptv_fallback_tier">Inkludera IPTV VOD bland reservkällor</string>
+    <string name="when_watched">När såg du det?</string>
+    <string name="watched_now">Markera som sedd nu</string>
+    <string name="choose_watch_date">Välj datum</string>
+    <string name="choose_watch_date_time">Välj datum och tid</string>
+    <string name="choose_watch_time">Välj tid</string>
+    <string name="choose_past_watch_time">Välj en giltig tidpunkt i det förflutna.</string>
+    <string name="episodes_last_watch_mdblist_pending">Visningen har tagits bort från den här enheten. Väntar på bekräftelse från MDBList.</string>
 </resources>

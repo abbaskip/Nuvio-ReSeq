@@ -24,6 +24,7 @@ internal fun shouldShowDiscoverInSearch(
 data class SearchUiState(
     val query: String = "",
     val submittedQuery: String = "",
+    val completedQuery: String? = null,
     val isSearching: Boolean = false,
     val error: String? = null,
     val catalogRows: List<CatalogRow> = emptyList(),

@@ -80,7 +80,13 @@ private fun reconcileTvdbVideoRecords(videos: List<Video>, progress: List<WatchP
         }
         val actual = entries.filter { it in fromNative || it.tvdbContentIds.isEmpty() || it.tvdbContentIds == ids }
             .maxByOrNull { it.lastWatched }
-        val entry = actual ?: entries.maxBy { it.lastWatched }.copy(position = 0, duration = 0, progressPercent = null)
+        val latest = entries.maxBy { it.lastWatched }
+        // A watch of the whole native episode also dates each selected part. An
+        // older play of Part 2 must not make Part 1 look like the most recent watch.
+        val entry = if (actual == null ||
+            (latest.lastWatched > actual.lastWatched && latest.tvdbWatchedIds.containsAll(ids))) {
+            latest.copy(position = 0, duration = 0, progressPercent = null)
+        } else actual
         // A longer playable episode can reach its own threshold in the final native segment.
         // The elapsed fraction implies nothing about a missing earlier segment.
         val observed = entry.tvdbEpisodeIds.orEmpty()

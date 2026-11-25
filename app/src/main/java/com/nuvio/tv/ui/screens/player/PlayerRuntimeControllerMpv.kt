@@ -622,6 +622,7 @@ internal fun PlayerRuntimeController.seekPlaybackTo(
     seekParameters: SeekParameters = SeekParameters.CLOSEST_SYNC,
     exact: Boolean = false
 ) {
+    com.nuvio.tv.livetv.thumbs.SeekThumbs.seekCommitted(com.nuvio.tv.livetv.thumbs.SeekThumbs.Owner.MAIN)
     if (isUsingMpvEngine()) {
         mpvView?.let { view ->
             if (exact) view.seekToMsExact(positionMs) else view.seekToMs(positionMs)

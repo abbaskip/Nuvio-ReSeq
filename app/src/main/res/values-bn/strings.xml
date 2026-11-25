@@ -3277,4 +3277,13 @@
     <string name="autosync_status_no_fit">নাও মিলতে পারে</string>
     <string name="autosync_status_no_reference">কোনো এম্বেড করা সাবটাইটেল নেই</string>
     <string name="autosync_status_failed">ব্যর্থ হয়েছে</string>
+    <string name="iptv_immediate_tier">তাৎক্ষণিক উৎসে IPTV VOD অন্তর্ভুক্ত করুন</string>
+    <string name="iptv_fallback_tier">বিকল্প উৎসে IPTV VOD অন্তর্ভুক্ত করুন</string>
+    <string name="when_watched">কখন দেখেছেন?</string>
+    <string name="watched_now">এখন দেখা হয়েছে হিসেবে চিহ্নিত করুন</string>
+    <string name="choose_watch_date">তারিখ বাছুন</string>
+    <string name="choose_watch_date_time">তারিখ ও সময় বাছুন</string>
+    <string name="choose_watch_time">সময় বাছুন</string>
+    <string name="choose_past_watch_time">অতীতের একটি বৈধ সময় বাছুন।</string>
+    <string name="episodes_last_watch_mdblist_pending">এই ডিভাইস থেকে দেখার রেকর্ড সরানো হয়েছে। MDBList-এর নিশ্চিতকরণের অপেক্ষায়।</string>
 </resources>

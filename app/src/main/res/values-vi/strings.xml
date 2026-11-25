@@ -3530,4 +3530,13 @@
     <string name="autosync_status_no_fit">Có thể không khớp</string>
     <string name="autosync_status_no_reference">Không có phụ đề được nhúng</string>
     <string name="autosync_status_failed">thất bại</string>
+    <string name="iptv_immediate_tier">Thêm IPTV VOD vào nguồn phát ngay</string>
+    <string name="iptv_fallback_tier">Thêm IPTV VOD vào nguồn dự phòng</string>
+    <string name="when_watched">Bạn đã xem lúc nào?</string>
+    <string name="watched_now">Đánh dấu đã xem ngay bây giờ</string>
+    <string name="choose_watch_date">Chọn ngày</string>
+    <string name="choose_watch_date_time">Chọn ngày và giờ</string>
+    <string name="choose_watch_time">Chọn giờ</string>
+    <string name="choose_past_watch_time">Hãy chọn thời điểm hợp lệ trong quá khứ.</string>
+    <string name="episodes_last_watch_mdblist_pending">Đã xóa lượt xem trên thiết bị này. Đang chờ MDBList xác nhận.</string>
 </resources>

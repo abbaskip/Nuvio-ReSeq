@@ -29,7 +29,7 @@ class SportsPageListsTest {
                 val display = SportsEventListings.display(events, now)
                 val knownDisplay = SportsEventListings.display(known, now)
                 val expected = SportsEventListings.onMyChannels(SportsEventListings.allEvents(knownDisplay, start, start + 24 * hour, now),
-                    matches, true, ready) { isMine(it, follows) }
+                    matches, true, ready, now) { isMine(it, follows) }
                 for (chip in listOf(CHIP_ALL, CHIP_TV_NOW, CHIP_MINE)) {
                     val page = SportsPageLists.build(SportsPageRequest(offset, chip, "result"), filters, events, known,
                         matches, now, start, start + 24 * hour, true, ready, null)
@@ -40,7 +40,7 @@ class SportsPageListsTest {
                         SportsEventListings.tvNow(display, now), SportsCurrentGuide.fixtures(display), matches, now)
                         else expected
                     assertEquals(shown, page.shown)
-                    assertEquals(SportsEventListings.entryIndex(shown), page.entryIndex)
+                    assertEquals(SportsEventListings.entryIndex(shown, now), page.entryIndex)
                     assertEquals("result", page.opened?.id)
                     if (chip == CHIP_MINE) {
                         val rows = SportsRows.build(knownDisplay, follows, now) { isMine(it, follows) }

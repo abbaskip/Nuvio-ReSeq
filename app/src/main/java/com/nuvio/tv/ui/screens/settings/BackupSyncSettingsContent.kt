@@ -45,7 +45,7 @@ internal fun BackupSyncSettingsContent(
     var dialog by remember { mutableStateOf<BackupDialog?>(null) }
     val close = { dialog = null }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md)) {
-        SettingsDetailHeader(title = "Backup & Sync", subtitle = "TVDB keys and orders, Shuffle choices, IPTV and Sports Hub configuration")
+        SettingsDetailHeader(title = "Backup & Sync", subtitle = "Seek previews, provider keys, episode orders, Shuffle choices, IPTV and Sports Hub configuration")
         LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
             item {
                 DriveSyncCard(
@@ -60,7 +60,7 @@ internal fun BackupSyncSettingsContent(
     }
     when (dialog) {
         BackupDialog.BACK_UP -> ConfirmDeleteDialog(
-            title = "Back up now?", message = "Save this TV's configuration to your private Google Drive backup. Conflicting changes are refused.",
+            title = "Back up now?", message = "Save this TV's configuration and configured provider keys to your private Google Drive backup. Conflicting changes are refused.",
             onDismiss = close, onConfirm = { drive.backUpNow(); close() }, confirmLabel = "Back Up")
         BackupDialog.DISCONNECT -> ConfirmDeleteDialog(
             title = "Disconnect Google Drive?", message = "This TV stops syncing. Your backup stays in Google Drive and other TVs remain connected.",
@@ -116,17 +116,17 @@ private fun DriveSyncCard(
                 )
                 !state.connected -> {
                     Text(
-                        text = "Your playlists, guide settings, Sports Hub preferences and per-profile TVDB keys, episode orders and Shuffle choices are saved privately in your Google Drive. Keep the backup private. It includes playlist logins and TVDB keys. TMDB keys and tracker sign-ins stay on this TV.",
+                        text = "Your Drive backup includes playlists and logins, guide and Sports Hub settings, episode orders, Shuffle choices, seek preview settings and your Seekr key. Configured TVDB, TMDB, Gemini, debrid, MDBList and AnimeSkip keys are included for matching profiles. Anyone with access to the backup files can read those keys.",
                         style = MaterialTheme.typography.bodySmall,
                         color = NuvioTheme.colors.TextSecondary
                     )
-                    SettingsActionRow("Connect Google Drive", "Keeps your ReSeq configuration on every TV, using your own Google Drive. Sign in with a code on your phone.", onClick = onConnect)
+                    SettingsActionRow("Connect Google Drive", "Sign in, then choose Restore or Back up. Turn on automatic sync when you want changes shared between devices.", onClick = onConnect)
                 }
                 else -> {
                     SettingsActionRow("Account", "The Google account used for your ReSeq backup", state.email ?: "Connected", onClick = {})
                     SettingsToggleRow(
                         "Sync Automatically",
-                        "Back up changes, and pick up changes made on your other TVs",
+                        "Sync changes to settings and configured provider keys with your other TVs",
                         state.autoSync,
                         { onAutoSync(!state.autoSync) }
                     )
@@ -203,7 +203,7 @@ private fun DriveSignInDialog(prompt: com.nuvio.tv.livetv.sync.SignInPrompt, onC
 }
 
 private fun restoreMessage(loaded: Boolean, info: com.nuvio.tv.livetv.sync.LiveTvDriveSync.BackupInfo?, localChangedAt: Long): String {
-    val base = "This TV's Live TV setup, Sports Hub preferences and saved TVDB keys, episode orders and Shuffle choices are replaced with the copy in Google Drive. Profiles must match. TMDB keys and tracker sign-ins stay on this TV."
+    val base = "This TV's Live TV setup, Sports Hub preferences and saved TVDB keys, episode orders and Shuffle choices are replaced with the copy in Google Drive. Seek preview settings and the Seekr key also restore. Saved TMDB, Gemini, debrid, MDBList and AnimeSkip keys also restore to matching profiles."
     if (!loaded) return "$base\n\nChecking when it was saved…"
     if (info == null || info.savedAtMs <= 0L) return base
     val now = System.currentTimeMillis()

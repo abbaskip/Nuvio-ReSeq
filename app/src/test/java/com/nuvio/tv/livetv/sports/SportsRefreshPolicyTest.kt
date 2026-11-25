@@ -10,7 +10,10 @@ class SportsRefreshPolicyTest {
         true, GameState.PRE, "A v B", null, null, null, null) }
     private fun choose(focused: String? = null, playing: Set<String> = emptySet(), followed: Set<String> = emptySet(),
                        viewing: Boolean = true, attempts: Map<String, Long> = emptyMap(), list: List<SportsEvent> = events) =
-        SportsRefreshPolicy.choose(list, leagues, focused, playing, followed, viewing, now, attempts)
+        SportsRefreshPolicy.choose(list, leagues, focused, playing, followed, viewing, now,
+            attempts.mapKeys { (id, _) -> board(leagues.first { it.id == id }) }).take(2).map { it.league }
+
+    private fun board(league: League) = SportsRefreshPolicy.Board(league, SportsRefreshPolicy.scoreboardDay(league, now - 60_000))
 
     @Test fun `only two relevant leagues qualify with focused watched and followed events first`() {
         val selected = choose(focused = events[3].id, followed = setOf(leagues[4].id))
@@ -35,13 +38,13 @@ class SportsRefreshPolicyTest {
     }
 
     @Test fun `followed leagues cannot starve other live scores over repeated rounds`() {
-        val attempts = mutableMapOf<String, Long>()
+        val attempts = mutableMapOf<SportsRefreshPolicy.Board, Long>()
         val visited = mutableSetOf<String>()
         repeat(4) { round ->
             val at = now + round * 30_000L
             val due = SportsRefreshPolicy.choose(events, leagues, null, emptySet(),
                 leagues.take(4).map { it.id }.toSet(), true, at, attempts)
-            due.forEach { attempts[it.id] = at; visited += it.id }
+            due.take(2).forEach { attempts[it] = at; visited += it.league.id }
         }
         assertEquals(leagues.map { it.id }.toSet(), visited)
     }
@@ -49,6 +52,15 @@ class SportsRefreshPolicyTest {
     @Test fun `focused game remains first even when other leagues have never refreshed`() {
         assertEquals(leagues[3], choose(focused = events[3].id,
             attempts = mapOf(leagues[3].id to now - 60_000)).first())
+    }
+
+    @Test fun `yesterdays overdue fixture gets its own board even after todays request`() {
+        val league = leagues.first()
+        val stale = events.first().copy(startMs = now - 23 * 3_600_000L)
+        val fresh = events.first().copy(id = "live", state = GameState.LIVE)
+        val due = SportsRefreshPolicy.choose(listOf(stale, fresh), listOf(league), fresh.id, emptySet(),
+            emptySet(), true, now, mapOf(board(league) to now))
+        assertEquals(listOf(SportsRefreshPolicy.Board(league, SportsRefreshPolicy.scoreboardDay(league, stale.startMs))), due)
     }
 
     @Test fun `expired timestamps and never attempted leagues sort together without mixed numeric types`() {

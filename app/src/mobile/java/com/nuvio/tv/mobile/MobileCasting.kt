@@ -1,0 +1,459 @@
+package com.nuvio.tv.mobile
+
+import com.nuvio.tv.core.usenet.UsenetPlayback
+import java.io.File
+import android.content.Context
+import android.os.SystemClock
+import androidx.annotation.Keep
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.google.android.gms.cast.*
+import com.google.android.gms.cast.framework.*
+import com.google.android.gms.cast.framework.media.RemoteMediaClient
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
+import com.google.gson.Gson
+import com.nuvio.tv.core.profile.ProfileManager
+import com.nuvio.tv.core.torrent.TorrentService
+import com.nuvio.tv.core.torrent.TorrentState
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import org.json.JSONObject
+import java.util.UUID
+import java.util.concurrent.Executor
+import javax.inject.Inject
+import javax.inject.Singleton
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+
+@Keep
+class MobileCastOptions : OptionsProvider {
+    override fun getCastOptions(context: Context): CastOptions = CastOptions.Builder()
+        .setReceiverApplicationId(CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID).build()
+    override fun getAdditionalSessionProviders(context: Context): List<SessionProvider>? = null
+}
+
+internal val LocalCasting = staticCompositionLocalOf<MobileCasting> { error("Missing Cast sender") }
+
+internal fun receiverUrl(url: String?): Boolean {
+    val host = url?.toHttpUrlOrNull()?.host?.lowercase()?.trimEnd('.') ?: return false
+    return host != "localhost" && !host.endsWith(".localhost") && !host.startsWith("127.") &&
+        host !in setOf("::1", "::", "0.0.0.0", "10.0.2.2")
+}
+
+internal data class CastSource(val url: String, val title: String, val headers: Map<String,String> = emptyMap(),
+    val video: MobileVideo? = null, val live: Boolean = false, val iptv: Boolean = false, val mime: String? = null,
+    val subtitles: List<MediaTrack> = emptyList(), val cloudToken: String? = null, val torrent: CastTorrent? = null,
+    val download: File? = null, val fallbackUserAgent: String? = null, val hevcTransportStream: Boolean = false,
+    val audioMime: String? = null, val videoHeight: Int = 0)
+
+internal data class CastTorrent(val hash: String, val fileIndex: Int?, val filename: String?, val trackers: List<String>)
+
+@Keep internal data class CastItem(val token: String, val profile: Int, val title: String, val video: MobileVideo?,
+    val live: Boolean, val iptv: Boolean, val cloudToken: String? = null)
+
+internal data class CastControls(val device: String? = null, val item: CastItem? = null, val playing: Boolean = false,
+    val position: Long = 0, val duration: Long = 0, val tracks: List<MediaTrack> = emptyList(),
+    val selected: Set<Long> = emptySet(), val error: String? = null, val loading: Boolean = false, val speed: Double = 1.0,
+    val preparation: String? = null, val compatibilityAvailable: Boolean = false)
+
+@Singleton
+internal class MobileCasting @Inject constructor(@ApplicationContext private val context: Context,
+    private val tracker: MobileCastTracking, private val profiles: ProfileManager, private val torrents: TorrentService) : SessionManagerListener<CastSession> {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val prefs = context.getSharedPreferences("cast_session", Context.MODE_PRIVATE)
+    private val gson = Gson()
+    private val controls = MutableStateFlow(CastControls())
+    val state = controls.asStateFlow()
+    val requestedSources = MutableStateFlow<MobileVideo?>(null)
+    private var manager: SessionManager? = null
+    private var receiver: java.net.InetAddress? = null
+    private var castInitialization: Task<CastContext>? = null
+    private var remote: RemoteMediaClient? = null
+    private var pending: CastItem? = null
+    private var relay: CastRelay? = null
+    private var pendingRelay: CastRelay? = null
+    private var loading: Job? = null
+
+    private data class Attempt(val source: CastSource, val phone: PhoneCastMedia?, var position: Long?,
+        var autoplay: Boolean, var onAccepted: (() -> Unit)?, var forceRelay: Boolean = false,
+        var directFailure: String? = null, var mediaType: String? = null, var loadStatus: Int? = null,
+        var liveFormat: LiveCastFormat? = null) {
+        // Keep a brief direct attempt in case the provider negotiates a different rendition for Cast.
+        val loadTimeoutSeconds get() = if (source.live && source.hevcTransportStream && !forceRelay && liveFormat == null) 8 else 30
+    }
+    private var nextAttempt: Attempt? = null
+    private var playingAttempt: Attempt? = null
+    private var failedAttempt: Attempt? = null
+    private var failureJob: Job? = null
+    private val observer = object : RemoteMediaClient.Callback() {
+        override fun onStatusUpdated() = update()
+        override fun onMetadataUpdated() = update()
+        override fun onMediaError(error: MediaError) {
+            val token = remote?.mediaStatus?.mediaInfo?.customData?.optString("reseqCastId") ?: return
+            val item = (pending ?: controls.value.item)?.takeIf { it.token == token } ?: return
+            if (error.type == MediaError.ERROR_TYPE_ERROR || error.type == MediaError.ERROR_TYPE_LOAD_FAILED)
+                receiverFailure(item, error.detailedErrorCode)
+        }
+    }
+    private val tick = RemoteMediaClient.ProgressListener { _, _ -> update() }
+
+    init {
+        scope.launch {
+            profiles.activeProfileId.collect { profile ->
+                if (listOfNotNull(controls.value.item, pending).any { it.profile != profile } ||
+                    failedAttempt?.source?.video?.let { it.profile != profile } == true) disconnect()
+            }
+        }
+    }
+
+    fun initialize(): Task<CastContext> {
+        castInitialization?.let { return it }
+        if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS)
+            return Tasks.forException(IllegalStateException("Google Play services is unavailable"))
+        val initialization = try {
+            CastContext.getSharedInstance(context, Executor { Dispatchers.IO.dispatch(kotlin.coroutines.EmptyCoroutineContext, it) })
+        } catch (e: Exception) { return Tasks.forException(e) }
+        castInitialization = initialization
+        initialization
+            .addOnSuccessListener { cast ->
+                manager = cast.sessionManager
+                manager?.addSessionManagerListener(this, CastSession::class.java)
+                manager?.currentCastSession?.takeIf { it.isConnected }?.let(::attach)
+            }.addOnFailureListener { castInitialization = null }
+        return initialization
+    }
+
+    private fun attach(session: CastSession) {
+        detachClient()
+        receiver = session.castDevice?.inetAddress
+        remote = session.remoteMediaClient
+        remote?.registerCallback(observer)
+        remote?.addProgressListener(tick, 1_000)
+        controls.update { it.copy(device = session.castDevice?.friendlyName ?: "Chromecast", error = null) }
+        update()
+    }
+
+    private fun detachClient() {
+        remote?.unregisterCallback(observer)
+        remote?.removeProgressListener(tick)
+        remote = null
+        receiver = null
+    }
+
+    fun load(source: CastSource, position: Long? = null, autoplay: Boolean = true, onAccepted: () -> Unit = {}) {
+        if (remote == null) return
+        val lease = UsenetPlayback.retain(source.url)
+        if (!receiverUrl(source.url) && source.download == null && lease == null && source.torrent == null && !isCurrentTorrent(source.url)) {
+            fail("Choose a playable stream or a saved download."); return
+        }
+        val phone = if (source.download != null || lease != null) {
+            val service = try { PhoneCastService.acquire(context) } catch (_: IllegalStateException) {
+                lease?.close()
+                fail("Open ReSeq to start casting from this phone.")
+                return
+            }
+            PhoneCastMedia(source, java.io.Closeable { lease?.close(); service.close() })
+        } else null
+        dismissError()
+        val initialFormat = LiveCastFormat.COPY_VIDEO.takeIf {
+            source.live && source.iptv && source.hevcTransportStream && source.headers.isNotEmpty()
+        }
+        start(Attempt(source, phone, position, autoplay, onAccepted, liveFormat = initialFormat))
+    }
+
+    private fun start(attempt: Attempt, advance: Boolean = false) {
+        val client = remote ?: run { attempt.phone?.close(); fail("Reconnect to Chromecast to play this file."); return }
+        failureJob?.cancel()
+        cancelPending()
+        val source = attempt.source
+        val item = CastItem(UUID.randomUUID().toString(), profiles.activeProfileId.value, source.title, source.video, source.live, source.iptv, source.cloudToken)
+        nextAttempt = attempt
+        pending = item
+        val preparing = when (attempt.liveFormat) {
+            LiveCastFormat.COPY_VIDEO -> "Preparing this channel for Chromecast"
+            LiveCastFormat.H264 -> "Converting this channel for Chromecast"
+            null -> null
+        }
+        controls.update { it.copy(loading = true, error = null, preparation = preparing, compatibilityAvailable = false) }
+        loading = scope.launch {
+            try {
+                val phone = attempt.phone
+                if (advance && phone?.advance() != true) { fail("This receiver could not play the converted video."); return@launch }
+                phone?.prepare(context) { label -> controls.update { it.copy(preparation = label) } }
+                val previous = controls.value
+                val start = when {
+                    source.live -> 0L
+                    attempt.position != null -> requireNotNull(attempt.position)
+                    item.video != null && item.video.key == previous.item?.video?.key -> previous.position
+                    item.video != null && !item.iptv -> withContext(Dispatchers.IO) { tracker.resume(item.video, item.cloudToken) }
+                    else -> 0L
+                }
+                attempt.position = start
+                if (pending != item) return@launch
+                val torrent = source.torrent
+                val url = if (torrent == null) source.url else torrents.startStream(torrent.hash, torrent.fileIndex, torrent.filename, torrent.trackers)
+                val lease = if (phone != null && phone.file == null) requireNotNull(UsenetPlayback.retain(url))
+                    else if (torrent != null || !receiverUrl(url) && isCurrentTorrent(url)) requireNotNull(torrents.retainStream(url)) else null
+                if (torrent != null) torrents.shutdown()
+                val file = phone?.file
+                val mime = if (phone != null && phone.format != CastFormat.ORIGINAL) "video/mp4" else source.mime
+                val endpoint = CastRelay.prepare(context, source.copy(url = url, mime = mime), receiver, lease, file,
+                    forceRelay = attempt.forceRelay, liveFormat = attempt.liveFormat)
+                attempt.mediaType = endpoint.mime
+                attempt.loadStatus = null
+                pendingRelay = endpoint.relay
+                val metadata = MediaMetadata(if (item.video?.episode != null) MediaMetadata.MEDIA_TYPE_TV_SHOW else MediaMetadata.MEDIA_TYPE_GENERIC)
+                metadata.putString(MediaMetadata.KEY_TITLE, item.title)
+                val info = MediaInfo.Builder(endpoint.url).setContentType(endpoint.mime)
+                    .setStreamType(if (source.live) MediaInfo.STREAM_TYPE_LIVE else MediaInfo.STREAM_TYPE_BUFFERED)
+                    .setMetadata(metadata).setCustomData(JSONObject().put("reseqCastId", item.token))
+                    .apply {
+                        if (endpoint.transportStreamSegments) {
+                            setHlsSegmentFormat(HlsSegmentFormat.TS)
+                            setHlsVideoSegmentFormat(HlsVideoSegmentFormat.MPEG2_TS)
+                        } else if (endpoint.fragmentedMp4) {
+                            setHlsSegmentFormat(HlsSegmentFormat.FMP4)
+                            setHlsVideoSegmentFormat(HlsVideoSegmentFormat.FMP4)
+                        }
+                    }
+                    .setMediaTracks(source.subtitles).build()
+                val request = MediaLoadRequestData.Builder().setMediaInfo(info).setAutoplay(attempt.autoplay)
+                if (!source.live) request.setCurrentTime(start.coerceAtLeast(0))
+                client.load(request.build()).setResultCallback { result ->
+                    if (pending == item) {
+                        if (result.status.isSuccess) update()
+                        else {
+                            attempt.loadStatus = result.status.statusCode
+                            receiverFailure(item, result.mediaError?.detailedErrorCode)
+                        }
+                    }
+                }
+                delay(attempt.loadTimeoutSeconds * 1000L)
+                if (pending == item) receiverFailure(item, null, timedOut = true)
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) {
+                if (pending == item) fail(if (attempt.phone?.format?.let { it != CastFormat.ORIGINAL } == true)
+                    "The phone couldn’t convert this file. Check free storage and device codec support."
+                    else if (source.live && attempt.directFailure != null)
+                        "${attempt.directFailure}\nThe phone could not prepare the relay for this channel."
+                    else "Couldn't prepare this source for Chromecast.")
+            }
+        }
+    }
+
+    private fun update() {
+        val client = remote ?: return
+        val status = client.mediaStatus ?: return
+        val id = status.mediaInfo?.customData?.optString("reseqCastId")?.takeIf { it.isNotBlank() }
+        val idle = status.playerState == MediaStatus.PLAYER_STATE_IDLE
+        val ready = client.isPlaying || client.isPaused && nextAttempt?.autoplay == false
+        if (id == pending?.token && pending != null && ready) {
+            val item = requireNotNull(pending)
+            val old = controls.value.item
+            val sameVideo = item.video != null && old != null && item.video.key == old.video?.key && item.iptv == old.iptv
+            if (sameVideo) {
+                relay?.close()
+                playingAttempt?.phone?.close()
+            } else finish(false)
+            playingAttempt = nextAttempt
+            nextAttempt = null
+            relay = pendingRelay
+            pendingRelay = null
+            pending = null
+            prefs.edit().putString("item", gson.toJson(item)).apply()
+            controls.update { it.copy(item = item, loading = false, error = null, preparation = null) }
+            val callback = playingAttempt?.onAccepted
+            playingAttempt?.onAccepted = null
+            callback?.invoke()
+        }
+        if (pending != null && id == pending?.token && idle && status.idleReason == MediaStatus.IDLE_REASON_ERROR) {
+            receiverFailure(requireNotNull(pending), null); return
+        }
+        if (controls.value.item == null && id != null) {
+            val saved = runCatching { gson.fromJson(prefs.getString("item", null), CastItem::class.java) }.getOrNull()
+            if (saved?.token == id && saved.profile == profiles.activeProfileId.value) controls.update { it.copy(item = saved) }
+        }
+        val item = controls.value.item ?: return
+        if (id != item.token) {
+            if (pending == null && idle && id == null && status.idleReason == MediaStatus.IDLE_REASON_ERROR) receiverFailure(item, null)
+            else if (pending == null && idle && id == null) finish(status.idleReason == MediaStatus.IDLE_REASON_FINISHED)
+            else if (pending == null && (id != null || !idle && status.mediaInfo != null)) finish(false)
+            return
+        }
+        if (idle) {
+            if (pending != null && status.idleReason == MediaStatus.IDLE_REASON_INTERRUPTED) return
+            if (status.idleReason == MediaStatus.IDLE_REASON_ERROR && pending == null) receiverFailure(item, null)
+            else finish(status.idleReason == MediaStatus.IDLE_REASON_FINISHED)
+            return
+        }
+        val playing = client.isPlaying
+        val duration = client.streamDuration.coerceAtLeast(0)
+        val position = client.approximateStreamPosition.coerceAtLeast(0)
+        controls.update { it.copy(playing = playing, position = position, duration = duration,
+            tracks = status.mediaInfo?.mediaTracks.orEmpty(), selected = status.activeTrackIds?.toSet().orEmpty(), speed = status.playbackRate) }
+        if (playing || client.isPaused) playingAttempt?.autoplay = playing
+        if (!item.iptv && item.video != null && (playing || client.isPaused))
+            tracker.observe(CastSample(item.video, position, duration, playing, SystemClock.elapsedRealtime(), item.cloudToken))
+    }
+
+    private fun finish(completed: Boolean) {
+        playingAttempt?.phone?.close()
+        playingAttempt = null
+        tracker.finish(completed)
+        relay?.close()
+        relay = null
+        prefs.edit().remove("item").apply()
+        controls.update { CastControls(device = it.device, loading = pending != null, error = it.error) }
+    }
+    private fun cancelPending() {
+        loading?.cancel()
+        loading = null
+        pendingRelay?.close()
+        pendingRelay = null
+        pending = null
+        nextAttempt?.phone?.close()
+        nextAttempt = null
+    }
+    private fun receiverFailure(item: CastItem, code: Int?, timedOut: Boolean = false) {
+        if (item != pending && (item != controls.value.item || pending != null)) return
+        // Status changes can precede the detailed load error. Give the paired callback a turn.
+        val failedDuringLoad = pending == item
+        if (failureJob?.isActive == true && code == null) return
+        failureJob?.cancel()
+        failureJob = scope.launch {
+            delay(if (code == null) 400L else 1L)
+            val wasPending = pending == item
+            if (failedDuringLoad != wasPending) return@launch
+            if (!wasPending && (controls.value.item != item || pending != null)) return@launch
+            if (timedOut && remote?.mediaStatus?.mediaInfo?.customData?.optString("reseqCastId") == item.token) remote?.stop()
+            val attempt = if (wasPending) nextAttempt else playingAttempt
+            val failedRelay = if (wasPending) pendingRelay else relay
+            val failure = classifyCastFailure(code, failedRelay?.deliveryFailed == true)
+            val retryLiveFormat = item.live && item.iptv && failedRelay?.canRetryLiveFormat(code) == true
+            val liveFailure = if (item.live) {
+                val format = when {
+                    attempt?.mediaType?.contains("mpegurl", ignoreCase = true) == true -> "HLS"
+                    attempt?.mediaType.equals("video/mp2t", true) -> "MPEG-TS"
+                    attempt?.mediaType.equals("application/dash+xml", true) -> "DASH"
+                    else -> "stream"
+                }
+                val route = when {
+                    failedRelay != null -> "Phone relay ($format)"
+                    attempt != null -> "Provider URL ($format)"
+                    else -> "Chromecast"
+                }
+                val reason = when {
+                    timedOut -> "timed out after ${attempt?.loadTimeoutSeconds ?: 30} seconds."
+                    code != null && code != 0 -> "reported Cast media error $code."
+                    attempt?.loadStatus != null -> "failed with Cast load status ${attempt.loadStatus}."
+                    else -> "failed without a receiver error code."
+                }
+                listOfNotNull("$route $reason", failedRelay?.liveFailureDetail()).joinToString(" ")
+            } else null
+            if (wasPending) {
+                nextAttempt = null
+                cancelPending()
+            } else {
+                playingAttempt = null
+                if (attempt != null && controls.value.position > 0) attempt.position = controls.value.position
+                finish(false)
+            }
+            val phone = attempt?.phone
+            if (phone == null) {
+                // A failed direct live load can also be a raw TS feed that needs packaging as HLS.
+                val retryDelivery = failure == CastFailure.DELIVERY || timedOut || (item.live && (wasPending || failure == CastFailure.FORMAT))
+                if (attempt != null && retryDelivery && !attempt.forceRelay && failedRelay == null &&
+                    receiverUrl(attempt.source.url)) {
+                    attempt.directFailure = liveFailure
+                    attempt.forceRelay = true
+                    if (item.live && item.iptv && attempt.source.hevcTransportStream) attempt.liveFormat = LiveCastFormat.COPY_VIDEO
+                    start(attempt)
+                    return@launch
+                }
+                if (retryLiveFormat && attempt != null && attempt.liveFormat != LiveCastFormat.H264) {
+                    attempt.liveFormat = if (attempt.liveFormat == null) LiveCastFormat.COPY_VIDEO else LiveCastFormat.H264
+                    attempt.forceRelay = true
+                    start(attempt)
+                    return@launch
+                }
+                fail(if (liveFailure != null) listOfNotNull(
+                    "Google Cast does not support H.265 in MPEG-TS. Choose an H.264 version of this channel if available."
+                        .takeIf { attempt?.source?.hevcTransportStream == true },
+                    attempt?.directFailure, liveFailure
+                ).joinToString("\n")
+                    else if (failure == CastFailure.FORMAT) "Chromecast couldn’t decode this source. Choose another version of the video."
+                    else "Chromecast couldn't play this source.")
+                return@launch
+            }
+            when (failure) {
+                CastFailure.DELIVERY -> if (!phone.deliveryRetried) {
+                    phone.deliveryRetried = true
+                    start(attempt)
+                } else {
+                    phone.close()
+                    fail("The phone couldn’t deliver the media. Check the connection or choose another source.")
+                }
+                CastFailure.FORMAT -> start(attempt, advance = true)
+                CastFailure.UNKNOWN -> if (phone.format != CastFormat.H264) {
+                    failedAttempt = attempt
+                    controls.update { it.copy(loading = false, preparation = null, compatibilityAvailable = true,
+                        error = "The receiver couldn’t play this file. Try compatibility mode?") }
+                } else {
+                    phone.close()
+                    fail("The receiver couldn’t play the converted video.")
+                }
+            }
+        }
+    }
+
+    fun tryCompatibility() {
+        val attempt = failedAttempt ?: return
+        failedAttempt = null
+        start(attempt, advance = true)
+    }
+
+    private fun fail(text: String) {
+        cancelPending()
+        controls.update { it.copy(loading = false, error = text, preparation = null, compatibilityAvailable = false) }
+    }
+    fun dismissError() {
+        failedAttempt?.phone?.close()
+        failedAttempt = null
+        controls.update { it.copy(error = null, compatibilityAvailable = false) }
+    }
+    fun isCurrentTorrent(url: String?) = url != null && (torrents.state.value as? TorrentState.Streaming)?.localUrl == url
+    fun toggle() { remote?.let { if (it.isPlaying) it.pause() else it.play() } }
+    fun seek(ms: Long) {
+        if (controls.value.item?.live == false) remote?.seek(MediaSeekOptions.Builder().setPosition(ms.coerceIn(0L, controls.value.duration)).build())
+    }
+    fun speed(rate: Double) { if (controls.value.item?.live == false) remote?.setPlaybackRate(rate) }
+    fun track(type: Int, id: Long?) {
+        val state = controls.value
+        if (state.item == null) return
+        val keep = state.selected - state.tracks.filter { it.type == type }.map { it.id }.toSet()
+        remote?.setActiveMediaTracks((keep + listOfNotNull(id)).toLongArray())?.setResultCallback {
+            if (!it.status.isSuccess) controls.update { old -> old.copy(error = "The receiver couldn't change tracks.") }
+        }
+    }
+    fun disconnect() { manager?.endCurrentSession(true) }
+    override fun onSessionStarted(session: CastSession, sessionId: String) = attach(session)
+    override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) = attach(session)
+    override fun onSessionEnding(session: CastSession) { update() }
+    override fun onSessionEnded(session: CastSession, error: Int) {
+        dismissError(); failureJob?.cancel(); detachClient(); cancelPending(); finish(false); controls.value = CastControls()
+    }
+    override fun onSessionSuspended(session: CastSession, reason: Int) {
+        val state = controls.value
+        state.item?.takeUnless { it.iptv }?.video?.let {
+            tracker.observe(CastSample(it, state.position, state.duration, false, SystemClock.elapsedRealtime(), state.item.cloudToken))
+        }
+        detachClient()
+        controls.update { it.copy(playing = false) }
+    }
+    override fun onSessionStarting(session: CastSession) = Unit
+    override fun onSessionResuming(session: CastSession, sessionId: String) = Unit
+    override fun onSessionStartFailed(session: CastSession, error: Int) = fail("Couldn't connect to Chromecast.")
+    override fun onSessionResumeFailed(session: CastSession, error: Int) = onSessionEnded(session, error)
+}

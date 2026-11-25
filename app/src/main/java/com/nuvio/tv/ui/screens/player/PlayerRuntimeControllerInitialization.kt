@@ -554,7 +554,22 @@ internal fun PlayerRuntimeController.initializePlayer(
             }
             currentParallelChunkOverheadMb = parallelOverheadMb
 
-            val loadControl = if (playerSettings.nuvioPerformanceModeEnabled) {
+            val mobileDownload = com.nuvio.tv.BuildConfig.FLAVOR == "mobile" && url.startsWith("file:", ignoreCase = true)
+            val loadControl = if (mobileDownload) {
+                // A seek can read straight from disk. Stream-sized read-ahead only adds memory pressure here.
+                currentBitrateAwareLoadControl = null
+                configuredBackBufferMs = 0
+                effectiveBackBufferDurationMs = 0
+                val allocator = androidx.media3.exoplayer.upstream.DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE, 0, false)
+                NuvioExoPlayerPerformanceHelper.liveAllocator = allocator
+                DefaultLoadControl.Builder()
+                    .setAllocator(allocator)
+                    .setTargetBufferBytes(24 * 1024 * 1024)
+                    .setBufferDurationsMs(500, 4_000, 250, 500)
+                    .setPrioritizeTimeOverSizeThresholds(false)
+                    .setBackBuffer(0, false)
+                    .build()
+            } else if (playerSettings.nuvioPerformanceModeEnabled) {
                 effectiveBackBufferDurationMs = NuvioExoPlayerPerformanceHelper.backBufferMs
                 currentBitrateAwareLoadControl = null
                 Log.i(
@@ -631,15 +646,15 @@ internal fun PlayerRuntimeController.initializePlayer(
             // The cache wraps whichever upstream data source it is given, so it does not depend on
             // either buffer engine. The low-RAM plus confirmed DV7 case is handled dynamically at
             // first frame, since the stream content is not known here.
-            mediaSourceFactory.bufferEngineEnabled = playerSettings.bufferEngineEnabled
+            mediaSourceFactory.bufferEngineEnabled = !mobileDownload && playerSettings.bufferEngineEnabled
             mediaSourceFactory.bufferBudgetManaged = playerSettings.bufferBudgetManaged
-            mediaSourceFactory.vodCacheEnabled = playerSettings.vodCacheEnabled
+            mediaSourceFactory.vodCacheEnabled = !mobileDownload && playerSettings.vodCacheEnabled
             mediaSourceFactory.vodCacheSizeMode = playerSettings.vodCacheSizeMode
             mediaSourceFactory.vodCacheSizeMb = playerSettings.vodCacheSizeMb
-            mediaSourceFactory.nativeEngineEnabled = playerSettings.nuvioPerformanceModeEnabled
+            mediaSourceFactory.nativeEngineEnabled = !mobileDownload && playerSettings.nuvioPerformanceModeEnabled
 
-            mediaSourceFactory.nuvioPerformanceModeEnabled = playerSettings.nuvioPerformanceModeEnabled
-            if (playerSettings.parallelNetworkEnabled && !isTorrentStream) {
+            mediaSourceFactory.nuvioPerformanceModeEnabled = !mobileDownload && playerSettings.nuvioPerformanceModeEnabled
+            if (!mobileDownload && playerSettings.parallelNetworkEnabled && !isTorrentStream) {
                 mediaSourceFactory.useParallelConnections = playerSettings.useParallelConnections
                 mediaSourceFactory.parallelConnectionCount = playerSettings.parallelConnectionCount
                 mediaSourceFactory.parallelChunkSizeKb = playerSettings.parallelChunkSizeKb
@@ -663,8 +678,8 @@ internal fun PlayerRuntimeController.initializePlayer(
             )
 
             currentDiagnostics = currentDiagnostics.copy(
-                bufferEngineEnabled = playerSettings.bufferEngineEnabled,
-                parallelNetworkEnabled = playerSettings.parallelNetworkEnabled
+                bufferEngineEnabled = mediaSourceFactory.bufferEngineEnabled,
+                parallelNetworkEnabled = !mobileDownload && playerSettings.parallelNetworkEnabled
             )
 
             val safeAudioModeEnabled = safeAudioForcedStreamUrls.contains(url)

@@ -2761,4 +2761,13 @@
     <string name="autosync_status_no_fit">Kan ikke matche</string>
     <string name="autosync_status_no_reference">Ingen indlejrede undertekster</string>
     <string name="autosync_status_failed">Mislykkedes</string>
+    <string name="iptv_immediate_tier">Medtag IPTV VOD blandt kilder til straksafspilning</string>
+    <string name="iptv_fallback_tier">Medtag IPTV VOD blandt reservekilder</string>
+    <string name="when_watched">Hvornår så du det?</string>
+    <string name="watched_now">Markér som set nu</string>
+    <string name="choose_watch_date">Vælg dato</string>
+    <string name="choose_watch_date_time">Vælg dato og klokkeslæt</string>
+    <string name="choose_watch_time">Vælg klokkeslæt</string>
+    <string name="choose_past_watch_time">Vælg et gyldigt tidspunkt i fortiden.</string>
+    <string name="episodes_last_watch_mdblist_pending">Visningen er fjernet fra denne enhed. Afventer bekræftelse fra MDBList.</string>
 </resources>

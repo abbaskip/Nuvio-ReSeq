@@ -6,9 +6,15 @@
 
 Nuvio ReSeq is an independent Android TV fork of [Nuvio](https://github.com/NuvioMedia/NuvioTV), combining TheTVDB episode ordering and identity-aware tracking with integrated IPTV and Sports Hub. Its Live TV and Sports implementation incorporates and adapts code from [Nuvio + IPTV](https://github.com/homelessbrian/NuvioPlusIPTV), alongside the original Nuvio foundation.
 
-**[Download the latest APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/latest)** · [All releases](https://github.com/abbaskip/Nuvio-ReSeq/releases) · [Report an issue](https://github.com/abbaskip/Nuvio-ReSeq/issues)
+## Downloads
 
-[Project website](https://abbaskip.github.io/Nuvio-ReSeq/) · [Privacy Policy](https://abbaskip.github.io/Nuvio-ReSeq/privacy.html) · [Terms of Service](https://abbaskip.github.io/Nuvio-ReSeq/terms.html)
+**Android TV** · [Latest TV release](https://github.com/abbaskip/Nuvio-ReSeq/releases/latest) · [All releases](https://github.com/abbaskip/Nuvio-ReSeq/releases)
+
+**Android phones and tablets** · [ReSeq Mobile 0.1.0 Beta 3.2 release notes and checksums](https://github.com/abbaskip/Nuvio-ReSeq/releases/tag/mobile-v0.1.0-beta.3.2) · [All mobile releases](https://github.com/abbaskip/Nuvio-ReSeq/releases?q=ReSeq+Mobile)
+
+Install the [universal APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/download/mobile-v0.1.0-beta.3.2/Nuvio-ReSeq-Mobile-v0.1.0-beta.3.2-universal.apk) if you’re unsure which to choose. For ARM64 phones and tablets, the [ARM64 APK](https://github.com/abbaskip/Nuvio-ReSeq/releases/download/mobile-v0.1.0-beta.3.2/Nuvio-ReSeq-Mobile-v0.1.0-beta.3.2-arm64-v8a.apk) is a smaller download. Either APK updates an existing signed ReSeq Mobile installation and can be installed alongside ReSeq TV. [Mobile features and build instructions](docs/reseq-mobile.md)
+
+[Report an issue](https://github.com/abbaskip/Nuvio-ReSeq/issues) · [Project website](https://abbaskip.github.io/Nuvio-ReSeq/) · [Privacy Policy](https://abbaskip.github.io/Nuvio-ReSeq/privacy.html) · [Terms of Service](https://abbaskip.github.io/Nuvio-ReSeq/terms.html)
 
 ## Copyright, content sources and independence
 
@@ -63,9 +69,9 @@ Optional Gemini assistance uses **your own key**, entered in Settings. It is not
 
 ## Configuration backup and personal ratings
 
-**Google Drive backup and sync** is available in **Settings → Backup & Sync** on the primary profile. Connect Google Drive on each TV using the on-screen code. Manual backup/restore and debounced automatic sync carry playlists and connection settings, guide mappings, channel customisations, Sports Hub preferences and each profile's mixed addon/playlist source ordering, disabled playlist sources, non-default TVDB order IDs, personal TVDB keys and per-series Shuffle choices (enabled/off and All episodes/Unwatched episodes). The global Shuffle availability switch continues using Nuvio's existing settings/cloud sync. Temporarily unavailable orders are retained. Use matching Nuvio profile IDs and names on both devices; restore stops rather than assigning one person's choices to another profile.
+**Google Drive backup and sync** is available in **Settings → Backup & Sync** on the primary profile. Connect Google Drive on each TV using the on-screen code. A new or renewed connection starts with automatic sync off, so you can restore the saved setup first. Manual backup/restore and debounced automatic sync carry playlists and connection settings, guide mappings, channel customisations, Sports Hub preferences and each profile's mixed addon/playlist source ordering, disabled playlist sources, non-default TVDB order IDs, personal TVDB keys and per-series Shuffle choices (enabled/off and All episodes/Unwatched episodes). The global Shuffle availability switch continues using Nuvio's existing settings/cloud sync. Temporarily unavailable orders are retained. Use matching Nuvio profile IDs and names on both devices; restore stops rather than assigning one person's choices to another profile.
 
-The settings file includes private playlist credentials. Drive sync stores profile-specific TVDB keys in a separate private file named `Nuvio ReSeq TVDB credentials.json`. Anyone with access to that file can read the keys. Keep both files private. TMDB and Gemini keys, tracker sessions, learned episode mappings and playback caches stay on each TV. Conflicting changes stop sync and are reported rather than silently overwriting settings. Automatic checks run while ReSeq is open, not as an always-running background service. Explicit Restore uses the saved configuration, so review the confirmation first.
+The settings file includes private playlist credentials. Drive sync stores profile-specific TVDB keys in a separate private file named `Nuvio ReSeq TVDB credentials.json`. Configured TMDB, Gemini, debrid, MDBList and AnimeSkip credentials are saved in `Nuvio ReSeq provider credentials.json` for matching profiles. Anyone with access to these files can read the keys. Tracker sessions, learned episode mappings and playback caches stay on each TV. Conflicting changes stop sync and are reported rather than silently overwriting settings. Automatic checks run while ReSeq is open, not as an always-running background service. Explicit Restore uses the saved configuration, so review the confirmation first.
 
 **Rate** on movie and series details reads your personal ratings and submits changes to all eligible signed-in Trakt, Simkl and MDBList accounts, independently of your Continue Watching source. Half-star choices map to their 1–10 scales. Each service confirms its own result; failures are reported separately. Removing a rating uses the rating-removal API, not history deletion. Simkl itself may add a newly rated title to a watching/completed list according to its API rules.
 

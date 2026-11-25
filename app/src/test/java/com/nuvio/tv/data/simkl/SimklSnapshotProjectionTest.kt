@@ -44,6 +44,8 @@ class SimklSnapshotProjectionTest {
         assertEquals(snapshot.toSimklWatchedProjection(), projection.watched)
         assertEquals(snapshot.toSimklProgressEntries(), projection.progress)
         assertEquals(2, projection.nextUp(true).single().episode)
+        assertEquals(setOf(1, 2), projection.completedNextUpHistory("tmdb:101").map { it.episode }.toSet())
+        assertTrue(projection.completedNextUpHistory("tt0000001").all { it.isCompleted() })
         assertSame(projection.nextUp(true), projection.nextUp(true))
     }
 
@@ -120,6 +122,7 @@ class SimklSnapshotProjectionTest {
 
         assertTrue(projection.isHidden("tmdb:101"))
         assertTrue(projection.nextUp(true).none { it.contentId == "tt0000001" })
+        assertTrue(projection.completedNextUpHistory("tt0000001").isEmpty())
         assertTrue(projection.isWatchedByVideoId("mal:202:7", 1))
         assertFalse(projection.isWatchedByVideoId("mal:202:8", 8))
         assertFalse("tt0000003" in projection.watchedMovieIds)

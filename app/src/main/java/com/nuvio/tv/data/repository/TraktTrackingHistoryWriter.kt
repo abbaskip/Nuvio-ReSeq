@@ -24,10 +24,13 @@ class TraktTrackingHistoryWriter @Inject constructor(
         items: Collection<TrackingHistoryItem>
     ): TrackingMutationResult {
         if (profileId != profileManager.activeProfileId.value) return TrackingMutationResult(0)
-        val progress = items.map { item -> item.media.toWatchProgress(item.watchedAtEpochMs) }
-        progress.groupBy { item -> item.contentId }.values.forEach { group ->
+        val groups = items.map { item ->
+            val explicitTime = item.watchedAtEpochMs.takeIf { item.userSelectedWatchTime }
+            item.media.toWatchProgress(item.watchedAtEpochMs) to explicitTime
+        }.groupBy({ (progress, time) -> progress.contentId to time }, { it.first })
+        for ((key, group) in groups) {
             if (group.size > 1 && group.all { it.season != null && it.episode != null }) {
-                service.markSeasonWatchedBatch(group)
+                service.markSeasonWatchedBatch(group, key.second)
             } else {
                 group.forEach { item ->
                     service.markAsWatched(item, item.name.takeIf(String::isNotBlank), null)
@@ -35,6 +38,14 @@ class TraktTrackingHistoryWriter @Inject constructor(
             }
         }
         return TrackingMutationResult(items.size)
+    }
+
+    override suspend fun addOfflineWatch(profileId: Int, item: TrackingHistoryItem): TrackingMutationResult {
+        if (profileManager.activeProfileId.value != profileId || item.isWholeSeriesMark) return TrackingMutationResult(0)
+        val row = item.media.toWatchProgress(requireNotNull(item.watchedAtEpochMs))
+        service.markAsWatched(row, item.media.title, item.media.year,
+            nativeNumbering = item.media.episode?.numberingProvider == "trakt", requireAdded = true)
+        return TrackingMutationResult(1)
     }
 
     override suspend fun removeFromHistory(

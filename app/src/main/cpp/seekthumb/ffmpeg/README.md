@@ -1,0 +1,1 @@
+Public FFmpeg headers from commit 359c82515228774eb683dffce9d623b6b4a2fa53, matching the native libraries shipped by mpv-android-lib 0.2.2. LGPL 2.1 terms are in COPYING.LGPLv2.1. avconfig.h configures little-endian Android targets. Update these headers together with the playback dependency.

@@ -872,6 +872,8 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
                 "audio/x-mpegurl",
                 "application/m3u8" -> MimeTypes.APPLICATION_M3U8
 
+                "video/mp2t" -> MimeTypes.VIDEO_MP2T
+
                 "application/dash+xml",
                 "video/vnd.mpeg.dash.mpd" -> MimeTypes.APPLICATION_MPD
 
@@ -930,7 +932,7 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
             val methods = listOf("HEAD", "GET")
             for (method in methods) {
                 runCatching {
-                    val requestBuilder = Request.Builder().url(url)
+                    val requestBuilder = Request.Builder().url(url).method(method, null)
                     if (method == "GET") {
                         requestBuilder.header("Range", "bytes=0-2048")
                     }
@@ -961,6 +963,8 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
                             val snippet = response.body?.byteStream()?.use { stream ->
                                 val bytes = ByteArray(512)
                                 val read = stream.read(bytes)
+                                if (read > 376 && bytes[0] == 0x47.toByte() && bytes[188] == bytes[0] && bytes[376] == bytes[0])
+                                    return@withContext MimeTypes.VIDEO_MP2T
                                 if (read > 0) String(bytes, 0, read, Charsets.UTF_8) else null
                             }
                             sniffManifestMimeType(snippet)?.let { return@withContext it }

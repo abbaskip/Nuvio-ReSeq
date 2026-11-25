@@ -39,18 +39,19 @@ class LiveTvSettingsViewModel @Inject constructor(
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 val before = com.nuvio.tv.livetv.data.IptvStorageReport.scan(context)
+                val installerInUse = clean && !updateStorage.clean()
                 if (clean) {
                     repository.maintainStorage()
                     onDemand.maintainStorage()
                     posterStore.prune()
                     streamLinks.pruneAllProfiles()
-                    updateStorage.clean()
                 }
                 val after = com.nuvio.tv.livetv.data.IptvStorageReport.scan(context)
                 storage.value = after
                 storageMessage.value = if (clean) "${com.nuvio.tv.livetv.data.IptvStorageSnapshot.size((before.totalBytes - after.totalBytes).coerceAtLeast(0))} reclaimed. Recordings and source selections kept."
                     else "Includes database journals. Recordings are never removed by cleanup."
                 if (clean && onDemand.shrinkingNeedsSpace()) storageMessage.value += " More free space is needed to finish shrinking the catalogue."
+                if (installerInUse) storageMessage.value += " Close the Android installer and clean again to remove the update download."
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (_: Exception) { storageMessage.value = "Couldn't complete storage maintenance. Try again when imports and playback finish." }
             finally { storageBusy.value = false }
@@ -91,9 +92,9 @@ class LiveTvSettingsViewModel @Inject constructor(
     fun addPlaylist(name: String, url: String, userAgent: String) =
         viewModelScope.launch { repository.addPlaylist(name, url, userAgent) }
 
-    fun addStalker(name: String, portal: String, mac: String, user: String, pass: String, serial: String, vod: Boolean = false, live: Boolean = true) =
+    fun addStalker(source: PlaylistSource) =
         viewModelScope.launch {
-            repository.addStalker(name, portal, mac, user, pass, serial, vod, live)
+            repository.addStalker(source)
             onDemand.refreshSoon()
         }
 

@@ -37,6 +37,40 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class WatchProgressRepositoryProfileIsolationTest {
+    @Test fun `selected watch time survives TVDB translation and every history writer for single and bulk marks`() = runTest {
+        val watchedAt = 1_578_000_000_000L
+        val providers = TrackingProviderId.entries.map { id -> mockk<TrackingProgressProvider>(relaxed = true) {
+            every { providerId } returns id
+            every { isAuthenticated } returns flowOf(true)
+        } }.toSet()
+        val writers = TrackingProviderId.entries.map { id -> mockk<TrackingHistoryWriter>(relaxed = true) {
+            every { providerId } returns id
+        } }.toSet()
+        val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>(relaxed = true)
+        coEvery { tvdb.identifyProgress(1, any()) } answers { secondArg() }
+        coEvery { tvdb.resolveAll(1, any(), any(), completed = true, coverageChangesOnly = false) } answers {
+            val display = thirdArg<TrackingMediaReference>()
+            listOf(display.copy(episode = display.episode!!.copy(season = 1, number = display.episode!!.number + 10)))
+        }
+        val h = harness(1, tvdb, providerSet = providers, writers = writers)
+        fun episode(number: Int): WatchProgress {
+            val context = com.nuvio.tv.domain.model.TvdbPlaybackContext(42, "dvd", 100L + number, 2, number,
+                listOf(200L + number), "tt1234567:2:$number")
+            return progress("tt1234567", 1, 100).copy(contentType = "series", season = 2, episode = number,
+                videoId = context.requestVideoId, tvdbEpisodeIds = context.episodeIds, tvdbContext = context)
+        }
+        h.repository.markAsCompleted(episode(1), watchedAt = watchedAt)
+        h.repository.markAsCompletedBatch(listOf(episode(2), episode(3)), watchedAt = watchedAt)
+        coVerify { h.progressPreferences.saveProgress(match { it.lastWatched == watchedAt && it.episode == 1 }, 1) }
+        coVerify { h.progressPreferences.saveProgressBatch(match { it.map { p -> p.lastWatched } == listOf(watchedAt, watchedAt) }, 1) }
+        for (writer in writers) {
+            coVerify { writer.addToHistory(1, match { rows -> rows.singleOrNull()?.let {
+                it.watchedAtEpochMs == watchedAt && it.userSelectedWatchTime && it.media.episode?.number == 11
+            } == true }) }
+            coVerify { writer.addToHistory(1, match { rows -> rows.map { it.media.episode?.number } == listOf(12, 13) &&
+                rows.all { it.watchedAtEpochMs == watchedAt && it.userSelectedWatchTime } }) }
+        }
+    }
     @Test fun `switching from TVDB to Provider Default restores native progress without restarting or resubscribing`() = runTest {
         val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>()
         val selection = MutableStateFlow<com.nuvio.tv.data.tvdb.TvdbOrderPreference?>(com.nuvio.tv.data.tvdb.TvdbOrderPreference(73244, "alternate"))
@@ -125,7 +159,7 @@ class WatchProgressRepositoryProfileIsolationTest {
     @Test
     fun `completion queues progress and watched mutations for one profile`() = runTest {
         val harness = harness(activeProfileId = 2)
-        val progress = progress("item", position = 2_000L, duration = 10_000L)
+        val progress = progress("item", position = 2_000L, duration = 10_000L).copy(lastWatched = 946_684_800_000L)
 
         harness.repository.markAsCompleted(
             progress = progress,
@@ -138,20 +172,21 @@ class WatchProgressRepositoryProfileIsolationTest {
                 match { entries ->
                     entries.keys == setOf("item") &&
                         entries.getValue("item").position == 10_000L &&
-                        entries.getValue("item").duration == 10_000L
+                        entries.getValue("item").duration == 10_000L &&
+                        entries.getValue("item").lastWatched == progress.lastWatched
                 },
                 1
             )
         }
         coVerify(exactly = 1) {
             harness.mutationStore.queueWatchedUpserts(
-                match { items -> items.single().contentId == "item" },
+                match { items -> items.single().contentId == "item" && items.single().watchedAt == progress.lastWatched },
                 1
             )
         }
         coVerify(exactly = 1) {
             harness.watchedPreferences.markAsWatched(
-                match { it.contentId == "item" },
+                match { it.contentId == "item" && it.watchedAt == progress.lastWatched },
                 profileId = 1
             )
         }
@@ -248,6 +283,7 @@ class WatchProgressRepositoryProfileIsolationTest {
             every { provider.nextUpSeeds } returns seeds
             every { provider.allProgress } returns seeds
             every { provider.episodeProgress("tt123") } answers { flowOf(mapOf((5 to 13) to native.copy(episode = 13))) }
+            every { provider.nativeEpisodeRecords("tt123") } returns seeds
             every { provider.retainsLocalProgress(any()) } returns false
             val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>(relaxed = true)
             every { tvdb.observeSelectedSeries(1) } returns flowOf(setOf(1L))
@@ -360,6 +396,7 @@ class WatchProgressRepositoryProfileIsolationTest {
                 every { providerId } returns id
                 every { isAuthenticated } returns flowOf(true)
                 every { episodeProgress("show") } returns flowOf(mapOf((6 to 16) to completed))
+                every { nativeEpisodeRecords("show") } returns flowOf(listOf(completed, pause))
                 every { allProgress } returns flowOf(listOf(pause))
             }
             val tvdb = mockk<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>(relaxed = true)
@@ -494,7 +531,7 @@ class WatchProgressRepositoryProfileIsolationTest {
         progressSource: WatchProgressSource = WatchProgressSource.NUVIO_SYNC,
         selectedSource: kotlinx.coroutines.flow.Flow<WatchProgressSource> = flowOf(progressSource),
         providerSet: Set<TrackingProgressProvider> = setOfNotNull(provider),
-        cw: com.nuvio.tv.data.cw.ContinueWatchingRepository? = null): Harness {
+        cw: com.nuvio.tv.data.cw.ContinueWatchingRepository? = null, writers: Set<TrackingHistoryWriter> = emptySet()): Harness {
         val activeProfile = MutableStateFlow(activeProfileId)
         val profileManager = mockk<ProfileManager>()
         every { profileManager.resolvedActiveProfileId } returns activeProfile
@@ -526,7 +563,7 @@ class WatchProgressRepositoryProfileIsolationTest {
             tmdbService = mockk<TmdbService>(relaxed = true),
             profileManager = profileManager,
             trackingProgressProviders = TrackingProgressProviderRegistry(providerSet),
-            trackingHistoryWriters = TrackingHistoryWriterRegistry(emptySet()),
+            trackingHistoryWriters = TrackingHistoryWriterRegistry(writers),
             mutationStore = mutationStore,
             serverWatched = mockk(relaxed = true),
             tvdbTracking = tvdb,

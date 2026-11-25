@@ -3176,4 +3176,13 @@
     <string name="autosync_status_no_fit">Может не совпадать</string>
     <string name="autosync_status_no_reference">Нет встроенных субтитров</string>
     <string name="autosync_status_failed">Не удалось</string>
+    <string name="iptv_immediate_tier">Включать IPTV VOD в источники для мгновенного запуска</string>
+    <string name="iptv_fallback_tier">Включать IPTV VOD в резервные источники</string>
+    <string name="when_watched">Когда вы это смотрели?</string>
+    <string name="watched_now">Отметить просмотр сейчас</string>
+    <string name="choose_watch_date">Выбрать дату</string>
+    <string name="choose_watch_date_time">Выбрать дату и время</string>
+    <string name="choose_watch_time">Выбрать время</string>
+    <string name="choose_past_watch_time">Выберите корректную дату и время в прошлом.</string>
+    <string name="episodes_last_watch_mdblist_pending">Запись о просмотре удалена с этого устройства. Ожидается подтверждение от MDBList.</string>
 </resources>

@@ -77,7 +77,7 @@ internal fun aspectModeOf(name: String): com.nuvio.tv.ui.screens.player.AspectMo
 @Composable
 fun LiveTvPlayerScreen(
     onBack: () -> Unit,
-    onFindInNuvio: () -> Unit = {},
+    onFindInNuvio: (com.nuvio.tv.livetv.ui.GuideLookup) -> Unit = {},
     /** Overlay mode off: Left goes back to the guide with the group list open. */
     onBackToGroups: () -> Unit = onBack,
     /**
@@ -90,6 +90,7 @@ fun LiveTvPlayerScreen(
     viewModel: LiveTvViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    com.nuvio.tv.livetv.thumbs.LiveTvSeekThumbsHook(viewModel)
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
     val user by viewModel.userState.collectAsStateWithLifecycle()
     val pictureShapes by viewModel.pictureShapes.collectAsStateWithLifecycle()
@@ -883,6 +884,7 @@ fun LiveTvPlayerScreen(
                     poster = poster,
                     showPosters = settings.showPosters,
                     timeline = timeline,
+                    scrubPreview = scrubTargetMs != null,
                     paused = paused,
                     controls = panelControls(mode, paused, canSkip = archive || viewModel.playback.shiftCanSeek()),
                     focused = controlFocus,
@@ -929,10 +931,9 @@ fun LiveTvPlayerScreen(
             LiveTvOverlayMode(
                 viewModel = viewModel,
                 onClose = { listVisible = false },
-                onFindInNuvio = { title ->
+                onFindInNuvio = { listing ->
                     listVisible = false
-                    LiveTvSearchBridge.request(title)
-                    onFindInNuvio()
+                    onFindInNuvio(listing)
                 }
             )
         }
@@ -1074,12 +1075,10 @@ fun LiveTvPlayerScreen(
                     viewModel.previousChannel()?.let { viewModel.preview(it) }
                 },
                 onSearch = viewModel.currentProgram(ch.key)
-                    ?.let { com.nuvio.tv.livetv.data.LiveTvPosterResolver.searchTitleFor(it, ch) }
-                    ?.let { title ->
+                    ?.let { program ->
                         {
                             dialog = PlayerDialog.NONE
-                            LiveTvSearchBridge.request(title)
-                            onFindInNuvio()
+                            onFindInNuvio(GuideLookup.from(program, ch))
                         }
                     },
                 onReload = { dialog = PlayerDialog.NONE; viewModel.playback.retry() },

@@ -17,6 +17,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
@@ -42,7 +45,8 @@ class TrailerService(
     private val tmdbSettingsDataStore: TmdbSettingsDataStore,
     private val tmdbService: TmdbService,
     private val clock: Clock = Clock.systemUTC(),
-    private val maxTrailerVideoHeight: suspend () -> Int = { Int.MAX_VALUE }
+    private val maxTrailerVideoHeight: suspend () -> Int = { Int.MAX_VALUE },
+    private val trailerNetwork: TrailerNetworkAccess? = null
 ) {
     @Inject
     constructor(
@@ -51,7 +55,8 @@ class TrailerService(
         inAppYouTubeExtractor: InAppYouTubeExtractor,
         tmdbSettingsDataStore: TmdbSettingsDataStore,
         tmdbService: TmdbService,
-        trailerSettingsDataStore: TrailerSettingsDataStore
+        trailerSettingsDataStore: TrailerSettingsDataStore,
+        trailerNetwork: java.util.Optional<TrailerNetworkAccess>
     ) : this(
         trailerApi = trailerApi,
         tmdbApi = tmdbApi,
@@ -59,8 +64,29 @@ class TrailerService(
         tmdbSettingsDataStore = tmdbSettingsDataStore,
         tmdbService = tmdbService,
         clock = Clock.systemUTC(),
-        maxTrailerVideoHeight = trailerHeightCap(trailerSettingsDataStore)
+        maxTrailerVideoHeight = trailerHeightCap(trailerSettingsDataStore),
+        trailerNetwork = trailerNetwork.orElse(null)
     )
+
+    internal fun isNetworkBlocked() = trailerNetwork?.allowsPlaybackNow() == false
+
+    private suspend fun <T> requestTrailer(block: suspend () -> T?): T? = withContext(Dispatchers.IO) {
+        val network = trailerNetwork ?: return@withContext block()
+        if (!network.allowsPlaybackNow()) return@withContext null
+        coroutineScope {
+            val restricted = async { network.playbackAllowed.first { !it } }
+            val request = async { block() }
+            try {
+                select<T?> {
+                    restricted.onAwait { null }
+                    request.onAwait { it }
+                }
+            } finally {
+                restricted.cancel()
+                request.cancel()
+            }
+        }
+    }
 
     // Cache: "title|year|tmdbId|type|maxHeight" -> trailer playback source (NEGATIVE_CACHE sentinel for misses).
     // The height is part of the key so toggling 4K trailers takes effect without a restart.
@@ -87,7 +113,7 @@ class TrailerService(
         tmdbId: String? = null,
         type: String? = null,
         ignoreUseTrailersGate: Boolean = false
-    ): TrailerPlaybackSource? = withContext(Dispatchers.IO) {
+    ): TrailerPlaybackSource? = requestTrailer {
         // Read the TMDB settings once and reuse for both the "Disable Trailers"
         // gate and the trailer language lookup below. The gate respects the
         // user's "Disable Trailers in TMDB Enrichment" toggle: the TMDB path
@@ -99,7 +125,7 @@ class TrailerService(
         val tmdbSettings = runCatching { tmdbSettingsDataStore.settings.first() }.getOrNull()
         if (!ignoreUseTrailersGate && tmdbSettings?.useTrailers != true) {
             Log.d(TAG, "Trailers disabled in TMDB enrichment settings; skipping lookup")
-            return@withContext null
+            return@requestTrailer null
         }
         val tmdbLanguage = normalizeTmdbTrailerLanguage(tmdbSettings?.language)
 
@@ -108,7 +134,7 @@ class TrailerService(
         cache[cacheKey]?.let { cached ->
             val hit = cached !== NEGATIVE_CACHE
             Log.d(TAG, "Cache hit for $cacheKey: $hit")
-            return@withContext if (hit) cached else null
+            return@requestTrailer if (hit) cached else null
         }
 
         try {
@@ -125,13 +151,13 @@ class TrailerService(
             )
             if (tmdbSource != null) {
                 cache[cacheKey] = tmdbSource
-                return@withContext tmdbSource
+                return@requestTrailer tmdbSource
             }
             Log.w(TAG, "TMDB path exhausted; no YouTube trailer key resolved for backend /trailer fallback")
             // Only cache negative result if tmdbId was available — if null, enrichment
             // may not have completed yet and a retry with tmdbId could succeed. A miss while
             // YouTube is rate limiting says nothing about the title, so it isn't cached either.
-            if (tmdbId != null && !inAppYouTubeExtractor.isRateLimited()) {
+            if (tmdbId != null && !isNetworkBlocked() && !inAppYouTubeExtractor.isRateLimited()) {
                 cache[cacheKey] = NEGATIVE_CACHE
             }
             null
@@ -168,15 +194,15 @@ class TrailerService(
     suspend fun getExternalTrailerUrl(
         tmdbId: String?,
         type: String?
-    ): String? = withContext(Dispatchers.IO) {
+    ): String? = requestTrailer {
         // Parse the id first so an invalid/null tmdbId short-circuits without
         // touching the settings DataStore at all.
-        val numericTmdbId = tmdbId?.toIntOrNull() ?: return@withContext null
+        val numericTmdbId = tmdbId?.toIntOrNull() ?: return@requestTrailer null
         // Read settings once and use for both the "Disable Trailers" gate and
         // the trailer language. See #1647 for the gate rationale.
         val tmdbSettings = runCatching { tmdbSettingsDataStore.settings.first() }.getOrNull()
         if (tmdbSettings?.useTrailers != true) {
-            return@withContext null
+            return@requestTrailer null
         }
         val mediaType = normalizeTmdbMediaType(type)
         val tmdbLanguage = normalizeTmdbTrailerLanguage(tmdbSettings.language)
@@ -202,8 +228,8 @@ class TrailerService(
         title: String? = null,
         year: String? = null,
         languageOverride: String? = null
-    ): TrailerPlaybackSource? = withContext(Dispatchers.IO) {
-        val numericTmdbId = tmdbId?.toIntOrNull() ?: return@withContext null
+    ): TrailerPlaybackSource? = requestTrailer {
+        val numericTmdbId = tmdbId?.toIntOrNull() ?: return@requestTrailer null
         val mediaType = normalizeTmdbMediaType(type)
         val tmdbLanguage = languageOverride ?: getPreferredTmdbTrailerLanguage()
         Log.d(
@@ -242,7 +268,7 @@ class TrailerService(
                 year = year
             )
             if (source != null) {
-                return@withContext source
+                return@requestTrailer source
             }
 
             Log.d(
@@ -261,17 +287,17 @@ class TrailerService(
         youtubeUrl: String,
         title: String? = null,
         year: String? = null
-    ): TrailerPlaybackSource? = withContext(Dispatchers.IO) {
+    ): TrailerPlaybackSource? = requestTrailer {
         try {
             val maxHeight = maxTrailerVideoHeight()
             val youtubeKey = extractYouTubeVideoId(youtubeUrl)
             // Same video, different source per height cap, so the cap is part of the cache key.
             val sourceCacheKey = youtubeKey?.takeIf { it.isNotBlank() }?.let { "$it|$maxHeight" }
-                ?: return@withContext resolveYouTubeSource(youtubeUrl, null, maxHeight, title, year)
+                ?: return@requestTrailer resolveYouTubeSource(youtubeUrl, null, maxHeight, title, year)
 
             getValidCachedYoutubeSource(sourceCacheKey)?.let { cached ->
                 Log.d(TAG, "YouTube cache hit for key=${obfuscateYoutubeKey(youtubeKey.orEmpty())}")
-                return@withContext cached.copy(youtubeKey = youtubeKey)
+                return@requestTrailer cached.copy(youtubeKey = youtubeKey)
             }
 
             resolveYouTubeSourceOnce(sourceCacheKey) {

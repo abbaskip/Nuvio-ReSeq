@@ -4,6 +4,13 @@
     <!-- Lets the in-app updater install its own updates without a confirmation screen on Android 12+. -->
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.android.package-archive" />
+        </intent>
+    </queries>
+
     <application>
         <activity android:name=".core.plugin.cloudstream.ExtensionSettingsActivity"
             android:exported="false" android:theme="@style/Theme.ReSeq.ExtensionSettings" />

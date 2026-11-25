@@ -11,18 +11,18 @@ class SportsEventListingsTest {
         val fixtures = listOf(a, b)
         val channel = io.mockk.mockk<ChannelMatch>()
         val partial = mapOf("another-league" to listOf(channel))
-        assertEquals(fixtures, SportsEventListings.onMyChannels(fixtures, partial, true, false) { false })
-        assertTrue(SportsEventListings.onMyChannels(fixtures, partial, true, true) { false }.isEmpty())
-        assertEquals(listOf(a), SportsEventListings.onMyChannels(fixtures, partial + (a.id to listOf(channel)), true, true) { false })
-        assertEquals(fixtures, SportsEventListings.onMyChannels(fixtures, partial, true, true) { true })
+        assertEquals(fixtures, SportsEventListings.onMyChannels(fixtures, partial, true, false, now) { false })
+        assertTrue(SportsEventListings.onMyChannels(fixtures, partial, true, true, now) { false }.isEmpty())
+        assertEquals(listOf(a), SportsEventListings.onMyChannels(fixtures, partial + (a.id to listOf(channel)), true, true, now) { false })
+        assertEquals(fixtures, SportsEventListings.onMyChannels(fixtures, partial, true, true, now) { true })
     }
 
     private val day = 10 * 86_400_000L
     private val hour = 3_600_000L
     private val now = day + 12 * hour
 
-    @Test fun `overdue college games keep their time position while waiting for provider confirmation`() {
-        for (league in listOf("basketball/mens-college-basketball", "basketball/womens-college-basketball")) {
+    @Test fun `overdue games keep their time position while waiting for provider confirmation`() {
+        for (league in listOf("basketball/nba", "soccer/eng.1", "basketball/mens-college-basketball", "basketball/womens-college-basketball")) {
             fun college(id: String, at: Long) = event(id, at, GameState.PRE).copy(leagueId = league)
             val early = college("3am", day + 3 * hour)
             val live = event("live", now - hour, GameState.LIVE)
@@ -31,14 +31,18 @@ class SportsEventListingsTest {
             val input = listOf(next, pending, early, live)
             val listed = SportsEventListings.allEvents(input, day, day + 24 * hour, now)
             assertEquals(listOf(early, live, pending, next), listed)
-            assertEquals(1, SportsEventListings.entryIndex(listed))
-            assertTrue(early.awaitingCollegeStatus(now))
-            assertFalse(next.awaitingCollegeStatus(now))
-            assertFalse(college("tip", now - 59_999L).awaitingCollegeStatus(now))
-            assertFalse(early.copy(hasTime = false).awaitingCollegeStatus(now))
-            assertFalse(early.copy(state = GameState.OFF).awaitingCollegeStatus(now))
+            assertEquals(3, SportsEventListings.entryIndex(listed, now))
+            val otherChannel = mapOf("other" to listOf(io.mockk.mockk<ChannelMatch>()))
+            assertEquals(listOf(early), SportsEventListings.onMyChannels(input, otherChannel, true, true, now) { false })
+            assertEquals("Result pending", early.pendingStatusLabel(now))
+            assertEquals("Status pending", pending.pendingStatusLabel(now))
+            assertTrue(early.pastScheduledStart(now))
+            assertFalse(next.pastScheduledStart(now))
+            assertFalse(college("tip", now).pastScheduledStart(now))
+            assertFalse(early.copy(hasTime = false).pastScheduledStart(now))
+            assertFalse(early.copy(state = GameState.OFF).pastScheduledStart(now))
             val final = early.copy(state = GameState.POST, status = "Final")
-            assertFalse(final.awaitingCollegeStatus(now))
+            assertFalse(final.pastScheduledStart(now))
             assertEquals(listOf(final, live, pending, next), SportsEventListings.allEvents(input - early + final, day, day + 24 * hour, now))
             assertTrue(SportsEventListings.tvNow(input, now).isEmpty())
         }
@@ -47,7 +51,7 @@ class SportsEventListingsTest {
     private fun event(id: String, at: Long, state: GameState, source: EventSource = EventSource.ESPN) =
         SportsEvent(id, "basketball/nba", at, true, state, id, null, null, null, null, source = source)
 
-    @Test fun `timeline opens on first live event and retains finished and delayed fixtures`() {
+    @Test fun `timeline opens on next timed fixture and retains finished and delayed fixtures`() {
         val fixtures = listOf(
             event("result", now - 3 * hour, GameState.POST),
             event("delayed", now - 2 * hour, GameState.PRE),
@@ -55,17 +59,22 @@ class SportsEventListingsTest {
             event("later-live", now, GameState.LIVE),
             event("upcoming", now + hour, GameState.PRE))
         val timeline = SportsEventListings.allEvents(fixtures.reversed(), day, day + 24 * hour, now)
-        assertEquals(1, SportsEventListings.entryIndex(timeline))
-        assertEquals(listOf(fixtures[0], fixtures[2], fixtures[3], fixtures[1], fixtures[4]), timeline)
+        assertEquals(4, SportsEventListings.entryIndex(timeline, now))
+        assertEquals(listOf(fixtures[0], fixtures[1], fixtures[2], fixtures[3], fixtures[4]), timeline)
     }
 
     @Test fun `timeline opens on upcoming event when none are live and handles past or empty days`() {
         val result = event("result", now - hour, GameState.POST)
         val postponed = event("postponed", now, GameState.OFF)
         val upcoming = event("upcoming", now + hour, GameState.PRE)
-        assertEquals(2, SportsEventListings.entryIndex(listOf(result, postponed, upcoming)))
-        assertEquals(0, SportsEventListings.entryIndex(listOf(result, postponed)))
-        assertEquals(0, SportsEventListings.entryIndex(emptyList()))
+        assertEquals(2, SportsEventListings.entryIndex(listOf(result, postponed, upcoming), now))
+        assertEquals(0, SportsEventListings.entryIndex(listOf(result, postponed), now))
+        assertEquals(0, SportsEventListings.entryIndex(emptyList(), now))
+        val live = event("live", now - hour, GameState.LIVE)
+        val dateOnly = upcoming.copy(hasTime = false)
+        val stale = live.copy(awaitingUpdate = true)
+        assertEquals(3, SportsEventListings.entryIndex(listOf(stale, dateOnly, upcoming, upcoming.copy(startMs = now)), now))
+        assertEquals(2, SportsEventListings.entryIndex(listOf(stale, dateOnly, live), now))
     }
 
     @Test fun `only provider fixtures appear in All Events even when guide show names a match`() {
@@ -104,7 +113,7 @@ class SportsEventListingsTest {
         val tomorrow = event("tomorrow", day + 24 * hour, GameState.PRE)
         val today = event("today", day, GameState.PRE)
         val events = listOf(tomorrow, yesterday, today, overnight)
-        assertEquals(listOf(overnight, today), SportsEventListings.allEvents(events, day, day + 24 * hour, now))
+        assertEquals(listOf(today, overnight), SportsEventListings.allEvents(events, day, day + 24 * hour, now))
         assertEquals(listOf(tomorrow), SportsEventListings.allEvents(events, day + 24 * hour, day + 48 * hour, now))
     }
 

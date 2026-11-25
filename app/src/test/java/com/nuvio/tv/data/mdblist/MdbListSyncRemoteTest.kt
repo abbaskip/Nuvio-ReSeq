@@ -16,9 +16,10 @@ class MdbListSyncRemoteTest {
         val records = remote(harness).watched()
 
         assertEquals(listOf(1L, 2L), records.map { it.media.ids.tmdb })
-        assertEquals(mapOf("append_to_response" to "poster", "limit" to "1000"), harness.engine.requests.first().query)
+        val extras = if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") "poster,tvdb" else "poster"
+        assertEquals(mapOf("append_to_response" to extras, "limit" to "1000"), harness.engine.requests.first().query)
         assertEquals("opaque+/=", harness.engine.requests.last().query["cursor"])
-        assertEquals("poster", harness.engine.requests.last().query["append_to_response"])
+        assertEquals(extras, harness.engine.requests.last().query["append_to_response"])
         assertEquals(null, harness.engine.requests.last().query["offset"])
     }
 

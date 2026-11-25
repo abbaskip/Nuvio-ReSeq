@@ -39,6 +39,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
@@ -75,6 +76,8 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.rounded.Groups
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -106,6 +109,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onPlaced
 import com.nuvio.tv.ui.screens.detail.requestFocusAfterFrames
 import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -211,19 +215,19 @@ fun PlayerScreen(
     onPlaybackErrorBack: () -> Unit = { onBackPress(null, null, null, false, false) },
     onPlaybackEnded: ((nextVideoId: String?, nextSeason: Int?, nextEpisode: Int?, exitReason: PlayerExitReason?) -> Unit)? = null,
     onMixPlaybackEnded: ((Boolean, String?) -> Unit)? = null,
-    onMovieCompleted: (com.nuvio.tv.core.tracking.MovieRatingRequest) -> Unit = {},
+    onWatchedRatingRequested: (com.nuvio.tv.core.tracking.WatchedRatingRequest) -> Unit = {},
     onPlayRecommendation: (PostPlayRecommendation, manualSelection: Boolean) -> Unit = { _, _ -> },
     onOpenRecommendationDetails: (PostPlayRecommendation) -> Unit = {},
     onOpenPartyMedia: (PartyMedia) -> Unit = {}
 ) {
+    PlayerSeekThumbsHook(viewModel)
     val uiState by viewModel.uiState.collectAsState()
     val promptForRating by viewModel.promptToRateAfterWatching.collectAsState(initial = false)
-    var movieCompletionReported by androidx.compose.runtime.saveable.rememberSaveable(uiState.currentVideoId) { mutableStateOf(false) }
-    LaunchedEffect(uiState.playbackEnded, uiState.error, uiState.currentVideoId, promptForRating) {
-        if (!movieCompletionReported && uiState.currentVideoId != null && com.nuvio.tv.core.tracking.shouldRequestMovieRating(
-                promptForRating, uiState.contentType, uiState.playbackEnded, uiState.error != null)) {
-            movieCompletionReported = true
-            viewModel.completedMovieRatingRequest()?.let(onMovieCompleted)
+    var ratingRequested by androidx.compose.runtime.saveable.rememberSaveable(uiState.currentVideoId) { mutableStateOf(false) }
+    fun stopPlaybackAndOfferRating() {
+        viewModel.stopForWatchedRating(promptForRating && !ratingRequested)?.let { request ->
+            ratingRequested = true
+            onWatchedRatingRequested(request)
         }
     }
     val playerBadges = rememberPlayerBadges(viewModel, uiState)
@@ -277,7 +281,7 @@ fun PlayerScreen(
         if (exitDispatched) return@exitPlayer
         exitDispatched = true
         val timeline = viewModel.playbackTimeline.value
-        viewModel.stopAndRelease()
+        stopPlaybackAndOfferRating()
         val completed = postPlayRecommendationState.isVisible || uiState.playbackEnded ||
             (!timeline.isLive &&
                 timeline.duration > 0L &&
@@ -315,7 +319,7 @@ fun PlayerScreen(
     val shouldConfirmNextEpisodeOnEnd = uiState.shouldConfirmNextEpisodeOnEnd()
     val shouldAutoPlayNextEpisodeOnEnd = uiState.shouldAutoPlayNextEpisodeOnEnd()
     val returnToDetailsFromEndPrompt = {
-        viewModel.stopAndRelease()
+        stopPlaybackAndOfferRating()
         val (focusSeason, focusEpisode) = uiState.returnFocusSeasonEpisode(completed = true)
         currentOnBackPress(
             uiState.currentVideoId,
@@ -331,7 +335,7 @@ fun PlayerScreen(
             if (uiState.streamAutoPlayNextEpisodeEnabled) {
                 viewModel.onEvent(PlayerEvent.OnPlayNextEpisode)
             } else {
-                viewModel.stopAndRelease()
+                stopPlaybackAndOfferRating()
                 val cb = currentOnPlaybackEnded
                 if (cb != null) {
                     cb(next.videoId, next.season, next.episode, null)
@@ -457,7 +461,7 @@ fun PlayerScreen(
             explicitReason == null
         when {
             explicitReason == PlayerExitReason.StillWatchingPrompt -> {
-                viewModel.stopAndRelease()
+                stopPlaybackAndOfferRating()
                 val cb = currentOnPlaybackEnded
                 if (cb != null) {
                     cb(null, null, null, PlayerExitReason.StillWatchingPrompt)
@@ -478,12 +482,12 @@ fun PlayerScreen(
                     if (!exitDispatched) {
                         exitDispatched = true
                         val bingeGroup = viewModel.controller.currentStreamBingeGroup
-                        viewModel.stopAndRelease()
+                        stopPlaybackAndOfferRating()
                         currentOnMixPlaybackEnded?.invoke(uiState.streamAutoPlayNextEpisodeEnabled, bingeGroup)
                     }
                     return@LaunchedEffect
                 }
-                viewModel.stopAndRelease()
+                stopPlaybackAndOfferRating()
                 val next = uiState.nextEpisode?.takeIf {
                     it.hasAired && !(it.released.isNullOrBlank() && it.available == false)
                 }
@@ -559,7 +563,7 @@ fun PlayerScreen(
     }
 
     // Frame rate matching lifecycle.
-    val activity = LocalContext.current as? android.app.Activity
+    val activity = LocalActivity.current
     LaunchedEffect(activity) {
         viewModel.attachHostActivity(activity)
         viewModel.startInitialPlaybackIfNeeded()
@@ -1344,21 +1348,21 @@ fun PlayerScreen(
                 onPlay = { recommendation ->
                     if (!exitDispatched) {
                         exitDispatched = true
-                        viewModel.stopAndRelease()
+                        stopPlaybackAndOfferRating()
                         currentOnPlayRecommendation(recommendation, false)
                     }
                 },
                 onPlayManually = { recommendation ->
                     if (!exitDispatched) {
                         exitDispatched = true
-                        viewModel.stopAndRelease()
+                        stopPlaybackAndOfferRating()
                         currentOnPlayRecommendation(recommendation, true)
                     }
                 },
                 onOpenDetails = { recommendation ->
                     if (!exitDispatched) {
                         exitDispatched = true
-                        viewModel.stopAndRelease()
+                        stopPlaybackAndOfferRating()
                         currentOnOpenRecommendationDetails(recommendation)
                     }
                 },
@@ -2223,7 +2227,7 @@ fun PlayerScreen(
 }
 
 @Composable
-private fun MpvPlayerSurface(
+internal fun MpvPlayerSurface(
     viewModel: PlayerViewModel,
     isPlaying: Boolean,
     isBuffering: Boolean,
@@ -2295,7 +2299,7 @@ private fun MpvPlayerSurface(
 }
 
 @Composable
-private fun ExoPlayerSurface(
+internal fun ExoPlayerSurface(
     player: ExoPlayer,
     controller: PlayerRuntimeController,
     isPlaying: Boolean,
@@ -2600,7 +2604,7 @@ private fun PlayerView.isAssOrSsaSubtitleSelected(): Boolean =
         sidecarKey = subtitleView?.getTag(R.id.player_view_sidecar_generation_tag) as? String
     )
 
-private fun PlayerView.applySubtitleStyleIfNeeded(
+internal fun PlayerView.applySubtitleStyleIfNeeded(
     subtitleStyle: SubtitleStyleSettings,
     liftPx: Float,
     force: Boolean = false
@@ -3277,23 +3281,67 @@ private fun PlayerControlsProgressBarHost(
     if (showChapterTitle) {
         ChapterTitle(chapters = chapters, positionMs = playbackTimeline.currentPosition)
     }
-    ProgressBar(
-        chapters = chapters,
-        currentPosition = playbackTimeline.currentPosition,
-        duration = playbackTimeline.duration,
-        onSeekPreview = { delta ->
-            viewModel.onEvent(PlayerEvent.OnPreviewSeekBy(delta))
-        },
-        onSeekCommit = {
-            viewModel.onEvent(PlayerEvent.OnCommitPreviewSeek)
-        },
-        focusRequester = focusRequester,
-        upFocusRequester = upFocusRequester,
-        downFocusRequester = downFocusRequester,
-        onUpKey = onUpKey,
-        onFocused = onFocused,
-        onClick = onClick,
-        bufferedPosition = playbackTimeline.bufferedPosition
+    Box {
+        ProgressBar(
+            chapters = chapters,
+            currentPosition = playbackTimeline.currentPosition,
+            duration = playbackTimeline.duration,
+            onSeekPreview = { delta ->
+                viewModel.onEvent(PlayerEvent.OnPreviewSeekBy(delta))
+            },
+            onSeekCommit = {
+                viewModel.onEvent(PlayerEvent.OnCommitPreviewSeek)
+            },
+            focusRequester = focusRequester,
+            upFocusRequester = upFocusRequester,
+            downFocusRequester = downFocusRequester,
+            onUpKey = onUpKey,
+            onFocused = onFocused,
+            onClick = onClick,
+            bufferedPosition = playbackTimeline.bufferedPosition
+        )
+        SeekThumbOverBar(viewModel, playbackTimeline.currentPosition, playbackTimeline.duration)
+    }
+}
+
+/**
+ * Live TV fork: true while a seek is under way and for a moment after the button is let go,
+ * so a single tap still shows the picture (as the seek bar does).
+ */
+@Composable
+private fun rememberSeekThumbVisibility(viewModel: PlayerViewModel): SeekThumbVisibility {
+    val pending by remember(viewModel) {
+        viewModel.uiState.map { it.pendingPreviewSeekPosition != null }.distinctUntilChanged()
+    }.collectAsState(initial = false)
+    var lingering by remember { mutableStateOf(false) }
+    LaunchedEffect(pending) {
+        if (pending) {
+            lingering = true
+        } else if (lingering) {
+            delay(SEEK_THUMB_LINGER_MS)
+            lingering = false
+        }
+    }
+    return SeekThumbVisibility(pending || lingering, pending)
+}
+
+private data class SeekThumbVisibility(val visible: Boolean, val requestFrame: Boolean)
+
+private const val SEEK_THUMB_LINGER_MS = 1_500L
+
+/** Live TV fork: the seek thumbnail above the bar while a seek is under way. */
+@Composable
+private fun BoxScope.SeekThumbOverBar(viewModel: PlayerViewModel, positionMs: Long, durationMs: Long) {
+    val thumbnail = rememberSeekThumbVisibility(viewModel)
+    com.nuvio.tv.livetv.thumbs.SeekThumbAbove(
+        owner = com.nuvio.tv.livetv.thumbs.SeekThumbs.Owner.MAIN,
+        positionMs = positionMs,
+        fraction = if (durationMs > 0) positionMs.toFloat() / durationMs else 0f,
+        timeLabel = com.nuvio.tv.livetv.thumbs.seekThumbTime(positionMs),
+        visible = thumbnail.visible && durationMs > 0,
+        requestFrame = thumbnail.requestFrame,
+        remote = viewModel.seekrPreview,
+        modifier = Modifier.align(Alignment.TopStart)
     )
 }
 
@@ -3637,6 +3685,9 @@ private fun SeekOverlay(
     duration: Long,
     bufferedPosition: Long = 0L,
     chapters: List<PlayerChapter> = emptyList(),
+    remote: SeekrPreviewState,
+    thumbVisible: Boolean = false,
+    requestFrame: Boolean = false,
     showChapterTitle: Boolean = true
 ) {
     Column(
@@ -3648,14 +3699,27 @@ private fun SeekOverlay(
             if (showChapterTitle) {
                 ChapterTitle(chapters = chapters, positionMs = currentPosition)
             }
-            ProgressBar(
-                currentPosition = currentPosition,
-                duration = duration,
-                onSeekPreview = {},
-                onSeekCommit = {},
-                bufferedPosition = bufferedPosition,
-                chapters = chapters
-            )
+            Box {
+                ProgressBar(
+                    currentPosition = currentPosition,
+                    duration = duration,
+                    onSeekPreview = {},
+                    onSeekCommit = {},
+                    bufferedPosition = bufferedPosition,
+                    chapters = chapters
+                )
+                // Live TV fork: this overlay only shows while seeking.
+                com.nuvio.tv.livetv.thumbs.SeekThumbAbove(
+                    owner = com.nuvio.tv.livetv.thumbs.SeekThumbs.Owner.MAIN,
+                    positionMs = currentPosition,
+                    fraction = if (duration > 0) currentPosition.toFloat() / duration else 0f,
+                    timeLabel = com.nuvio.tv.livetv.thumbs.seekThumbTime(currentPosition),
+                    visible = thumbVisible && duration > 0,
+                    requestFrame = requestFrame,
+                    remote = remote,
+                    modifier = Modifier.align(Alignment.TopStart)
+                )
+            }
 
             Spacer(modifier = Modifier.height(NuvioTheme.spacing.md))
 
@@ -3682,11 +3746,15 @@ private fun SeekOverlayHost(
 ) {
     val playbackTimeline by viewModel.playbackTimeline.collectAsState()
 
+    val thumbnail = rememberSeekThumbVisibility(viewModel)
     SeekOverlay(
         currentPosition = playbackTimeline.currentPosition,
         duration = playbackTimeline.duration,
         bufferedPosition = playbackTimeline.bufferedPosition,
         chapters = chapters,
+        thumbVisible = thumbnail.visible,
+        remote = viewModel.seekrPreview,
+        requestFrame = thumbnail.requestFrame,
         showChapterTitle = showChapterTitle
     )
 }

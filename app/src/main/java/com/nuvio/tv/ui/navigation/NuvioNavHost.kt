@@ -83,6 +83,7 @@ import com.nuvio.tv.ui.screens.tmdb.TmdbEntityBrowseScreen
 import com.nuvio.tv.ui.screens.home.HeroBackdropState
 import com.nuvio.tv.livetv.calendar.CalendarDetailPreview
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.withFrameNanos
@@ -96,6 +97,7 @@ fun NuvioNavHost(
     // The session owner below only supplies a store, not a Hilt factory. Resolve the
     // shared mix coordinator from the activity before installing that owner.
     val mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val ratingsOwner = checkNotNull(LocalViewModelStoreOwner.current)
     val activity = LocalActivity.current
     DisposableEffect(mixViewModel) {
         onDispose {
@@ -112,7 +114,7 @@ fun NuvioNavHost(
                 LocalBackgroundTrailerController.current?.let { controller ->
                     BackgroundTrailerLayer(controller = controller)
                 }
-                PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel)
+                PlaybackNavHost(navController, startDestination, hideBuiltInHeaders, mixViewModel, ratingsOwner)
             }
         }
     }
@@ -138,7 +140,8 @@ private fun PlaybackNavHost(
     navController: NavHostController,
     startDestination: String,
     hideBuiltInHeaders: Boolean,
-    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel
+    mixViewModel: com.nuvio.tv.ui.screens.tvmix.TvMixViewModel,
+    ratingsOwner: androidx.lifecycle.ViewModelStoreOwner
 ) {
     val recoveryContext = LocalContext.current
     val returnToGuide = androidx.compose.runtime.remember {
@@ -180,21 +183,26 @@ private fun PlaybackNavHost(
             }
         }
     }
-    var completedMovie by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.nuvio.tv.core.tracking.MovieRatingRequest?>(null) }
+    var ratingRequest by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.nuvio.tv.core.tracking.WatchedRatingRequest?>(null) }
     val currentEntry by navController.currentBackStackEntryAsState()
     val route = currentEntry?.destination?.route
     androidx.compose.runtime.LaunchedEffect(route) {
-        if (route?.startsWith("livetv/") == true || route?.startsWith("party") == true) completedMovie = null
+        if (route?.startsWith("livetv/") == true || route?.startsWith("party") == true) ratingRequest = null
         if (route != null && !route.startsWith("tv-mix/") && !route.startsWith("stream/") && !route.startsWith("player/")) mixViewModel.end()
     }
-    val pendingMovie = completedMovie
-    com.nuvio.tv.ui.screens.detail.MovieRatingPromptHost(pendingMovie,
-        canShow = route != null && !route.startsWith("player/") && !route.startsWith("stream/") && !route.startsWith("livetv/") && !route.startsWith("party")) {
-        if (completedMovie == pendingMovie) completedMovie = null
+    val pendingRating = ratingRequest
+    com.nuvio.tv.ui.screens.detail.WatchedRatingPromptHost(pendingRating, ratingsOwner,
+        canShow = route != null && !route.startsWith("player/") && !route.startsWith("livetv/") && !route.startsWith("party")) {
+        if (ratingRequest == pendingRating) ratingRequest = null
     }
     com.nuvio.tv.livetv.sports.SportsHost(navController)
     com.nuvio.tv.livetv.reminders.LiveTvReminderHost(navController)
     val playbackAvailability = LocalPlaybackAvailability.current
+    fun findGuideTitle(listing: com.nuvio.tv.livetv.ui.GuideLookup) {
+        navController.navigate(Screen.Search.route)
+        navController.currentBackStackEntry?.savedStateHandle?.set("guideLookup", listing.toBundle())
+    }
+
     fun playFlickPick(source: Screen, title: MetaPreview, profile: Int) {
         if (navController.currentDestination?.route != source.route) return
         if (title.type == ContentType.SERIES) {
@@ -346,7 +354,7 @@ private fun PlaybackNavHost(
                         }
                     }
                 },
-                onFindInNuvio = { navController.navigate(Screen.Search.route) }
+                onFindInNuvio = ::findGuideTitle
             )
         }
         composable(Screen.Multiview.route) { entry ->
@@ -379,7 +387,7 @@ private fun PlaybackNavHost(
                     navController.navigate(Screen.LiveTv.route) { launchSingleTop = true }
                 },
                 onOpenSettings = { navController.navigate(Screen.LiveTvSettings.route) },
-                onFindInNuvio = { navController.navigate(Screen.Search.route) }
+                onFindInNuvio = ::findGuideTitle
             )
         }
         rootComposable(Screen.Calendar.route) {
@@ -608,7 +616,9 @@ private fun PlaybackNavHost(
             val playOnLoad = detailArgs?.getString("playOnLoad")?.toBooleanStrictOrNull() == true
             val manualSelection = detailArgs?.getString("manualSelection")?.toBooleanStrictOrNull() == true
             DetailChildHost(parentNavController = navController) { childNav ->
+            val guideBundle by savedState.getStateFlow<android.os.Bundle?>("guideAiring", null).collectAsState()
             MetaDetailsScreen(
+                guideListing = remember(guideBundle) { guideBundle?.let { com.nuvio.tv.livetv.ui.GuideLookup.from(it) } },
                 returnFocusSeason = returnFocusSeason,
                 returnFocusEpisode = returnFocusEpisode,
                 heroRestoreToken = heroRestoreToken,
@@ -1193,7 +1203,7 @@ private fun PlaybackNavHost(
             }
 
             PlayerScreen(
-                onMovieCompleted = { completedMovie = it },
+                onWatchedRatingRequested = { ratingRequest = it },
                 onBackPress = mixPlayerBack@{ currentVideoId, currentSeason, currentEpisode, autoPlayEnabled, playbackCompleted ->
                     if (mixViewModel.session.playing.value != null) {
                         mixViewModel.session.end()
@@ -1492,19 +1502,39 @@ private fun PlaybackNavHost(
         rootComposable(Screen.Search.route) { backStackEntry ->
             val searchViewModel: com.nuvio.tv.ui.screens.search.SearchViewModel =
                 androidx.hilt.navigation.compose.hiltViewModel(backStackEntry)
+            val handle = backStackEntry.savedStateHandle
+            val bundle by handle.getStateFlow<android.os.Bundle?>("guideLookup", null).collectAsState()
+            val guide = remember(bundle) { bundle?.let { com.nuvio.tv.livetv.ui.GuideLookup.from(it) } }
+            fun openDetails(id: String, type: String, addon: String?, exact: Boolean) {
+                if (guide != null) handle["guideEdited"] = true
+                val match = searchViewModel.uiState.value.catalogRows.asSequence().flatMap { it.items.asSequence() }
+                    .firstOrNull { it.id == id && it.apiType == type }
+                val route = Screen.Detail.createRoute(itemId = id, itemType = type, addonBaseUrl = addon,
+                    heroBackdropUrl = HeroBackdropState.consumeAndClear())
+                navController.navigate(route) { if (exact) popUpTo(backStackEntry.destination.id) { inclusive = true } }
+                if (guide != null && match != null && guide.matchesTitle(match)) {
+                    navController.currentBackStackEntry?.savedStateHandle?.set("guideAiring", guide.toBundle())
+                }
+            }
+            LaunchedEffect(guide) {
+                val listing = guide ?: return@LaunchedEffect
+                if (handle.get<Boolean>("guideEdited") == true) return@LaunchedEffect
+                if (searchViewModel.uiState.value.submittedQuery != listing.query) {
+                    searchViewModel.onEvent(com.nuvio.tv.ui.screens.search.SearchEvent.QueryChanged(listing.query))
+                    searchViewModel.onEvent(com.nuvio.tv.ui.screens.search.SearchEvent.SubmitSearch)
+                }
+                searchViewModel.uiState.collect { state ->
+                    if (state.query != listing.query) handle["guideEdited"] = true
+                    if (handle.get<Boolean>("guideEdited") != true && !state.isSearching && state.completedQuery == listing.query && state.submittedQuery == listing.query) {
+                        listing.exactMatch(state.catalogRows)?.let { (item, addon) ->
+                            openDetails(item.id, item.apiType, addon, true)
+                        }
+                    }
+                }
+            }
             SearchScreen(
                 viewModel = searchViewModel,
-                onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
-                    val heroBackdrop = HeroBackdropState.consumeAndClear()
-                    navController.navigate(
-                        Screen.Detail.createRoute(
-                            itemId = itemId,
-                            itemType = itemType,
-                            addonBaseUrl = addonBaseUrl,
-                            heroBackdropUrl = heroBackdrop
-                        )
-                    )
-                },
+                onNavigateToDetail = { id, type, addon -> openDetails(id, type, addon, false) },
                 onNavigateToSeeAll = { catalogId, addonId, type ->
                     navController.navigate(
                         Screen.CatalogSeeAll.createRoute(catalogId, addonId, type, fromSearch = true)
@@ -1790,7 +1820,7 @@ private fun PlaybackNavHost(
 
             // When coming from search, get the SearchViewModel from the Search back stack entry
             // so we share the same data (existing results + pagination)
-            val searchBackStackEntry = androidx.compose.runtime.remember(fromSearch) {
+            val searchBackStackEntry = androidx.compose.runtime.remember(backStackEntry, fromSearch) {
                 if (fromSearch) {
                     try { navController.getBackStackEntry(Screen.Search.route) } catch (_: Exception) { null }
                 } else null
@@ -1799,7 +1829,7 @@ private fun PlaybackNavHost(
                 if (searchBackStackEntry != null) {
                     androidx.hilt.navigation.compose.hiltViewModel<com.nuvio.tv.ui.screens.search.SearchViewModel>(searchBackStackEntry)
                 } else null
-            val homeBackStackEntry = androidx.compose.runtime.remember {
+            val homeBackStackEntry = androidx.compose.runtime.remember(backStackEntry) {
                 try { navController.getBackStackEntry(Screen.Home.route) } catch (_: Exception) { null }
             }
             val homeViewModel: com.nuvio.tv.ui.screens.home.HomeViewModel =

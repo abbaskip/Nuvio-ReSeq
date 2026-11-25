@@ -295,8 +295,16 @@ class TvdbTrackingResolver @Inject constructor(
             }
         }.orEmpty()
         if (known.flatMap { it.contentIds }.containsAll(sourceIds)) return known
-        if (tmdbService.apiKey().isBlank()) return known
-        val found = status.content.filter { it.officialCoordinates != null && it.episodeIds.any(sourceIds::contains) }.mapNotNull { row ->
+        val found = tmdbEpisodeTargets(meta, sourceIds, content)
+        return (known + found).distinctBy { Triple(it.parentIds?.tmdb, it.episode.season, it.episode.number) }
+    }
+
+    /** Read-only episode translation shared by tracking and Seekr preview lookup. */
+    internal suspend fun tmdbEpisodeTargets(meta: Meta, sourceIds: Set<Long>,
+        content: TvdbTrackerContentIndex = TvdbTrackerContentIndex(meta)): List<TvdbTrackingTarget> {
+        val status = meta.episodeOrder ?: return emptyList()
+        if (tmdbService.apiKey().isBlank()) return emptyList()
+        return status.content.filter { it.officialCoordinates != null && it.episodeIds.any(sourceIds::contains) }.mapNotNull { row ->
             val result = tmdb.findByExternalId(row.tvdbId.toString(), tmdbService.apiKey(), "tvdb_id").body()?.tvEpisodeResults?.singleOrNull()
                 ?: return@mapNotNull null
             val showId = result.showId ?: return@mapNotNull null
@@ -315,7 +323,6 @@ class TvdbTrackingResolver @Inject constructor(
                 tmdbId = result.id.toLong(), numberingProvider = "mdblist"), coverage,
                 TrackingExternalIds(imdb = parent.imdbId, tmdb = showId.toLong(), tvdb = parent.tvdbId?.toString()))
         }
-        return (known + found).distinctBy { Triple(it.parentIds?.tmdb, it.episode.season, it.episode.number) }
     }
 
     /** No selection means the original provider path, including its fallbacks. */
@@ -357,7 +364,8 @@ class TvdbTrackingResolver @Inject constructor(
             context.episodeIds.progressRanges(weights)
     }
 
-    private suspend fun selectedTargets(profileId: Int, provider: TrackingProviderId, reference: TrackingMediaReference): ResolvedTargets? {
+    private suspend fun selectedTargets(profileId: Int, provider: TrackingProviderId, reference: TrackingMediaReference,
+        simklOfflineHistory: Boolean = false): ResolvedTargets? {
         val contentId = reference.catalog?.contentId ?: return null
         val episode = reference.episode ?: return null
         val context = reference.catalog.tvdbContext
@@ -375,7 +383,9 @@ class TvdbTrackingResolver @Inject constructor(
         if (ids.isEmpty() || ids != sourceIds) return null
         val targets = when (provider) {
             TrackingProviderId.TRAKT -> traktTargets(profileId, meta, ids)
-            TrackingProviderId.SIMKL -> simklTargets(meta)
+            TrackingProviderId.SIMKL -> simklTargets(meta).let { known ->
+                if (simklOfflineHistory && reference.kind == TrackingMediaKind.SHOW) meta.episodeOrder.simklHistoryTargets(ids, known) else known
+            }
             TrackingProviderId.MDBLIST -> mdbListTargets(meta, ids)
         }.filter { it.contentIds.any(ids::contains) }
         if (!targets.flatMap { it.contentIds }.containsAll(ids)) return null
@@ -393,17 +403,34 @@ class TvdbTrackingResolver @Inject constructor(
                 tvdbContext = null, tvdbEpisodeIds = null, providerDefault = true))
     }
 
+    internal suspend fun offlineHistoryTargets(profileId: Int, provider: TrackingProviderId,
+        reference: TrackingMediaReference, watchedAt: Long): List<TrackingMediaReference>? {
+        val catalog = reference.catalog ?: return listOf(reference)
+        if (!catalog.tvdbCoverageVerified) return emptyList()
+        if (catalog.providerDefault || reference.episode == null ||
+            catalog.tvdbContext == null && !isSelected(profileId, catalog.contentId)) return listOf(reference)
+        return withContext(Dispatchers.Default) {
+            resolveSelected(profileId, provider, reference, completed = true, coverageChangesOnly = false,
+                simklOfflineHistory = provider == TrackingProviderId.SIMKL, completedThrough = watchedAt)
+        }
+    }
+
     private suspend fun resolveSelected(profileId: Int, provider: TrackingProviderId, reference: TrackingMediaReference,
-        completed: Boolean?, coverageChangesOnly: Boolean): List<TrackingMediaReference>? {
+        completed: Boolean?, coverageChangesOnly: Boolean, simklOfflineHistory: Boolean = false, completedThrough: Long = Long.MAX_VALUE): List<TrackingMediaReference>? {
         return try {
-            val resolved = selectedTargets(profileId, provider, reference) ?: return null
+            val resolved = selectedTargets(profileId, provider, reference, simklOfflineHistory) ?: return null
             // Supported scrobblers handle compound completion too. Automatic history
             // fallback must not write the same watch a second time.
             if (coverageChangesOnly && resolved.supportsProgress()) return emptyList()
             val ids = resolved.context.episodeIds.toSet()
             val prior = if (completed == true) local?.getAllRawEntries(profileId)?.values.orEmpty()
-                .filter { it.contentId == reference.catalog!!.contentId }.flatMap { it.tvdbWatchedIds }.toSet() else emptySet()
-            eligibleTvdbTargets(ids, resolved.targets, completed, prior).map { reference.forTarget(it, resolved.context.seriesId) }
+                .filter { it.contentId == reference.catalog!!.contentId && it.lastWatched <= completedThrough }
+                .flatMap { it.tvdbWatchedIds }.toSet() else emptySet()
+            eligibleTvdbTargets(ids, resolved.targets, completed, prior).map { target ->
+                val native = reference.forTarget(target, resolved.context.seriesId)
+                if (completedThrough == Long.MAX_VALUE) native else native.copy(
+                    catalog = native.catalog?.copy(tvdbEpisodeIds = target.contentIds.toList()))
+            }
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { null }
     }

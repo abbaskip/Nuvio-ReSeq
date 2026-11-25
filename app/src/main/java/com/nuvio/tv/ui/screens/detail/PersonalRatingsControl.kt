@@ -36,6 +36,7 @@ internal data class PersonalRatingsState(val open: Boolean = false, val busy: Bo
 @HiltViewModel
 internal class PersonalRatingsViewModel @Inject constructor(
     private val service: PersonalRatingsService,
+    private val traktEpisodes: dagger.Lazy<TraktEpisodeMappingService>,
     profiles: ProfileManager,
     private val ratingSettings: com.nuvio.tv.data.local.TraktSettingsDataStore,
     preferences: com.nuvio.tv.data.local.PlayerSettingsDataStore
@@ -53,7 +54,7 @@ internal class PersonalRatingsViewModel @Inject constructor(
     private var requestVersion = 0L
     init { viewModelScope.launch { profiles.activeProfileId.drop(1).collect { close() } } }
 
-    fun open(value: PersonalRatingTarget) {
+    fun open(value: PersonalRatingTarget, catalog: TrackingCatalogReference? = null) {
         close()
         target = value
         val version = requestVersion
@@ -65,8 +66,17 @@ internal class PersonalRatingsViewModel @Inject constructor(
                 val account = current.copy(providers = current.providers.filterTo(mutableSetOf()) {
                     source == null || it.name == source.name
                 })
+                val episode = value.episode
+                val mapped = if (episode != null && episode.tvdbId == null && episode.traktId == null &&
+                    catalog != null && account.providers == setOf(PersonalRatingProvider.TRAKT)) {
+                    traktEpisodes.get().resolveEpisodeMapping(catalog.contentId, catalog.contentType, catalog.videoId,
+                        episode.season, episode.number, episode.title)?.let { value.copy(episode =
+                            episode.copy(season = it.season, number = it.episode)) }
+                } else null
+                val native = mapped ?: value
                 session = account
-                val result = service.read(value, account)
+                target = native
+                val result = service.read(native, account)
                 state.value = PersonalRatingsState(open = true, results = result)
             } catch (cancelled: CancellationException) { if (version == requestVersion) close(); throw cancelled }
             catch (_: Exception) { state.value = state.value.copy(busy = false, error = "Could not contact your trackers. Close and try again.") }
@@ -140,19 +150,27 @@ private fun PersonalRatingDialog(title: String, state: PersonalRatingsState, eli
 }
 
 @Composable
-internal fun MovieRatingPromptHost(request: MovieRatingRequest?, canShow: Boolean, onConsumed: () -> Unit) {
+internal fun WatchedRatingPromptHost(
+    request: WatchedRatingRequest?,
+    ratingsOwner: androidx.lifecycle.ViewModelStoreOwner,
+    canShow: Boolean,
+    onConsumed: () -> Unit
+) {
     if (request == null) return
-    val viewModel: PersonalRatingsViewModel = hiltViewModel(key = "completed-movie-rating")
+    val viewModel: PersonalRatingsViewModel = hiltViewModel(ratingsOwner, key = "watched-title-rating")
+    DisposableEffect(viewModel, request) {
+        onDispose { viewModel.close() }
+    }
     val connected by viewModel.connected.collectAsStateWithLifecycle()
     val enabled by viewModel.promptEnabled.collectAsStateWithLifecycle()
     val profile by viewModel.activeProfileId.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val target = remember(request) { personalRatingTarget(request.contentId, "movie") }
-    val eligible = connected.orEmpty().filter { target?.supports(it) == true }
+    val target = request.target
+    val eligible = connected.orEmpty().filter(target::supports)
     var opened by remember(request) { mutableStateOf(false) }
     LaunchedEffect(request, canShow, connected, enabled, profile, state.open) {
         when {
-            profile != request.profileId || enabled == false || target == null -> { viewModel.close(); onConsumed() }
+            profile != request.profileId || enabled == false -> { viewModel.close(); onConsumed() }
             opened && !state.open -> onConsumed()
             connected == null || enabled == null -> Unit
             eligible.isEmpty() -> { viewModel.close(); onConsumed() }
@@ -172,6 +190,6 @@ internal fun PersonalRatingPromptSetting(enabled: Boolean, onToggle: () -> Unit)
     if (connected.isNullOrEmpty()) return
     com.nuvio.tv.ui.screens.settings.SettingsToggleRow(
         title = "Prompt to rate after watching",
-        subtitle = "Ask when returning from a completed movie. Uses your selected rating destination.",
+        subtitle = "Ask for a rating when you finish watching a movie.",
         checked = enabled, onToggle = onToggle)
 }

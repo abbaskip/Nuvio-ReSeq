@@ -80,7 +80,8 @@ internal suspend fun PlayerRuntimeController.fetchAddonSubtitlesNow(
                         addonLogo = currentAddonLogo,
                         streamDescription = currentStreamDescription
                     )
-                } else if (currentStreamUrl.isNotBlank() && !isServerStream) {
+                } else if (currentStreamUrl.isNotBlank() && !isServerStream &&
+                    (downloadedEpisodeSource == null || !currentStreamUrl.startsWith("file:"))) {
                     val reusable = StalkerVod.lastLink(currentStreamUrl, currentHeaders, portalPlayback)
                     streamLinkCacheDataStore.save(
                         contentKey = key,

@@ -260,10 +260,7 @@ class LiveTvRepository @Inject constructor(
         return id
     }
 
-    suspend fun addStalker(name: String, portal: String, mac: String, user: String, pass: String, serial: String, vod: Boolean = false, live: Boolean = true) {
-        val source = PlaylistSource(UUID.randomUUID().toString(), name.ifBlank { "Stalker" }, "",
-            stalkerPortal = portal.trim(), stalkerMac = mac.trim().uppercase(),
-            stalkerUsername = user.trim(), stalkerPassword = pass, stalkerSerial = serial.trim(), importVod = vod, importLive = live)
+    suspend fun addStalker(source: PlaylistSource) {
         StalkerPortalClient.endpoint(source.stalkerPortal)
         prefs.updatePlaylists { it + source }
         scope.launch { refreshInternal(forcePlaylists = false, forceEpg = false, forceIds = setOf(source.id)) }
@@ -1561,7 +1558,7 @@ class LiveTvRepository @Inject constructor(
                             val existingEnd = maxOf(now, existing.maxOfOrNull { it.stopMs } ?: now)
                             val incoming = list.filter { it.stopMs > from && it.startMs < to &&
                                 (it.startMs < now || it.startMs >= existingEnd) &&
-                                !it.title.equals(NO_GUIDE_TITLE, ignoreCase = true) }
+                                !GuideGapTitles.matches(it.title) }
                             if (incoming.isEmpty()) return@runCatching
                             val replacement = resolveOverlaps(incoming)
                             val merged = if (guideInDb) {
@@ -1779,7 +1776,7 @@ class LiveTvRepository @Inject constructor(
                         val icon = readOpt(input)
                         val year = input.readInt().takeIf { it > 0 }
                         val people = List(input.readInt()) { input.readUTF() }
-                        list += EpgProgram(start, stop, title, desc, category, episode, icon, year, people)
+                        if (!GuideGapTitles.matches(title)) list += EpgProgram(start, stop, title, desc, category, episode, icon, year, people)
                     }
                     programs[key] = list
                 }
@@ -2487,7 +2484,7 @@ class LiveTvRepository @Inject constructor(
         val newPrograms = HashMap<String, List<EpgProgram>>()
         val newIcons = HashMap<String, String>()
         assigned.forEach { (key, a) ->
-            newPrograms[key] = cleanListings(programsBySource[a.sourceId]?.get(a.xmltvId).orEmpty())
+            newPrograms[key] = cleanListings(programsBySource[a.sourceId]?.get(a.xmltvId).orEmpty()).filterNot { GuideGapTitles.matches(it.title) }
             iconsBySource[a.sourceId]?.get(a.xmltvId)?.let { newIcons[key] = it }
         }
         // Automatic: the same choice a full update makes (real listings first, then a tvg-id
@@ -2503,7 +2500,7 @@ class LiveTvRepository @Inject constructor(
                 if (score > bestScore) { bestScore = score; best = c to listings }
             }
             best?.let { (c, listings) ->
-                newPrograms[key] = listings
+                    newPrograms[key] = listings.filterNot { GuideGapTitles.matches(it.title) }
                 newAuto[key] = EpgAssignment(c.sourceId, c.xmltvId)
                 iconsBySource[c.sourceId]?.get(c.xmltvId)?.let { newIcons[key] = it }
             }

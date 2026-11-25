@@ -53,7 +53,8 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
 
     private fun identity(source: PlaylistSource): String = MessageDigest.getInstance("SHA-256").digest(
         listOf(endpoint(source.stalkerPortal), source.stalkerMac.uppercase(), source.stalkerUsername,
-            source.stalkerPassword, source.stalkerSerial).joinToString("\u0000").toByteArray()).joinToString("") { "%02x".format(it) }
+            source.stalkerPassword, source.stalkerSerial, source.stalkerDeviceId, source.stalkerDeviceId2)
+            .joinToString("\u0000").toByteArray()).joinToString("") { "%02x".format(it) }
 
     private suspend fun session(source: PlaylistSource, key: String, expiredToken: String? = null): Session =
         locks.getOrPut(key) { Mutex() }.withLock {
@@ -88,10 +89,16 @@ class StalkerPortalClient internal constructor(private val http: OkHttpClient, p
             "metrics" to JSONObject().put("mac", source.stalkerMac).put("model", "MAG250").put("type", "STB")
                 .put("random", handshake.optString("random")).toString())
         if (source.stalkerSerial.isNotBlank()) params["sn"] = source.stalkerSerial
+        val deviceIds = buildMap {
+            if (source.stalkerDeviceId.isNotBlank()) put("device_id", source.stalkerDeviceId)
+            if (source.stalkerDeviceId2.isNotBlank()) put("device_id2", source.stalkerDeviceId2)
+        }
+        params.putAll(deviceIds)
         var profile = call(source, "stb", "get_profile", params, token) as? JSONObject ?: error("Invalid portal profile.")
         if (profile.optInt("status") == 2) {
             check(source.stalkerUsername.isNotBlank() && source.stalkerPassword.isNotBlank()) { "This portal also requires a username and password." }
-            val auth = call(source, "stb", "do_auth", mapOf("login" to source.stalkerUsername, "password" to source.stalkerPassword), token)
+            val credentials = mapOf("login" to source.stalkerUsername, "password" to source.stalkerPassword)
+            val auth = call(source, "stb", "do_auth", credentials + deviceIds, token)
             check(auth == true || auth == 1) { "Portal login failed." }
             params["auth_second_step"] = "1"
             profile = call(source, "stb", "get_profile", params, token) as? JSONObject ?: error("Invalid portal profile.")

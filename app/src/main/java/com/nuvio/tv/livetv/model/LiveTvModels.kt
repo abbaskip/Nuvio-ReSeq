@@ -48,11 +48,20 @@ data class PlaylistSource(
     val vodMovieCategories: Set<String>? = null,
     val vodSeriesCategories: Set<String>? = null,
     /** Preserve the full matching index; cache artwork addresses only for recently browsed titles. */
-    val vodSourceOnly: Boolean = false
+    val vodSourceOnly: Boolean = false,
+    val stalkerDeviceId: String = "",
+    val stalkerDeviceId2: String = ""
 ) {
     fun vodCategories(series: Boolean): Set<String>? = if (series) vodSeriesCategories else vodMovieCategories
-    fun vodImportPolicy(): String = listOf(vodMovies, vodSeries, vodSourceOnly,
-        vodMovieCategories?.sorted(), vodSeriesCategories?.sorted()).joinToString("|")
+    fun vodImportPolicy(): String {
+        val options = listOf(vodMovies, vodSeries, vodSourceOnly,
+            vodMovieCategories?.sorted(), vodSeriesCategories?.sorted()).joinToString("|")
+        if (stalkerDeviceId.isBlank() && stalkerDeviceId2.isBlank()) return options
+        // A device change needs a fresh catalogue even if the previous login imported recently.
+        val identity = java.security.MessageDigest.getInstance("SHA-256")
+            .digest("${stalkerDeviceId}\u0000${stalkerDeviceId2}".toByteArray()).toHexString()
+        return "$options|$identity"
+    }
     val isStalker: Boolean get() = stalkerPortal.isNotBlank()
 
     val isXtream: Boolean get() = xtreamServer.isNotBlank()

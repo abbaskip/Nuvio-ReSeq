@@ -93,6 +93,12 @@ private data class LicenseAttributionItem(
     val logo: LicenseLogo? = null
 )
 
+/** Attribution text and links used by the companion touch layout. */
+@Composable
+internal fun attributionLinks(): List<Triple<String, String, String>> =
+    (listOf(appLicenseItem()) + dataAttributionItems() + playbackLicenseItems()).map { Triple(it.title, it.body, it.url) } +
+        Triple(stringResource(R.string.licenses_attributions_haze_title), stringResource(R.string.licenses_attributions_haze_body), HazeLicenseUrl)
+
 @Composable
 fun LicensesAttributionsScreen(
     onBackPress: () -> Unit

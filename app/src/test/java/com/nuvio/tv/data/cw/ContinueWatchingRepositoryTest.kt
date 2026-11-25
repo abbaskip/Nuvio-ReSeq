@@ -288,6 +288,16 @@ class ContinueWatchingRepositoryTest {
         assertTrue(owner.snapshot().members.isEmpty())
     }
 
+    @Test fun `mobile Nuvio sync keeps series supported by watched history after a resume is deleted`() = runTest {
+        org.junit.Assume.assumeTrue(com.nuvio.tv.BuildConfig.FLAVOR == "mobile")
+        source.value = WatchProgressSource.NUVIO_SYNC
+        val owner = repository()
+        seeds.value = listOf(p().copy(position = 100))
+        owner.committedProgress(1, seeds.value)
+        owner.pruneAfterSync(owner.snapshot().lease, emptySet())
+        assertEquals(setOf("show"), owner.snapshot().members.keys)
+    }
+
     @Test fun `removing the only watched episode drops the card and rejects its stale replay`() = runTest {
         val owner = repository()
         owner.snapshot()
@@ -317,6 +327,33 @@ class ContinueWatchingRepositoryTest {
         assertTrue(owner.snapshot().nextUp.single().chooseEpisode)
         owner.enrich(owner.snapshot().lease, nextUp = listOf(offer))
         assertEquals(offer, repository().snapshot().nextUp.single())
+    }
+
+    @Test fun `mobile undo and cold refresh agree on the selected source's episode and preserve a newer pause`() = runTest {
+        org.junit.Assume.assumeTrue(com.nuvio.tv.BuildConfig.FLAVOR == "mobile")
+        for (selected in WatchProgressSource.entries) {
+            source.value = selected
+            val earlier = p(3, 10_000).copy(position = 100)
+            val sixth = p(19, 5_000).copy(position = 100, season = 6, videoId = "show:6:19")
+            val removed = sixth.copy(episode = 20, videoId = "show:6:20", deviceWatchEventId = "last", lastWatched = 16_000)
+            every { progress.getAllEpisodeProgress("show", 1) } returns flowOf(mapOf((1 to 3) to earlier, (6 to 19) to sixth))
+            seeds.value = listOf(sixth)
+            remote.value = emptyList()
+            loaded.value = true
+            val owner = repository()
+            owner.committedProgress(1, listOf(removed))
+            owner.deviceWatchRemoved(1, com.nuvio.tv.data.local.DeviceWatchEvent("last", removed, 16_000, 16_000, removed = true))
+            assertEquals(sixth, owner.settledProgress.first().seeds.single())
+            val offer = sixth.seriesChoice().copy(videoId = "show:6:20", season = 6, episode = 20, chooseEpisode = false)
+            owner.enrich(owner.snapshot().lease, nextUp = listOf(offer))
+            val restarted = repository()
+            assertEquals(offer, restarted.snapshot().forPresentation().nextUp.single())
+            restarted.refreshFromStoredProgress(1, selected.name)
+            assertEquals(sixth, restarted.settledProgress.first().seeds.single())
+            remote.value = listOf(p(20, 22_000).copy(season = 6, videoId = "show:6:20"))
+            restarted.refreshFromStoredProgress(1, selected.name)
+            assertEquals(20L, restarted.snapshot().inProgress.single().position)
+        }
     }
 
     @Test fun `unwatch uses already emitted remaining history and puts the show back in activity order`() = runTest {

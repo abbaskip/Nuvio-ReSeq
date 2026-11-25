@@ -28,10 +28,7 @@ class SportsMySportsRefreshTest {
         assertEquals("2026-11-03", Instant.ofEpochMilli(start).atZone(ZoneId.of("Australia/Sydney")).toLocalDate().toString())
         val due = SportsRefreshPolicy.choose(listOf(game, next), listOf(nba), next.id, emptySet(),
             setOf(nba.id), true, now, emptyMap())
-        assertEquals(listOf(nba), due)
-        val anchor = SportsRefreshPolicy.scoreboardAnchor(listOf(game, next), nba, next.id, emptySet(), true, now)
-        assertEquals(start, anchor)
-        assertEquals("20261102", DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.of("America/New_York")).format(Instant.ofEpochMilli(anchor)))
+        assertEquals(listOf(SportsRefreshPolicy.Board(nba, "20261102")), due)
         assertEquals("20261103", DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.of("America/New_York")).format(Instant.ofEpochMilli(now)))
     }
 

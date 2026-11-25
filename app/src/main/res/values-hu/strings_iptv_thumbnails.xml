@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Bélyegképek tekeréskor</string>
+    <string name="playback_section_seek_thumbnails_desc">Előnézet az idősáv felett tekerés közben</string>
+    <string name="iptv_thumbs_subtitle">A Seekr képeit vagy a videóból az eszközön készített képeket mutatja.</string>
+    <string name="iptv_thumbs_works_on">Filmekhez, sorozatokhoz, HLS-hez, felvételekhez, sportismétlésekhez, visszanézéshez és az élő adás pufferéhez. Visszanézéskor a mentett részt vagy a szolgáltató HLS-adását használja. Torrent, DASH és védett adás esetén nem érhető el.</string>
+    <string name="iptv_thumbs_low_memory_note">Kevés a memória. Akadozás esetén a képkészítés automatikusan szünetel.</string>
+    <string name="iptv_thumbs_include_4k">4K és HDR engedélyezése</string>
+    <string name="iptv_thumbs_include_4k_desc">Több adatot használ. Gyengébb eszközökön akadozhat, a HDR színei fakók lehetnek. Az adásoknál a legkisebb változatot használja.</string>
+    <string name="iptv_thumbs_when_to_make">Mikor készüljenek bélyegképek?</string>
+    <string name="iptv_thumbs_when_seeking">Csak szüneteltetéskor vagy tekeréskor</string>
+    <string name="iptv_thumbs_when_seeking_desc">Normál lejátszás közben nem készülnek képek.</string>
+    <string name="iptv_thumbs_when_watching">Megtekintés közben</string>
+    <string name="iptv_thumbs_when_watching_desc">A háttérben készülnek, ha már elég videó betöltődött.</string>
+    <string name="iptv_thumbs_when_right_away">Azonnal</string>
+    <string name="iptv_thumbs_when_right_away_desc">Megnyitáskor a teljes videót feldolgozza. Ez használja a legtöbb adatot.</string>
+    <string name="iptv_thumbs_storage_limit">Tárhelykorlát</string>
+    <string name="iptv_thumbs_storage_limit_desc">A legrégebben megtekintett videók képei törlődnek először.</string>
+    <string name="iptv_thumbs_clear">Mentett bélyegképek törlése</string>
+    <string name="iptv_thumbs_clear_desc">Minden képet töröl. Szükség esetén újra elkészülnek.</string>
+    <string name="iptv_thumbs_last_paused">Legutóbbi szünet memóriahiány miatt: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Bélyegképek készítése…</string>
+    <string name="iptv_thumbs_msg_low_memory">A képkészítés memóriahiány miatt szünetel</string>
+    <string name="iptv_thumbs_msg_live">Élő tévéhez nincs előnézet</string>
+    <string name="iptv_thumbs_msg_dash">DASH-adáshoz nincs előnézet</string>
+    <string name="iptv_thumbs_msg_catchup_save">A képekhez kapcsold be a gyors tekerést visszanézéskor</string>
+    <string name="iptv_thumbs_msg_protected">Az adás védett</string>
+    <string name="iptv_thumbs_msg_torrent">Torrenthez nincs előnézet</string>
+    <string name="iptv_thumbs_msg_link_kind">Ehhez a hivatkozástípushoz nincs előnézet</string>
+    <string name="iptv_thumbs_msg_unreadable">Az adás nem olvasható</string>
+    <string name="iptv_thumbs_msg_pieces_large">Az adás szegmensei túl nagyok</string>
+    <string name="iptv_thumbs_msg_stopped">A videó bélyegképeinek készítése leállt</string>
+    <string name="iptv_thumbs_msg_no_pictures">A kiszolgáló nem küldött képeket</string>
+    <string name="iptv_thumbs_msg_format">Az eszköz nem tud előnézetet készíteni ebből a formátumból</string>
+    <string name="iptv_thumbs_msg_open_failed">A videó nem nyitható meg előnézethez</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Ehhez a visszanézhető adáshoz nincs előnézet</string>
+    <string name="iptv_thumbs_msg_one_decoder">Az egyetlen dekóder a lejátszáshoz szükséges</string>
+    <string name="iptv_thumbs_title">Bélyegképek tekeréskor</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">A Seekr-kulcsot nem sikerült menteni az eszközön.</string>
+    <string name="seekr_api_key">Seekr API-kulcs</string>
+    <string name="seekr_key_description">A seekr.tv oldalon kapott személyes kulccsal filmek és epizódok előnézetét kérheted le. A Google Drive biztonsági mentése a kulcsot is tartalmazza. Az eltávolításhoz töröld a mezőt.</string>
+    <string name="seekr_only">Csak Seekr</string>
+    <string name="seekr_only_description">Csak a Seekr előnézeteit jeleníti meg. Kikapcsolva a hiányzó képek az eszközön készülnek.</string>
+</resources>

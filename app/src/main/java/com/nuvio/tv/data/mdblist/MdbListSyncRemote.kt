@@ -17,7 +17,7 @@ class MdbListHttpSyncRemote(
         decodeMdbListActivities(api.get("/sync/last_activities", scope = scope).body)
 
     override suspend fun watched(): List<MdbListWatchedRecord> = pages(
-        "/sync/watched", mapOf("append_to_response" to "poster"), ::decodeMdbListWatched
+        "/sync/watched", mapOf("append_to_response" to if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") "poster,tvdb" else "poster"), ::decodeMdbListWatched
     ).items
 
     override suspend fun journal(since: String): MdbListPage<MdbListJournalRecord> =

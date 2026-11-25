@@ -99,7 +99,7 @@ def stage(apk_dir: Path, output_dir: Path, version: str, apksigner: str, aapt: s
     guidance = output_dir / "DOWNLOADS.md"
     guidance.write_text(
         "## APK downloads\n\n"
-        "Choose **universal** if unsure; it works on all supported architectures and is used by in-app updates.\n\n"
+        "Choose the APK for your device architecture for a smaller download. Choose **universal** if unsure.\n\n"
         "Smaller downloads: **armeabi-v7a** (ARM32), **arm64-v8a** (ARM64), **x86** (32-bit Intel), "
         "**x86_64** (64-bit Intel). Choose the Android OS ABI, which can differ from the CPU hardware.\n\n"
         "All APKs use the same application ID, version code and release signing identity. Install over the existing app to preserve data. "

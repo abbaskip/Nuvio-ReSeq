@@ -5,10 +5,11 @@ import com.nuvio.tv.domain.model.Meta
 enum class PersonalRatingProvider(val label: String) { TRAKT("Trakt"), SIMKL("Simkl"), MDBLIST("MDBList") }
 
 /** Title ratings use the native title identity, independently of the episode display order. */
-data class PersonalRatingTarget(val movie: Boolean, val ids: TrackingExternalIds, val anime: Boolean = false) {
-    val group: String get() = if (movie) "movies" else "shows"
+data class PersonalRatingTarget(val movie: Boolean, val ids: TrackingExternalIds, val anime: Boolean = false,
+    val episode: TrackingEpisode? = null) {
+    val group: String get() = if (episode != null) "episodes" else if (movie) "movies" else "shows"
     fun groupFor(provider: PersonalRatingProvider) = if (anime && provider == PersonalRatingProvider.SIMKL) "anime" else group
-    fun supports(provider: PersonalRatingProvider) = when (provider) {
+    fun supports(provider: PersonalRatingProvider) = (episode == null || provider == PersonalRatingProvider.TRAKT && episode.season != null) && when (provider) {
         PersonalRatingProvider.TRAKT -> ids.imdb != null || ids.tmdb != null || ids.trakt != null
         PersonalRatingProvider.SIMKL -> ids.imdb != null || ids.tmdb != null || ids.simkl != null || ids.mal != null
         PersonalRatingProvider.MDBLIST -> ids.imdb != null || ids.tmdb != null
@@ -33,7 +34,25 @@ fun personalRatingTarget(contentId: String, contentType: String, imdbId: String?
 }
 
 /** Ephemeral UI request; it never records a watch or changes playback progress. */
+data class WatchedRatingRequest(val profileId: Int, val target: PersonalRatingTarget, val title: String)
+
+/** The mobile player's natural-completion prompt resolves its target when the sheet opens. */
 data class MovieRatingRequest(val profileId: Int, val contentId: String, val title: String)
 
 internal fun shouldRequestMovieRating(enabled: Boolean, type: String?, ended: Boolean, hasError: Boolean): Boolean =
     enabled && type == "movie" && ended && !hasError
+
+internal fun watchedRatingRequest(
+    profileId: Int,
+    contentId: String?,
+    contentType: String?,
+    title: String,
+    watched: Boolean,
+    hasError: Boolean,
+    imdbId: String? = null
+): WatchedRatingRequest? {
+    if (!watched || hasError || contentId == null || contentType == null) return null
+    val target = personalRatingTarget(contentId, contentType, imdbId) ?: return null
+    if (!target.movie) return null
+    return WatchedRatingRequest(profileId, target, title)
+}

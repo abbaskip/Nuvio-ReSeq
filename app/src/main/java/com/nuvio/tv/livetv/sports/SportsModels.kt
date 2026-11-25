@@ -161,7 +161,11 @@ data class SportsEvent(
     val updatedAt: Long? = null,
     val broadcastCoverage: List<SportsBroadcast> = emptyList(),
     /** Saved fixture awaiting a current observation; never advertise its previous score/state. */
-    val awaitingUpdate: Boolean = false
+    val awaitingUpdate: Boolean = false,
+    val caCompetitionId: Int? = null,
+    val venue: String? = null,
+    val toss: String? = null,
+    val caFixtureId: Int? = null
 ) {
     // A guide's transmission time does not establish the original match's live status.
     val isReplay: Boolean by lazy {

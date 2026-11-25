@@ -150,8 +150,8 @@ android {
         minSdk = 24
         targetSdk = 36
         buildConfigField("boolean", "STABILITY_FIXTURES", stabilityFixtures.toString())
-        versionCode = 10065
-        versionName = "1.0.0-rc.3.1" + (localBetaNumber?.let { ".local.$it" } ?: "")
+        versionCode = 10068
+        versionName = "1.0.0-rc.4.1.1" + (localBetaNumber?.let { ".local.$it" } ?: "")
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")
@@ -173,6 +173,7 @@ android {
         buildConfigField("String", "DEVICE_LOGIN_WEB_BASE_URL", "\"${localProperties.getProperty("DEVICE_LOGIN_WEB_BASE_URL", "https://nuvio.tv/link")}\"")
         buildConfigField("boolean", "DOVI_NATIVE_ENABLED", enableDoviNative.toString())
         buildConfigField("boolean", "DOVI_EXTRACTOR_HOOK_READY", doviExtractorHookReady.toString())
+        externalNativeBuild.cmake.arguments("-DNUVIO_BUILD_DOVI=" + if (enableDoviNative) "ON" else "OFF")
         if (enableDoviNative) {
             externalNativeBuild {
                 cmake {
@@ -203,7 +204,7 @@ android {
 
     flavorDimensions += "distribution"
     productFlavors {
-        create("full") {
+        val full = create("full") {
             proguardFile("proguard-cloudstream-settings.pro")
             dimension = "distribution"
             buildConfigField("boolean", "FEATURE_PLUGINS_ENABLED", "true")
@@ -213,14 +214,17 @@ android {
             buildConfigField("boolean", "FEATURE_EXTERNAL_PLAYBACK_KEEP_ALIVE_ENABLED", "true")
             buildConfigField("boolean", "FEATURE_CUSTOM_SERVER_CONNECTIONS_ENABLED", "true")
         }
+        create("mobile") {
+            initWith(full)
+            applicationId = "io.github.abbaskip.nuvioreseq.mobile"
+            versionCode = 20
+            versionName = "0.1.0-beta.3.2"
+            buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "true")
+        }
     }
 
-    if (enableDoviNative) {
-        externalNativeBuild {
-            cmake {
-                path = file("src/main/cpp/CMakeLists.txt")
-            }
-        }
+    externalNativeBuild {
+        cmake { path = file("src/main/cpp/CMakeLists.txt") }
     }
 
     signingConfigs {
@@ -347,6 +351,12 @@ android {
     }
 
     sourceSets {
+        getByName("mobile") {
+            baselineProfiles.srcDir("src/mobile/baselineProfiles")
+            java.srcDir("src/full/java")
+            res.srcDir("src/full/res")
+            assets.srcDir("src/full/assets")
+        }
         if (stabilityFixtures) {
             for (fixtureBuild in listOf("benchmark", "debug")) {
                 maybeCreate(fixtureBuild).apply {
@@ -394,7 +404,7 @@ android {
 }
 
 androidComponents {
-    onVariants(selector().withBuildType("debug")) { variant ->
+    onVariants(selector().withBuildType("debug").withFlavor("distribution" to "full")) { variant ->
         variant.applicationId.set("io.github.abbaskip.nuvioreseq.iptvdebug")
     }
     // Only the full flavor ships the in-app updater.
@@ -426,6 +436,10 @@ composeCompiler {
     metricsDestination = layout.buildDirectory.dir("compose_metrics")
     reportsDestination = layout.buildDirectory.dir("compose_reports")
     stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("compose_stability_config.conf"))
+}
+
+configurations.named("mobileImplementation") {
+    extendsFrom(configurations.getByName("fullImplementation"))
 }
 
 // Globally exclude stock media3 modules — replaced by local :nuvio-exoplayer-engine module
@@ -502,6 +516,8 @@ val downloadAudioSyncRuntime by tasks.registering {
 }
 
 dependencies {
+    add("mobileImplementation", "com.google.android.gms:play-services-cast-framework:22.3.1")
+    add("mobileImplementation", "androidx.media3:media3-transformer:1.8.0")
     implementation(files(sherpaOnnxAar).builtBy(downloadAudioSyncRuntime))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     val composeBom = platform("androidx.compose:compose-bom:2026.05.01")
@@ -609,7 +625,8 @@ dependencies {
     implementation(files("libs/nuvio-libass-release.aar"))
     // Local nextlib-mediainfo fork (static FFmpeg; no libav*.so in final AAR)
     implementation(files("libs/nextlib-mediainfo-local.aar"))
-    implementation("io.github.abdallahmehiz:mpv-android-lib:0.1.12")
+    implementation("tv.seekr:seekr-core:0.2.0")
+    implementation("io.github.abdallahmehiz:mpv-android-lib:0.2.2")
     implementation("dev.chrisbanes.haze:haze-android:1.7.2") {
         exclude(group = "org.jetbrains.compose.ui")
         exclude(group = "org.jetbrains.compose.foundation")

@@ -101,6 +101,7 @@ class PlayerViewModel @Inject constructor(
     private val tvRecommendationManager: com.nuvio.tv.core.recommendations.TvRecommendationManager,
     private val serverPlayback: com.nuvio.tv.data.mediaserver.ServerPlayback,
     private val serverStreams: com.nuvio.tv.data.mediaserver.ServerStreams,
+    internal val previewEpisodeResolver: dagger.Lazy<com.nuvio.tv.data.tvdb.TvdbTrackingResolver>,
     partyRepository: com.nuvio.tv.core.party.PartyRepository,
     profileManager: com.nuvio.tv.core.profile.ProfileManager,
     savedStateHandle: SavedStateHandle,
@@ -112,6 +113,8 @@ class PlayerViewModel @Inject constructor(
         // claim hardware decoders without contention (prevents black screen).
         trailerPlayerPool.yield()
     }
+
+    internal val seekrPreview = SeekrPreviewState()
 
     internal val controller = PlayerRuntimeController(
         context = context,
@@ -219,6 +222,22 @@ class PlayerViewModel @Inject constructor(
     val promptToRateAfterWatching = playerSettingsDataStore.playerSettings.map { it.promptToRateAfterWatching }
     internal fun completedMovieRatingRequest(): com.nuvio.tv.core.tracking.MovieRatingRequest? =
         controller.contentId?.let { com.nuvio.tv.core.tracking.MovieRatingRequest(controller.profileId, it, controller.title) }
+
+    internal fun stopForWatchedRating(enabled: Boolean): com.nuvio.tv.core.tracking.WatchedRatingRequest? {
+        val eligible = enabled && !playbackTimeline.value.isLive &&
+            controller.currentEpisode == null && controller.currentTvdbContext() == null
+        stopAndRelease() // Flush tracking before reading the completion decision for this item.
+        if (!eligible) return null
+        return com.nuvio.tv.core.tracking.watchedRatingRequest(
+            profileId = controller.profileId,
+            contentId = controller.contentId,
+            contentType = controller.contentType,
+            title = controller.contentName?.takeIf { it.isNotBlank() } ?: controller.title,
+            watched = controller.hasSentCompletionScrobbleForCurrentItem || controller.hasMarkedCurrentEpisodeCompleted,
+            hasError = uiState.value.error != null,
+            imdbId = controller.contentId?.let(controller::serverImdbId)
+        )
+    }
 
     val effectiveAutoplayEnabled = playerSettingsDataStore.playerSettings
         .map(StreamAutoPlayPolicy::isEffectivelyEnabled)

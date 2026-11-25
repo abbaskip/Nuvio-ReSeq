@@ -28,13 +28,12 @@ class SportsCoverageTest {
         assertTrue(event.subtitle!!.contains("1st Test"))
         assertEquals(listOf(event), SportsEventListings.allEvents(listOf(event), now - 3_600_000, now + 3_600_000, now))
         assertEquals(listOf(test), SportsRefreshPolicy.choose(listOf(event), listOf(test), event.id,
-            emptySet(), emptySet(), true, now + 2 * 86_400_000L, emptyMap()))
+            emptySet(), emptySet(), true, now + 2 * 86_400_000L, emptyMap()).map { it.league })
         assertFalse(event.copy(state = GameState.PRE).hasScore)
         assertFalse(event.copy(home = event.home?.copy(score = null)).hasScore)
         assertEquals("20261109", SportsRefreshPolicy.scoreboardDay(test, event.startMs))
-        val anchor = SportsRefreshPolicy.scoreboardAnchor(listOf(event), test, event.id, emptySet(), true, now)
-        assertEquals(now, anchor)
-        assertEquals("20261110", SportsRefreshPolicy.scoreboardDay(test, anchor))
+        assertEquals("20261110", SportsRefreshPolicy.choose(listOf(event), listOf(test), event.id,
+            emptySet(), emptySet(), true, now, emptyMap()).single().day)
     }
 
     @Test fun `day two cricket matches the current Fox Sports 505 session`() {

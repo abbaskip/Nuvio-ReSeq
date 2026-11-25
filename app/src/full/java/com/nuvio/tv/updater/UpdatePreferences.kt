@@ -28,6 +28,8 @@ private val Context.updateDataStore: DataStore<Preferences> by preferencesDataSt
     }
 )
 
+internal data class DownloadedUpdate(val tag: String, val path: String, val size: Long?, val digest: String?)
+
 @Singleton
 class UpdatePreferences @Inject constructor(
     @ApplicationContext private val context: Context
@@ -37,11 +39,14 @@ class UpdatePreferences @Inject constructor(
     private val ignoredTagKey = stringPreferencesKey("ignored_release_tag")
     private val lastCheckAtKey = longPreferencesKey("last_check_at_ms")
     private val frequencyKey = stringPreferencesKey("update_check_frequency")
-    private val checkedReleaseKey = stringPreferencesKey("checked_release")
+    // Older cached checks contain the universal selection even when the release has a device-specific APK.
+    private val checkedReleaseKey = stringPreferencesKey("checked_release_by_abi")
     private val updateBannerEnabledKey = booleanPreferencesKey("update_banner_enabled")
     private val autoInstallEnabledKey = booleanPreferencesKey("auto_install_enabled")
     private val downloadedTagKey = stringPreferencesKey("downloaded_release_tag")
     private val downloadedApkPathKey = stringPreferencesKey("downloaded_apk_path")
+    private val downloadedSizeKey = longPreferencesKey("downloaded_apk_size")
+    private val downloadedDigestKey = stringPreferencesKey("downloaded_apk_digest")
     private val autoInstalledTagKey = stringPreferencesKey("auto_installed_release_tag")
     private val autoInstallNoticeEnabledKey = booleanPreferencesKey("auto_install_notice_enabled")
 
@@ -65,10 +70,10 @@ class UpdatePreferences @Inject constructor(
     }
 
     /** Release tag and APK path of the update already downloaded, if any, so it survives the app being closed. */
-    val downloadedUpdate: Flow<Pair<String, String>?> = dataStore.data.map { prefs ->
+    internal val downloadedUpdate: Flow<DownloadedUpdate?> = dataStore.data.map { prefs ->
         val tag = prefs[downloadedTagKey]
         val path = prefs[downloadedApkPathKey]
-        if (tag != null && path != null) tag to path else null
+        if (tag != null && path != null) DownloadedUpdate(tag, path, prefs[downloadedSizeKey], prefs[downloadedDigestKey]) else null
     }
 
     /** Release the idle job last installed without asking, so the next launch can say the app was updated. */
@@ -121,15 +126,17 @@ class UpdatePreferences @Inject constructor(
         }
     }
 
-    suspend fun setDownloadedUpdate(tag: String?, apkPath: String?) {
+    internal suspend fun setDownloadedUpdate(record: DownloadedUpdate?) {
         dataStore.edit { prefs ->
-            if (tag == null || apkPath == null) {
+            if (record == null) {
                 prefs.remove(downloadedTagKey)
                 prefs.remove(downloadedApkPathKey)
             } else {
-                prefs[downloadedTagKey] = tag
-                prefs[downloadedApkPathKey] = apkPath
+                prefs[downloadedTagKey] = record.tag
+                prefs[downloadedApkPathKey] = record.path
             }
+            if (record?.size == null) prefs.remove(downloadedSizeKey) else prefs[downloadedSizeKey] = record.size
+            if (record?.digest == null) prefs.remove(downloadedDigestKey) else prefs[downloadedDigestKey] = record.digest
         }
     }
 

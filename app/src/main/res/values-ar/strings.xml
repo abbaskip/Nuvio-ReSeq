@@ -3135,4 +3135,13 @@
     <string name="autosync_status_no_fit">قد لا تتطابق</string>
     <string name="autosync_status_no_reference">لا ترجمات مضمنة</string>
     <string name="autosync_status_failed">فشل</string>
+    <string name="iptv_immediate_tier">تضمين فيديو IPTV حسب الطلب في المصادر الفورية</string>
+    <string name="iptv_fallback_tier">تضمين فيديو IPTV حسب الطلب في المصادر الاحتياطية</string>
+    <string name="when_watched">متى شاهدته؟</string>
+    <string name="watched_now">تسجيل المشاهدة الآن</string>
+    <string name="choose_watch_date">اختيار التاريخ</string>
+    <string name="choose_watch_date_time">اختيار التاريخ والوقت</string>
+    <string name="choose_watch_time">اختيار الوقت</string>
+    <string name="choose_past_watch_time">اختر وقتًا صالحًا في الماضي.</string>
+    <string name="episodes_last_watch_mdblist_pending">أُزيل سجل المشاهدة من هذا الجهاز. في انتظار تأكيد MDBList.</string>
 </resources>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">Miniatyrbilder ved spoling</string>
+    <string name="playback_section_seek_thumbnails_desc">Forhåndsvisning over tidslinjen når du spoler</string>
+    <string name="iptv_thumbs_subtitle">Viser bilder fra Seekr eller lager dem fra videoen på enheten.</string>
+    <string name="iptv_thumbs_works_on">For filmer, serier, HLS, opptak, sportsrepriser, arkiv-TV og tilbakespoling av direktesendt TV. Arkiv-TV bruker den lagrede delen eller leverandørens HLS. Støtter ikke torrenter, DASH eller beskyttede strømmer.</string>
+    <string name="iptv_thumbs_low_memory_note">Lite minne. Hvis avspillingen hakker, settes miniatyrbildene automatisk på pause.</string>
+    <string name="iptv_thumbs_include_4k">Ta med 4K og HDR</string>
+    <string name="iptv_thumbs_include_4k_desc">Bruker mer data. Svakere enheter kan hakke, og HDR-fargene kan bli blasse. Strømmer bruker den minste varianten.</string>
+    <string name="iptv_thumbs_when_to_make">Når skal miniatyrbilder lages?</string>
+    <string name="iptv_thumbs_when_seeking">Bare ved pause eller spoling</string>
+    <string name="iptv_thumbs_when_seeking_desc">Lager ikke bilder under vanlig avspilling.</string>
+    <string name="iptv_thumbs_when_watching">Under avspilling</string>
+    <string name="iptv_thumbs_when_watching_desc">Lager bilder i bakgrunnen når nok video er bufret.</string>
+    <string name="iptv_thumbs_when_right_away">Med en gang</string>
+    <string name="iptv_thumbs_when_right_away_desc">Behandler hele videoen fra den åpnes. Bruker mest data.</string>
+    <string name="iptv_thumbs_storage_limit">Lagringsgrense</string>
+    <string name="iptv_thumbs_storage_limit_desc">Bilder fra videoene du så for lengst, slettes først.</string>
+    <string name="iptv_thumbs_clear">Slett lagrede miniatyrbilder</string>
+    <string name="iptv_thumbs_clear_desc">Sletter alle bilder. De lages på nytt ved behov.</string>
+    <string name="iptv_thumbs_last_paused">Sist satt på pause på grunn av lite minne: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">Lager miniatyrbilder…</string>
+    <string name="iptv_thumbs_msg_low_memory">Miniatyrbilder satt på pause på grunn av lite minne</string>
+    <string name="iptv_thumbs_msg_live">Ingen miniatyrbilder for direktesendt TV</string>
+    <string name="iptv_thumbs_msg_dash">Ingen miniatyrbilder for DASH</string>
+    <string name="iptv_thumbs_msg_catchup_save">Slå på raskere spoling i arkiv-TV for å få bilder</string>
+    <string name="iptv_thumbs_msg_protected">Strømmen er beskyttet</string>
+    <string name="iptv_thumbs_msg_torrent">Ingen miniatyrbilder for torrenter</string>
+    <string name="iptv_thumbs_msg_link_kind">Ingen miniatyrbilder for denne lenketypen</string>
+    <string name="iptv_thumbs_msg_unreadable">Strømmen kunne ikke leses</string>
+    <string name="iptv_thumbs_msg_pieces_large">Delene av strømmen er for store</string>
+    <string name="iptv_thumbs_msg_stopped">Miniatyrbilder sluttet å virke for denne videoen</string>
+    <string name="iptv_thumbs_msg_no_pictures">Serveren sendte ingen bilder</string>
+    <string name="iptv_thumbs_msg_format">Enheten støtter ikke forhåndsvisning av formatet</string>
+    <string name="iptv_thumbs_msg_open_failed">Videoen kunne ikke åpnes for forhåndsvisning</string>
+    <string name="iptv_thumbs_msg_catchup_stream">Ingen miniatyrbilder for denne arkivstrømmen</string>
+    <string name="iptv_thumbs_msg_one_decoder">Den eneste dekoderen trengs til avspillingen</string>
+    <string name="iptv_thumbs_title">Miniatyrbilder ved spoling</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">Kunne ikke lagre Seekr-nøkkelen på enheten.</string>
+    <string name="seekr_api_key">API-nøkkel for Seekr</string>
+    <string name="seekr_key_description">Bruk din personlige nøkkel fra seekr.tv til forhåndsvisning av filmer og episoder. Sikkerhetskopien på Google Disk inkluderer nøkkelen. Tøm feltet for å fjerne den.</string>
+    <string name="seekr_only">Bare Seekr</string>
+    <string name="seekr_only_description">Vis bare forhåndsvisninger fra Seekr. Slå av for å lage manglende bilder på enheten.</string>
+</resources>

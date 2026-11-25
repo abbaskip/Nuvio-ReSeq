@@ -3424,4 +3424,13 @@
     <string name="autosync_status_no_fit">Potrebbe non corrispondere</string>
     <string name="autosync_status_no_reference">Nessun sottotitolo incorporato</string>
     <string name="autosync_status_failed">Fallito</string>
+    <string name="iptv_immediate_tier">Includi IPTV VOD tra le fonti immediate</string>
+    <string name="iptv_fallback_tier">Includi IPTV VOD tra le fonti di riserva</string>
+    <string name="when_watched">Quando lo hai guardato?</string>
+    <string name="watched_now">Segna come visto adesso</string>
+    <string name="choose_watch_date">Scegli la data</string>
+    <string name="choose_watch_date_time">Scegli data e ora</string>
+    <string name="choose_watch_time">Scegli l’ora</string>
+    <string name="choose_past_watch_time">Scegli un momento valido nel passato.</string>
+    <string name="episodes_last_watch_mdblist_pending">La visione è stata rimossa da questo dispositivo. In attesa della conferma di MDBList.</string>
 </resources>

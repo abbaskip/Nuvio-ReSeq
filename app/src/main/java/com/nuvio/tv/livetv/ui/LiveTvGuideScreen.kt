@@ -122,38 +122,43 @@ private const val WINDOW_MS = 2L * 60L * 60L * 1000L
 private enum class GuideColumn { CHANNEL, PROGRAM }
 
 /** What the cursor currently sits on in a channel row. */
-private data class GuideBlock(val startMs: Long, val stopMs: Long, val program: EpgProgram?)
+private data class GuideBlock(val startMs: Long, val stopMs: Long, val program: EpgProgram?, val catchupGap: Boolean = false) {
+    fun archive(channel: LiveChannel, now: Long): EpgProgram? {
+        if (stopMs > now || !CatchupUrlBuilder.isAvailable(channel.catchup, startMs, now)) return null
+        return program ?: if (catchupGap) EpgProgram(startMs, stopMs, channel.name) else null
+    }
+}
 
 private data class MenuTarget(val channel: LiveChannel, val block: GuideBlock?)
 
 private fun floorSlot(ms: Long) = ms - Math.floorMod(ms, SLOT_MS)
 
 private const val HOUR_BLOCK_MS = 60L * 60L * 1000L
-const val NO_GUIDE_TITLE = com.nuvio.tv.livetv.data.NO_GUIDE_TITLE
 
-/**
- * TiviMate style: a channel that offers catch-up but has no (or patchy) guide gets hourly
- * "No Program Guide Available" entries, so you can still step back in time and watch from an hour.
- */
-private fun withHourlyPlaceholders(ch: LiveChannel, list: List<EpgProgram>, nowMs: Long, pastHours: Int): List<EpgProgram> {
-    val cu = ch.catchup ?: return list
-    val from = maxOf(nowMs - cu.days.coerceAtMost(7) * 24L * HOUR_BLOCK_MS, nowMs - pastHours * HOUR_BLOCK_MS)
-    val to = nowMs - Math.floorMod(nowMs, HOUR_BLOCK_MS) + HOUR_BLOCK_MS
-    var t = from - Math.floorMod(from, HOUR_BLOCK_MS)
-    if (list.isEmpty()) {
-        val out = ArrayList<EpgProgram>()
-        while (t < to) { out += EpgProgram(t, t + HOUR_BLOCK_MS, NO_GUIDE_TITLE); t += HOUR_BLOCK_MS }
-        return out
+/** Empty blocks exist only in the grid and are clipped to real programmes and the archive window. */
+internal fun withCatchupGaps(list: List<EpgProgram>, archiveDays: Int?, nowMs: Long, pastHours: Int): List<EpgProgram> {
+    if (archiveDays == null || pastHours <= 0) return list
+    val hours = minOf(pastHours, 24 * archiveDays.coerceIn(1, 7))
+    var cursor = nowMs - hours * HOUR_BLOCK_MS
+    val zone = java.util.TimeZone.getDefault()
+    fun nextHour(t: Long) = t + HOUR_BLOCK_MS - Math.floorMod(t + zone.getOffset(t), HOUR_BLOCK_MS)
+    val end = nextHour(nowMs)
+    val result = ArrayList<EpgProgram>()
+    fun addGap(until: Long) {
+        val limit = minOf(until, end)
+        while (cursor < limit) {
+            val stop = minOf(nextHour(cursor), limit)
+            result += EpgProgram(cursor, stop, "")
+            cursor = stop
+        }
     }
-    val sorted = list.sortedBy { it.startMs }
-    val extra = ArrayList<EpgProgram>()
-    var cursor = t
-    for (p in sorted) {
-        while (cursor + HOUR_BLOCK_MS <= p.startMs && cursor < to) { extra += EpgProgram(cursor, cursor + HOUR_BLOCK_MS, NO_GUIDE_TITLE); cursor += HOUR_BLOCK_MS }
-        if (p.stopMs > cursor) cursor = p.stopMs
+    for (program in list.sortedBy { it.startMs }) {
+        addGap(program.startMs)
+        result += program
+        cursor = maxOf(cursor, program.stopMs)
     }
-    while (cursor + HOUR_BLOCK_MS <= to) { extra += EpgProgram(cursor, cursor + HOUR_BLOCK_MS, NO_GUIDE_TITLE); cursor += HOUR_BLOCK_MS }
-    return if (extra.isEmpty()) list else (list + extra).sortedBy { it.startMs }
+    addGap(end)
+    return result
 }
 
 /** "Today", "Tomorrow", "Yesterday", or the day ("Sat, Oct 10") for the guide's time ruler. */
@@ -182,7 +187,7 @@ fun LiveTvGuideScreen(
     onOpenFullscreen: () -> Unit,
     onOpenSettings: () -> Unit,
     onMultiview: (String?) -> Unit = {},
-    onFindInNuvio: () -> Unit = {},
+    onFindInNuvio: (com.nuvio.tv.livetv.ui.GuideLookup) -> Unit = {},
     /** Full screen was opened from the Sports page: Back goes back there. */
     onReturnToSports: () -> Unit = {},
     viewModel: LiveTvViewModel = hiltViewModel()
@@ -731,18 +736,14 @@ fun LiveTvGuideScreen(
         }
     }
 
-    fun findInNuvio(program: EpgProgram) {
-        // For a series with a "Show - Episode" title, search for the show.
-        LiveTvSearchBridge.request(com.nuvio.tv.livetv.data.LiveTvPosterResolver.searchTitleFor(program, null))
-        onFindInNuvio()
-    }
-
     val focusedChannel = channels.getOrNull(row)
 
 
     fun blockAt(channel: LiveChannel, at: Long): GuideBlock {
-        val list = withHourlyPlaceholders(channel, programs[channel.key].orEmpty(), now, settings.epgPastHours)
-        list.firstOrNull { at >= it.startMs && at < it.stopMs }?.let { return GuideBlock(it.startMs, it.stopMs, it) }
+        val list = withCatchupGaps(programs[channel.key].orEmpty(), channel.catchup?.days, now, settings.epgPastHours)
+        list.firstOrNull { at >= it.startMs && at < it.stopMs }?.let {
+            return GuideBlock(it.startMs, it.stopMs, it.takeIf { p -> p.title.isNotEmpty() }, catchupGap = it.title.isEmpty())
+        }
         // A gap between two listed shows: the whole gap is one block (one highlight, one press
         // of Right to get past it), like a show with no information.
         val before = list.lastOrNull { it.stopMs <= at }
@@ -823,11 +824,11 @@ fun LiveTvGuideScreen(
         val ch = focusedChannel ?: return
         if (column == GuideColumn.CHANNEL) { playChannel(ch); return }
         val block = focusedBlock ?: return
+        val archive = block.archive(ch, now)
         when {
             now >= block.startMs && now < block.stopMs -> playChannel(ch)
-            block.stopMs <= now && block.program != null &&
-                CatchupUrlBuilder.isAvailable(ch.catchup, block.startMs, now) -> {
-                if (viewModel.playCatchup(ch, block.program)) goFullscreen()
+            archive != null -> {
+                if (viewModel.playCatchup(ch, archive)) goFullscreen()
             }
             else -> infoTarget = MenuTarget(ch, block)
         }
@@ -1491,7 +1492,9 @@ fun LiveTvGuideScreen(
                                     itemsIndexed(channels, key = { _, c -> c.key }) { index, ch ->
                                         androidx.compose.runtime.CompositionLocalProvider(LocalGuideScale provides guideScale(settings)) { GuideRow(
                                             channel = ch,
-                                            programs = remember(ch.catchup, programs[ch.key], now / HOUR_BLOCK_MS, settings.epgPastHours) { withHourlyPlaceholders(ch, programs[ch.key].orEmpty(), now, settings.epgPastHours) },
+                                            programs = remember(ch.catchup, programs[ch.key], now, settings.epgPastHours) {
+                                                withCatchupGaps(programs[ch.key].orEmpty(), ch.catchup?.days, now, settings.epgPastHours)
+                                            },
                                             settings = settings,
                                             rowHeight = rowHeight,
                                             channelColWidth = channelColWidth,
@@ -1815,7 +1818,7 @@ fun LiveTvGuideScreen(
                 },
                 onProgramInfo = { menuTarget = null; infoTarget = target },
                 streamProgram = target.block?.program ?: viewModel.currentProgram(target.channel.key),
-                onFindInNuvio = { p -> menuTarget = null; findInNuvio(p) },
+                onFindInNuvio = { p -> menuTarget = null; onFindInNuvio(GuideLookup.from(p, target.channel)) },
                 onSearch = { menuTarget = null; LiveTvSearchBridge.origin.value = LiveTvSearchBridge.GUIDE; run { searchOpen = true } },
                 onRefresh = { menuTarget = null; viewModel.refresh() },
                 onGuideDisplay = { menuTarget = null; guideGearOpen = true },
@@ -1851,7 +1854,7 @@ fun LiveTvGuideScreen(
                 use24h = settings.use24HourClock,
                 showEpisode = settings.showEpisodeNumbers,
                 onDismiss = { infoTarget = null },
-                onFind = { p -> infoTarget = null; findInNuvio(p) },
+                onFind = { p -> infoTarget = null; onFindInNuvio(GuideLookup.from(p, target.channel)) },
                 onWatch = { infoTarget = null; playChannel(target.channel) },
                 onCatchup = { p ->
                     infoTarget = null
@@ -2074,7 +2077,7 @@ fun LiveTvGuideScreen(
                         fullscreen = false; exitFullscreenTick++
                     }
                 },
-                onFindInNuvio = { com.nuvio.tv.livetv.sports.SportsLaunch.clearReturn(); fullscreenComing = false; fullscreen = false; exitFullscreenTick++; onFindInNuvio() },
+                onFindInNuvio = { com.nuvio.tv.livetv.sports.SportsLaunch.clearReturn(); fullscreenComing = false; fullscreen = false; exitFullscreenTick++; onFindInNuvio(it) },
                 onBackToGroups = { com.nuvio.tv.livetv.sports.SportsLaunch.clearReturn(); fullscreenComing = false; fullscreen = false; savedSpot = null; exitFullscreenTick++; focusGroups() },
                 embedded = true,
                 onOpenSettings = onOpenSettings,
@@ -2488,10 +2491,7 @@ private fun GuideRow(
             // Worked out once per change of shows or time window, not on every redraw.
             val laid = remember(programs, windowStart, windowEnd) { layOutRow(programs, windowStart, windowEnd) }
             val visible = laid.visible
-            // Highlighted in the program column: the whole empty row lights up, keeping its text
-            // (in bold), instead of a small half-hour "No information" block.
-            // (Also while the highlight is on the channel itself: a show lights up then too, and
-            // the empty row showed a half-hour "No information" block instead.)
+            // Keep focus visible when there are no listings or archive slots in this window.
             val emptyRowFocused = visible.isEmpty() && focusColumn != null
             if (visible.isEmpty()) {
                 val emptyColors = guideCellColors(
@@ -2504,20 +2504,7 @@ private fun GuideRow(
                         .padding(horizontal = 1.dp)
                         .background(emptyColors.background)
                         .then(if (emptyRowFocused) Modifier.border(2.dp, emptyColors.border) else Modifier)
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    androidx.compose.material3.Text(
-                        // The channel's name, so you can see what the row is (24/7 channels'
-                        // names also say what's on). Dim and italic: nothing's actually listed.
-                        text = channel.name,
-                        color = if (emptyRowFocused) emptyColors.text else NuvioTheme.colors.TextTertiary,
-                        fontSize = gsp(14f),
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                        fontWeight = if (emptyRowFocused) FontWeight.Bold else FontWeight.Normal,
-                        maxLines = 1
-                    )
-                }
+                )
             }
             // Every show (and gap) but the highlighted one is painted in one go (see GuideRowStrip);
             // the highlighted show stays a full block, so its title can scroll.
@@ -2532,7 +2519,7 @@ private fun GuideRow(
                     if (gw > 4.dp) strip += StripItem(
                         x = gx, width = gw,
                         // Something is on; the guide just doesn't say what.
-                        title = if (gw > 90.dp) "No information" else "",
+                        title = "",
                         subtitle = null,
                         fill = gapFill,
                         text = NuvioTheme.colors.TextTertiary, italic = true
@@ -2545,7 +2532,7 @@ private fun GuideRow(
                 val w = (xOf(p.stopMs) - x).coerceAtLeast(2.dp)
                 val live = now >= p.startMs && now < p.stopMs
                 val past = p.stopMs <= now
-                val isFocused = focusColumn != null && focusedBlock?.program == p
+                val isFocused = focusColumn != null && focusedBlock?.startMs == p.startMs
                 val marks = titleMarks(p.title)
                 val subtitle = if (settings.showProgramTimes && w > 64.dp) formatRange(p.startMs, p.stopMs, settings.use24HourClock) else null
                 val episode = p.episode?.takeIf { settings.showEpisodeNumbers && it.length <= 12 }
@@ -2580,7 +2567,7 @@ private fun GuideRow(
                 } else {
                     strip += StripItem(
                         x = x, width = w,
-                        title = (if (p.startMs < windowStart) "‹ " else "") + marks.title,
+                        title = (if (p.title.isNotEmpty() && p.startMs < windowStart) "‹ " else "") + marks.title,
                         subtitle = subtitle,
                         // One color for every show (the progress bar already marks what's on now).
                         fill = idleFill,
@@ -2598,11 +2585,11 @@ private fun GuideRow(
             if (strip.isNotEmpty()) GuideRowStrip(strip, titleSize = gsp(14f), smallSize = gsp(12f), dotSize = gdp(9f), iconSize = gdp(13f))
             focusedShow?.invoke()
             // Highlight for an empty slot under the cursor.
-            if (focusColumn != null && focusedBlock != null && focusedBlock.program == null && !emptyRowFocused) {
+            if (focusColumn != null && focusedBlock != null && focusedBlock.program == null && !focusedBlock.catchupGap && !emptyRowFocused) {
                 val x = xOf(focusedBlock.startMs)
                 val w = (xOf(focusedBlock.stopMs) - x).coerceAtLeast(2.dp)
                 ProgramBlock(
-                    title = "No information", subtitle = null, x = x, width = w,
+                    title = "", subtitle = null, x = x, width = w,
                     colors = guideCellColors(focused = true, idle = rowFill),
                     focused = true, progress = null, continuesLeft = false
                 )
@@ -3126,7 +3113,7 @@ private fun ChannelContextMenu(
     val first = remember { FocusRequester() }
     val ch = target.channel
     val program = target.block?.program
-    val canCatchup = program != null && program.stopMs <= now && CatchupUrlBuilder.isAvailable(ch.catchup, program.startMs, now)
+    val archive = target.block?.archive(ch, now)
     LiveDialog(onDismiss = onDismiss, width = 460.dp) {
         LiveText("${ch.number}  ${ch.name}", size = 20.sp, weight = FontWeight.Bold)
         LiveText(ch.group, color = NuvioTheme.colors.TextSecondary, size = 13.sp)
@@ -3138,7 +3125,7 @@ private fun ChannelContextMenu(
             if (canRestart && (program == null || (now >= program.startMs && now < program.stopMs))) item {
                 MenuItem(restartLabel, onClick = onRestart)
             }
-            if (canCatchup) item { MenuItem("Play from archive: ${program!!.title}", onClick = { onCatchup(program!!) }) }
+            if (archive != null) item { MenuItem("Play from archive: ${archive.title}", onClick = { onCatchup(archive) }) }
             item { MenuItem(androidx.compose.ui.res.stringResource(com.nuvio.tv.R.string.open_in_multiview), onClick = onMultiview) }
             if (program != null || streamProgram != null) {
                 item { MenuHeader("This show") }
@@ -3851,7 +3838,7 @@ private fun ProgramInfoDialog(
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             val live = block != null && now >= block.startMs && now < block.stopMs
-            val archive = p != null && p.stopMs <= now && CatchupUrlBuilder.isAvailable(target.channel.catchup, p.startMs, now)
+            val archive = block?.archive(target.channel, now)
             val upcoming = p != null && block != null && block.startMs > now
             // For a show that hasn't started, streaming it through Nuvio is the main action.
             if (upcoming) {
@@ -3861,7 +3848,7 @@ private fun ProgramInfoDialog(
             }
             when {
                 live -> LiveFocusRow(modifier = Modifier.focusRequester(first), onClick = onWatch) { f -> LiveText("Watch", color = focusedTextColor(f)) }
-                archive -> LiveFocusRow(modifier = Modifier.focusRequester(first), onClick = { onCatchup(p!!) }) { f -> LiveText("Play from archive", color = focusedTextColor(f)) }
+                archive != null -> LiveFocusRow(modifier = Modifier.focusRequester(first), onClick = { onCatchup(archive) }) { f -> LiveText("Play from archive", color = focusedTextColor(f)) }
                 upcoming -> LiveFocusRow(onClick = onWatch) { f -> LiveText("Watch channel now", color = focusedTextColor(f)) }
                 else -> LiveFocusRow(modifier = Modifier.focusRequester(first), onClick = onWatch) { f -> LiveText("Watch channel now", color = focusedTextColor(f)) }
             }
@@ -3907,14 +3894,15 @@ internal fun TextInputDialog(
     confirmLabel: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
-    numeric: Boolean = false
+    numeric: Boolean = false,
+    password: Boolean = false
 ) {
     var text by remember { mutableStateOf(initial) }
     val fieldFocus = remember { FocusRequester() }
     LiveDialog(onDismiss = onDismiss) {
         LiveText(title, size = 20.sp, weight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
-        LiveTextField(value = text, onValueChange = { text = it }, hint = hint, focusRequester = fieldFocus, numeric = numeric, onDone = { onConfirm(text) })
+        LiveTextField(value = text, onValueChange = { text = it }, hint = hint, focusRequester = fieldFocus, numeric = numeric, password = password, onDone = { onConfirm(text) })
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             LiveFocusRow(onClick = { onConfirm(text) }) { f -> LiveText(confirmLabel, color = focusedTextColor(f)) }

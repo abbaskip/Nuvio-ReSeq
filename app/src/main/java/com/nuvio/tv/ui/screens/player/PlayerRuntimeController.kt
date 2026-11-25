@@ -185,6 +185,8 @@ class PlayerRuntimeController(
     internal val streamName: String? = navigationArgs.streamName
     internal val year: String? = navigationArgs.year
     internal val headersJson: String? = navigationArgs.headersJson
+    /** Set by hosts that can play episodes from their own download library. */
+    internal var downloadedEpisodeSource: (suspend (com.nuvio.tv.domain.model.Video) -> com.nuvio.tv.domain.model.Stream?)? = null
     internal val contentId: String? = navigationArgs.contentId
     internal val contentType: String? = navigationArgs.contentType
     internal val contentName: String? = navigationArgs.contentName
@@ -550,6 +552,7 @@ class PlayerRuntimeController(
     internal var currentParallelChunkOverheadMb: Int = 0
     /** Back buffer (ms) the user configured, captured at build to restore once DV7 status is known. */
     internal var configuredBackBufferMs: Int = 0
+    internal val playbackMeta = kotlinx.coroutines.flow.MutableStateFlow<com.nuvio.tv.domain.model.Meta?>(null)
     internal var metaVideos: List<Video> = emptyList()
     internal var playbackShuffleState: com.nuvio.tv.core.player.PlaybackShuffleState? = null
     internal var cloudPlaybackContext: CloudLibraryPlaybackContext? =

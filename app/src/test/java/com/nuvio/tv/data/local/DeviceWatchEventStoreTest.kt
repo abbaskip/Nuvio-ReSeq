@@ -100,9 +100,12 @@ class DeviceWatchEventStoreTest {
                 source = WatchProgress.SOURCE_REMOTE_PLAYBACK, trackingProviderId = source.storageId)
             f.confirmed = confirmedFirst
             val shown = if (confirmedFirst) played.copy(source = nativePause.source) else played
-            f.repository(f.journal).removeLastTraktWatch(played.contentId,
+            val result = runCatching { f.repository(f.journal).removeLastTraktWatch(played.contentId,
                 Video(id = played.videoId, title = played.episodeTitle!!, season = played.season, episode = played.episode,
-                    released = null, thumbnail = null, overview = null), shown)
+                    released = null, thumbnail = null, overview = null), shown) }
+            if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile" && source == TrackingProviderId.MDBLIST && !confirmedFirst)
+                assertTrue(result.exceptionOrNull() is com.nuvio.tv.domain.repository.MdbListUndoPending)
+            else result.getOrThrow()
             assertEquals(listOf(f.prior), f.local.getAllRawEntries(1).values.toList())
             assertEquals(listOf(f.oldWatched), f.watched.getAllItems(1))
             assertTrue(f.local.observeDeviceProgress(1, source.name).first().isEmpty())
@@ -116,6 +119,17 @@ class DeviceWatchEventStoreTest {
             assertTrue(f.removed.all { it.second.completionExpected == !split })
             assertEquals(listOf(f.oldWatched), f.watched.getAllItems(1))
         }
+    }
+
+    @Test fun `a backdated manual completion has its own undo identity apart from a recent playback`() = runTest {
+        val f = Fixture(TrackingProviderId.TRAKT, true)
+        val recent = f.journal.record(1, f.prior.copy(lastWatched = 1_000_000, position = 40, duration = 100))
+        val dated = f.journal.record(1, f.prior.copy(lastWatched = 10_000), separateEvent = true)
+        assertTrue(dated.deviceWatchEventId != recent.deviceWatchEventId)
+        val removed = f.journal.requestRemoval(1, dated)
+        assertEquals(10_000L, removed.startedAt)
+        assertTrue(removed.removes(dated))
+        assertFalse(removed.removes(recent))
     }
 
     @Test fun `removing Part 1 neither revokes earlier full completion nor a later Part 2 play sharing its native episode`() = runTest {

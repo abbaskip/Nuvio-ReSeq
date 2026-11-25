@@ -437,6 +437,37 @@ class TvdbProportionalScrobbleTest {
         }
     }
 
+    @Test fun completedMdbListDeliveryAdvancesPastBothExtendedPartsAfterRefresh() = runTest {
+        val record = MdbListWatchedRecord(MdbListItemType.EPISODE, nativeMedia,
+            "2026-11-23T04:16:50Z", 6, 16, "The Delivery", episodeTvdbId = 1832421L)
+        val history = MdbListProgressProjection(mdbSnapshot.copy(watched = listOf(record)))
+            .watchedEpisodeProgress(original.id).single()
+        val second = effective.videos.single { it.episodeIdentity?.tvdbEpisodeId == 10719653L }
+        val earlierPartTwo = WatchProgress(original.id, "series", original.name, null, null, null,
+            second.id, second.season, second.episode, second.title, position = 99_500, duration = 100_000,
+            lastWatched = history.lastWatched - 60_000, tvdbContext = second.tvdbPlaybackContext())
+        val selector = com.nuvio.tv.ui.screens.detail.SeriesNextToWatch(mockk(relaxed = true))
+        for (records in listOf(listOf(history), listOf(earlierPartTwo, history), listOf(history, earlierPartTwo))) {
+            val projected = resolver.projectProgress(1, original.id, emptyMap(), records)
+            val next = selector.resolve(original.id, "series", original.name, effective.videos, true,
+                null, projected, emptySet(), false) { emptyMap() }
+            assertEquals("Next episode after the combined completion", 19, next.nextEpisode)
+            for (number in listOf(17, 18)) {
+                val part = projected.getValue(6 to number)
+                assertTrue(part.isCompleted())
+                assertEquals(history.lastWatched, part.lastWatched)
+                assertEquals(history.source, part.source)
+            }
+        }
+        val rewatch = earlierPartTwo.copy(lastWatched = history.lastWatched + 60_000, position = 20_000)
+        val projected = resolver.projectProgress(1, original.id, emptyMap(), listOf(history, rewatch))
+        val resume = selector.resolve(original.id, "series", original.name, effective.videos, true,
+            null, projected, emptySet(), false) { emptyMap() }
+        assertTrue(resume.isResume)
+        assertEquals(second.id, resume.nextVideoId)
+        assertEquals(rewatch.position, resume.watchProgress!!.position)
+    }
+
     @Test fun combinedLectureCircuitRetainsIndependentEvidenceForBothNativeEpisodes() {
         val nativeIds = lecture.tvdbPlaybackContext()!!.episodeIds
         assertEquals(2, nativeIds.size)

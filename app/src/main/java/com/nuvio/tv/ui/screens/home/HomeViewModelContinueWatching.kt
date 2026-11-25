@@ -362,7 +362,10 @@ internal fun HomeViewModel.loadContinueWatchingPipeline() {
                 val recentNextUpSeeds = nextUpSeeds
                     .asSequence()
                     .filter { progress -> inWindow(progress.contentId, progress.lastWatched) }
-                    .sortedByDescending { it.lastWatched }
+                    .sortedByDescending {
+                        if (com.nuvio.tv.BuildConfig.FLAVOR == "mobile") latestActivity[it.contentId] ?: it.lastWatched
+                        else it.lastWatched
+                    }
                     .take(CW_MAX_RECENT_PROGRESS_ITEMS)
                     .toList()
                 // All series that still have at least one watched-episode seed.
@@ -1725,15 +1728,19 @@ internal suspend fun HomeViewModel.selectedOrderSeed(seed: WatchProgress): Watch
     val meta = resolveMetaForProgress(seed, cwMetaCache) ?: return null
     if (!meta.tvdbOrder) return null
     val videos = meta.videos.map { it.asTvdbVideo() }
+    val furthest = layoutPreferenceDataStore.nextUpFromFurthestEpisode.first()
+    val requireCurrentWatch = com.nuvio.tv.BuildConfig.FLAVOR == "mobile" && !furthest &&
+        seed.trackingProviderId == "mdblist"
     val resolved = withTimeoutOrNull(8_000L) {
         watchProgressRepository.getAllEpisodeProgress(seed.contentId).map { snapshot ->
             snapshot.values.filter { it.isCompleted() }.mapNotNull { entry ->
                 com.nuvio.tv.data.tvdb.resolveTvdbProgressVideo(videos, entry)
                     ?.takeIf { (it.displaySeason ?: 0) > 0 }?.let { it to entry }
             }
-        }.firstOrNull { it.isNotEmpty() }
+        }.firstOrNull { candidates ->
+            candidates.isNotEmpty() && (!requireCurrentWatch || candidates.any { it.second.lastWatched >= seed.lastWatched })
+        }
     } ?: return null
-    val furthest = layoutPreferenceDataStore.nextUpFromFurthestEpisode.first()
     val sequence = compareBy<Pair<Video, WatchProgress>>(
         { it.first.displaySeason }, { it.first.displayEpisode })
     val selected = resolved.maxWithOrNull(if (furthest) sequence.thenBy { it.second.lastWatched }

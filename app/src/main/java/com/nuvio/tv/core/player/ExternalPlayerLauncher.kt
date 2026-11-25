@@ -25,6 +25,7 @@ object ExternalPlayerLauncher {
         return try {
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(Uri.parse(url), "video/*")
+                grantMobileDownloadReadAccess(context)
 
                 // Pre-resolved intro/outro skip segments (mpvNova reads this; others ignore it).
                 skipSegmentsJson?.let { putExtra("skip_segments", it) }

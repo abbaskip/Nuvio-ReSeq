@@ -23,15 +23,18 @@ object IptvStorageReport {
     }
 
     fun scan(context: Context): IptvStorageSnapshot {
+        fun journal(path: File): Long = listOf("-wal", "-shm", "-journal").sumOf { File(path.path + it).length() }
         fun database(name: String): Long {
             val path = context.getDatabasePath(name)
-            return listOf(path, File(path.path + "-wal"), File(path.path + "-shm")).sumOf { it.length() }
+            return path.length() + journal(path)
         }
+        val guide = context.getDatabasePath("livetv_guide.db")
         val sourceBytes = bytes(File(context.cacheDir, "livetv_sources")) +
             bytes(File(context.filesDir, "livetv/epg")) + bytes(File(context.filesDir, "livetv/playlists"))
         val categories = listOf(
             StorageCategory("On Demand catalogue and journal", database("livetv_on_demand.db")),
-            StorageCategory("TV guide and journal", database("livetv_guide.db")),
+            StorageCategory("TV guide database", guide.length()),
+            StorageCategory("TV guide journal", journal(guide)),
             StorageCategory("Poster lookup database", database("livetv_posters.db")),
             StorageCategory("Downloaded guide and playlist files", sourceBytes),
             StorageCategory("Other Live TV setup files", (bytes(File(context.filesDir, "livetv")) -

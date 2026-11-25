@@ -252,14 +252,50 @@ class StalkerPortalClientTest {
         MockWebServer().use { server ->
             body(server, "{\"token\":\"synthetic\"}"); body(server, "{\"status\":2}"); body(server, "true")
             body(server, "{\"id\":42}"); body(server, "{\"cmd\":\"https://media.example.test/live.ts\"}")
-            val account = source(server).copy(stalkerUsername = "synthetic-user", stalkerPassword = "synthetic-password")
+            val account = source(server).copy(stalkerUsername = "synthetic-user", stalkerPassword = "synthetic-password",
+                stalkerDeviceId = "First+ID/with=case", stalkerDeviceId2 = "Second&ID")
             assertEquals("https://media.example.test/live.ts", StalkerPortalClient(OkHttpClient(), { 0L }).resolve(account, marker()).url)
-            server.takeRequest()
-            assertEquals("0", server.takeRequest().requestUrl!!.queryParameter("auth_second_step"))
+            val handshake = server.takeRequest().requestUrl!!
+            val firstProfile = server.takeRequest().requestUrl!!
+            assertEquals("0", firstProfile.queryParameter("auth_second_step"))
             val auth = server.takeRequest().requestUrl!!
             assertEquals("do_auth", auth.queryParameter("action")); assertEquals("synthetic-user", auth.queryParameter("login"))
             val profile = server.takeRequest().requestUrl!!
             assertEquals("1", profile.queryParameter("auth_second_step")); assertEquals("MAG250", profile.queryParameter("stb_type"))
+            for (request in listOf(firstProfile, auth, profile)) {
+                assertEquals(listOf(account.stalkerDeviceId), request.queryParameterValues("device_id"))
+                assertEquals(listOf(account.stalkerDeviceId2), request.queryParameterValues("device_id2"))
+            }
+            val playback = server.takeRequest().requestUrl!!
+            for (request in listOf(handshake, playback)) {
+                assertNull(request.queryParameter("device_id"))
+                assertNull(request.queryParameter("device_id2"))
+            }
+        }
+    }
+
+    @Test fun `either device ID can be supplied independently and changes start a new session`() = runBlocking {
+        MockWebServer().use { server ->
+            val client = StalkerPortalClient(OkHttpClient(), { 0L })
+            val original = source(server)
+            val identities = listOf("" to "", "first" to "", "first" to "second", "" to "second")
+            for ((index, ids) in identities.withIndex()) {
+                val (id, id2) = ids
+                val account = original.copy(stalkerDeviceId = id, stalkerDeviceId2 = id2)
+                login(server, "session-$index")
+                body(server, "[]")
+                client.request(account, "itv", "get_genres")
+                assertEquals(3 * (index + 1), server.requestCount)
+                assertEquals("handshake", server.takeRequest().requestUrl!!.queryParameter("action"))
+                val profile = server.takeRequest().requestUrl!!
+                assertEquals("get_profile", profile.queryParameter("action"))
+                assertEquals(id.takeIf { it.isNotEmpty() }, profile.queryParameter("device_id"))
+                assertEquals(id2.takeIf { it.isNotEmpty() }, profile.queryParameter("device_id2"))
+                assertEquals("Bearer session-$index", server.takeRequest().getHeader("Authorization"))
+            }
+            assertEquals(4, identities.map { (id, id2) ->
+                original.copy(stalkerDeviceId = id, stalkerDeviceId2 = id2).vodImportPolicy()
+            }.distinct().size)
         }
     }
     @Test fun `blocked profiles cannot continue to channel or playback requests`() = runBlocking {

@@ -91,6 +91,7 @@ class MdbListTrackingProgressProviderTest {
 
         val episodes = provider.episodeProgress("tt1").first()
         assertEquals(setOf(2 to 10, 2 to 11), episodes.keys)
+        assertEquals(setOf(1 to 34, 1 to 35), provider.nativeEpisodeRecords("tt1").first().map { it.season to it.episode }.toSet())
         assertEquals("tt1:2:11", episodes.getValue(2 to 11).videoId)
         assertTrue(episodes.getValue(2 to 11).isCompleted())
 
@@ -110,6 +111,9 @@ class MdbListTrackingProgressProviderTest {
         harness.repository.ensureLoaded()
         val provider = provider(harness)
         val active = provider.episodeProgress("tt1").first()
+        val native = provider.nativeEpisodeRecords("tt1").first().filter { it.tvdbEpisodeId == 1832421L }
+        assertEquals(setOf(false, true), native.map { it.isCompleted() }.toSet())
+        assertEquals(setOf(1832421L, 1575891L), provider.completedNextUpHistory("tt1").map { it.tvdbEpisodeId }.toSet())
         assertEquals(.5f, active.getValue(6 to 16).progressPercent)
         assertTrue(active.getValue(6 to 15).isCompleted())
         harness.http.reply(body = """[{"id":7,"type":"episode","progress":0.5,"paused_at":"2026-11-17T00:00:00Z",

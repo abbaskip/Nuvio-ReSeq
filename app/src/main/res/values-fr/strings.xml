@@ -3530,4 +3530,13 @@
     <string name="autosync_status_no_fit">Peut ne pas correspondre</string>
     <string name="autosync_status_no_reference">Pas de sous-titres intégrés</string>
     <string name="autosync_status_failed">Échec</string>
+    <string name="iptv_immediate_tier">Inclure la VOD IPTV parmi les sources immédiates</string>
+    <string name="iptv_fallback_tier">Inclure la VOD IPTV parmi les sources de secours</string>
+    <string name="when_watched">Quand l’avez-vous regardé ?</string>
+    <string name="watched_now">Marquer comme vu maintenant</string>
+    <string name="choose_watch_date">Choisir la date</string>
+    <string name="choose_watch_date_time">Choisir la date et l’heure</string>
+    <string name="choose_watch_time">Choisir l’heure</string>
+    <string name="choose_past_watch_time">Choisissez un moment valide dans le passé.</string>
+    <string name="episodes_last_watch_mdblist_pending">Le visionnage a été supprimé de cet appareil. En attente de confirmation de MDBList.</string>
 </resources>

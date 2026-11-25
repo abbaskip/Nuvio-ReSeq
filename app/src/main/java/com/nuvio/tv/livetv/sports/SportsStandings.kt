@@ -204,7 +204,7 @@ data class Standings(
                 val entries = st?.optJSONArray("entries")
                 if (st != null && entries != null && entries.length() > 0) {
                     if (season == null) season = st.str("seasonDisplayName") ?: st.opt("season")?.toString()
-                    leaves += Triple(node.str("name") ?: node.str("abbreviation") ?: league.name, parent, node)
+                    leaves += Triple(node.str("name") ?: node.str("abbreviation") ?: root.str("name") ?: league.name, parent, node)
                 }
                 val kids = node.optJSONArray("children") ?: return
                 // A node with children: its name is the parent of what's inside (a conference).
@@ -225,18 +225,23 @@ data class Standings(
             }
             val kind = when {
                 athletes -> StandingsKind.RACING
+                league.sport == Sport.CRICKET -> StandingsKind.TABLE
                 "otLosses" in statNames -> StandingsKind.HOCKEY
                 league.sport == Sport.FOOTBALL || league.sport == Sport.RUGBY_LEAGUE ||
                     ("points" in statNames && "ties" in statNames && "winPercent" !in statNames) -> StandingsKind.TABLE
                 else -> StandingsKind.RECORD
             }
+            val championship = league.id == "cricket/19430" && root.str("name")?.contains("World Test Championship", true) == true
             val groups = used.map { (name, parent, node) ->
                 val entries = node.optJSONObject("standings")!!.optJSONArray("entries").objs()
-                StandingsGroup(name, parent, parseEntries(entries, kind))
+                val rows = parseEntries(entries, kind)
+                StandingsGroup(name, parent, if (championship) championshipOrder(rows) else rows)
             }
             val anyTies = groups.any { g -> g.rows.any { (it.values["ties"] ?: "0").let { t -> t != "0" && t.isNotBlank() } } }
             val columns = when (kind) {
-                StandingsKind.TABLE -> if (league.sport == Sport.RUGBY_LEAGUE) {
+                StandingsKind.TABLE -> if (league.sport == Sport.CRICKET) {
+                    listOf(c("gamesPlayed", "M"), c("wins", "W"), c("losses", "L"), c("draws", "D"), c("points", "PTS"), c("netRunRate", "NRR"), c("pointsPct", "PCT"))
+                } else if (league.sport == Sport.RUGBY_LEAGUE) {
                     listOf(c("gamesPlayed", "P"), c("wins", "W"), c("losses", "L"), c("ties", "D"), c("pointDifferential", "PD"), c("points", "PTS"))
                 } else listOf(c("gamesPlayed", "P"), c("wins", "W"), c("ties", "D"), c("losses", "L"), c("pointDifferential", "GD"), c("points", "PTS"))
                 StandingsKind.HOCKEY -> listOf(c("gamesPlayed", "GP"), c("wins", "W"), c("losses", "L"), c("otLosses", "OTL"), c("points", "PTS"), c("streak", "STRK"))
@@ -246,6 +251,23 @@ data class Standings(
             // Only columns the feed actually filled in.
             val filled = columns.filter { col -> col.key == "behind" || groups.any { g -> g.rows.any { !it.values[col.key].isNullOrBlank() } } }
             return Standings(league.id, season, kind, filled, groups, "ESPN", now)
+        }
+
+        // The WTC awards 12 available points per Test. ESPN orders by raw points, while
+        // the ICC ranks by percentage of available points after deductions.
+        private fun championshipOrder(rows: List<StandingsRow>): List<StandingsRow> {
+            val ordered = rows.map { row ->
+                val played = row.values["gamesPlayed"]?.toIntOrNull() ?: 0
+                val points = row.values["points"]?.toDoubleOrNull()
+                val pct = if (played > 0 && points != null) 100.0 * points / (12.0 * played) else null
+                row.copy(sortValue = pct ?: -1.0, values = if (pct == null) row.values else
+                    row.values + ("pointsPct" to java.lang.String.format(java.util.Locale.ROOT, "%.2f", pct)))
+            }.sortedByDescending { it.sortValue }
+            var position = 0
+            return ordered.mapIndexed { index, row ->
+                if (index == 0 || row.sortValue != ordered[index - 1].sortValue) position = index + 1
+                row.copy(pos = position)
+            }
         }
 
         private fun c(key: String, label: String) = StandingsColumn(key, label)
@@ -293,10 +315,14 @@ data class Standings(
                 "ties" to "gamesDrawn", "pointDifferential" to "pointsDifference")) {
                 if (key !in stats) stats[alias]?.let { stats[key] = it }
             }
+            for ((key, alias) in listOf("gamesPlayed" to "matchesPlayed", "wins" to "matchesWon", "losses" to "matchesLost",
+                "draws" to "matchesDraw", "points" to "matchPoints")) {
+                if (key !in stats) stats[alias]?.let { stats[key] = it }
+            }
             fun shown(name: String): String? = stats[name]?.let { s -> s.str("displayValue")?.trim()?.takeIf { it.isNotEmpty() } }
             fun num(name: String): Double? = stats[name]?.opt("value")?.let { (it as? Number)?.toDouble() ?: it.toString().toDoubleOrNull() }
             val values = HashMap<String, String>()
-            for (k in listOf("gamesPlayed", "wins", "losses", "ties", "otLosses", "pointDifferential", "points", "winPercent", "gamesBehind", "streak")) {
+            for (k in listOf("gamesPlayed", "wins", "losses", "ties", "otLosses", "pointDifferential", "points", "winPercent", "gamesBehind", "streak", "draws", "netRunRate")) {
                 shown(k)?.let { values[k] = it }
             }
             // Some record tables (notably FBS) supply losses only in their overall W-L[-T].

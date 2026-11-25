@@ -441,11 +441,25 @@ internal class SportsFeeds {
             }
         }
 
+        /** The selected game's already-requested summary carries its scoreboard as well as its box score. */
+        internal fun summaryScore(league: League, event: SportsEvent, root: JSONObject, at: Long): SportsEvent? {
+            val header = root.optJSONObject("header") ?: return null
+            if (event.espnId == null || header.str("id") != event.espnId || event.state == GameState.POST && event.hasScore) return null
+            val game = parseEvent(league, header) ?: return null
+            if (game.state !in setOf(GameState.LIVE, GameState.POST) || !game.hasScore ||
+                game.home?.team?.id != event.home?.team?.id || game.away?.team?.id != event.away?.team?.id) return null
+            fun side(original: Side?, scored: Side?): Side? = original?.copy(score = scored?.score,
+                winner = scored?.winner == true, periods = scored?.periods.orEmpty().ifEmpty { original.periods })
+            return event.copy(state = game.state, status = game.status, progress = game.progress, awaitingUpdate = false,
+                away = side(event.away, game.away), home = side(event.home, game.home), updatedAt = at,
+                situation = game.situation ?: event.situation?.takeIf { game.state == event.state })
+        }
+
         private fun parseEvent(league: League, ev: JSONObject): SportsEvent? {
             val espnId = ev.str("id") ?: return null
-            val start = parseIso(ev.str("date")) ?: return null
-            val end = parseIso(ev.str("endDate"))
             val comp = ev.optJSONArray("competitions")?.optJSONObject(0)
+            val start = parseIso(ev.str("date") ?: comp?.str("date")) ?: return null
+            val end = parseIso(ev.str("endDate"))
             // An event with several sessions (practice, qualifying, the race): the event's own status.
             val st = if (league.kind == LeagueKind.EVENT) ev.optJSONObject("status") ?: comp?.optJSONObject("status")
             else comp?.optJSONObject("status") ?: ev.optJSONObject("status")

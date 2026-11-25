@@ -70,7 +70,7 @@ private fun MixButton(label: String, icon: ImageVector?, modifier: Modifier = Mo
 
 /** Uses the app's shared Coil loader/cache; no generated composite bitmaps are stored. */
 @Composable
-fun TvMixArtwork(encoded: String, title: String, modifier: Modifier = Modifier) {
+fun TvMixArtwork(encoded: String, title: String? = null, modifier: Modifier = Modifier) {
     val covers = remember(encoded) { encoded.removePrefix("tvmix-art:").split('|')
         .filter(String::isNotBlank).mapNotNull { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }.take(4) }
     Box(modifier.background(NuvioTheme.colors.BackgroundCard)) {
@@ -88,9 +88,11 @@ fun TvMixArtwork(encoded: String, title: String, modifier: Modifier = Modifier) 
                 }
             }
         }
-        Text(title, modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-            .background(NuvioTheme.colors.Background.copy(alpha = 0.8f)).padding(10.dp),
-            color = NuvioTheme.colors.TextPrimary, maxLines = 2)
+        if (title != null) {
+            Text(title, modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
+                .background(NuvioTheme.colors.Background.copy(alpha = 0.8f)).padding(10.dp),
+                color = NuvioTheme.colors.TextPrimary, maxLines = 2)
+        }
     }
 }
 

@@ -534,6 +534,11 @@ class LiveTvPlaybackController @Inject constructor(
 
     /** The channel the player is on (as it was when playback started). */
     val playingChannel: LiveChannel? get() = currentChannel
+    internal val playingUrl get() = currentUrl
+    internal val upstreamBufferKind get() = timeshift.session?.kind
+    internal val replayPlaylistFile get() = replayCache.session?.takeIf { replayLocal }?.playUri?.path?.let { java.io.File(it) }
+    internal val shiftPlaylistFile get() = recordingPlayback.value ?: timeshift.session?.takeIf { shiftPrepared }?.playUri?.path?.let { java.io.File(it) }
+
     private var currentUrl: String? = null
     private var attachCount = 0
     private var releaseJob: Job? = null

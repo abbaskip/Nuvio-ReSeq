@@ -3290,4 +3290,13 @@
     <string name="autosync_status_no_fit">可能不匹配</string>
     <string name="autosync_status_no_reference">無嵌入字幕</string>
     <string name="autosync_status_failed">失敗</string>
+    <string name="iptv_immediate_tier">將 IPTV 隨選影片加入即時播放來源</string>
+    <string name="iptv_fallback_tier">將 IPTV 隨選影片加入備用來源</string>
+    <string name="when_watched">你是什麼時候看的？</string>
+    <string name="watched_now">標記為剛剛看過</string>
+    <string name="choose_watch_date">選擇日期</string>
+    <string name="choose_watch_date_time">選擇日期與時間</string>
+    <string name="choose_watch_time">選擇時間</string>
+    <string name="choose_past_watch_time">請選擇過去的有效時間。</string>
+    <string name="episodes_last_watch_mdblist_pending">已從此裝置移除觀看紀錄，正在等待 MDBList 確認。</string>
 </resources>

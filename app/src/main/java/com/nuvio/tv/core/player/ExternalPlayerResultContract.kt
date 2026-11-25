@@ -58,6 +58,7 @@ class ExternalPlayerResultContract : ActivityResultContract<ExternalPlayerInput,
     override fun createIntent(context: Context, input: ExternalPlayerInput): Intent {
         return Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(Uri.parse(input.url), "video/*")
+            grantMobileDownloadReadAccess(context)
 
             input.title?.let {
                 putExtra("title", it)
@@ -208,4 +209,11 @@ class ExternalPlayerResultContract : ActivityResultContract<ExternalPlayerInput,
         }
         return null
     }
+}
+
+internal fun Intent.grantMobileDownloadReadAccess(context: Context) {
+    if (com.nuvio.tv.BuildConfig.FLAVOR != "mobile") return
+    val uri = data ?: return
+    if (uri.scheme == "content" && uri.authority == "${context.packageName}.fileprovider" &&
+        uri.pathSegments.firstOrNull() == "downloads") addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 }

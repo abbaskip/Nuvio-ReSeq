@@ -1174,7 +1174,9 @@ class LiveTvPreferences @Inject constructor(
                                 localPlaylists[r.id]?.let { l ->
                                     if (l.url != r.url || l.xtreamServer != r.xtreamServer || l.xtreamUsername != r.xtreamUsername ||
                                         l.xtreamPassword != r.xtreamPassword || l.stalkerPortal != r.stalkerPortal || l.stalkerMac != r.stalkerMac ||
-                                        l.stalkerUsername != r.stalkerUsername || l.stalkerPassword != r.stalkerPassword || l.stalkerSerial != r.stalkerSerial || l.userAgent != r.userAgent || l.streamFormat != r.streamFormat
+                                        l.stalkerUsername != r.stalkerUsername || l.stalkerPassword != r.stalkerPassword || l.stalkerSerial != r.stalkerSerial ||
+                                        l.stalkerDeviceId != r.stalkerDeviceId || l.stalkerDeviceId2 != r.stalkerDeviceId2 ||
+                                        l.userAgent != r.userAgent || l.streamFormat != r.streamFormat
                                     ) changed += r.id
                                     r.copy(
                                         lastUpdatedMs = l.lastUpdatedMs, lastError = l.lastError, channelCount = l.channelCount,
@@ -1228,6 +1230,8 @@ class LiveTvPreferences @Inject constructor(
                     stalkerPortal = o.optString("stalkerPortal"), stalkerMac = o.optString("stalkerMac"),
                     stalkerUsername = o.optString("stalkerUsername"), stalkerPassword = o.optString("stalkerPassword"),
                     stalkerSerial = o.optString("stalkerSerial"),
+                    stalkerDeviceId = o.optString("stalkerDeviceId"),
+                    stalkerDeviceId2 = o.optString("stalkerDeviceId2"),
                     vodMovies = o.optBoolean("vodMovies", true),
                     vodSeries = o.optBoolean("vodSeries", true),
                     vodSourceOnly = o.optBoolean("vodSourceOnly", false),
@@ -1262,6 +1266,10 @@ class LiveTvPreferences @Inject constructor(
                     .put("stalkerPortal", s.stalkerPortal).put("stalkerMac", s.stalkerMac)
                     .put("stalkerUsername", s.stalkerUsername).put("stalkerPassword", s.stalkerPassword)
                     .put("stalkerSerial", s.stalkerSerial)
+                    .apply {
+                        if (s.stalkerDeviceId.isNotBlank()) put("stalkerDeviceId", s.stalkerDeviceId)
+                        if (s.stalkerDeviceId2.isNotBlank()) put("stalkerDeviceId2", s.stalkerDeviceId2)
+                    }
             )
         }
         return arr.toString()

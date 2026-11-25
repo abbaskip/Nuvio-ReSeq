@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_section_seek_thumbnails">आगे-पीछे करते समय थंबनेल</string>
+    <string name="playback_section_seek_thumbnails_desc">समयरेखा खिसकाते समय उसके ऊपर झलक देखें</string>
+    <string name="iptv_thumbs_subtitle">Seekr की झलकियाँ दिखाएँ या डिवाइस पर वीडियो से चित्र बनाएँ।</string>
+    <string name="iptv_thumbs_works_on">फ़िल्म, सीरीज़, HLS, रिकॉर्डिंग, खेल रिप्ले, कैच-अप और बफ़र वाले लाइव टीवी के लिए। कैच-अप में सहेजा भाग या प्रदाता का HLS उपयोग होता है। टोरेंट, DASH और सुरक्षित स्ट्रीम समर्थित नहीं हैं।</string>
+    <string name="iptv_thumbs_low_memory_note">मेमरी कम है। वीडियो अटकने पर थंबनेल अपने आप रुक जाते हैं।</string>
+    <string name="iptv_thumbs_include_4k">4K और HDR शामिल करें</string>
+    <string name="iptv_thumbs_include_4k_desc">अधिक डेटा लगता है। कम क्षमता वाले डिवाइस पर वीडियो अटक सकता है और HDR के रंग फीके दिख सकते हैं। स्ट्रीम का सबसे छोटा संस्करण उपयोग होता है।</string>
+    <string name="iptv_thumbs_when_to_make">थंबनेल कब बनाएँ</string>
+    <string name="iptv_thumbs_when_seeking">केवल विराम या आगे-पीछे करते समय</string>
+    <string name="iptv_thumbs_when_seeking_desc">सामान्य प्लेबैक के दौरान चित्र नहीं बनते।</string>
+    <string name="iptv_thumbs_when_watching">देखते समय</string>
+    <string name="iptv_thumbs_when_watching_desc">पर्याप्त बफ़र होने पर पृष्ठभूमि में बनाए जाते हैं।</string>
+    <string name="iptv_thumbs_when_right_away">तुरंत</string>
+    <string name="iptv_thumbs_when_right_away_desc">खोलते ही पूरे वीडियो के चित्र बनते हैं। सबसे अधिक डेटा लगता है।</string>
+    <string name="iptv_thumbs_storage_limit">स्टोरेज सीमा</string>
+    <string name="iptv_thumbs_storage_limit_desc">सबसे पहले देखे गए वीडियो के चित्र पहले हटते हैं।</string>
+    <string name="iptv_thumbs_clear">सहेजे गए थंबनेल मिटाएँ</string>
+    <string name="iptv_thumbs_clear_desc">सभी चित्र मिटते हैं। ज़रूरत पर फिर बनेंगे।</string>
+    <string name="iptv_thumbs_last_paused">कम मेमरी के कारण आखिरी विराम: %1$s, %2$s</string>
+    <string name="iptv_thumbs_msg_making">थंबनेल बन रहे हैं…</string>
+    <string name="iptv_thumbs_msg_low_memory">कम मेमरी के कारण थंबनेल रुके हैं</string>
+    <string name="iptv_thumbs_msg_live">लाइव टीवी के लिए थंबनेल नहीं हैं</string>
+    <string name="iptv_thumbs_msg_dash">DASH के लिए थंबनेल नहीं हैं</string>
+    <string name="iptv_thumbs_msg_catchup_save">थंबनेल के लिए तेज़ कैच-अप स्किप चालू करें</string>
+    <string name="iptv_thumbs_msg_protected">यह स्ट्रीम सुरक्षित है</string>
+    <string name="iptv_thumbs_msg_torrent">टोरेंट के लिए थंबनेल नहीं हैं</string>
+    <string name="iptv_thumbs_msg_link_kind">इस तरह के लिंक का प्रिव्यू उपलब्ध नहीं है</string>
+    <string name="iptv_thumbs_msg_unreadable">प्रिव्यू के लिए स्ट्रीम पढ़ी नहीं जा सकी</string>
+    <string name="iptv_thumbs_msg_pieces_large">स्ट्रीम के खंड बहुत बड़े हैं</string>
+    <string name="iptv_thumbs_msg_stopped">इस वीडियो के थंबनेल बनना बंद हो गए</string>
+    <string name="iptv_thumbs_msg_no_pictures">सर्वर ने प्रिव्यू चित्र नहीं भेजे</string>
+    <string name="iptv_thumbs_msg_format">इस डिवाइस पर इस फ़ॉर्मैट का प्रिव्यू संभव नहीं है</string>
+    <string name="iptv_thumbs_msg_open_failed">प्रिव्यू के लिए वीडियो खुल नहीं सका</string>
+    <string name="iptv_thumbs_msg_catchup_stream">इस कैच-अप स्ट्रीम के थंबनेल नहीं हैं</string>
+    <string name="iptv_thumbs_msg_one_decoder">वीडियो चलाने के लिए एकमात्र डिकोडर चाहिए</string>
+    <string name="iptv_thumbs_title">आगे-पीछे करते समय थंबनेल</string>
+    <string name="iptv_thumbs_size_mb">%1$s MB</string>
+    <string name="iptv_thumbs_size_kb">%1$s KB</string>
+    <string name="seekr_key_save_error">इस डिवाइस पर Seekr कुंजी सहेजी नहीं जा सकी।</string>
+    <string name="seekr_api_key">Seekr API कुंजी</string>
+    <string name="seekr_key_description">फ़िल्मों और एपिसोड की झलकियों के लिए seekr.tv की अपनी कुंजी दें। Google Drive बैकअप में कुंजी भी शामिल होती है। हटाने के लिए फ़ील्ड खाली करें।</string>
+    <string name="seekr_only">केवल Seekr</string>
+    <string name="seekr_only_description">केवल Seekr की उपलब्ध झलकियाँ दिखाएँ। बाकी झलकियाँ डिवाइस पर बनाने के लिए इसे बंद करें।</string>
+</resources>

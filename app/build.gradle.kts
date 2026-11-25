@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -217,8 +217,8 @@ android {
         create("mobile") {
             initWith(full)
             applicationId = "io.github.abbaskip.nuvioreseq.mobile"
-            versionCode = 20
-            versionName = "0.1.0-beta.3.2"
+            versionCode = 21
+            versionName = "0.1.0-beta.3.3"
             buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "true")
         }
     }

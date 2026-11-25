@@ -140,6 +140,14 @@ jobs:
           profile: pixel_5
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           script: |
+            # Exercise online navigation using loopback fixtures, then the app's real offline mode.
+            adb -s emulator-5554 root
+            adb -s emulator-5554 wait-for-device
+            adb -s emulator-5554 shell settings put global captive_portal_mode 0
+            adb -s emulator-5554 shell iptables -I OUTPUT ! -o lo -j REJECT
+            adb -s emulator-5554 shell ip6tables -I OUTPUT ! -o lo -j REJECT
+            adb -s emulator-5554 shell iptables -C OUTPUT ! -o lo -j REJECT
+            adb -s emulator-5554 shell ip6tables -C OUTPUT ! -o lo -j REJECT
             python3 scripts/mobile_smoke.py --extended --apk build/mobile-downloads/*-universal.apk
             adb shell am broadcast -a androidx.profileinstaller.action.INSTALL_PROFILE -n io.github.abbaskip.nuvioreseq.mobile/androidx.profileinstaller.ProfileInstallReceiver | grep -E 'result=(1|2)(,|$)'
             adb shell cmd package compile -f -m speed-profile io.github.abbaskip.nuvioreseq.mobile | grep Success

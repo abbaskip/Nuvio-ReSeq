@@ -678,6 +678,11 @@ def run(adb, serial, apk, catalog_only=False, drive_sign_in=False, extended=Fals
                 locate("On TV now")
                 screenshot("tablet-sports", landscape=True)
                 if extended:
+                    choose("Options")
+                    scroll_to("Verify missing guide events")
+                    choose("Verify missing guide events")
+                    locate("Save a Gemini key first.")
+                    shell("input", "keyevent", "KEYCODE_BACK")
                     choose("Alerts")
                     choose("Hide scores")
                     shell("input", "keyevent", "KEYCODE_BACK")

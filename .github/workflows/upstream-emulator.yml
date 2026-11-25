@@ -35,12 +35,20 @@ jobs:
         run: |
           printf '%s\n' 'NUVIO_SUPABASE_URL=https://fixture.invalid' 'NUVIO_SUPABASE_ANON_KEY=unused-fixture-only' > local.dev.properties
           if [[ "${{ matrix.revision }}" == "mobile" ]]; then
-            ./gradlew :app:assembleMobileDebug :app:testMobileDebugUnitTest -PuseLocalFfmpegDecoder=false --max-workers=2
+            ./gradlew :app:assembleMobileDebug :app:testMobileDebugUnitTest --init-script scripts/ci.gradle -PuseLocalFfmpegDecoder=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=2
           else
             ./gradlew :app:assembleFullDebug :app:assembleFullDebugAndroidTest -PuseLocalFfmpegDecoder=false --max-workers=2
           fi
       - name: Allow this runner to use its virtual CPU
         run: sudo setfacl -m u:"$(id -un)":rw /dev/kvm
+      - name: Select TV fixture classes present at the pinned revision
+        if: matrix.revision != 'mobile'
+        run: |
+          classes='com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest,com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest,com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest,com.nuvio.tv.ui.screens.home.TvMixHomeTvTest,com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest'
+          for suite in com.nuvio.tv.livetv.data.EpgTitleSearchTest com.nuvio.tv.livetv.ui.GuideSearchDialogTvTest com.nuvio.tv.ui.screens.detail.TrailerHandoffTvTest com.nuvio.tv.livetv.sports.SportsMatchCentreTvTest; do
+            if [[ -f "app/src/androidTest/java/${suite//.//}.kt" ]]; then classes+=",$suite"; fi
+          done
+          echo "TV_TEST_CLASSES=$classes" >> "$GITHUB_ENV"
       - if: matrix.revision != 'mobile'
         uses: reactivecircus/android-emulator-runner@324029e2f414c084d8b15ba075288885e74aef9c
         with:
@@ -50,7 +58,7 @@ jobs:
           target: android-tv
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -skin 1920x1080
-          script: ./gradlew :app:connectedFullDebugAndroidTest -PuseLocalFfmpegDecoder=false --max-workers=2 -Pandroid.testInstrumentationRunnerArguments.class=com.nuvio.tv.ui.screens.settings.PlaybackSettingsOrganizationTest,com.nuvio.tv.ui.screens.player.UpstreamSourceChipFocusTvTest,com.nuvio.tv.livetv.ui.LiveTvOrderDialogTest,com.nuvio.tv.ui.screens.home.TvMixHomeTvTest,com.nuvio.tv.ui.screens.detail.EpisodeShuffleTvTest,com.nuvio.tv.livetv.data.EpgTitleSearchTest
+          script: ./gradlew :app:connectedFullDebugAndroidTest -PuseLocalFfmpegDecoder=false --max-workers=2 -Pandroid.testInstrumentationRunnerArguments.class="$TV_TEST_CLASSES"
       - name: Run mobile touch acceptance with loopback services
         if: matrix.revision == 'mobile'
         uses: reactivecircus/android-emulator-runner@324029e2f414c084d8b15ba075288885e74aef9c
@@ -77,7 +85,8 @@ jobs:
           executed = [case for case in cases if case.find('skipped') is None]
           names = {case.get('classname', '').split('.')[-1] for case in executed}
           assert {'PlaybackSettingsOrganizationTest', 'UpstreamSourceChipFocusTvTest', 'LiveTvOrderDialogTest', 'TvMixHomeTvTest', 'EpisodeShuffleTvTest'} <= names, names
-          if Path('app/src/androidTest/java/com/nuvio/tv/livetv/data/EpgTitleSearchTest.kt').exists():
-              assert 'EpgTitleSearchTest' in names
+          import os
+          expected = {name.split('.')[-1] for name in os.environ['TV_TEST_CLASSES'].split(',')}
+          assert expected <= names, expected - names
           print(f'{len(executed)} fixture tests passed on the hosted emulator')
           PY

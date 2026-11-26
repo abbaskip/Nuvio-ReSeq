@@ -1,6 +1,7 @@
 package com.nuvio.tv.core.usenet
 
 import com.nuvio.tv.core.streams.StreamRankingSettings
+import com.nuvio.tv.core.streams.SourceStreamTemplates
 import java.net.URI
 import java.net.URLEncoder
 import java.util.UUID
@@ -133,7 +134,10 @@ data class UsenetSourceConfiguration(
     /** On: results show as each indexer answers. Off: the list shows once all answered, or after a short wait. */
     val progressiveResults: Boolean = false,
     /** Null: after every addon. Otherwise the URLs of the addons placed above it; see [BuiltInUsenetOrder]. */
-    val addonsAbove: List<String>? = null
+    val addonsAbove: List<String>? = null,
+    /** Maximum estimated average Mbps. Zero leaves the filter off. */
+    val maxBitrateMbps: Int = 0,
+    val streamTemplates: SourceStreamTemplates = SourceStreamTemplates()
 ) {
     val ready: Boolean get() = enabled && providers.any { it.enabled } && indexers.any { it.enabled }
 
@@ -172,13 +176,16 @@ data class UsenetSourceConfiguration(
         indexers.forEach { it.validate() }
         require(providers.filter { it.enabled }.sumOf { it.connections } <= 4096) { "Total connections exceed 4096" }
         require(minResolution in listOf(0, 480, 720, 1080, 2160))
-        require(maxSizeGb in 0..1000 && maxAgeDays in 0..10000 &&
+        require(maxSizeGb in 0..MAX_SIZE_GB && maxBitrateMbps in 0..MAX_BITRATE_MBPS && maxAgeDays in 0..10000 &&
             (maxResults == UNLIMITED_RESULTS || maxResults in 1..MAX_LISTED_RESULTS) &&
             indexerResultsLimit in AUTO_INDEXER_RESULTS..MAX_INDEXER_RESULTS)
         require((addonsAbove?.size ?: 0) <= 500) { "Too many addons above built-in Usenet" }
+        streamTemplates.validate()
     }
 
     companion object {
+        const val MAX_SIZE_GB = 1000
+        const val MAX_BITRATE_MBPS = 1000
         const val UNLIMITED_RESULTS = 0
         const val MAX_LISTED_RESULTS = 500
         const val DEFAULT_INDEXER_RESULTS = 200

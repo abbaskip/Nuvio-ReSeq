@@ -3,6 +3,7 @@ package com.nuvio.tv.ui.screens.settings
 import androidx.lifecycle.ViewModel
 import androidx.media3.common.util.UnstableApi
 import com.nuvio.tv.core.plugin.PluginManager
+import com.nuvio.tv.core.usenet.BuiltInUsenetService
 import com.nuvio.tv.data.local.DeviceLocalPlayerPreferences
 import com.nuvio.tv.data.local.LibassRenderScale
 import com.nuvio.tv.data.local.LibassRenderType
@@ -40,6 +41,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -53,8 +55,7 @@ class PlaybackSettingsViewModel @Inject constructor(
     private val pluginManager: PluginManager,
     private val torrentSettings: TorrentSettings,
     private val torrentService: TorrentService,
-    private val mixedSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources,
-    private val mediaServers: com.nuvio.tv.data.mediaserver.ServerRepository
+    private val mixedSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources
 ) : ViewModel() {
 
     val playerSettings: Flow<PlayerSettings> = playerSettingsDataStore.playerSettings
@@ -98,15 +99,9 @@ class PlaybackSettingsViewModel @Inject constructor(
         }
     }
 
-    val autoPlaySourceNames = combine(mixedSources.sources(), enabledPluginNames, mediaServers.uiState) { sources, plugins, _ ->
-        (sources.enabledAddons().filter { addon -> addon.resources.any { it.name.equals("stream", true) } }
-            .map { it.displayName } + plugins + mediaServers.enabledConnections().map(mediaServers::sourceLabel)).distinct()
-    }
-
-    val immediateSourceNames = combine(installedAddonNames, mixedSources.sources()) { addons, sources ->
-        addons + sources.enabledAddons().filter { com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(it.baseUrl) }
-            .map { it.displayName }
-    }
+    val directUsenetAvailable = mixedSources.sources().map { sources ->
+        sources.any { it.enabled && it.baseUrl == BuiltInUsenetService.SOURCE_KEY }
+    }.distinctUntilChanged()
 
     suspend fun setPlayerPreference(preference: PlayerPreference) {
         playerSettingsDataStore.setPlayerPreference(preference)

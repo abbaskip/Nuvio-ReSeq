@@ -423,6 +423,17 @@ class BuiltInUsenetServiceTest {
         assertEquals("$title\nTrueHD 7.1 Atmos • 60.00 GB • 72 Mbps • 3d • A", shown.description)
         assertEquals("TrueHD 7.1 Atmos • 60.00 GB • 72 Mbps • 3d • A • FraMeSToR",
             stream(config.copy(showReleaseNames = false)).description)
+        val formatted = stream(config.copy(streamTemplates = com.nuvio.tv.core.streams.SourceStreamTemplates(
+            name = """{stream.type::=Usenet["📰"||""]} {stream.resolution::replace('2160p','4K')}
+{stream.audioChannels::join(' / ')} | {stream.audioTags::join(' / ')}""",
+            description = """{stream.title} ({stream.year})
+{metadata.runtime::>0["{metadata.runtime} min"||""]} | {stream.bitrate::bitrate}
+{stream.filename}
+{service.cached::istrue["Cached"||""]}"""
+        )))
+        assertEquals("📰 4K\n7.1 | TrueHD / Atmos", formatted.name)
+        assertEquals("The Movie (2026)\n120 min | 71.6 Mbps\n$title", formatted.description)
+        assertEquals(shown.usenet, formatted.usenet)
     }
 
     @Test fun `with size badges shown, only a pack's details keep its size`() = runTest {

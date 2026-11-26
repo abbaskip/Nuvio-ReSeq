@@ -35,7 +35,8 @@ internal fun PlaybackSettingsSections(
     onOpenDialog: (PlaybackDialog) -> Unit,
     onMemorySettingChanged: () -> Unit,
     onClearTorrentCache: () -> Unit,
-    initialFocusRequester: FocusRequester? = null
+    initialFocusRequester: FocusRequester? = null,
+    hasDirectUsenet: Boolean = false
 ) {
     val sections = visiblePlaybackSections(playerSettings)
     var expandedSections by rememberSaveable { mutableStateOf(emptyList<String>()) }
@@ -74,7 +75,8 @@ internal fun PlaybackSettingsSections(
                         onUpdate = onUpdate,
                         onOpenDialog = onOpenDialog,
                         onMemorySettingChanged = onMemorySettingChanged,
-                        onClearTorrentCache = onClearTorrentCache
+                        onClearTorrentCache = onClearTorrentCache,
+                        hasDirectUsenet = hasDirectUsenet
                     )
                 }
             }
@@ -93,11 +95,12 @@ private fun PlaybackSectionContent(
     onUpdate: PlaybackSettingsUpdate,
     onOpenDialog: (PlaybackDialog) -> Unit,
     onMemorySettingChanged: () -> Unit,
-    onClearTorrentCache: () -> Unit
+    onClearTorrentCache: () -> Unit,
+    hasDirectUsenet: Boolean
 ) {
     when (section) {
         PlaybackSection.PLAYER -> PlaybackPlayerSection(playerSettings, releaseDecoderOnBackground, onUpdate, onOpenDialog)
-        PlaybackSection.STREAM_SELECTION -> PlaybackStreamSelectionSection(playerSettings, onUpdate, onOpenDialog)
+        PlaybackSection.STREAM_SELECTION -> PlaybackStreamSelectionSection(playerSettings, onUpdate, onOpenDialog, hasDirectUsenet)
         PlaybackSection.UP_NEXT -> PlaybackUpNextSection(playerSettings, onUpdate, onOpenDialog)
         PlaybackSection.SKIP_SEGMENTS -> PlaybackSkipSegmentsSection(playerSettings, onUpdate)
         PlaybackSection.SEEK_THUMBNAILS -> PlaybackSeekThumbnailSection()

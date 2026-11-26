@@ -89,7 +89,8 @@ class IptvVodStreams @Inject constructor(
             (native?.id ?: videoId).takeIf { it.matches(Regex("tt[0-9]+")) && it != id }, imdb, providerCoordinates, aliases?.titles.orEmpty())
     }
 
-    internal suspend fun load(playlistKey: String, sourceName: String, target: VodStreamTarget?, profileId: Int): List<Stream> {
+    internal suspend fun load(playlistKey: String, sourceName: String, target: VodStreamTarget?, profileId: Int,
+        templates: com.nuvio.tv.core.streams.SourceStreamTemplates? = null): List<Stream> {
         if (target == null || profiles.activeProfileId.value != profileId) return emptyList()
         repository.start()
         val playlistId = playlistKey.removePrefix(IptvStreamSources.PREFIX)
@@ -111,6 +112,6 @@ class IptvVodStreams @Inject constructor(
             }
         }
         if (profiles.activeProfileId.value != profileId) return emptyList()
-        return ordered.map { OnDemandStreams.stream(it, sourceName) }
+        return ordered.map { OnDemandStreams.stream(it, sourceName, templates) }
     }
 }

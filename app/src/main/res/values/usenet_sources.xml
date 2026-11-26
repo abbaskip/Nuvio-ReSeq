@@ -26,6 +26,16 @@
     <string name="usenet_sort_indexer">Indexer priority</string>
     <string name="usenet_min_resolution">Minimum resolution</string>
     <string name="usenet_max_size">Maximum release size</string>
+    <string name="usenet_max_bitrate">Maximum estimated average bitrate</string>
+    <string name="usenet_max_bitrate_hint">Uses release size and runtime. Releases with an unknown bitrate stay visible.</string>
+    <string name="usenet_mbps_value">%1$d Mbps</string>
+    <string name="usenet_phone_limit_unlimited">Enter 0 for Unlimited.</string>
+    <string name="usenet_phone_size_gb">Maximum release size (GB)</string>
+    <string name="usenet_phone_bitrate_mbps">Maximum estimated average bitrate (Mbps)</string>
+    <string name="usenet_phone_limits_invalid">Enter valid whole numbers for both limits.</string>
+    <string name="source_stream_format_title">IPTV and Usenet stream format</string>
+    <string name="source_stream_format_hint">Applies to IPTV on-demand and Direct Usenet results. Leave a template blank to keep its default format.</string>
+    <string name="source_stream_format_invalid">Each template can contain up to 8,192 characters.</string>
     <string name="usenet_max_age">Maximum release age in days</string>
     <string name="usenet_result_limit">Maximum results</string>
     <string name="usenet_indexer_results">Default fetch limit</string>

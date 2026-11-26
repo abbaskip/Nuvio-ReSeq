@@ -236,7 +236,7 @@ class StreamRepositoryImpl @Inject constructor(
                 debridSettings = debridSettings,
                 iptvRevision = iptvRevision,
                 pluginSearchConfiguration = pluginSearchConfiguration,
-                usenet = runCatching { usenetSources?.read(profileId) }.getOrNull()?.takeIf { it.ready && addons.any { addon -> addon.baseUrl == BuiltInUsenetService.SOURCE_KEY } }
+                usenet = runCatching { usenetSources?.read(profileId) }.getOrNull()
             )
         }
     }
@@ -271,7 +271,8 @@ class StreamRepositoryImpl @Inject constructor(
                 }
             }
 
-            val searchUsenet = usenet != null && builtInUsenet != null && type.lowercase() in BUILT_IN_USENET_TYPES
+            val searchUsenet = usenet?.ready == true && builtInUsenet != null && type.lowercase() in BUILT_IN_USENET_TYPES &&
+                addons.any { it.baseUrl == BuiltInUsenetService.SOURCE_KEY }
             val attemptedAddonNames = streamAddons.map { it.displayName } + serverSources.map { it.name } +
                 listOfNotNull(BuiltInUsenetService.GROUP_NAME.takeIf { searchUsenet })
             val attemptedFailures = java.util.Collections.synchronizedList(
@@ -325,7 +326,8 @@ class StreamRepositoryImpl @Inject constructor(
                         try {
                             val isPlaylist = com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(addon.baseUrl)
                             val streamsResult = if (isPlaylist) NetworkResult.Success(
-                                iptvStreams?.load(addon.baseUrl, addon.displayName, iptvTarget?.await(), profileId).orEmpty()
+                                iptvStreams?.load(addon.baseUrl, addon.displayName, iptvTarget?.await(), profileId,
+                                    usenet?.streamTemplates).orEmpty()
                             ) else getStreamsFromAddon(addon, type, videoId)
                             when (streamsResult) {
                                 is NetworkResult.Success -> {

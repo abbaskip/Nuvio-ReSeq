@@ -35,7 +35,7 @@ class DriveUsenetBackupTest {
         assertEquals(profile.autoplay, restored.profiles.single().autoplay)
         assertEquals(setup.playback, restored.playback)
         assertTrue(runCatching { DriveUsenetBackup.open(sealed, "a different backup passphrase".toCharArray()) }.isFailure)
-        val tampered = sealed.replace(Regex("(\"ciphertext\":\")([A-Za-z])")) { match ->
+        val tampered = sealed.replace(Regex("(\"ciphertext\":\")([A-Za-z0-9+/])")) { match ->
             match.groupValues[1] + if (match.groupValues[2] == "A") "B" else "A"
         }
         assertNotEquals(sealed, tampered)

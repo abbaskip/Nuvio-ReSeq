@@ -87,6 +87,38 @@ class UsenetSourcesConfigServerTest {
         assertEquals(listOf("Renamed", "Indexer", "Indexer"), setup.saved)
     }
 
+    @Test fun `phone search limits round trip with source settings unchanged`() {
+        val path = "/api/search-limits"
+        val limits = """{"maxSizeGb":80,"maxBitrateMbps":35}"""
+        val initial = setup.configuration
+        assertEquals(403, call(path, limits, token = null).first)
+        assertEquals(400, call(path, """{"maxSizeGb":80}""").first)
+        assertEquals(400, call(path, """{"maxSizeGb":80,"maxBitrateMbps":-1}""").first)
+        assertEquals(initial, setup.configuration)
+        assertEquals(200, call(path, limits).first)
+        assertEquals(initial.copy(maxSizeGb = 80, maxBitrateMbps = 35), setup.configuration)
+        val body = call("/api/sources").second
+        assertEquals(PhoneSearchLimits(80, 35), Json.decodeFromString<PhoneSources>(body).searchLimits)
+        assertFalse("provider-secret" in body || "api-secret" in body)
+        assertEquals(200, call(path, """{"maxSizeGb":0,"maxBitrateMbps":0}""").first)
+        assertEquals(initial, setup.configuration)
+    }
+
+    @Test fun `phone stream format preserves source settings and supports restoring defaults`() {
+        val path = "/api/stream-format"
+        val templates = com.nuvio.tv.core.streams.SourceStreamTemplates("{stream.type}", "{stream.filename}\n{stream.bitrate::bitrate}")
+        val initial = setup.configuration
+        val body = Json.encodeToString(templates)
+        assertEquals(403, call(path, body, token = null).first)
+        assertEquals(400, call(path, Json.encodeToString(templates.copy(name = "x".repeat(8193)))).first)
+        assertEquals(initial, setup.configuration)
+        assertEquals(200, call(path, body).first)
+        assertEquals(initial.copy(streamTemplates = templates), setup.configuration)
+        assertEquals(templates, Json.decodeFromString<PhoneSources>(call("/api/sources").second).streamTemplates)
+        assertEquals(200, call(path, """{"name":"","description":""}""").first)
+        assertEquals(initial, setup.configuration)
+    }
+
     @Test fun `phone fetch limits round trip without exposing or replacing credentials`() {
         fun save(extra: String) = call("/api/indexers",
             """{"id":"i1","name":"Indexer","apiUrl":"https://indexer.example/api"$extra}""").first

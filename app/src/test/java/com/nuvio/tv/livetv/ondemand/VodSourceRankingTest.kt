@@ -1,5 +1,6 @@
 package com.nuvio.tv.livetv.ondemand
 
+import com.nuvio.tv.core.streams.SourceStreamTemplates
 import java.util.Locale
 import org.junit.Assert.*
 import org.junit.Test
@@ -60,5 +61,23 @@ class VodSourceRankingTest {
         assertNull(VodSourceRanking.layoutChannels("Dolby Atmos"))
         assertEquals(2, VodSourceRanking.audioChannels("stereo"))
         assertNull(VodSourceRanking.audioChannels("Show S07E01 2025.1080p"))
+    }
+
+    @Test fun `IPTV template uses media facts and release hints without exposing the URL path`() {
+        val result = source("fixture", tech(bitrate = 12000), folder = "Remux").copy(
+            url = "https://media.example.test/private-user/private-pass/Show.1080p.HEVC-GRP.mkv?token=secret"
+        )
+        val templates = SourceStreamTemplates(
+            name = """{stream.type::=http["💻WEB"||""]}
+{stream.resolution} | {stream.quality}""",
+            description = """{metadata.runtime::>0["{metadata.runtime} min"||""]}
+{stream.filename} | {stream.bitrate::bitrate} | {stream.releaseGroup}
+{stream.folderSize::>0["{stream.folderSize::bytes}"||""]}"""
+        )
+        val formatted = OnDemandStreams.stream(result, "Playlist", templates)
+        assertEquals("💻WEB\n1080p | Remux", formatted.name)
+        assertEquals("60 min\nShow.1080p.HEVC-GRP.mkv | 12.0 Mbps | GRP", formatted.description)
+        assertEquals(result.url, formatted.url)
+        assertEquals(OnDemandStreams.stream(result, "Playlist"), OnDemandStreams.stream(result, "Playlist", SourceStreamTemplates()))
     }
 }

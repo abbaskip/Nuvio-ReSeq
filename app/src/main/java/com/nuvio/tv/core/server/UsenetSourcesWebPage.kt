@@ -292,6 +292,26 @@ $('indexerForm').onsubmit = e => {
 document.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => { b.closest('form').classList.remove('open'); setStatus(''); });
 $('addProvider').onclick = () => openProvider(null);
 $('addIndexer').onclick = () => openIndexer(null);
+$('searchLimitsForm').onsubmit = e => {
+  e.preventDefault();
+  run($('saveSearchLimits'), '${js(R.string.web_status_saving)}', async () => {
+    const result = await api('/api/search-limits', {
+      maxSizeGb: $('maxReleaseSize').valueAsNumber,
+      maxBitrateMbps: $('maxAverageBitrate').valueAsNumber
+    });
+    setStatus(result.message);
+  });
+};
+$('sourceStreamFormatForm').onsubmit = e => {
+  e.preventDefault();
+  run($('saveSourceStreamFormat'), '${js(R.string.web_status_saving)}', async () => {
+    const result = await api('/api/stream-format', {
+      name: $('sourceNameTemplate').value,
+      description: $('sourceDescriptionTemplate').value
+    });
+    setStatus(result.message);
+  });
+};
 document.querySelectorAll('.tab').forEach(tab => tab.onclick = () => {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
   $('panel-providers').hidden = tab.dataset.tab !== 'providers';
@@ -301,6 +321,12 @@ document.querySelectorAll('.tab').forEach(tab => tab.onclick = () => {
 });
 ${UsenetRankingWebPage.script(context)}
 load().then(() => {
+  $('maxReleaseSize').value = sources.searchLimits.maxSizeGb;
+  $('maxAverageBitrate').value = sources.searchLimits.maxBitrateMbps;
+  $('saveSearchLimits').disabled = false;
+  $('sourceNameTemplate').value = sources.streamTemplates.name;
+  $('sourceDescriptionTemplate').value = sources.streamTemplates.description;
+  $('saveSourceStreamFormat').disabled = false;
   if (addOnOpen === '${UsenetSourcesConfigServer.ADD_PROVIDER}') openProvider(null);
   if (addOnOpen === '${UsenetSourcesConfigServer.ADD_INDEXER}') { document.querySelector('.tab[data-tab="indexers"]').click(); openIndexer(null); }
   if (addOnOpen === '${UsenetSourcesConfigServer.OPEN_RANKING}') document.querySelector('.tab[data-tab="ranking"]').click();

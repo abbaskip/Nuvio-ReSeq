@@ -2,6 +2,8 @@ package com.nuvio.tv.core.server
 
 import android.content.Context
 import com.nuvio.tv.R
+import com.nuvio.tv.core.streams.SourceStreamTemplates
+import com.nuvio.tv.core.usenet.UsenetSourceConfiguration
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -33,6 +35,26 @@ internal object UsenetRankingWebPage {
         fun s(id: Int) = context.getString(id).escape()
         return """
         <div id="panel-ranking" hidden>
+          <form id="searchLimitsForm" class="open ranking-section">
+            <div class="form-title">${s(R.string.usenet_section_search)}</div>
+            <label for="maxReleaseSize">${s(R.string.usenet_phone_size_gb)}</label>
+            <input id="maxReleaseSize" type="number" inputmode="numeric" min="0" max="${UsenetSourceConfiguration.MAX_SIZE_GB}" required>
+            <label for="maxAverageBitrate">${s(R.string.usenet_phone_bitrate_mbps)}</label>
+            <input id="maxAverageBitrate" type="number" inputmode="numeric" min="0" max="${UsenetSourceConfiguration.MAX_BITRATE_MBPS}" required aria-describedby="bitrateHint">
+            <p class="ranking-note" id="bitrateHint">${s(R.string.usenet_max_bitrate_hint)} ${s(R.string.usenet_phone_limit_unlimited)}</p>
+            <button class="btn primary add" type="submit" id="saveSearchLimits" disabled>${s(R.string.action_save)}</button>
+          </form>
+          <details class="ranking-section">
+            <summary>${s(R.string.source_stream_format_title)}</summary>
+            <p class="ranking-note">${s(R.string.source_stream_format_hint)}</p>
+            <form id="sourceStreamFormatForm" class="open">
+              <label for="sourceNameTemplate">${s(R.string.web_debrid_name_template)}</label>
+              <textarea id="sourceNameTemplate" maxlength="${SourceStreamTemplates.MAX_LENGTH}" spellcheck="false"></textarea>
+              <label for="sourceDescriptionTemplate">${s(R.string.web_debrid_description_template)}</label>
+              <textarea id="sourceDescriptionTemplate" maxlength="${SourceStreamTemplates.MAX_LENGTH}" spellcheck="false"></textarea>
+              <button class="btn primary add" type="submit" id="saveSourceStreamFormat" disabled>${s(R.string.action_save)}</button>
+            </form>
+          </details>
           <p class="ranking-note">${s(R.string.usenet_ranking_intro)}</p>
           <label for="rankingPreset">${s(R.string.usenet_ranking_title)}</label>
           <select id="rankingPreset"></select>

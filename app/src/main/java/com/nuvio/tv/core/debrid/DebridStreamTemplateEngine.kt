@@ -144,6 +144,9 @@ class DebridStreamTemplateEngine @Inject constructor() {
             op == "lower" -> valueToText(value).lowercase()
             op == "upper" -> valueToText(value).uppercase()
             op == "bytes" -> asNumber(value)?.let { formatBytes(it) }.orEmpty()
+            op == "bitrate" -> asNumber(value)?.takeIf { it > 0 }?.let { bitsPerSecond ->
+                "%.1f Mbps".format(Locale.ROOT, bitsPerSecond / 1_000_000)
+            }.orEmpty()
             op == "time" -> asNumber(value)?.let { formatTime(it) }.orEmpty()
             op.startsWith("join(") -> {
                 val separator = parseArgs(op).firstOrNull() ?: ", "
@@ -295,7 +298,7 @@ class DebridStreamTemplateEngine @Inject constructor() {
     }
 
     private fun String.isFieldPath(): Boolean {
-        return startsWith("stream.") || startsWith("service.") || startsWith("addon.")
+        return startsWith("stream.") || startsWith("service.") || startsWith("addon.") || startsWith("metadata.")
     }
 
     private fun exists(value: Any?): Boolean {

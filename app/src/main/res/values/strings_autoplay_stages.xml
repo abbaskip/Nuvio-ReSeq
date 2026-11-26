@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="autoplay_stage_immediate">Immediate</string>
+    <string name="autoplay_immediate_hint">Start after a brief pause when a selected source responds.</string>
+    <string name="autoplay_source_iptv">IPTV On Demand</string>
+    <string name="autoplay_stage_timed">Timed autoplay</string>
+    <string name="autoplay_wait_hint">Maximum wait for your allowed sources.</string>
+    <string name="autoplay_preload_wait_hint">Lead time for next-episode source preloading.</string>
+    <string name="autoplay_from_addons">Autoplay from Add-ons</string>
+    <string name="autoplay_addons_hint">Includes connected media servers.</string>
+    <string name="autoplay_from_plugins">Autoplay from Plugins</string>
+    <string name="autoplay_stage_fallback">Fallback</string>
+    <string name="autoplay_any_source_hint">Try any add-on, plugin, or media server. IPTV On Demand and Direct Usenet are optional.</string>
+    <string name="autoplay_any_source_without_plugins_hint">Try any add-on or media server. IPTV On Demand and Direct Usenet are optional.</string>
+    <string name="autoplay_fallback_delay_hint">Measured from the start of the search.</string>
+    <string name="autoplay_use_addon_order">Use Add-ons order</string>
+    <string name="autoplay_other_stream_options">Other stream options</string>
+</resources>

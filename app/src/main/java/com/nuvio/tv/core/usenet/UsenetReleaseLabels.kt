@@ -12,22 +12,37 @@ import java.util.Locale
  */
 internal data class UsenetReleaseLabels(
     val service: String?,
-    /** The best audio track it names, with its channels and Atmos: "TrueHD 7.1 Atmos". */
-    val audio: String?,
+    val audioTags: List<String>,
+    val audioChannels: String?,
     /** Language codes, upper case: EN, DE, MULTI. */
     val languages: List<String>,
     /** The release group, without what a repost or an obfuscated upload adds after it. */
     val group: String?
 ) {
+    /** The best audio track it names, with its channels and Atmos: "TrueHD 7.1 Atmos". */
+    val audio: String? get() = (audioTags.filterNot { it == "Atmos" } + listOfNotNull(audioChannels) +
+        audioTags.filter { it == "Atmos" })
+        .joinToString(" ").ifEmpty { null }
+
     companion object {
         fun parse(title: String): UsenetReleaseLabels {
             val tags = tags(title.take(2048))
             // Case matters for iTunes: "iT" is its tag, "IT" or "ITA" Italian.
             val service = ITUNES.find(tags)?.let { "iTunes" }
                 ?: SERVICES.firstNotNullOfOrNull { (name, pattern) -> name.takeIf { pattern.containsMatchIn(tags) } }
-            return UsenetReleaseLabels(service, audio(tags),
+            val found = CODECS.firstNotNullOfOrNull { (name, pattern) -> pattern.find(tags)?.let { name to it } }
+            val channels = found?.second?.let { match -> match.groupValues[1].takeIf { it.isNotEmpty() }?.let { "$it.${match.groupValues[2]}" } }
+                ?: CHANNELS.findAll(tags).map { "${it.groupValues[1]}.${it.groupValues[2]}" }.firstOrNull { it in KNOWN_CHANNELS }
+                ?: CHANNEL_COUNT.find(tags)?.let { SPEAKERS[it.groupValues[1]] }
+            return UsenetReleaseLabels(service, listOfNotNull(found?.first, "Atmos".takeIf { ATMOS.containsMatchIn(tags) }), channels,
                 StreamRankingFacts.languagesOf(ITUNES.replace(tags, " ")).map { it.uppercase(Locale.ROOT) },
                 group(title.take(2048)))
+        }
+
+        fun titleAndYear(release: String): Pair<String, String?> {
+            val suffix = tags(release)
+            val title = release.removeSuffix(suffix).trimEnd(' ', '.', '_', '-').ifEmpty { release }
+            return title.replace('.', ' ').replace('_', ' ') to YEAR.find(suffix)?.takeIf { it.range.first == 0 }?.value
         }
 
         /** ROEN for Movie.2024.BDRip.x264-ROEN-xpost; null when the name ends in no group. */
@@ -82,15 +97,6 @@ internal data class UsenetReleaseLabels(
             else -> codes.take(MAX_LISTED_LANGUAGES).joinToString("+") + " +${codes.size - MAX_LISTED_LANGUAGES}"
         }
         private const val MAX_LISTED_LANGUAGES = 2
-
-        private fun audio(tags: String): String? {
-            val found = CODECS.firstNotNullOfOrNull { (name, pattern) -> pattern.find(tags)?.let { name to it } }
-            val channels = found?.second?.let { match -> match.groupValues[1].takeIf { it.isNotEmpty() }?.let { "$it.${match.groupValues[2]}" } }
-                ?: CHANNELS.findAll(tags).map { "${it.groupValues[1]}.${it.groupValues[2]}" }.firstOrNull { it in KNOWN_CHANNELS }
-                ?: CHANNEL_COUNT.find(tags)?.let { SPEAKERS[it.groupValues[1]] }
-            return listOfNotNull(found?.first, channels, "Atmos".takeIf { ATMOS.containsMatchIn(tags) })
-                .joinToString(" ").ifEmpty { null }
-        }
 
         private fun token(value: String) = Regex("(?i)(?<![a-z0-9])(?:$value)(?![a-z0-9])")
         private val YEAR = Regex("(?<![0-9a-zA-Z])(?:19|20)[0-9]{2}(?![0-9a-zA-Z])")

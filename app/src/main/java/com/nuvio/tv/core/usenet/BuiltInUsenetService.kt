@@ -1,5 +1,8 @@
 package com.nuvio.tv.core.usenet
 
+import com.nuvio.tv.core.debrid.DebridTemplateBytes
+import com.nuvio.tv.core.debrid.streamLanguageEmoji
+
 import android.content.Context
 import com.nuvio.tv.BuildConfig
 import com.nuvio.tv.R
@@ -447,9 +450,14 @@ class BuiltInUsenetService @Inject constructor(
                 val ranks = outcomes.mapValues { (_, it) ->
                     outcomeRank(it.failed || it.sibling?.blank == true, it.played, config.availableFirst)
                 }
-                return NewznabProtocol.arrange(
-                    if (config.hideDuplicates) NewznabProtocol.withoutDuplicates(releases, config, seasonEpisodes = seasonCounts(), series = series) else releases, config,
-                    seasonEpisodes = seasonCounts(), series = series) { ranks[it.nzbUrl] ?: 1 }
+                val counts = seasonCounts()
+                val filterRuntime = if (config.maxBitrateMbps > 0) runtime else null
+                val candidates = if (config.hideDuplicates) {
+                    NewznabProtocol.withoutDuplicates(releases, config, seasonEpisodes = counts, series = series,
+                        runtimeMinutes = filterRuntime)
+                } else releases
+                return NewznabProtocol.arrange(candidates, config, seasonEpisodes = counts, series = series,
+                    runtimeMinutes = filterRuntime) { ranks[it.nzbUrl] ?: 1 }
             }
             val enabled = config.indexers.filter { it.enabled }
             // Every indexer is searched at once unless the user chose priority fallback: then equal
@@ -656,12 +664,11 @@ class BuiltInUsenetService @Inject constructor(
         }
         val age = if (publishedAt > 0) "${((System.currentTimeMillis() - publishedAt) / 86400000).coerceAtLeast(0)}d" else null
         // A pack's bitrate is its episode share's, an estimate; unknown until its episodes are counted.
-        val bitrate = (if (pack) episodeShare else size)?.takeIf { it > 0 }?.let { bytes ->
-            val minutes = runtimeMinutes()?.takeIf { it > 0 } ?: return@let null
-            val mbps = bytes * 8.0 / (minutes * 60) / 1_000_000
-            // Whole megabits from 10 on: the details line has room for about 55 characters on a TV.
-            if (mbps < 0.1 || mbps > MAX_LISTED_MBPS) null
-            else (if (mbps < 10) "%s%.1f Mbps" else "%s%.0f Mbps").format(Locale.ROOT, if (pack) "~" else "", mbps)
+        val minutes by lazy(runtimeMinutes)
+        val averageMbps = if (size > 0 && (!pack || episodeShare != null)) estimatedAverageMbps(minutes, seasonEpisodes) else null
+        val bitrate = averageMbps?.takeIf { it in 0.1..MAX_LISTED_MBPS }?.let { mbps ->
+                // Whole megabits from 10 on: the details line has room for about 55 characters on a TV.
+                (if (mbps < 10) "%s%.1f Mbps" else "%s%.0f Mbps").format(Locale.ROOT, if (pack) "~" else "", mbps)
         }
         val facts = rankingFacts
         val pixels = facts.resolution.takeIf { it > 0 } ?: resolution
@@ -680,7 +687,7 @@ class BuiltInUsenetService @Inject constructor(
         val details = listOfNotNull(labels.audio, UsenetReleaseLabels.languages(labels.languages), sizeLabel, bitrate, age,
             indexerName.takeIf { it.isNotBlank() }, labels.group.takeIf { !config.showReleaseNames })
             .joinToString(" • ")
-        return Stream(name = name, title = title,
+        val stream = Stream(name = name, title = title,
             description = listOfNotNull(title.takeIf { config.showReleaseNames }, details.ifEmpty { null }).joinToString("\n"),
             url = null, ytId = null, infoHash = null, fileIdx = null, externalUrl = null,
             // The size badge, as other sources show it, and the upload's binge group.
@@ -700,6 +707,28 @@ class BuiltInUsenetService @Inject constructor(
             usenet = UsenetSource(nzbUrl, config.servers(), emptyList(), searched?.first, searched?.second,
                 publishedAt.takeIf { it > 0 }, playbackSettings?.settings?.value?.allowPrivateNetwork ?: false),
             quality = resolution.takeIf { it > 0 }?.let { "${it}p" }, qualityValue = resolution)
+        if (!config.streamTemplates.enabled) return stream
+        val (displayTitle, year) = UsenetReleaseLabels.titleAndYear(title)
+        return config.streamTemplates.apply(stream, "usenet", mapOf(
+            "stream.title" to displayTitle,
+            "stream.year" to year,
+            "stream.filename" to title,
+            "stream.resolution" to pixels.takeIf { it > 0 }?.let { "${it}p" },
+            "stream.quality" to UsenetReleaseLabels.quality(facts.quality),
+            "stream.encode" to UsenetReleaseLabels.codec(facts.codec),
+            "stream.visualTags" to UsenetReleaseLabels.visual(facts.visual)?.split(' '),
+            "stream.audioTags" to labels.audioTags,
+            "stream.audioChannels" to listOfNotNull(labels.audioChannels),
+            "stream.languages" to labels.languages,
+            "stream.languageEmojis" to labels.languages.map(::streamLanguageEmoji),
+            "stream.size" to (episodeShare ?: size.takeUnless { pack })?.takeIf { it > 0 }?.let(::DebridTemplateBytes),
+            "stream.folderSize" to size.takeIf { pack && it > 0 }?.let(::DebridTemplateBytes),
+            "stream.bitrate" to averageMbps?.times(1_000_000),
+            "stream.releaseGroup" to labels.group,
+            "stream.indexer" to indexerName,
+            "metadata.runtime" to minutes.takeUnless { series },
+            "metadata.episodeRuntime" to minutes.takeIf { series }
+        ))
     }
 
     /**

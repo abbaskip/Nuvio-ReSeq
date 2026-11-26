@@ -17,9 +17,11 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.nuvio.tv.R
+import com.nuvio.tv.core.usenet.BuiltInUsenetService
 import com.nuvio.tv.data.local.InternalPlayerEngine
 import com.nuvio.tv.data.local.PlayerPreference
 import com.nuvio.tv.data.local.PlayerSettings
+import com.nuvio.tv.data.local.StreamAutoPlayMode
 import com.nuvio.tv.ui.theme.NuvioTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -76,6 +78,49 @@ class PlaybackSettingsOrganizationTest {
     }
 
     @Test
+    fun autoplayStagesGroupTheirOwnSourcesAndKeepAllowedAddonsBesideTheToggle() {
+        setSections(
+            PlayerSettings(
+                streamAutoPlayMode = StreamAutoPlayMode.FIRST_STREAM,
+                streamAutoPlayImmediateEnabled = true,
+                streamAutoPlayTimeoutSeconds = 5,
+                streamAutoPlayAddonsEnabled = true,
+                streamAutoPlayAnySourceFallbackEnabled = true
+            ),
+            hasDirectUsenet = true
+        )
+        expand(PlaybackSection.STREAM_SELECTION)
+
+        fun row(title: String) = hasText(title, ignoreCase = true) and
+            hasAnyAncestor(hasTestTag(PlaybackSettingsTestTags.section(PlaybackSection.STREAM_SELECTION)))
+        fun top(title: Int) = composeRule.onNode(row(context.getString(title))).fetchSemanticsNode().positionInRoot.y
+
+        val immediate = top(R.string.autoplay_stage_immediate)
+        val timed = top(R.string.autoplay_stage_timed)
+        val fallback = top(R.string.autoplay_stage_fallback)
+        val other = top(R.string.autoplay_other_stream_options)
+        assertTrue(immediate < top(R.string.autoplay_immediate_addons))
+        assertTrue(top(R.string.autoplay_immediate_addons) < timed)
+        assertTrue(timed < fallback && fallback < other)
+
+        for (source in listOf(context.getString(R.string.autoplay_source_iptv), BuiltInUsenetService.GROUP_NAME)) {
+            val sourceTops = composeRule.onAllNodes(row(source)).fetchSemanticsNodes().map { it.positionInRoot.y }
+            assertEquals(3, sourceTops.size)
+            assertTrue(sourceTops[0] in immediate..timed)
+            assertTrue(sourceTops[1] in timed..fallback)
+            assertTrue(sourceTops[2] in fallback..other)
+        }
+
+        val addons = top(R.string.autoplay_from_addons)
+        val allowedAddons = top(R.string.autoplay_allowed_addons)
+        assertTrue(timed < addons && addons < allowedAddons && allowedAddons < fallback)
+        val interveningRows = composeRule.onAllNodes(
+            hasClickAction() and hasAnyAncestor(hasTestTag(PlaybackSettingsTestTags.section(PlaybackSection.STREAM_SELECTION)))
+        ).fetchSemanticsNodes().count { it.positionInRoot.y > addons && it.positionInRoot.y < allowedAddons }
+        assertEquals(0, interveningRows)
+    }
+
+    @Test
     fun externalPlayerOptionsOnlyAppearForExternalPlayers() {
         setSections(PlayerSettings(playerPreference = PlayerPreference.INTERNAL))
         expand(PlaybackSection.PLAYER)
@@ -125,7 +170,7 @@ class PlaybackSettingsOrganizationTest {
         )
     }
 
-    private fun setSections(settings: PlayerSettings = PlayerSettings()) {
+    private fun setSections(settings: PlayerSettings = PlayerSettings(), hasDirectUsenet: Boolean = false) {
         composeRule.setContent {
             NuvioTheme {
                 Box(modifier = Modifier.requiredHeight(6000.dp)) {
@@ -137,7 +182,8 @@ class PlaybackSettingsOrganizationTest {
                         onUpdate = {},
                         onOpenDialog = {},
                         onMemorySettingChanged = {},
-                        onClearTorrentCache = {}
+                        onClearTorrentCache = {},
+                        hasDirectUsenet = hasDirectUsenet
                     )
                 }
             }

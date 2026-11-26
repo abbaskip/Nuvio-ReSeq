@@ -1010,8 +1010,8 @@
     <string name="autoplay_stream_selection">Auto Stream Selection</string>
     <string name="autoplay_immediate_title">Immediate autoplay</string>
     <string name="autoplay_immediate_sub">Play the first eligible result after a 0.5-second pause. Select immediate addons or include IPTV VOD below.</string>
-    <string name="autoplay_immediate_addons">Immediate addons</string>
-    <string name="autoplay_immediate_none">No addons selected</string>
+    <string name="autoplay_immediate_addons">Immediate Add-ons</string>
+    <string name="autoplay_immediate_none">No add-ons selected</string>
     <string name="autoplay_any_source_fallback">Any-source fallback</string>
     <string name="autoplay_any_source_fallback_sub">If approved sources do not start playback, try a playable source after a longer wait. You can exclude IPTV VOD from this tier. Ignores normal autoplay filters.</string>
     <string name="autoplay_fallback_needs_timed_wait">Choose a timed autoplay wait before enabling a later fallback.</string>
@@ -1047,7 +1047,7 @@
     <string name="autoplay_timeout_sub">Maximum wait for your normal autoplay rules. Playback can start sooner when all sources finish.</string>
     <string name="autoplay_timeout_instant">Instant</string>
     <string name="autoplay_timeout_unlimited">Unlimited</string>
-    <string name="autoplay_allowed_addons">Allowed Addons</string>
+    <string name="autoplay_allowed_addons">Allowed Add-ons</string>
     <string name="autoplay_all_addons">All installed addons</string>
     <string name="autoplay_allowed_plugins">Allowed Plugins</string>
     <string name="autoplay_all_plugins">All enabled plugins</string>

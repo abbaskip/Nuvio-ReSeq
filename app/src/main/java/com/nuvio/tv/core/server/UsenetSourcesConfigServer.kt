@@ -8,6 +8,7 @@ import com.nuvio.tv.core.usenet.ProviderTestResult
 import com.nuvio.tv.core.usenet.UsenetIndexer
 import com.nuvio.tv.core.usenet.UsenetProvider
 import com.nuvio.tv.core.usenet.UsenetSourceConfiguration
+import com.nuvio.tv.core.streams.SourceStreamTemplates
 import com.nuvio.tv.core.usenet.messageRes
 import com.nuvio.tv.core.usenet.replaceOrAdd
 import fi.iki.elonen.NanoHTTPD
@@ -58,6 +59,8 @@ class UsenetSourcesConfigServer(
         }
         return when {
             session.method == Method.GET && session.uri == "/api/sources" -> serveSources()
+            session.method == Method.POST && session.uri == "/api/search-limits" -> saveSearchLimits(body)
+            session.method == Method.POST && session.uri == "/api/stream-format" -> saveStreamFormat(body)
             session.method == Method.GET && session.uri == "/api/ranking" -> serveRanking()
             session.method == Method.POST && session.uri == "/api/ranking" -> saveRanking(body)
             session.method == Method.POST && session.uri == "/api/ranking/preview" -> previewRanking(body)
@@ -78,8 +81,34 @@ class UsenetSourcesConfigServer(
         val configuration = setup.configuration() ?: return error(Response.Status.CONFLICT, R.string.usenet_phone_unavailable)
         return ok(json.encodeToString(PhoneSources(
             providers = configuration.providers.map { PhoneProvider.of(it) },
-            indexers = configuration.indexers.map { PhoneIndexer.of(it) }
+            indexers = configuration.indexers.map { PhoneIndexer.of(it) },
+            searchLimits = PhoneSearchLimits(configuration.maxSizeGb, configuration.maxBitrateMbps),
+            streamTemplates = configuration.streamTemplates
         )))
+    }
+
+    private fun saveStreamFormat(body: String): Response {
+        if (setup.configuration() == null) return error(Response.Status.CONFLICT, R.string.usenet_phone_unavailable)
+        val templates = parse<SourceStreamTemplates>(body)
+        if (templates == null || runCatching { templates.validate() }.isFailure) {
+            return error(Response.Status.BAD_REQUEST, R.string.source_stream_format_invalid)
+        }
+        val saved = setup.save(text(R.string.source_stream_format_title)) { it.copy(streamTemplates = templates) }
+        return if (saved) ok(json.encodeToString(Saved("stream-format", text(R.string.usenet_phone_saved))))
+        else error(Response.Status.CONFLICT, R.string.usenet_phone_unavailable)
+    }
+
+    private fun saveSearchLimits(body: String): Response {
+        if (setup.configuration() == null) return error(Response.Status.CONFLICT, R.string.usenet_phone_unavailable)
+        val limits = parse<PhoneSearchLimits>(body)
+        if (limits == null || limits.maxSizeGb !in 0..UsenetSourceConfiguration.MAX_SIZE_GB ||
+            limits.maxBitrateMbps !in 0..UsenetSourceConfiguration.MAX_BITRATE_MBPS
+        ) return error(Response.Status.BAD_REQUEST, R.string.usenet_phone_limits_invalid)
+        val saved = setup.save(text(R.string.usenet_section_search)) {
+            it.copy(maxSizeGb = limits.maxSizeGb, maxBitrateMbps = limits.maxBitrateMbps)
+        }
+        return if (saved) ok(json.encodeToString(Saved("search-limits", text(R.string.usenet_phone_saved))))
+        else error(Response.Status.CONFLICT, R.string.usenet_phone_unavailable)
     }
 
     private fun serveRanking(): Response {
@@ -171,7 +200,12 @@ class UsenetSourcesConfigServer(
     /** Null when the body is too large to read. */
     private fun read(session: IHTTPSession): String? {
         val length = session.headers["content-length"]?.toIntOrNull() ?: return ""
-        if (length !in 0..(if (session.uri.startsWith("/api/ranking")) MAX_RANKING_BODY else MAX_BODY)) return null
+        val maxBytes = when {
+            session.uri == "/api/stream-format" -> MAX_TEMPLATE_BODY
+            session.uri.startsWith("/api/ranking") -> MAX_RANKING_BODY
+            else -> MAX_BODY
+        }
+        if (length !in 0..maxBytes) return null
         val buffer = ByteArray(length)
         var offset = 0
         while (offset < length) {
@@ -200,6 +234,7 @@ class UsenetSourcesConfigServer(
         private const val JSON = "application/json; charset=utf-8"
         private const val MAX_BODY = 16 * 1024
         private const val MAX_RANKING_BODY = 64 * 1024
+        private const val MAX_TEMPLATE_BODY = 128 * 1024
 
         fun startOnAvailablePort(
             setup: UsenetPhoneSetup,
@@ -222,7 +257,15 @@ class UsenetSourcesConfigServer(
 }
 
 @Serializable
-internal data class PhoneSources(val providers: List<PhoneProvider>, val indexers: List<PhoneIndexer>)
+internal data class PhoneSources(
+    val providers: List<PhoneProvider>,
+    val indexers: List<PhoneIndexer>,
+    val searchLimits: PhoneSearchLimits,
+    val streamTemplates: SourceStreamTemplates
+)
+
+@Serializable
+internal data class PhoneSearchLimits(val maxSizeGb: Int, val maxBitrateMbps: Int)
 
 /** A provider as the phone sees it: the password is only ever sent from the phone, never to it. */
 @Serializable

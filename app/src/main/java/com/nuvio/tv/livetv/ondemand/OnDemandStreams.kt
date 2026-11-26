@@ -1,6 +1,11 @@
 package com.nuvio.tv.livetv.ondemand
 
 import android.content.Context
+import com.nuvio.tv.core.debrid.DebridTemplateBytes
+import com.nuvio.tv.core.debrid.streamLanguageEmoji
+import com.nuvio.tv.core.streams.SourceStreamTemplates
+import com.nuvio.tv.core.streams.StreamRankingFacts
+import com.nuvio.tv.core.usenet.UsenetReleaseLabels
 import com.nuvio.tv.domain.model.AddonStreams
 import com.nuvio.tv.domain.model.ProxyHeaders
 import com.nuvio.tv.domain.model.Stream
@@ -9,6 +14,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -23,10 +29,11 @@ fun onDemandRepository(context: Context): OnDemandRepository =
 object OnDemandStreams {
     const val GROUP_NAME = "📡 On Demand"
 
-    internal fun stream(s: OnDemandRepository.OnDemandSource, sourceName: String): Stream {
+    internal fun stream(s: OnDemandRepository.OnDemandSource, sourceName: String,
+        templates: SourceStreamTemplates? = null): Stream {
         val t = s.tech
         val quality = t?.quality
-        return Stream(name = listOfNotNull(sourceName, quality).joinToString("\n"),
+        val stream = Stream(name = listOfNotNull(sourceName, quality).joinToString("\n"),
             title = listOfNotNull(s.label, VodLanguagePreference.display(s.languages)).joinToString(" · "),
             description = describe(s), url = s.url, ytId = null, infoHash = null, fileIdx = null, externalUrl = null,
             behaviorHints = StreamBehaviorHints(notWebReady = if (s.headers.isEmpty()) null else true,
@@ -35,7 +42,47 @@ object OnDemandStreams {
                 videoSize = t?.estimatedBytes, filename = releaseName(s)),
             addonName = sourceName, addonLogo = null, quality = quality, qualityValue = t?.height ?: -1,
             iptvPlaylistId = s.playlistId)
+        if (templates?.enabled != true) return stream
+
+        // Provider URLs can contain credentials; use only a descriptive video basename, never its path or query.
+        val filename = s.url.toHttpUrlOrNull()?.pathSegments?.lastOrNull()?.takeIf { candidate ->
+            VIDEO_FILENAME.matches(candidate) && candidate.substringBeforeLast('.').let { stem ->
+                stem.any(Char::isLetter) && stem.any { it in " ._-" }
+            }
+        }
+        val hints = listOfNotNull(filename, s.episodeTitle, s.title, s.categoryName).filter(String::isNotBlank)
+        val facts = hints.map(StreamRankingFacts::parse)
+        val labels = hints.map(UsenetReleaseLabels::parse)
+        val audio = labels.firstOrNull { it.audioTags.isNotEmpty() }
+        val languages = s.languages.ifEmpty { labels.firstOrNull { it.languages.isNotEmpty() }?.languages.orEmpty().toSet() }
+        val minutes = t?.durationSecs?.takeIf { it > 0 }?.let { ((it.toLong() + 30) / 60).coerceAtLeast(1) }
+        val height = t?.height?.takeIf { it > 0 } ?: facts.firstNotNullOfOrNull { it.resolution.takeIf { pixels -> pixels > 0 } }
+        val visual = t?.hdr ?: facts.firstNotNullOfOrNull { UsenetReleaseLabels.visual(it.visual) }
+        return templates.apply(stream, "http", mapOf(
+            "stream.title" to s.title,
+            "stream.year" to s.year,
+            "stream.filename" to (filename ?: s.episodeTitle.ifBlank { s.title }),
+            "stream.resolution" to height?.let { "${it}p" },
+            "stream.quality" to facts.firstNotNullOfOrNull { UsenetReleaseLabels.quality(it.quality) },
+            "stream.encode" to (t?.videoCodec?.let(::codecName) ?: facts.firstNotNullOfOrNull { UsenetReleaseLabels.codec(it.codec) }),
+            "stream.visualTags" to if (t?.hdr != null) listOf(t.hdr) else visual?.split(' '),
+            "stream.audioTags" to if (t?.audioCodec != null) {
+                listOf(codecName(t.audioCodec)) + audio?.audioTags.orEmpty().filter { it == "Atmos" }
+            } else audio?.audioTags,
+            "stream.audioChannels" to listOfNotNull(t?.channels?.let(::channelsName)
+                ?: labels.firstNotNullOfOrNull { it.audioChannels }),
+            "stream.languages" to VodLanguagePreference.display(languages),
+            "stream.languageEmojis" to languages.map(::streamLanguageEmoji),
+            "stream.size" to t?.estimatedBytes?.takeIf { it > 0 }?.let(::DebridTemplateBytes),
+            "stream.bitrate" to t?.bitrateKbps?.takeIf { it > 0 }?.times(1000L),
+            "stream.releaseGroup" to filename?.let(UsenetReleaseLabels::group),
+            "stream.folder" to s.categoryName,
+            "metadata.runtime" to minutes.takeIf { s.episodeTag == null },
+            "metadata.episodeRuntime" to minutes.takeIf { s.episodeTag != null }
+        ))
     }
+
+    private val VIDEO_FILENAME = Regex("""(?i)[^/\\?\p{Cntrl}]{1,255}\.(mkv|mp4|m4v|avi|mov|ts|m2ts|webm|wmv)""")
 
     /**
      * The card text, laid out like popular stream addons:

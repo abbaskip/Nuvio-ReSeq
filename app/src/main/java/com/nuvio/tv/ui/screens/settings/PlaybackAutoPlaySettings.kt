@@ -67,90 +67,50 @@ import com.nuvio.tv.data.local.PlayerSettings
 import com.nuvio.tv.data.local.NextEpisodeThresholdMode
 import com.nuvio.tv.data.local.StreamAutoPlayMode
 import com.nuvio.tv.data.local.StreamAutoPlaySource
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.tv.core.usenet.BuiltInUsenetService
 import com.nuvio.tv.ui.components.NuvioDialog
 import kotlin.math.roundToInt
 import java.util.Locale
 
-private enum class UsenetAutoPlayTier(val title: String) {
-    IMMEDIATE("Immediate"), APPROVED("Approved-source wait"), FALLBACK("Any-source fallback")
-}
+private enum class UsenetAutoPlayTier { IMMEDIATE, TIMED, FALLBACK }
 
 @Composable
-private fun DirectUsenetAutoPlayRows(
+private fun DirectUsenetAutoPlayRow(
+    tier: UsenetAutoPlayTier,
     settings: PlayerSettings,
-    onUpdate: PlaybackSettingsUpdate,
-    viewModel: PlaybackSettingsViewModel = hiltViewModel()
+    onUpdate: PlaybackSettingsUpdate
 ) {
-    val sources by viewModel.autoPlaySourceNames.collectAsStateWithLifecycle(initialValue = emptyList())
-    if (BuiltInUsenetService.GROUP_NAME !in sources) return
     val preferences = settings.directUsenetAutoPlay
-    var editing by remember { mutableStateOf<UsenetAutoPlayTier?>(null) }
-    val tiers = buildList {
-        if (settings.streamAutoPlayImmediateEnabled) add(UsenetAutoPlayTier.IMMEDIATE)
-        add(UsenetAutoPlayTier.APPROVED)
-        if (settings.streamAutoPlayAnySourceFallbackEnabled) add(UsenetAutoPlayTier.FALLBACK)
+    val enabled = when (tier) {
+        UsenetAutoPlayTier.IMMEDIATE -> preferences.immediate
+        UsenetAutoPlayTier.TIMED -> preferences.approved
+        UsenetAutoPlayTier.FALLBACK -> preferences.fallback
     }
-    tiers.forEach { tier ->
-        val enabled = when (tier) {
-            UsenetAutoPlayTier.IMMEDIATE -> preferences.immediate
-            UsenetAutoPlayTier.APPROVED -> preferences.approved
-            UsenetAutoPlayTier.FALLBACK -> preferences.fallback
+    val savedOrder = when (tier) {
+        UsenetAutoPlayTier.IMMEDIATE -> preferences.immediateOrder
+        UsenetAutoPlayTier.TIMED -> preferences.approvedOrder
+        UsenetAutoPlayTier.FALLBACK -> preferences.fallbackOrder
+    }
+    SettingsToggleRow(BuiltInUsenetService.GROUP_NAME, null, enabled, {
+        onUpdate {
+            setDirectUsenetAutoPlay(when (tier) {
+                UsenetAutoPlayTier.IMMEDIATE -> preferences.copy(immediate = !enabled)
+                UsenetAutoPlayTier.TIMED -> preferences.copy(approved = !enabled)
+                UsenetAutoPlayTier.FALLBACK -> preferences.copy(fallback = !enabled)
+            })
         }
-        SettingsToggleRow("Direct Usenet · ${tier.title}", null, enabled, {
+    })
+    // Existing overrides remain in effect until the user switches back to the Add-ons order.
+    if (enabled && savedOrder.isNotEmpty()) {
+        SettingsActionRow(title = stringResource(R.string.autoplay_use_addon_order), subtitle = null, onClick = {
             onUpdate {
                 setDirectUsenetAutoPlay(when (tier) {
-                    UsenetAutoPlayTier.IMMEDIATE -> preferences.copy(immediate = !enabled)
-                    UsenetAutoPlayTier.APPROVED -> preferences.copy(approved = !enabled)
-                    UsenetAutoPlayTier.FALLBACK -> preferences.copy(fallback = !enabled)
+                    UsenetAutoPlayTier.IMMEDIATE -> preferences.copy(immediateOrder = emptyList())
+                    UsenetAutoPlayTier.TIMED -> preferences.copy(approvedOrder = emptyList())
+                    UsenetAutoPlayTier.FALLBACK -> preferences.copy(fallbackOrder = emptyList())
                 })
             }
         })
-        if (enabled) SettingsActionRow("${tier.title} source order", "Move sources earlier or later for this stage",
-            onClick = { editing = tier })
-    }
-    editing?.let { tier ->
-        val saved = when (tier) {
-            UsenetAutoPlayTier.IMMEDIATE -> preferences.immediateOrder
-            UsenetAutoPlayTier.APPROVED -> preferences.approvedOrder
-            UsenetAutoPlayTier.FALLBACK -> preferences.fallbackOrder
-        }
-        var order by remember(tier, sources, saved) {
-            mutableStateOf(saved.filter { it in sources } + sources.filterNot { it in saved })
-        }
-        fun save(value: List<String>) {
-            editing = null
-            onUpdate {
-                setDirectUsenetAutoPlay(when (tier) {
-                    UsenetAutoPlayTier.IMMEDIATE -> preferences.copy(immediateOrder = value)
-                    UsenetAutoPlayTier.APPROVED -> preferences.copy(approvedOrder = value)
-                    UsenetAutoPlayTier.FALLBACK -> preferences.copy(fallbackOrder = value)
-                })
-            }
-        }
-        NuvioDialog(onDismiss = { editing = null }, title = "${tier.title} source order",
-            width = 620.dp, usePlatformDefaultWidth = false) {
-            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
-                itemsIndexed(order, key = { _, name -> name }) { index, name ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Text(name, Modifier.weight(1f))
-                        fun move(offset: Int) {
-                            order = order.toMutableList().apply { add(index + offset, removeAt(index)) }
-                        }
-                        Button(onClick = { move(-1) }, enabled = index > 0) { Text("Up") }
-                        Button(onClick = { move(1) }, enabled = index < order.lastIndex) { Text("Down") }
-                    }
-                }
-            }
-            SettingsDialogActionRow {
-                SettingsDialogActionButton("Cancel", onClick = { editing = null })
-                SettingsDialogActionButton("Use source order", onClick = { save(emptyList()) })
-                SettingsDialogActionButton("Save", primary = true, onClick = { save(order) })
-            }
-        }
     }
 }
 
@@ -158,20 +118,11 @@ private fun DirectUsenetAutoPlayRows(
 internal fun PlaybackStreamSelectionSection(
     settings: PlayerSettings,
     onUpdate: PlaybackSettingsUpdate,
-    onOpenDialog: (PlaybackDialog) -> Unit
+    onOpenDialog: (PlaybackDialog) -> Unit,
+    hasDirectUsenet: Boolean
 ) {
-    com.nuvio.tv.ui.screens.detail.PersonalRatingPromptSetting(settings.promptToRateAfterWatching) {
-        onUpdate { setPromptToRateAfterWatching(!settings.promptToRateAfterWatching) }
-    }
-    val effectiveAutoPlaySource = if (
-        !AppFeaturePolicy.pluginsEnabled &&
-        settings.streamAutoPlaySource == StreamAutoPlaySource.ENABLED_PLUGINS_ONLY
-    ) {
-        StreamAutoPlaySource.INSTALLED_ADDONS_ONLY
-    } else {
-        settings.streamAutoPlaySource
-    }
-
+    val autoplay = settings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL
+    val timeoutSeconds = settings.streamAutoPlayTimeoutSeconds
     SettingsActionRow(
         title = stringResource(R.string.autoplay_stream_selection),
         subtitle = null,
@@ -183,77 +134,31 @@ internal fun PlaybackStreamSelectionSection(
         onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_MODE) }
     )
 
-    PlaybackFailureFallbackSettings(settings, onUpdate)
-
-    if (settings.streamAutoPlayMode == StreamAutoPlayMode.REGEX_MATCH) {
-        SettingsActionRow(
-            title = stringResource(R.string.autoplay_regex_title),
-            subtitle = settings.streamAutoPlayRegex.ifBlank { stringResource(R.string.autoplay_regex_placeholder) },
-            onClick = { onOpenDialog(PlaybackDialog.STREAM_REGEX) }
-        )
-    }
-
-    if (settings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL) {
+    if (autoplay) {
+        SettingsSectionLabel(stringResource(R.string.autoplay_stage_immediate))
         SettingsToggleRow(
             title = stringResource(R.string.autoplay_immediate_title),
-            subtitle = stringResource(R.string.autoplay_immediate_sub),
+            subtitle = stringResource(R.string.autoplay_immediate_hint),
             checked = settings.streamAutoPlayImmediateEnabled,
             onToggle = { onUpdate { setStreamAutoPlayImmediateEnabled(!settings.streamAutoPlayImmediateEnabled) } }
         )
         if (settings.streamAutoPlayImmediateEnabled) {
-            SettingsToggleRow(stringResource(R.string.iptv_immediate_tier), null, settings.streamAutoPlayImmediatePlaylistsEnabled,
-                { onUpdate { setStreamAutoPlayImmediatePlaylistsEnabled(!settings.streamAutoPlayImmediatePlaylistsEnabled) } })
             SettingsActionRow(
                 title = stringResource(R.string.autoplay_immediate_addons),
                 subtitle = null,
                 value = selectionSummary(settings.streamAutoPlayImmediateAddons.size, stringResource(R.string.autoplay_immediate_none)),
                 onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_IMMEDIATE_ADDONS) }
             )
-        }
-        val allowAddons = settings.streamAutoPlayAddonsEnabled ?: (effectiveAutoPlaySource != StreamAutoPlaySource.ENABLED_PLUGINS_ONLY)
-        val allowPlugins = settings.streamAutoPlayPluginsEnabled ?: (effectiveAutoPlaySource != StreamAutoPlaySource.INSTALLED_ADDONS_ONLY)
-        SettingsToggleRow("Autoplay from Addons", null, allowAddons, { onUpdate { setStreamAutoPlayAddonsEnabled(!allowAddons) } })
-        if (AppFeaturePolicy.pluginsEnabled) SettingsToggleRow("Autoplay from Plugins", null, allowPlugins,
-            { onUpdate { setStreamAutoPlayPluginsEnabled(!allowPlugins) } })
-        SettingsToggleRow("Autoplay from IPTV Playlists", "Uses enabled playlist sources in your addon/source order", settings.streamAutoPlayPlaylistsEnabled,
-            { onUpdate { setStreamAutoPlayPlaylistsEnabled(!settings.streamAutoPlayPlaylistsEnabled) } })
-
-        if (allowAddons) {
-            SettingsActionRow(
-                title = stringResource(R.string.autoplay_allowed_addons),
-                subtitle = null,
-                value = selectionSummary(
-                    selectedCount = settings.streamAutoPlaySelectedAddons.size,
-                    allLabel = stringResource(R.string.autoplay_all_addons)
-                ),
-                onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_ADDONS) }
-            )
-        }
-
-        if (
-            AppFeaturePolicy.pluginsEnabled &&
-            allowPlugins
-        ) {
-            SettingsActionRow(
-                title = stringResource(R.string.autoplay_allowed_plugins),
-                subtitle = null,
-                value = selectionSummary(
-                    selectedCount = settings.streamAutoPlaySelectedPlugins.size,
-                    allLabel = stringResource(R.string.autoplay_all_plugins)
-                ),
-                onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_PLUGINS) }
-            )
+            SettingsToggleRow(stringResource(R.string.autoplay_source_iptv), null, settings.streamAutoPlayImmediatePlaylistsEnabled,
+                { onUpdate { setStreamAutoPlayImmediatePlaylistsEnabled(!settings.streamAutoPlayImmediatePlaylistsEnabled) } })
+            if (hasDirectUsenet) DirectUsenetAutoPlayRow(UsenetAutoPlayTier.IMMEDIATE, settings, onUpdate)
         }
     }
 
-    if (settings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL) {
-        DirectUsenetAutoPlayRows(settings, onUpdate)
-    }
-
-    val timeoutSeconds = settings.streamAutoPlayTimeoutSeconds
+    SettingsSectionLabel(stringResource(R.string.autoplay_stage_timed))
     SliderSettingsItem(
         title = stringResource(R.string.autoplay_timeout_title),
-        subtitle = stringResource(R.string.autoplay_timeout_sub),
+        subtitle = stringResource(if (autoplay) R.string.autoplay_wait_hint else R.string.autoplay_preload_wait_hint),
         values = PlayerSettings.STREAM_AUTOPLAY_TIMEOUT_VALUES,
         selected = timeoutSeconds,
         valueText = when (timeoutSeconds) {
@@ -263,29 +168,81 @@ internal fun PlaybackStreamSelectionSection(
         },
         onValueChange = { seconds -> onUpdate { setStreamAutoPlayTimeoutSeconds(seconds) } }
     )
+    if (settings.streamAutoPlayMode == StreamAutoPlayMode.REGEX_MATCH) {
+        SettingsActionRow(
+            title = stringResource(R.string.autoplay_regex_title),
+            subtitle = settings.streamAutoPlayRegex.ifBlank { stringResource(R.string.autoplay_regex_placeholder) },
+            onClick = { onOpenDialog(PlaybackDialog.STREAM_REGEX) }
+        )
+    }
+    if (autoplay) {
+        val allowAddons = settings.streamAutoPlayAddonsEnabled ?: (!AppFeaturePolicy.pluginsEnabled ||
+            settings.streamAutoPlaySource != StreamAutoPlaySource.ENABLED_PLUGINS_ONLY)
+        SettingsToggleRow(stringResource(R.string.autoplay_from_addons), stringResource(R.string.autoplay_addons_hint), allowAddons,
+            { onUpdate { setStreamAutoPlayAddonsEnabled(!allowAddons) } })
+        if (allowAddons) {
+            SettingsActionRow(
+                title = stringResource(R.string.autoplay_allowed_addons),
+                subtitle = null,
+                value = selectionSummary(settings.streamAutoPlaySelectedAddons.size, stringResource(R.string.autoplay_all_addons)),
+                onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_ADDONS) }
+            )
+        }
+        if (AppFeaturePolicy.pluginsEnabled) {
+            val allowPlugins = settings.streamAutoPlayPluginsEnabled ?:
+                (settings.streamAutoPlaySource != StreamAutoPlaySource.INSTALLED_ADDONS_ONLY)
+            SettingsToggleRow(stringResource(R.string.autoplay_from_plugins), null, allowPlugins,
+                { onUpdate { setStreamAutoPlayPluginsEnabled(!allowPlugins) } })
+            if (allowPlugins) {
+                SettingsActionRow(
+                    title = stringResource(R.string.autoplay_allowed_plugins),
+                    subtitle = null,
+                    value = selectionSummary(settings.streamAutoPlaySelectedPlugins.size, stringResource(R.string.autoplay_all_plugins)),
+                    onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_PLUGINS) }
+                )
+            }
+        }
+        SettingsToggleRow(stringResource(R.string.autoplay_source_iptv), null, settings.streamAutoPlayPlaylistsEnabled,
+            { onUpdate { setStreamAutoPlayPlaylistsEnabled(!settings.streamAutoPlayPlaylistsEnabled) } })
+        if (hasDirectUsenet) DirectUsenetAutoPlayRow(UsenetAutoPlayTier.TIMED, settings, onUpdate)
+    }
 
-    if (settings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL) {
+    SettingsSectionLabel(stringResource(R.string.autoplay_stage_fallback))
+    if (autoplay) {
         val timedWait = timeoutSeconds != PlayerSettings.STREAM_AUTOPLAY_TIMEOUT_UNLIMITED
         SettingsToggleRow(
             title = stringResource(R.string.autoplay_any_source_fallback),
-            subtitle = stringResource(if (timedWait) R.string.autoplay_any_source_fallback_sub else R.string.autoplay_fallback_needs_timed_wait),
+            subtitle = stringResource(
+                when {
+                    !timedWait -> R.string.autoplay_fallback_needs_timed_wait
+                    AppFeaturePolicy.pluginsEnabled -> R.string.autoplay_any_source_hint
+                    else -> R.string.autoplay_any_source_without_plugins_hint
+                }
+            ),
             checked = settings.streamAutoPlayAnySourceFallbackEnabled && timedWait,
             enabled = timedWait,
             onToggle = { onUpdate { setStreamAutoPlayAnySourceFallbackEnabled(!settings.streamAutoPlayAnySourceFallbackEnabled) } }
         )
         if (settings.streamAutoPlayAnySourceFallbackEnabled && timedWait) {
-            SettingsToggleRow(stringResource(R.string.iptv_fallback_tier), null, settings.streamAutoPlayFallbackPlaylistsEnabled,
-                { onUpdate { setStreamAutoPlayFallbackPlaylistsEnabled(!settings.streamAutoPlayFallbackPlaylistsEnabled) } })
             val fallbackSeconds = PlayerSettings.normalizeAutoPlayFallbackSeconds(timeoutSeconds, settings.streamAutoPlayAnySourceFallbackSeconds)
             SliderSettingsItem(
                 title = stringResource(R.string.autoplay_any_source_after),
-                subtitle = stringResource(R.string.autoplay_any_source_after_sub),
+                subtitle = stringResource(R.string.autoplay_fallback_delay_hint),
                 values = PlayerSettings.STREAM_AUTOPLAY_FALLBACK_TIMEOUT_VALUES.filter { it > timeoutSeconds },
                 selected = fallbackSeconds,
                 valueText = "${fallbackSeconds}s",
                 onValueChange = { seconds -> onUpdate { setStreamAutoPlayAnySourceFallbackSeconds(seconds) } }
             )
+            SettingsToggleRow(stringResource(R.string.autoplay_source_iptv), null, settings.streamAutoPlayFallbackPlaylistsEnabled,
+                { onUpdate { setStreamAutoPlayFallbackPlaylistsEnabled(!settings.streamAutoPlayFallbackPlaylistsEnabled) } })
+            if (hasDirectUsenet) DirectUsenetAutoPlayRow(UsenetAutoPlayTier.FALLBACK, settings, onUpdate)
         }
+    }
+    PlaybackFailureFallbackSettings(settings, onUpdate)
+
+    SettingsSectionLabel(stringResource(R.string.autoplay_other_stream_options))
+    com.nuvio.tv.ui.screens.detail.PersonalRatingPromptSetting(settings.promptToRateAfterWatching) {
+        onUpdate { setPromptToRateAfterWatching(!settings.promptToRateAfterWatching) }
     }
 
     SettingsToggleRow(
@@ -497,8 +454,7 @@ internal fun AutoPlaySettingsDialogs(
         PlaybackDialog.STREAM_AUTO_PLAY_IMMEDIATE_ADDONS -> StreamAutoPlayProviderSelectionDialog(
             title = stringResource(R.string.autoplay_immediate_addons),
             allLabel = stringResource(R.string.autoplay_immediate_none),
-            items = hiltViewModel<PlaybackSettingsViewModel>().immediateSourceNames
-                .collectAsStateWithLifecycle(initialValue = installedAddonNames).value,
+            items = installedAddonNames,
             selectedItems = settings.streamAutoPlayImmediateAddons,
             onSelectionSaved = { selected -> onUpdate { setStreamAutoPlayImmediateAddons(selected) } },
             onDismiss = onDismiss

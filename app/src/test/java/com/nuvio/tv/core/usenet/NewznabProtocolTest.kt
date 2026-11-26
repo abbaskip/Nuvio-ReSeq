@@ -54,6 +54,31 @@ class NewznabProtocolTest {
         assertFalse(holds("Show.S02-720p", 720))
     }
 
+    @Test fun `average bitrate cap uses runtime and keeps unknown estimates`() {
+        val release = UsenetRelease("Movie.2025.1080p", "https://a/movie", size = 9_000_000_000)
+        val unknown = release.copy(nzbUrl = "https://a/unknown", size = 0)
+        val config = UsenetSourceConfiguration(maxBitrateMbps = 20)
+
+        assertEquals(20.0, requireNotNull(release.estimatedAverageMbps(60, null)), 0.0)
+        assertEquals(setOf(release, unknown), NewznabProtocol.arrange(listOf(release, unknown), config,
+            runtimeMinutes = 60).toSet())
+        assertEquals(listOf(unknown), NewznabProtocol.arrange(listOf(release, unknown), config, runtimeMinutes = 30))
+        assertEquals(listOf(release), NewznabProtocol.arrange(listOf(release), config))
+        assertEquals(listOf(release), NewznabProtocol.arrange(listOf(release), config.copy(maxBitrateMbps = 0),
+            runtimeMinutes = 30))
+        val smallerCopy = release.copy(nzbUrl = "https://a/smaller", size = 4_500_000_000, indexerId = "second")
+        val duplicateConfig = config.copy(indexers = listOf(indexer, indexer.copy(id = "second")))
+        assertEquals(listOf(smallerCopy), NewznabProtocol.withoutDuplicates(
+            listOf(release.copy(indexerId = "one"), smallerCopy), duplicateConfig, runtimeMinutes = 30))
+
+        val pack = release.copy(title = "Show.S01-S02.1080p", size = 18_000_000_000)
+        assertEquals(20.0, requireNotNull(pack.estimatedAverageMbps(30, mapOf(1 to 2, 2 to 2))), 0.0)
+        assertTrue(NewznabProtocol.arrange(listOf(pack), config.copy(maxBitrateMbps = 19),
+            seasonEpisodes = mapOf(1 to 2, 2 to 2), runtimeMinutes = 30).isEmpty())
+        assertEquals(listOf(pack), NewznabProtocol.arrange(listOf(pack), config.copy(maxBitrateMbps = 19),
+            seasonEpisodes = mapOf(1 to 2), runtimeMinutes = 30))
+    }
+
     @Test fun `the result limit never cuts a release ranked first`() {
         val releases = (1..5).map { UsenetRelease("Movie.2020.2160p-G$it", "https://a/$it", size = it.toLong(), indexerId = "one") } +
             UsenetRelease("Movie.2020.720p-OK", "https://a/ok", indexerId = "one")

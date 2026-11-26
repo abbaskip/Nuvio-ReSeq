@@ -85,7 +85,7 @@ class DebridStreamFormatter @Inject constructor(
             "stream.audioTags" to audioTags,
             "stream.audioChannels" to audioChannels,
             "stream.languages" to languages,
-            "stream.languageEmojis" to languages.map { languageEmoji(it) },
+            "stream.languageEmojis" to languages.map(::streamLanguageEmoji),
             "stream.size" to StreamTextSizeParser.effectiveSizeBytes(stream)?.let(::DebridTemplateBytes),
             "stream.folderSize" to raw?.folderSize?.let(::DebridTemplateBytes),
             "stream.encode" to (parsed?.codec?.uppercase() ?: facts.encode.labelUnlessUnknown()),
@@ -182,23 +182,23 @@ class DebridStreamFormatter @Inject constructor(
 
     private fun <T> List<T>.labelsExcludingUnknown(label: (T) -> String): List<String> =
         map(label).filterNot { it.equals("Unknown", ignoreCase = true) }
+}
 
-    private fun languageEmoji(language: String): String {
-        return when (language.lowercase()) {
-            "en", "eng", "english" -> "🇬🇧"
-            "hi", "hin", "hindi" -> "🇮🇳"
-            "ml", "mal", "malayalam" -> "🇮🇳"
-            "ta", "tam", "tamil" -> "🇮🇳"
-            "te", "tel", "telugu" -> "🇮🇳"
-            "ja", "jpn", "japanese" -> "🇯🇵"
-            "ko", "kor", "korean" -> "🇰🇷"
-            "fr", "fre", "fra", "french" -> "🇫🇷"
-            "es", "spa", "spn", "esp", "spanish" -> "🇪🇸"
-            "de", "ger", "deu", "german" -> "🇩🇪"
-            "it", "ita", "italian" -> "🇮🇹"
-            "he", "heb", "hbo", "iw", "hebrew" -> "🇮🇱"
-            "multi" -> "Multi"
-            else -> language
-        }
+internal fun streamLanguageEmoji(language: String): String {
+    return when (language.lowercase()) {
+        "en", "eng", "english" -> "🇬🇧"
+        "hi", "hin", "hindi" -> "🇮🇳"
+        "ml", "mal", "malayalam" -> "🇮🇳"
+        "ta", "tam", "tamil" -> "🇮🇳"
+        "te", "tel", "telugu" -> "🇮🇳"
+        "ja", "jpn", "japanese" -> "🇯🇵"
+        "ko", "kor", "korean" -> "🇰🇷"
+        "fr", "fre", "fra", "french" -> "🇫🇷"
+        "es", "spa", "spn", "esp", "spanish" -> "🇪🇸"
+        "de", "ger", "deu", "german" -> "🇩🇪"
+        "it", "ita", "italian" -> "🇮🇹"
+        "he", "heb", "hbo", "iw", "hebrew" -> "🇮🇱"
+        "multi" -> "Multi"
+        else -> language
     }
 }

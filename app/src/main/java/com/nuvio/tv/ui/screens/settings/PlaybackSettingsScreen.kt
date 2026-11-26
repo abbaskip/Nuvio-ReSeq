@@ -76,6 +76,7 @@ fun PlaybackSettingsContent(
     )
     val installedAddonNames by viewModel.installedAddonNames.collectAsStateWithLifecycle(initialValue = emptyList())
     val enabledPluginNames by viewModel.enabledPluginNames.collectAsStateWithLifecycle(initialValue = emptyList())
+    val directUsenetAvailable by viewModel.directUsenetAvailable.collectAsStateWithLifecycle(initialValue = false)
     val coroutineScope = rememberCoroutineScope()
     var openDialog by remember { mutableStateOf<PlaybackDialog?>(null) }
     var memoryUsageTrigger by remember { mutableIntStateOf(0) }
@@ -122,7 +123,8 @@ fun PlaybackSettingsContent(
                             .onFailure { torrentCacheClearFailed = true }
                     }
                 },
-                initialFocusRequester = initialFocusRequester
+                initialFocusRequester = initialFocusRequester,
+                hasDirectUsenet = directUsenetAvailable
             )
         }
 

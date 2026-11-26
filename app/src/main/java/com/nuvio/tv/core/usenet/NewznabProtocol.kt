@@ -69,6 +69,12 @@ data class UsenetRelease(
         val episodes = packSeasons.sumOf { seasonEpisodes[it]?.takeIf { count -> count > 0 } ?: return size }
         return size / episodes
     }
+
+    fun estimatedAverageMbps(runtimeMinutes: Int?, seasonEpisodes: Map<Int, Int>?): Double? {
+        if (size <= 0 || runtimeMinutes == null || runtimeMinutes <= 0) return null
+        if (packSeasons.any { (seasonEpisodes?.get(it) ?: 0) <= 0 }) return null
+        return episodeSize(seasonEpisodes) * 8.0 / (runtimeMinutes * 60.0) / 1_000_000
+    }
     /** A whole Blu-ray or DVD (disc folder or ISO): the feature is one clip among many, not one video. */
     val fullDisc: Boolean = FULL_DISC.containsMatchIn(title) && !NOT_DISC.containsMatchIn(title)
     /** A whole Blu-ray's label on its result; null for anything else, DVDs among them. */
@@ -455,13 +461,13 @@ object NewznabProtocol {
      */
     fun withoutDuplicates(releases: List<UsenetRelease>, config: UsenetSourceConfiguration,
         now: Long = System.currentTimeMillis(), seasonEpisodes: Map<Int, Int>? = null,
-        series: Boolean = false): List<UsenetRelease> {
+        series: Boolean = false, runtimeMinutes: Int? = null): List<UsenetRelease> {
         val order = config.indexers.mapIndexed { i, indexer -> indexer.id to i }.toMap()
         fun name(release: UsenetRelease) =
             release.title.lowercase(Locale.ROOT).replace(NON_WORD, " ").trim()
         return releases.groupBy(::name).values.map { copies ->
             // A preferred copy hidden by a filter (no size, passworded) must not hide the others.
-            copies.filter { arrange(listOf(it), config, now, seasonEpisodes, series).isNotEmpty() }.ifEmpty { copies }
+            copies.filter { arrange(listOf(it), config, now, seasonEpisodes, series, runtimeMinutes).isNotEmpty() }.ifEmpty { copies }
                 .minBy { order[it.indexerId] ?: Int.MAX_VALUE }
         }
     }
@@ -473,12 +479,15 @@ object NewznabProtocol {
      */
     fun arrange(releases: List<UsenetRelease>, config: UsenetSourceConfiguration,
         now: Long = System.currentTimeMillis(), seasonEpisodes: Map<Int, Int>? = null, series: Boolean = false,
+        runtimeMinutes: Int? = null,
         rank: (UsenetRelease) -> Int = { 0 }): List<UsenetRelease> {
         val priority = config.indexers.mapIndexed { i, indexer -> indexer.id to i }.toMap()
         val filtered = releases.filter {
             !it.passworded && (!config.excludeLowQuality || !it.lowQuality) && (!config.excludeFullDisc || !it.fullDisc) &&
                 (config.minResolution == 0 || it.resolution >= config.minResolution) &&
                 (config.maxSizeGb == 0 || it.episodeSize(seasonEpisodes) in 1..config.maxSizeGb.toLong() * 1024 * 1024 * 1024) &&
+                (config.maxBitrateMbps == 0 || it.estimatedAverageMbps(runtimeMinutes, seasonEpisodes)
+                    ?.let { mbps -> mbps <= config.maxBitrateMbps } != false) &&
                 (config.maxAgeDays == 0 || it.publishedAt > 0 && now - it.publishedAt <= config.maxAgeDays.toLong() * 86400000)
         }
         config.ranking.profile()?.let { profile ->

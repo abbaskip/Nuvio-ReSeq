@@ -195,6 +195,11 @@ internal fun UsenetSourcesCard(
                 onClick = { picker = "resolution" })
             SettingsActionRow(title = stringResource(R.string.usenet_max_size), subtitle = null,
                 value = if (configuration.maxSizeGb == 0) unlimited else "${configuration.maxSizeGb} GB", onClick = { picker = "size" })
+            SettingsActionRow(title = stringResource(R.string.usenet_max_bitrate),
+                subtitle = stringResource(R.string.usenet_max_bitrate_hint),
+                value = if (configuration.maxBitrateMbps == 0) unlimited else
+                    stringResource(R.string.usenet_mbps_value, configuration.maxBitrateMbps),
+                onClick = { picker = "bitrate" })
             SettingsActionRow(title = stringResource(R.string.usenet_max_age), subtitle = null,
                 value = if (configuration.maxAgeDays == 0) unlimited else "${configuration.maxAgeDays}d", onClick = { picker = "age" })
             SettingsActionRow(title = stringResource(R.string.usenet_result_limit),
@@ -245,11 +250,12 @@ internal fun UsenetSourcesCard(
                 onOptionSelected = { update(configuration.copy(indexerResultsLimit = it)); picker = null },
                 onDismiss = { picker = null })
         }
-        "resolution", "size", "age", "limit" -> {
+        "resolution", "size", "bitrate", "age", "limit" -> {
             val key = picker
             val values = when (key) {
                 "resolution" -> listOf(0, 480, 720, 1080, 2160)
                 "size" -> listOf(0, 5, 10, 20, 40, 80, 120, 200)
+                "bitrate" -> listOf(0, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150)
                 "age" -> listOf(0, 30, 90, 365, 1000, 3000, 5000)
                 else -> listOf(UsenetSourceConfiguration.UNLIMITED_RESULTS, 10, 25, 50, 100, 200,
                     UsenetSourceConfiguration.MAX_LISTED_RESULTS)
@@ -257,21 +263,30 @@ internal fun UsenetSourcesCard(
             val title = stringResource(when (key) {
                 "resolution" -> R.string.usenet_min_resolution
                 "size" -> R.string.usenet_max_size
+                "bitrate" -> R.string.usenet_max_bitrate
                 "age" -> R.string.usenet_max_age
                 else -> R.string.usenet_result_limit
             })
             val selected = when (key) {
                 "resolution" -> configuration.minResolution
                 "size" -> configuration.maxSizeGb
+                "bitrate" -> configuration.maxBitrateMbps
                 "age" -> configuration.maxAgeDays
                 else -> configuration.maxResults
             }
             SettingsSingleChoiceDialog(title = title,
-                options = values.map { SettingsPickerOption(it, if (it == 0) unlimited else it.toString()) },
+                options = (values + selected).distinct().sorted().map {
+                    SettingsPickerOption(it, when {
+                        it == 0 -> unlimited
+                        key == "bitrate" -> stringResource(R.string.usenet_mbps_value, it)
+                        else -> it.toString()
+                    })
+                },
                 selectedValue = selected, onOptionSelected = {
                     update(when (key) {
                         "resolution" -> configuration.copy(minResolution = it)
                         "size" -> configuration.copy(maxSizeGb = it)
+                        "bitrate" -> configuration.copy(maxBitrateMbps = it)
                         "age" -> configuration.copy(maxAgeDays = it)
                         else -> configuration.copy(maxResults = it)
                     }); picker = null

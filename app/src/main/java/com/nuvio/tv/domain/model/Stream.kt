@@ -34,7 +34,8 @@ data class Stream(
     val iptvPlaylistId: String? = null,
     @Transient val usenet: UsenetSource? = null,
     /** True when [url] was produced by Nuvio's own debrid resolver, not returned by the add-on. */
-    val debridResolved: Boolean = false
+    val debridResolved: Boolean = false,
+    val isDirectUsenet: Boolean = false
 ) {
     /**
      * Returns the primary stream source URL
@@ -172,7 +173,9 @@ data class Stream(
 }
 
 /** Provider URLs can contain credentials. Keep only the digest in UI keys and diagnostics. */
-data class UsenetSource(val nzbUrl: String, val servers: List<String>, val filters: List<String>) {
+data class UsenetSource(val nzbUrl: String, val servers: List<String>, val filters: List<String>,
+    val season: Int? = null, val episode: Int? = null,
+    val publishedAt: Long? = null, val allowPrivateNetwork: Boolean? = null) {
     val identity by lazy {
         val digest = java.security.MessageDigest.getInstance("SHA-256")
         for (field in listOf(nzbUrl) + servers + filters) {

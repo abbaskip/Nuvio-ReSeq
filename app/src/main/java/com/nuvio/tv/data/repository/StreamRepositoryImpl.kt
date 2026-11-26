@@ -30,6 +30,12 @@ import com.nuvio.tv.domain.model.ScraperInfo
 import com.nuvio.tv.domain.model.Stream
 import com.nuvio.tv.domain.model.StreamBehaviorHints
 import com.nuvio.tv.core.streams.supportsStreamResource
+import com.nuvio.tv.core.usenet.BUILT_IN_USENET_TYPES
+import com.nuvio.tv.core.usenet.BuiltInUsenetService
+import com.nuvio.tv.core.usenet.UsenetSourceConfiguration
+import com.nuvio.tv.core.usenet.UsenetSourceSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 import com.nuvio.tv.domain.model.enabledAddons
 import com.nuvio.tv.domain.repository.AddonRepository
 import com.nuvio.tv.domain.repository.StreamRepository
@@ -63,7 +69,9 @@ class StreamRepositoryImpl @Inject constructor(
     private val localDebridAvailabilityService: LocalDebridAvailabilityService,
     private val serverStreams: ServerStreams,
     private val iptvSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources? = null,
-    private val iptvStreams: com.nuvio.tv.livetv.ondemand.IptvVodStreams? = null
+    private val iptvStreams: com.nuvio.tv.livetv.ondemand.IptvVodStreams? = null,
+    private val usenetSources: UsenetSourceSettings? = null,
+    private val builtInUsenet: BuiltInUsenetService? = null
 ) : StreamRepository {
     private val streamSearchSessions = StreamSearchSessionCache()
     private val localPluginSearchPaused = MutableStateFlow(false)
@@ -92,7 +100,8 @@ class StreamRepositoryImpl @Inject constructor(
         val pluginRepositories: List<PluginRepository>,
         val debridSettings: DebridSettings,
         val iptvRevision: String,
-        val pluginSearchConfiguration: String
+        val pluginSearchConfiguration: String,
+        val usenet: UsenetSourceConfiguration?
     )
 
     override fun getStreamsFromAllAddons(
@@ -144,7 +153,8 @@ class StreamRepositoryImpl @Inject constructor(
                     preferredPluginOnly = preferredPluginOnly,
                     continuePluginOnly = continuePluginOnly,
                     contentContext = contentContext,
-                    profileId = sourceConfiguration.profileId
+                    profileId = sourceConfiguration.profileId,
+                    usenet = sourceConfiguration.usenet.takeUnless { isNativeServerRequest || continuePluginOnly }
                 )
             }
         )
@@ -186,7 +196,7 @@ class StreamRepositoryImpl @Inject constructor(
                 .withoutRawCredentials()
                 .toString(),
             serverRevision = serverStreams.revision
-        ).let { (it + sourceConfiguration.iptvRevision + sourceConfiguration.pluginSearchConfiguration + contentContext.toString()).sha256() },
+        ).let { (it + sourceConfiguration.iptvRevision + sourceConfiguration.pluginSearchConfiguration + contentContext.toString() + (sourceConfiguration.usenet?.hashCode() ?: 0)).sha256() },
         searchMode = when {
             continuePluginOnly -> "continuePluginOnly"
             preferredPluginOnly -> "preferredPluginOnly"
@@ -225,7 +235,8 @@ class StreamRepositoryImpl @Inject constructor(
                 pluginRepositories = pluginRepositories,
                 debridSettings = debridSettings,
                 iptvRevision = iptvRevision,
-                pluginSearchConfiguration = pluginSearchConfiguration
+                pluginSearchConfiguration = pluginSearchConfiguration,
+                usenet = runCatching { usenetSources?.read(profileId) }.getOrNull()?.takeIf { it.ready && addons.any { addon -> addon.baseUrl == BuiltInUsenetService.SOURCE_KEY } }
             )
         }
     }
@@ -244,7 +255,8 @@ class StreamRepositoryImpl @Inject constructor(
         profileId: Int,
         priorityBingeGroup: String?,
         preferredPluginOnly: Boolean,
-        continuePluginOnly: Boolean
+        continuePluginOnly: Boolean,
+        usenet: UsenetSourceConfiguration?
     ): Flow<NetworkResult<List<AddonStreams>>> = flow {
         emit(NetworkResult.Loading)
 
@@ -255,11 +267,13 @@ class StreamRepositoryImpl @Inject constructor(
                 emptyList()
             } else {
                 addons.filter { addon ->
-                    addon.supportsStreamResource(type, videoId)
+                    addon.baseUrl != BuiltInUsenetService.SOURCE_KEY && addon.supportsStreamResource(type, videoId)
                 }
             }
 
-            val attemptedAddonNames = streamAddons.map { it.displayName } + serverSources.map { it.name }
+            val searchUsenet = usenet != null && builtInUsenet != null && type.lowercase() in BUILT_IN_USENET_TYPES
+            val attemptedAddonNames = streamAddons.map { it.displayName } + serverSources.map { it.name } +
+                listOfNotNull(BuiltInUsenetService.GROUP_NAME.takeIf { searchUsenet })
             val attemptedFailures = java.util.Collections.synchronizedList(
                 mutableListOf<StreamAttemptFailure>()
             )
@@ -282,8 +296,28 @@ class StreamRepositoryImpl @Inject constructor(
                 val resultChannel = Channel<AddonStreams>(Channel.UNLIMITED)
                 
                 // Track number of pending jobs
-                val totalJobs = streamAddons.size + 1 + serverSources.size
+                val totalJobs = streamAddons.size + 1 + serverSources.size + if (searchUsenet) 1 else 0
                 val completedJobs = java.util.concurrent.atomic.AtomicInteger(0)
+
+                if (searchUsenet && builtInUsenet != null && usenet != null) launch {
+                    try {
+                        builtInUsenet.search(usenet, type, videoId, season, episode, contentContext?.contentId)
+                            .flowOn(Dispatchers.IO).collect { result ->
+                                result.group?.let { resultChannel.send(it) }
+                                result.failure?.let {
+                                    attemptedFailures += StreamAttemptFailure(BuiltInUsenetService.GROUP_NAME,
+                                        StreamFailureKind.REQUEST_FAILED, it)
+                                }
+                            }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        attemptedFailures += StreamAttemptFailure(BuiltInUsenetService.GROUP_NAME,
+                            StreamFailureKind.REQUEST_FAILED, context.getString(R.string.stream_error_detail_addon_request_failed))
+                    } finally {
+                        if (completedJobs.incrementAndGet() >= totalJobs) resultChannel.close()
+                    }
+                }
 
                 // Launch addon jobs
                 streamAddons.forEach { addon ->
@@ -552,7 +586,10 @@ class StreamRepositoryImpl @Inject constructor(
         debridSettings: DebridSettings
     ) {
         val existingIndex = accumulatedResults.indexOfFirst { it.addonName == result.addonName }
-        if (existingIndex >= 0) {
+        if (result.streams.firstOrNull()?.isDirectUsenet == true) {
+            // Progressive Usenet updates are complete, re-ranked snapshots.
+            if (existingIndex >= 0) accumulatedResults[existingIndex] = result else accumulatedResults.add(result)
+        } else if (existingIndex >= 0) {
             val existing = accumulatedResults[existingIndex]
             val merged = existing.copy(
                 streams = mergeStreams(existing.streams, result.streams)
@@ -733,7 +770,8 @@ class StreamRepositoryImpl @Inject constructor(
         type: String,
         videoId: String
     ): NetworkResult<List<Stream>> {
-        if (com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(addon.baseUrl)) {
+        if (addon.baseUrl == BuiltInUsenetService.SOURCE_KEY ||
+            com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(addon.baseUrl)) {
             return NetworkResult.Error("IPTV catalogue searches require the selected content context.")
         }
         val cleanBaseUrl = addon.baseUrl.trimEnd('/')

@@ -32,7 +32,7 @@ internal class BackupSyncSettingsViewModel @Inject constructor(val drive: LiveTv
     init { drive.start() }
 }
 
-private enum class BackupDialog { BACK_UP, RESTORE, DISCONNECT }
+private enum class BackupDialog { BACK_UP, RESTORE, DISCONNECT, BACK_UP_USENET, RESTORE_USENET }
 
 @Composable
 internal fun BackupSyncSettingsContent(
@@ -53,7 +53,9 @@ internal fun BackupSyncSettingsContent(
                     state = state, expanded = expanded, onToggleExpanded = { expanded = !expanded },
                     onConnect = drive::beginSignIn, onAutoSync = drive::setAutoSync,
                     onBackUp = { dialog = BackupDialog.BACK_UP }, onRestore = { dialog = BackupDialog.RESTORE },
-                    onDisconnect = { dialog = BackupDialog.DISCONNECT }
+                    onDisconnect = { dialog = BackupDialog.DISCONNECT },
+                    onBackUpUsenet = { dialog = BackupDialog.BACK_UP_USENET },
+                    onRestoreUsenet = { dialog = BackupDialog.RESTORE_USENET }
                 )
             }
         }
@@ -71,6 +73,13 @@ internal fun BackupSyncSettingsContent(
             LaunchedEffect(Unit) { info = drive.backupInfo(); loaded = true }
             ConfirmDeleteDialog(title = "Restore from Google Drive?", message = restoreMessage(loaded, info, drive.localChangedAt()),
                 onDismiss = close, onConfirm = { drive.restoreNow(); close() }, confirmLabel = "Restore")
+        }
+        BackupDialog.BACK_UP_USENET, BackupDialog.RESTORE_USENET -> {
+            val upload = dialog == BackupDialog.BACK_UP_USENET
+            UsenetBackupPassphraseDialog(upload, close) { password ->
+                drive.transferUsenetBackup(upload, password)
+                close()
+            }
         }
         null -> Unit
     }
@@ -90,7 +99,9 @@ private fun DriveSyncCard(
     onAutoSync: (Boolean) -> Unit,
     onBackUp: () -> Unit,
     onRestore: () -> Unit,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    onBackUpUsenet: () -> Unit,
+    onRestoreUsenet: () -> Unit
 ) {
     val status = when {
         !state.available -> "Not available in this build"
@@ -132,12 +143,36 @@ private fun DriveSyncCard(
                     )
                     SettingsActionRow("Back Up Now", "Save this TV's setup to Google Drive", onClick = onBackUp)
                     SettingsActionRow("Restore from Google Drive", "Replace this TV's setup with the saved copy", onClick = onRestore)
+                    SettingsActionRow("Back Up Direct Usenet", "Encrypt providers, indexers, ranking and autoplay with a passphrase",
+                        enabled = !state.busy, onClick = onBackUpUsenet)
+                    SettingsActionRow("Restore Direct Usenet", "Unlock the saved setup with its backup passphrase",
+                        enabled = !state.busy, onClick = onRestoreUsenet)
                     SettingsActionRow("Disconnect", "Stop syncing on this TV (your backup stays in Drive)", onClick = onDisconnect)
                 }
             }
             state.message?.let {
                 Text(text = it, style = MaterialTheme.typography.bodySmall, color = NuvioTheme.colors.TextSecondary)
             }
+        }
+    }
+}
+
+@Composable
+private fun UsenetBackupPassphraseDialog(upload: Boolean, onDismiss: () -> Unit, onSubmit: (CharArray) -> Unit) {
+    var passphrase by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
+    val minimum = com.nuvio.tv.livetv.sync.DriveUsenetBackup.MIN_PASSPHRASE_LENGTH
+    NuvioDialog(onDismiss = onDismiss, title = if (upload) "Back Up Direct Usenet" else "Restore Direct Usenet",
+        width = 560.dp, usePlatformDefaultWidth = false, contentPadding = 16.dp, contentSpacing = 8.dp) {
+        Text(if (upload) "Use a passphrase of at least $minimum characters. You’ll need it to restore this setup on another TV."
+            else "Enter the backup passphrase to replace the saved profiles’ local Usenet setup and autoplay preferences.")
+        SourceField("Backup passphrase", passphrase, { passphrase = it.take(256) }, secret = true)
+        if (upload) SourceField("Confirm passphrase", confirmation, { confirmation = it.take(256) }, secret = true)
+        SettingsDialogActionRow {
+            SettingsDialogActionButton("Cancel", onClick = onDismiss)
+            SettingsDialogActionButton(if (upload) "Back Up" else "Restore", primary = true,
+                enabled = passphrase.length >= minimum && (!upload || passphrase == confirmation),
+                onClick = { onSubmit(passphrase.toCharArray()) })
         }
     }
 }

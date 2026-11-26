@@ -333,7 +333,7 @@ class AddonManagerViewModel @Inject constructor(
             context = context,
             webConfigMode = webConfigMode,
             currentPageStateProvider = {
-                val addons = _uiState.value.installedAddons.filterNot { com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(it.baseUrl) }
+                val addons = _uiState.value.installedAddons.filterNot { com.nuvio.tv.livetv.ondemand.IptvStreamSources.isVirtual(it.baseUrl) }
                 val orderedCatalogs = buildOrderedCatalogEntries(
                     addons = addons.enabledAddons(),
                     savedOrderKeys = homeCatalogOrderKeys,
@@ -567,7 +567,7 @@ class AddonManagerViewModel @Inject constructor(
     }
 
     private fun handleChangeProposed(change: PendingAddonChange) {
-        val realAddons = _uiState.value.installedAddons.filterNot { com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(it.baseUrl) }
+        val realAddons = _uiState.value.installedAddons.filterNot { com.nuvio.tv.livetv.ondemand.IptvStreamSources.isVirtual(it.baseUrl) }
         val currentUrls = realAddons.map { normalizeUrlForComparison(it.baseUrl) }.toSet()
         val proposedNormalized = change.proposedUrls.map { normalizeUrlForComparison(it) }.toSet()
         val currentCatalogEntries = buildOrderedCatalogEntries(

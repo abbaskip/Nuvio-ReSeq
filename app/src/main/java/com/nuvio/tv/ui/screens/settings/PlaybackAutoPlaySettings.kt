@@ -67,9 +67,92 @@ import com.nuvio.tv.data.local.PlayerSettings
 import com.nuvio.tv.data.local.NextEpisodeThresholdMode
 import com.nuvio.tv.data.local.StreamAutoPlayMode
 import com.nuvio.tv.data.local.StreamAutoPlaySource
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nuvio.tv.core.usenet.BuiltInUsenetService
 import com.nuvio.tv.ui.components.NuvioDialog
 import kotlin.math.roundToInt
 import java.util.Locale
+
+private enum class UsenetAutoPlayTier(val title: String) {
+    IMMEDIATE("Immediate"), APPROVED("Approved-source wait"), FALLBACK("Any-source fallback")
+}
+
+@Composable
+private fun DirectUsenetAutoPlayRows(
+    settings: PlayerSettings,
+    onUpdate: PlaybackSettingsUpdate,
+    viewModel: PlaybackSettingsViewModel = hiltViewModel()
+) {
+    val sources by viewModel.autoPlaySourceNames.collectAsStateWithLifecycle(initialValue = emptyList())
+    if (BuiltInUsenetService.GROUP_NAME !in sources) return
+    val preferences = settings.directUsenetAutoPlay
+    var editing by remember { mutableStateOf<UsenetAutoPlayTier?>(null) }
+    val tiers = buildList {
+        if (settings.streamAutoPlayImmediateEnabled) add(UsenetAutoPlayTier.IMMEDIATE)
+        add(UsenetAutoPlayTier.APPROVED)
+        if (settings.streamAutoPlayAnySourceFallbackEnabled) add(UsenetAutoPlayTier.FALLBACK)
+    }
+    tiers.forEach { tier ->
+        val enabled = when (tier) {
+            UsenetAutoPlayTier.IMMEDIATE -> preferences.immediate
+            UsenetAutoPlayTier.APPROVED -> preferences.approved
+            UsenetAutoPlayTier.FALLBACK -> preferences.fallback
+        }
+        SettingsToggleRow("Direct Usenet · ${tier.title}", null, enabled, {
+            onUpdate {
+                setDirectUsenetAutoPlay(when (tier) {
+                    UsenetAutoPlayTier.IMMEDIATE -> preferences.copy(immediate = !enabled)
+                    UsenetAutoPlayTier.APPROVED -> preferences.copy(approved = !enabled)
+                    UsenetAutoPlayTier.FALLBACK -> preferences.copy(fallback = !enabled)
+                })
+            }
+        })
+        if (enabled) SettingsActionRow("${tier.title} source order", "Move sources earlier or later for this stage",
+            onClick = { editing = tier })
+    }
+    editing?.let { tier ->
+        val saved = when (tier) {
+            UsenetAutoPlayTier.IMMEDIATE -> preferences.immediateOrder
+            UsenetAutoPlayTier.APPROVED -> preferences.approvedOrder
+            UsenetAutoPlayTier.FALLBACK -> preferences.fallbackOrder
+        }
+        var order by remember(tier, sources, saved) {
+            mutableStateOf(saved.filter { it in sources } + sources.filterNot { it in saved })
+        }
+        fun save(value: List<String>) {
+            editing = null
+            onUpdate {
+                setDirectUsenetAutoPlay(when (tier) {
+                    UsenetAutoPlayTier.IMMEDIATE -> preferences.copy(immediateOrder = value)
+                    UsenetAutoPlayTier.APPROVED -> preferences.copy(approvedOrder = value)
+                    UsenetAutoPlayTier.FALLBACK -> preferences.copy(fallbackOrder = value)
+                })
+            }
+        }
+        NuvioDialog(onDismiss = { editing = null }, title = "${tier.title} source order",
+            width = 620.dp, usePlatformDefaultWidth = false) {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
+                itemsIndexed(order, key = { _, name -> name }) { index, name ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(name, Modifier.weight(1f))
+                        fun move(offset: Int) {
+                            order = order.toMutableList().apply { add(index + offset, removeAt(index)) }
+                        }
+                        Button(onClick = { move(-1) }, enabled = index > 0) { Text("Up") }
+                        Button(onClick = { move(1) }, enabled = index < order.lastIndex) { Text("Down") }
+                    }
+                }
+            }
+            SettingsDialogActionRow {
+                SettingsDialogActionButton("Cancel", onClick = { editing = null })
+                SettingsDialogActionButton("Use source order", onClick = { save(emptyList()) })
+                SettingsDialogActionButton("Save", primary = true, onClick = { save(order) })
+            }
+        }
+    }
+}
 
 @Composable
 internal fun PlaybackStreamSelectionSection(
@@ -161,6 +244,10 @@ internal fun PlaybackStreamSelectionSection(
                 onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_PLUGINS) }
             )
         }
+    }
+
+    if (settings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL) {
+        DirectUsenetAutoPlayRows(settings, onUpdate)
     }
 
     val timeoutSeconds = settings.streamAutoPlayTimeoutSeconds
@@ -410,7 +497,8 @@ internal fun AutoPlaySettingsDialogs(
         PlaybackDialog.STREAM_AUTO_PLAY_IMMEDIATE_ADDONS -> StreamAutoPlayProviderSelectionDialog(
             title = stringResource(R.string.autoplay_immediate_addons),
             allLabel = stringResource(R.string.autoplay_immediate_none),
-            items = installedAddonNames,
+            items = hiltViewModel<PlaybackSettingsViewModel>().immediateSourceNames
+                .collectAsStateWithLifecycle(initialValue = installedAddonNames).value,
             selectedItems = settings.streamAutoPlayImmediateAddons,
             onSelectionSaved = { selected -> onUpdate { setStreamAutoPlayImmediateAddons(selected) } },
             onDismiss = onDismiss

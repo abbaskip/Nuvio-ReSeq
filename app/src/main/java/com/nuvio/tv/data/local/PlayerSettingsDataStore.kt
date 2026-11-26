@@ -1,5 +1,11 @@
 package com.nuvio.tv.data.local
 
+import androidx.datastore.preferences.core.Preferences
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
 import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -365,6 +371,7 @@ data class PlayerSettings(
     val resolutionMatchingEnabled: Boolean = false,
     // Stream selection settings
     val streamAutoPlayMode: StreamAutoPlayMode = StreamAutoPlayMode.MANUAL,
+    val directUsenetAutoPlay: com.nuvio.tv.core.player.DirectUsenetAutoPlay = com.nuvio.tv.core.player.DirectUsenetAutoPlay(),
     val streamAutoPlaySource: StreamAutoPlaySource = StreamAutoPlaySource.ALL_SOURCES,
     val streamAutoPlayAddonsEnabled: Boolean? = null,
     val streamAutoPlayPluginsEnabled: Boolean? = null,
@@ -737,6 +744,7 @@ class PlayerSettingsDataStore @Inject constructor(
     private val streamAutoPlayPlaylistsEnabledKey = booleanPreferencesKey("stream_auto_play_playlists_enabled")
     private val streamAutoPlayFallbackPlaylistsEnabledKey = booleanPreferencesKey("stream_auto_play_fallback_playlists_enabled")
     private val streamAutoPlayImmediatePlaylistsEnabledKey = booleanPreferencesKey("stream_auto_play_immediate_playlists_enabled")
+    private val directUsenetAutoPlayKey = stringPreferencesKey("stream_auto_play_direct_usenet")
     private val streamAutoPlaySourceKey = stringPreferencesKey("stream_auto_play_source")
     private val streamAutoPlaySelectedAddonsKey = stringSetPreferencesKey("stream_auto_play_selected_addons")
     private val streamAutoPlaySelectedPluginsKey = stringSetPreferencesKey("stream_auto_play_selected_plugins")
@@ -1152,6 +1160,9 @@ class PlayerSettingsDataStore @Inject constructor(
                 streamAutoPlayMode = prefs[streamAutoPlayModeKey]?.let {
                     runCatching { StreamAutoPlayMode.valueOf(it) }.getOrDefault(StreamAutoPlayMode.MANUAL)
                 } ?: StreamAutoPlayMode.MANUAL,
+                directUsenetAutoPlay = prefs[directUsenetAutoPlayKey]?.let { value ->
+                    runCatching { kotlinx.serialization.json.Json.decodeFromString<com.nuvio.tv.core.player.DirectUsenetAutoPlay>(value) }.getOrNull()
+                } ?: com.nuvio.tv.core.player.DirectUsenetAutoPlay(),
                 streamAutoPlaySource = prefs[streamAutoPlaySourceKey]?.let {
                     runCatching { StreamAutoPlaySource.valueOf(it) }.getOrDefault(StreamAutoPlaySource.ALL_SOURCES)
                 } ?: StreamAutoPlaySource.ALL_SOURCES,
@@ -1560,6 +1571,96 @@ class PlayerSettingsDataStore @Inject constructor(
     suspend fun setStreamAutoPlayPlaylistsEnabled(enabled: Boolean) { store().edit { it[streamAutoPlayPlaylistsEnabledKey] = enabled } }
     suspend fun setStreamAutoPlayFallbackPlaylistsEnabled(enabled: Boolean) { store().edit { it[streamAutoPlayFallbackPlaylistsEnabledKey] = enabled } }
     suspend fun setStreamAutoPlayImmediatePlaylistsEnabled(enabled: Boolean) { store().edit { it[streamAutoPlayImmediatePlaylistsEnabledKey] = enabled } }
+
+    private val usenetBackupAutoplayKeys by lazy {
+        listOf(
+            streamAutoPlayModeKey,
+            streamAutoPlayAddonsEnabledKey,
+            streamAutoPlayPluginsEnabledKey,
+            streamAutoPlayPlaylistsEnabledKey,
+            directUsenetAutoPlayKey,
+            streamAutoPlaySourceKey,
+            streamAutoPlaySelectedAddonsKey,
+            streamAutoPlaySelectedPluginsKey,
+            streamAutoPlayRegexKey,
+            streamAutoPlayNextEpisodeEnabledKey,
+            streamAutoPlayNextEpisodeFallbackEnabledKey,
+            streamAutoPlayPreferBingeGroupForNextEpisodeKey,
+            streamAutoPlayReuseBingeGroupKey,
+            streamAutoPlayTimeoutSecondsKey,
+            streamAutoPlayImmediateEnabledKey,
+            streamAutoPlayImmediateAddonsKey,
+            streamAutoPlayAnySourceFallbackEnabledKey,
+            streamAutoPlayAnySourceFallbackSecondsKey,
+            preloadNextEpisodeSourcesKey,
+            streamReuseLastLinkEnabledKey,
+            streamReuseLastLinkCacheHoursKey
+        ).associateBy { it.name }
+    }
+
+    internal suspend fun exportUsenetAutoplay(profileId: Int): Map<String, kotlinx.serialization.json.JsonElement> =
+        store(profileId).data.first().asMap().filterKeys { it.name in usenetBackupAutoplayKeys }.mapKeys { it.key.name }
+            .mapValues { (_, value) ->
+                when (value) {
+                    is Boolean -> JsonPrimitive(value)
+                    is Int -> JsonPrimitive(value)
+                    is String -> JsonPrimitive(value)
+                    is Set<*> -> JsonArray(value.filterIsInstance<String>().sorted().map(::JsonPrimitive))
+                    else -> error("Invalid autoplay preference")
+                }
+            }
+
+    internal fun decodeUsenetAutoplay(values: Map<String, kotlinx.serialization.json.JsonElement>): Map<Preferences.Key<*>, Any> =
+        values.mapNotNull { (name, value) ->
+            val key = usenetBackupAutoplayKeys[name] ?: return@mapNotNull null
+            val decoded: Any = when (key.name) {
+                streamAutoPlayAddonsEnabledKey.name,
+                streamAutoPlayPluginsEnabledKey.name,
+                streamAutoPlayPlaylistsEnabledKey.name,
+                streamAutoPlayNextEpisodeEnabledKey.name,
+                streamAutoPlayNextEpisodeFallbackEnabledKey.name,
+                streamAutoPlayPreferBingeGroupForNextEpisodeKey.name,
+                streamAutoPlayReuseBingeGroupKey.name,
+                streamAutoPlayImmediateEnabledKey.name,
+                streamAutoPlayAnySourceFallbackEnabledKey.name,
+                preloadNextEpisodeSourcesKey.name,
+                streamReuseLastLinkEnabledKey.name -> requireNotNull((value as? JsonPrimitive)?.booleanOrNull)
+                streamAutoPlayTimeoutSecondsKey.name,
+                streamAutoPlayAnySourceFallbackSecondsKey.name,
+                streamReuseLastLinkCacheHoursKey.name -> requireNotNull((value as? JsonPrimitive)?.intOrNull)
+                streamAutoPlaySelectedAddonsKey.name,
+                streamAutoPlaySelectedPluginsKey.name,
+                streamAutoPlayImmediateAddonsKey.name -> (value as JsonArray).map { (it as JsonPrimitive).also { item -> require(item.isString) }.content }.toSet()
+                streamAutoPlayModeKey.name,
+                directUsenetAutoPlayKey.name,
+                streamAutoPlaySourceKey.name,
+                streamAutoPlayRegexKey.name -> (value as JsonPrimitive).also { require(it.isString) }.content
+                else -> error("Invalid autoplay preference")
+            }
+            if (key == directUsenetAutoPlayKey) {
+                val preference = kotlinx.serialization.json.Json.decodeFromString<com.nuvio.tv.core.player.DirectUsenetAutoPlay>(decoded as String)
+                require(listOf(preference.immediateOrder, preference.approvedOrder, preference.fallbackOrder)
+                    .all { it.size <= 1000 && it.distinct().size == it.size && it.none(String::isBlank) })
+            }
+            key to decoded
+        }.toMap()
+
+    internal suspend fun restoreUsenetAutoplay(profileId: Int, values: Map<Preferences.Key<*>, Any>) {
+        store(profileId).edit { preferences ->
+            usenetBackupAutoplayKeys.values.forEach { preferences.remove(it) }
+            values.forEach { (key, value) ->
+                @Suppress("UNCHECKED_CAST")
+                preferences[key as Preferences.Key<Any>] = value
+            }
+        }
+    }
+
+    suspend fun setDirectUsenetAutoPlay(value: com.nuvio.tv.core.player.DirectUsenetAutoPlay) {
+        store().edit {
+            it[directUsenetAutoPlayKey] = kotlinx.serialization.json.Json.encodeToString(
+                com.nuvio.tv.core.player.DirectUsenetAutoPlay.serializer(), value)
+        }
+    }
 
     suspend fun setStreamAutoPlaySource(source: StreamAutoPlaySource) {
         store().edit { prefs ->

@@ -1,5 +1,13 @@
 package com.nuvio.tv.data.repository
 
+import com.nuvio.tv.core.usenet.BuiltInUsenetResult
+import com.nuvio.tv.core.usenet.BuiltInUsenetService
+import com.nuvio.tv.core.usenet.UsenetIndexer
+import com.nuvio.tv.core.usenet.UsenetProvider
+import com.nuvio.tv.core.usenet.UsenetSourceConfiguration
+import com.nuvio.tv.core.usenet.UsenetSourceSettings
+import com.nuvio.tv.domain.model.Stream
+import com.nuvio.tv.domain.model.UsenetSource
 import android.content.Context
 import com.nuvio.tv.core.debrid.DebridStreamPresentation
 import com.nuvio.tv.core.debrid.LocalDebridAvailabilityService
@@ -25,6 +33,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -348,9 +357,53 @@ class StreamRepositoryPluginIsolationTest {
         coVerify(exactly = 3) { harness.api.getStreams(any()) }
     }
 
+    @Test fun `Direct Usenet replaces its progressive snapshot alongside addon results and disappears when disabled`() = runTest {
+        val real = compatibleAddon()
+        val direct = real.copy(id = BuiltInUsenetService.SOURCE_KEY, baseUrl = BuiltInUsenetService.SOURCE_KEY,
+            name = BuiltInUsenetService.GROUP_NAME, displayName = BuiltInUsenetService.GROUP_NAME)
+        val sources = MutableStateFlow(listOf(real, direct))
+        val mixed = mockk<com.nuvio.tv.livetv.ondemand.IptvStreamSources> {
+            every { sources() } returns sources
+        }
+        val native = UsenetSourceConfiguration(enabled = true,
+            providers = listOf(UsenetProvider(name = "News", host = "news.test")),
+            indexers = listOf(UsenetIndexer(name = "Indexer", apiUrl = "https://indexer.test")))
+        val settings = mockk<UsenetSourceSettings> { every { read(1) } returns native }
+        fun release(title: String) = Stream(
+            name = title, title = title, description = null, url = null, ytId = null,
+            infoHash = null, fileIdx = null, externalUrl = null, behaviorHints = null,
+            addonName = BuiltInUsenetService.GROUP_NAME, addonLogo = null, isDirectUsenet = true,
+            usenet = UsenetSource("https://indexer.test/$title", native.servers(), emptyList())
+        )
+        val low = release("720p")
+        val high = release("2160p")
+        val search = mockk<BuiltInUsenetService> {
+            every { search(native, "movie", "tt1341338", null, null, null) } returns flowOf(
+                BuiltInUsenetResult(group = AddonStreams(BuiltInUsenetService.GROUP_NAME, null, listOf(low))),
+                BuiltInUsenetResult(group = AddonStreams(BuiltInUsenetService.GROUP_NAME, null, listOf(high, low)))
+            )
+        }
+
+        val harness = newHarness(emptyList(), iptvSources = mixed, usenetSettings = settings, usenetSearch = search)
+        suspend fun results(): List<AddonStreams> = harness.repository
+            .getStreamsFromAllAddons("movie", "tt1341338", null, null).toList()
+            .filterIsInstance<NetworkResult.Success<List<AddonStreams>>>().last().data
+
+        val combined = results()
+        assertEquals(setOf(real.displayName, BuiltInUsenetService.GROUP_NAME), combined.map { it.addonName }.toSet())
+        assertEquals(listOf(high, low), combined.single { it.addonName == BuiltInUsenetService.GROUP_NAME }.streams)
+        every { settings.read(1) } returns native.copy(enabled = false)
+        sources.value = listOf(real, direct.copy(enabled = false))
+        assertEquals(listOf(real.displayName), results().map { it.addonName })
+        coVerify(exactly = 2) { harness.api.getStreams(any()) }
+        verify(exactly = 1) { search.search(any(), any(), any(), any(), any(), any()) }
+    }
+
     private fun newHarness(enabledScrapers: List<ScraperInfo>,
         iptvSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources? = null,
-        iptvStreams: com.nuvio.tv.livetv.ondemand.IptvVodStreams? = null): Harness {
+        iptvStreams: com.nuvio.tv.livetv.ondemand.IptvVodStreams? = null,
+        usenetSettings: UsenetSourceSettings? = null,
+        usenetSearch: BuiltInUsenetService? = null): Harness {
         val addon = compatibleAddon()
         val api = mockk<AddonApi>()
         coEvery { api.getStreams(any()) } returns Response.success(
@@ -406,6 +459,8 @@ class StreamRepositoryPluginIsolationTest {
                 localDebridAvailabilityService = availability,
                 iptvSources = iptvSources,
                 iptvStreams = iptvStreams,
+                usenetSources = usenetSettings,
+                builtInUsenet = usenetSearch,
                 serverStreams = mockk {
                     every { isNativeRequest(any()) } returns false
                     every { revision } returns 0

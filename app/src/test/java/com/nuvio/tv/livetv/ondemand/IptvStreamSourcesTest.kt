@@ -1,6 +1,8 @@
 package com.nuvio.tv.livetv.ondemand
 
 import com.nuvio.tv.domain.model.*
+import com.nuvio.tv.core.usenet.BuiltInUsenetService
+import com.nuvio.tv.data.local.validateStreamSourceSelections
 import com.nuvio.tv.livetv.model.PlaylistSource
 import com.nuvio.tv.data.local.AddonPreferences
 import com.nuvio.tv.domain.repository.AddonRepository
@@ -22,6 +24,18 @@ class IptvStreamSourcesTest {
         assertTrue(sources.filter { IptvStreamSources.isPlaylist(it.baseUrl) }.all { it.catalogs.isEmpty() && it.resources.single().name == "stream" })
         assertFalse(sources.toString().contains("synthetic-password"))
     }
+    @Test fun `Direct Usenet keeps its order beside IPTV and real addons`() {
+        val real = addon("one")
+        val direct = addon(BuiltInUsenetService.GROUP_NAME).copy(baseUrl = BuiltInUsenetService.SOURCE_KEY)
+        val saved = listOf("iptv-playlist:p1", direct.baseUrl, com.nuvio.tv.core.streams.streamSourceKey(real.baseUrl))
+        validateStreamSourceSelections(mapOf("order" to org.json.JSONArray(saved).toString()))
+
+        val enabled = IptvStreamSources.mixedSources(listOf(real), listOf(playlist("p1")), saved, emptySet(), direct = direct)
+        assertEquals(listOf("iptv-playlist:p1", direct.baseUrl, real.baseUrl), enabled.map { it.baseUrl })
+        val absent = IptvStreamSources.mixedSources(listOf(real), listOf(playlist("p1")), saved, emptySet())
+        assertEquals(listOf("iptv-playlist:p1", real.baseUrl), absent.map { it.baseUrl })
+    }
+
     @Test fun `duplicate playlist names remain distinct sources`() {
         val sources = IptvStreamSources.mixedSources(emptyList(), listOf(playlist("p1", "Same"), playlist("p2", "Same")), emptyList(), emptySet())
         assertEquals(2, sources.map { it.displayName }.distinct().size)

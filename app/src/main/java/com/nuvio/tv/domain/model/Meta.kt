@@ -205,7 +205,10 @@ data class Video(
     val rating: Double? = null,
     val available: Boolean? = null,
     val episodeIdentity: EpisodeIdentity? = null,
-    val seasonPoster: String? = null
+    val seasonPoster: String? = null,
+    val imdbId: String? = null,
+    val imdbSeason: Int? = null,
+    val imdbEpisode: Int? = null
 )
 
 @Immutable

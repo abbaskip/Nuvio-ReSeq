@@ -1350,6 +1350,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                             if (readyTransition.nextState.hasRenderedFirstFrame && isTunneledPlayback) {
                                 if (!hasRenderedFirstFrame) tunneledFrameAssumed = true
                                 hasRenderedFirstFrame = true
+                                com.nuvio.tv.core.usenet.UsenetPlayback.onFirstFrame(currentStreamUrl, context.applicationContext)
                             }
                             when (val action = readyTransition.action) {
                                 is PlayerStartupPlaybackPolicy.ReadyAction.TunneledFirstReady -> {
@@ -1505,6 +1506,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                         tunneledFrameAssumed = false
                         val isFirstFrame = !hasRenderedFirstFrame  // capture BEFORE flipping
                         hasRenderedFirstFrame = true
+                        if (isFirstFrame) com.nuvio.tv.core.usenet.UsenetPlayback.onFirstFrame(currentStreamUrl, context.applicationContext)
                         mediaSourceFactory.unlockStartupPrefetch()
                         if (isFirstFrame && _uiState.value.postPlayDismissedForCurrentEpisode) {
                             _uiState.update { it.copy(postPlayDismissedForCurrentEpisode = false) }

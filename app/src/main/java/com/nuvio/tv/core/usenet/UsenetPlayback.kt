@@ -1,5 +1,6 @@
 package com.nuvio.tv.core.usenet
 
+import android.content.Context
 import com.nuvio.tv.domain.model.Stream
 import com.nuvio.tv.domain.model.StreamBehaviorHints
 import kotlinx.coroutines.CancellationException
@@ -13,6 +14,7 @@ import java.util.concurrent.TimeUnit
 internal object UsenetPlayback {
     private val sessions = LinkedHashMap<String, UsenetHttpSession>()
     private val originalStreams = LinkedHashMap<String, Stream>()
+    private val reportedDirectPlayback = mutableSetOf<String>()
 
     // Cast may continue reading after the results screen or local player releases its ownership.
     private val readers = mutableMapOf<String, Int>()
@@ -53,9 +55,23 @@ internal object UsenetPlayback {
                 return
             }
             originalStreams.remove(url)
+            reportedDirectPlayback.remove(url)
             sessions.remove(url)
         } ?: return
         cleanup.execute { session.close() }
+    }
+
+    fun onFirstFrame(url: String, context: Context) {
+        val release = synchronized(sessions) {
+            originalStreams[url]?.takeIf { it.isDirectUsenet && reportedDirectPlayback.add(url) }
+        } ?: return
+        cleanup.execute {
+            runCatching {
+                UnplayableReleases.get(context).recordPlayed(release)
+                UsenetSourceStats.get(context).played(release.usenet?.nzbUrl)
+                UsenetSourceStats.get(context).flush()
+            }
+        }
     }
 
     // Prefer the episode coordinates sent to the add-on. TVDB display and tracking order can differ.
@@ -71,30 +87,42 @@ internal object UsenetPlayback {
         return season to episode
     }
 
-    suspend fun resolve(stream: Stream, videoId: String? = null, season: Int? = null, episode: Int? = null): Stream {
+    suspend fun resolve(
+        stream: Stream, videoId: String? = null, season: Int? = null, episode: Int? = null, context: Context? = null
+    ): Stream {
         val trace = UsenetStartupTrace()
         var success = false
         val (requestedSeason, requestedEpisode) = requestEpisode(videoId, season, episode)
+        val (engineSeason, engineEpisode) = engineEpisode(stream, requestedSeason, requestedEpisode)
         var awaitingHandoff: Stream? = null
         try {
             val result = kotlinx.coroutines.withTimeoutOrNull(120_000L) {
-                resolveWithinDeadline(stream, requestedSeason, requestedEpisode, trace).also { awaitingHandoff = it }
+                resolveWithinDeadline(stream, engineSeason, engineEpisode, trace, context).also { awaitingHandoff = it }
             } ?: throw UsenetFailure("Timed out preparing this Usenet release.")
             awaitingHandoff = null
             success = true
             return result
+        } catch (error: MissingUsenetArticle) {
+            if (context != null && stream.isDirectUsenet) cleanup.execute {
+                runCatching {
+                    UnplayableReleases.get(context).record(stream, "missing-article")
+                    UsenetSourceStats.get(context).unavailable(stream.usenet?.nzbUrl)
+                    UsenetSourceStats.get(context).flush()
+                }
+            }
+            throw error
         } finally {
             trace.finish(success)
             awaitingHandoff?.url?.let(::release)
         }
     }
 
-    private suspend fun resolveWithinDeadline(stream: Stream, season: Int?, episode: Int?, trace: UsenetStartupTrace): Stream = suspendCancellableCoroutine { continuation ->
+    private suspend fun resolveWithinDeadline(stream: Stream, season: Int?, episode: Int?, trace: UsenetStartupTrace, context: Context?): Stream = suspendCancellableCoroutine { continuation ->
         val preparation = UsenetPreparation()
         continuation.invokeOnCancellation { preparation.close() }
         Dispatchers.IO.asExecutor().execute {
             try {
-                val prepared = prepare(stream, season, episode, preparation, trace) { continuation.context.ensureActive() }
+                val prepared = prepare(stream, season, episode, preparation, trace, context) { continuation.context.ensureActive() }
                 continuation.resume(prepared, onCancellation = { _, value, _ -> value.url?.let(::release) })
             } catch (error: Exception) {
                 preparation.close()
@@ -105,14 +133,19 @@ internal object UsenetPlayback {
         }
     }
 
-    private fun prepare(stream: Stream, season: Int?, episode: Int?, preparation: UsenetPreparation, trace: UsenetStartupTrace, checkActive: () -> Unit): Stream {
+    private fun prepare(stream: Stream, season: Int?, episode: Int?, preparation: UsenetPreparation, trace: UsenetStartupTrace, context: Context?, checkActive: () -> Unit): Stream {
         val source = requireNotNull(stream.usenet)
         val profile = UsenetMemoryProfile.current
-        val articles = NewsArticles(source.servers, trace = trace)
+        val directSettings = context?.takeIf { stream.isDirectUsenet }?.let { UsenetSettings.read(it) }
+        val articles = NewsArticles(source.servers, trace = trace,
+            allowPrivateNetwork = directSettings?.allowPrivateNetwork ?: source.allowPrivateNetwork)
         preparation.own(articles)
         articles.warm(minOf(2, profile.window + 1))
         trace.mark("nzb_request")
         val document = NzbDownload.fetch(source.nzbUrl, stream.behaviorHints?.proxyHeaders?.request.orEmpty(), preparation, trace)
+        if (stream.isDirectUsenet && context != null) {
+            runCatching { UsenetSourceStats.get(context).grabbed(source.nzbUrl) }
+        }
         trace.mark("nzb_received")
         trace.add("files", document.files.size.toLong())
         checkActive()

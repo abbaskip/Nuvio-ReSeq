@@ -52,7 +52,9 @@ class PlaybackSettingsViewModel @Inject constructor(
     private val addonRepository: AddonRepository,
     private val pluginManager: PluginManager,
     private val torrentSettings: TorrentSettings,
-    private val torrentService: TorrentService
+    private val torrentService: TorrentService,
+    private val mixedSources: com.nuvio.tv.livetv.ondemand.IptvStreamSources,
+    private val mediaServers: com.nuvio.tv.data.mediaserver.ServerRepository
 ) : ViewModel() {
 
     val playerSettings: Flow<PlayerSettings> = playerSettingsDataStore.playerSettings
@@ -68,6 +70,9 @@ class PlaybackSettingsViewModel @Inject constructor(
     fun setTorrentProfile(profile: TorrentProfile) = torrentSettings.setTorrentProfile(profile)
     fun setTorrentCacheSize(size: TorrentCacheSize) = torrentSettings.setCacheSize(size)
     suspend fun clearTorrentCache(): TorrentCacheClearResult = torrentService.clearCache()
+
+    suspend fun setDirectUsenetAutoPlay(value: com.nuvio.tv.core.player.DirectUsenetAutoPlay) =
+        playerSettingsDataStore.setDirectUsenetAutoPlay(value)
 
     val lastPlaybackDiagnostics: Flow<LastPlaybackDiagnostics> = playerSettingsDataStore.lastPlaybackDiagnostics
     val installedAddonNames: Flow<List<String>> = addonRepository.getInstalledAddons().map { addons ->
@@ -91,6 +96,16 @@ class PlaybackSettingsViewModel @Inject constructor(
         } else {
             scrapers.filter { it.enabled }.map { it.name }.distinct().sorted()
         }
+    }
+
+    val autoPlaySourceNames = combine(mixedSources.sources(), enabledPluginNames, mediaServers.uiState) { sources, plugins, _ ->
+        (sources.enabledAddons().filter { addon -> addon.resources.any { it.name.equals("stream", true) } }
+            .map { it.displayName } + plugins + mediaServers.enabledConnections().map(mediaServers::sourceLabel)).distinct()
+    }
+
+    val immediateSourceNames = combine(installedAddonNames, mixedSources.sources()) { addons, sources ->
+        addons + sources.enabledAddons().filter { com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(it.baseUrl) }
+            .map { it.displayName }
     }
 
     suspend fun setPlayerPreference(preference: PlayerPreference) {

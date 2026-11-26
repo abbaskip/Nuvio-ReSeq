@@ -56,16 +56,26 @@ class TieredStreamAutoPlay(
         val elapsed = elapsedMs.coerceAtLeast(0L)
         if (snapshot.streams !== previousStreams) {
             previousStreams = snapshot.streams
-            anySource = snapshot.streams.firstOrNull { stream ->
-                (stream.iptvPlaylistId == null || settings.streamAutoPlayFallbackPlaylistsEnabled) && StreamAutoPlaySelector.isPlayable(stream)
-            }
-            val immediateStreams = if (settings.streamAutoPlayImmediateEnabled) snapshot.streams.filter {
-                val eligible = if (it.iptvPlaylistId != null) settings.streamAutoPlayImmediatePlaylistsEnabled
-                else it.serverTarget == null && it.addonName in installedAddonNames && it.addonName in settings.streamAutoPlayImmediateAddons
-                eligible && StreamAutoPlaySelector.isPlayable(it)
+            anySource = snapshot.streams.filter { (!it.isDirectUsenet || settings.directUsenetAutoPlay.fallback) &&
+                (it.iptvPlaylistId == null || settings.streamAutoPlayFallbackPlaylistsEnabled) }
+                .inAutoPlaySourceOrder(settings.directUsenetAutoPlay.fallbackOrder)
+                .firstOrNull(StreamAutoPlaySelector::isPlayable)
+            val immediateStreams = if (settings.streamAutoPlayImmediateEnabled) {
+                snapshot.streams.filter {
+                    val selected = when {
+                        it.isDirectUsenet -> settings.directUsenetAutoPlay.immediate
+                        it.iptvPlaylistId != null -> settings.streamAutoPlayImmediatePlaylistsEnabled
+                        else -> it.serverTarget == null && it.addonName in installedAddonNames &&
+                            it.addonName in settings.streamAutoPlayImmediateAddons
+                    }
+                    selected && StreamAutoPlaySelector.isPlayable(it)
+                }
             } else emptyList()
-            val previousAddonChoice = immediateStreams.firstOrNull { it.addonName == immediateAddon }
-            immediate = previousAddonChoice ?: immediateStreams.firstOrNull()
+            val rankedImmediate = immediateStreams.inAutoPlaySourceOrder(settings.directUsenetAutoPlay.immediateOrder)
+            val retainedImmediate = if (rankedImmediate === immediateStreams) {
+                immediateStreams.firstOrNull { it.addonName == immediateAddon }
+            } else null
+            immediate = retainedImmediate ?: rankedImmediate.firstOrNull()
             if (immediate?.addonName != immediateAddon) {
                 immediateAddon = immediate?.addonName
                 immediateSeenMs = elapsed

@@ -111,7 +111,8 @@ private enum class IntegrationSettingsSection {
     Tmdb,
     MdbList,
     AnimeSkip,
-    Tvdb
+    Tvdb,
+    Usenet
 }
 
 internal enum class SettingsSectionDestination {
@@ -1089,6 +1090,7 @@ private fun IntegrationSettingsContent(
         onSelectSection(IntegrationSettingsSection.Hub)
     }
     val tvdbFocusRequester = remember { FocusRequester() }
+    val usenetFocusRequester = remember { FocusRequester() }
     val hubEntryFocusRequester = when (hubReturnSection) {
         IntegrationSettingsSection.Hub ->
             initialFocusRequester ?: hubFocusRequester
@@ -1097,6 +1099,7 @@ private fun IntegrationSettingsContent(
         IntegrationSettingsSection.MdbList -> mdbListFocusRequester
         IntegrationSettingsSection.AnimeSkip -> animeSkipFocusRequester
         IntegrationSettingsSection.Tvdb -> tvdbFocusRequester
+        IntegrationSettingsSection.Usenet -> usenetFocusRequester
     }
     val hubEntryTargetSection = hubReturnSection.takeIf {
         it != IntegrationSettingsSection.Hub
@@ -1111,6 +1114,7 @@ private fun IntegrationSettingsContent(
             IntegrationSettingsSection.MdbList -> mdbListFocusRequester
             IntegrationSettingsSection.AnimeSkip -> animeSkipFocusRequester
             IntegrationSettingsSection.Tvdb -> tvdbFocusRequester
+        IntegrationSettingsSection.Usenet -> usenetFocusRequester
         }
         runCatching { requester.requestFocus() }
     }
@@ -1148,6 +1152,15 @@ private fun IntegrationSettingsContent(
                                     } else {
                                         Modifier
                                     }
+                                )
+                            }
+                            item(key = "integration_hub_usenet") {
+                                SettingsActionRow(
+                                    title = stringResource(R.string.usenet_title),
+                                    subtitle = "Newznab indexers, NNTP providers and release ranking",
+                                    onClick = { onSelectSection(IntegrationSettingsSection.Usenet) },
+                                    modifier = if (hubEntryTargetSection == IntegrationSettingsSection.Usenet)
+                                        Modifier.focusRequester(hubEntryFocusRequester) else Modifier
                                 )
                             }
                             item(key = "integration_hub_tmdb") {
@@ -1200,6 +1213,8 @@ private fun IntegrationSettingsContent(
                 }
             }
         }
+
+        IntegrationSettingsSection.Usenet -> UsenetSettingsContent(usenetFocusRequester)
 
         IntegrationSettingsSection.Debrid -> {
             DebridSettingsContent(

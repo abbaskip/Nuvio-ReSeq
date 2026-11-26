@@ -93,7 +93,10 @@ data class VideoDto(
     @Json(name = "rating") val rating: String? = null,
     @Json(name = "available") val available: Boolean? = null,
     @Json(name = "seasonPoster") val seasonPoster: String? = null,
-    @Json(name = "season_poster_path") val seasonPosterPath: String? = null
+    @Json(name = "season_poster_path") val seasonPosterPath: String? = null,
+    @Json(name = "imdb_id") val imdbId: String? = null,
+    @Json(name = "imdbSeason") val imdbSeason: Any? = null,
+    @Json(name = "imdbEpisode") val imdbEpisode: Any? = null
 )
 
 @JsonClass(generateAdapter = true)

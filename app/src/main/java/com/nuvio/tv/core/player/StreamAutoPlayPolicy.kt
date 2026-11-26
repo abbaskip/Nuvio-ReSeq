@@ -38,7 +38,7 @@ object StreamAutoPlayPolicy {
             ?: (playerSettings.streamAutoPlaySource != com.nuvio.tv.data.local.StreamAutoPlaySource.ENABLED_PLUGINS_ONLY)
         val plugins = com.nuvio.tv.core.build.AppFeaturePolicy.pluginsEnabled && (playerSettings.streamAutoPlayPluginsEnabled
             ?: (playerSettings.streamAutoPlaySource != com.nuvio.tv.data.local.StreamAutoPlaySource.INSTALLED_ADDONS_ONLY))
-        if (!addons && !plugins && !playerSettings.streamAutoPlayPlaylistsEnabled) return false
+        if (!addons && !plugins && !playerSettings.streamAutoPlayPlaylistsEnabled && !playerSettings.directUsenetAutoPlay.approved) return false
         if (playerSettings.streamAutoPlayReuseBingeGroup &&
             playerSettings.streamAutoPlayPreferBingeGroupForNextEpisode) return true
 

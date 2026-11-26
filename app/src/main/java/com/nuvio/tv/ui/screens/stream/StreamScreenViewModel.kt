@@ -1506,7 +1506,7 @@ class StreamScreenViewModel @Inject constructor(
             updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = true,
                 directAutoPlayMessage = context.getString(R.string.usenet_opening), playbackErrorMessage = null) }
             return try {
-                val resolved = UsenetPlayback.resolve(stream, videoId, season, episode)
+                val resolved = UsenetPlayback.resolve(stream, videoId, season, episode, context)
                 pendingUsenetPlayback.replace(requireNotNull(resolved.url))
                 updateUiStateIfChanged { it.copy(showDirectAutoPlayOverlay = it.isDirectAutoPlayFlow, directAutoPlayMessage = null) }
                 getStreamForPlayback(resolved, saveLastLink)

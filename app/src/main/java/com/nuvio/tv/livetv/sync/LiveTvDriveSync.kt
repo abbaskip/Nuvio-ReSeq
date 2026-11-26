@@ -8,6 +8,7 @@ import com.nuvio.tv.BuildConfig
 import com.nuvio.tv.livetv.data.LiveTvPreferences
 import com.nuvio.tv.livetv.data.LiveTvRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -76,7 +77,10 @@ class LiveTvDriveSync @Inject constructor(
     private val shuffle: com.nuvio.tv.data.local.EpisodeShuffleStore,
     private val mixes: com.nuvio.tv.data.local.TvMixStore,
     private val addonPreferences: com.nuvio.tv.data.local.AddonPreferences,
-    private val providerKeys: DriveProviderKeys
+    private val providerKeys: DriveProviderKeys,
+    private val usenetSources: com.nuvio.tv.core.usenet.UsenetSourceSettings,
+    private val usenetPlayback: com.nuvio.tv.core.usenet.UsenetSettings,
+    private val playerSettings: com.nuvio.tv.data.local.PlayerSettingsDataStore
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val store = context.applicationContext.getSharedPreferences("livetv_drive_sync", Context.MODE_PRIVATE)
@@ -338,6 +342,7 @@ class LiveTvDriveSync @Inject constructor(
             .remove(KEY_LAST_HASH).remove(KEY_APPLIED_AT).remove(KEY_LAST_SYNC).putString(KEY_EMAIL, email).commit())
         clearBase()
         protected.write(1, refresh)
+        store.edit().remove(KEY_USENET_FILE_ID).apply()
         _state.value = _state.value.copy(connected = true, email = email, autoSync = false, busy = false, lastSyncMs = 0L,
             signIn = null, message = "Connected. Choose Restore to load an existing backup, or Back up to save this device.")
     }
@@ -346,7 +351,7 @@ class LiveTvDriveSync @Inject constructor(
         cancelSignIn()
         scope.launch {
             mutex.withLock {
-                store.edit().remove(KEY_REFRESH).remove(KEY_EMAIL).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_PROVIDER_FILE_ID).remove(KEY_PROVIDER_BASE).remove(KEY_SEEK_FILE_ID).remove(KEY_SEEK_BASE).remove(KEY_LAST_HASH)
+                store.edit().remove(KEY_REFRESH).remove(KEY_EMAIL).remove(KEY_FILE_ID).remove(KEY_TVDB_FILE_ID).remove(KEY_USENET_FILE_ID).remove(KEY_TVDB_BASE).remove(KEY_PROVIDER_FILE_ID).remove(KEY_PROVIDER_BASE).remove(KEY_SEEK_FILE_ID).remove(KEY_SEEK_BASE).remove(KEY_LAST_HASH)
                     .remove(KEY_MODE).remove(KEY_LAST_SYNC).remove(KEY_APPLIED_AT).apply()
                 clearBase()
                 protected.clear()
@@ -381,6 +386,71 @@ class LiveTvDriveSync @Inject constructor(
     fun restoreNow() { scope.launch { pull(force = true) } }
 
     internal fun restoreOnMobile() { scope.launch { pull(force = true, showSavedShuffle = true) } }
+
+    internal fun transferUsenetBackup(upload: Boolean, password: CharArray) {
+        scope.launch {
+            try {
+                mutex.withLock {
+                    val token = token() ?: return@withLock
+                    _state.value = _state.value.copy(busy = true, message = null)
+                    try {
+                        val id = fileId(token, USENET_FILE_NAME, KEY_USENET_FILE_ID)
+                        val remote = id?.let { remoteCopy(token, it) }
+                        val localProfiles = profiles.profilesList.first().associateBy { it.id }
+                        val previous = remote?.let {
+                            try { DriveUsenetBackup.open(it.json.toString(), password) }
+                            catch (e: CancellationException) { throw e }
+                            catch (_: Exception) { error("Could not unlock the Usenet backup. Check your passphrase.") }
+                        }
+                        if (upload) {
+                            val saved = previous?.profiles.orEmpty().associateBy { it.id }.toMutableMap()
+                            localProfiles.values.forEach { profile ->
+                                check(saved[profile.id]?.name?.let { it == profile.name } != false) {
+                                    "Match the profile names and IDs on both devices before backing up Usenet."
+                                }
+                                saved[profile.id] = DriveUsenetProfile(profile.id, profile.name, usenetSources.read(profile.id),
+                                    playerSettings.exportUsenetAutoplay(profile.id), addonPreferences.exportStreamSourceSelections(profile.id))
+                            }
+                            val setup = DriveUsenetSetup(saved.values.sortedBy { it.id }, usenetPlayback.settings.value)
+                            uploadFile(token, USENET_FILE_NAME, KEY_USENET_FILE_ID, id, remote?.etag,
+                                DriveUsenetBackup.seal(setup, password))
+                        } else {
+                            checkNotNull(previous) { "No Usenet backup found in Google Drive." }
+                            check(previous.profiles.isNotEmpty() && previous.profiles.map { it.id }.distinct().size == previous.profiles.size &&
+                                previous.profiles.all { localProfiles[it.id]?.name == it.name }) {
+                                "Create or restore matching Nuvio profiles (same IDs and names) before restoring Usenet."
+                            }
+                            usenetPlayback.validate(previous.playback)
+                            val autoplay = previous.profiles.associate { profile ->
+                                profile.configuration.validate()
+                                com.nuvio.tv.data.local.validateStreamSourceSelections(profile.sourceOrder)
+                                profile.id to playerSettings.decodeUsenetAutoplay(profile.autoplay)
+                            }
+                            previous.profiles.forEach { profile ->
+                                usenetSources.update(profile.configuration.normalized(), profile.id)
+                                playerSettings.restoreUsenetAutoplay(profile.id, autoplay.getValue(profile.id))
+                                addonPreferences.importStreamSourceSelections(profile.id, profile.sourceOrder)
+                            }
+                            usenetPlayback.update(previous.playback)
+                        }
+                        _state.value = _state.value.copy(message = if (upload) "Encrypted Usenet backup saved." else "Usenet setup restored.")
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: IllegalStateException) {
+                        // Only messages authored by our explicit checks may cross the UI boundary.
+                        val message = e.message?.takeIf { it in USENET_BACKUP_MESSAGES }
+                        _state.value = _state.value.copy(message = message ?: "Usenet backup could not be completed.")
+                    } catch (_: Exception) {
+                        _state.value = _state.value.copy(message = "Usenet backup could not be completed.")
+                    } finally {
+                        _state.value = _state.value.copy(busy = false)
+                    }
+                }
+            } finally {
+                password.fill('\u0000')
+            }
+        }
+    }
 
     // ------------------------------------------------------------------ backup / restore
 
@@ -1129,7 +1199,7 @@ class LiveTvDriveSync @Inject constructor(
         if (response.code == 404) {
             val id = response.request.url.pathSegments.lastOrNull()
             val edit = store.edit()
-            for (key in listOf(KEY_FILE_ID, KEY_TVDB_FILE_ID, KEY_PROVIDER_FILE_ID, KEY_SEEK_FILE_ID)) if (id == store.getString(key, null)) edit.remove(key)
+            for (key in listOf(KEY_FILE_ID, KEY_TVDB_FILE_ID, KEY_PROVIDER_FILE_ID, KEY_SEEK_FILE_ID, KEY_USENET_FILE_ID)) if (id == store.getString(key, null)) edit.remove(key)
             edit.apply()
         }
         if (response.code == 412) error("The backup changed on another TV. Sync again before saving.")
@@ -1198,6 +1268,15 @@ class LiveTvDriveSync @Inject constructor(
         const val KEY_TVDB_FILE_ID = "tvdb_file_id"
         const val KEY_TVDB_BASE = "tvdb_fingerprints"
         const val FILE_NAME = "Nuvio ReSeq backup.json"
+        const val USENET_FILE_NAME = "Nuvio ReSeq encrypted Usenet backup.json"
+        const val KEY_USENET_FILE_ID = "usenet_file_id"
+        val USENET_BACKUP_MESSAGES = setOf(
+            "Could not unlock the Usenet backup. Check your passphrase.",
+            "No Usenet backup found in Google Drive.",
+            "Create or restore matching Nuvio profiles (same IDs and names) before restoring Usenet.",
+            "Match the profile names and IDs on both devices before backing up Usenet.",
+            "The backup changed on another TV. Sync again before saving."
+        )
         val JSON = "application/json; charset=UTF-8".toMediaType()
         const val KEY_REFRESH = "refresh_token"
         const val KEY_EMAIL = "email"

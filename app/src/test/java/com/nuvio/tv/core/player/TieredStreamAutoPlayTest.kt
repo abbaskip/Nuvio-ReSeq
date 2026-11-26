@@ -56,6 +56,37 @@ class TieredStreamAutoPlayTest {
         assertEquals(other, select(false, false, false, 30_000))
     }
 
+    @Test fun `Direct Usenet can be selected and ordered independently at every tier`() {
+        val direct = stream("Direct Usenet", "2160p").copy(url = null, isDirectUsenet = true,
+            usenet = com.nuvio.tv.domain.model.UsenetSource("https://indexer.test/release", listOf("nntps://news.test"), emptyList()))
+        val addon = stream("Approved", "2160p")
+        val snapshot = StreamAutoPlaySnapshot(listOf(addon, direct))
+        val order = listOf(direct.addonName, addon.addonName)
+        val immediate = TieredStreamAutoPlay(settings.copy(
+            streamAutoPlayImmediateAddons = setOf(addon.addonName),
+            directUsenetAutoPlay = DirectUsenetAutoPlay(immediate = true, immediateOrder = order)
+        ), addons)
+        assertNull(immediate.evaluate(snapshot, 0).stream)
+        assertEquals(direct, immediate.evaluate(snapshot, 500).stream)
+
+        val approved = TieredStreamAutoPlay(settings.copy(
+            directUsenetAutoPlay = DirectUsenetAutoPlay(approved = true, approvedOrder = order)
+        ), addons)
+        assertNull(approved.evaluate(snapshot, 0).stream)
+        assertEquals(direct, approved.evaluate(snapshot, 10_000).stream)
+
+        val fallbackSettings = settings.copy(streamAutoPlayRegex = "720p")
+        val fallback = TieredStreamAutoPlay(fallbackSettings.copy(
+            directUsenetAutoPlay = DirectUsenetAutoPlay(fallback = true, fallbackOrder = order)
+        ), addons)
+        fallback.evaluate(snapshot, 0)
+        assertEquals(direct, fallback.evaluate(snapshot, 30_000).stream)
+
+        val disabled = TieredStreamAutoPlay(fallbackSettings, addons)
+        disabled.evaluate(snapshot, 0)
+        assertEquals(addon, disabled.evaluate(snapshot, 30_000).stream)
+    }
+
     @Test fun `immediate addons bypass normal source and regex filters after the full settling window`() {
         val session = TieredStreamAutoPlay(settings.copy(streamAutoPlayAddonsEnabled = false), addons)
         val chosen = stream("AIOLists")

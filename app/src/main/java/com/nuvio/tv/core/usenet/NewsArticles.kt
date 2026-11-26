@@ -124,26 +124,30 @@ internal fun decodeArticle(input: NewsWireReader): Article {
 }
 
 private class NewsServer(val host: String, val port: Int, val tls: Boolean, val user: String?, val pass: String?,
-                         val limit: Int, val limitFromAddon: Boolean) {
+                         val limit: Int, val limitFromAddon: Boolean,
+                         val priority: Int, val allowPrivateNetwork: Boolean?) {
     fun sameAccount(other: NewsServer) = host.equals(other.host, true) && user == other.user
-    fun sameLogin(other: NewsServer) = sameAccount(other) && port == other.port && tls == other.tls && pass == other.pass
+    fun sameLogin(other: NewsServer) = sameAccount(other) && port == other.port && tls == other.tls && pass == other.pass &&
+        allowPrivateNetwork == other.allowPrivateNetwork
 
     companion object {
-        fun parse(value: String): NewsServer? = runCatching {
+        fun parse(value: String, allowPrivateNetwork: Boolean?): NewsServer? = runCatching {
             val uri = URI(value)
             val tls = uri.scheme.equals("nntps", true)
             require(tls || uri.scheme.equals("nntp", true))
             val host = requireNotNull(uri.host)
             val port = if (uri.port == -1) (if (tls) 563 else 119) else uri.port
-            require(port in 1..65535 && uri.query == null && uri.fragment == null)
+            val priority = if (allowPrivateNetwork == null || uri.query == null) 0
+                else requireNotNull(uri.query.removePrefix("priority=").toIntOrNull()).also { require(it in USENET_PRIORITIES) }
+            require(port in 1..65535 && (allowPrivateNetwork != null || uri.query == null) && uri.fragment == null)
             fun decode(part: String) = URLDecoder.decode(part.replace("+", "%2B"), "UTF-8").also {
                 require(it.length <= 512 && it.none { c -> c.isISOControl() })
             }
             val auth = uri.rawUserInfo?.split(':', limit = 2)
             val addonLimit = uri.path.orEmpty().trim('/').toIntOrNull()
-            val limit = addonLimit?.coerceIn(1, 12) ?: 2
+            val limit = addonLimit?.coerceIn(1, if (allowPrivateNetwork == null) 12 else 4096) ?: 2
             NewsServer(host, port, tls, auth?.first()?.let(::decode), auth?.getOrNull(1)?.let(::decode),
-                limit, limitFromAddon = addonLimit != null)
+                limit, limitFromAddon = addonLimit != null, priority, allowPrivateNetwork)
         }.getOrNull()
     }
 }
@@ -200,7 +204,9 @@ private class NewsConnection(server: NewsServer, tlsFactory: SSLSocketFactory, p
     }
     private companion object {
         fun connect(server: NewsServer, register: (Socket) -> Unit): Socket {
-            val addresses = InetAddress.getAllByName(server.host)
+            val addresses = InetAddress.getAllByName(server.host).filter {
+                server.allowPrivateNetwork?.let { allow -> NntpProviderTester.allowed(it, allow) } ?: true
+            }
             var failure: IOException? = null
             for (address in addresses.take(4)) {
                 val candidate = Socket()
@@ -386,8 +392,12 @@ private val defaultTls by lazy { SSLSocketFactory.getDefault() as SSLSocketFacto
 
 /** Each socket has one exclusive lease. Account limits span readers and sessions. */
 internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SSLSocketFactory = defaultTls,
-                            private val readBudgetMs: Long = 45_000L, private val trace: UsenetStartupTrace? = null) : Closeable {
-    private val servers = serverUrls.take(8).mapNotNull(NewsServer::parse)
+                            private val readBudgetMs: Long = 45_000L, private val trace: UsenetStartupTrace? = null,
+                            allowPrivateNetwork: Boolean? = null) : Closeable {
+    private val servers = serverUrls.take(if (allowPrivateNetwork == null) 8 else 64)
+        .mapNotNull { NewsServer.parse(it, allowPrivateNetwork) }.sortedBy { it.priority }
+    private val direct = allowPrivateNetwork != null
+    private val nextProvider = java.util.concurrent.atomic.AtomicInteger()
     @Volatile private var preferred = 0
     private val serialOnly = java.util.concurrent.atomic.AtomicIntegerArray(servers.size)
     private val transferLimited = java.util.concurrent.atomic.AtomicIntegerArray(servers.size)
@@ -425,7 +435,7 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
     fun fetchAhead(id: String): Article? {
         val index = preferred
         val server = servers[index]
-        if (serialOnly.get(index) != 0) return null
+        if (serialOnly.get(index) != 0 || (direct && servers[index].priority != servers.first().priority)) return null
         val slot = NewsPool.spare(server, tlsFactory, this, id) ?: return null
         var healthy = false
         try {
@@ -443,9 +453,14 @@ internal class NewsArticles(serverUrls: List<String>, private val tlsFactory: SS
         var lastFailure: String? = null
         var missingProviders = 0
         val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(readBudgetMs)
-        val firstProvider = preferred
-        for (step in servers.indices) {
-            val index = (firstProvider + step) % servers.size
+        val start = if (direct) nextProvider.getAndIncrement() else preferred
+        val indexes = if (direct) {
+            servers.indices.groupBy { servers[it].priority }.values.flatMap { group ->
+                val offset = Math.floorMod(start, group.size)
+                group.drop(offset) + group.take(offset)
+            }
+        } else servers.indices.map { (start + it) % servers.size }
+        for (index in indexes) {
             // An idle socket can have been dropped by the server. Reconnect once in that case.
             for (attempt in 0..1) {
                 ensureUsenet(!closed, "Usenet session expired.")

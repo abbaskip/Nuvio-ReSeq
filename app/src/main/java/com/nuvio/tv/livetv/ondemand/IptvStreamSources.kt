@@ -1,6 +1,11 @@
 package com.nuvio.tv.livetv.ondemand
 
 import com.nuvio.tv.core.streams.streamSourceKey
+import com.nuvio.tv.core.usenet.BuiltInUsenetService
+import com.nuvio.tv.core.usenet.UsenetSourceConfiguration
+import com.nuvio.tv.core.usenet.UsenetSourceSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOf
 import com.nuvio.tv.data.local.AddonPreferences
 import com.nuvio.tv.domain.model.*
 import com.nuvio.tv.domain.repository.AddonRepository
@@ -19,14 +24,27 @@ class IptvStreamSources @Inject constructor(
     private val addons: AddonRepository,
     private val preferences: AddonPreferences,
     private val live: LiveTvPreferences,
-    private val catalogs: OnDemandRepository? = null
+    private val catalogs: OnDemandRepository? = null,
+    private val usenet: UsenetSourceSettings? = null
 ) {
-    fun sources(): Flow<List<Addon>> = combine(addons.getInstalledAddons(), live.playlists,
-        live.settings, preferences.mixedStreamSources, catalogs?.version ?: kotlinx.coroutines.flow.MutableStateFlow(0)) { installed, playlists, settings, saved, _ ->
-        val eligible = if (settings.onDemandInStreams) playlists.filter { it.enabled && it.supportsVod && it.importVod } else emptyList()
-        val unique = uniqueM3uProviders(eligible, saved.first, saved.second, ::accountKey)
-        mixedSources(installed, unique, saved.first, saved.second, settings.onDemandStreamsPosition)
-    }.flowOn(kotlinx.coroutines.Dispatchers.IO)
+    fun sources(): Flow<List<Addon>> {
+        val settingsAndCatalogue = combine(live.settings, catalogs?.version ?: flowOf(0)) { settings, _ -> settings }
+        val usenetSnapshots = usenet?.snapshots ?: flowOf(0 to Result.success(UsenetSourceConfiguration()))
+        return combine(addons.getInstalledAddons(), live.playlists, settingsAndCatalogue,
+            preferences.mixedStreamSources, usenetSnapshots) { installed, playlists, settings, saved, usenetSnapshot ->
+            val eligible = if (settings.onDemandInStreams) playlists.filter { it.enabled && it.supportsVod && it.importVod } else emptyList()
+            val unique = uniqueM3uProviders(eligible, saved.first, saved.second, ::accountKey)
+            val direct = usenetSnapshot.second.getOrNull()?.takeIf { it.ready || (it.configured && it.firstUseAccepted) }?.let { config ->
+                Addon(id = BuiltInUsenetService.SOURCE_KEY, name = BuiltInUsenetService.GROUP_NAME, version = "Usenet",
+                    description = "Manage providers and indexers in Settings → Integrations → Usenet.",
+                    logo = null, baseUrl = BuiltInUsenetService.SOURCE_KEY, catalogs = emptyList(),
+                    types = listOf(ContentType.MOVIE, ContentType.SERIES),
+                    resources = listOf(AddonResource("stream", listOf("movie", "series", "tv", "show", "anime"), null)),
+                    enabled = config.ready)
+            }
+            mixedSources(installed, unique, saved.first, saved.second, settings.onDemandStreamsPosition, direct)
+        }.flowOn(Dispatchers.IO)
+    }
 
     /** Effective duplicate accounts can have different category selections and cached catalogues. */
     internal suspend fun alternatives(id: String): List<PlaylistSource> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -43,16 +61,21 @@ class IptvStreamSources @Inject constructor(
 
     suspend fun setOrder(sources: List<Addon>) {
         preferences.setStreamSourceOrder(sources.map { it.baseUrl })
-        addons.setAddonOrder(sources.filterNot { isPlaylist(it.baseUrl) }.map { it.baseUrl })
+        addons.setAddonOrder(sources.filterNot { isVirtual(it.baseUrl) }.map { it.baseUrl })
     }
 
     suspend fun setEnabled(key: String, enabled: Boolean) {
-        if (isPlaylist(key)) preferences.setPlaylistStreamEnabled(key, enabled) else addons.setAddonEnabled(key, enabled)
+        when {
+            key == BuiltInUsenetService.SOURCE_KEY -> usenet?.setEnabled(enabled)
+            isPlaylist(key) -> preferences.setPlaylistStreamEnabled(key, enabled)
+            else -> addons.setAddonEnabled(key, enabled)
+        }
     }
 
     companion object {
         const val PREFIX = "iptv-playlist:"
         fun isPlaylist(key: String) = key.startsWith(PREFIX)
+        fun isVirtual(key: String) = isPlaylist(key) || key == BuiltInUsenetService.SOURCE_KEY
 
         internal fun uniqueM3uProviders(playlists: List<PlaylistSource>, saved: List<String>, disabled: Set<String>,
             provider: (PlaylistSource) -> String?): List<PlaylistSource> {
@@ -70,7 +93,7 @@ class IptvStreamSources @Inject constructor(
         }
 
         internal fun mixedSources(installed: List<Addon>, playlists: List<PlaylistSource>,
-            saved: List<String>, disabled: Set<String>, legacyPosition: String = "LAST"): List<Addon> {
+            saved: List<String>, disabled: Set<String>, legacyPosition: String = "LAST", direct: Addon? = null): List<Addon> {
             val occupied = installed.map { it.displayName }.toMutableSet()
             val counts = playlists.groupingBy { it.name }.eachCount()
             val virtual = playlists.map { playlist ->
@@ -82,14 +105,14 @@ class IptvStreamSources @Inject constructor(
                     logo = null, baseUrl = key, catalogs = emptyList(), types = listOf(ContentType.MOVIE, ContentType.SERIES),
                     resources = listOf(AddonResource("stream", listOf("movie", "series", "tv"), null)), enabled = key !in disabled)
             }
-            val all = installed + virtual
+            val all = installed + virtual + listOfNotNull(direct)
             if (saved.isEmpty()) {
                 val newKeys = playlists.filter(PlaylistSource::isM3u).mapTo(HashSet()) { PREFIX + it.id }
                 val (newSources, original) = virtual.partition { it.baseUrl in newKeys }
                 return when (legacyPosition) {
-                    "FIRST" -> original + installed + newSources
-                    "AFTER_FIRST" -> installed.take(1) + original + installed.drop(1) + newSources
-                    else -> installed + original + newSources
+                    "FIRST" -> original + installed + newSources + listOfNotNull(direct)
+                    "AFTER_FIRST" -> installed.take(1) + original + installed.drop(1) + newSources + listOfNotNull(direct)
+                    else -> installed + original + newSources + listOfNotNull(direct)
                 }
             }
             val byKey = all.associateBy { streamSourceKey(it.baseUrl) }
@@ -97,7 +120,7 @@ class IptvStreamSources @Inject constructor(
             val real = installed.iterator()
             val seen = mutableSetOf<String>()
             val ordered = saved.map(::streamSourceKey).mapNotNull { key ->
-                val source = if (isPlaylist(key)) byKey[key] else if (key in byKey && real.hasNext()) real.next() else null
+                val source = if (isVirtual(key)) byKey[key] else if (key in byKey && real.hasNext()) real.next() else null
                 source?.takeIf { seen.add(it.baseUrl) }
             }
             return ordered + all.filter { seen.add(it.baseUrl) }

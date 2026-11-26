@@ -15,6 +15,7 @@ object StreamAutoPlaySelector {
         val explicit = settings?.streamAutoPlayAddonsEnabled != null || settings?.streamAutoPlayPluginsEnabled != null
         return streams.filter { stream ->
             when {
+                stream.isDirectUsenet -> settings?.directUsenetAutoPlay?.approved == true
                 stream.iptvPlaylistId != null -> settings?.streamAutoPlayPlaylistsEnabled == true
                 !explicit -> true
                 stream.serverTarget != null || stream.addonName in installedAddonNames -> settings?.streamAutoPlayAddonsEnabled
@@ -124,6 +125,7 @@ object StreamAutoPlaySelector {
         if (streams.isEmpty()) return null
 
         val allowedStreams = automaticStreams(streams, sourceSettings, installedAddonNames)
+            .inAutoPlaySourceOrder(sourceSettings?.directUsenetAutoPlay?.approvedOrder.orEmpty())
         val explicitSources = sourceSettings?.streamAutoPlayAddonsEnabled != null || sourceSettings?.streamAutoPlayPluginsEnabled != null
         val effectiveSource = if (explicitSources) StreamAutoPlaySource.ALL_SOURCES else if (!AppFeaturePolicy.pluginsEnabled && source == StreamAutoPlaySource.ENABLED_PLUGINS_ONLY) {
             StreamAutoPlaySource.INSTALLED_ADDONS_ONLY
@@ -133,12 +135,12 @@ object StreamAutoPlaySelector {
 
         val sourceScopedStreams = when (effectiveSource) {
             StreamAutoPlaySource.ALL_SOURCES -> allowedStreams
-            StreamAutoPlaySource.INSTALLED_ADDONS_ONLY -> allowedStreams.filter { it.iptvPlaylistId != null || it.serverTarget != null || it.addonName in installedAddonNames }
-            StreamAutoPlaySource.ENABLED_PLUGINS_ONLY -> allowedStreams.filter { it.iptvPlaylistId != null || it.addonName !in installedAddonNames }
+            StreamAutoPlaySource.INSTALLED_ADDONS_ONLY -> allowedStreams.filter { it.isDirectUsenet || it.iptvPlaylistId != null || it.serverTarget != null || it.addonName in installedAddonNames }
+            StreamAutoPlaySource.ENABLED_PLUGINS_ONLY -> allowedStreams.filter { it.isDirectUsenet || it.iptvPlaylistId != null || it.addonName !in installedAddonNames }
         }
         val candidateStreams = sourceScopedStreams.filter { stream ->
             val isAddonStream = stream.addonName in installedAddonNames
-            if (stream.iptvPlaylistId != null || stream.serverTarget != null) {
+            if (stream.isDirectUsenet || stream.iptvPlaylistId != null || stream.serverTarget != null) {
                 true
             } else if (isAddonStream) {
                 selectedAddons.isEmpty() || stream.addonName in selectedAddons

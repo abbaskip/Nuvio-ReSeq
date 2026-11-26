@@ -85,6 +85,9 @@ fun VideoDto.toDomain(episodeLabel: String = "Episode"): Video {
         runtime = parseEpisodeRuntimeMinutes(runtime),
         rating = rating?.trim()?.toDoubleOrNull()?.takeIf { it > 0.0 },
         available = available,
+        imdbId = imdbId,
+        imdbSeason = imdbSeason?.toString()?.toDoubleOrNull()?.toInt(),
+        imdbEpisode = imdbEpisode?.toString()?.toDoubleOrNull()?.toInt(),
         seasonPoster = (seasonPoster ?: seasonPosterPath)?.trim()?.takeIf { it.isNotBlank() }
     )
 }

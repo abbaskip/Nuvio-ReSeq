@@ -1760,7 +1760,7 @@ private fun AddonCardContent(
                     } else {
                         Modifier
                     }
-                    if (!com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(addon.baseUrl)) Button(
+                    if (!com.nuvio.tv.livetv.ondemand.IptvStreamSources.isVirtual(addon.baseUrl)) Button(
                         onClick = onRemove,
                         enabled = actionsEnabled && !isMoving,
                         modifier = removeButtonModifier.semantics { role = Role.Button },
@@ -1798,6 +1798,18 @@ private fun AddonCardContent(
                 color = NuvioTheme.colors.TextSecondary
             )
         }
+
+        Spacer(modifier = Modifier.height(NuvioTheme.spacing.sm))
+        Text(
+            text = when (addon.baseUrl) {
+                com.nuvio.tv.core.usenet.BuiltInUsenetService.SOURCE_KEY -> "Direct Usenet source"
+                else -> if (com.nuvio.tv.livetv.ondemand.IptvStreamSources.isPlaylist(addon.baseUrl)) "IPTV playlist source" else addon.baseUrl
+            },
+            style = MaterialTheme.typography.bodySmall.copy(
+                textDirection = addon.baseUrl.contentTextDirection()
+            ),
+            color = NuvioTheme.colors.TextTertiary
+        )
 
         Spacer(modifier = Modifier.height(NuvioTheme.spacing.sm))
         Text(

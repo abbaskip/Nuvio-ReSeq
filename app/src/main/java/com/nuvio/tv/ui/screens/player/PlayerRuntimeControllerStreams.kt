@@ -797,8 +797,8 @@ private fun PlayerRuntimeController.prepareUsenetStream(stream: Stream, fromEpis
             val state = _uiState.value
             val resolved = if (fromEpisodePanel) UsenetPlayback.resolve(stream,
                 target?.id ?: state.episodeStreamsForVideoId, target?.season ?: state.episodeStreamsSeason,
-                target?.episode ?: state.episodeStreamsEpisode)
-            else UsenetPlayback.resolve(stream, currentVideoId, currentSeason, currentEpisode)
+                target?.episode ?: state.episodeStreamsEpisode, context.applicationContext)
+            else UsenetPlayback.resolve(stream, currentVideoId, currentSeason, currentEpisode, context.applicationContext)
             usenetPrepareJob = null
             play(resolved)
         } catch (error: UsenetFailure) {

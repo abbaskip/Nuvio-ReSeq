@@ -39,7 +39,7 @@ class DriveProviderKeyRoundTripTest {
             val service = arg<String>(1)
             if (keys.value[service].orEmpty() == arg<String>(2)) keys.value += service to arg<String>(3)
         }
-        val drive = LiveTvDriveSync(app, mockk(), mockk(), mockk(), mockk(), profiles, mockk(), mockk(), mockk(), providers)
+        val drive = LiveTvDriveSync(app, mockk(), mockk(), mockk(), mockk(), profiles, mockk(), mockk(), mockk(), providers, mockk(), mockk(), mockk())
         var saved: JSONObject? = null
         var rejectWrite = false
         val transport = OkHttpClient.Builder().addInterceptor { chain ->

@@ -91,7 +91,7 @@ class DriveCrossDeviceKeyTest {
         init {
             ctx.getSharedPreferences("livetv_drive_sync", Context.MODE_PRIVATE).edit().putString("mode", "file").commit()
             sync = LiveTvDriveSync(ctx, mockk(), mockk(), keys, mockk(), profiles, mockk(), mockk(), mockk(),
-                mockk { every { observe(1) } returns flowOf(emptyMap()) })
+                mockk { every { observe(1) } returns flowOf(emptyMap()) }, mockk(), mockk(), mockk())
             val grantStore = mockk<ProtectedProfilePreferences>(relaxUnitFun = true) {
                 every { read(1) } returns "fixture-grant"
             }

@@ -1572,8 +1572,12 @@ class SportsRepository @Inject constructor(
             guideAssignments = liveRepo.autoMatches.value + user.epgOverrides, includeGuide = guide)
         fun publish(result: SportsMatcher.Result, quick: Boolean = false) {
             _matches.update { previous ->
-                val matches = if (quick) SportsMatcher.keepGuideMatches(previous, result.matches,
-                    setOf(event.id), input(false)) else result.matches
+                val matches = when {
+                    quick -> SportsMatcher.keepGuideMatches(previous, result.matches, setOf(event.id), input(false))
+                    event.state == GameState.LIVE -> SportsMatcher.keepGuideMatches(tvNowFixtureMatches, result.matches,
+                        setOf(event.id), input(false), currentOnly = true)
+                    else -> result.matches
+                }
                 val found = matches[event.id]
                 // An empty refinement must not discard channels already shown on the game page.
                 if (!quick && found.isNullOrEmpty()) previous

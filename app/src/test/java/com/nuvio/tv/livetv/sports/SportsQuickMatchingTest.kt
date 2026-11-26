@@ -228,6 +228,27 @@ class SportsQuickMatchingTest {
         assertTrue(matches.none { it.channel.key == "15" })
     }
 
+    @Test fun `detailed lookup retains current matches from other providers until the programme ends`() {
+        val programme = com.nuvio.tv.livetv.model.EpgProgram(now - 60_000, now + 7_200_000, event.title)
+        val currentChannel = channel("current", "Sky Sport 4 NZ").copy(sourceId = "austreams", sourceName = "Austreams Free")
+        val otherChannel = channel("other", "Sky Sport 5 NZ")
+        val current = ChannelMatch(currentChannel, 82, "Guide", programme, null, false)
+        val other = ChannelMatch(otherChannel, 100, "Guide", programme, null, false)
+        val picked = current.copy(score = 200, how = "Your pick", program = null)
+        val previous = mapOf(event.id to listOf(current))
+        fun publish(fresh: List<ChannelMatch>, at: Long = now, settings: SportsSettings = SportsSettings()): List<ChannelMatch> {
+            val input = SportsMatcher.Input(listOf(event), listOf(currentChannel, otherChannel), emptyMap(), 0, settings, at)
+            return SportsMatcher.keepGuideMatches(previous, mapOf(event.id to fresh), setOf(event.id),
+                input, currentOnly = true).getValue(event.id)
+        }
+
+        assertEquals(setOf(current, other), publish(listOf(other)).toSet())
+        assertEquals(picked.copy(program = programme), publish(listOf(picked)).single())
+        assertEquals(listOf(other), publish(listOf(other), at = programme.stopMs))
+        assertEquals(listOf(other), publish(listOf(other), settings = SportsSettings(
+            blocked = setOf("${event.id}|${currentChannel.key}"))))
+    }
+
     @Test fun `unverified network suggestions remain bounded`() {
         val channels = (1..15).map { channel("$it", "US: NBA TV HD") }
         val matches = SportsMatcher(mockk<EpgDatabase>()).match(SportsMatcher.Input(listOf(event), channels,

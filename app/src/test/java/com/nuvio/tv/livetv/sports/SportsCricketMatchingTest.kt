@@ -25,6 +25,47 @@ class SportsCricketMatchingTest {
         assertFalse("s australia" in names)
     }
 
+    @Test fun `day three and four shield airings link to their in play fixtures by description`() {
+        val hour = 3_600_000L
+        val leagueId = "ca/shield"
+        val fixtures = listOf(
+            Triple("South Australia", "Victoria", "SA" to "VIC"),
+            Triple("Western Australia", "Tasmania", "WA" to "TAS")
+        ).mapIndexed { index, (home, away, abbreviations) ->
+            fun domesticSide(name: String, abbr: String, isHome: Boolean) = Side(
+                TeamInfo(leagueId, abbr, name, name, abbr, null, null, null, null),
+                "100/2", null, false, isHome)
+            SportsEvent("ca:shield-$index", leagueId, now - (53 + index * 24) * hour,
+                true, GameState.LIVE, "$home v $away", "Sheffield Shield", "In Play",
+                domesticSide(away, abbreviations.second, false), domesticSide(home, abbreviations.first, true),
+                source = EventSource.CRICKET_AUSTRALIA, endMs = now + hour)
+        }
+        val channels = listOf(channel("sky-4", "[2] Sky Sport 4 NZ"), channel("sky-5", "[2] Sky Sport 5 NZ"))
+            .associateBy { it.key }
+        val programmes = listOf(
+            "LIVE coverage from Day 3 of the Sheffield Shield match between South Australia and Victoria at Adelaide Oval, Adelaide.",
+            "LIVE coverage from Day 4 of the Sheffield Shield match between Western Australia and Tasmania at WACA Ground, Perth."
+        ).mapIndexed { index, description ->
+            "sky-${4 + index}" to EpgProgram(now - (5 - index * 2) * hour, now + hour,
+                "Cricket: Sheffield Shield", description)
+        }
+        val db = mockk<EpgDatabase> {
+            every { fingerprint() } returns "guide"
+            every { contentRevision() } returns "1"
+            every { visitCurrentPrograms(now, any(), any()) } answers {
+                val visit = thirdArg<(String, EpgProgram) -> Unit>()
+                programmes.forEach { (key, program) -> visit(key, program) }
+            }
+        }
+        val matcher = SportsMatcher(db)
+        val snapshot = matcher.tvNowSnapshot(SportsCatalog.all, emptyList(), channels, 0, now, fixtures)
+        val matches = matcher.match(SportsMatcher.Input(fixtures, channels.values.toList(), emptyMap(),
+            0, SportsSettings(), now, includeGuide = false, currentGuidePrograms = snapshot.fixturePrograms)).matches
+        val airings = SportsCurrentGuide.withFixtures(snapshot.airings, fixtures, matches, now)
+        assertEquals(fixtures.map { it.title }, airings.map { it.title })
+        assertEquals(programmes.map { it.first }, airings.map { it.guideHits.single().first })
+    }
+
     @Test fun `simultaneous One Day Cup fixtures match their own Sky guide listings`() {
         val leagueId = "ca/one-day"
         val guideNames = listOf("New South Wales v S Australia", "Victoria v W Australia", "Queensland v Tasmania")

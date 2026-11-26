@@ -1187,7 +1187,7 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
 
         /** A quick pass must not erase verified guide results while the full refresh is pending. */
         internal fun keepGuideMatches(previous: Map<String, List<ChannelMatch>>, fresh: Map<String, List<ChannelMatch>>,
-            retainedEvents: Set<String>, input: Input): Map<String, List<ChannelMatch>> {
+            retainedEvents: Set<String>, input: Input, currentOnly: Boolean = false): Map<String, List<ChannelMatch>> {
             // Only index channels referenced by a retained guide match. For duplicate channel
             // keys the last catalog entry wins, as in the original full-playlist index.
             if (previous.keys.none { it in retainedEvents }) return fresh
@@ -1203,23 +1203,30 @@ internal class SportsMatcher(private val db: EpgDatabase, private val guideCache
             for ((eventId, matches) in previous) {
                 if (eventId !in retainedEvents) continue
                 val best = LinkedHashMap<String, ChannelMatch>()
-                fun keep(match: ChannelMatch) {
+                fun keep(match: ChannelMatch, retainProgramme: Boolean = false) {
                     val key = match.channel.key
                     val existing = best[key]
                     if (existing != null) {
-                        if (existing.score >= match.score) return
+                        if (existing.score >= match.score) {
+                            if (retainProgramme && existing.program?.isLive(input.now) != true) {
+                                best[key] = existing.copy(program = match.program, catchup = match.catchup)
+                            }
+                            return
+                        }
                         // Stable ties follow the position of the winning entry.
                         best.remove(key)
                     }
                     best[key] = match
                 }
-                fresh[eventId].orEmpty().forEach(::keep)
+                fresh[eventId].orEmpty().forEach { keep(it) }
                 for (match in matches) {
                     if (!match.sure) continue
                     val programme = match.program ?: continue
+                    if (currentOnly && !programme.isLive(input.now)) continue
                     val channel = channels[match.channel.key] ?: continue
                     if ("$eventId|${channel.key}" in input.settings.blocked) continue
-                    keep(match.copy(channel = channel, catchup = CatchupUrlBuilder.isAvailable(channel.catchup, programme.startMs, input.now)))
+                    keep(match.copy(channel = channel, catchup = CatchupUrlBuilder.isAvailable(channel.catchup, programme.startMs, input.now)),
+                        retainProgramme = currentOnly)
                 }
                 if (best.isNotEmpty()) result[eventId] =
                     sortMatches(best.values.toList(), input.settings.bestChannelFirst, rank).limitSuggestions().take(SportsMatchLimits.DEFAULT.perFixture)

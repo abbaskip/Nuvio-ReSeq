@@ -111,6 +111,9 @@ class IptvDatabaseStorageTvTest {
             val sqlite = db.writableDatabase
             sqlite.execSQL("PRAGMA auto_vacuum = NONE")
             sqlite.execSQL("VACUUM")
+        }
+        EpgDatabase(ctx).use { db ->
+            val sqlite = db.writableDatabase
             assertEquals(0L, scalar(sqlite, "PRAGMA auto_vacuum"))
             fun stageGuide(): Long {
                 sqlite.execSQL("""
@@ -125,7 +128,6 @@ class IptvDatabaseStorageTvTest {
             val stagedBytes = stageGuide()
             db.dropStagesExcept(emptyList())
             assertTrue(db.compact() > 0L)
-            assertEquals(1L, scalar(sqlite, "PRAGMA auto_vacuum"))
             assertTrue(path.length() < stagedBytes)
 
             val nextStagedBytes = stageGuide()
@@ -135,6 +137,9 @@ class IptvDatabaseStorageTvTest {
             assertEquals(0L, scalar(sqlite, "SELECT COUNT(*) FROM stage"))
             assertEquals("committed", db.fingerprint())
             assertEquals(listOf(programme), db.range(programme.startMs, programme.stopMs).getValue("channel"))
+        }
+        EpgDatabase(ctx).use { db ->
+            assertEquals(1L, scalar(db.writableDatabase, "PRAGMA auto_vacuum"))
         }
         ctx.root.deleteRecursively()
     }

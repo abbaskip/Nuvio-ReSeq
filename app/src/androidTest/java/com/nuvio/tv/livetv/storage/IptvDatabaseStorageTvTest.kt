@@ -101,6 +101,44 @@ class IptvDatabaseStorageTvTest {
         ctx.root.deleteRecursively()
     }
 
+    @Test fun guideCompactionReturnsStagingSpaceAfterSubsequentImports() {
+        val ctx = context()
+        val path = ctx.getDatabasePath("livetv_guide.db")
+        val programme = EpgProgram(1_800_000_000_000, 1_800_000_001_000, "Sheffield Shield",
+            description = "Western Australia versus Tasmania")
+        EpgDatabase(ctx).use { db ->
+            db.replaceAll("committed", mapOf("channel" to listOf(programme)), emptyMap())
+            val sqlite = db.writableDatabase
+            sqlite.execSQL("PRAGMA auto_vacuum = NONE")
+            sqlite.execSQL("VACUUM")
+            assertEquals(0L, scalar(sqlite, "PRAGMA auto_vacuum"))
+            fun stageGuide(): Long {
+                sqlite.execSQL("""
+                    WITH RECURSIVE rows(n) AS (VALUES (1) UNION ALL SELECT n + 1 FROM rows WHERE n < 4000)
+                    INSERT INTO stage(src, xid, start, stop, title, descr)
+                    SELECT 'guide', 'fixture', 1, 2, 'Staged listing', hex(zeroblob(2048)) FROM rows
+                """.trimIndent())
+                assertEquals(0L, scalar(sqlite, "PRAGMA wal_checkpoint(TRUNCATE)"))
+                return path.length()
+            }
+
+            val stagedBytes = stageGuide()
+            db.dropStagesExcept(emptyList())
+            assertTrue(db.compact() > 0L)
+            assertEquals(1L, scalar(sqlite, "PRAGMA auto_vacuum"))
+            assertTrue(path.length() < stagedBytes)
+
+            val nextStagedBytes = stageGuide()
+            db.dropStagesExcept(emptyList())
+            assertEquals(0L, scalar(sqlite, "PRAGMA wal_checkpoint(TRUNCATE)"))
+            assertTrue(path.length() < nextStagedBytes)
+            assertEquals(0L, scalar(sqlite, "SELECT COUNT(*) FROM stage"))
+            assertEquals("committed", db.fingerprint())
+            assertEquals(listOf(programme), db.range(programme.startMs, programme.stopMs).getValue("channel"))
+        }
+        ctx.root.deleteRecursively()
+    }
+
     @Test fun catalogueMigrationActuallyReducesSettledBytesWithoutLosingTitles() {
         val ctx = context()
         val path = ctx.getDatabasePath("livetv_on_demand.db")

@@ -1280,7 +1280,7 @@ class EpgDatabase @Inject constructor(@ApplicationContext context: Context) :
                 db.execSQL("INSERT OR REPLACE INTO meta(k,v) VALUES ('guide_gap_rows_removed','1')")
             }
         }
-        return SqliteCompact.compactIfWasteful(db, "guide")
+        return SqliteCompact.compactIfWasteful(db, "guide", reclaimOnCommit = true)
     }
 
     fun clear() {

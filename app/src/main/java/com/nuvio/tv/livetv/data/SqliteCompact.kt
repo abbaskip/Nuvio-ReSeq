@@ -13,9 +13,10 @@ internal object SqliteCompact {
     private const val TAG = "SqliteCompact"
     /** Only worth the work past this much empty space, and when it's a good part of the file. */
     private const val MIN_FREE_BYTES = 8L * 1024 * 1024
+    private const val SPACE_RESERVE_BYTES = 64L * 1024 * 1024
 
     /** Returns the bytes given back (0 when there was nothing worth doing). */
-    fun compactIfWasteful(db: SQLiteDatabase, label: String): Long = runCatching {
+    fun compactIfWasteful(db: SQLiteDatabase, label: String, reclaimOnCommit: Boolean = false): Long = runCatching {
         fun pragma(q: String): Long = db.rawQuery(q, null).use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
         fun checkpoint(): Boolean = db.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use {
             it.moveToFirst() && it.getInt(0) == 0
@@ -24,8 +25,6 @@ internal object SqliteCompact {
         fun allocated() = file.length() + File(db.path + "-wal").length() + File(db.path + "-shm").length()
         val before = allocated()
         if (db.inTransaction() || !checkpoint()) return@runCatching 0L
-        // The write-ahead file can stay large after a big update; fold it back in first.
-        checkpoint()
         val pageSize = pragma("PRAGMA page_size")
         val pages = pragma("PRAGMA page_count")
         val free = pragma("PRAGMA freelist_count")
@@ -42,8 +41,16 @@ internal object SqliteCompact {
             return@runCatching (before-allocated()).coerceAtLeast(0)
         }
         if (freeBytes < MIN_FREE_BYTES || free * 4 < pages) return@runCatching (before - allocated()).coerceAtLeast(0)
-        // VACUUM needs temporary storage. Never spend the final space needed by playback or an update.
-        if (file.usableSpace < file.length() * 2 + 64L * 1024 * 1024) return@runCatching (before - allocated()).coerceAtLeast(0)
+        // In WAL mode the temporary copy and the new journal contain the rebuilt database.
+        // Free pages in the original file aren't copied to either one.
+        val copyBytes = if (reclaimOnCommit && db.isWriteAheadLoggingEnabled) (pages - free) * pageSize else file.length()
+        if (file.usableSpace < copyBytes * 2 + SPACE_RESERVE_BYTES) {
+            com.nuvio.tv.livetv.model.LiveTvLoadReport.add("Deferred $label database compaction: ${freeBytes / (1024 * 1024)} MB reusable inside the database")
+            return@runCatching (before - allocated()).coerceAtLeast(0)
+        }
+        // The guide repeatedly stages and deletes hundreds of thousands of listings.
+        // Enable page reclamation during the same rebuild so later imports return those pages at commit.
+        if (reclaimOnCommit && pragma("PRAGMA auto_vacuum") != 1L) db.execSQL("PRAGMA auto_vacuum = FULL")
         db.execSQL("VACUUM")
         checkpoint()
         val reclaimed = (before - allocated()).coerceAtLeast(0)

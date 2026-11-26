@@ -180,6 +180,7 @@
     <string name="usenet_stats_with_results">חיפושים עם תוצאות</string>
     <plurals name="usenet_stats_releases_average">
         <item quantity="one">%1$d%% · %2$d מהדורה בממוצע</item>
+        <item quantity="two">%1$d%% · %2$d מהדורות בממוצע</item>
         <item quantity="other">%1$d%% · %2$d מהדורות בממוצע</item>
     </plurals>
     <string name="usenet_stats_requests">בקשות API</string>

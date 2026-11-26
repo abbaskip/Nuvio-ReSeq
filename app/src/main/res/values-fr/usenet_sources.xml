@@ -108,10 +108,12 @@
     <string name="usenet_indexer_problem_response">Dernière requête échouée&#160;: réponse inattendue</string>
     <plurals name="usenet_indexer_api_hits_left">
         <item quantity="one">%d appel API restant</item>
+        <item quantity="many">%d appels API restants</item>
         <item quantity="other">%d appels API restants</item>
     </plurals>
     <plurals name="usenet_indexer_grabs_left">
         <item quantity="one">%d téléchargement NZB restant</item>
+        <item quantity="many">%d téléchargements NZB restants</item>
         <item quantity="other">%d téléchargements NZB restants</item>
     </plurals>
     <string name="usenet_indexer_left_as_of">%1$s (à %2$s)</string>
@@ -143,10 +145,12 @@
     <string name="usenet_section_enabled_count">%1$s, %2$d activé(s)</string>
     <plurals name="usenet_providers_count">
         <item quantity="one">%d fournisseur</item>
+        <item quantity="many">%d fournisseurs</item>
         <item quantity="other">%d fournisseurs</item>
     </plurals>
     <plurals name="usenet_indexers_count">
         <item quantity="one">%d indexeur</item>
+        <item quantity="many">%d indexeurs</item>
         <item quantity="other">%d indexeurs</item>
     </plurals>
     <string name="usenet_progressive_results">Afficher les résultats au fur et à mesure des réponses des indexeurs</string>
@@ -176,6 +180,7 @@
     <string name="usenet_stats_with_results">Recherches avec résultats</string>
     <plurals name="usenet_stats_releases_average">
         <item quantity="one">%1$d&#160;%% · %2$d release en moyenne</item>
+        <item quantity="many">%1$d&#160;%% · %2$d releases en moyenne</item>
         <item quantity="other">%1$d&#160;%% · %2$d releases en moyenne</item>
     </plurals>
     <string name="usenet_stats_requests">Requêtes API</string>

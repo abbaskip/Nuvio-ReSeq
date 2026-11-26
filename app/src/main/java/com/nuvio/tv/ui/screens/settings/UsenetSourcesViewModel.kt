@@ -242,7 +242,14 @@ class UsenetSourcesViewModel @Inject constructor(
         val ip = DeviceIpAddress.get(context) ?: return toast(R.string.error_network_required)
         stopPhoneSetup()
         val localized = UsenetSourcesWebPage.localized(context)
-        val logo by lazy { runCatching { context.resources.openRawResource(R.drawable.app_logo_wordmark).use { it.readBytes() } }.getOrNull() }
+        val logo by lazy {
+            runCatching {
+                val bitmap = android.graphics.BitmapFactory.decodeResource(context.resources, R.drawable.app_logo_wordmark)
+                java.io.ByteArrayOutputStream().use { output ->
+                    if (bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)) output.toByteArray() else null
+                }
+            }.getOrNull()
+        }
         val setup = PhoneSetup(current.profileId)
         val server = UsenetSourcesConfigServer.startOnAvailablePort(
             setup = setup,

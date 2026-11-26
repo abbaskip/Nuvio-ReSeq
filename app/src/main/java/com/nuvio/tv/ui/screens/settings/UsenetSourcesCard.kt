@@ -25,6 +25,7 @@ import androidx.compose.ui.input.key.type
 import androidx.annotation.PluralsRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -113,12 +114,13 @@ internal fun UsenetSourcesCard(
         StreamRankingPreset.HD_SDR -> R.string.usenet_ranking_hd_sdr_desc
         StreamRankingPreset.CUSTOM -> R.string.usenet_ranking_custom_desc
     }
+    val locale = LocalConfiguration.current.locales[0]
     val languageOptions = listOf(SettingsPickerOption("", stringResource(R.string.usenet_ranking_any_language))) +
         StreamRankingPresets.languages.map { code ->
             SettingsPickerOption(code, when (code) {
                 "multi" -> stringResource(R.string.usenet_ranking_multi_audio)
                 "dual" -> stringResource(R.string.usenet_ranking_dual_audio)
-                else -> Locale.forLanguageTag(code).getDisplayLanguage(Locale.getDefault())
+                else -> Locale.forLanguageTag(code).getDisplayLanguage(locale)
             })
         }
     val unlimited = stringResource(R.string.usenet_no_limit)

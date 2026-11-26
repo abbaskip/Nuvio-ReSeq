@@ -52,8 +52,8 @@ class SportsCricketMatchingTest {
         val db = mockk<EpgDatabase> {
             every { fingerprint() } returns "guide"
             every { contentRevision() } returns "1"
-            every { visitCurrentPrograms(now, any(), any()) } answers {
-                val visit = thirdArg<(String, EpgProgram) -> Unit>()
+            every { visitSportsPrograms(now - 30 * hour, now + 1, now, any(), any()) } answers {
+                val visit = lastArg<(String, EpgProgram) -> Unit>()
                 programmes.forEach { (key, program) -> visit(key, program) }
             }
         }

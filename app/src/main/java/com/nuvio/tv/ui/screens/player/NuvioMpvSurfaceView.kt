@@ -870,8 +870,9 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
 
     /** Both automatic capture and the Report action use the last delivered values. */
     fun captureReport() {
-        if (!initialized || !isPositionFromRequestedMedia()) return
-        fun value(key: String) = properties.string(key) ?: "not reported"
+        if (!initialized) return
+        val media = properties.takeIf { isPositionFromRequestedMedia() }
+        fun value(key: String) = media?.string(key) ?: "not reported"
         com.nuvio.tv.core.report.PlaybackReports.update(this, mapOf(
             "stream type" to value("file-format"), "container" to value("file-format"),
             "video codec" to value("video-codec"), "codec profile/level" to "not exposed by MPV",

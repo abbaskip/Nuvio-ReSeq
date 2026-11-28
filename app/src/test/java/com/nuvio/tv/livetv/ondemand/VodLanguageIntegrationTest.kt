@@ -71,7 +71,10 @@ class VodLanguageIntegrationTest {
                 assertEquals(setOf("de"), sources.single { it.url.endsWith("4.mp4") }.languages)
                 val streams = sources.map { OnDemandStreams.stream(it, "IPTV Fixture") }
                 assertTrue(streams.first().title!!.contains("English"))
-                assertTrue(streams.first().description!!.contains("English Series"))
+                assertTrue(streams.first().description!!.contains("Jamie's 30 Minute Meals"))
+                val originalLayout = OnDemandStreams.stream(sources.first(), "IPTV Fixture",
+                    com.nuvio.tv.core.streams.SourceStreamTemplates())
+                assertTrue(originalLayout.description!!.contains("English Series"))
                 val selected = com.nuvio.tv.core.player.StreamAutoPlaySelector.selectBingeGroupMatch(streams, "iptv-playlist:p")
                 assertEquals(streams.first(), selected)
                 assertEquals("6", repo.versions(db.item("p", VodKind.SERIES, "1")!!).first().item.id)

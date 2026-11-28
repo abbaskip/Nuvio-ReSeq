@@ -1,6 +1,7 @@
 package com.nuvio.tv.core.usenet
 
 import com.nuvio.tv.core.debrid.DebridTemplateBytes
+import com.nuvio.tv.core.streams.SourceStreamTemplates
 import com.nuvio.tv.core.debrid.streamLanguageEmoji
 
 import android.content.Context
@@ -709,10 +710,12 @@ class BuiltInUsenetService @Inject constructor(
             quality = resolution.takeIf { it > 0 }?.let { "${it}p" }, qualityValue = resolution)
         if (!config.streamTemplates.enabled) return stream
         val (displayTitle, year) = UsenetReleaseLabels.titleAndYear(title)
+        val showFilename = config.showReleaseNames ||
+            config.streamTemplates.description != SourceStreamTemplates.DEFAULT.description
         return config.streamTemplates.apply(stream, "usenet", mapOf(
             "stream.title" to displayTitle,
             "stream.year" to year,
-            "stream.filename" to title,
+            "stream.filename" to title.takeIf { showFilename },
             "stream.resolution" to pixels.takeIf { it > 0 }?.let { "${it}p" },
             "stream.quality" to UsenetReleaseLabels.quality(facts.quality),
             "stream.encode" to UsenetReleaseLabels.codec(facts.codec),

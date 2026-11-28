@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="party_settings_description">انضم إلى أصدقائك برمز المشاهدة الجماعية</string>
+  <string name="party_host_only_note">يمكن للمضيف فقط التحكم في التشغيل</string>
+  <string name="party_control_host_only">يمكن للمضيف فقط التحكم في التشغيل الآن</string>
+  <string name="party_phone_chat_note">افتح مشاهدة جماعية على هاتفك بهذا الملف الشخصي للدردشة.</string>
+  <string name="party_watch_with_party">شاهد مع المجموعة</string>
+  <string name="party_catch_up">اللحاق بالمجموعة</string>
+  <string name="party_invite_share">أو شارك الرمز. يمكن للأصدقاء إدخاله في المشاهدة الجماعية على أي تطبيق Nuvio.</string>
+</resources>

@@ -10,24 +10,26 @@ import `is`.xyz.mpv.MPV
 abstract class NuvioBaseMpvView(context: Context, attrs: AttributeSet?) : SurfaceView(context, attrs),
     SurfaceHolder.Callback {
 
-    private var mpvInstance: MPV? = null
+    internal var mpvInstance: MpvClient? = null
+        private set
 
-    val mpv: MPV
-        get() = mpvInstance ?: MPV(context).also { mpvInstance = it }
+    internal val mpv: MpvClient
+        get() = mpvInstance ?: MpvClient(MPV(context.applicationContext), ::onMpvFormatChanged).also { mpvInstance = it }
 
     private var filePath: String? = null
 
     private var voInUse: String = "gpu"
 
     fun initialize(configDir: String, cacheDir: String) {
-        mpv.setConfigDir(configDir)
-        mpv.setCacheDir(cacheDir)
+        mpv.submit {
+            setConfigDir(configDir)
+            setCacheDir(cacheDir)
+        }
         initOptions()
         postInitOptions()
         mpv.setOptionString("force-window", "no")
         mpv.setOptionString("idle", "once")
         holder.addCallback(this)
-        observeProperties()
     }
 
     fun destroy() {
@@ -39,7 +41,7 @@ abstract class NuvioBaseMpvView(context: Context, attrs: AttributeSet?) : Surfac
 
     protected abstract fun initOptions()
     protected abstract fun postInitOptions()
-    protected abstract fun observeProperties()
+    protected abstract fun onMpvFormatChanged()
 
     fun playFile(filePath: String) {
         this.filePath = filePath
@@ -51,12 +53,14 @@ abstract class NuvioBaseMpvView(context: Context, attrs: AttributeSet?) : Surfac
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        mpv.setPropertyString("android-surface-size", "${width}x$height")
+        mpvInstance?.setPropertyString("android-surface-size", "${width}x$height")
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         Log.w(TAG, "attaching surface")
-        mpv.attachSurface(holder.surface)
+        val client = mpvInstance ?: return
+        val surface = holder.surface
+        client.submit { if (surface.isValid) attachSurface(surface) }
         mpv.setOptionString("force-window", "yes")
 
         val pendingFile = filePath
@@ -70,9 +74,11 @@ abstract class NuvioBaseMpvView(context: Context, attrs: AttributeSet?) : Surfac
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         Log.w(TAG, "detaching surface")
-        mpv.setPropertyString("vo", "null")
-        mpv.setPropertyString("force-window", "no")
-        mpv.detachSurface()
+        mpvInstance?.submit {
+            setPropertyString("vo", "null")
+            setPropertyString("force-window", "no")
+            detachSurface()
+        }
     }
 
     companion object {

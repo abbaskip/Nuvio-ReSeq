@@ -101,8 +101,8 @@ internal class MpvEventRelay(
     override fun eventProperty(property: String) {
         if (!active.get() || epoch != controller.mpvEventRelayEpoch) return
         when (property) {
-            MPV_TRACK_LIST_PROPERTY -> controller.markMpvTracksStale()
-            MPV_SID_PROPERTY, MPV_SUB_TEXT_PROPERTY -> syncStyledSubtitles()
+            MPV_TRACK_LIST_PROPERTY, "chapter-list" -> controller.markMpvTracksStale()
+            MPV_SID_PROPERTY, MPV_SUB_TEXT_PROPERTY, "sub-text/ass", "current-tracks/sub/codec" -> syncStyledSubtitles()
         }
     }
 
@@ -120,13 +120,20 @@ internal class MpvEventRelay(
         }
     }
     override fun eventProperty(property: String, value: String) {
-        if (property != MPV_SID_PROPERTY && property != MPV_SUB_TEXT_PROPERTY) return
         if (!active.get() || epoch != controller.mpvEventRelayEpoch) return
-        syncStyledSubtitles()
+        when (property) {
+            "aid", MPV_SID_PROPERTY -> controller.markMpvTracksStale()
+        }
+        when (property) {
+            MPV_SID_PROPERTY, MPV_SUB_TEXT_PROPERTY, "sub-text/ass", "current-tracks/sub/codec" -> syncStyledSubtitles()
+        }
     }
 
     override fun eventProperty(property: String, value: Double) = Unit
-    override fun eventProperty(property: String, value: MPVNode) = Unit
+    override fun eventProperty(property: String, value: MPVNode) {
+        if (!active.get() || epoch != controller.mpvEventRelayEpoch) return
+        if (property == MPV_TRACK_LIST_PROPERTY || property == "chapter-list") controller.markMpvTracksStale()
+    }
 
     private fun syncStyledSubtitles() {
         controller.scope.launch {
@@ -157,8 +164,8 @@ internal fun PlayerRuntimeController.unregisterMpvEventRelay() {
     mpvEventRelay = null
     relay.active.set(false)
     mpvView?.let { view ->
-        runCatching { view.mpv.removeObserver(relay) }
-        runCatching { view.mpv.removeLogObserver(relay) }
+        runCatching { view.mpvInstance?.removeObserver(relay) }
+        runCatching { view.mpvInstance?.removeLogObserver(relay) }
     }
 }
 
@@ -373,7 +380,7 @@ internal fun PlayerRuntimeController.maybeRunMpvStartupWatchdog(view: NuvioMpvSu
     var idleActive = false
     var cacheProgressing = false
     if (enabled && !waitingForSurface) {
-        idleActive = runCatching { view.mpv.getPropertyBoolean("idle-active") }.getOrNull() == true
+        idleActive = view.isIdleActive()
         if (!idleActive) {
             val cacheSec = runCatching { view.demuxerCacheDurationSec() }.getOrDefault(0.0)
             cacheProgressing = MpvStartupWatchdogPolicy.cacheIsProgressing(mpvLastDemuxerCacheSec, cacheSec)
@@ -458,20 +465,20 @@ private fun PlayerRuntimeController.mpvHttpStatusCodeFromLog(): Int? {
 }
 
 private fun PlayerRuntimeController.mpvCodecContextLine(): String? {
-    val mpv = mpvView?.mpv ?: return null
+    val properties = mpvView?.mpvInstance?.properties ?: return null
     fun prop(name: String): String? = runCatching {
-        mpv.getPropertyString(name)
+        properties.string(name)
             ?.trim()
             ?.substringBefore(" (")
             ?.trim()
             ?.takeIf { it.isNotEmpty() && !it.equals("unknown", ignoreCase = true) && !it.equals("no", ignoreCase = true) }
     }.getOrNull()
     val existing = mpvLastErrorLogLine.orEmpty()
-    val width = runCatching { mpv.getPropertyInt("width") }.getOrNull()?.takeIf { it > 0 }
-    val height = runCatching { mpv.getPropertyInt("height") }.getOrNull()?.takeIf { it > 0 }
+    val width = runCatching { properties.int("width") }.getOrNull()?.takeIf { it > 0 }
+    val height = runCatching { properties.int("height") }.getOrNull()?.takeIf { it > 0 }
     val resolution = if (width != null && height != null) "${width}x$height" else null
-    val rate = runCatching { mpv.getPropertyInt("audio-params/samplerate") }.getOrNull()?.takeIf { it > 0 }
-    val channels = runCatching { mpv.getPropertyInt("audio-params/channel-count") }.getOrNull()?.takeIf { it > 0 }
+    val rate = runCatching { properties.int("audio-params/samplerate") }.getOrNull()?.takeIf { it > 0 }
+    val channels = runCatching { properties.int("audio-params/channel-count") }.getOrNull()?.takeIf { it > 0 }
     val parts = listOfNotNull(
         fresh(existing, prop("file-format")),
         fresh(existing, prop("current-vo") ?: prop("vo"), label = "vo"),

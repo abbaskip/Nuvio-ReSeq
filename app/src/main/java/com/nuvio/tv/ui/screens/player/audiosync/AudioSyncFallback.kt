@@ -418,6 +418,8 @@ internal class AudioSyncFallback private constructor(
                 replaceTrackId = current.mpvTrackId,
             )
         }
+        // Native subtitle selection may finish after a source or engine switch.
+        if (target.get() !== current || runtime.mpvView !== view || !isMpvShowing(current.url)) return
         if (trackId == null) {
             SyncLog.w("mpv did not accept the synced subtitle copy")
             return stop()

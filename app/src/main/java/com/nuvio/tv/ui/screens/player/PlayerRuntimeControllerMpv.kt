@@ -13,6 +13,10 @@ private const val MPV_RESUME_SEEK_TOLERANCE_MS = 1500L
 
 internal fun PlayerRuntimeController.attachMpvView(view: NuvioMpvSurfaceView?) {
     if (mpvView === view) return
+    mpvView?.let { previous ->
+        unregisterMpvEventRelay()
+        previous.releasePlayer()
+    }
     mpvView = view
 
     if (view == null) return
@@ -325,11 +329,8 @@ internal fun PlayerRuntimeController.markMpvTracksStale() {
 }
 
 /**
- * Progress-tick entry point. Reading the track list costs about a dozen synchronous mpv property
- * reads per track on the main thread, so the tick only re-reads it after mpv reports a
- * track-list change. The track decisions still run on every tick, on the tracks already known:
- * some of them wait on things that are not track-list changes, such as the first frame or
- * add-on subtitles arriving one add-on at a time.
+ * Rebuilds the track UI when MPV delivers a new list or selection. Preference decisions also
+ * run on later ticks as add-on subtitles and the first frame can arrive separately.
  */
 internal fun PlayerRuntimeController.updateMpvTracksOnTick() {
     updateMpvHdrVideoState()

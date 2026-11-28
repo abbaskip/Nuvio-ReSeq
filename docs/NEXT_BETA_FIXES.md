@@ -1,3 +1,13 @@
+# Queued for the next TV beta · 28 November 2026
+
+Include the MPV startup freeze fix in the next combined TV candidate, expected at the Monday 30 November upstream sync. Fetch `origin/fix/rc51-mpv-startup-anr` and verify its tip is `18f39ad3e5765b0c56b33cb6b4465655e59a3d42`. It descends directly from the published TV rc.5.1 commit `0470da8ea8ca04523fe60828bc22b28ac2dbadff`.
+
+Apply the two commits in order if the candidate does not already contain them or their equivalents. The first, `05edd547c78f145cc7bc99721e95e520973ac866`, moves MPV playback queries and teardown off the TV input thread. The second, `18f39ad3e5765b0c56b33cb6b4465655e59a3d42`, keeps surface diagnostics available while MPV identifies the stream.
+
+Both Android ANR traces on the Onn 4K Pro showed the input thread waiting for MPV. At the queued tip, 804 player unit tests passed. Emulator instrumentation passed with a synthetic 4K HEVC / 5.1 DTS clip and a deliberately blocked player worker. Back closed the player, and a separate test covered seeking and reopening playback. Re-run `MpvStartupResponsivenessTest` and `SeekThumbnailDeviceTest#libmpvSeeksWhileASeparateReaderDecodesTheSameFile` with the combined candidate's normal release checks. Playback of the original remote stream on the home Onn remains unverified.
+
+Suggested TV release note — Fixed a freeze on “Starting stream” that could leave the Back button unresponsive during MPV playback.
+
 # Delivered in beta 9.6.2
 
 Published and fully verified at 6b1999648a46b9d54b5b924e7912e0f480d72689.

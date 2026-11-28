@@ -3,6 +3,7 @@ package com.nuvio.tv.core.server
 import com.nuvio.tv.core.streams.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import com.nuvio.tv.core.streams.SourceStreamTemplates
 import com.nuvio.tv.core.usenet.ProviderTestResult
 import com.nuvio.tv.core.usenet.UsenetIndexer
 import com.nuvio.tv.core.usenet.UsenetProvider
@@ -104,10 +105,13 @@ class UsenetSourcesConfigServerTest {
         assertEquals(initial, setup.configuration)
     }
 
-    @Test fun `phone stream format preserves source settings and supports restoring defaults`() {
+    @Test fun `phone stream format serves the supplied templates and preserves profile overrides`() {
         val path = "/api/stream-format"
-        val templates = com.nuvio.tv.core.streams.SourceStreamTemplates("{stream.type}", "{stream.filename}\n{stream.bitrate::bitrate}")
+        val templates = SourceStreamTemplates("{stream.type}", "{stream.filename}\n{stream.bitrate::bitrate}")
         val initial = setup.configuration
+        assertEquals(SourceStreamTemplates.DEFAULT, initial.streamTemplates)
+        assertEquals(SourceStreamTemplates.DEFAULT, Json.decodeFromString<UsenetSourceConfiguration>("{}").streamTemplates)
+        assertEquals(SourceStreamTemplates.DEFAULT, Json.decodeFromString<PhoneSources>(call("/api/sources").second).streamTemplates)
         val body = Json.encodeToString(templates)
         assertEquals(403, call(path, body, token = null).first)
         assertEquals(400, call(path, Json.encodeToString(templates.copy(name = "x".repeat(8193)))).first)
@@ -116,6 +120,8 @@ class UsenetSourcesConfigServerTest {
         assertEquals(initial.copy(streamTemplates = templates), setup.configuration)
         assertEquals(templates, Json.decodeFromString<PhoneSources>(call("/api/sources").second).streamTemplates)
         assertEquals(200, call(path, """{"name":"","description":""}""").first)
+        assertEquals(initial.copy(streamTemplates = SourceStreamTemplates()), setup.configuration)
+        assertEquals(200, call(path, Json.encodeToString(SourceStreamTemplates.DEFAULT)).first)
         assertEquals(initial, setup.configuration)
     }
 

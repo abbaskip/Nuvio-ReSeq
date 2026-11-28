@@ -78,6 +78,9 @@ class VodSourceRankingTest {
         assertEquals("💻WEB\n1080p | Remux", formatted.name)
         assertEquals("60 min\nShow.1080p.HEVC-GRP.mkv | 12.0 Mbps | GRP", formatted.description)
         assertEquals(result.url, formatted.url)
-        assertEquals(OnDemandStreams.stream(result, "Playlist"), OnDemandStreams.stream(result, "Playlist", SourceStreamTemplates()))
+        val preset = OnDemandStreams.stream(result, "Playlist")
+        assertEquals("💻WEB\n1080P | Remux\n5.1", preset.name)
+        assertEquals("📄 Show.1080p.HEVC-GRP.mkv", preset.description?.lineSequence()?.first { it.startsWith("📄") })
+        assertEquals("Playlist\n1080p", OnDemandStreams.stream(result, "Playlist", SourceStreamTemplates()).name)
     }
 }

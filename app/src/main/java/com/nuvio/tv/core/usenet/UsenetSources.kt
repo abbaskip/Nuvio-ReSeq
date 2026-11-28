@@ -137,7 +137,7 @@ data class UsenetSourceConfiguration(
     val addonsAbove: List<String>? = null,
     /** Maximum estimated average Mbps. Zero leaves the filter off. */
     val maxBitrateMbps: Int = 0,
-    val streamTemplates: SourceStreamTemplates = SourceStreamTemplates()
+    val streamTemplates: SourceStreamTemplates = SourceStreamTemplates.DEFAULT
 ) {
     val ready: Boolean get() = enabled && providers.any { it.enabled } && indexers.any { it.enabled }
 

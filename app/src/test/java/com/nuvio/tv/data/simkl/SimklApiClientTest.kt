@@ -9,6 +9,28 @@ import org.junit.Test
 
 class SimklApiClientTest {
     @Test
+    fun `daily quota errors surface on the first response`() {
+        for (code in listOf("user_limit_exceeded", "app_limit_exceeded")) {
+            val engine = RecordingEngine(response(429, """{"error":"$code"}"""))
+            val harness = Harness(engine)
+            assertThrows(SimklApiException::class.java) {
+                runBlocking { harness.client.execute(SimklApiRequest(SimklHttpMethod.GET, "/sync/activities")) }
+            }
+            assertEquals(1, engine.requests.size)
+            assertTrue(harness.sleeps.isEmpty())
+        }
+    }
+
+    @Test
+    fun `a burst rate limit still retries after the requested delay`() = runBlocking {
+        val engine = RecordingEngine(response(429, headers = mapOf("Retry-After" to "3")), response(200))
+        val harness = Harness(engine)
+        harness.client.execute(SimklApiRequest(SimklHttpMethod.GET, "/sync/activities"))
+        assertEquals(2, engine.requests.size)
+        assertEquals(listOf(3_000L), harness.sleeps)
+    }
+
+    @Test
     fun `response classification retries only transient statuses`() {
         assertEquals(SimklResponseAction.SUCCESS, classifySimklResponse(200))
         assertEquals(SimklResponseAction.REAUTHENTICATE, classifySimklResponse(401))

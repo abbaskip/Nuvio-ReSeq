@@ -1,12 +1,16 @@
 # Queued for the next TV beta · 28 November 2026
 
-Include the MPV startup freeze fix in the next combined TV candidate, expected at the Monday 30 November upstream sync. Fetch `origin/fix/rc51-mpv-startup-anr` and verify its tip is `18f39ad3e5765b0c56b33cb6b4465655e59a3d42`. It descends directly from the published TV rc.5.1 commit `0470da8ea8ca04523fe60828bc22b28ac2dbadff`.
+Include both the MPV startup freeze fix and the IPTV / Direct Usenet formatter from PR #58 in the next TV update, expected at the Monday 30 November upstream sync. Fetch `origin/integration/next-tv-beta-20261130` at `93bee988759d8b5b87cf0a2e905d25b64bab57cd` and integrate it into the combined candidate. Its two parents preserve the exact MPV and formatter revisions on the published rc.5.1 base `0470da8ea8ca04523fe60828bc22b28ac2dbadff`. Before tagging, verify both parent revisions are ancestors of the candidate. If upstream changes require adapting either fix, record the equivalent changes and rerun their acceptance tests on the final candidate.
 
-Apply the two commits in order if the candidate does not already contain them or their equivalents. The first, `05edd547c78f145cc7bc99721e95e520973ac866`, moves MPV playback queries and teardown off the TV input thread. The second, `18f39ad3e5765b0c56b33cb6b4465655e59a3d42`, keeps surface diagnostics available while MPV identifies the stream.
+The MPV input contains two commits. The first, `05edd547c78f145cc7bc99721e95e520973ac866`, moves MPV playback queries and teardown off the TV input thread. The second, `18f39ad3e5765b0c56b33cb6b4465655e59a3d42`, keeps surface diagnostics available while MPV identifies the stream.
 
 Both Android ANR traces on the Onn 4K Pro showed the input thread waiting for MPV. At the queued tip, 804 player unit tests passed. Emulator instrumentation passed with a synthetic 4K HEVC / 5.1 DTS clip and a deliberately blocked player worker. Back closed the player, and a separate test covered seeking and reopening playback. Re-run `MpvStartupResponsivenessTest` and `SeekThumbnailDeviceTest#libmpvSeeksWhileASeparateReaderDecodesTheSameFile` with the combined candidate's normal release checks. Playback of the original remote stream on the home Onn remains unverified.
 
 Suggested TV release note — Fixed a freeze on “Starting stream” that could leave the Back button unresponsive during MPV playback.
+
+The formatter input is `75f2e3a445ceba5e765e029e2d17ce9397491a66`. It supplies default name and description templates for IPTV On Demand and Direct Usenet, adds a TV editor, and preserves existing profile overrides. The PR records 59 passing focused JVM tests and a passing `SourceStreamFormatTvTest` emulator run. Repeat the formatter tests on the combined candidate, including saving multiline templates and restoring defaults. Track the outstanding PR description check separately from playback and formatter acceptance. [PR #58](https://github.com/abbaskip/Nuvio-ReSeq/pull/58)
+
+Suggested TV release note — Edit IPTV On Demand and Direct Usenet stream names and descriptions under Settings → Integrations → Usenet. Your saved formats carry over.
 
 # Delivered in beta 9.6.2
 

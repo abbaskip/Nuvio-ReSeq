@@ -40,6 +40,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.nuvio.tv.R
 import com.nuvio.tv.core.server.UsenetSourcesConfigServer
+import com.nuvio.tv.core.streams.SourceStreamTemplates
 import com.nuvio.tv.core.streams.StreamRankingPreset
 import com.nuvio.tv.core.streams.StreamRankingPresets
 import com.nuvio.tv.core.usenet.*
@@ -140,6 +141,8 @@ internal fun UsenetSourcesCard(
             if (setUpFromPhone != null) SettingsActionRow(title = stringResource(R.string.usenet_phone_setup),
                 subtitle = stringResource(R.string.usenet_phone_setup_description), onClick = { phoneEntry = phoneRow; setUpFromPhone(null) },
                 modifier = Modifier.focusRequester(phoneRow))
+            SettingsActionRow(title = stringResource(R.string.source_stream_format_title), subtitle = null,
+                onClick = { picker = "streamFormat" })
             UsenetSettingsSection(UsenetSettingsSection.PROVIDERS, expanded, onToggleSection,
                 description = sourcesSummary(configuration.providers.size, configuration.providers.count { it.enabled },
                     R.plurals.usenet_providers_count)) {
@@ -229,6 +232,11 @@ internal fun UsenetSourcesCard(
         }
     }
     when (picker) {
+        "streamFormat" -> SourceStreamFormatEditor(
+            templates = configuration.streamTemplates,
+            onSave = { update(configuration.copy(streamTemplates = it)); picker = null },
+            onDismiss = { picker = null }
+        )
         "rankingLanguage" -> SettingsSingleChoiceDialog(title = stringResource(R.string.usenet_ranking_language), options = languageOptions,
             selectedValue = configuration.ranking.preferredLanguage,
             onOptionSelected = { update(configuration.copy(ranking = configuration.ranking.copy(preferredLanguage = it))); picker = null },
@@ -553,12 +561,49 @@ private fun IndexerEditor(item: UsenetIndexer, isNew: Boolean, test: suspend (Us
 }
 
 @Composable
+private fun SourceStreamFormatEditor(
+    templates: SourceStreamTemplates,
+    onSave: (SourceStreamTemplates) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var draft by remember { mutableStateOf(templates) }
+    val isValid = draft.name.length <= SourceStreamTemplates.MAX_LENGTH &&
+        draft.description.length <= SourceStreamTemplates.MAX_LENGTH
+    NuvioDialog(
+        title = stringResource(R.string.source_stream_format_title),
+        subtitle = stringResource(R.string.source_stream_format_hint),
+        onDismiss = onDismiss,
+        width = 700.dp
+    ) {
+        Column(
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SourceField(stringResource(R.string.web_debrid_name_template), draft.name,
+                { draft = draft.copy(name = it) }, lines = 4)
+            SourceField(stringResource(R.string.web_debrid_description_template), draft.description,
+                { draft = draft.copy(description = it) }, lines = 4)
+        }
+        if (!isValid) {
+            Text(stringResource(R.string.source_stream_format_invalid), color = NuvioTheme.colors.TextSecondary)
+        }
+        SettingsDialogActionRow {
+            SettingsDialogActionButton(text = stringResource(R.string.action_cancel), onClick = onDismiss)
+            SettingsDialogActionButton(text = stringResource(R.string.web_debrid_restore_default),
+                onClick = { draft = SourceStreamTemplates.DEFAULT })
+            SettingsDialogActionButton(text = stringResource(R.string.action_save), primary = true, enabled = isValid,
+                onClick = { onSave(draft) })
+        }
+    }
+}
+
+@Composable
 private fun PhoneSetupRow(onClick: () -> Unit) = SettingsActionRow(title = stringResource(R.string.usenet_phone_setup),
     subtitle = stringResource(R.string.usenet_phone_setup_description), onClick = onClick)
 
 @Composable
 internal fun SourceField(label: String, value: String, changed: (String) -> Unit,
-    secret: Boolean = false, numeric: Boolean = false) {
+    secret: Boolean = false, numeric: Boolean = false, lines: Int = 1) {
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -566,7 +611,7 @@ internal fun SourceField(label: String, value: String, changed: (String) -> Unit
         Card(onClick = { focus.requestFocus() }, modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.colors(containerColor = NuvioTheme.colors.Background,
                 focusedContainerColor = NuvioTheme.colors.BackgroundElevated), scale = CardDefaults.scale(focusedScale = 1f)) {
-            BasicTextField(value = value, onValueChange = changed, singleLine = true,
+            BasicTextField(value = value, onValueChange = changed, singleLine = lines == 1, minLines = lines, maxLines = lines,
                 modifier = Modifier.fillMaxWidth().padding(12.dp).focusRequester(focus).testTag(label)
                     // A focused text field keeps the D-pad; without this a remote cannot reach the next field.
                     .onPreviewKeyEvent { event ->
@@ -582,7 +627,8 @@ internal fun SourceField(label: String, value: String, changed: (String) -> Unit
                     secret -> KeyboardType.Password
                     numeric -> KeyboardType.Number
                     else -> KeyboardType.Text
-                }, imeAction = ImeAction.Next),
+                }, imeAction = if (lines == 1) ImeAction.Next else ImeAction.Default,
+                    autoCorrectEnabled = if (lines == 1) null else false),
                 keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = NuvioTheme.colors.TextPrimary),
                 cursorBrush = SolidColor(NuvioTheme.colors.Primary))

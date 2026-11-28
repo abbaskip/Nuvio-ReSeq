@@ -42,7 +42,8 @@ object OnDemandStreams {
                 videoSize = t?.estimatedBytes, filename = releaseName(s)),
             addonName = sourceName, addonLogo = null, quality = quality, qualityValue = t?.height ?: -1,
             iptvPlaylistId = s.playlistId)
-        if (templates?.enabled != true) return stream
+        val format = templates ?: SourceStreamTemplates.DEFAULT
+        if (!format.enabled) return stream
 
         // Provider URLs can contain credentials; use only a descriptive video basename, never its path or query.
         val filename = s.url.toHttpUrlOrNull()?.pathSegments?.lastOrNull()?.takeIf { candidate ->
@@ -58,10 +59,10 @@ object OnDemandStreams {
         val minutes = t?.durationSecs?.takeIf { it > 0 }?.let { ((it.toLong() + 30) / 60).coerceAtLeast(1) }
         val height = t?.height?.takeIf { it > 0 } ?: facts.firstNotNullOfOrNull { it.resolution.takeIf { pixels -> pixels > 0 } }
         val visual = t?.hdr ?: facts.firstNotNullOfOrNull { UsenetReleaseLabels.visual(it.visual) }
-        return templates.apply(stream, "http", mapOf(
+        return format.apply(stream, "http", mapOf(
             "stream.title" to s.title,
             "stream.year" to s.year,
-            "stream.filename" to (filename ?: s.episodeTitle.ifBlank { s.title }),
+            "stream.filename" to filename,
             "stream.resolution" to height?.let { "${it}p" },
             "stream.quality" to facts.firstNotNullOfOrNull { UsenetReleaseLabels.quality(it.quality) },
             "stream.encode" to (t?.videoCodec?.let(::codecName) ?: facts.firstNotNullOfOrNull { UsenetReleaseLabels.codec(it.codec) }),

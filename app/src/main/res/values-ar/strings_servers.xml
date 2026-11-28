@@ -48,4 +48,9 @@
     <string name="silo_error_temporary_password">قم بتغيير كلمة المرور المؤقتة في تطبيق الويب الخاص بـ Silo أولاً، ثم قم بتسجيل الدخول مرة أخرى.</string>
     <string name="silo_error_password_off">تم إيقاف تسجيل الدخول بكلمة المرور لهذا الخادم. استخدم رمزًا بدلاً من ذلك.</string>
     <string name="silo_error_too_many_tries">محاولات كثيرة جدًا. انتظر لحظة وحاول مرة أخرى.</string>
+    <string name="settings_media_servers_subtitle">اتصل بـ Jellyfin أو Emby أو Plex أو Silo لتصفح مكتبتك وتشغيل محتواها.</string>
+    <string name="servers_sign_in_subtitle">أدخل عنوان الخادم واسم المستخدم في %1$s لتسجيل الدخول. وتُستخدم كلمة المرور لتسجيل الدخول فقط.</string>
+    <string name="servers_import_watch_state_description">أضِف العناوين التي تشاهدها في %1$s إلى متابعة المشاهدة مع علامات المشاهدة، وسيستأنف التشغيل من %1$s على أي حال.</string>
+    <string name="library_server_title_unsupported">لا يمكن إضافة عناوين خادم الوسائط إلى هذه المكتبة. فعّل استخدام البيانات الوصفية للإضافات للخادم لحفظها هنا.</string>
+    <string name="library_servers_empty_message">اختر المكتبات التي تريد عرضها في الإعدادات، ضمن المحتوى والاستكشاف، ثم خوادم الوسائط.</string>
 </resources>

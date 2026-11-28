@@ -3144,4 +3144,19 @@
     <string name="choose_watch_time">اختيار الوقت</string>
     <string name="choose_past_watch_time">اختر وقتًا صالحًا في الماضي.</string>
     <string name="episodes_last_watch_mdblist_pending">أُزيل سجل المشاهدة من هذا الجهاز. في انتظار تأكيد MDBList.</string>
+    <string name="advanced_confirm_exit_subtitle">إنهاء التطبيق بالكامل وتحرير الذاكرة عند الخروج. يتطلب الضغط على زر الرجوع مرتين للتأكيد.</string>
+    <string name="confirm_exit_toast">اضغط زر الرجوع مرة أخرى للخروج</string>
+    <string name="playback_section_stream_selection_desc">كيفية اختيار مصدر عند الضغط على زر تشغيل.</string>
+    <string name="autoplay_post_play_movie_threshold_sub">اختر متى تظهر اقتراحات الأفلام، أما الحلقات فتتبع إعداد وضع توقيت الحلقة التالية.</string>
+    <string name="layout_section_sidebar_desc">نمط الشريط الجانبي وموضع ظهور استكشاف.</string>
+    <string name="layout_custom_poster_description">قدّم نمط رابط ملصق من خدمة خارجية. وإذا لم تتوفر قيمة لأي عنصر نائب لعنوان معيّن، يُستخدم الملصق الأصلي.</string>
+    <string name="web_custom_poster_subtitle">الصق نمط رابط الملصق أدناه ثم اضغط زر حفظ.</string>
+    <string name="mdblist_library_lists_description">اختر قوائم MDBList التي تظهر في المكتبة وفي إدارة القوائم. تظهر قائمة المشاهدة دائمًا.</string>
+    <string name="profile_copy_settings_created_error">أُنشئ الملف الشخصي، لكن تعذّر نسخ الإعدادات. يمكنك إعادة المحاولة من خيارات الملف الشخصي.</string>
+    <string name="ambient_mode_catalogs_default">كما في المحتوى المميز</string>
+    <string name="mdblist_show_on_hero_title">استخدام التقييمات في المحتوى المميز</string>
+    <string name="mdblist_show_on_hero_subtitle">إظهار تقييمات MDBList في المحتوى المميز (النمط الحديث والكلاسيكي أو الشبكي)</string>
+    <string name="playback_cache_write_warning">في الأجهزة ذات التخزين المدمج، تكون الكتابة على القرص مستمرة وقد تُقصّر عمر التخزين مع الوقت.</string>
+    <string name="random_episode_caught_up">شاهدت كل الحلقات. اختر كل الحلقات للمشاهدة مجددًا.</string>
+    <string name="autosync_tolerance_description">احتفظ بالتوقيت الأصلي إذا كان التصحيح المطلوب بهذا القدر أو أقل.</string>
 </resources>
